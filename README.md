@@ -1,6 +1,6 @@
 # julia
 
-This extension provides support for the [julia programming language](http://julialang.org/).
+This [VS Code](https://code.visualstudio.com) extension provides support for the [julia programming language](http://julialang.org/).
 
 ## Features
 
