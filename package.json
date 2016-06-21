@@ -16,6 +16,7 @@
         "type": "git",
         "url": "https://github.com/davidanthoff/julia-vscode.git"
     },
+    "icon": "images/julia-logo.svg",
     "categories": [
         "Languages",
         "Snippets"
