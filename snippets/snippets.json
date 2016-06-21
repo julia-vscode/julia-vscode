@@ -1,0 +1,12 @@
+{
+	"For Loop": {
+		"prefix": "for",
+		"body": [
+			"for $1 in $2",
+			"\t$3",
+			"end"
+		],
+		"description": "For Loop",
+		"scope": "source.julia"
+	}
+}

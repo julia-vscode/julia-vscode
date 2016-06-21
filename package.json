@@ -1,0 +1,42 @@
+{
+    "name": "language-julia",
+    "displayName": "julia",
+    "description": "julia language support",
+    "version": "0.0.1",
+    "publisher": "julialang",
+    "engines": {
+        "vscode": "^1.0.0"
+    },
+    "license": "SEE LICENSE IN LICENSE",
+    "bugs": {
+        "url": "https://github.com/davidanthoff/julia-vscode/issues"
+    },
+    "homepage": "https://github.com/davidanthoff/julia-vscode/blob/master/README.md",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/davidanthoff/julia-vscode.git"
+    },
+    "categories": [
+        "Languages",
+        "Snippets"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "julia",
+            "aliases": ["julia", "Julia"],
+            "extensions": [".jl"],
+            "configuration": "./julia.configuration.json"
+        }],
+        "grammars": [{
+            "language": "julia",
+            "scopeName": "source.julia",
+            "path": "./syntaxes/julia.tmLanguage"
+        }],
+        "snippets": [
+            {
+                "language": "julia",
+                "path": "./snippets/snippets.json"
+            }
+        ]
+    }
+}
