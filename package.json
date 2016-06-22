@@ -9,12 +9,12 @@
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
-        "url": "https://github.com/davidanthoff/julia-vscode/issues"
+        "url": "https://github.com/JuliaEditorSupport/julia-vscode/issues"
     },
-    "homepage": "https://github.com/davidanthoff/julia-vscode/blob/master/README.md",
+    "homepage": "https://github.com/JuliaEditorSupport/julia-vscode/blob/master/README.md",
     "repository": {
         "type": "git",
-        "url": "https://github.com/davidanthoff/julia-vscode.git"
+        "url": "https://github.com/JuliaEditorSupport/julia-vscode.git"
     },
     "icon": "images/julia-logo.svg",
     "categories": [
