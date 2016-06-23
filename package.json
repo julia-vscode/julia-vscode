@@ -50,6 +50,10 @@
             {
                 "language": "julia",
                 "path": "./snippets/snippets.json"
+            },
+            {
+                "language": "julia",
+                "path": "./snippets/latex_snippets.json"
             }
         ],
         "commands": [
