@@ -26,27 +26,38 @@
     ],
     "main": "./out/src/extension",
     "contributes": {
-        "languages": [{
-            "id": "julia",
-            "aliases": ["julia", "Julia"],
-            "extensions": [".jl"],
-            "configuration": "./julia.configuration.json"
-        }],
-        "grammars": [{
-            "language": "julia",
-            "scopeName": "source.julia",
-            "path": "./syntaxes/julia.tmLanguage"
-        }],
+        "languages": [
+            {
+                "id": "julia",
+                "aliases": [
+                    "julia",
+                    "Julia"
+                ],
+                "extensions": [
+                    ".jl"
+                ],
+                "configuration": "./julia.configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "julia",
+                "scopeName": "source.julia",
+                "path": "./syntaxes/julia.tmLanguage"
+            }
+        ],
         "snippets": [
             {
                 "language": "julia",
                 "path": "./snippets/snippets.json"
             }
         ],
-        "commands": [{
-            "command": "language-julia.openPackageDirectory",
-            "title": "julia: Open Package Directory in New Window"
-        }]
+        "commands": [
+            {
+                "command": "language-julia.openPackageDirectory",
+                "title": "julia: Open Package Directory in New Window"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
