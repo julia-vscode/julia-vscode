@@ -21,6 +21,10 @@
         "Languages",
         "Snippets"
     ],
+    "activationEvents": [
+        "onCommand:language-julia.openPackageDirectory"
+    ],
+    "main": "./out/src/extension",
     "contributes": {
         "languages": [{
             "id": "julia",
@@ -38,6 +42,19 @@
                 "language": "julia",
                 "path": "./snippets/snippets.json"
             }
-        ]
+        ],
+        "commands": [{
+            "command": "language-julia.openPackageDirectory",
+            "title": "julia: Open Package Directory in New Window"
+        }]
+    },
+    "scripts": {
+        "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
+        "compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install"
+    },
+    "devDependencies": {
+        "typescript": "^1.8.5",
+        "vscode": "^0.11.0"
     }
 }
