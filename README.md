@@ -1,5 +1,7 @@
 # julia
 
+[![Join the chat at https://gitter.im/JuliaEditorSupport/julia-vscode](https://badges.gitter.im/JuliaEditorSupport/julia-vscode.svg)](https://gitter.im/JuliaEditorSupport/julia-vscode?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This [VS Code](https://code.visualstudio.com) extension provides support for the [julia programming language](http://julialang.org/).
 
 ## Features
