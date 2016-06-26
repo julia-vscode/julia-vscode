@@ -19,10 +19,12 @@
     "icon": "images/julia-logo.svg",
     "categories": [
         "Languages",
-        "Snippets"
+        "Snippets",
+        "Linters"
     ],
     "activationEvents": [
-        "onCommand:language-julia.openPackageDirectory"
+        "onCommand:language-julia.openPackageDirectory",
+        "onLanguage:julia"
     ],
     "main": "./out/src/extension",
     "contributes": {
@@ -61,12 +63,37 @@
                 "command": "language-julia.openPackageDirectory",
                 "title": "julia: Open Package Directory in New Window"
             }
-        ]
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "julia configuration",
+            "properties": {
+                "julia.validate.executablePath": {
+                    "type": ["string", "null"],
+                    "default": null,
+                    "description": "Points to the julia executable."
+                },
+                "julia.validate.enable": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether julia validation is enabled or not."
+                },
+                "julia.validate.run": {
+                    "type": "string",
+					"enum": ["onSave", "onType"],
+					"default": "onType",
+					"description": "Whether the linter is run on save or on type."
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
         "compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
         "postinstall": "node ./node_modules/vscode/bin/install"
+    },
+    "dependencies": {
+        "carrier": "0.3.0"
     },
     "devDependencies": {
         "typescript": "^1.8.5",

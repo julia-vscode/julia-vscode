@@ -8,3 +8,4 @@ test/**
 src/**
 **/*.map
 tsconfig.json
+scripts/lintserver/julia_pkgdir/**
