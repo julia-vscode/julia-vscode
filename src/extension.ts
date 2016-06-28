@@ -4,6 +4,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs'
 import * as path from 'path'
+import * as net from 'net'
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -19,12 +20,48 @@ export function activate(context: vscode.ExtensionContext) {
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
     let disposable = vscode.commands.registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand);
-
     context.subscriptions.push(disposable);
+
+    let disposable2 = vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeJuliaCodeInREPL);
+    context.subscriptions.push(disposable2);
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {
+}
+
+function executeJuliaCodeInREPL() {
+    var editor = vscode.window.activeTextEditor;
+    if(!editor) {
+        return;
+    }
+
+    var selection = editor.selection;
+
+    var text = selection.isEmpty ? editor.document.lineAt(selection.start.line).text : editor.document.getText(selection);
+
+    // If no text was selected, try to move the cursor to the end of the next line
+    if (selection.isEmpty) {
+        for (var line = selection.start.line+1; line < editor.document.lineCount; line++) {
+            if (!editor.document.lineAt(line).isEmptyOrWhitespace) {
+                var newPos = selection.active.with(line, editor.document.lineAt(line).range.end.character);
+                var newSel = new vscode.Selection(newPos, newPos);
+                editor.selection = newSel;
+                break;
+            }
+        }
+    }
+
+    var namedPipe = '\\\\.\\pipe\\vscode-language-julia-server';
+    var client = net.connect(namedPipe,
+        () => {
+            var msg = {
+                "command": "run",
+                "body": text
+            };
+            client.write(JSON.stringify(msg));
+        });
+
 }
 
 // This method implements the language-julia.openPackageDirectory command

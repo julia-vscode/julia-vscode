@@ -22,7 +22,8 @@
         "Snippets"
     ],
     "activationEvents": [
-        "onCommand:language-julia.openPackageDirectory"
+        "onCommand:language-julia.openPackageDirectory",
+        "onCommand:language-julia.executeJuliaCodeInREPL"
     ],
     "main": "./out/src/extension",
     "contributes": {
@@ -60,8 +61,17 @@
             {
                 "command": "language-julia.openPackageDirectory",
                 "title": "julia: Open Package Directory in New Window"
+            },
+            {
+                "command": "language-julia.executeJuliaCodeInREPL",
+                "title": "julia: Execute Code"
             }
-        ]
+        ],
+        "keybindings": [{
+            "command": "language-julia.executeJuliaCodeInREPL",
+            "key": "ctrl+Enter",
+            "when": "editorTextFocus"
+        }] 
     },
     "scripts": {
         "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
