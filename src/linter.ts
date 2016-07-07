@@ -95,7 +95,7 @@ export default class JuliaValidationProvider {
         };
         var originalJuliaPkgDir = process.env.JULIA_PKGDIR ? process.env.JULIA_PKGDIR : path.join(os.homedir(), '.julia', 'v0.4');
         
-        this.juliaLinterProcess = cp.spawn(juliaExecPath, ['lintserver.jl', generatePipeName(process.pid.toString()), originalJuliaPkgDir], spawnOptions);
+        this.juliaLinterProcess = cp.spawn(juliaExecPath, ['--startup-file=no', '--history-file=no', 'lintserver.jl', generatePipeName(process.pid.toString()), originalJuliaPkgDir], spawnOptions);
 
         this.juliaLinterProcess.on('exit', () => {
             this.juliaLinterProcess = null;
