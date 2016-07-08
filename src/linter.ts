@@ -103,7 +103,7 @@ export default class JuliaValidationProvider {
 
         this.juliaLinterProcess.on('error', err => {
             this.juliaLinterProcess = null;
-            vscode.window.showErrorMessage('Could not start julia.exe for linter process.');
+            vscode.window.showErrorMessage('Could not start julia for linter process.');
         });
 
         let jlp_out_lr = readline.createInterface(this.juliaLinterProcess.stdout, this.juliaLinterProcess.stdin);
