@@ -2,3 +2,4 @@
 out
 node_modules
 scripts/lintserver/julia_pkgdir/
+.vscode/.browse.VC.db*
