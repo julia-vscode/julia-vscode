@@ -62,6 +62,10 @@
             {
                 "command": "language-julia.openPackageDirectory",
                 "title": "julia: Open Package Directory in New Window"
+            },
+            {
+                "command": "language-julia.executeCode",
+                "title": "julia: Execute Code"
             }
         ],
         "configuration": {
@@ -70,7 +74,7 @@
             "properties": {
                 "julia.validate.executablePath": {
                     "type": ["string", "null"],
-                    "default": null,
+                    "default": "/home/nova/Softwares/julia-0.5/bin/julia",
                     "description": "Points to the julia executable."
                 },
                 "julia.validate.enable": {
