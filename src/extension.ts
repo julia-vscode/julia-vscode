@@ -6,7 +6,9 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as net from 'net';
 import JuliaValidationProvider from './linter';
+import { JuliaCompletionItemProvider, executeJuliaCode} from './completionprovider';
 
+const JULIA: vscode.DocumentFilter = { language: 'julia', scheme: 'file' };
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -15,6 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
     // This line of code will only be executed once when your extension is activated
     console.log('Activating extension language-julia');
 
+
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
@@ -22,8 +25,14 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(disposable);
 
-    let validator = new JuliaValidationProvider();
-	validator.activate(context);
+    //let validator = new JuliaValidationProvider();
+	//validator.activate(context);
+
+    let juliaCompletionProvider = new JuliaCompletionItemProvider(context);
+    context.subscriptions.push(vscode.languages.registerCompletionItemProvider(JULIA, juliaCompletionProvider, '.', '\"', '@'));
+
+    let disposable2 = vscode.commands.registerCommand('language-julia.executeCode', executeJuliaCode);
+    context.subscriptions.push(disposable2);
 }
 
 // this method is called when your extension is deactivated
