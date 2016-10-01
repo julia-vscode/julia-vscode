@@ -74,7 +74,7 @@
             "properties": {
                 "julia.validate.executablePath": {
                     "type": ["string", "null"],
-                    "default": "/home/nova/Softwares/julia-0.5/bin/julia",
+                    "default": "null",
                     "description": "Points to the julia executable."
                 },
                 "julia.validate.enable": {
