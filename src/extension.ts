@@ -10,6 +10,7 @@ import JuliaValidationProvider from './linter';
 import { JuliaServer, JuliaSocket } from './server';
 import { JuliaHoverProvider } from './hover';
 import { JuliaDefinitionProvider } from './definition';
+import { JuliaCompletionItemProvider } from './completions';
 
 var jserver: JuliaServer;
 var jsocket: JuliaSocket;
@@ -34,6 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.languages.registerHoverProvider("julia", new JuliaHoverProvider(jsocket)))
     context.subscriptions.push(vscode.languages.registerDefinitionProvider("julia", new JuliaDefinitionProvider(jsocket)))
+    context.subscriptions.push(vscode.languages.registerCompletionItemProvider("julia", new JuliaCompletionItemProvider(jsocket),'(','.'))
     let validator = new JuliaValidationProvider();
 	validator.activate(context);
 }

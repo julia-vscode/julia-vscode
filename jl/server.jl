@@ -15,18 +15,24 @@ function getfullname(line::String,pos::Int)
 end
 
 function definition(sock,request)
-    line = request["params"]["line"]
-    pos = request["params"]["pos"]
-    name = split(getfullname(line,pos),'.')
+    name = split(getfullname(request["params"]["line"],request["params"]["pos"]),'.')
     x = getfield(Main,Symbol(name[1]))
     for i = 2:length(name)
         x = getfield(x,Symbol(name[i]))
     end
-    ms =map(functionloc,methods(x).ms)
     write(sock,JSON.json(Dict(
         "id"=>request["id"],
         "type"=>"definition",
-        "defs"=>ms 
+        "defs"=>map(functionloc,methods(x).ms)
+    )))
+end
+
+function completions(sock,request)
+    name = getfullname(request["params"]["line"],request["params"]["pos"])
+    write(sock,JSON.json(Dict(
+        "id"=>request["id"],
+        "type"=>"completions",
+        "completionitems"=>Base.REPLCompletions.completions(request["params"]["line"],request["params"]["pos"])[1]
     )))
 end
 
@@ -46,6 +52,8 @@ while true
                 hover(sock,request)
             elseif request["type"] == "definition"
                 definition(sock,request)
+            elseif request["type"] == "completions"
+                completions(sock,request)
             end
         end
     end
