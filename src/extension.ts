@@ -5,7 +5,13 @@ import * as vscode from 'vscode';
 import * as fs from 'fs'
 import * as path from 'path'
 import * as net from 'net';
+import * as cp from 'child_process';
 import JuliaValidationProvider from './linter';
+import { JuliaServer, JuliaSocket } from './server';
+import { JuliaHoverProvider } from './hover';
+
+var jserver: JuliaServer;
+var jsocket: JuliaSocket;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -22,6 +28,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(disposable);
 
+    jserver = new JuliaServer(context);
+    jsocket = new JuliaSocket(context)
+
+    context.subscriptions.push(vscode.languages.registerHoverProvider("julia", new JuliaHoverProvider(jsocket)))
     let validator = new JuliaValidationProvider();
 	validator.activate(context);
 }
