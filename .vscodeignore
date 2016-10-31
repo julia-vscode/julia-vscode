@@ -2,7 +2,6 @@
 .gitignore
 CONTRIBUTING.md
 *.vsix
-typings/**
 out/test/**
 test/**
 src/**
