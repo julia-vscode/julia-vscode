@@ -68,21 +68,10 @@
             "type": "object",
             "title": "julia configuration",
             "properties": {
-                "julia.validate.executablePath": {
+                "julia.executablePath": {
                     "type": ["string", "null"],
                     "default": null,
                     "description": "Points to the julia executable."
-                },
-                "julia.validate.enable": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Whether julia validation is enabled or not."
-                },
-                "julia.validate.run": {
-                    "type": "string",
-					"enum": ["onSave", "onType"],
-					"default": "onType",
-					"description": "Whether the linter is run on save or on type."
                 }
             }
         }
@@ -93,7 +82,8 @@
         "postinstall": "node ./node_modules/vscode/bin/install"
     },
     "dependencies": {
-        "carrier": "0.3.0"
+        "carrier": "0.3.0",
+        "vscode-languageclient": "^2.2.1"
     },
     "devDependencies": {
         "typescript": "^2.0.3",

@@ -1,5 +1,5 @@
 *.vsix
 out
 node_modules
-scripts/lintserver/julia_pkgdir/
+scripts/languageserver/julia_pkgdir/
 .vscode/.browse.VC.db*
