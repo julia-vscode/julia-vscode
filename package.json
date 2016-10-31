@@ -93,7 +93,8 @@
         "postinstall": "node ./node_modules/vscode/bin/install"
     },
     "dependencies": {
-        "carrier": "0.3.0"
+        "carrier": "0.3.0",
+        "vscode-languageclient": "^2.2.1"
     },
     "devDependencies": {
         "typescript": "^2.0.3",

@@ -6,6 +6,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as net from 'net';
 import JuliaValidationProvider from './linter';
+import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -22,8 +23,39 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(disposable);
 
-    let validator = new JuliaValidationProvider();
-	validator.activate(context);
+    let connectFunc = () => {
+            return new Promise<StreamInfo>(
+                (resolve, reject) => {
+                    var socket = net.connect(7458);
+                    socket.on(
+                        'connect',
+                        function() {
+                            console.log("Socket connected!");
+                            resolve({writer: socket, reader: socket})
+                        });
+                });
+        };
+
+    let clientOptions: LanguageClientOptions = {
+		// Register the server for plain text documents
+		documentSelector: ['julia']
+		// synchronize: {
+		// 	// Synchronize the setting section 'languageServerExample' to the server
+		// 	configurationSection: 'languageServerExample',
+		// 	// Notify the server about file changes to '.clientrc files contain in the workspace
+		// 	fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
+		// }
+	}
+
+    // Create the language client and start the client.
+	let languageClient = new LanguageClient('Language Server Example',connectFunc,clientOptions).start();
+	
+	// Push the disposable to the context's subscriptions so that the 
+	// client can be deactivated on extension deactivation
+	context.subscriptions.push(languageClient);
+
+    // let validator = new JuliaValidationProvider();
+	// validator.activate(context);
 }
 
 // this method is called when your extension is deactivated
