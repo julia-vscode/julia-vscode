@@ -1,5 +1,7 @@
 function myownlint(filename, code)
-    res = lintfile(filename, code)
+    filename2 = unescape(URI(filename).path)[2:end]
+
+    res = lintfile(filename2, code)
 
     diagnosticMessage = Dict()
     diagnosticMessage["jsonrpc"] = "2.0"
@@ -12,10 +14,10 @@ function myownlint(filename, code)
         diag = Dict()
         diag["range"] = Dict()
         diag["range"]["start"] = Dict()
-        diag["range"]["start"]["line"] = msg.line
+        diag["range"]["start"]["line"] = msg.line-1
         diag["range"]["start"]["character"] = 0
         diag["range"]["end"] = Dict()
-        diag["range"]["end"]["line"] = msg.line
+        diag["range"]["end"]["line"] = msg.line-1
         diag["range"]["end"]["character"] = typemax(Int)
         code = string(msg.code)
         if code[1]=='E'        

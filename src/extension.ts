@@ -5,8 +5,11 @@ import * as vscode from 'vscode';
 import * as fs from 'fs'
 import * as path from 'path'
 import * as net from 'net';
-import JuliaValidationProvider from './linter';
+import * as os from 'os';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
+
+let juliaExecutable = null;
+let languageClient = null;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -19,16 +22,67 @@ export function activate(context: vscode.ExtensionContext) {
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
-    let disposable = vscode.commands.registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand);
+    let disposable_OpenPkgCommand = vscode.commands.registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand);
+    context.subscriptions.push(disposable_OpenPkgCommand);
 
-    context.subscriptions.push(disposable);
+    loadConfiguration();
 
-    let validator = new JuliaValidationProvider();
-	validator.activate(context);
+    startLanguageServer(context);
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {
+}
+
+function loadConfiguration() {
+    let oldValue = juliaExecutable;
+
+    let section = vscode.workspace.getConfiguration('julia');
+    if (section) {
+        juliaExecutable = section.get<string>('validate.executablePath', null);
+    }
+    else {
+        juliaExecutable = null;
+    }
+
+    return juliaExecutable != oldValue
+}
+
+function startLanguageServer(context: vscode.ExtensionContext) {
+    // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
+
+    var originalJuliaPkgDir = process.env.JULIA_PKGDIR ? process.env.JULIA_PKGDIR : path.join(os.homedir(), '.julia', 'v0.5');
+    let serverArgs = ['--startup-file=no', '--history-file=no', 'languageserver.jl', originalJuliaPkgDir];
+    let spawnOptions = {
+        cwd: path.join(context.extensionPath, 'scripts', 'languageserver'),
+        env: {
+            JULIA_PKGDIR: path.join(context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            HOME: process.env.HOME ? process.env.HOME : os.homedir()
+        }
+    };
+
+    let serverOptions = {
+        run: { command: juliaExecutable, args: serverArgs, options: spawnOptions },
+        debug: { command: juliaExecutable, args: serverArgs, options: spawnOptions }
+    };
+
+    let clientOptions: LanguageClientOptions = {
+        // Register the server for plain text documents
+        documentSelector: ['julia']
+    }
+
+    // Create the language client and start the client.
+    languageClient = new LanguageClient('julia Language Server', serverOptions, clientOptions);
+
+    // Push the disposable to the context's subscriptions so that the 
+    // client can be deactivated on extension deactivation
+    try {
+        context.subscriptions.push(languageClient.start());
+    }
+    catch (e) {
+        console.log("Couldn't start it.");
+        languageClient = null;
+    }
 }
 
 // This method implements the language-julia.openPackageDirectory command
@@ -55,7 +109,7 @@ function openPackageDirectoryCommand() {
                             vscode.window.showInformationMessage('Error: Could not read julia home directory.');
                         }
                         else {
-                            var r = /^v\d*\.\d*$/; 
+                            var r = /^v\d*\.\d*$/;
                             var filteredFiles = files.filter(path => path.search(r) > -1).map(path => path.substr(1));
 
                             if (filteredFiles.length == 0) {
