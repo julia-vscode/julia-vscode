@@ -15,6 +15,7 @@ function myownlint(filename, code)
         diag["range"] = Dict()
         diag["range"]["start"] = Dict()
         diag["range"]["start"]["line"] = msg.line-1
+        # TODO Detect the first column with text
         diag["range"]["start"]["character"] = 0
         diag["range"]["end"] = Dict()
         diag["range"]["end"]["line"] = msg.line-1

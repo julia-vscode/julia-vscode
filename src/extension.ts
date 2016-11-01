@@ -39,7 +39,7 @@ function loadConfiguration() {
 
     let section = vscode.workspace.getConfiguration('julia');
     if (section) {
-        juliaExecutable = section.get<string>('validate.executablePath', null);
+        juliaExecutable = section.get<string>('executablePath', null);
     }
     else {
         juliaExecutable = null;
