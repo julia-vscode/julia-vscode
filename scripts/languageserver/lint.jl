@@ -1,5 +1,3 @@
-using Lint
-
 function myownlint(filename, code)
     res = lintfile(filename, code)
 

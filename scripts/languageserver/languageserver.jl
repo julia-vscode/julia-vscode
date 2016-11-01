@@ -1,8 +1,43 @@
-using JSON
+if VERSION < v"0.4" || VERSION >= v"0.6-"
+    println("VS Code linter only works with julia 0.4 and 0.5")
+else
+    lock_aquired = false
+    while !lock_aquired
+        try
+            @windows_only global_lock_socket_name = "\\\\.\\pipe\\vscode-language-server-global-lock"
+            @unix_only global_lock_socket_name = joinpath(tempdir(), "vscode-language-server-global-lock")
+            socket = listen(global_lock_socket_name)
+            try
+                try
+                    eval(parse("using Lint"))
+                    eval(parse("using JSON"))
+                catch e
+                    println("Installing Lint package")
+                    Pkg.init()
+                    Pkg.add("Compat", v"0.9.2")
+                    Pkg.add("Lint", v"0.2.5")
+                    Pkg.add("JSON")
+                    eval(parse("using Lint"))
+                end
+            finally
+                close(socket)
+                lock_aquired = true
+            end
+        catch e
+            info("Another julia lint process is currently updating packages, trying again in 1 second.")
+            sleep(1.)
+        end
+    end
 
-include("lint.jl")
+    if length(Base.ARGS)!=2
+        error()
+    end
 
-function read_transport_layer(conn)
+    push!(LOAD_PATH, Base.ARGS[2])
+
+    include("lint.jl")
+
+    function read_transport_layer(conn)
     header = String[]
     line = chomp(readline(conn))
     while length(line)>0
@@ -28,6 +63,7 @@ function write_transport_layer(conn, response)
 end
 
 function process_message_initialize(message)
+    println("process initialize message")
     response = Dict()
     response["jsonrpc"] = "2.0"
     response["id"] = message["id"]
@@ -41,6 +77,7 @@ function process_message_initialize(message)
 end
 
 function process_message_textDocument_didOpen(message)
+println("process didOpen message")
     uri = message["params"]["textDocument"]["uri"]
     content = message["params"]["textDocument"]["text"]
 
@@ -52,6 +89,7 @@ function process_message_textDocument_didOpen(message)
 end
 
 function process_message_textDocument_didChange(message)
+println("process didChange message")
     uri = message["params"]["textDocument"]["uri"]
     content = message["params"]["contentChanges"][1]["text"]
 
@@ -69,7 +107,8 @@ function process_message_textDocument_didClose(message)
 end
 
 
-server = listen(7458)
+server = listen(Base.ARGS[1])
+println("julia language server running on $(Base.ARGS[1])")
 documents = Dict{String,String}()
 while true
   conn = accept(server)
@@ -103,3 +142,19 @@ while true
     end
   end
 end
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
