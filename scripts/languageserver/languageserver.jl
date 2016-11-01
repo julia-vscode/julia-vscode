@@ -1,8 +1,8 @@
 conn = STDOUT
 (outRead, outWrite) = redirect_stdout()
 
-if VERSION < v"0.5" || VERSION >= v"0.6-"
-    error("VS Code julia language server only works with julia 0.5")
+if VERSION < v"0.5"
+    error("VS Code julia language server only works with julia 0.5 or newer.")
 end
 
 include("dependencies.jl")
