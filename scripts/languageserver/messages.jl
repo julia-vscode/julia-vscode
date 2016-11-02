@@ -5,6 +5,7 @@ function process_message_initialize(message)
     response["result"] = Dict()
     response["result"]["capabilities"] = Dict()
     response["result"]["capabilities"]["textDocumentSync"] = 1
+    response["result"]["capabilities"]["hoverProvider"] = true
 
     response_json = JSON.json(response)
 

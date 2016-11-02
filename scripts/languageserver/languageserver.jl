@@ -6,7 +6,7 @@ if VERSION < v"0.5"
 end
 
 include("dependencies.jl")
-use_and_install_dependencies(["Compat", "JSON", "Lint", "URIParser"])
+use_and_install_dependencies(["Compat", "JSON", "Lint", "URIParser","JuliaParser"])
 
 if length(Base.ARGS)==1
     push!(LOAD_PATH, Base.ARGS[1])
@@ -14,6 +14,8 @@ elseif length(Base.ARGS)>1
     error("Invalid number of arguments passed to julia language server.")
 end
 
+include("protocol.jl")
+include("hover.jl")
 include("transport.jl")
 include("messages.jl")
 include("lint.jl")
@@ -34,6 +36,12 @@ while true
         process_message_textDocument_didClose(message_json)
     elseif message_json["method"]=="textDocument/didSave"
         nothing
+    elseif message_json["method"]=="textDocument/hover"
+        req  = Request(message_json)
+        resp = Respond(req)
+        response = JSON.json(resp)
+    elseif message_json["method"]=="\$/cancelRequest"
+        #either do nothing or do something to stop long running response functions.
     else
         error("Unknown message $(message_json["method"])")
     end
