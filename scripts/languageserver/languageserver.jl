@@ -24,27 +24,22 @@ include("completions.jl")
 include("definitions.jl")
 include("signatures.jl")
 include("transport.jl")
-include("messages.jl")
+
 
 documents = Dict{String,Array{String,1}}()
 while true
     message = read_transport_layer(STDIN)
     message_json = JSON.parse(message)
-
     response = nothing
-    if message_json["method"]=="textDocument/didSave"
-        nothing
-    elseif in(message_json["method"],ProviderList)
-        req  = Request(message_json)
-        resp = Respond(req)
-        response = JSON.json(resp)
-    elseif message_json["method"]=="\$/cancelRequest"
-        #either do nothing or do something to stop long running response functions.
-    else
-        error("Unknown message $(message_json["method"])")
-    end
 
-    if !(response==nothing || response=="null")
-        write_transport_layer(conn,response)
+    !in(message_json["method"],ProviderList) && error("Unknown message $(message_json["method"])")
+
+    request  = Request(message_json)
+    response = Respond(request)
+    response_json = JSON.json(response)
+
+    if !(response_json==nothing || response_json=="null")
+        write_transport_layer(conn,response_json)
     end
 end
+

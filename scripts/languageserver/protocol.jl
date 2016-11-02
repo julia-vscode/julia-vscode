@@ -108,7 +108,9 @@ const ProviderList = ["textDocument/hover"
                       "initialize"
                       "textDocument/didOpen"
                       "textDocument/didChange"
-                      "textDocument/didClose"]
+                      "textDocument/didClose"
+                      "textDocument/didSave" #does nothing
+                      "\$/cancelRequest"] #does nothing
 
 function Request(d::Dict)
     m = d["method"]
@@ -136,6 +138,8 @@ type Response{m<:Method,T} <: Message
     id::Int
     result::T
 end
+
+Respond(t::Void) = nothing
 
 
 
