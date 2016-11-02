@@ -25,6 +25,7 @@
     "activationEvents": [
         "onCommand:language-julia.openPackageDirectory",
         "onCommand:language-julia.startREPL",
+        "onCommand:language-julia.executeJuliaCodeInREPL",
         "onLanguage:julia"
     ],
     "main": "./out/src/extension",
@@ -67,8 +68,17 @@
             {
                 "command": "language-julia.startREPL",
                 "title": "julia: Start REPL"
+            },
+            {
+                "command": "language-julia.executeJuliaCodeInREPL",
+                "title": "julia: Execute Code"
             }
         ],
+        "keybindings": [{
+            "command": "language-julia.executeJuliaCodeInREPL",
+            "key": "ctrl+Enter",
+            "when": "editorTextFocus"
+        }],
         "configuration": {
             "type": "object",
             "title": "julia configuration",

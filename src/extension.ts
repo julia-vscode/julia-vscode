@@ -12,11 +12,12 @@ import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, T
 let juliaExecutable = null;
 let languageClient = null;
 let REPLterminal: vscode.Terminal = null;
+let extensionPath: string = null;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-
+    extensionPath = context.extensionPath;
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
     console.log('Activating extension language-julia');
@@ -31,6 +32,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     let disposable_StartREPLCommand = vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand);
     context.subscriptions.push(disposable_StartREPLCommand);
+
+    let disposable_executeJuliaCodeInREPL = vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeJuliaCodeInREPL);
+    context.subscriptions.push(disposable_executeJuliaCodeInREPL);
 
     vscode.window.onDidCloseTerminal(terminal=>{
         if (terminal==REPLterminal) {
@@ -169,7 +173,56 @@ function openPackageDirectoryCommand() {
 function startREPLCommand() {
     
     if (REPLterminal==null) {
-        REPLterminal = vscode.window.createTerminal("julia", juliaExecutable);
+        let args = path.join(extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
+        REPLterminal = vscode.window.createTerminal("julia", juliaExecutable, ["-i", args, process.pid.toString()]);
     }
     REPLterminal.show();
+}
+
+function generatePipeName(pid: string) {
+    if (process.platform === 'win32') {
+        return '\\\\.\\pipe\\vscode-language-julia-terminal-' + pid;
+    }
+    else {
+        return path.join(os.tmpdir(), 'vscode-language-julia-terminal-' + pid);
+    }
+ }
+
+function executeJuliaCodeInREPL() {
+    var editor = vscode.window.activeTextEditor;
+    if(!editor) {
+        return;
+    }
+ 
+    var selection = editor.selection;
+ 
+    var text = selection.isEmpty ? editor.document.lineAt(selection.start.line).text : editor.document.getText(selection);
+ 
+     // If no text was selected, try to move the cursor to the end of the next line
+    if (selection.isEmpty) {
+        for (var line = selection.start.line+1; line < editor.document.lineCount; line++) {
+            if (!editor.document.lineAt(line).isEmptyOrWhitespace) {
+                var newPos = selection.active.with(line, editor.document.lineAt(line).range.end.character);
+                var newSel = new vscode.Selection(newPos, newPos);
+                editor.selection = newSel;
+                break;
+            }
+        }
+    }
+
+    // TODO Somehow wait for the named pipe to be ready if we started the julia process here.
+    startREPLCommand();
+
+    var namedPipe = generatePipeName(process.pid.toString());
+    var client = net.connect(namedPipe,
+        () => {
+            var msg = {
+                "command": "run",
+                "body": text
+            };
+            client.write("Command: run\n");
+            client.write(`Content-Length: ${text.length}\n`);
+            client.write(`\n`);
+            client.write(text);
+        });
 }
