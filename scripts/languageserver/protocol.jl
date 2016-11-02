@@ -31,10 +31,15 @@ type Request{m<:Method,T} <: Message
     params::T
 end
 
+const ProviderList = ["textDocument/hover"
+                      "textDocument/completion"]
+
 function Request(d::Dict)
     m = d["method"]
     if m=="textDocument/hover"
         return Request{hover,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
+    elseif m=="textDocument/completion"
+        return Request{completion,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
     end
 end
 
@@ -67,8 +72,8 @@ function Word(p::TextDocumentPositionParams)
     return ret 
 end
 
-function getSym(p::TextDocumentPositionParams)
-    name = split(Word(p),'.')
+function getSym(str::String)
+    name = split(str,'.')
     try
         x = getfield(Main,Symbol(name[1]))
         for i = 2:length(name)
@@ -79,6 +84,8 @@ function getSym(p::TextDocumentPositionParams)
         return nothing
     end
 end
+
+getSym(p::TextDocumentPositionParams) = getSym(Word(p))
 
 
 function checkmsg(response)

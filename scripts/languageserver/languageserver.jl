@@ -16,6 +16,7 @@ end
 
 include("protocol.jl")
 include("hover.jl")
+include("completions.jl")
 include("transport.jl")
 include("messages.jl")
 include("lint.jl")
@@ -36,7 +37,7 @@ while true
         process_message_textDocument_didClose(message_json)
     elseif message_json["method"]=="textDocument/didSave"
         nothing
-    elseif message_json["method"]=="textDocument/hover"
+    elseif in(message_json["method"],ProviderList)
         req  = Request(message_json)
         resp = Respond(req)
         response = JSON.json(resp)
