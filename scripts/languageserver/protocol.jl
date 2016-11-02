@@ -8,10 +8,19 @@ Position(line) = Position(line,0)
 Position() = Position(-1,-1)
 isempty(p::Position) = p.line==-1 && p.character==-1
 
-type Range
-    start::Position
-    finish::Position
+#type Range
+#    start::Position
+#    finish::Position
+#end
+let ex=:(type Range
+        start::Position
+        finish::Position
+    end)
+    ex.args[3].args=ex.args[3].args[[2;4]]
+    ex.args[3].args[2].args[1]=Symbol("end")
+    eval(ex)
 end
+
 Range(d::Dict) = Range(d["start"],d["end"])
 Range(line) = Range(Position(line),Position(line))
 isempty(r::Range) = isempty(r.start) && isempty(r.finish)
@@ -29,11 +38,27 @@ type TextDocumentIdentifier
 end
 TextDocumentIdentifier(d::Dict) = TextDocumentIdentifier(d["uri"])
 
+type TextDocumentItem
+    uri::String
+    languageId::String
+    version::Int
+    text::String
+end
+TextDocumentItem(d::Dict) = TextDocumentItem(d["uri"],d["languageId"],d["version"],d["text"])
+
 type TextDocumentPositionParams
     textDocument::TextDocumentIdentifier
     position::Position
 end
 TextDocumentPositionParams(d::Dict) = TextDocumentPositionParams(TextDocumentIdentifier(d["textDocument"]),Position(d["position"]))
+
+
+type Notification
+    jsonrpc::String
+    method::String
+    params::Any
+end
+Notification(method,params)=Notification("2.0",method,params)
 
 
 # Messages
@@ -49,7 +74,9 @@ const ProviderList = ["textDocument/hover"
                       "textDocument/completion"
                       "textDocument/definition"
                       "textDocument/signatureHelp"
-                      "initialize"]
+                      "initialize"
+                      "textDocument/didOpen"
+                      "textDocument/didChange"]
 
 function Request(d::Dict)
     m = d["method"]
@@ -63,6 +90,8 @@ function Request(d::Dict)
         return Request{signature,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
     elseif m=="initialize"
         return Request{initialize,Any}(d["id"],Any(d["params"]))
+    elseif m=="textDocument/didOpen"
+        return Request{didOpen,TextDocumentItem}(-1,TextDocumentItem(d["params"]["textDocument"]))
     end
 end
 

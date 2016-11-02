@@ -48,3 +48,28 @@ function Respond(r::Request{initialize,Any})
     end
 end
 
+
+
+abstract didOpen <: Method
+
+function Respond(r::Request{didOpen,TextDocumentItem})
+    try
+        documents[r.params.uri] = split(r.params.text,r"\r\n?|\n")
+        
+        return Notification("textDocument/publishDiagnostics",PublishDiagnosticsParams(r.params.uri))
+    catch err
+        return Response{didOpen,Exception}("2.0",r.id,err)
+    end
+end
+
+abstract didChange <: Method
+
+function Respond(r::Request{didChange,TextDocumentItem})
+    try
+        documents[r.params.uri] = split(r.params.text,r"\r\n?|\n")
+        
+        return Notification("textDocument/publishDiagnostics",PublishDiagnosticsParams(r.params.uri))
+    catch err
+        return Response{didOpen,Exception}("2.0",r.id,err)
+    end
+end

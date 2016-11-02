@@ -18,7 +18,8 @@ function read_transport_layer(stream)
 end
 
 function write_transport_layer(stream, response)
-    n = length(response)
+    response_utf8 = transcode(UInt8, response)
+    n = length(response_utf8)
     write(stream, "Content-Length: $n\r\n\r\n")
-    write(stream, response)
+    write(stream, response_utf8)
 end
