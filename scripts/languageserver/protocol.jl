@@ -8,6 +8,20 @@ Position(line) = Position(line,0)
 Position() = Position(-1,-1)
 isempty(p::Position) = p.line==-1 && p.character==-1
 
+type Range
+    start::Position
+    finish::Position
+end
+Range(d::Dict) = Range(d["start"],d["end"])
+Range(line) = Range(Position(line),Position(line))
+isempty(r::Range) = isempty(r.start) && isempty(r.finish)
+
+type Location
+    uri::String
+    range::Range
+end
+Location(d::Dict) = Location(d["uri"],Range(d["range"]))
+Location(f::String,line) = Location(f,Range(line))
 
 # TextDocument
 type TextDocumentIdentifier
@@ -32,7 +46,9 @@ type Request{m<:Method,T} <: Message
 end
 
 const ProviderList = ["textDocument/hover"
-                      "textDocument/completion"]
+                      "textDocument/completion"
+                      "textDocument/definition"
+                      "textDocument/signatureHelp"]
 
 function Request(d::Dict)
     m = d["method"]
@@ -40,6 +56,10 @@ function Request(d::Dict)
         return Request{hover,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
     elseif m=="textDocument/completion"
         return Request{completion,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
+    elseif m=="textDocument/definition"
+        return Request{definition,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
+    elseif m=="textDocument/signatureHelp"
+        return Request{signature,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
     end
 end
 
@@ -58,9 +78,9 @@ function Line(p::TextDocumentPositionParams)
     return d[p.position.line+1]
 end
 
-function Word(p::TextDocumentPositionParams)
+function Word(p::TextDocumentPositionParams,offset=0)
     line = Line(p)
-    s = e = max(1,p.position.character)
+    s = e = max(1,p.position.character)+offset
     while e<=length(line) && Lexer.is_identifier_char(line[e])
         e+=1
     end

@@ -8,7 +8,10 @@ function process_message_initialize(message)
     response["result"]["capabilities"]["hoverProvider"] = true
     compopts = Dict("resolveProvider"=>false,"triggerCharacters"=>["."])
     response["result"]["capabilities"]["completionProvider"] = compopts
-    
+    response["result"]["capabilities"]["definitionProvider"] = true
+    response["result"]["capabilities"]["definitionProvider"] = true
+    response["result"]["capabilities"]["signatureHelpProvider"] = Dict("triggerCharacters"=>["("])
+
     response_json = JSON.json(response)
 
     return response_json

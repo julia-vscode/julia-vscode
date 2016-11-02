@@ -17,6 +17,8 @@ end
 include("protocol.jl")
 include("hover.jl")
 include("completions.jl")
+include("definitions.jl")
+include("signatures.jl")
 include("transport.jl")
 include("messages.jl")
 include("lint.jl")
