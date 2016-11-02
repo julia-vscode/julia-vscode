@@ -12,9 +12,11 @@ type SignatureInformation
     function SignatureInformation(m::Base.Method)
         ptype = string.(collect(m.sig.parameters[2:end]))
         pname = string.(m.source.slotnames[2:end])[1:length(ptype)]
+        pname = [n=="#unused#" ? "": n for n in pname]
+        desc = string(m.name)*"("*mapreduce(x->"$(x[1])::$(x[2]), ",*,"",zip(pname,ptype))[1:end-2]*")"
         
         PI    = map(ParameterInformation,pname,ptype)   
-        return new(string(m.name),"",PI)
+        return new(desc,"",PI)
     end
 end
 
@@ -40,8 +42,7 @@ function Respond(r::Request{signature,TextDocumentPositionParams})
                 n+=length(s)
             end
         end
-        SH = SignatureHelp(sigs[1:min(3,length(sigs))])
-        info(SH)
+        SH = SignatureHelp(sigs)        
         return Response{signature,SignatureHelp}("2.0",r.id,SH)
     catch err
         return Response{signature,Exception}("2.0",r.id,err)

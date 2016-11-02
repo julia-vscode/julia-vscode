@@ -7,8 +7,15 @@ end
 function Respond(r::Request{hover,TextDocumentPositionParams})
     try
         x = getSym(r.params)
-        d = string(Docs.doc(x))        
-        d = d[1:16]=="No documentation" ? string(typeof(x)) : d
+        d = string(Docs.doc(x))
+        if d[1:16]=="No documentation"
+            if isa(x,Function)
+                d = "Function"
+            else
+                d = string(typeof(x))
+            end
+        end
+        
         d = d=="Void" ? "" : d
         if length(d)>1000
             n,lr = first20lines(d)
