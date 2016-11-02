@@ -48,7 +48,8 @@ end
 const ProviderList = ["textDocument/hover"
                       "textDocument/completion"
                       "textDocument/definition"
-                      "textDocument/signatureHelp"]
+                      "textDocument/signatureHelp"
+                      "initialize"]
 
 function Request(d::Dict)
     m = d["method"]
@@ -60,6 +61,8 @@ function Request(d::Dict)
         return Request{definition,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
     elseif m=="textDocument/signatureHelp"
         return Request{signature,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
+    elseif m=="initialize"
+        return Request{initialize,Any}(d["id"],Any(d["params"]))
     end
 end
 

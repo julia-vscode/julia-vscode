@@ -14,7 +14,9 @@ elseif length(Base.ARGS)>1
     error("Invalid number of arguments passed to julia language server.")
 end
 
+
 include("protocol.jl")
+include("misc.jl")
 include("hover.jl")
 include("completions.jl")
 include("definitions.jl")
@@ -29,9 +31,9 @@ while true
     message_json = JSON.parse(message)
 
     response = nothing
-    if message_json["method"]=="initialize"
-        response = process_message_initialize(message_json)
-    elseif message_json["method"]=="textDocument/didOpen"
+    #if message_json["method"]=="initialize"
+    #    response = process_message_initialize(message_json)
+    if message_json["method"]=="textDocument/didOpen"
         response = process_message_textDocument_didOpen(message_json)
     elseif message_json["method"]=="textDocument/didChange"
         process_message_textDocument_didChange(message_json)
