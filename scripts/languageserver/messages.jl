@@ -7,11 +7,3 @@ function process_message_textDocument_didChange(message)
 
     return nothing
 end
-
-function process_message_textDocument_didClose(message)
-    uri = message["params"]["textDocument"]["uri"]
-
-    delete!(documents, uri)
-
-    return nothing
-end

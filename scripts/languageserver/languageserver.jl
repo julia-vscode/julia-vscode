@@ -34,8 +34,6 @@ while true
     response = nothing
     if message_json["method"]=="textDocument/didChange"
         process_message_textDocument_didChange(message_json)
-    elseif message_json["method"]=="textDocument/didClose"
-        process_message_textDocument_didClose(message_json)
     elseif message_json["method"]=="textDocument/didSave"
         nothing
     elseif in(message_json["method"],ProviderList)
@@ -48,7 +46,7 @@ while true
         error("Unknown message $(message_json["method"])")
     end
 
-    if response!=nothing
+    if !(response==nothing || response=="null")
         write_transport_layer(conn,response)
     end
 end

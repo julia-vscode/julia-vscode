@@ -76,7 +76,8 @@ const ProviderList = ["textDocument/hover"
                       "textDocument/signatureHelp"
                       "initialize"
                       "textDocument/didOpen"
-                      "textDocument/didChange"]
+                      "textDocument/didChange"
+                      "textDocument/didClose"]
 
 function Request(d::Dict)
     m = d["method"]
@@ -92,6 +93,8 @@ function Request(d::Dict)
         return Request{initialize,Any}(d["id"],Any(d["params"]))
     elseif m=="textDocument/didOpen"
         return Request{didOpen,TextDocumentItem}(-1,TextDocumentItem(d["params"]["textDocument"]))
+    elseif m=="textDocument/didClose"
+        return Request{didClose,TextDocumentIdentifier}(-1,TextDocumentIdentifier(d["params"]["textDocument"]))
     end
 end
 

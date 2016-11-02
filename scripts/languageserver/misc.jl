@@ -62,14 +62,14 @@ function Respond(r::Request{didOpen,TextDocumentItem})
     end
 end
 
-abstract didChange <: Method
+abstract didClose <: Method
 
-function Respond(r::Request{didChange,TextDocumentItem})
+function Respond(r::Request{didClose,TextDocumentIdentifier})
     try
-        documents[r.params.uri] = split(r.params.text,r"\r\n?|\n")
-        
-        return Notification("textDocument/publishDiagnostics",PublishDiagnosticsParams(r.params.uri))
+        delete!(documents,r.params.uri)
+        info(r.params.uri)
+        return
     catch err
-        return Response{didOpen,Exception}("2.0",r.id,err)
+        return Response{didClose,Exception}("2.0",r.id,err)
     end
 end
