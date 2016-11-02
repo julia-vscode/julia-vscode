@@ -18,7 +18,7 @@ include("transport.jl")
 include("messages.jl")
 include("lint.jl")
 
-documents = Dict{String,String}()
+documents = Dict{String,Array{String,1}}()
 while true
     message = read_transport_layer(STDIN)
     message_json = JSON.parse(message)
