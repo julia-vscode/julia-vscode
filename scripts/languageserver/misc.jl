@@ -73,3 +73,14 @@ function Respond(r::Request{didClose,TextDocumentIdentifier})
         return Response{didClose,Exception}("2.0",r.id,err)
     end
 end
+
+abstract didChange <: Method
+
+function Respond(r::Request{didChange,DidChangeTextDocumentParams})
+    try
+        documents[r.params.textDocument.uri] = split(r.params.contentChanges[1].text, r"\r\n?|\n")
+        return
+    catch err
+        return Response{didChange,Exception}("2.0",r.id,err)
+    end
+end

@@ -32,11 +32,41 @@ end
 Location(d::Dict) = Location(d["uri"],Range(d["range"]))
 Location(f::String,line) = Location(f,Range(line))
 
+
+
+
+
 # TextDocument
+
 type TextDocumentIdentifier
     uri::String
 end
 TextDocumentIdentifier(d::Dict) = TextDocumentIdentifier(d["uri"])
+
+
+type VersionedTextDocumentIdentifier
+    uri::String
+    version::Int
+end
+VersionedTextDocumentIdentifier(d::Dict) = VersionedTextDocumentIdentifier(d["uri"],d["version"])
+
+
+# WILL NEED CHANGING
+type TextDocumentContentChangeEvent 
+    #range::Range
+    #rangeLength::Int
+    text::String
+end
+#TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(Range(d["range"]),d["rangeLength"],d["text"])
+TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(d["text"])
+
+
+type DidChangeTextDocumentParams
+    textDocument::VersionedTextDocumentIdentifier
+    contentChanges::Vector{TextDocumentContentChangeEvent}
+end
+
+DidChangeTextDocumentParams(d::Dict) = DidChangeTextDocumentParams(VersionedTextDocumentIdentifier(d["textDocument"]),TextDocumentContentChangeEvent.(d["contentChanges"]))
 
 type TextDocumentItem
     uri::String
@@ -45,6 +75,7 @@ type TextDocumentItem
     text::String
 end
 TextDocumentItem(d::Dict) = TextDocumentItem(d["uri"],d["languageId"],d["version"],d["text"])
+
 
 type TextDocumentPositionParams
     textDocument::TextDocumentIdentifier
@@ -93,6 +124,8 @@ function Request(d::Dict)
         return Request{initialize,Any}(d["id"],Any(d["params"]))
     elseif m=="textDocument/didOpen"
         return Request{didOpen,TextDocumentItem}(-1,TextDocumentItem(d["params"]["textDocument"]))
+    elseif m=="textDocument/didChange"
+        return Request{didChange,DidChangeTextDocumentParams}(-1,DidChangeTextDocumentParams(d["params"]))
     elseif m=="textDocument/didClose"
         return Request{didClose,TextDocumentIdentifier}(-1,TextDocumentIdentifier(d["params"]["textDocument"]))
     end

@@ -32,9 +32,7 @@ while true
     message_json = JSON.parse(message)
 
     response = nothing
-    if message_json["method"]=="textDocument/didChange"
-        process_message_textDocument_didChange(message_json)
-    elseif message_json["method"]=="textDocument/didSave"
+    if message_json["method"]=="textDocument/didSave"
         nothing
     elseif in(message_json["method"],ProviderList)
         req  = Request(message_json)
