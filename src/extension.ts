@@ -10,6 +10,7 @@ import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, T
 
 let juliaExecutable = null;
 let languageClient = null;
+let REPLterminal: vscode.Terminal = null;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -19,13 +20,22 @@ export function activate(context: vscode.ExtensionContext) {
     // This line of code will only be executed once when your extension is activated
     console.log('Activating extension language-julia');
 
+    loadConfiguration();
+
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
     // The commandId parameter must match the command field in package.json
     let disposable_OpenPkgCommand = vscode.commands.registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand);
     context.subscriptions.push(disposable_OpenPkgCommand);
 
-    loadConfiguration();
+    let disposable_StartREPLCommand = vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand);
+    context.subscriptions.push(disposable_StartREPLCommand);
+
+    vscode.window.onDidCloseTerminal(terminal=>{
+        if (terminal==REPLterminal) {
+            REPLterminal = null;
+        }
+    })
 
     startLanguageServer(context);
 }
@@ -148,4 +158,12 @@ function openPackageDirectoryCommand() {
                     })
             }
         });
+}
+
+function startREPLCommand() {
+    
+    if (REPLterminal==null) {
+        REPLterminal = vscode.window.createTerminal("julia", juliaExecutable);
+    }
+    REPLterminal.show();
 }

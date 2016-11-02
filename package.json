@@ -24,6 +24,7 @@
     ],
     "activationEvents": [
         "onCommand:language-julia.openPackageDirectory",
+        "onCommand:language-julia.startREPL",
         "onLanguage:julia"
     ],
     "main": "./out/src/extension",
@@ -62,6 +63,10 @@
             {
                 "command": "language-julia.openPackageDirectory",
                 "title": "julia: Open Package Directory in New Window"
+            },
+            {
+                "command": "language-julia.startREPL",
+                "title": "julia: Start REPL"
             }
         ],
         "configuration": {
