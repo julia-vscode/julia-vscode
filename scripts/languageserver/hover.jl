@@ -5,8 +5,8 @@ type Hover
 end
 
 function Respond(r::Request{hover,TextDocumentPositionParams})
-    x = getSym(r.params) 
     try
+        x = getSym(r.params)
         d = string(Docs.doc(x))        
         d = d[1:16]=="No documentation" ? string(typeof(x)) : d
         d = d=="Void" ? "" : d
