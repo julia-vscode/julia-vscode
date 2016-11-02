@@ -33,13 +33,12 @@ function Respond(r::Request{signature,TextDocumentPositionParams})
         x = getSym(word) 
         M = methods(x).ms
         sigs = SignatureInformation[]
-        n,cnt = 100,0
-        while n<1000 && cnt<=length(M)
+        cnt = 0
+        while cnt<=length(M)
             cnt+=1 
             try
                 s = SignatureInformation(M[cnt])
                 push!(sigs,s)
-                n+=length(s)
             end
         end
         SH = SignatureHelp(sigs)        
