@@ -21,7 +21,7 @@ let ex=:(type Range
     eval(ex)
 end
 
-Range(d::Dict) = Range(d["start"],d["end"])
+Range(d::Dict) = Range(Position(d["start"]),Position(d["end"]))
 Range(line) = Range(Position(line),Position(line))
 isempty(r::Range) = isempty(r.start) && isempty(r.finish)
 
@@ -127,6 +127,7 @@ function Request(d::Dict)
     elseif m=="textDocument/didOpen"
         return Request{didOpen,TextDocumentItem}(-1,TextDocumentItem(d["params"]["textDocument"]))
     elseif m=="textDocument/didChange"
+        #info(d["params"])
         return Request{didChange,DidChangeTextDocumentParams}(-1,DidChangeTextDocumentParams(d["params"]))
     elseif m=="textDocument/didClose"
         return Request{didClose,TextDocumentIdentifier}(-1,TextDocumentIdentifier(d["params"]["textDocument"]))
