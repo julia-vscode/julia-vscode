@@ -6,12 +6,7 @@ end
 Position(d::Dict) = Position(d["line"],d["character"])
 Position(line) = Position(line,0)
 Position() = Position(-1,-1)
-isempty(p::Position) = p.line==-1 && p.character==-1
 
-#type Range
-#    start::Position
-#    finish::Position
-#end
 let ex=:(type Range
         start::Position
         finish::Position
@@ -23,7 +18,6 @@ end
 
 Range(d::Dict) = Range(Position(d["start"]),Position(d["end"]))
 Range(line) = Range(Position(line),Position(line))
-isempty(r::Range) = isempty(r.start) && isempty(r.finish)
 
 type Location
     uri::String
@@ -36,19 +30,21 @@ Location(f::String,line) = Location(f,Range(line))
 
 
 
+
 # TextDocument
 
 type TextDocumentIdentifier
     uri::String
+    TextDocumentIdentifier(d::Dict) = new(d["uri"])
 end
-TextDocumentIdentifier(d::Dict) = TextDocumentIdentifier(d["uri"])
 
 
 type VersionedTextDocumentIdentifier
     uri::String
     version::Int
+    VersionedTextDocumentIdentifier(d::Dict) = new(d["uri"],d["version"])
 end
-VersionedTextDocumentIdentifier(d::Dict) = VersionedTextDocumentIdentifier(d["uri"],d["version"])
+
 
 
 # WILL NEED CHANGING
@@ -64,32 +60,33 @@ TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(d["text
 type DidChangeTextDocumentParams
     textDocument::VersionedTextDocumentIdentifier
     contentChanges::Vector{TextDocumentContentChangeEvent}
+    DidChangeTextDocumentParams(d::Dict) = new(VersionedTextDocumentIdentifier(d["textDocument"]),TextDocumentContentChangeEvent.(d["contentChanges"]))
 end
 
-DidChangeTextDocumentParams(d::Dict) = DidChangeTextDocumentParams(VersionedTextDocumentIdentifier(d["textDocument"]),TextDocumentContentChangeEvent.(d["contentChanges"]))
 
 type TextDocumentItem
     uri::String
     languageId::String
     version::Int
     text::String
+    TextDocumentItem(d::Dict) = new(d["uri"],d["languageId"],d["version"],d["text"])
 end
-TextDocumentItem(d::Dict) = TextDocumentItem(d["uri"],d["languageId"],d["version"],d["text"])
 
 
 type TextDocumentPositionParams
     textDocument::TextDocumentIdentifier
     position::Position
+    TextDocumentPositionParams(d::Dict) = new(TextDocumentIdentifier(d["textDocument"]),Position(d["position"]))
 end
-TextDocumentPositionParams(d::Dict) = TextDocumentPositionParams(TextDocumentIdentifier(d["textDocument"]),Position(d["position"]))
 
 
 type Notification
     jsonrpc::String
     method::String
     params::Any
+    Notification(method,params)=new("2.0",method,params)
 end
-Notification(method,params)=Notification("2.0",method,params)
+
 
 
 # Messages

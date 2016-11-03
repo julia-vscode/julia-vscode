@@ -24,12 +24,8 @@ type SignatureHelp
     signatures::Vector{SignatureInformation}
     activeSignature::Int
     activeParameter::Int
-    SignatureHelp(sigs::Vector{SignatureInformation}) = new(sigs,0,0)
-end
-
-function Respond(r::Request{signature,TextDocumentPositionParams})
-    try
-        word = Word(r.params,-1)
+    function SignatureHelp(tdpp::TextDocumentPositionParams)
+        word = Word(tdpp,-1)
         x = getSym(word) 
         M = methods(x).ms
         sigs = SignatureInformation[]
@@ -41,17 +37,14 @@ function Respond(r::Request{signature,TextDocumentPositionParams})
                 push!(sigs,s)
             end
         end
-        SH = SignatureHelp(sigs)        
-        return Response{signature,SignatureHelp}("2.0",r.id,SH)
-    catch err
-        return Response{signature,Exception}("2.0",r.id,err)
+        return new(sigs,0,0)
     end
 end
 
-function Base.length(s::SignatureInformation)
-    n = length(s.label)+30
-    for p in s.parameters
-        n+=length(p.documentation)+length(p.label)+40
+function Respond(r::Request{signature,TextDocumentPositionParams})
+    try
+        return Response{signature,SignatureHelp}("2.0",r.id,SignatureHelp(r.params))
+    catch err
+        return Response{signature,Exception}("2.0",r.id,err)
     end
-    n
 end
