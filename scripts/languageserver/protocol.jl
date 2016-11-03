@@ -127,7 +127,6 @@ function Request(d::Dict)
     elseif m=="textDocument/didOpen"
         return Request{didOpen,TextDocumentItem}(-1,TextDocumentItem(d["params"]["textDocument"]))
     elseif m=="textDocument/didChange"
-        #info(d["params"])
         return Request{didChange,DidChangeTextDocumentParams}(-1,DidChangeTextDocumentParams(d["params"]))
     elseif m=="textDocument/didClose"
         return Request{didClose,TextDocumentIdentifier}(-1,TextDocumentIdentifier(d["params"]["textDocument"]))
@@ -179,23 +178,3 @@ function getSym(str::String)
 end
 
 getSym(p::TextDocumentPositionParams) = getSym(Word(p))
-
-
-function checkmsg(response)
-    n = length(response)
-    io = IOBuffer()
-    write(io, "Content-Length: $n\r\n\r\n")
-    write(io, response)
-    takebuf_string(io)
-end
-
-function first20lines(d::String)
-    cnt = 0
-    l10 = 0
-    @inbounds @simd for i =1:length(d.data)
-        cnt==20 && (l10=i)
-        cnt+=d.data[i]==0x0a
-    end
-    return cnt,1:l10-1
-end 
-

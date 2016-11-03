@@ -67,7 +67,6 @@ abstract didClose <: Method
 function Respond(r::Request{didClose,TextDocumentIdentifier})
     try
         delete!(documents,r.params.uri)
-        info(r.params.uri)
         return
     catch err
         return Response{didClose,Exception}("2.0",r.id,err)

@@ -61,13 +61,12 @@ function loadConfiguration() {
 function startLanguageServer(context: vscode.ExtensionContext) {
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
-    var originalJuliaPkgDir = process.env.JULIA_PKGDIR ? process.env.JULIA_PKGDIR : path.join(os.homedir(), '.julia', 'v0.6');
+    var originalJuliaPkgDir = process.env.JULIA_PKGDIR ? process.env.JULIA_PKGDIR : path.join(os.homedir(), '.julia', 'v0.5');
     let serverArgs = ['--startup-file=no', '--history-file=no', 'languageserver.jl', originalJuliaPkgDir];
     let spawnOptions = {
         cwd: path.join(context.extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_PKGDIR: "/home/zac/.julia/v0.6",
-            // JULIA_PKGDIR: path.join(context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            JULIA_PKGDIR: path.join(context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
             HOME: process.env.HOME ? process.env.HOME : os.homedir()
         }
     };
