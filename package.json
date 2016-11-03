@@ -88,7 +88,8 @@
     },
     "dependencies": {
         "carrier": "0.3.0",
-        "vscode-languageclient": "^2.2.1"
+        "vscode-languageclient": "^2.2.1",
+        "child-process-promise": "^v2.2.0"
     },
     "devDependencies": {
         "typescript": "^2.0.3",

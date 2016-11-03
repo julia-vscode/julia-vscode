@@ -6,6 +6,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as net from 'net';
 import * as os from 'os';
+var exec = require('child-process-promise').exec;
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
 
 let juliaExecutable = null;
@@ -58,10 +59,15 @@ function loadConfiguration() {
     return juliaExecutable != oldValue
 }
 
-function startLanguageServer(context: vscode.ExtensionContext) {
+async function getPkgPath() {
+    var res = await exec(`${juliaExecutable} -e "println(Pkg.dir())"`);
+    return res.stdout;
+}
+
+async function startLanguageServer(context: vscode.ExtensionContext) {
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
-    var originalJuliaPkgDir = process.env.JULIA_PKGDIR ? process.env.JULIA_PKGDIR : path.join(os.homedir(), '.julia', 'v0.5');
+    var originalJuliaPkgDir = await getPkgPath();
     let serverArgs = ['--startup-file=no', '--history-file=no', 'languageserver.jl', originalJuliaPkgDir];
     let spawnOptions = {
         cwd: path.join(context.extensionPath, 'scripts', 'languageserver'),
