@@ -174,7 +174,7 @@ function startREPLCommand() {
     
     if (REPLterminal==null) {
         let args = path.join(extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
-        REPLterminal = vscode.window.createTerminal("julia", juliaExecutable, ["-i", args, process.pid.toString()]);
+        REPLterminal = vscode.window.createTerminal("julia", juliaExecutable, ['-q', '-i', args, process.pid.toString()]);
     }
     REPLterminal.show();
 }
