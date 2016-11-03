@@ -6,8 +6,7 @@ if VERSION < v"0.5"
 end
 
 include("dependencies.jl")
-#use_and_install_dependencies(["Compat", "JSON", "Lint", "URIParser","JuliaParser"])
-using Compat,JSON,Lint,URIParser,JuliaParser
+use_and_install_dependencies(["Compat", "JSON", "Lint", "URIParser","JuliaParser"])
 
 if length(Base.ARGS)==1
     push!(LOAD_PATH, Base.ARGS[1])
