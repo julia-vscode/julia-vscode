@@ -17,7 +17,8 @@ let ex=:(type Range
 end
 
 Range(d::Dict) = Range(Position(d["start"]),Position(d["end"]))
-Range(line) = Range(Position(line),Position(line))
+Range(line::Integer) = Range(Position(line),Position(line))
+Range(line::Integer,character::Integer) = Range(Position(line,character),Position(line,character))
 
 type Location
     uri::String
@@ -49,12 +50,12 @@ end
 
 # WILL NEED CHANGING
 type TextDocumentContentChangeEvent 
-    #range::Range
-    #rangeLength::Int
+    range::Range
+    rangeLength::Int
     text::String
 end
-#TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(Range(d["range"]),d["rangeLength"],d["text"])
-TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(d["text"])
+TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(Range(d["range"]),d["rangeLength"],d["text"])
+# TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(d["text"])
 
 
 type DidChangeTextDocumentParams

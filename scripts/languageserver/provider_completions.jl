@@ -45,6 +45,6 @@ function Respond(r::Request{completion,TextDocumentPositionParams})
     try
         return Response{completion,CompletionList}("2.0",r.id,CompletionList(r.params))
     catch err
-        return Response{completion,Exception}(r.id,err)
+        return Response{completion,Exception}("2.0",r.id,err)
     end
 end
