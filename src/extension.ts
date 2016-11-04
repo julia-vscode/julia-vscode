@@ -72,7 +72,7 @@ async function startLanguageServer(context: vscode.ExtensionContext) {
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
     var originalJuliaPkgDir = await getPkgPath();
-    let serverArgs = ['--startup-file=no', '--history-file=no', 'languageserver.jl', originalJuliaPkgDir];
+    let serverArgs = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir];
     let spawnOptions = {
         cwd: path.join(context.extensionPath, 'scripts', 'languageserver'),
         env: {

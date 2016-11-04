@@ -1,5 +1,3 @@
-abstract completion <:Method
-
 type CompletionItem
     label::String
     kind::Int
@@ -31,8 +29,8 @@ end
 type CompletionList
     isIncomplete::Bool
     items::Vector{CompletionItem}
-    function CompletionList(tdpp::TextDocumentPositionParams)
-        line = Line(tdpp)
+    function CompletionList(tdpp::TextDocumentPositionParams, documents)
+        line = Line(tdpp, documents)
         comp = Base.REPLCompletions.completions(line,tdpp.position.character)[1]
         n = length(comp)
         comp = comp[1:min(length(comp),25)]
@@ -41,10 +39,11 @@ type CompletionList
     end
 end
 
-function Respond(r::Request{completion,TextDocumentPositionParams})
-    try
-        return Response{completion,CompletionList}("2.0",r.id,CompletionList(r.params))
-    catch err
-        return Response{completion,Exception}(r.id,err)
-    end
+function process(r::Request{Val{Symbol("textDocument/completion")},TextDocumentPositionParams}, server)
+    response =  Response(get(r.id),CompletionList(r.params, server.documents))
+    send(response, server)
+end
+
+function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/completion")}}, params)
+    return TextDocumentPositionParams(params)
 end
