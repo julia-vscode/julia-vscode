@@ -1,5 +1,3 @@
-abstract signature <:Method
-
 type ParameterInformation
     label::String
     documentation::String
@@ -24,8 +22,8 @@ type SignatureHelp
     signatures::Vector{SignatureInformation}
     activeSignature::Int
     activeParameter::Int
-    function SignatureHelp(tdpp::TextDocumentPositionParams)
-        word = Word(tdpp,-1)
+    function SignatureHelp(tdpp::TextDocumentPositionParams, documents)
+        word = Word(tdpp, documents,-1)
         x = getSym(word) 
         M = methods(x).ms
         sigs = SignatureInformation[]
@@ -41,10 +39,11 @@ type SignatureHelp
     end
 end
 
-function Respond(r::Request{signature,TextDocumentPositionParams})
-    try
-        return Response{signature,SignatureHelp}("2.0",r.id,SignatureHelp(r.params))
-    catch err
-        return Response{signature,Exception}("2.0",r.id,err)
-    end
+function process(r::Request{Val{Symbol("textDocument/signatureHelp")},TextDocumentPositionParams}, server)
+    response = Response(get(r.id),SignatureHelp(r.params, server.documents))
+    send(response,server)
+end
+
+function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/signatureHelp")}}, params)
+    return TextDocumentPositionParams(params)
 end

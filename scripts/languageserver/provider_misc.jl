@@ -1,5 +1,3 @@
-abstract initialize <: Method
-
 const TextDocumentSyncKind = Dict("None"=>0,"Full"=>1,"Incremental"=>2)
 
 type CompletionOptions 
@@ -40,45 +38,55 @@ const serverCapabilities = ServerCapabilities(
                         true, #definitionProvider
                         SignatureHelpOptions(["("])) 
 
-function Respond(r::Request{initialize,Any})
-    try
-        return Response{hover,InitializeResult}("2.0",r.id,InitializeResult(serverCapabilities))
-    catch err
-        return Response{hover,Exception}("2.0",r.id,err)
-    end
+function process(r::JSONRPC.Request{Val{Symbol("initialize")},Dict{String,Any}}, server)
+    response = Response(get(r.id),InitializeResult(serverCapabilities))
+    send(response, server)
+end
+
+function JSONRPC.parse_params(::Type{Val{Symbol("initialize")}}, params)
+    return Any(params)
+end
+
+function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
+    server.documents[r.params.textDocument.uri] = split(r.params.textDocument.text,r"\r\n?|\n")
+    response =  Request{Val{Symbol("textDocument/publishDiagnostics")},PublishDiagnosticsParams}(Nullable{Union{String,Int}}(), PublishDiagnosticsParams(r.params.textDocument.uri, server.documents))
+    send(response, server)
+end
+
+function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didOpen")}}, params)
+    return DidOpenTextDocumentParams(params)
+end
+
+function process(r::Request{Val{Symbol("textDocument/didClose")},DidCloseTextDocumentParams}, server)
+    delete!(server.documents,r.params.textDocument.uri)
+end
+
+function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didClose")}}, params)
+    return DidCloseTextDocumentParams(params)
+end
+
+function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextDocumentParams}, server)
+    server.documents[r.params.textDocument.uri] = split(r.params.contentChanges[1].text, r"\r\n?|\n")
+end
+
+function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didChange")}}, params)
+    return DidChangeTextDocumentParams(params)
+end
+
+function process(r::Request{Val{Symbol("\$/cancelRequest")},CancelParams}, server)
+    
 end
 
 
-
-abstract didOpen <: Method
-
-function Respond(r::Request{didOpen,DidOpenTextDocumentParams})
-    try
-        documents[r.params.textDocument.uri] = split(r.params.textDocument.text,r"\r\n?|\n")
-        return Notification("textDocument/publishDiagnostics",PublishDiagnosticsParams(r.params.textDocument.uri))
-    catch err
-        return Response{didOpen,Exception}("2.0",r.id,err)
-    end
+function JSONRPC.parse_params(::Type{Val{Symbol("\$/cancelRequest")}}, params)
+    return CancelParams(params)
 end
 
-abstract didClose <: Method
-
-function Respond(r::Request{didClose,DidCloseTextDocumentParams})
-    try
-        delete!(documents,r.params.textDocument.uri)
-        return
-    catch err
-        return Response{didClose,Exception}("2.0",r.id,err)
-    end
+function process(r::Request{Val{Symbol("textDocument/didSave")},DidSaveTextDocumentParams}, server)
+    
 end
 
-abstract didChange <: Method
 
-function Respond(r::Request{didChange,DidChangeTextDocumentParams})
-    try
-        documents[r.params.textDocument.uri] = split(r.params.contentChanges[1].text, r"\r\n?|\n")
-        return
-    catch err
-        return Response{didChange,Exception}("2.0",r.id,err)
-    end
+function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didSave")}}, params)
+    return DidSaveTextDocumentParams(params)
 end
