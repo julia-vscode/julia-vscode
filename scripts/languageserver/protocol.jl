@@ -79,6 +79,15 @@ type TextDocumentPositionParams
     TextDocumentPositionParams(d::Dict) = new(TextDocumentIdentifier(d["textDocument"]),Position(d["position"]))
 end
 
+type DidOpenTextDocumentParams
+    textDocument::TextDocumentItem
+    DidOpenTextDocumentParams(d::Dict) = new(TextDocumentItem(d["textDocument"]))
+end
+
+type DidCloseTextDocumentParams
+    textDocument::TextDocumentIdentifier
+    DidCloseTextDocumentParams(d::Dict) = new(TextDocumentIdentifier(d["textDocument"]))
+end
 
 type Notification
     jsonrpc::String
@@ -122,11 +131,12 @@ function Request(d::Dict)
     elseif m=="initialize"
         return Request{initialize,Any}(d["id"],Any(d["params"]))
     elseif m=="textDocument/didOpen"
-        return Request{didOpen,TextDocumentItem}(-1,TextDocumentItem(d["params"]["textDocument"]))
+        return Request{didOpen,DidOpenTextDocumentParams}(-1,DidOpenTextDocumentParams(d["params"]))
     elseif m=="textDocument/didChange"
         return Request{didChange,DidChangeTextDocumentParams}(-1,DidChangeTextDocumentParams(d["params"]))
     elseif m=="textDocument/didClose"
-        return Request{didClose,TextDocumentIdentifier}(-1,TextDocumentIdentifier(d["params"]["textDocument"]))
+        info(d)
+        return Request{didClose,DidCloseTextDocumentParams}(-1,DidCloseTextDocumentParams(d["params"]))
     end
 end
 

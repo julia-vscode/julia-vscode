@@ -52,11 +52,10 @@ end
 
 abstract didOpen <: Method
 
-function Respond(r::Request{didOpen,TextDocumentItem})
+function Respond(r::Request{didOpen,DidOpenTextDocumentParams})
     try
-        documents[r.params.uri] = split(r.params.text,r"\r\n?|\n")
-        
-        return Notification("textDocument/publishDiagnostics",PublishDiagnosticsParams(r.params.uri))
+        documents[r.params.textDocument.uri] = split(r.params.textDocument.text,r"\r\n?|\n")
+        return Notification("textDocument/publishDiagnostics",PublishDiagnosticsParams(r.textDocument.uri))
     catch err
         return Response{didOpen,Exception}("2.0",r.id,err)
     end
@@ -64,9 +63,9 @@ end
 
 abstract didClose <: Method
 
-function Respond(r::Request{didClose,TextDocumentIdentifier})
+function Respond(r::Request{didClose,DidCloseTextDocumentParams})
     try
-        delete!(documents,r.params.uri)
+        delete!(documents,r.params.textDocument.uri)
         return
     catch err
         return Response{didClose,Exception}("2.0",r.id,err)

@@ -16,10 +16,10 @@ end
 type PublishDiagnosticsParams
     uri::String
     diagnostics::Vector{Diagnostic}
+    function PublishDiagnosticsParams(uri::String)
+        L = lintfile(unescape(URI(uri).path)[2:end],join(documents[uri],'\n'))
+        diags = Diagnostic.(L)
+        return new(uri,diags)
+    end
 end
 
-function PublishDiagnosticsParams(uri::String)
-    L = lintfile(unescape(URI(uri).path)[2:end],join(documents[uri],'\n'))
-    diags = Diagnostic.(L)
-    return PublishDiagnosticsParams(uri,diags)
-end
