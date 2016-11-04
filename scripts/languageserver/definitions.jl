@@ -2,7 +2,11 @@ abstract definition <:Method
 
 function Location(tdpp::TextDocumentPositionParams)
     x = getSym(tdpp)
-    return map(m->Location(functionloc(m)...),methods(x).ms)
+    return map(m-> begin
+            (filename, line) = functionloc(m)
+            filename = "file:$filename"
+            Location(filename, line-1)
+        end,methods(x).ms)
 end
 
 function Respond(r::Request{definition,TextDocumentPositionParams})
