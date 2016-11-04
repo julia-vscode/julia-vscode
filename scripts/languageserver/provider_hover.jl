@@ -1,19 +1,10 @@
-abstract hover <:Method
+function process(r::Request{Val{Symbol("textDocument/hover")},TextDocumentPositionParams}, server)
+    documentation = docs(r.params, server.documents)
 
-type Hover
-    contents::Vector{String}
-    function Hover(tdpp::TextDocumentPositionParams)
-        return new(docs(tdpp))
-    end
+    response = Response(get(r.id),Hover(documentation))
+    send(response, server)
 end
 
-function Respond(r::Request{hover,TextDocumentPositionParams})
-    try
-        return Response{hover,Hover}("2.0",r.id,Hover(r.params))
-    catch err
-        return Response{hover,Exception}("2.0",r.id,err)
-    end
+function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/hover")}}, params)
+    return TextDocumentPositionParams(params)
 end
-
-
-

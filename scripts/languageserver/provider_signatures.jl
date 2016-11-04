@@ -1,50 +1,37 @@
-abstract signature <:Method
+function process(r::Request{Val{Symbol("textDocument/signatureHelp")},TextDocumentPositionParams}, server)
+    tdpp = r.params
 
-type ParameterInformation
-    label::String
-    documentation::String
-end
+    word = Word(tdpp, server.documents,-1)
+    x = getSym(word) 
+    M = methods(x).ms
 
-type SignatureInformation
-    label::String
-    documentation::String
-    parameters::Vector{ParameterInformation}
-    function SignatureInformation(m::Base.Method)
+    sigs = map(M) do m
         ptype = string.(collect(m.sig.parameters[2:end]))
-        pname = string.(m.source.slotnames[2:end])[1:length(ptype)]
-        pname = [n=="#unused#" ? "": n for n in pname]
-        desc = string(m.name)*"("*mapreduce(x->"$(x[1])::$(x[2]), ",*,"",zip(pname,ptype))[1:end-2]*")"
-        
-        PI    = map(ParameterInformation,pname,ptype)   
-        return new(desc,"",PI)
-    end
-end
-
-type SignatureHelp
-    signatures::Vector{SignatureInformation}
-    activeSignature::Int
-    activeParameter::Int
-    function SignatureHelp(tdpp::TextDocumentPositionParams)
-        word = Word(tdpp,-1)
-        x = getSym(word) 
-        M = methods(x).ms
-        sigs = SignatureInformation[]
-        cnt = 0
-        while cnt<=length(M)
-            cnt+=1 
-            try
-                s = SignatureInformation(M[cnt])
-                push!(sigs,s)
-            end
+        if VERSION > v"0.5"
+            pname = string.(m.source.slotnames[2:end])[1:length(ptype)]
+            pname = [n=="#unused#" ? "": n for n in pname]
+        else
+            # TODO Extract parameter name on julia 0.5 here
+            pname = fill("unknown", length(ptype))
         end
-        return new(sigs,0,0)
+        p_sigs = map(zip(pname,ptype)) do i
+            "$(i[1])::$(i[2])"
+        end
+        desc = string(string(m.name), "(",join(p_sigs, ", "),")")
+
+        PI = map(ParameterInformation,p_sigs)
+        # Extract documentation here
+        doc = ""
+        return SignatureInformation(desc,doc,PI)
     end
+    
+    # TODO pass in the correct argument position
+    signatureHelper = SignatureHelp(sigs,0,0)
+
+    response = Response(get(r.id),signatureHelper)
+    send(response,server)
 end
 
-function Respond(r::Request{signature,TextDocumentPositionParams})
-    try
-        return Response{signature,SignatureHelp}("2.0",r.id,SignatureHelp(r.params))
-    catch err
-        return Response{signature,Exception}("2.0",r.id,err)
-    end
+function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/signatureHelp")}}, params)
+    return TextDocumentPositionParams(params)
 end

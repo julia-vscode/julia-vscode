@@ -1,19 +1,16 @@
-abstract definition <:Method
+function process(r::Request{Val{Symbol("textDocument/definition")},TextDocumentPositionParams}, server)
+    x = getSym(r.params, server.documents)
 
-function Location(tdpp::TextDocumentPositionParams)
-    x = getSym(tdpp)
-    return map(m-> begin
-            (filename, line) = functionloc(m)
-            filename = "file:$filename"
-            Location(filename, line-1)
-        end,methods(x).ms)
-end
-
-function Respond(r::Request{definition,TextDocumentPositionParams})
-    try
-        return Response{definition,Vector{Location}}("2.0",r.id,Location(r.params))
-    catch err
-        return Response{definition,Exception}("2.0",r.id,err)
+    locations = map(methods(x).ms) do m
+        (filename, line) = functionloc(m)
+        filename = "file:$filename"
+        return Location(filename, line-1)
     end
+
+    response = Response(get(r.id),locations)
+    send(response, server)
 end
 
+function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/definition")}}, params)
+    return TextDocumentPositionParams(params)
+end

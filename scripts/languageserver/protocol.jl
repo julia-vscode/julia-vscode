@@ -27,9 +27,81 @@ Location(d::Dict) = Location(d["uri"],Range(d["range"]))
 Location(f::String,line) = Location(f,Range(line))
 
 
+type Hover
+    contents::Vector{String}
+end
 
+type CompletionItem
+    label::String
+    kind::Int
+    documentation::String
+end
 
+type CompletionList
+    isIncomplete::Bool
+    items::Vector{CompletionItem}
+end
 
+type Diagnostic
+    range::Range
+    severity::Int
+    code::String
+    source::String
+    message::String
+end
+
+type PublishDiagnosticsParams
+    uri::String
+    diagnostics::Vector{Diagnostic}
+end
+
+type CompletionOptions 
+    resolveProvider::Bool
+    triggerCharacters::Vector{String}
+end
+
+type SignatureHelpOptions
+    triggerCharacters::Vector{String}
+end
+
+type ServerCapabilities
+    textDocumentSync::Int
+    hoverProvider::Bool
+    completionProvider::CompletionOptions
+    definitionProvider::Bool
+    signatureHelpProvider::SignatureHelpOptions
+    # referencesProvider::Bool
+    # documentHighlightProvider::Bool
+    # documentSymbolProvider::Bool
+    # workspaceSymbolProvider::Bool
+    # codeActionProvider::Bool
+    # codeLensProvider::CodeLensOptions
+    # documentFormattingProvider::Bool
+    # documentRangeFormattingProvider::Bool
+    # documentOnTypeFormattingProvider::DocumentOnTypeFormattingOptions
+    # renameProvider::Bool
+end
+
+type InitializeResult
+    capabilities::ServerCapabilities
+end
+
+type ParameterInformation
+    label::String
+    #documentation::String
+end
+
+type SignatureInformation
+    label::String
+    documentation::String
+    parameters::Vector{ParameterInformation}
+end
+
+type SignatureHelp
+    signatures::Vector{SignatureInformation}
+    activeSignature::Int
+    activeParameter::Int
+end
 
 # TextDocument
 
@@ -89,126 +161,12 @@ type DidCloseTextDocumentParams
     DidCloseTextDocumentParams(d::Dict) = new(TextDocumentIdentifier(d["textDocument"]))
 end
 
-type Notification
-    jsonrpc::String
-    method::String
-    params::Any
-    Notification(method,params)=new("2.0",method,params)
+type DidSaveTextDocumentParams
+    textDocument::TextDocumentIdentifier
+    DidSaveTextDocumentParams(d::Dict) = new(TextDocumentIdentifier(d["textDocument"]))
 end
 
-
-
-# Messages
-abstract Message
-abstract Method
-
-type Request{m<:Method,T} <: Message
-    id::Int
-    params::T
+type CancelParams
+    id::Union{String,Int}
+    CancelParams(d::Dict) = new(d["id"])
 end
-
-const ProviderList = ["textDocument/hover"
-                      "textDocument/completion"
-                      "textDocument/definition"
-                      "textDocument/signatureHelp"
-                      "initialize"
-                      "textDocument/didOpen"
-                      "textDocument/didChange"
-                      "textDocument/didClose"
-                      "textDocument/didSave" #does nothing
-                      "\$/cancelRequest"] #does nothing
-
-function Request(d::Dict)
-    m = d["method"]
-    if m=="textDocument/hover"
-        return Request{hover,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
-    elseif m=="textDocument/completion"
-        return Request{completion,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
-    elseif m=="textDocument/definition"
-        return Request{definition,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
-    elseif m=="textDocument/signatureHelp"
-        return Request{signature,TextDocumentPositionParams}(d["id"],TextDocumentPositionParams(d["params"]))
-    elseif m=="initialize"
-        return Request{initialize,Any}(d["id"],Any(d["params"]))
-    elseif m=="textDocument/didOpen"
-        return Request{didOpen,DidOpenTextDocumentParams}(-1,DidOpenTextDocumentParams(d["params"]))
-    elseif m=="textDocument/didChange"
-        return Request{didChange,DidChangeTextDocumentParams}(-1,DidChangeTextDocumentParams(d["params"]))
-    elseif m=="textDocument/didClose"
-        info(d)
-        return Request{didClose,DidCloseTextDocumentParams}(-1,DidCloseTextDocumentParams(d["params"]))
-    end
-end
-
-type Response{m<:Method,T} <: Message
-    jsonrpc::String
-    id::Int
-    result::T
-end
-
-Respond(t::Void) = nothing
-
-
-
-
-# Utilities
-function Line(p::TextDocumentPositionParams)
-    d = documents[p.textDocument.uri]
-    return d[p.position.line+1]
-end
-
-function Word(p::TextDocumentPositionParams,offset=0)
-    line = Line(p)
-    s = e = max(1,p.position.character)+offset
-    while e<=length(line) && Lexer.is_identifier_char(line[e])
-        e+=1
-    end
-    while s>0 && (Lexer.is_identifier_char(line[s]) || line[s]=='.')
-        s-=1
-    end
-    ret = line[s+1:e-1]
-    ret = ret[1] == '.' ? ret[2:end] : ret
-    return ret 
-end
-
-function getSym(str::String)
-    name = split(str,'.')
-    try
-        x = getfield(Main,Symbol(name[1]))
-        for i = 2:length(name)
-            x = getfield(x,Symbol(name[i]))
-        end
-        return x
-    catch
-        return nothing
-    end
-end
-
-getSym(p::TextDocumentPositionParams) = getSym(Word(p))
-
-function docs(x)
-    str = string(Docs.doc(x))
-    if str[1:16]=="No documentation"
-        s = last(search(str,"\n\n```\n"))+1
-        e = first(search(str,"\n```",s))-1
-        if isa(x,DataType)
-            s1 = last(search(str,"\n\n```\n",e))+1
-            e1 = first(search(str,"\n```",s1))-1
-            d = vcat(str[s:e], split(str[s1:e1],'\n'))
-        elseif isa(x,Function)
-            d = split(str[s:e],'\n')
-            s = last(search(str,"\n\n"))+1
-            e = first(search(str,"\n\n",s))-1
-            d = map(dd->(dd = dd[1:first(search(dd," in "))-1]),d)
-            d[1] = str[s:e]
-        elseif isa(x,Module)
-            d = [split(str,'\n')[3]]
-        else
-            d = [""]
-        end
-    else
-        d = split(str,"\n\n")
-    end
-    return d
-end
-docs(tdpp::TextDocumentPositionParams) = docs(getSym(tdpp))
