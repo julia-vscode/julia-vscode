@@ -188,6 +188,7 @@ end
 getSym(p::TextDocumentPositionParams) = getSym(Word(p))
 
 function docs(x)
+    x==nothing && return [""]
     str = string(Docs.doc(x))
     if str[1:16]=="No documentation"
         s = last(search(str,"\n\n```\n"))+1
@@ -205,7 +206,7 @@ function docs(x)
         elseif isa(x,Module)
             d = [split(str,'\n')[3]]
         else
-            d = [""]
+            d = ["Instance",isimmutable(x) ? string(x) : string(typeof(x))]
         end
     else
         d = split(str,"\n\n")
