@@ -1,15 +1,15 @@
 abstract definition <:Method
 
+function Location(tdpp::TextDocumentPositionParams)
+    x = getSym(tdpp)
+    return map(m->Location(functionloc(m)...),methods(x).ms)
+end
 
 function Respond(r::Request{definition,TextDocumentPositionParams})
     try
-        x = getSym(r.params)    
-        locs = map(m->Location(functionloc(m)...),methods(x).ms)
-        locs = locs[1:min(5,length(locs))]
-        return Response{definition,Vector{Location}}("2.0",r.id,locs)
+        return Response{definition,Vector{Location}}("2.0",r.id,Location(r.params))
     catch err
         return Response{definition,Exception}("2.0",r.id,err)
     end
 end
-
 
