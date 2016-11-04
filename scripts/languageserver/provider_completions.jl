@@ -3,8 +3,13 @@ abstract completion <:Method
 type CompletionItem
     label::String
     kind::Int
+    documentation::String
     function CompletionItem(str::String)
         s = getSym(str)
+        d = ""
+        try 
+            d = join(docs(s)[2:end],'\n')
+        end
         kind = 6
         if isa(s,String)
             kind = 1
@@ -19,7 +24,7 @@ type CompletionItem
         elseif isa(s,Enum)
             kind = 13
         end
-        new(str,kind)
+        new(str,kind,d)
     end
 end
 
@@ -30,9 +35,9 @@ type CompletionList
         line = Line(tdpp)
         comp = Base.REPLCompletions.completions(line,tdpp.position.character)[1]
         n = length(comp)
-        comp = comp[1:min(length(comp),10)]
+        comp = comp[1:min(length(comp),25)]
         CIs = CompletionItem.(comp)
-        return new(10<n,CIs)
+        return new(25<n,CIs)
     end
 end
 
