@@ -1,10 +1,10 @@
-function Line(p::TextDocumentPositionParams, documents)
-    d = documents[p.textDocument.uri]
+function get_line(p::TextDocumentPositionParams, server::LanguageServer)
+    d = server.documents[p.textDocument.uri]
     return d[p.position.line+1]
 end
 
-function Word(p::TextDocumentPositionParams, documents, offset=0)
-    line = Line(p, documents)
+function get_word(p::TextDocumentPositionParams, server::LanguageServer, offset=0)
+    line = get_line(p, server)
     s = e = max(1,p.position.character)+offset
     while e<=length(line) && Lexer.is_identifier_char(line[e])
         e+=1
@@ -17,7 +17,7 @@ function Word(p::TextDocumentPositionParams, documents, offset=0)
     return ret 
 end
 
-function getSym(str::String)
+function get_sym(str::String)
     name = split(str,'.')
     try
         x = getfield(Main,Symbol(name[1]))
@@ -30,9 +30,9 @@ function getSym(str::String)
     end
 end
 
-getSym(p::TextDocumentPositionParams, documents) = getSym(Word(p, documents))
+get_sym(p::TextDocumentPositionParams, server::LanguageServer) = get_sym(get_word(p, server))
 
-function docs(x)
+function get_docs(x)
     str = string(Docs.doc(x))
     if str[1:16]=="No documentation"
         s = last(search(str,"\n\n```\n"))+1
@@ -57,4 +57,5 @@ function docs(x)
     end
     return d
 end
-docs(tdpp::TextDocumentPositionParams, documents) = docs(getSym(tdpp, documents))
+
+get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer) = get_docs(get_sym(tdpp, server))

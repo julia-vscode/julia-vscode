@@ -1,8 +1,8 @@
 function process(r::Request{Val{Symbol("textDocument/signatureHelp")},TextDocumentPositionParams}, server)
     tdpp = r.params
 
-    word = Word(tdpp, server.documents,-1)
-    x = getSym(word) 
+    word = get_word(tdpp, server,-1)
+    x = get_sym(word) 
     M = methods(x).ms
 
     sigs = map(M) do m

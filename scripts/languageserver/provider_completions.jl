@@ -1,14 +1,14 @@
 function process(r::Request{Val{Symbol("textDocument/completion")},TextDocumentPositionParams}, server)
     tdpp = r.params
-    line = Line(tdpp, server.documents)
+    line = get_line(tdpp, server)
     comp = Base.REPLCompletions.completions(line,tdpp.position.character)[1]
     n = length(comp)
     comp = comp[1:min(length(comp),25)]
     CIs = map(comp) do i
-        s = getSym(i)
+        s = get_sym(i)
         d = ""
         try 
-            d = join(docs(s)[2:end],'\n')
+            d = join(get_docs(s)[2:end],'\n')
         end
         kind = 6
         if isa(s,String)
