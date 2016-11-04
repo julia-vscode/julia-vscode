@@ -1,19 +1,9 @@
 abstract hover <:Method
 
 type Hover
-    contents::String
+    contents::Vector{String}
     function Hover(tdpp::TextDocumentPositionParams)
-            x = getSym(tdpp)
-            d = string(Docs.doc(x))
-            if d[1:16]=="No documentation"
-                if isa(x,Function)
-                    d = "Function"
-                else
-                    d = string(typeof(x))
-                end
-            end
-            d = d=="Void" ? "" : d
-        return new(d)
+        return new(docs(tdpp))
     end
 end
 
