@@ -11,12 +11,12 @@ function use_and_install_dependencies(deps)
             end
             socket = listen(global_lock_socket_name)
             try
-                for dep in deps
+                for (dep,version) in deps
                     try
                         eval(parse("using $dep"))
                     catch
                         Pkg.init()
-                        Pkg.add(dep)
+                        Pkg.add(dep, version)
                         eval(parse("using $dep"))
                     end
                 end

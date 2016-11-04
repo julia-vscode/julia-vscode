@@ -6,7 +6,13 @@ if VERSION < v"0.5"
 end
 
 include("dependencies.jl")
-use_and_install_dependencies(["Compat", "JSON", "Lint", "URIParser","JuliaParser"])
+use_and_install_dependencies([
+    ("AbstractTrees", v"0.0.4"),
+    ("Compat", v"0.9.3"),
+    ("JSON", v"0.8.0"),
+    ("Lint", v"0.2.5"),
+    ("URIParser", v"0.0.5"),
+    ("JuliaParser",v"0.7.4")])
 
 if length(Base.ARGS)==1
     push!(LOAD_PATH, Base.ARGS[1])
