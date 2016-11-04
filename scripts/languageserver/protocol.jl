@@ -17,8 +17,8 @@ let ex=:(type Range
 end
 
 Range(d::Dict) = Range(Position(d["start"]),Position(d["end"]))
-Range(line) = Range(Position(line),Position(line))
-Range(line,character) = Range(Position(line,character),Position(line,character))
+Range(line::Integer) = Range(Position(line),Position(line))
+Range(line::Integer,character::Integer) = Range(Position(line,character),Position(line,character))
 
 type Location
     uri::String
