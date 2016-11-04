@@ -55,7 +55,7 @@ abstract didOpen <: Method
 function Respond(r::Request{didOpen,DidOpenTextDocumentParams})
     try
         documents[r.params.textDocument.uri] = split(r.params.textDocument.text,r"\r\n?|\n")
-        return Notification("textDocument/publishDiagnostics",PublishDiagnosticsParams(r.textDocument.uri))
+        return Notification("textDocument/publishDiagnostics",PublishDiagnosticsParams(r.params.textDocument.uri))
     catch err
         return Response{didOpen,Exception}("2.0",r.id,err)
     end
