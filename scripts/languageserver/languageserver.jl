@@ -16,12 +16,12 @@ end
 
 
 include("protocol.jl")
-include("diagnostics.jl")
-include("misc.jl")
-include("hover.jl")
-include("completions.jl")
-include("definitions.jl")
-include("signatures.jl")
+include("provider_diagnostics.jl")
+include("provider_misc.jl")
+include("provider_hover.jl")
+include("provider_completions.jl")
+include("provider_definitions.jl")
+include("provider_signatures.jl")
 include("transport.jl")
 
 
