@@ -6,10 +6,10 @@ type Diagnostic
     code::String
     source::String
     message::String
-    Diagnostic(l) = new(Range(l.line-1),
+    Diagnostic(l) = new(Range(Position(l.line-1, 0), Position(l.line-1, typemax(Int)) ),
                         LintSeverity[string(l.code)[1]],
                         string(l.code),
-                        l.file,
+                        "Lint.jl",
                         l.message)
 end
 
