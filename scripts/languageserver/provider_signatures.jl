@@ -6,17 +6,8 @@ function process(r::Request{Val{Symbol("textDocument/signatureHelp")},TextDocume
     M = methods(x).ms
 
     sigs = map(M) do m
-        ptype = string.(collect(m.sig.parameters[2:end]))
-        if VERSION > v"0.5"
-            pname = string.(m.source.slotnames[2:end])[1:length(ptype)]
-            pname = [n=="#unused#" ? "": n for n in pname]
-        else
-            # TODO Extract parameter name on julia 0.5 here
-            pname = fill("unknown", length(ptype))
-        end
-        p_sigs = map(zip(pname,ptype)) do i
-            "$(i[1])::$(i[2])"
-        end
+        tv, decls, file, line = Base.arg_decl_parts(m)
+        p_sigs = [isempty(i[2]) ? i[1] : i[1]*"::"*i[2] for i in decls[2:end]]
         desc = string(string(m.name), "(",join(p_sigs, ", "),")")
 
         PI = map(ParameterInformation,p_sigs)
