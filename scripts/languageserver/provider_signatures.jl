@@ -7,7 +7,6 @@ function process(r::Request{Val{Symbol("textDocument/signatureHelp")},TextDocume
     word = ""
     pos-=line[pos]==')' 
     while pos>1
-        info(pos)
         if line[pos]=='(' 
             if b == 0
                  word = get_word(tdpp,server,pos-pos0)
