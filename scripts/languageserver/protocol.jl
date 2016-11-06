@@ -26,9 +26,14 @@ end
 Location(d::Dict) = Location(d["uri"],Range(d["range"]))
 Location(f::String,line) = Location(f,Range(line))
 
+type MarkedString
+    language::String
+    value::String
+    MarkedString(x) = MarkedString("julia",x)
+end
 
 type Hover
-    contents::Vector{String}
+    contents::Vector{Union{String,MarkedString}}
 end
 
 type CompletionItem
