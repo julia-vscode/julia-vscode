@@ -13,6 +13,7 @@ function get_word(p::TextDocumentPositionParams, server::LanguageServer, offset=
         s-=1
     end
     ret = line[s+1:e-1]
+    ret =="" && (return "")
     ret = ret[1] == '.' ? ret[2:end] : ret
     return ret 
 end
