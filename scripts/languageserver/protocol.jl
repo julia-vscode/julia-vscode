@@ -29,11 +29,11 @@ Location(f::String,line) = Location(f,Range(line))
 type MarkedString
     language::String
     value::String
-    MarkedString(x) = MarkedString("julia",x)
+    MarkedString(x) = new("julia",x)
 end
 
 type Hover
-    contents::Vector{Union{String,MarkedString}}
+    contents::Vector{Union{String,MarkedString,SubString}}
 end
 
 type CompletionItem
