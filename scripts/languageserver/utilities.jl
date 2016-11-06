@@ -41,7 +41,7 @@ function get_docs(x)
         if isa(x,DataType)
             s1 = last(search(str,"\n\n```\n",e))+1
             e1 = first(search(str,"\n```",s1))-1
-            d = vcat(str[s:e], split(str[s1:e1],'\n'))
+            d = MarkedString.(split(chomp(sprint(dump,x)),'\n'))
         elseif isa(x,Function)
             d = split(str[s:e],'\n')
             s = last(search(str,"\n\n"))+1
