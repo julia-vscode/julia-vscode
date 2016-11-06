@@ -41,7 +41,15 @@ export function activate(context: vscode.ExtensionContext) {
             REPLterminal = null;
         }
     })
+    vscode.languages.setLanguageConfiguration('julia', {
+        onEnterRules: [
+            {
+                beforeText: /^\s*(?:abstract|type|bitstype|immutable|function|macro|for|if|elseif|else|while|try|with|finally|catch|except|async|let|do).*\s*$/,
+                action: { indentAction: vscode.IndentAction.Indent}
+            }
+        ]
 
+    });
     startLanguageServer(context);
 }
 
