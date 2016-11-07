@@ -4,18 +4,31 @@ function get_line(tdpp::TextDocumentPositionParams, server::LanguageServer)
 end
 
 function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offset=0)
-    line = get_line(tdpp, server)
-    s = e = max(1,tdpp.position.character)+offset
-    while e<=length(line) && Lexer.is_identifier_char(line[e])
+    line = IOBuffer(get_line(tdpp, server))
+    word = Char[]
+    e = s = 0
+    c = ' '
+    
+    while position(line)<tdpp.position.character
         e+=1
+        c = read(line,Char)
+        push!(word,c)
+        p = position(line)
+        if !(Lexer.is_identifier_char(c) || c=='.')
+            word = Char[]
+            s = e
+        end
     end
-    while s>0 && (Lexer.is_identifier_char(line[s]) || line[s]=='.')
-        s-=1
+    while !eof(line) && Lexer.is_identifier_char(c)
+        e+=1
+        c = read(line,Char)
+        Lexer.is_identifier_char(c) && push!(word,c)
     end
-    ret = line[s+1:e-1]
-    ret =="" && (return "")
-    ret = ret[1] == '.' ? ret[2:end] : ret
-    return ret 
+    isempty(word) && (return "")
+    for i = 1:2 # Delete junk at front
+        in(word[1],[' ','.','!']) && deleteat!(word,1)
+    end
+    return String(word)
 end
 
 function get_sym(str::String)
@@ -26,7 +39,6 @@ function get_sym(str::String)
         for i = 2:length(name)
             x = getfield(x,Symbol(name[i]))
         end
-    catch
     end
     return x
 end
