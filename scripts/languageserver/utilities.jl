@@ -1,11 +1,11 @@
-function get_line(p::TextDocumentPositionParams, server::LanguageServer)
-    d = server.documents[p.textDocument.uri]
-    return d[p.position.line+1]
+function get_line(tdpp::TextDocumentPositionParams, server::LanguageServer)
+    d = server.documents[tdpp.textDocument.uri]
+    return d[tdpp.position.line+1]
 end
 
-function get_word(p::TextDocumentPositionParams, server::LanguageServer, offset=0)
-    line = get_line(p, server)
-    s = e = max(1,p.position.character)+offset
+function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offset=0)
+    line = get_line(tdpp, server)
+    s = e = max(1,tdpp.position.character)+offset
     while e<=length(line) && Lexer.is_identifier_char(line[e])
         e+=1
     end
@@ -20,18 +20,18 @@ end
 
 function get_sym(str::String)
     name = split(str,'.')
+    x =  nothing
     try
         x = getfield(Main,Symbol(name[1]))
         for i = 2:length(name)
             x = getfield(x,Symbol(name[i]))
         end
-        return x
     catch
-        return nothing
     end
+    return x
 end
 
-get_sym(p::TextDocumentPositionParams, server::LanguageServer) = get_sym(get_word(p, server))
+get_sym(tdpp::TextDocumentPositionParams, server::LanguageServer) = get_sym(get_word(tdpp, server))
 
 function get_docs(x)
     str = string(Docs.doc(x))
