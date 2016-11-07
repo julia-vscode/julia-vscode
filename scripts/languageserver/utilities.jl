@@ -53,20 +53,20 @@ function get_docs(x)
         if isa(x,DataType)
             s1 = last(search(str,"\n\n```\n",e))+1
             e1 = first(search(str,"\n```",s1))-1
-            d = vcat(str[s:e], split(str[s1:e1],'\n'))
+            d = MarkedString.(split(chomp(sprint(dump,x)),'\n'))
         elseif isa(x,Function)
             d = split(str[s:e],'\n')
             s = last(search(str,"\n\n"))+1
             e = first(search(str,"\n\n",s))-1
-            d = map(dd->(dd = dd[1:first(search(dd," in "))-1]),d)
-            d[1] = str[s:e]
+            d = MarkedString.(map(dd->(dd = dd[1:first(search(dd," in "))-1]),d))
+            d[1] = MarkedString(str[s:e])
         elseif isa(x,Module)
             d = [split(str,'\n')[3]]
         else
             d = [""]
         end
     else
-        d = split(str,"\n\n")
+        d = split(str,"\n\n",limit=2)
     end
     return d
 end
