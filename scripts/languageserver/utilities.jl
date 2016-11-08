@@ -38,10 +38,8 @@ function get_docs(x)
     if str[1:16]=="No documentation"
         s = last(search(str,"\n\n```\n"))+1
         e = first(search(str,"\n```",s))-1
-        if isa(x,DataType)
-            s1 = last(search(str,"\n\n```\n",e))+1
-            e1 = first(search(str,"\n```",s1))-1
-            d = vcat(str[s:e], split(str[s1:e1],'\n'))
+        if isa(x,DataType) && x!=Any && x!=Function
+            d = split(chomp(sprint(dump,x)),'\n')
         elseif isa(x,Function)
             d = split(str[s:e],'\n')
             s = last(search(str,"\n\n"))+1
@@ -54,7 +52,10 @@ function get_docs(x)
             d = [""]
         end
     else
-        d = split(str,"\n\n")
+        d = split(str, "\n\n", limit = 2)
+    end
+    for i = 1:length(d)
+        d[i] = strip(replace(d[i],"```",""))
     end
     return d
 end
