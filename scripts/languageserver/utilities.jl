@@ -3,19 +3,30 @@ function get_line(p::TextDocumentPositionParams, server::LanguageServer)
     return d[p.position.line+1]
 end
 
-function get_word(p::TextDocumentPositionParams, server::LanguageServer, offset=0)
-    line = get_line(p, server)
-    s = e = max(1,p.position.character)+offset
-    while e<=length(line) && Lexer.is_identifier_char(line[e])
+function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offset=0)
+    line = IOBuffer(get_line(tdpp, server))
+    word = Char[]
+    e = s = 0
+    c = ' '
+    while position(line)<tdpp.position.character
         e+=1
+        c = read(line,Char)
+        push!(word,c)
+        if !(Lexer.is_identifier_char(c) || c=='.')
+            word = Char[]
+            s = e
+        end
     end
-    while s>0 && (Lexer.is_identifier_char(line[s]) || line[s]=='.')
-        s-=1
+    while !eof(line) && Lexer.is_identifier_char(c)
+        e+=1
+        c = read(line,Char)
+        Lexer.is_identifier_char(c) && push!(word,c)
     end
-    ret = line[s+1:e-1]
-    ret =="" && (return "")
-    ret = ret[1] == '.' ? ret[2:end] : ret
-    return ret 
+    for i = 1:2 # Delete junk at front
+        !isempty(word) && in(word[1],[' ','.','!']) && deleteat!(word,1)
+    end
+    isempty(word) && (return "")
+    return String(word)
 end
 
 function get_sym(str::String)
@@ -39,13 +50,13 @@ function get_docs(x)
         s = last(search(str,"\n\n```\n"))+1
         e = first(search(str,"\n```",s))-1
         if isa(x,DataType) && x!=Any && x!=Function
-            d = split(chomp(sprint(dump,x)),'\n')
+            d = MarkedString.(split(chomp(sprint(dump,x)),'\n'))
         elseif isa(x,Function)
             d = split(str[s:e],'\n')
             s = last(search(str,"\n\n"))+1
             e = first(search(str,"\n\n",s))-1
-            d = map(dd->(dd = dd[1:first(search(dd," in "))-1]),d)
-            d[1] = str[s:e]
+            d = MarkedString.(map(dd->(dd = dd[1:first(search(dd," in "))-1]),d))
+            d[1] = MarkedString(str[s:e])
         elseif isa(x,Module)
             d = [split(str,'\n')[3]]
         else
@@ -53,9 +64,6 @@ function get_docs(x)
         end
     else
         d = split(str, "\n\n", limit = 2)
-    end
-    for i = 1:length(d)
-        d[i] = strip(replace(d[i],"```",""))
     end
     return d
 end

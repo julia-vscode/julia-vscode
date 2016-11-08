@@ -33,7 +33,7 @@ end
 MarkedString(x) = MarkedString("julia",x::AbstractString)
 
 type Hover
-    contents::Union{MarkedString,Vector{MarkedString}}
+    contents::Vector{Union{AbstractString,MarkedString}}
 end
 
 type CompletionItem
