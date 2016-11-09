@@ -33,16 +33,18 @@ function process(r::Request{Val{Symbol("textDocument/signatureHelp")},TextDocume
     else
         x = get_sym(word)
         M = methods(x).ms
-        sigs = map(M) do m
+        sigs = SignatureInformation[]
+        for m in M
             tv, decls, file, line = Base.arg_decl_parts(m)
+            
             p_sigs = [isempty(i[2]) ? i[1] : i[1]*"::"*i[2] for i in decls[2:end]]
             desc = string(string(m.name), "(",join(p_sigs, ", "),")")
 
             PI = map(ParameterInformation,p_sigs)
-            # Extract documentation here
             doc = ""
-            return SignatureInformation(desc,doc,PI)
+            (length(decls)-1>arg) && push!(sigs,SignatureInformation(desc,doc,PI))
         end
+        
         signatureHelper = SignatureHelp(sigs,0,arg)
         response = Response(get(r.id),signatureHelper)
     end
