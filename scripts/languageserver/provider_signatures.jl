@@ -1,15 +1,21 @@
 function process(r::Request{Val{Symbol("textDocument/signatureHelp")},TextDocumentPositionParams}, server)
     tdpp = r.params
-    line = get_line(tdpp,server)
-    pos = pos0 = min(tdpp.position.character+1,length(line))
+    pos = pos0 = tdpp.position.character
+    io = IOBuffer(get_line(tdpp,server))
+    
+    line = []
+    cnt = 0
+    while cnt < pos && !eof(io)
+        cnt+=1
+        push!(line,read(io,Char))
+    end
     
     arg,b = 0,0
-    word = ""
-    pos-=line[pos]==')' 
+    word = "" 
     while pos>1
         if line[pos]=='(' 
             if b == 0
-                 word = get_word(tdpp,server,pos-pos0)
+                 word = get_word(tdpp,server,pos-pos0-1)
                 break
             elseif b>0
                 b-=1

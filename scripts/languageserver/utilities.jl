@@ -8,7 +8,7 @@ function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offs
     word = Char[]
     e = s = 0
     c = ' '
-    while position(line)<tdpp.position.character
+    while position(line)<tdpp.position.character+offset
         e+=1
         c = read(line,Char)
         push!(word,c)
