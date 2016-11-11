@@ -8,5 +8,55 @@
 		],
 		"description": "For Loop",
 		"scope": "source.julia"
+	},
+	"While Loop": {
+		"prefix": "while",
+		"body": [
+			"while $1",
+			"\t$2",
+			"end"
+		],
+		"description": "While loop",
+		"scope": "source.julia"
+	},
+	"Type Declaration": {
+		"prefix": "type",
+		"body": [
+			"type $1",
+			"\t$2",
+			"end"
+		],
+		"description": "Type declaration",
+		"scope": "source.julia"
+	},
+	"Immutable Declaration": {
+		"prefix": "immutable",
+		"body": [
+			"type $1",
+			"\t$2",
+			"end"
+		],
+		"description": "Immutable declaration",
+		"scope": "source.julia"
+	},
+	"Function Declaration": {
+		"prefix": "function",
+		"body": [
+			"function $1($2)",
+			"\t$3",
+			"end"
+		],
+		"description": "Function declaration",
+		"scope": "source.julia"
+	},
+	"Macro Declaration": {
+		"prefix": "macro",
+		"body": [
+			"macro $1($2)",
+			"\t$3",
+			"end"
+		],
+		"description": "Macro declaration",
+		"scope": "source.julia"
 	}
 }
