@@ -12,7 +12,7 @@
 	"While Loop": {
 		"prefix": "while",
 		"body": [
-			"while ($1)",
+			"while $1",
 			"\t$2",
 			"end"
 		],
@@ -42,7 +42,7 @@
 	"Function Declaration": {
 		"prefix": "function",
 		"body": [
-			"function ($1::$2)",
+			"function $1($2)",
 			"\t$3",
 			"end"
 		],
@@ -52,8 +52,8 @@
 	"Macro Declaration": {
 		"prefix": "macro",
 		"body": [
-			"macro ($1)",
-			"\t$2",
+			"macro $1($2)",
+			"\t$3",
 			"end"
 		],
 		"description": "Macro declaration",
