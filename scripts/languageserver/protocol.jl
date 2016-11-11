@@ -107,15 +107,15 @@ end
 
 type TextDocumentIdentifier
     uri::String
-    TextDocumentIdentifier(d::Dict) = new(d["uri"])
 end
+TextDocumentIdentifier(d::Dict) = TextDocumentIdentifier(d["uri"])
 
 
 type VersionedTextDocumentIdentifier
     uri::String
     version::Int
-    VersionedTextDocumentIdentifier(d::Dict) = new(d["uri"],d["version"])
 end
+VersionedTextDocumentIdentifier(d::Dict) = VersionedTextDocumentIdentifier(d["uri"],d["version"])
 
 
 
@@ -132,8 +132,8 @@ TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(d["text
 type DidChangeTextDocumentParams
     textDocument::VersionedTextDocumentIdentifier
     contentChanges::Vector{TextDocumentContentChangeEvent}
-    DidChangeTextDocumentParams(d::Dict) = new(VersionedTextDocumentIdentifier(d["textDocument"]),TextDocumentContentChangeEvent.(d["contentChanges"]))
 end
+DidChangeTextDocumentParams(d::Dict) = DidChangeTextDocumentParams(VersionedTextDocumentIdentifier(d["textDocument"]),TextDocumentContentChangeEvent.(d["contentChanges"]))
 
 
 type TextDocumentItem
@@ -141,32 +141,32 @@ type TextDocumentItem
     languageId::String
     version::Int
     text::String
-    TextDocumentItem(d::Dict) = new(d["uri"],d["languageId"],d["version"],d["text"])
 end
+TextDocumentItem(d::Dict) = TextDocumentItem(d["uri"],d["languageId"],d["version"],d["text"])
 
 
 type TextDocumentPositionParams
     textDocument::TextDocumentIdentifier
     position::Position
-    TextDocumentPositionParams(d::Dict) = new(TextDocumentIdentifier(d["textDocument"]),Position(d["position"]))
 end
+TextDocumentPositionParams(d::Dict) = TextDocumentPositionParams(TextDocumentIdentifier(d["textDocument"]),Position(d["position"]))
 
 type DidOpenTextDocumentParams
     textDocument::TextDocumentItem
-    DidOpenTextDocumentParams(d::Dict) = new(TextDocumentItem(d["textDocument"]))
 end
+DidOpenTextDocumentParams(d::Dict) = DidOpenTextDocumentParams(TextDocumentItem(d["textDocument"]))
 
 type DidCloseTextDocumentParams
     textDocument::TextDocumentIdentifier
-    DidCloseTextDocumentParams(d::Dict) = new(TextDocumentIdentifier(d["textDocument"]))
 end
+DidCloseTextDocumentParams(d::Dict) = DidCloseTextDocumentParams(TextDocumentIdentifier(d["textDocument"]))
 
 type DidSaveTextDocumentParams
     textDocument::TextDocumentIdentifier
-    DidSaveTextDocumentParams(d::Dict) = new(TextDocumentIdentifier(d["textDocument"]))
 end
+DidSaveTextDocumentParams(d::Dict) = DidSaveTextDocumentParams(TextDocumentIdentifier(d["textDocument"]))
 
 type CancelParams
     id::Union{String,Int}
-    CancelParams(d::Dict) = new(d["id"])
 end
+CancelParams(d::Dict) = CancelParams(d["id"])
