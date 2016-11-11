@@ -75,9 +75,9 @@ type ServerCapabilities
     completionProvider::CompletionOptions
     definitionProvider::Bool
     signatureHelpProvider::SignatureHelpOptions
+    documentSymbolProvider::Bool
     # referencesProvider::Bool
     # documentHighlightProvider::Bool
-    # documentSymbolProvider::Bool
     # workspaceSymbolProvider::Bool
     # codeActionProvider::Bool
     # codeLensProvider::CodeLensOptions
@@ -106,6 +106,12 @@ type SignatureHelp
     signatures::Vector{SignatureInformation}
     activeSignature::Int
     activeParameter::Int
+end
+
+type SymbolInformation
+    name::String
+    kind::Int
+    location::Location
 end
 
 # TextDocument
