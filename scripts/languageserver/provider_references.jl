@@ -30,7 +30,6 @@ function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/documentSymbol")}}
     return TextDocumentIdentifier(params["textDocument"])
 end
 
-doc = readstring("/home/zac/github/julia-master/base/float.jl")
 assignsdocs(ex::Expr) = ex.head==:macrocall && ex.args[1]==GlobalRef(Core,Symbol("@doc"))
 
 
