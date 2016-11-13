@@ -218,19 +218,36 @@ function executeJuliaCodeInREPL() {
         }
     }
 
-    // TODO Somehow wait for the named pipe to be ready if we started the julia process here.
     startREPLCommand();
 
     var namedPipe = generatePipeName(process.pid.toString());
-    var client = net.connect(namedPipe,
-        () => {
-            var msg = {
-                "command": "run",
-                "body": text
-            };
-            client.write("Command: run\n");
-            client.write(`Content-Length: ${text.length}\n`);
-            client.write(`\n`);
-            client.write(text);
-        });
+
+    var onConnect = () => {
+        var msg = {
+            "command": "run",
+            "body": text
+        };
+        client.write("Command: run\n");
+        client.write(`Content-Length: ${text.length}\n`);
+        client.write(`\n`);
+        client.write(text);
+    };
+
+    var onError = (err) => {
+        failCount += 1;
+        if(failCount > 50) {
+            vscode.window.showInformationMessage('Could not execute code.');
+        }
+        else {
+            setTimeout(() => {
+                client = net.connect(namedPipe, onConnect);
+                client.on('error', onError);
+            },100);
+        }
+    };
+
+    var client = net.connect(namedPipe, onConnect);
+    var failCount = 0;
+
+    client.on('error', onError);
 }
