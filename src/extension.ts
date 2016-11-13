@@ -235,7 +235,7 @@ function executeJuliaCodeInREPL() {
 
     var onError = (err) => {
         failCount += 1;
-        if(failCount > 10) {
+        if(failCount > 50) {
             vscode.window.showInformationMessage('Could not execute code.');
         }
         else {
