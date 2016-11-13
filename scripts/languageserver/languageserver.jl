@@ -3,9 +3,10 @@ type LanguageServer
     pipe_out
 
     documents::Dict{String,Array{String,1}}
+    DocStore::Dict{String,Any}
 
     function LanguageServer(pipe_in,pipe_out)
-        new(pipe_in,pipe_out,Dict{String,Array{String,1}}())
+        new(pipe_in,pipe_out,Dict{String,Array{String,1}}(),Dict{String,Any}())
     end
 end
 

@@ -68,4 +68,21 @@ function get_docs(x)
     return d
 end
 
-get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer) = get_docs(get_sym(tdpp, server))
+function get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer)
+    word = get_word(tdpp,server)
+    in(word,keys(server.DocStore)) && (return server.DocStore[word])
+    sym = get_sym(word)
+    d=[""]
+    if sym!=nothing
+        d = get_docs(sym)
+        # Only keep 100 records
+        if length(server.DocStore)>100
+            for k in take(keys(server.DocStore),10)
+                delete!(server.DocStore,k)
+            end
+        end
+        server.DocStore[word] = d
+    end
+    return d
+end
+
