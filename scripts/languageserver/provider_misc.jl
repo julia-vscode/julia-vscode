@@ -3,7 +3,7 @@ const TextDocumentSyncKind = Dict("None"=>0,"Full"=>1,"Incremental"=>2)
 
 
 const serverCapabilities = ServerCapabilities(
-                        TextDocumentSyncKind["Full"],
+                        TextDocumentSyncKind["Incremental"],
                         true, #hoverProvider
                         CompletionOptions(false,["."]),
                         true, #definitionProvider
@@ -19,7 +19,7 @@ function JSONRPC.parse_params(::Type{Val{Symbol("initialize")}}, params)
 end
 
 function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
-    server.documents[r.params.textDocument.uri] = split(r.params.textDocument.text,r"\r\n?|\n")
+    server.documents[r.params.textDocument.uri] = r.params.textDocument.text.data 
     
     process_diagnostics(r.params.textDocument.uri, server)
 end
@@ -37,7 +37,30 @@ function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didClose")}}, para
 end
 
 function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextDocumentParams}, server)
-    server.documents[r.params.textDocument.uri] = split(r.params.contentChanges[1].text, r"\r\n?|\n")
+    doc = server.documents[r.params.textDocument.uri] 
+    for c in r.params.contentChanges 
+        startline,endline = get_rangelocs(doc,c.range) 
+        io = IOBuffer(doc) 
+        seek(io,startline) 
+        s = e = 0 
+        while s<c.range.start.character 
+            s+=1 
+            read(io,Char) 
+        end 
+        startpos = position(io) 
+        seek(io,endline) 
+        while e<c.range.end.character 
+            e+=1 
+            read(io,Char) 
+        end 
+        endpos = position(io) 
+        if length(doc)==0 
+            doc = c.text.data 
+        else 
+            doc = vcat(doc[1:startpos],c.text.data,doc[endpos+1:end]) 
+        end 
+    end 
+    server.documents[r.params.textDocument.uri] = doc 
 end
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didChange")}}, params)

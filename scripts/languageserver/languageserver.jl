@@ -2,7 +2,7 @@ type LanguageServer
     pipe_in
     pipe_out
 
-    documents::Dict{String,Array{String,1}}
+    documents::Dict{String,Vector{UInt8}}
     DocStore::Dict{String,Any}
 
     function LanguageServer(pipe_in,pipe_out)

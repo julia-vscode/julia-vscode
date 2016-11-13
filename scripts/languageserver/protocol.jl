@@ -124,14 +124,13 @@ VersionedTextDocumentIdentifier(d::Dict) = VersionedTextDocumentIdentifier(d["ur
 
 
 
-# WILL NEED CHANGING
 type TextDocumentContentChangeEvent 
-    #range::Range
-    #rangeLength::Int
+    range::Range
+    rangeLength::Int
     text::String
 end
-#TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(Range(d["range"]),d["rangeLength"],d["text"])
-TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(d["text"])
+TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(Range(d["range"]),d["rangeLength"],d["text"])
+
 
 
 type DidChangeTextDocumentParams

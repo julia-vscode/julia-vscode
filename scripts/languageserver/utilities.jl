@@ -1,7 +1,19 @@
-function get_line(p::TextDocumentPositionParams, server::LanguageServer)
-    d = server.documents[p.textDocument.uri]
-    return d[p.position.line+1]
-end
+function get_line(tdpp::TextDocumentPositionParams, server::LanguageServer) 
+    doc = server.documents[tdpp.textDocument.uri] 
+    s = tdpp.position.line 
+    n = length(doc) 
+    cnt = 0 
+    i = 0 
+    while cnt<s && i<n 
+        i+=1 
+        if doc[i]==0x0a 
+            cnt+=1 
+        end 
+    end 
+    io = IOBuffer(doc) 
+    seek(io,i) 
+    return String(chomp(readuntil(io,'\n'))) 
+end 
 
 function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offset=0)
     line = IOBuffer(get_line(tdpp, server))
@@ -86,3 +98,24 @@ function get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer)
     return d
 end
 
+function get_rangelocs(d::Array{UInt8},range::Range) 
+    (s,e) = (range.start.line, range.end.line) 
+    n = length(d)  
+    cnt = 0  
+    i = 0  
+    while cnt<s && i<n   
+        i+=1  
+        if d[i]==0x0a 
+            cnt+=1  
+        end  
+    end  
+    startline = i  
+    while cnt<e && i<n   
+        i+=1  
+        if d[i]==0x0a 
+            cnt+=1  
+        end  
+    end  
+    endline = i  
+    return startline,endline  
+end
