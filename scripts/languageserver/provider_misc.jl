@@ -10,6 +10,7 @@ const serverCapabilities = ServerCapabilities(
                         SignatureHelpOptions(["("])) 
 
 function process(r::JSONRPC.Request{Val{Symbol("initialize")},Dict{String,Any}}, server)
+    server.rootPath=haskey(r.params,"rootPath") ? "file://"*r.params["rootPath"] : ""
     response = Response(get(r.id),InitializeResult(serverCapabilities))
     send(response, server)
 end
@@ -21,7 +22,9 @@ end
 function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
     server.documents[r.params.textDocument.uri] = split(r.params.textDocument.text,r"\r\n?|\n")
     
-    process_diagnostics(r.params.textDocument.uri, server)
+    if r.params.textDocument.uri[1:min(length(r.params.textDocument.uri),length(server.rootPath))] == server.rootPath 
+        process_diagnostics(r.params.textDocument.uri, server)
+    end
 end
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didOpen")}}, params)
