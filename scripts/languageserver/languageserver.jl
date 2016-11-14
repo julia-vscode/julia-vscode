@@ -7,6 +7,7 @@ type LanguageServer
     DocStore::Dict{String,Any}
 
     function LanguageServer(pipe_in,pipe_out)
+        
         new(pipe_in,pipe_out,"",Dict{String,Array{UInt8,1}}(),Dict{String,Any}())
     end
 end
