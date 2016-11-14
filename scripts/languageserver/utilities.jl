@@ -119,3 +119,5 @@ function get_rangelocs(d::Array{UInt8},range::Range)
     endline = i  
     return startline,endline  
 end
+
+isworkspacefile(uri,server) = !ismatch(r"\/.*(julia).*\/(base)\/.*(.jl)",uri) && (server.rootPath == "" || (uri[1:7] == "file://" && ismatch(Regex("^$(server.rootPath)"),uri[8:end])) || uri[1:8] == "untitled") 
