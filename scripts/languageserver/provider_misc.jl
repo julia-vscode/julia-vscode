@@ -10,6 +10,7 @@ const serverCapabilities = ServerCapabilities(
                         SignatureHelpOptions(["("])) 
 
 function process(r::JSONRPC.Request{Val{Symbol("initialize")},Dict{String,Any}}, server)
+    server.rootPath=haskey(r.params,"rootPath") ? r.params["rootPath"] : ""
     response = Response(get(r.id),InitializeResult(serverCapabilities))
     send(response, server)
 end
@@ -19,9 +20,12 @@ function JSONRPC.parse_params(::Type{Val{Symbol("initialize")}}, params)
 end
 
 function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
-    server.documents[r.params.textDocument.uri] = r.params.textDocument.text.data 
+    server.documents[r.params.textDocument.uri] = Document(r.params.textDocument.text.data,[]) 
+    parse(r.params.textDocument.uri,server)
     
-    process_diagnostics(r.params.textDocument.uri, server)
+    if isworkspacefile(r.params.textDocument.uri,server) 
+        process_diagnostics(r.params.textDocument.uri, server) 
+    end
 end
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didOpen")}}, params)
@@ -37,7 +41,8 @@ function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didClose")}}, para
 end
 
 function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextDocumentParams}, server)
-    doc = server.documents[r.params.textDocument.uri] 
+    doc = server.documents[r.params.textDocument.uri].data
+    blocks = server.documents[r.params.textDocument.uri].blocks 
     for c in r.params.contentChanges 
         startline,endline = get_rangelocs(doc,c.range) 
         io = IOBuffer(doc) 
@@ -59,8 +64,24 @@ function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextD
         else 
             doc = vcat(doc[1:startpos],c.text.data,doc[endpos+1:end]) 
         end 
+        if !isempty(blocks)
+            s = e = 1
+            while e <length(blocks)
+                if blocks[e].range.start.line+1 ≤ c.range.start.line
+                    s = e
+                end
+                if c.range.end.line ≤ blocks[e].range.end.line+1
+                    break
+                end
+                e+=1
+            end
+            for i = s:e
+                blocks[e].uptodate=false
+            end
+        end
     end 
-    server.documents[r.params.textDocument.uri] = doc 
+    server.documents[r.params.textDocument.uri].data = doc 
+    parse(r.params.textDocument.uri,server)
 end
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didChange")}}, params)

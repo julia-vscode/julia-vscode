@@ -1,12 +1,18 @@
+type Document
+    data::Vector{UInt8}
+    blocks::Vector{Any}
+end
+
 type LanguageServer
     pipe_in
     pipe_out
 
-    documents::Dict{String,Vector{UInt8}}
+    rootPath::String 
+    documents::Dict{String,Document}
     DocStore::Dict{String,Any}
 
     function LanguageServer(pipe_in,pipe_out)
-        new(pipe_in,pipe_out,Dict{String,Array{Vector{UInt8},1}}(),Dict{String,Any}())
+        new(pipe_in,pipe_out,"",Dict{String,Document}(),Dict{String,Any}())
     end
 end
 
