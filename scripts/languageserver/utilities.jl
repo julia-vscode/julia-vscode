@@ -86,3 +86,5 @@ function get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer)
     return d
 end
 
+
+isworkspacefile(uri,server) = !ismatch(r"\/.*(julia).*\/(base)\/.*(.jl)",uri) && (server.rootPath == "" || (uri[1:7] == "file://" && ismatch(Regex("^$(server.rootPath)"),uri[8:end])) || uri[1:8] == "untitled")
