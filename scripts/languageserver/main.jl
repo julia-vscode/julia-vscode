@@ -30,6 +30,7 @@ include("provider_hover.jl")
 include("provider_completions.jl")
 include("provider_definitions.jl")
 include("provider_signatures.jl")
+include("parse.jl")
 include("transport.jl")
 
 include("utilities.jl")
