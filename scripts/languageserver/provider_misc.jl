@@ -21,8 +21,7 @@ end
 
 function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
     server.documents[r.params.textDocument.uri] = Document(r.params.textDocument.text.data,[]) 
-    parse(r.params.textDocument.uri,server) 
-    process_diagnostics(r.params.textDocument.uri, server)
+    parse(r.params.textDocument.uri,server)
     
     if isworkspacefile(r.params.textDocument.uri,server) 
         process_diagnostics(r.params.textDocument.uri, server) 
