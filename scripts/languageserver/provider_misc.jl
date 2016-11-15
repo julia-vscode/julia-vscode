@@ -21,8 +21,8 @@ end
 
 function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
     server.documents[r.params.textDocument.uri] = Document(r.params.textDocument.text.data,[]) 
-    parse(r.params.textDocument.uri,server)
     
+    parse(r.params.textDocument.uri,server)
     if isworkspacefile(r.params.textDocument.uri,server) 
         process_diagnostics(r.params.textDocument.uri, server) 
     end
@@ -66,7 +66,11 @@ function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextD
         end
     end 
     server.documents[r.params.textDocument.uri].data = doc 
+
     parse(r.params.textDocument.uri,server)
+    if isworkspacefile(r.params.textDocument.uri,server) 
+        process_diagnostics(r.params.textDocument.uri, server) 
+    end
 end
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didChange")}}, params)

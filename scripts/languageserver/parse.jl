@@ -6,11 +6,23 @@ type Block{T}
     hover::MarkedString
     completions
     localvar::Dict
+    diags
 end
 
 function Block(utd,ex,r::Range)
     t,name,lvars = classify_expr(ex)
-    return Block{t}(utd, ex, r, name,MarkedString("Global"),[],lvars)
+    ctx = LintContext()
+    ctx.lineabs = r.start.line+1
+    Lint.lintexpr(ex,ctx)
+    diags = map(ctx.messages) do l
+        return Diagnostic(r,
+                        LintSeverity[string(l.code)[1]],
+                        string(l.code),
+                        "Lint.jl",
+                        l.message) 
+    end
+
+    return Block{t}(utd, ex, r, name,MarkedString("Global"),[],lvars,diags)
 end
 
 function Base.parse(uri::String,server::LanguageServer,updateall=false)
@@ -70,6 +82,8 @@ function classify_expr(ex)
     if isa(ex, Expr)
         if ex.head==:macrocall && ex.args[1]==GlobalRef(Core,Symbol("@doc"))
             return classify_expr(ex.args[3])
+        elseif in(ex.head,[:const,:global])
+            return classify_expr(ex.args[1])
         elseif ex.head==:function || (ex.head==:(=) && isa(ex.args[1],Expr) && ex.args[1].head==:call)
             name = isa(ex.args[1].args[1],Symbol) ? ex.args[1].args[1] : ex.args[1].args[1].args[1]
             args = Dict()
