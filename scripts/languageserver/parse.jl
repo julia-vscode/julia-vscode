@@ -8,82 +8,40 @@ type Block{T}
     localvar::Dict
 end
 
-function Block(ex,r::Range)
+function Block(utd,ex,r::Range)
     t,name,lvars = classify_expr(ex)
-    return Block{t}(true, ex, r, name,MarkedString("Global"),[],lvars)
+    return Block{t}(utd, ex, r, name,MarkedString("Global"),[],lvars)
 end
 
-function Base.parse(uri::String,server::LanguageServer)
+function Base.parse(uri::String,server::LanguageServer,updateall=false)
     doc = String(server.documents[uri].data) 
+    n = length(doc.data)
     if doc == ""
         server.documents[uri].blocks = []
         return
     end
-    n = length(doc)
-    ln = get_lineranges(doc)
-    nl = length(ln)
-
-    blocks = server.documents[uri].blocks
+    linebreaks = get_linebreaks(doc)
     out = Block[]
-    if isempty(blocks)
-        i0 = i1 = l0 = l1 = 1
-        igood = 0
-    else
-        ibad = findfirst(b->!b.uptodate,blocks)
-        ibad ==0 && return
-        igood = ibad ==0 ? 0 : findnext(b->b.uptodate,blocks,ibad)
-        bbad = blocks[ibad]
-        igood!=0 && (bgood = blocks[igood])
-        i0 = i1 = ln[min(nl,bbad.range.start.line+1)][1]
-        l0 = l1 = min(nl,bbad.range.start.line+1)
-    end
+    i0 = i1 = 1
+    p0 = p1 = Position(0,0)
 
-    while i1 ≤ n
-        (ex,i1) = try
-            parse(doc,i0)
-        catch y
-            y,i0
-        end
-        l0,p0 = get_pos(ln,i0,l1)
-        l1,p1 = get_pos(ln,i1,l0)
-        if isa(ex,ParseError) || (isa(ex,Expr) && ex.head==:incomplete)
-            push!(out,Block(ex,Range(Position(l0-1,p0),Position(l0-1,ln[l0].stop-ln[l0].start))))
+    while 0 < i1 ≤ n
+        (ex,i1) = parse(doc,i0,raise=false)
+        p0 = get_pos(i0, linebreaks)
+        p1 = get_pos(i1-1, linebreaks)
+        if isa(ex,Expr) && in(ex.head,[:incomplete,:error])
+            push!(out,Block(false,ex,Range(p0,Position(p0.line+1,0))))
             while true
-                if !in(doc[i0],['\n','\t',' '])
-                    break
-                end
+                !in(doc[i0],['\n','\t',' ']) && break
                 i0+=1
             end
             i0 = i1 = search(doc,'\n',i0)
-            l0 += 1
-            l1 += 1
-            i0 == 0 && break
         else
-            push!(out,Block(ex,Range(Position(l0-1,p0),Position(l1-1,p1))))
+            push!(out,Block(true,ex,Range(p0,p1)))
             i0 = i1
         end
-        igood!=0 && bgood.ex==ex && break
     end
-    if isempty(blocks)
-        server.documents[uri].blocks = out
-    else
-        if igood!=0 
-            dl,dc = out[end].range.start.line-bgood.range.start.line,out[end].range.start.character-bgood.range.start.character
-            for i = igood:length(blocks)
-                blocks[i].range.start.line = blocks[i].range.start.line+dl
-                blocks[i].range.start.character = blocks[i].range.start.character+dc
-                blocks[i].range.end.line = blocks[i].range.end.line+dl
-                blocks[i].range.end.character = blocks[i].range.end.character+dc
-            end
-            for i = 2:length(out)-1
-                deleteat!(blocks,ibad+i-1)
-            end
-        end
-        blocks[ibad] = out[1]
-        for i = 2:length(out)-1        
-            insert!(blocks,ibad+i-1,out[i])
-        end
-    end
+    server.documents[uri].blocks = out
     return 
 end 
 
@@ -101,7 +59,11 @@ function classify_expr(ex)
                 if isa(a, Symbol)
                     args[a] = "Any"
                 elseif a.head==:(::)
-                    args[a.args[1]] = string(a.args[2])
+                    if length(a.args)>1
+                        args[a.args[1]] = string(a.args[2])
+                    else
+                        args[a.args[1]] = string(a.args[1])
+                    end
                 elseif a.head == :kw
                     if isa(a.args[1], Symbol)
                         args[a.args[1]] = "Any"
@@ -142,7 +104,7 @@ function classify_expr(ex)
     return :none, :none, Dict()
 end
 
-import Base:<,in
+import Base:<,in,intersect
 <(a::Position,b::Position) =  a.line<b.line || (a.line ≤ b.line && a.character<b.character)
 function in(p::Position,r::Range)
     (r.start.line < p.line < r.end.line) ||
@@ -150,27 +112,16 @@ function in(p::Position,r::Range)
     (r.end.line == p.line && p.character ≤ r.end.character)  
 end
 
-function get_lineranges(doc::String) 
-    n = length(doc) 
-    ln = UnitRange{Int}[] 
-    i0 = i1 =  1 
-    while i1 ≤ n 
-        i1 = search(doc,'\n',i0) 
-        push!(ln,min(i0,n):(i1 == 0 ? n : i1)) 
-        i1==0 && break 
-        i0=i1+1
-    end 
-    return  ln
-end 
+intersect(a::Range,b::Range) = a.start in b || b.start in a
 
-function get_pos(lineranges,charpos,startline=1)
-    nl = length(lineranges)
-    l,c = startline,0
-    for l = startline:nl
-        if lineranges[l].start ≤ charpos ≤ lineranges[l].stop
-            c = charpos-lineranges[l].start
-            break
+get_linebreaks(doc) = [0;find(c->c==0x0a,doc.data);length(doc.data)+1]
+
+function get_pos(i0, lb)
+    nlb = length(lb)-1
+    for l = 1:nlb
+        if lb[l] < i0 ≤ lb[l+1]
+            return Position(l-1,i0-lb[l]-1)
         end
     end
-    return l,c
 end
+

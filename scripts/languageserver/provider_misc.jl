@@ -64,20 +64,8 @@ function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextD
         else 
             doc = vcat(doc[1:startpos],c.text.data,doc[endpos+1:end]) 
         end 
-        if !isempty(blocks)
-            s = e = 1
-            while e <length(blocks)
-                if blocks[e].range.start.line+1 ≤ c.range.start.line
-                    s = e
-                end
-                if c.range.end.line ≤ blocks[e].range.end.line+1
-                    break
-                end
-                e+=1
-            end
-            for i = s:e
-                blocks[e].uptodate=false
-            end
+        for i = 1:length(blocks)
+            intersect(blocks[i].range,c.range) && (blocks[i].uptodate = false)
         end
     end 
     server.documents[r.params.textDocument.uri].data = doc 
@@ -98,7 +86,7 @@ function JSONRPC.parse_params(::Type{Val{Symbol("\$/cancelRequest")}}, params)
 end
 
 function process(r::Request{Val{Symbol("textDocument/didSave")},DidSaveTextDocumentParams}, server)
-    
+    parse(r.params.textDocument.uri,server,true)
 end
 
 
