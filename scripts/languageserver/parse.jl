@@ -112,7 +112,7 @@ function classify_expr(ex)
                     end
                 end
             end 
-            return :function, ex.args[1].args[1], args
+            return :Function, ex.args[1].args[1], args
         elseif ex.head==:macro
             return :macro, ex.args[1].args[1], Dict(x=>"macro argument" for x in ex.args[1].args[2:end])
         elseif in(ex.head,[:type, :immutable])
@@ -125,17 +125,17 @@ function classify_expr(ex)
                     args[a.args[1]] = string(a.args[2])
                 end
             end
-            return ex.head, name, args
+            return :DataType, name, args
         elseif in(ex.head,[:abstract, :bitstype])
             name = isa(ex.args[1], Symbol) ? ex.args[1] : ex.args[1].args[1]
-            return ex.head, name, Dict()
+            return :DataType, name, Dict()
         elseif ex.head==:module
-            return ex.head, ex.args[2], Dict()
+            return :Module, ex.args[2], Dict()
         elseif ex.head == :(=) && isa(ex.args[1],Symbol)
-            return :any, ex.args[1], Dict()
+            return :Any, ex.args[1], Dict()
         end
     end
-    return :none, :none, Dict()
+    return :Any, :none, Dict()
 end
 
 import Base:<,in,intersect

@@ -82,6 +82,12 @@ end
 
 function get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer)
     word = get_word(tdpp,server)
+    locs = get_local_doc(tdpp, word, server)
+    !isempty(locs) && return locs
+    globs = get_global_doc(tdpp, word, server)
+    !isempty(globs) && return globs
+
+            
     in(word,keys(server.DocStore)) && (return server.DocStore[word])
     sym = get_sym(word)
     d=[""]
@@ -96,6 +102,29 @@ function get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer)
         server.DocStore[word] = d
     end
     return d
+end
+
+function get_local_doc(tdpp::TextDocumentPositionParams, word::String, server)
+    locs = MarkedString[]
+    for b in server.documents[tdpp.textDocument.uri].blocks
+        if tdpp.position in b.range
+            if Symbol(word) in keys(b.localvar)
+                push!(locs,MarkedString("Local: $word::$(b.localvar[Symbol(word)])"))
+                break
+            end
+        end
+    end
+    return locs
+end
+
+function get_global_doc(tdpp::TextDocumentPositionParams, word::String, server)
+    globs = MarkedString[]
+    for b in server.documents[tdpp.textDocument.uri].blocks
+        if string(b.name)==word
+            push!(globs, MarkedString("Global $(typeof(b).parameters[1]) at line $(b.range.start.line+1): $word"))
+        end
+    end
+    return globs
 end
 
 function get_rangelocs(d::Array{UInt8},range::Range) 
