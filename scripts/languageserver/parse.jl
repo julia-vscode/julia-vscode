@@ -13,9 +13,10 @@ function Block(utd,ex,r::Range)
     t,name,lvars = classify_expr(ex)
     ctx = LintContext()
     ctx.lineabs = r.start.line+1
+    dl = r.end.line-r.start.line-ctx.line
     Lint.lintexpr(ex,ctx)
     diags = map(ctx.messages) do l
-        return Diagnostic(r,
+        return Diagnostic(Range(Position(r.start.line+l.line+dl-1,0),Position(r.start.line+l.line+dl-1,100)),
                         LintSeverity[string(l.code)[1]],
                         string(l.code),
                         "Lint.jl",
@@ -33,14 +34,15 @@ function Base.parse(uri::String,server::LanguageServer,updateall=false)
         server.documents[uri].blocks = []
         return
     end
+    i = findfirst(b->!b.uptodate,server.documents[uri].blocks)
 
-    if isempty(server.documents[uri].blocks) || updateall
+    if isempty(server.documents[uri].blocks) || updateall || i==0
         i0 = i1 = 1
         p0 = p1 = Position(0,0)
         out = Block[]
         i4 = 0
     else
-        i = findfirst(b->!b.uptodate,server.documents[uri].blocks)
+        
         i4 = findnext(b->b.uptodate,server.documents[uri].blocks,i)
         p0 = p1 = server.documents[uri].blocks[i].range.start
         i0 = i1 = linebreaks[p0.line+1]+p0.character+1
