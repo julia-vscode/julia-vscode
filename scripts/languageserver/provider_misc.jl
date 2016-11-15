@@ -59,11 +59,8 @@ function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextD
             read(io,Char) 
         end 
         endpos = position(io) 
-        if length(doc)==0 
-            doc = c.text.data 
-        else 
-            doc = vcat(doc[1:startpos],c.text.data,doc[endpos+1:end]) 
-        end 
+        doc = length(doc)==0 ? c.text.data : vcat(doc[1:startpos],c.text.data,doc[endpos+1:end])
+        
         for i = 1:length(blocks)
             intersect(blocks[i].range,c.range) && (blocks[i].uptodate = false)
         end

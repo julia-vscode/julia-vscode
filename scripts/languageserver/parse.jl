@@ -14,16 +14,26 @@ function Block(utd,ex,r::Range)
 end
 
 function Base.parse(uri::String,server::LanguageServer,updateall=false)
-    doc = String(server.documents[uri].data) 
+    doc = String(server.documents[uri].data)
+    linebreaks = get_linebreaks(doc) 
     n = length(doc.data)
     if doc == ""
         server.documents[uri].blocks = []
         return
     end
-    linebreaks = get_linebreaks(doc)
-    out = Block[]
-    i0 = i1 = 1
-    p0 = p1 = Position(0,0)
+
+    if isempty(server.documents[uri].blocks) || updateall
+        i0 = i1 = 1
+        p0 = p1 = Position(0,0)
+        out = Block[]
+        i4 = 0
+    else
+        i = findfirst(b->!b.uptodate,server.documents[uri].blocks)
+        i4 = findnext(b->b.uptodate,server.documents[uri].blocks,i)
+        p0 = p1 = server.documents[uri].blocks[i].range.start
+        i0 = i1 = linebreaks[p0.line+1]+p0.character+1
+        out = server.documents[uri].blocks[1:i-1]
+    end
 
     while 0 < i1 ≤ n
         (ex,i1) = parse(doc,i0,raise=false)
@@ -39,12 +49,20 @@ function Base.parse(uri::String,server::LanguageServer,updateall=false)
         else
             push!(out,Block(true,ex,Range(p0,p1)))
             i0 = i1
+            if i4>0 && ex == server.documents[uri].blocks[i4].ex
+                dl = p0.line - server.documents[uri].blocks[i4].range.start.line
+                out = vcat(out,server.documents[uri].blocks[i4+1:end])
+                for i  = i4+1:length(out)
+                    out[i].range.start.line+=dl
+                    out[i].range.end.line+=dl
+                end
+                break
+            end
         end
     end
     server.documents[uri].blocks = out
     return 
 end 
-
 
 
 
