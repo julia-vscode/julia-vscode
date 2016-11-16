@@ -10,19 +10,24 @@ var exec = require('child-process-promise').exec;
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
 
 let juliaExecutable = null;
-let languageClient = null;
+let languageClient: LanguageClient = null;
 let REPLterminal: vscode.Terminal = null;
 let extensionPath: string = null;
+let g_context: vscode.ExtensionContext = null;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    g_context = context;
     extensionPath = context.extensionPath;
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
     console.log('Activating extension language-julia');
 
     loadConfiguration();
+
+    let disposable_configchange = vscode.workspace.onDidChangeConfiguration(configChanged);
+    context.subscriptions.push(disposable_configchange);
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
@@ -50,11 +55,24 @@ export function activate(context: vscode.ExtensionContext) {
         ]
 
     });
-    startLanguageServer(context);
+    startLanguageServer();
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {
+}
+
+function configChanged(params) {
+    let need_to_restart_server = loadConfiguration();
+
+    if(need_to_restart_server) {
+        if(languageClient!=null) {
+            languageClient.stop();
+            languageClient = null;
+        }
+
+        startLanguageServer();
+    }
 }
 
 function loadConfiguration() {
@@ -76,15 +94,21 @@ async function getPkgPath() {
     return res.stdout;
 }
 
-async function startLanguageServer(context: vscode.ExtensionContext) {
+async function startLanguageServer() {
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
-    var originalJuliaPkgDir = await getPkgPath();
+    try {
+        var originalJuliaPkgDir = await getPkgPath();
+    }
+    catch (e) {
+        vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
+        return;
+    }
     let serverArgs = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir];
     let spawnOptions = {
-        cwd: path.join(context.extensionPath, 'scripts', 'languageserver'),
+        cwd: path.join(extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_PKGDIR: path.join(context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            JULIA_PKGDIR: path.join(extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
             HOME: process.env.HOME ? process.env.HOME : os.homedir()
         }
     };
@@ -105,10 +129,10 @@ async function startLanguageServer(context: vscode.ExtensionContext) {
     // Push the disposable to the context's subscriptions so that the 
     // client can be deactivated on extension deactivation
     try {
-        context.subscriptions.push(languageClient.start());
+        g_context.subscriptions.push(languageClient.start());
     }
     catch (e) {
-        console.log("Couldn't start it.");
+        vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         languageClient = null;
     }
 }
