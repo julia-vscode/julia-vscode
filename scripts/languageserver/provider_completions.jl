@@ -7,9 +7,11 @@ function process(r::Request{Val{Symbol("textDocument/completion")},TextDocumentP
     CIs = map(comp) do i
         s = get_sym(i)
         d = ""
-        try 
-            d = join(get_docs(s)[2:end],'\n')
-        end
+        d = get_docs(s)
+        d = isa(d,Vector{MarkedString}) ? (x->x.value).(d) : d
+        d = join(d[2:end],'\n')
+        d = replace(d,'`',"")
+        
         kind = 6
         if isa(s, String)
             kind = 1
