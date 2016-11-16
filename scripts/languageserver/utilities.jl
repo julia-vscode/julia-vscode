@@ -116,4 +116,23 @@ function get_rangelocs(d::Array{UInt8}, range::Range)
     return startline, endline
 end
 
-isworkspacefile(uri, server) = !ismatch(r"\/.*(julia).*\/(base)\/.*(.jl)",uri) && (server.rootPath=="" || (uri[1:7]=="file://" && ismatch(Regex("^$(server.rootPath)"), uri[8:end])) || uri[1:8]=="untitled") 
+function should_file_be_linted(uri, server)
+    uri_path = normpath(unescape(URI(uri).path))
+
+    workspace_path = server.rootPath
+
+    if is_windows()
+        if uri_path[1]=='\\'
+            uri_path = uri_path[2:end]
+        end
+    
+        uri_path = lowercase(uri_path)
+        workspace_path = lowercase(workspace_path)
+end
+
+    if server.rootPath==""
+        return false
+    else
+        return startswith(uri_path, workspace_path)
+    end
+end 

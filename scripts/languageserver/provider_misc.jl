@@ -22,7 +22,7 @@ end
 function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
     server.documents[r.params.textDocument.uri] = r.params.textDocument.text.data 
     
-    if isworkspacefile(r.params.textDocument.uri, server) 
+    if should_file_be_linted(r.params.textDocument.uri, server) 
         process_diagnostics(r.params.textDocument.uri, server) 
     end
 end
