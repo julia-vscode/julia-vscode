@@ -41,7 +41,7 @@ function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offs
     return String(word)
 end
 
-function get_sym(str::String)
+function get_sym(str)
     name = split(str,'.')
     try
         x = getfield(Main,Symbol(name[1]))
@@ -56,6 +56,7 @@ end
 
 get_sym(p::TextDocumentPositionParams, server::LanguageServer) = get_sym(get_word(p, server))
 
+# Only for defined variables (i.e. those in Base)
 function get_docs(x)
     str = string(Docs.doc(x))
     if str[1:16]=="No documentation"

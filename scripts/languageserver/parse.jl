@@ -138,23 +138,23 @@ end
 
 
 function parsedatatype(ex)
+    fields = Dict()
     if ex.head in [:abstract, :bitstype]
         name = string(isa(ex.args[1], Symbol) ? ex.args[1] : ex.args[1].args[1])
         doc = string(ex)
     else
         name = string(isa(ex.args[2], Symbol) ? ex.args[2] : ex.args[2].args[1])
         st = string(isa(ex.args[2], Symbol) ? "Any" : string(ex.args[2].args[1]))
-        fields = []
         for a in ex.args[3].args 
             if isa(a, Symbol)
-                push!(fields, string(a)=>Any)
+                fields[string(a)] = VarInfo(Any, "")
             elseif a.head==:(::)
-                push!(fields, string(a.args[1])=>length(a.args)==1 ? a.args[1] : a.args[2])
+                fields[string(a.args[1])] = VarInfo(length(a.args)==1 ? a.args[1] : a.args[2], "")
             end
         end
         doc = "$name <: $(st)\n"*prod("  $(f[1])::$(f[2])\n" for f in fields)
     end
-    return "DataType", name, doc, Dict()
+    return "DataType", name, doc, fields
 end
 
 import Base:<, in, intersect
@@ -178,3 +178,66 @@ function get_pos(i0, lb)
     end
 end
 
+
+
+
+
+
+function get_block(tdpp::TextDocumentPositionParams, server)
+    for b in server.documents[tdpp.textDocument.uri].blocks
+        if tdpp.position in b.range
+            return b
+        end
+    end
+    return 
+end
+
+function get_block(uri::String, str::String, server)
+    for b in server.documents[uri].blocks
+        if str==b.name
+            return b
+        end
+    end
+    return false
+end
+
+function get_type(sword::Vector, tdpp, server)
+    t = get_type(sword[1],tdpp,server)
+    for i = 2:length(sword)
+        fn = get_fn(t, tdpp, server)
+        if sword[i] in keys(fn)
+            t = fn[sword[i]]
+        else
+            return ""
+        end
+    end
+    return t
+end
+
+function get_type(word::AbstractString, tdpp::TextDocumentPositionParams, server)
+    b = get_block(tdpp, server)
+    if word in keys(b.localvar)
+        t = string(b.localvar[word].t) 
+    elseif word in (b->b.name).(server.documents[tdpp.textDocument.uri].blocks)
+        t = get_block(uri, word, server).var.t
+    elseif isdefined(Symbol(word)) 
+        t = string(typeof(get_sym(word)))
+    else
+        t = "Any"
+    end
+    return t
+end
+
+function get_fn(t::AbstractString, tdpp::TextDocumentPositionParams, server)
+    if t in (b->b.name).(server.documents[tdpp.textDocument.uri].blocks)
+        b = get_block(tdpp.textDocument.uri, t, server)
+        fn = Dict(k => string(b.localvar[k].t) for k in keys(b.localvar))
+    elseif isdefined(Symbol(t)) 
+        sym = get_sym(t)
+        names = string.(fieldnames(sym))
+        fn = Dict(names[i]=>string(sym.types[i]) for i = 1:length(names))
+    else
+        fn = String[]
+    end
+    return fn
+end
