@@ -6,7 +6,7 @@ function process(r::Request{Val{Symbol("textDocument/hover")},TextDocumentPositi
     else
         documentation = get_docs(r.params, server)
     end
-         
+    
     response = Response(get(r.id),Hover(documentation))
     send(response, server)
 end

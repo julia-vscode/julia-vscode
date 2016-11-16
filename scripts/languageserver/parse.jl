@@ -152,7 +152,7 @@ function parsedatatype(ex)
                 fields[string(a.args[1])] = VarInfo(length(a.args)==1 ? a.args[1] : a.args[2], "")
             end
         end
-        doc = "$name <: $(st)\n"*prod("  $(f[1])::$(f[2])\n" for f in fields)
+        doc = "$name <: $(st)\n"*prod("  $(f[1])::$(f[2].t)\n" for f in fields)
     end
     return "DataType", name, doc, fields
 end
