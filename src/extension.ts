@@ -179,12 +179,15 @@ function openPackageDirectoryCommand() {
 }
 
 function startREPLCommand() {
-    
+    startREPL();
+    REPLterminal.show();
+}
+
+function startREPL() {
     if (REPLterminal==null) {
         let args = path.join(extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         REPLterminal = vscode.window.createTerminal("julia", juliaExecutable, ['-q', '-i', args, process.pid.toString()]);
     }
-    REPLterminal.show();
 }
 
 function generatePipeName(pid: string) {
@@ -218,36 +221,51 @@ function executeJuliaCodeInREPL() {
         }
     }
 
-    startREPLCommand();
+    // This is the version that sends code to the REPL directly
+    var lines = text.split(/\r?\n/);
+    lines = lines.filter(line=>line!='');
+    text = lines.join('\n');
 
-    var namedPipe = generatePipeName(process.pid.toString());
+    if(!text.endsWith("\n")) {
+        text = text + '\n';
+    }
 
-    var onConnect = () => {
-        var msg = {
-            "command": "run",
-            "body": text
-        };
-        client.write("Command: run\n");
-        client.write(`Content-Length: ${text.length}\n`);
-        client.write(`\n`);
-        client.write(text);
-    };
+    startREPL();
+    REPLterminal.show(true);
 
-    var onError = (err) => {
-        failCount += 1;
-        if(failCount > 50) {
-            vscode.window.showInformationMessage('Could not execute code.');
-        }
-        else {
-            setTimeout(() => {
-                client = net.connect(namedPipe, onConnect);
-                client.on('error', onError);
-            },100);
-        }
-    };
+    REPLterminal.sendText(text, false);
 
-    var client = net.connect(namedPipe, onConnect);
-    var failCount = 0;
+    // This is the version that has the julia process listen on a socket for code to be executed.
+    // This is disabled for now, until we figure out how to hide the julia prompt.
+    
+    // var namedPipe = generatePipeName(process.pid.toString());
 
-    client.on('error', onError);
+    // var onConnect = () => {
+    //     var msg = {
+    //         "command": "run",
+    //         "body": text
+    //     };
+    //     client.write("Command: run\n");
+    //     client.write(`Content-Length: ${text.length}\n`);
+    //     client.write(`\n`);
+    //     client.write(text);
+    // };
+
+    // var onError = (err) => {
+    //     failCount += 1;
+    //     if(failCount > 50) {
+    //         vscode.window.showInformationMessage('Could not execute code.');
+    //     }
+    //     else {
+    //         setTimeout(() => {
+    //             client = net.connect(namedPipe, onConnect);
+    //             client.on('error', onError);
+    //         },100);
+    //     }
+    // };
+
+    // var client = net.connect(namedPipe, onConnect);
+    // var failCount = 0;
+
+    // client.on('error', onError);
 }
