@@ -1,16 +1,20 @@
-type Block{T}
+type VarInfo
+    t
+    doc::String
+end
+
+type Block
     uptodate::Bool
     ex::Any
     range::Range
-    name
-    hover::MarkedString
-    completions
-    localvar::Dict
-    diags
+    name::String
+    var::VarInfo
+    localvar::Dict{String,VarInfo}
+    diags::Vector{Diagnostic}
 end
 
 function Block(utd,ex,r::Range)
-    t,name,lvars = classify_expr(ex)
+    t, name, doc, lvars = classify_expr(ex)
     ctx = LintContext()
     ctx.lineabs = r.start.line+1
     dl = r.end.line-r.start.line-ctx.line
@@ -22,8 +26,9 @@ function Block(utd,ex,r::Range)
                         "Lint.jl",
                         l.message) 
     end
+    v = VarInfo(t,doc)
 
-    return Block{t}(utd, ex, r, name,MarkedString("Global"),[],lvars,diags)
+    return Block(utd, ex, r, name,v,lvars,diags)
 end
 
 function Base.parse(uri::String,server::LanguageServer,updateall=false)
@@ -87,55 +92,70 @@ function classify_expr(ex)
         elseif in(ex.head,[:const,:global])
             return classify_expr(ex.args[1])
         elseif ex.head==:function || (ex.head==:(=) && isa(ex.args[1],Expr) && ex.args[1].head==:call)
-            name = isa(ex.args[1].args[1],Symbol) ? ex.args[1].args[1] : ex.args[1].args[1].args[1]
-            args = Dict()
-            for a in ex.args[1].args[2:end]
-                if isa(a, Symbol)
-                    args[a] = "Any"
-                elseif a.head==:(::)
-                    if length(a.args)>1
-                        args[a.args[1]] = string(a.args[2])
-                    else
-                        args[a.args[1]] = string(a.args[1])
-                    end
-                elseif a.head == :kw
-                    if isa(a.args[1], Symbol)
-                        args[a.args[1]] = "Any"
-                    else
-                        args[a.args[1].args[1]] = string(a.args[1].args[2])
-                    end 
-                elseif a.head == :parameters
-                    if isa(a.args[1], Symbol)
-                        args[a.args[1]] = "Any"
-                    else 
-                        args[a.args[1].args[1]] = string(a.args[1].args[2])
-                    end
-                end
-            end 
-            return :Function, ex.args[1].args[1], args
+            return parsefunction(ex)
         elseif ex.head==:macro
             return :macro, ex.args[1].args[1], Dict(x=>"macro argument" for x in ex.args[1].args[2:end])
-        elseif in(ex.head,[:type, :immutable])
-            name = isa(ex.args[2], Symbol) ? ex.args[2] : ex.args[2].args[1]
-            args = Dict()
-            for a in ex.args[3].args 
-                if isa(a, Symbol)
-                    args[a] = "Any"
-                elseif a.head==:(::)
-                    args[a.args[1]] = string(a.args[2])
-                end
-            end
-            return :DataType, name, args
-        elseif in(ex.head,[:abstract, :bitstype])
-            name = isa(ex.args[1], Symbol) ? ex.args[1] : ex.args[1].args[1]
-            return :DataType, name, Dict()
+        elseif in(ex.head,[:abstract, :bitstype, :type, :immutable])
+            return parsedatatype(ex)
         elseif ex.head==:module
-            return :Module, ex.args[2], Dict()
+            return "Module", string(ex.args[2]), "", Dict()
         elseif ex.head == :(=) && isa(ex.args[1],Symbol)
-            return :Any, ex.args[1], Dict()
+            return "Any", string(ex.args[1]), "", Dict()
         end
     end
-    return :Any, :none, Dict()
+    return "Any", "none", "", Dict()
+end
+
+function parsefunction(ex)
+    isempty(ex.args[1].args) && return "Function", "none", "", Dict()
+    name = string(isa(ex.args[1].args[1],Symbol) ? ex.args[1].args[1] : ex.args[1].args[1].args[1])
+    lvars = Dict()
+    for a in ex.args[1].args[2:end]
+        if isa(a, Symbol)
+            lvars[string(a)] = VarInfo(Any,"Function argument")
+        elseif a.head==:(::)
+            if length(a.args)>1
+                lvars[string(a.args[1])] = VarInfo(a.args[2],"Function argument")
+            else
+                lvars[string(a.args[1])] = VarInfo(DataType,"Function argument")
+            end
+        elseif a.head == :kw
+            if isa(a.args[1], Symbol)
+                lvars[string(a.args[1])] = VarInfo(Any,"Function keyword argument")
+            else
+                lvars[string(a.args[1].args[1])] = VarInfo(a.args[1].args[2],"Function keyword argument")
+            end 
+        elseif a.head == :parameters
+            if isa(a.args[1], Symbol)
+                lvars[string(a.args[1])] = VarInfo(Any,"Function argument")
+            else 
+                lvars[string(a.args[1].args[1])] = VarInfo(a.args[1].args[2],"Function Argument")
+            end
+        end
+    end 
+    doc = string(ex.args[1])
+    return "Function", name, doc, lvars
+end
+
+
+function parsedatatype(ex)
+    if ex.head in [:abstract, :bitstype]
+        name = string(isa(ex.args[1], Symbol) ? ex.args[1] : ex.args[1].args[1])
+        doc = string(ex)
+    else
+        name = string(isa(ex.args[2], Symbol) ? ex.args[2] : ex.args[2].args[1])
+        st = string(isa(ex.args[2], Symbol) ? "Any" : string(ex.args[2].args[1]))
+        fields = []
+        for a in ex.args[3].args 
+            if isa(a, Symbol)
+                push!(fields, string(a)=>Any)
+            elseif a.head==:(::)
+                push!(fields, string(a.args[1])=>a.args[2])
+            end
+        end
+        doc = "$name <: $(st)\n"*prod("  $(f[1])::$(f[2])\n" for f in fields)
+    end
+    return "DataType", name, doc, Dict()
 end
 
 import Base:<,in,intersect

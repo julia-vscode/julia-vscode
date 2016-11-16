@@ -108,8 +108,8 @@ function get_local_doc(tdpp::TextDocumentPositionParams, word::String, server)
     locs = MarkedString[]
     for b in server.documents[tdpp.textDocument.uri].blocks
         if tdpp.position in b.range
-            if Symbol(word) in keys(b.localvar)
-                push!(locs,MarkedString("Local: $word::$(b.localvar[Symbol(word)])"))
+            if word in keys(b.localvar)
+                push!(locs,MarkedString("$(b.localvar[word].doc): $word::$(b.localvar[word].t)"))
                 break
             end
         end
@@ -121,7 +121,9 @@ function get_global_doc(tdpp::TextDocumentPositionParams, word::String, server)
     globs = MarkedString[]
     for b in server.documents[tdpp.textDocument.uri].blocks
         if string(b.name)==word
-            push!(globs, MarkedString("Global $(typeof(b).parameters[1]) at line $(b.range.start.line+1): $word"))
+            push!(globs, MarkedString("Global $(b.var.t) at line $(b.range.start.line+1): $word"))
+            push!(globs, MarkedString(b.var.doc))
+            
         end
     end
     return globs
