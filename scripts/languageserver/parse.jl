@@ -1,8 +1,13 @@
+# Meta info on a symbol available either in the Main namespace or 
+# locally (i.e. in a function, type definition)
 type VarInfo
-    t
+    t # indicator of variable type
     doc::String
 end
 
+# A block of sequential ASTs corresponding to ranges in the source
+# file including leading whitspace. May contain informtion on local 
+# variables where possible.
 type Block
     uptodate::Bool
     ex::Any
@@ -19,13 +24,14 @@ function Block(utd, ex, r::Range)
     ctx.lineabs = r.start.line+1
     dl = r.end.line-r.start.line-ctx.line
     Lint.lintexpr(ex, ctx)
-    diags = map(ctx.messages) do l
-        return Diagnostic(Range(Position(r.start.line+l.line+dl-1, 0), Position(r.start.line+l.line+dl-1, 100)),
-                        LintSeverity[string(l.code)[1]],
-                        string(l.code),
-                        "Lint.jl",
-                        l.message) 
-    end
+    # diags = map(ctx.messages) do l
+    #     return Diagnostic(Range(Position(r.start.line+l.line+dl-1, 0), Position(r.start.line+l.line+dl-1, 100)),
+    #                     LintSeverity[string(l.code)[1]],
+    #                     string(l.code),
+    #                     "Lint.jl",
+    #                     l.message) 
+    # end
+    diags = Diagnostic[]
     v = VarInfo(t, doc)
 
     return Block(utd, ex, r, name,v, lvars, diags)
@@ -33,24 +39,29 @@ end
 
 function Base.parse(uri::String, server::LanguageServer, updateall=false)
     doc = String(server.documents[uri].data)
+    blocks = server.documents[uri].blocks
     linebreaks = get_linebreaks(doc) 
     n = length(doc.data)
     if doc==""
         server.documents[uri].blocks = []
         return
     end
-    i = findfirst(b->!b.uptodate, server.documents[uri].blocks)
+    ifirstbad = findfirst(b->!b.uptodate, blocks)
 
-    if isempty(server.documents[uri].blocks) || updateall || i==0
-        i0 = i1 = 1
-        p0 = p1 = Position(0, 0)
+    # Check which region of the source file to parse:
+
+    # Parse the whole file if it's not been parsed or you're asked to,
+    #  the last OR fixes something obscure (find it and fix it)
+    if isempty(blocks) || updateall || ifirstbad==0
+        i0 = i1 = 1 # Char position in document
+        p0 = p1 = Position(0, 0) # vscode Protocul position
         out = Block[]
-        i4 = 0
-    else
-        i4 = findnext(b->b.uptodate, server.documents[uri].blocks,i)
-        p0 = p1 = server.documents[uri].blocks[i].range.start
+        inextgood = 0
+    else # reparse the source from the first bad block to the next good block
+        inextgood = findnext(b->b.uptodate, blocks, ifirstbad) # index of next up to date Block
+        p0 = p1 = blocks[ifirstbad].range.start
         i0 = i1 = linebreaks[p0.line+1]+p0.character+1
-        out = server.documents[uri].blocks[1:i-1]
+        out = blocks[1:ifirstbad-1]
     end
 
     while 0 < i1 ≤ n
@@ -67,10 +78,10 @@ function Base.parse(uri::String, server::LanguageServer, updateall=false)
         else
             push!(out,Block(true,ex,Range(p0,p1)))
             i0 = i1
-            if i4>0 && ex==server.documents[uri].blocks[i4].ex
-                dl = p0.line - server.documents[uri].blocks[i4].range.start.line
-                out = vcat(out,server.documents[uri].blocks[i4+1:end])
-                for i  = i4+1:length(out)
+            if inextgood>0 && ex==blocks[inextgood].ex
+                dl = p0.line - blocks[inextgood].range.start.line
+                out = vcat(out,blocks[inextgood+1:end])
+                for i  = inextgood+1:length(out)
                     out[i].range.start.line += dl
                     out[i].range.end.line += dl
                 end
