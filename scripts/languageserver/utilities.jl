@@ -1,5 +1,5 @@
 function get_line(tdpp::TextDocumentPositionParams, server::LanguageServer) 
-    doc = server.documents[tdpp.textDocument.uri] 
+    doc = server.documents[tdpp.textDocument.uri].data
     s = tdpp.position.line 
     n = length(doc) 
     cnt = 0 
@@ -41,7 +41,7 @@ function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offs
     return String(word)
 end
 
-function get_sym(str::String)
+function get_sym(str)
     name = split(str,'.')
     try
         x = getfield(Main,Symbol(name[1]))
@@ -56,6 +56,7 @@ end
 
 get_sym(p::TextDocumentPositionParams, server::LanguageServer) = get_sym(get_word(p, server))
 
+# Only for defined variables (i.e. those in Base)
 function get_docs(x)
     str = string(Docs.doc(x))
     if str[1:16]=="No documentation"
@@ -82,6 +83,12 @@ end
 
 function get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer)
     word = get_word(tdpp,server)
+    locs = get_local_doc(tdpp, word, server)
+    !isempty(locs) && return locs
+    globs = get_global_doc(tdpp, word, server)
+    !isempty(globs) && return globs
+
+            
     in(word,keys(server.DocStore)) && (return server.DocStore[word])
     sym = get_sym(word)
     d=[""]
@@ -96,6 +103,29 @@ function get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer)
         server.DocStore[word] = d
     end
     return d
+end
+
+function get_local_doc(tdpp::TextDocumentPositionParams, word::String, server)
+    locs = MarkedString[]
+    for b in server.documents[tdpp.textDocument.uri].blocks
+        if tdpp.position in b.range && word in keys(b.localvar)
+            push!(locs, MarkedString("$(b.localvar[word].doc): $word::$(b.localvar[word].t)"))
+            break
+        end
+    end
+    return locs
+end
+
+function get_global_doc(tdpp::TextDocumentPositionParams, word::String, server)
+    globs = MarkedString[]
+    for b in server.documents[tdpp.textDocument.uri].blocks
+        if string(b.name)==word
+            push!(globs, MarkedString("Global $(b.var.t) at line $(b.range.start.line+1): $word"))
+            push!(globs, MarkedString(b.var.doc))
+            
+        end
+    end
+    return globs
 end
 
 function get_rangelocs(d::Array{UInt8},range::Range) 

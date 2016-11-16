@@ -1,6 +1,12 @@
 function process(r::Request{Val{Symbol("textDocument/hover")},TextDocumentPositionParams}, server)
-    documentation = get_docs(r.params, server)
-         
+    word = get_word(r.params, server)
+    sword = split(word,'.')
+    if length(sword)>1
+        documentation = [MarkedString(get_type(sword, r.params, server))]
+    else
+        documentation = get_docs(r.params, server)
+    end
+    
     response = Response(get(r.id),Hover(documentation))
     send(response, server)
 end

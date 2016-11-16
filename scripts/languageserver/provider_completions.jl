@@ -8,7 +8,9 @@ function process(r::Request{Val{Symbol("textDocument/completion")},TextDocumentP
         s = get_sym(i)
         d = ""
         try 
-            d = join(get_docs(s)[2:end],'\n')
+            d = get_docs(s)
+            d = isa(d,Vector{MarkedString}) ? (x->x.value).(d) : d
+            d = join(d[2:end],'\n')
         end
         kind = 6
         if isa(s,String)
