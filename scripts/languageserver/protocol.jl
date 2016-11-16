@@ -3,9 +3,9 @@ type Position
     line::Int
     character::Int
 end
-Position(d::Dict) = Position(d["line"],d["character"])
+Position(d::Dict) = Position(d["line"], d["character"])
 Position(line) = Position(line,0)
-Position() = Position(-1,-1)
+Position() = Position(-1, -1)
 
 let ex=:(type Range
         start::Position
@@ -16,21 +16,21 @@ let ex=:(type Range
     eval(ex)
 end
 
-Range(d::Dict) = Range(Position(d["start"]),Position(d["end"]))
-Range(line) = Range(Position(line),Position(line))
+Range(d::Dict) = Range(Position(d["start"]), Position(d["end"]))
+Range(line) = Range(Position(line), Position(line))
 
 type Location
     uri::String
     range::Range
 end
-Location(d::Dict) = Location(d["uri"],Range(d["range"]))
-Location(f::String,line) = Location(f,Range(line))
+Location(d::Dict) = Location(d["uri"], Range(d["range"]))
+Location(f::String, line) = Location(f, Range(line))
 
 type MarkedString
     language::String
     value::AbstractString
 end
-MarkedString(x) = MarkedString("julia",x::AbstractString)
+MarkedString(x) = MarkedString("julia", x::AbstractString)
 
 type Hover
     contents::Vector{Union{AbstractString,MarkedString}}
@@ -120,7 +120,7 @@ type VersionedTextDocumentIdentifier
     uri::String
     version::Int
 end
-VersionedTextDocumentIdentifier(d::Dict) = VersionedTextDocumentIdentifier(d["uri"],d["version"])
+VersionedTextDocumentIdentifier(d::Dict) = VersionedTextDocumentIdentifier(d["uri"], d["version"])
 
 
 
@@ -129,7 +129,7 @@ type TextDocumentContentChangeEvent
     rangeLength::Int
     text::String
 end
-TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(Range(d["range"]),d["rangeLength"],d["text"])
+TextDocumentContentChangeEvent(d::Dict) = TextDocumentContentChangeEvent(Range(d["range"]), d["rangeLength"], d["text"])
 
 
 
@@ -146,14 +146,14 @@ type TextDocumentItem
     version::Int
     text::String
 end
-TextDocumentItem(d::Dict) = TextDocumentItem(d["uri"],d["languageId"],d["version"],d["text"])
+TextDocumentItem(d::Dict) = TextDocumentItem(d["uri"], d["languageId"], d["version"], d["text"])
 
 
 type TextDocumentPositionParams
     textDocument::TextDocumentIdentifier
     position::Position
 end
-TextDocumentPositionParams(d::Dict) = TextDocumentPositionParams(TextDocumentIdentifier(d["textDocument"]),Position(d["position"]))
+TextDocumentPositionParams(d::Dict) = TextDocumentPositionParams(TextDocumentIdentifier(d["textDocument"]), Position(d["position"]))
 
 type DidOpenTextDocumentParams
     textDocument::TextDocumentItem
