@@ -1,7 +1,7 @@
 const LintSeverity = Dict('E'=>1,'W'=>2,'I'=>3)
 
 function process_diagnostics(uri::String, server::LanguageServer)
-    document = server.documents[uri]
+    document = String(server.documents[uri].data)
     L = lintfile(URI(replace(unescape(uri),"\\","/")).path[2:end], String(document))
     diags = map(L) do l
         start_col = findfirst(i->i!=' ', document[l.line])-1

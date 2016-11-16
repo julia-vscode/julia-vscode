@@ -1,5 +1,5 @@
 function get_line(tdpp::TextDocumentPositionParams, server::LanguageServer) 
-    doc = server.documents[tdpp.textDocument.uri] 
+    doc = server.documents[tdpp.textDocument.uri].data
     s = tdpp.position.line 
     n = length(doc) 
     i = cnt = 0 

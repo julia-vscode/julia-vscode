@@ -20,7 +20,7 @@ function JSONRPC.parse_params(::Type{Val{Symbol("initialize")}}, params)
 end
 
 function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
-    server.documents[r.params.textDocument.uri] = r.params.textDocument.text.data 
+    server.documents[r.params.textDocument.uri] = Document(r.params.textDocument.text.data, []) 
     
     if should_file_be_linted(r.params.textDocument.uri, server) 
         process_diagnostics(r.params.textDocument.uri, server) 
@@ -40,7 +40,8 @@ function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didClose")}}, para
 end
 
 function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextDocumentParams}, server)
-    doc = server.documents[r.params.textDocument.uri] 
+    doc = server.documents[r.params.textDocument.uri].data
+    blocks = server.documents[r.params.textDocument.uri].blocks 
     for c in r.params.contentChanges 
         startline, endline = get_rangelocs(doc, c.range) 
         io = IOBuffer(doc) 
@@ -57,13 +58,14 @@ function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextD
             read(io, Char) 
         end 
         endpos = position(io) 
-        if length(doc)==0 
-            doc = c.text.data 
-        else 
-            doc = vcat(doc[1:startpos], c.text.data,doc[endpos+1:end]) 
-        end 
+         doc = length(doc)==0 ? c.text.data : vcat(doc[1:startpos], c.text.data, doc[endpos+1:end])
+        
+        for i = 1:length(blocks)
+            intersect(blocks[i].range, c.range) && (blocks[i].uptodate = false)
+        end
     end 
-    server.documents[r.params.textDocument.uri] = doc 
+    server.documents[r.params.textDocument.uri].data = doc
+    parse(r.params.textDocument.uri, server) 
 end
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didChange")}}, params)
@@ -85,5 +87,6 @@ end
 
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didSave")}}, params)
+    parse(r.params.textDocument.uri, server, true)
     return DidSaveTextDocumentParams(params)
 end

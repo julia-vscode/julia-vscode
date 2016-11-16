@@ -24,6 +24,7 @@ include("jsonrpc.jl")
 importall JSONRPC
 include("protocol.jl")
 include("languageserver.jl")
+include("parse.jl")
 include("provider_diagnostics.jl")
 include("provider_misc.jl")
 include("provider_hover.jl")
