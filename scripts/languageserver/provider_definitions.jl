@@ -1,5 +1,6 @@
 function process(r::Request{Val{Symbol("textDocument/definition")},TextDocumentPositionParams}, server)
-    x = get_sym(r.params, server)
+    word = get_word(r.params, server)
+    x = get_sym(word)
 
     locations = map(methods(x).ms) do m
         (filename, line) = functionloc(m)

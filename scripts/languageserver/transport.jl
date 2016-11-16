@@ -2,7 +2,7 @@ function read_transport_layer(stream)
     header = String[]
     line = chomp(readline(stream))
     while length(line)>0
-        push!(header,line)
+        push!(header, line)
         line = chomp(readline(stream))
     end
     header_dict = Dict{String,String}()
@@ -12,7 +12,7 @@ function read_transport_layer(stream)
     end
     message_length = parse(Int, header_dict["Content-Length"])
 
-    message = read(stream,message_length)
+    message = read(stream, message_length)
     message_str = String(message)
     info("RECEIVED: $message_str")
     info()
