@@ -22,10 +22,10 @@ function process_diagnostics(uri::String, server::LanguageServer)
     diags = Diagnostic[]
     for b in server.documents[uri].blocks
         for d in b.diags
-            push!(diags,d)
+            push!(diags, d)
         end
     end
-    publishDiagnosticsParams = PublishDiagnosticsParams(uri,diags)
+    publishDiagnosticsParams = PublishDiagnosticsParams(uri, diags)
 
     response =  Request{Val{Symbol("textDocument/publishDiagnostics")},PublishDiagnosticsParams}(Nullable{Union{String,Int}}(), publishDiagnosticsParams)
     send(response, server)

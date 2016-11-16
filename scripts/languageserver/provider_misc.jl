@@ -20,10 +20,10 @@ function JSONRPC.parse_params(::Type{Val{Symbol("initialize")}}, params)
 end
 
 function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
-    server.documents[r.params.textDocument.uri] = Document(r.params.textDocument.text.data,[]) 
+    server.documents[r.params.textDocument.uri] = Document(r.params.textDocument.text.data, []) 
     
-    parse(r.params.textDocument.uri,server)
-    if isworkspacefile(r.params.textDocument.uri,server) 
+    parse(r.params.textDocument.uri, server)
+    if isworkspacefile(r.params.textDocument.uri, server) 
         process_diagnostics(r.params.textDocument.uri, server) 
     end
 end
@@ -44,31 +44,31 @@ function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextD
     doc = server.documents[r.params.textDocument.uri].data
     blocks = server.documents[r.params.textDocument.uri].blocks 
     for c in r.params.contentChanges 
-        startline,endline = get_rangelocs(doc,c.range) 
+        startline, endline = get_rangelocs(doc, c.range) 
         io = IOBuffer(doc) 
-        seek(io,startline) 
+        seek(io, startline) 
         s = e = 0 
         while s<c.range.start.character 
             s+=1 
-            read(io,Char) 
+            read(io, Char) 
         end 
         startpos = position(io) 
-        seek(io,endline) 
+        seek(io, endline) 
         while e<c.range.end.character 
             e+=1 
-            read(io,Char) 
+            read(io, Char) 
         end 
         endpos = position(io) 
-        doc = length(doc)==0 ? c.text.data : vcat(doc[1:startpos],c.text.data,doc[endpos+1:end])
+        doc = length(doc)==0 ? c.text.data : vcat(doc[1:startpos], c.text.data, doc[endpos+1:end])
         
         for i = 1:length(blocks)
-            intersect(blocks[i].range,c.range) && (blocks[i].uptodate = false)
+            intersect(blocks[i].range, c.range) && (blocks[i].uptodate = false)
         end
     end 
     server.documents[r.params.textDocument.uri].data = doc 
 
-    parse(r.params.textDocument.uri,server)
-    if isworkspacefile(r.params.textDocument.uri,server) 
+    parse(r.params.textDocument.uri, server)
+    if isworkspacefile(r.params.textDocument.uri, server) 
         process_diagnostics(r.params.textDocument.uri, server) 
     end
 end
@@ -87,7 +87,7 @@ function JSONRPC.parse_params(::Type{Val{Symbol("\$/cancelRequest")}}, params)
 end
 
 function process(r::Request{Val{Symbol("textDocument/didSave")},DidSaveTextDocumentParams}, server)
-    parse(r.params.textDocument.uri,server,true)
+    parse(r.params.textDocument.uri, server,true)
 end
 
 

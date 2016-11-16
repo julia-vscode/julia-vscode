@@ -107,11 +107,9 @@ end
 function get_local_doc(tdpp::TextDocumentPositionParams, word::String, server)
     locs = MarkedString[]
     for b in server.documents[tdpp.textDocument.uri].blocks
-        if tdpp.position in b.range
-            if word in keys(b.localvar)
-                push!(locs,MarkedString("$(b.localvar[word].doc): $word::$(b.localvar[word].t)"))
-                break
-            end
+        if tdpp.position in b.range && word in keys(b.localvar)
+            push!(locs, MarkedString("$(b.localvar[word].doc): $word::$(b.localvar[word].t)"))
+            break
         end
     end
     return locs
