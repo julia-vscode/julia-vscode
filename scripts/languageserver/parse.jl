@@ -37,7 +37,7 @@ function Block(utd, ex, r::Range)
     return Block(utd, ex, r, name,v, lvars, diags)
 end
 
-function Base.parse(uri::String, server::LanguageServer, updateall=false)
+function parseblocks(uri::String, server::LanguageServer, updateall=false)
     doc = String(server.documents[uri].data)
     blocks = server.documents[uri].blocks
     linebreaks = get_linebreaks(doc) 

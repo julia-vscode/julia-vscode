@@ -21,6 +21,7 @@ end
 
 function process(r::Request{Val{Symbol("textDocument/didOpen")},DidOpenTextDocumentParams}, server)
     server.documents[r.params.textDocument.uri] = Document(r.params.textDocument.text.data, []) 
+    parseblocks(r.params.textDocument.uri, server)
     
     if should_file_be_linted(r.params.textDocument.uri, server) 
         process_diagnostics(r.params.textDocument.uri, server) 
@@ -65,7 +66,7 @@ function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextD
         end
     end 
     server.documents[r.params.textDocument.uri].data = doc
-    parse(r.params.textDocument.uri, server) 
+    parseblocks(r.params.textDocument.uri, server) 
 end
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didChange")}}, params)
@@ -87,6 +88,6 @@ end
 
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didSave")}}, params)
-    parse(r.params.textDocument.uri, server, true)
+    parseblocks(r.params.textDocument.uri, server, true)
     return DidSaveTextDocumentParams(params)
 end
