@@ -14,8 +14,8 @@ function read_transport_layer(stream)
 
     message = read(stream, message_length)
     message_str = String(message)
-    info("RECEIVED: $message_str")
-    info()
+    ls_debug_mode && info("RECEIVED: $message_str")
+    ls_debug_mode && info()
     return message_str    
 end
 
@@ -24,6 +24,6 @@ function write_transport_layer(stream, response)
     n = length(response_utf8)
     write(stream, "Content-Length: $n\r\n\r\n")
     write(stream, response_utf8)
-    info("SENT: $response")
-    info()
+    ls_debug_mode && info("SENT: $response")
+    ls_debug_mode && info()
 end

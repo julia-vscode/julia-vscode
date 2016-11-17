@@ -14,10 +14,16 @@ use_and_install_dependencies([
     ("URIParser", v"0.1.6"),
     ("JuliaParser",v"0.7.4")])
 
-if length(Base.ARGS)==1
-    push!(LOAD_PATH, Base.ARGS[1])
-elseif length(Base.ARGS)>1
+if length(Base.ARGS)!=2
     error("Invalid number of arguments passed to julia language server.")
+end
+
+push!(LOAD_PATH, Base.ARGS[1])
+
+if Base.ARGS[2]=="--debug=no"
+    const global ls_debug_mode = false
+elseif Base.ARGS[2]=="--debug=yes"
+    const global ls_debug_mode = true
 end
 
 include("jsonrpc.jl")
