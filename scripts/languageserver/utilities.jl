@@ -1,9 +1,8 @@
-function get_line(tdpp::TextDocumentPositionParams, server::LanguageServer) 
-    doc = server.documents[tdpp.textDocument.uri].data
-    s = tdpp.position.line 
+function get_line(uri::AbstractString, line::Int, server::LanguageServer)
+    doc = server.documents[uri] 
     n = length(doc) 
     i = cnt = 0 
-    while cnt<s && i<n 
+    while cnt<line && i<n 
         i += 1 
         if doc[i]==0x0a 
             cnt += 1 
@@ -12,6 +11,10 @@ function get_line(tdpp::TextDocumentPositionParams, server::LanguageServer)
     io = IOBuffer(doc) 
     seek(io,i) 
     return String(chomp(readuntil(io, '\n'))) 
+end
+
+function get_line(tdpp::TextDocumentPositionParams, server::LanguageServer)
+    return get_line(tdpp.textDocument.uri, tdpp.position.line , server)
 end 
 
 function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offset=0)
