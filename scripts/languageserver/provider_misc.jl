@@ -83,11 +83,11 @@ function JSONRPC.parse_params(::Type{Val{Symbol("\$/cancelRequest")}}, params)
 end
 
 function process(r::Request{Val{Symbol("textDocument/didSave")},DidSaveTextDocumentParams}, server)
-    
+    parseblocks(r.params.textDocument.uri, server, true)
 end
 
 
 function JSONRPC.parse_params(::Type{Val{Symbol("textDocument/didSave")}}, params)
-    parseblocks(r.params.textDocument.uri, server, true)
+    
     return DidSaveTextDocumentParams(params)
 end
