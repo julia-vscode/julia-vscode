@@ -104,7 +104,8 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         return;
     }
-    let serverArgs = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir];
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=no'];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=yes'];
     let spawnOptions = {
         cwd: path.join(extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -114,8 +115,8 @@ async function startLanguageServer() {
     };
 
     let serverOptions = {
-        run: { command: juliaExecutable, args: serverArgs, options: spawnOptions },
-        debug: { command: juliaExecutable, args: serverArgs, options: spawnOptions }
+        run: { command: juliaExecutable, args: serverArgsRun, options: spawnOptions },
+        debug: { command: juliaExecutable, args: serverArgsDebug, options: spawnOptions }
     };
 
     let clientOptions: LanguageClientOptions = {
