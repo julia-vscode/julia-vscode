@@ -23,7 +23,7 @@ function Block(utd, ex, r::Range)
     ctx = LintContext()
     ctx.lineabs = r.start.line+1
     dl = r.end.line-r.start.line-ctx.line
-    Lint.lintexpr(ex, ctx)
+    # Lint.lintexpr(ex, ctx)
     # diags = map(ctx.messages) do l
     #     return Diagnostic(Range(Position(r.start.line+l.line+dl-1, 0), Position(r.start.line+l.line+dl-1, 100)),
     #                     LintSeverity[string(l.code)[1]],
