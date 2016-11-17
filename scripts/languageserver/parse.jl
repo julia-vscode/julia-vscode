@@ -1,7 +1,7 @@
 # Meta info on a symbol available either in the Main namespace or 
 # locally (i.e. in a function, type definition)
 type VarInfo
-    t # indicator of variable type
+    t::Any # indicator of variable type
     doc::String
 end
 
@@ -90,6 +90,7 @@ function parseblocks(uri::String, server::LanguageServer, updateall=false)
         end
     end
     server.documents[uri].blocks = out
+    server.documents[uri].blocks[end].range.stop = get_pos(linebreaks[end],linebreaks) #ensure last block fills document
     return 
 end 
 
@@ -118,7 +119,7 @@ end
 
 function parsefunction(ex)
     (isa(ex.args[1], Symbol) || isempty(ex.args[1].args)) && return "Function", "none", "", Dict()
-    name = string(isa(ex.args[1].args[1], Symbol) ? ex.args[1].args[1] : ex.args[1].args[1].args[1])
+    fname = string(isa(ex.args[1].args[1], Symbol) ? ex.args[1].args[1] : ex.args[1].args[1].args[1])
     lvars = Dict()
     for a in ex.args[1].args[2:end]
         if isa(a, Symbol)
@@ -133,29 +134,46 @@ function parsefunction(ex)
             if isa(a.args[1], Symbol)
                 lvars[string(a.args[1])] = VarInfo(Any, "Function keyword argument")
             else
-                lvars[string(a.args[1].args[1])] = VarInfo(a.args[1].args[2],"Function keyword argument")
+                lvars[string(a.args[1].args[1])] = VarInfo(Any,"Function keyword argument")
             end 
         elseif a.head==:parameters
             if isa(a.args[1], Symbol)
                 lvars[string(a.args[1])] = VarInfo(Any, "Function argument")
+            elseif a.args[1].head==:...
+                lvars[string(a.args[1].args[1])] = VarInfo("keywords", "Function Argument")
             else 
                 lvars[string(a.args[1].args[1])] = VarInfo(a.args[1].args[2], "Function Argument")
             end
         end
-    end 
+    end
+    for a in ex.args[2].args
+        if isa(a,Expr) && a.head==:(=) && isa(a.args[1], Symbol)
+            name = string(a.args[1]) 
+            if name in keys(lvars)
+                lvars[name].doc = "$(lvars[name].doc) (redefined in body)"
+                lvars[name].t = "Any"
+            else
+                lvars[name] = VarInfo("Any", "")
+            end
+        end
+    end
+
     doc = string(ex.args[1])
-    return "Function", name, doc, lvars
+    return "Function", fname, doc, lvars
 end
 
 
 function parsedatatype(ex)
     fields = Dict()
-    if ex.head in [:abstract, :bitstype]
+    if ex.head==:abstract
         name = string(isa(ex.args[1], Symbol) ? ex.args[1] : ex.args[1].args[1])
+        doc = string(ex)
+    elseif ex.head==:bitstype
+        name = string(isa(ex.args[2], Symbol) ? ex.args[2] : ex.args[2].args[1])
         doc = string(ex)
     else
         name = string(isa(ex.args[2], Symbol) ? ex.args[2] : ex.args[2].args[1])
-        st = string(isa(ex.args[2], Symbol) ? "Any" : string(ex.args[2].args[1]))
+        st = string(isa(ex.args[2], Symbol) ? "Any" : string(ex.args[2].args[2]))
         for a in ex.args[3].args 
             if isa(a, Symbol)
                 fields[string(a)] = VarInfo(Any, "")
@@ -163,7 +181,8 @@ function parsedatatype(ex)
                 fields[string(a.args[1])] = VarInfo(length(a.args)==1 ? a.args[1] : a.args[2], "")
             end
         end
-        doc = "$name <: $(st)\n"*prod("  $(f[1])::$(f[2].t)\n" for f in fields)
+        doc = "$name <: $(st)"
+        doc *= length(fields)>0 ? "\n"*prod("  $fname::$(v.t)\n" for (fname,v) in fields) : "" 
     end
     return "DataType", name, doc, fields
 end
@@ -179,6 +198,7 @@ end
 intersect(a::Range, b::Range) = a.start in b || b.start in a
 
 get_linebreaks(doc) = [0; find(c->c==0x0a, doc.data); length(doc.data)+1]
+get_linebreaks(data::Vector{UInt8}) = [0; find(c->c==0x0a, doc); length(doc)+1]
 
 function get_pos(i0, lb)
     nlb = length(lb)-1
@@ -203,7 +223,7 @@ function get_block(tdpp::TextDocumentPositionParams, server)
     return 
 end
 
-function get_block(uri::String, str::String, server)
+function get_block(uri::AbstractString, str::AbstractString, server)
     for b in server.documents[uri].blocks
         if str==b.name
             return b
@@ -229,8 +249,8 @@ function get_type(word::AbstractString, tdpp::TextDocumentPositionParams, server
     b = get_block(tdpp, server)
     if word in keys(b.localvar)
         t = string(b.localvar[word].t) 
-    elseif word in (b->b.name).(server.documents[tdpp.textDocument.uri].blocks)
-        t = get_block(uri, word, server).var.t
+    elseif word in (x->x.name).(server.documents[tdpp.textDocument.uri].blocks)
+        t = get_block(tdpp.textDocument.uri, word, server).var.t
     elseif isdefined(Symbol(word)) 
         t = string(typeof(get_sym(word)))
     else
@@ -245,10 +265,14 @@ function get_fn(t::AbstractString, tdpp::TextDocumentPositionParams, server)
         fn = Dict(k => string(b.localvar[k].t) for k in keys(b.localvar))
     elseif isdefined(Symbol(t)) 
         sym = get_sym(t)
-        names = string.(fieldnames(sym))
-        fn = Dict(names[i]=>string(sym.types[i]) for i = 1:length(names))
+        if isa(sym, DataType)
+            fnames = string.(fieldnames(sym))
+            fn = Dict(fnames[i]=>string(sym.types[i]) for i = 1:length(fnames))
+        else
+            fn = Dict()
+        end
     else
-        fn = String[]
+        fn = Dict()
     end
     return fn
 end
