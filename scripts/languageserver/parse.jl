@@ -137,12 +137,18 @@ function parsefunction(ex)
                 lvars[string(a.args[1].args[1])] = VarInfo(Any,"Function keyword argument")
             end 
         elseif a.head==:parameters
-            if isa(a.args[1], Symbol)
-                lvars[string(a.args[1])] = VarInfo(Any, "Function argument")
-            elseif a.args[1].head==:...
-                lvars[string(a.args[1].args[1])] = VarInfo("keywords", "Function Argument")
-            else 
-                lvars[string(a.args[1].args[1])] = VarInfo(a.args[1].args[2], "Function Argument")
+            for sub_a in a.args
+                if isa(sub_a, Symbol)
+                    lvars[string(sub_a)] = VarInfo(Any, "Function argument")
+                elseif sub_a.head==:...
+                    lvars[string(sub_a.args[1])] = VarInfo("keywords", "Function Argument")
+                elseif sub_a.head==:kw
+                    if isa(sub_a.args[1], Symbol)                    
+                        lvars[string(sub_a.args[1])] = VarInfo("", "Function Argument")
+                    elseif sub_a.args[1].head==:(::)
+                        lvars[string(sub_a.args[1].args[1])] = VarInfo(sub_a.args[1].args[2], "Function Argument")
+                    end
+                end
             end
         end
     end
