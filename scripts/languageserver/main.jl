@@ -8,10 +8,10 @@ end
 include("dependencies.jl")
 use_and_install_dependencies([
     ("AbstractTrees", v"0.0.4"),
-    ("Compat", v"0.9.3"),
+    ("Compat", v"0.9.4"),
     ("JSON", v"0.8.0"),
     ("Lint", v"0.2.5"),
-    ("URIParser", v"0.0.5"),
+    ("URIParser", v"0.1.6"),
     ("JuliaParser",v"0.7.4")])
 
 if length(Base.ARGS)==1
