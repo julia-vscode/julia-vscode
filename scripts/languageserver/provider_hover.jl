@@ -41,7 +41,7 @@ function get_local_hover(word::AbstractString, tdpp::TextDocumentPositionParams,
     b==nothing && return hover
     if word in keys(b.localvar)
         v = b.localvar[word]
-        push!(hover, MarkedString("local: $(v.doc) ::$(v.t)"))
+        push!(hover, MarkedString("local: $(v.doc)$(v.t!=""?"::$(v.t)":"")"))
     end 
     return hover
 end
