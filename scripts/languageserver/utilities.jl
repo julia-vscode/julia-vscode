@@ -1,21 +1,21 @@
 function get_line(uri::AbstractString, line::Int, server::LanguageServer)
-    doc = server.documents[uri] 
-    n = length(doc) 
-    i = cnt = 0 
-    while cnt<line && i<n 
-        i += 1 
-        if doc[i]==0x0a 
-            cnt += 1 
-        end 
-    end 
-    io = IOBuffer(doc) 
-    seek(io,i) 
-    return String(chomp(readuntil(io, '\n'))) 
+    doc = server.documents[uri].data
+    n = length(doc)
+    i = cnt = 0
+    while cnt<line && i<n
+        i += 1
+        if doc[i]==0x0a
+            cnt += 1
+        end
+    end
+    io = IOBuffer(doc)
+    seek(io,i)
+    return String(chomp(readuntil(io, '\n')))
 end
 
 function get_line(tdpp::TextDocumentPositionParams, server::LanguageServer)
     return get_line(tdpp.textDocument.uri, tdpp.position.line , server)
-end 
+end
 
 function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offset=0)
     line = IOBuffer(get_line(tdpp, server))
@@ -98,24 +98,24 @@ function get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer)
     return d
 end
 
-function get_rangelocs(d::Array{UInt8}, range::Range) 
-    (s,e) = (range.start.line, range.end.line) 
-    n = length(d)  
-    i = cnt = 0  
-    while cnt<s && i<n   
-        i+=1  
-        if d[i]==0x0a 
-            cnt += 1  
-        end  
-    end  
-    startline = i  
-    while cnt<e && i<n   
-        i+=1  
-        if d[i]==0x0a 
-            cnt += 1  
-        end  
-    end  
-    endline = i  
+function get_rangelocs(d::Array{UInt8}, range::Range)
+    (s,e) = (range.start.line, range.end.line)
+    n = length(d)
+    i = cnt = 0
+    while cnt<s && i<n
+        i+=1
+        if d[i]==0x0a
+            cnt += 1
+        end
+    end
+    startline = i
+    while cnt<e && i<n
+        i+=1
+        if d[i]==0x0a
+            cnt += 1
+        end
+    end
+    endline = i
     return startline, endline
 end
 
@@ -128,7 +128,7 @@ function should_file_be_linted(uri, server)
         if uri_path[1]=='\\'
             uri_path = uri_path[2:end]
         end
-    
+
         uri_path = lowercase(uri_path)
         workspace_path = lowercase(workspace_path)
 end
@@ -138,4 +138,4 @@ end
     else
         return startswith(uri_path, workspace_path)
     end
-end 
+end
