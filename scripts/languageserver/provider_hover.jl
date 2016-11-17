@@ -8,7 +8,7 @@ function process(r::Request{Val{Symbol("textDocument/hover")},TextDocumentPositi
         return
     end
 
-    documentation = (sword[1] in keys(b.localvar) || get_block(tdpp.textDocument.uri, sword[1], server)!=false) && length(sword)>1 ? 
+    documentation = b!=nothing && (sword[1] in keys(b.localvar) || get_block(tdpp.textDocument.uri, sword[1], server)!=false) && length(sword)>1 ? 
         [MarkedString(get_type(sword, tdpp, server))] : 
         MarkedString[]
     
@@ -38,6 +38,7 @@ end
 function get_local_hover(word::AbstractString, tdpp::TextDocumentPositionParams, server)
     b = get_block(tdpp, server)
     hover = MarkedString[]
+    b==nothing && return hover
     if word in keys(b.localvar)
         v = b.localvar[word]
         push!(hover, MarkedString("local: $(v.doc) ::$(v.t)"))
