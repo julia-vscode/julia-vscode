@@ -7,7 +7,8 @@ const serverCapabilities = ServerCapabilities(
                         true, #hoverProvider
                         CompletionOptions(false,["."]),
                         true, #definitionProvider
-                        SignatureHelpOptions(["("])) 
+                        SignatureHelpOptions(["("]),
+                        true) # documentSymbolProvider 
 
 function process(r::JSONRPC.Request{Val{Symbol("initialize")},Dict{String,Any}}, server)
     server.rootPath=haskey(r.params,"rootPath") ? r.params["rootPath"] : ""

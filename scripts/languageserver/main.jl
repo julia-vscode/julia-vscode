@@ -38,7 +38,7 @@ include("provider_completions.jl")
 include("provider_definitions.jl")
 include("provider_signatures.jl")
 include("transport.jl")
-
+include("provider_symbols.jl")
 include("utilities.jl")
 
 server = LanguageServer(STDIN,conn)
