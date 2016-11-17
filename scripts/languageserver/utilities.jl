@@ -43,7 +43,7 @@ function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offs
     return String(word)
 end
 
-function get_sym(str::String)
+function get_sym(str::AbstractString)
     name = split(str, '.')
     try
         x = getfield(Main, Symbol(name[1]))
@@ -72,7 +72,7 @@ function get_docs(x)
         elseif isa(x, Module)
             d = [split(str, '\n')[3]]
         else
-            d = [""]
+            d = []
         end
     else
         d = split(str, "\n\n", limit = 2)
@@ -139,3 +139,6 @@ end
         return startswith(uri_path, workspace_path)
     end
 end
+
+
+sprintrange(range::Range) = "($(range.start.line+1),$(range.start.character)):($(range.stop.line+1),$(range.stop.character+1))" 
