@@ -54,7 +54,7 @@ function process(r::Request{Val{Symbol("textDocument/didChange")},DidChangeTextD
         end 
         startpos = position(io) 
         seek(io, endline) 
-        while e<c.range.end.character 
+        while e<c.range.stop.character 
             e += 1 
             read(io, Char) 
         end 

@@ -22,7 +22,7 @@ function Block(utd, ex, r::Range)
     t, name, doc, lvars = classify_expr(ex)
     ctx = LintContext()
     ctx.lineabs = r.start.line+1
-    dl = r.end.line-r.start.line-ctx.line
+    dl = r.stop.line-r.start.line-ctx.line
     # Lint.lintexpr(ex, ctx)
     # diags = map(ctx.messages) do l
     #     return Diagnostic(Range(Position(r.start.line+l.line+dl-1, 0), Position(r.start.line+l.line+dl-1, 100)),
@@ -83,7 +83,7 @@ function parseblocks(uri::String, server::LanguageServer, updateall=false)
                 out = vcat(out,blocks[inextgood+1:end])
                 for i  = inextgood+1:length(out)
                     out[i].range.start.line += dl
-                    out[i].range.end.line += dl
+                    out[i].range.stop.line += dl
                 end
                 break
             end
@@ -171,9 +171,9 @@ end
 import Base:<, in, intersect
 <(a::Position, b::Position) =  a.line<b.line || (a.line≤b.line && a.character<b.character)
 function in(p::Position, r::Range)
-    (r.start.line < p.line < r.end.line) ||
+    (r.start.line < p.line < r.stop.line) ||
     (r.start.line == p.line && r.start.character ≤ p.character) ||
-    (r.end.line == p.line && p.character ≤ r.end.character)  
+    (r.stop.line == p.line && p.character ≤ r.stop.character)  
 end
 
 intersect(a::Range, b::Range) = a.start in b || b.start in a
