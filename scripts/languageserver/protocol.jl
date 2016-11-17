@@ -79,9 +79,9 @@ type ServerCapabilities
     completionProvider::CompletionOptions
     definitionProvider::Bool
     signatureHelpProvider::SignatureHelpOptions
+    documentSymbolProvider::Bool
     # referencesProvider::Bool
     # documentHighlightProvider::Bool
-    # documentSymbolProvider::Bool
     # workspaceSymbolProvider::Bool
     # codeActionProvider::Bool
     # codeLensProvider::CodeLensOptions
@@ -178,3 +178,8 @@ type CancelParams
     id::Union{String,Int}
 end
 CancelParams(d::Dict) = CancelParams(d["id"])
+
+type DocumentSymbolParams 
+    textDocument::TextDocumentIdentifier 
+end 
+DocumentSymbolParams(d::Dict) = DocumentSymbolParams(TextDocumentIdentifier(d["textDocument"])) 
