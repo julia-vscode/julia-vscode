@@ -7,13 +7,17 @@ Position(d::Dict) = Position(d["line"], d["character"])
 Position(line) = Position(line,0)
 Position() = Position(-1, -1)
 
-let ex=:(type Range
-        start::Position
-        finish::Position
-    end)
-    ex.args[3].args=ex.args[3].args[[2;4]]
-    ex.args[3].args[2].args[1]=Symbol("end")
-    eval(ex)
+type Range
+    start::Position
+    stop::Position # mismatch between vscode-ls protocol naming (should be 'end')
+end
+
+function JSON._writejson(io::IO, state::JSON.State, a::Range)
+    Base.print(io,"{\"start\":")
+    JSON._writejson(io,state,a.start)
+    Base.print(io,",\"end\":")
+    JSON._writejson(io,state,a.stop)
+    Base.print(io,"}")
 end
 
 Range(d::Dict) = Range(Position(d["start"]), Position(d["end"]))

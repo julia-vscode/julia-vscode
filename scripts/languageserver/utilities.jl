@@ -99,7 +99,7 @@ function get_docs(tdpp::TextDocumentPositionParams, server::LanguageServer)
 end
 
 function get_rangelocs(d::Array{UInt8}, range::Range)
-    (s,e) = (range.start.line, range.end.line)
+    (s,e) = (range.start.line, range.stop.line)
     n = length(d)
     i = cnt = 0
     while cnt<s && i<n
