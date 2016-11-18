@@ -105,7 +105,7 @@ function classify_expr(ex)
         elseif ex.head==:function || (ex.head==:(=) && isa(ex.args[1], Expr) && ex.args[1].head==:call)
             return parsefunction(ex)
         elseif ex.head==:macro
-            return "macro", ex.args[1].args[1], "", Dict(string(x)=>VarInfo(Any,"macro argument") for x in ex.args[1].args[2:end])
+            return "macro", string(ex.args[1].args[1]), "", Dict(string(x)=>VarInfo(Any,"macro argument") for x in ex.args[1].args[2:end])
         elseif ex.head in [:abstract, :bitstype, :type, :immutable]
             return parsedatatype(ex)
         elseif ex.head==:module
