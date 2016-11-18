@@ -36,8 +36,8 @@ function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offs
         c = read(line, Char)
         Base.is_id_char(c) && push!(word, c)
     end
-    for i = 1:2 # Delete junk at front
-        !isempty(word) && word[1] in [' ','.','!'] && deleteat!(word, 1)
+    for i = 1:5 # Delete junk at front
+        !isempty(word) && (word[1] in [' ','.','!'] || '0'≤word[1]≤'9') && deleteat!(word, 1)
     end
     isempty(word) && return ""
     return String(word)
