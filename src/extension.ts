@@ -113,17 +113,20 @@ async function startLanguageServer() {
     }
     let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=no'];
     let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=yes'];
-    let spawnOptions = {
+    let spawnOptionsRun = {
         cwd: path.join(extensionPath, 'scripts', 'languageserver'),
         env: {
             JULIA_PKGDIR: path.join(extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
             HOME: process.env.HOME ? process.env.HOME : os.homedir()
         }
     };
+    let spawnOptionsDebug = {
+        cwd: path.join(extensionPath, 'scripts', 'languageserver')
+    };
 
     let serverOptions = {
-        run: { command: juliaExecutable, args: serverArgsRun, options: spawnOptions },
-        debug: { command: juliaExecutable, args: serverArgsDebug, options: spawnOptions }
+        run: { command: juliaExecutable, args: serverArgsRun, options: spawnOptionsRun },
+        debug: { command: juliaExecutable, args: serverArgsDebug, options: spawnOptionsDebug }
     };
 
     let clientOptions: LanguageClientOptions = {
