@@ -204,7 +204,7 @@ end
 intersect(a::Range, b::Range) = a.start in b || b.start in a
 
 get_linebreaks(doc) = [0; find(c->c==0x0a, doc.data); length(doc.data)+1]
-get_linebreaks(data::Vector{UInt8}) = [0; find(c->c==0x0a, doc); length(doc)+1]
+get_linebreaks(data::Vector{UInt8}) = [0; find(c->c==0x0a, data); length(data)+1]
 
 function get_pos(i0, lb)
     nlb = length(lb)-1
