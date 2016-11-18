@@ -26,15 +26,15 @@ function get_word(tdpp::TextDocumentPositionParams, server::LanguageServer, offs
         e += 1
         c = read(line, Char)
         push!(word, c)
-        if !(Lexer.is_identifier_char(c) || c=='.')
+        if !(Base.is_id_char(c) || c=='.')
             word = Char[]
             s = e
         end
     end
-    while !eof(line) && Lexer.is_identifier_char(c)
+    while !eof(line) && Base.is_id_char(c)
         e += 1
         c = read(line, Char)
-        Lexer.is_identifier_char(c) && push!(word, c)
+        Base.is_id_char(c) && push!(word, c)
     end
     for i = 1:2 # Delete junk at front
         !isempty(word) && word[1] in [' ','.','!'] && deleteat!(word, 1)
