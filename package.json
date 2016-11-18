@@ -98,7 +98,8 @@
     },
     "dependencies": {
         "vscode-languageclient": "^2.2.1",
-        "child-process-promise": "^v2.2.0"
+        "child-process-promise": "^v2.2.0",
+        "async-file": "^v2.0.2"
     },
     "devDependencies": {
         "typescript": "^2.0.3",
