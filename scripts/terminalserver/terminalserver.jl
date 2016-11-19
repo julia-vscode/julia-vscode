@@ -11,6 +11,7 @@ else
 end
 
 @async begin
+    # TODO Make sure the socket gets closed before this process terminates
     server = listen(global_lock_socket_name)
     while true
         sock = accept(server)
