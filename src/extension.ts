@@ -2,7 +2,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import * as fs from 'fs'
+import * as fs from 'async-file';
 import * as path from 'path'
 import * as net from 'net';
 import * as os from 'os';
@@ -10,6 +10,7 @@ var exec = require('child-process-promise').exec;
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
 
 let juliaExecutable = null;
+let juliaPackagePath: string = null;
 let languageClient: LanguageClient = null;
 let REPLterminal: vscode.Terminal = null;
 let extensionPath: string = null;
@@ -86,12 +87,18 @@ function loadConfiguration() {
         juliaExecutable = null;
     }
 
+    if(juliaExecutable != oldValue) {
+        juliaPackagePath = null;
+    }
     return juliaExecutable != oldValue
 }
 
 async function getPkgPath() {
-    var res = await exec(`${juliaExecutable} -e "println(Pkg.dir())"`);
-    return res.stdout;
+    if(juliaPackagePath==null) {
+        var res = await exec(`${juliaExecutable} -e "println(Pkg.dir())"`);
+        juliaPackagePath = res.stdout.trim();
+    }
+    return juliaPackagePath;
 }
 
 async function startLanguageServer() {
@@ -139,68 +146,39 @@ async function startLanguageServer() {
 }
 
 // This method implements the language-julia.openPackageDirectory command
-function openPackageDirectoryCommand() {
-    const optionsVersion: vscode.QuickPickOptions = {
-        placeHolder: 'Select julia version'
-    };
+async function openPackageDirectoryCommand() {
     const optionsPackage: vscode.QuickPickOptions = {
         placeHolder: 'Select package'
     };
 
-    var homeDirectory = process.env[process.platform == 'win32' ? 'USERPROFILE' : 'HOME'];
-    var juliaHomeDirectory = process.env['JULIA_HOME'] || path.join(homeDirectory, '.julia')
+    try {
+        var juliaVersionHomeDir = await getPkgPath();        
 
-    fs.exists(juliaHomeDirectory,
-        exists => {
-            if (!exists) {
-                vscode.window.showInformationMessage('Error: Could not find julia home directory.');
-            }
-            else {
-                fs.readdir(juliaHomeDirectory,
-                    (err, files) => {
-                        if (err) {
-                            vscode.window.showInformationMessage('Error: Could not read julia home directory.');
-                        }
-                        else {
-                            var r = /^v\d*\.\d*$/;
-                            var filteredFiles = files.filter(path => path.search(r) > -1).map(path => path.substr(1));
+        let files = await fs.readdir(juliaVersionHomeDir);
 
-                            if (filteredFiles.length == 0) {
-                                vscode.window.showInformationMessage('Error: There are no packages installed.');
-                            }
-                            else {
-                                vscode.window.showQuickPick(filteredFiles, optionsVersion)
-                                    .then(resultVersion => {
-                                        if (resultVersion !== undefined) {
-                                            var juliaVersionHomeDir = path.join(juliaHomeDirectory, 'v' + resultVersion);
-                                            fs.readdir(juliaVersionHomeDir,
-                                                (err, files) => {
-                                                    if (err) {
-                                                        vscode.window.showInformationMessage('Error: Could not read package directory.');
-                                                    }
-                                                    else {
-                                                        var filteredPackages = files.filter(path => !path.startsWith('.') && ['METADATA', 'REQUIRE', 'META_BRANCH'].indexOf(path) < 0);
-                                                        vscode.window.showQuickPick(filteredPackages, optionsPackage)
-                                                            .then(resultPackage => {
-                                                                if (resultPackage !== undefined) {
-                                                                    var folder = vscode.Uri.file(path.join(juliaVersionHomeDir, resultPackage));
-                                                                    vscode.commands.executeCommand('vscode.openFolder', folder, true)
-                                                                        .then(
-                                                                        value => ({}),
-                                                                        value => {
-                                                                            vscode.window.showInformationMessage('Could not open the package.');
-                                                                        });
-                                                                }
-                                                            });
-                                                    }
-                                                });
-                                        }
-                                    })
-                            }
-                        }
-                    })
+        let filteredPackages = files.filter(path => !path.startsWith('.') && ['METADATA', 'REQUIRE', 'META_BRANCH'].indexOf(path) < 0);
+
+        if (filteredPackages.length == 0) {
+            vscode.window.showInformationMessage('Error: There are no packages installed.');
+        }
+        else {
+            let resultPackage = await vscode.window.showQuickPick(filteredPackages, optionsPackage);
+
+            if (resultPackage !== undefined) {
+                var folder = vscode.Uri.file(path.join(juliaVersionHomeDir, resultPackage));
+
+                try {
+                    await vscode.commands.executeCommand('vscode.openFolder', folder, true);
+                }
+                catch (e) {
+                    vscode.window.showInformationMessage('Could not open the package.');
+                }
             }
-        });
+        }
+    }
+    catch (e) {
+        vscode.window.showInformationMessage('Error: Could not read package directory.');
+    }
 }
 
 function startREPLCommand() {
