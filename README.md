@@ -4,6 +4,10 @@
 
 This [VS Code](https://code.visualstudio.com) extension provides support for the [julia programming language](http://julialang.org/).
 
+## Getting started
+
+Once the extension is installed it needs to find the julia binary on your system. There are two options: if your julia binary is on the path and you have not configured something else, the extension will use that version of julia. Alternatively, you can set the ``julia.executablePath`` configuration setting to point to a julia binary, in which case the extension will always use that version of julia. To edit your configuration settings, execute the ``Preferences: Open User Settings`` command, and then make sure your user settings include the ``julia.executablePath`` setting. The format of the string should follow your platform specific conventions, and be aware that the backlash ``\`` is the escape character in JSON, so you need to use ``\\`` as the path separator character on Windows.
+
 ## Features
 
 The extension currently provides
