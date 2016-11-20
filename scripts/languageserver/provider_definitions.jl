@@ -4,12 +4,14 @@ function process(r::Request{Val{Symbol("textDocument/definition")},TextDocumentP
 
     locations = map(methods(x).ms) do m
         (filename, line) = functionloc(m)
-        filename_norm = normpath(filename)
-        if is_windows()
+        @static if is_windows()
+            filename_norm = normpath(filename)
             filename_norm = replace(filename_norm, '\\', '/')
+            filename_escaped = URIParser.escape(filename_norm)
+            uri = "file:///$filename_escaped"
+        else
+            uri = "file:$filename"
         end
-        filename_escaped = URIParser.escape(filename_norm)
-        uri = "file:///$filename_escaped"
         return Location(uri, line-1)
     end
 
