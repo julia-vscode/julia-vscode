@@ -8,6 +8,12 @@ This [VS Code](https://code.visualstudio.com) extension provides support for the
 
 Once the extension is installed it needs to find the julia binary on your system. There are two options: if your julia binary is on the path and you have not configured something else, the extension will use that version of julia. Alternatively, you can set the ``julia.executablePath`` configuration setting to point to a julia binary, in which case the extension will always use that version of julia. To edit your configuration settings, execute the ``Preferences: Open User Settings`` command, and then make sure your user settings include the ``julia.executablePath`` setting. The format of the string should follow your platform specific conventions, and be aware that the backlash ``\`` is the escape character in JSON, so you need to use ``\\`` as the path separator character on Windows.
 
+### Note for MacOS Users
+When setting your ``julia.executablePath``, you need to make sure that you are linking to the correct executable within your ``julia-x.x.app`` folder. The correct executable is located at
+```
+[Path to applications folder]/Julia-x.x.app/Contents/Resources/julia/bin/julia
+```
+
 ## Features
 
 The extension currently provides
