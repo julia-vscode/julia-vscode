@@ -1,0 +1,36 @@
+[submodule "scripts/languageserver/julia_pkgdir/v0.5/AbstractTrees"]
+	path = scripts/languageserver/julia_pkgdir/v0.5/AbstractTrees
+	url = https://github.com/Keno/AbstractTrees.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.5/Compat"]
+	path = scripts/languageserver/julia_pkgdir/v0.5/Compat
+	url = https://github.com/JuliaLang/Compat.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.5/JSON"]
+	path = scripts/languageserver/julia_pkgdir/v0.5/JSON
+	url = https://github.com/JuliaIO/JSON.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.5/JuliaParser"]
+	path = scripts/languageserver/julia_pkgdir/v0.5/JuliaParser
+	url = https://github.com/JuliaLang/JuliaParser.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.5/Lint"]
+	path = scripts/languageserver/julia_pkgdir/v0.5/Lint
+	url = https://github.com/tonyhffong/Lint.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.5/URIParser"]
+	path = scripts/languageserver/julia_pkgdir/v0.5/URIParser
+	url = https://github.com/JuliaWeb/URIParser.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.6/AbstractTrees"]
+	path = scripts/languageserver/julia_pkgdir/v0.6/AbstractTrees
+	url = https://github.com/Keno/AbstractTrees.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.6/Compat"]
+	path = scripts/languageserver/julia_pkgdir/v0.6/Compat
+	url = https://github.com/JuliaLang/Compat.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.6/JSON"]
+	path = scripts/languageserver/julia_pkgdir/v0.6/JSON
+	url = https://github.com/JuliaIO/JSON.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.6/JuliaParser"]
+	path = scripts/languageserver/julia_pkgdir/v0.6/JuliaParser
+	url = https://github.com/JuliaLang/JuliaParser.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.6/Lint"]
+	path = scripts/languageserver/julia_pkgdir/v0.6/Lint
+	url = https://github.com/tonyhffong/Lint.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.6/URIParser"]
+	path = scripts/languageserver/julia_pkgdir/v0.6/URIParser
+	url = https://github.com/JuliaWeb/URIParser.jl.git

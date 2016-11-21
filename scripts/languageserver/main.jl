@@ -5,12 +5,10 @@ if VERSION < v"0.5"
     error("VS Code julia language server only works with julia 0.5 or newer.")
 end
 
-include("dependencies.jl")
-use_and_install_dependencies([
-    ("Compat", v"0.9.4"),
-    ("JSON", v"0.8.0"),
-    ("Lint", v"0.2.5"),
-    ("URIParser", v"0.1.6")])
+using Compat
+using JSON
+using Lint
+using URIParser
 
 if length(Base.ARGS)!=2
     error("Invalid number of arguments passed to julia language server.")
