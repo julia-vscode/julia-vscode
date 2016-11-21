@@ -14,13 +14,13 @@ The extension currently provides
 
 * syntax highlighting
 * snippets
-* latex completion
-* julia specific commands
-* integrated julia REPL
-* code completion
-* hover help
-* a linter
-* goto definition
+* [latex snippets](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Snippets#latex)
+* [julia specific commands](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Commands)
+* [integrated julia REPL](https://github.com/JuliaEditorSupport/julia-vscode/wiki/REPL)
+* [code completion](https://github.com/JuliaEditorSupport/julia-vscode/wiki/IntelliSense)
+* [hover help](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Information#hover-help)
+* [a linter](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Information#linter)
+* [code navigation](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Navigation)
 
 ## Development information
 
