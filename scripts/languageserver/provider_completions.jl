@@ -1,7 +1,7 @@
 function process(r::Request{Val{Symbol("textDocument/completion")},TextDocumentPositionParams}, server)
     tdpp = r.params
     line = get_line(tdpp, server)
-    comp = Base.REPLCompletions.completions(line, tdpp.position.character)[1]
+    comp = Base.REPLCompletions.completions(line, chr2ind(line,tdpp.position.character))[1]
     n = length(comp)
     comp = comp[1:min(length(comp),25)]
     CIs = map(comp) do i
