@@ -34,3 +34,9 @@
 [submodule "scripts/languageserver/julia_pkgdir/v0.6/URIParser"]
 	path = scripts/languageserver/julia_pkgdir/v0.6/URIParser
 	url = https://github.com/JuliaWeb/URIParser.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.5/LanguageServer"]
+	path = scripts/languageserver/julia_pkgdir/v0.5/LanguageServer
+	url = https://github.com/JuliaEditorSupport/LanguageServer.jl.git
+[submodule "scripts/languageserver/julia_pkgdir/v0.6/LanguageServer"]
+	path = scripts/languageserver/julia_pkgdir/v0.6/LanguageServer
+	url = https://github.com/JuliaEditorSupport/LanguageServer.jl.git
