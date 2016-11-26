@@ -27,6 +27,7 @@ The extension currently provides
 * [hover help](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Information#hover-help)
 * [a linter](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Information#linter)
 * [code navigation](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Navigation)
+* test run command
 
 ## Development information
 

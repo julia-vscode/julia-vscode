@@ -6,7 +6,9 @@ import * as fs from 'async-file';
 import * as path from 'path'
 import * as net from 'net';
 import * as os from 'os';
+var kill = require('async-child-process').kill;
 var exec = require('child-process-promise').exec;
+import { spawn, ChildProcess } from 'child_process';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
 
 let juliaExecutable = null;
@@ -15,6 +17,9 @@ let languageClient: LanguageClient = null;
 let REPLterminal: vscode.Terminal = null;
 let extensionPath: string = null;
 let g_context: vscode.ExtensionContext = null;
+let testOutputChannel: vscode.OutputChannel = null;
+let testChildProcess: ChildProcess = null;
+let testStatusBarItem: vscode.StatusBarItem = null;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -41,6 +46,17 @@ export function activate(context: vscode.ExtensionContext) {
 
     let disposable_executeJuliaCodeInREPL = vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeJuliaCodeInREPL);
     context.subscriptions.push(disposable_executeJuliaCodeInREPL);
+
+    let disposable_runTests = vscode.commands.registerCommand('language-julia.runTests', runTests);
+    context.subscriptions.push(disposable_runTests);
+
+    testStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+    testStatusBarItem.tooltip = 'Interrupt test run.';
+    testStatusBarItem.text = '$(beaker) julia tests are running...';
+    testStatusBarItem.command = 'language-julia.cancelTests';
+
+    let disposable_cancelTests = vscode.commands.registerCommand('language-julia.cancelTests', cancelTests);
+    context.subscriptions.push(disposable_cancelTests);
 
     vscode.window.onDidCloseTerminal(terminal=>{
         if (terminal==REPLterminal) {
@@ -181,6 +197,49 @@ async function openPackageDirectoryCommand() {
     }
     catch (e) {
         vscode.window.showInformationMessage('Error: Could not read package directory.');
+    }
+}
+
+async function runTests() {
+    if (vscode.workspace.rootPath === undefined) {
+        vscode.window.showInformationMessage('julia tests can only be run if a folder is opened.');
+    }
+    else {
+        if (testOutputChannel == null) {
+            testOutputChannel = vscode.window.createOutputChannel("julia tests");
+        }
+        testOutputChannel.clear();
+        testOutputChannel.show(true);
+
+        if (testChildProcess != null) {
+            try {
+                await kill(testChildProcess);
+            }
+            catch (e) {
+            }
+        }
+
+        testStatusBarItem.show();
+        testChildProcess = spawn(juliaExecutable, ['-e', 'Pkg.Entry.test(AbstractString[Base.ARGS[1]])', vscode.workspace.rootPath], { cwd: vscode.workspace.rootPath });
+        testChildProcess.stdout.on('data', function (data) {
+            testOutputChannel.append(String(data));
+        });
+        testChildProcess.stderr.on('data', function (data) {
+            testOutputChannel.append(String(data));
+        });
+        testChildProcess.on('close', function (code) {
+            testChildProcess = null;
+            testStatusBarItem.hide();
+        });
+    }
+}
+
+async function cancelTests() {
+    if(testChildProcess==null) {
+        await vscode.window.showInformationMessage('No julia tests are running.')
+    }
+    else {
+        testChildProcess.kill();
     }
 }
 

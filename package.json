@@ -26,6 +26,7 @@
         "onCommand:language-julia.openPackageDirectory",
         "onCommand:language-julia.startREPL",
         "onCommand:language-julia.executeJuliaCodeInREPL",
+        "onCommand:language-julia.runTests",
         "onLanguage:julia"
     ],
     "main": "./out/src/extension",
@@ -72,6 +73,10 @@
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "title": "julia: Execute Code"
+            },
+            {
+                "command": "language-julia.runTests",
+                "title": "julia: Run tests"
             }
         ],
         "keybindings": [{
@@ -99,7 +104,8 @@
     "dependencies": {
         "vscode-languageclient": "^2.2.1",
         "child-process-promise": "^v2.2.0",
-        "async-file": "^v2.0.2"
+        "async-file": "^v2.0.2",
+        "async-child-process": "^v1.1.1"
     },
     "devDependencies": {
         "typescript": "^2.0.3",
