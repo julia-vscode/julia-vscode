@@ -9,7 +9,7 @@ function process(r::Request{Val{Symbol("textDocument/completion")},TextDocumentP
             unshift!(word, c)
             break
         end
-        if !(Base.is_id_char(c) || c=='.')
+        if !(Base.is_id_char(c) || c=='.' || c=='_' || c=='^')
             break
         end
         unshift!(word, c)
