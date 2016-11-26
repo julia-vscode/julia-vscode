@@ -22,6 +22,7 @@ end
 
 Range(d::Dict) = Range(Position(d["start"]), Position(d["end"]))
 Range(line) = Range(Position(line), Position(line))
+Range(l0, c0, l1, c1) = Range(Position(l0, c0), Position(l1, c1))
 
 type Location
     uri::String
@@ -40,10 +41,17 @@ type Hover
     contents::Vector{Union{AbstractString,MarkedString}}
 end
 
+type TextEdit
+    range::Range
+    newText::String
+end
+
 type CompletionItem
     label::String
     kind::Int
     documentation::String
+    textEdit::TextEdit
+    additionalTextEdits::Vector{TextEdit}
 end
 
 type CompletionList
