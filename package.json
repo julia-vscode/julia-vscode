@@ -73,6 +73,10 @@
             {
                 "command": "language-julia.runTests",
                 "title": "julia: Run tests"
+            },
+            {
+                "command": "language-julia.toggleLinter",
+                "title": "julia: Toggle Linter"
             }
         ],
         "keybindings": [{
@@ -88,6 +92,11 @@
                     "type": ["string", "null"],
                     "default": null,
                     "description": "Points to the julia executable."
+                },
+                "julia.runlinter": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Option to automatically run the Linter on active files."
                 }
             }
         }
