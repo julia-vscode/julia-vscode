@@ -2,35 +2,39 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>comment</key>
-	<string>
-	TODO:
-	* syntax types, tuple types, union
-	* take out ::Type
-	</string>
 	<key>fileTypes</key>
 	<array>
 		<string>jl</string>
 	</array>
 	<key>firstLineMatch</key>
 	<string>^#!.*\bjulia\s*$</string>
-	<key>keyEquivalent</key>
-	<string>^~J</string>
 	<key>name</key>
 	<string>Julia</string>
 	<key>patterns</key>
 	<array>
 		<dict>
 			<key>include</key>
+			<string>#comment</string>
+		</dict>
+		<dict>
+			<key>include</key>
 			<string>#symbol</string>
 		</dict>
 		<dict>
 			<key>include</key>
-			<string>#operator</string>
+			<string>#punctuation</string>
 		</dict>
 		<dict>
 			<key>include</key>
 			<string>#array</string>
+		</dict>
+		<dict>
+			<key>include</key>
+			<string>#group</string>
+		</dict>
+		<dict>
+			<key>include</key>
+			<string>#typeGroup</string>
 		</dict>
 		<dict>
 			<key>include</key>
@@ -42,6 +46,10 @@
 		</dict>
 		<dict>
 			<key>include</key>
+			<string>#number</string>
+		</dict>
+		<dict>
+			<key>include</key>
 			<string>#type_decl</string>
 		</dict>
 		<dict>
@@ -50,19 +58,11 @@
 		</dict>
 		<dict>
 			<key>include</key>
-			<string>#function_call</string>
+			<string>#operator</string>
 		</dict>
 		<dict>
 			<key>include</key>
 			<string>#keyword</string>
-		</dict>
-		<dict>
-			<key>include</key>
-			<string>#number</string>
-		</dict>
-		<dict>
-			<key>include</key>
-			<string>#comment</string>
 		</dict>
 	</array>
 	<key>repository</key>
@@ -73,12 +73,25 @@
 			<array>
 				<dict>
 					<key>begin</key>
-					<string>\[</string>
+					<string>(\[)</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.brace.array.julia</string>
+						</dict>
+					</dict>
 					<key>end</key>
-					<string>\]((\.)?'*)</string>
+					<string>(\])((\.)?'*)</string>
 					<key>endCaptures</key>
 					<dict>
 						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.brace.array.julia</string>
+						</dict>
+						<key>2</key>
 						<dict>
 							<key>name</key>
 							<string>keyword.operator.transpose.julia</string>
@@ -102,18 +115,103 @@
 				</dict>
 			</array>
 		</dict>
-		<key>bracket</key>
+		<key>group</key>
 		<dict>
 			<key>patterns</key>
 			<array>
 				<dict>
-					<key>match</key>
-					<string>(?:\(|\)|\[|\]|\{|\}|,)(?!('|(?:\.'))*\.?')</string>
+					<key>begin</key>
+					<string>(\()</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.paren.group.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(\))((\.)?'*)</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.paren.group.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>keyword.operator.transpose.julia</string>
+						</dict>
+					</dict>
 					<key>name</key>
-					<string>meta.bracket.julia</string>
+					<string>meta.group.julia</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>$self</string>
+						</dict>
+					</array>
 				</dict>
 			</array>
 		</dict>
+		<key>typeGroup</key>
+		<dict>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>begin</key>
+					<string>(\{)</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.brace.type.julia</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>(\})((\.)?'*)</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>1</key>
+						<dict>
+							<key>name</key>
+							<string>meta.brace.type.julia</string>
+						</dict>
+						<key>2</key>
+						<dict>
+							<key>name</key>
+							<string>keyword.operator.transpose.julia</string>
+						</dict>
+					</dict>
+					<key>name</key>
+					<string>meta.type.julia</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>include</key>
+							<string>$self</string>
+						</dict>
+						<dict>
+							<key>match</key>
+							<string>[a-zA-Z]\w*(?=\s*\{)</string>
+							<key>name</key>
+							<string>support.type.julia</string>
+						</dict>
+						<dict>
+							<key>match</key>
+							<string>[a-zA-Z]\w*(?!\s*\{)</string>
+							<key>name</key>
+							<string>entity.name.type.julia</string>
+						</dict>
+					</array>
+				</dict>
+			</array>
+		</dict>
+		
 		<key>comment</key>
 		<dict>
 			<key>patterns</key>
@@ -158,41 +256,6 @@
 				</dict>
 			</array>
 		</dict>
-		<key>function_call</key>
-		<dict>
-			<key>patterns</key>
-			<array>
-				<dict>
-					<key>begin</key>
-					<string>([a-zA-Z0-9_]+!?)\w*\(</string>
-					<key>beginCaptures</key>
-					<dict>
-						<key>1</key>
-						<dict>
-							<key>name</key>
-							<string>support.function.julia</string>
-						</dict>
-					</dict>
-					<key>end</key>
-					<string>\)(('|(\.'))*\.?')?</string>
-					<key>endCaptures</key>
-					<dict>
-						<key>1</key>
-						<dict>
-							<key>name</key>
-							<string>keyword.operator.transposed-func.julia</string>
-						</dict>
-					</dict>
-					<key>patterns</key>
-					<array>
-						<dict>
-							<key>include</key>
-							<string>$self</string>
-						</dict>
-					</array>
-				</dict>
-			</array>
-		</dict>
 		<key>function_decl</key>
 		<dict>
 			<key>patterns</key>
@@ -205,14 +268,9 @@
 							<key>name</key>
 							<string>entity.name.function.julia</string>
 						</dict>
-						<key>2</key>
-						<dict>
-							<key>name</key>
-							<string>support.type.julia</string>
-						</dict>
 					</dict>
 					<key>match</key>
-					<string>([\w.!]+)({[^}]*})?\((?=.*\)\s*=(?!=))</string>
+					<string>(?:\()?([^\s\[\]\(\)\{\}\!]*\!?)(?=(?:\))?({[^}]*})?\((?=.*\)\s*=(?!=)))</string>
 				</dict>
 				<dict>
 					<key>captures</key>
@@ -227,14 +285,9 @@
 							<key>name</key>
 							<string>entity.name.function.julia</string>
 						</dict>
-						<key>3</key>
-						<dict>
-							<key>name</key>
-							<string>support.type.julia</string>
-						</dict>
 					</dict>
 					<key>match</key>
-					<string>\b(function|stagedfunction|macro)\s+([\w.!]+)({[^}]*})?\(</string>
+					<string>\b(function|stagedfunction|macro)\s+([^\s\[\]\(\)\{\}\!]*\!?)</string>
 				</dict>
 			</array>
 		</dict>
@@ -292,127 +345,40 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>(?:=|:=|\+=|-=|\*=|/=|//=|\.//=|\.\*=|\\=|\.\\=|^=|\.^=|%=|\|=|&amp;=|\$=|&lt;&lt;=|&gt;&gt;=)</string>
-					<key>name</key>
-					<string>keyword.operator.update.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:::(?:(?:Union)?\([^)]*\)|\w+(?:{[^}]*})?))(?:\.\.\.)?</string>
+					<!--
+						Ugly regex to support nested types (to some degree at least)
+						We need some push/pop state to do this nicely.
+						Consider updating this file from .tmLanguage to .sublime-syntax
+					-->
+					<string>(?&lt;=::)\s*\w+</string>
 					<key>name</key>
 					<string>support.type.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?:\?|:)</string>
+					<!-- Bang operator must follow after whitespace or beginning of line, otherwise it is part of a variable name. -->
+					<string>(?&lt;=(?:\s|^))!</string>
 					<key>name</key>
-					<string>keyword.operator.ternary.julia</string>
+					<string>keyword.operator.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?:\|\||&amp;&amp;|!)</string>
+					<!-- Use the symbols defined in https://github.com/JuliaLang/julia/blob/master/src/julia-parser.scm -->
+					<string>(?:(?:\:\=|\=\&gt;|~|\$\=|\?|\-\-|\-\-\&gt;|\|\|\&amp;\&amp;|\&lt;\:|\&gt;\:|\.\!|\|\&gt;|\&lt;\||::|\:|\.\.|\$|\:\:|\.|¬)|\.?(?:\=|\+\=|\-\=|\*\=|/\=|//\=|\=|\^\=|÷\=|%\=|\&lt;\&lt;\=|\&gt;\&gt;\=|\&gt;\&gt;\&gt;\=|\|\=|\&amp;\=|←|→|↔|↚|↛|↠|↣|↦|↮|⇎|⇏|⇒|⇔|⇴|⇶|⇷|⇸|⇹|⇺|⇻|⇼|⇽|⇾|⇿|⟵|⟶|⟷|⟷|⟹|⟺|⟻|⟼|⟽|⟾|⟿|⤀|⤁|⤂|⤃|⤄|⤅|⤆|⤇|⤌|⤍|⤎|⤏|⤐|⤑|⤔|⤕|⤖|⤗|⤘|⤝|⤞|⤟|⤠|⥄|⥅|⥆|⥇|⥈|⥊|⥋|⥎|⥐|⥒|⥓|⥖|⥗|⥚|⥛|⥞|⥟|⥢|⥤|⥦|⥧|⥨|⥩|⥪|⥫|⥬|⥭|⥰|⧴|⬱|⬰|⬲|⬳|⬴|⬵|⬶|⬷|⬸|⬹|⬺|⬻|⬼|⬽|⬾|⬿|⭀|⭁|⭂|⭃|⭄|⭇|⭈|⭉|⭊|⭋|⭌|￩|￫|\&gt;|\&lt;|\&gt;\=|≥|\&lt;\=|≤|\=\=|\=\=\=|≡|\!\=|≠|\!\=\=|≢|∈|∉|∋|∌|⊆|⊈|⊂|⊄|⊊|∝|∊|∍|∥|∦|∷|∺|∻|∽|∾|≁|≃|≄|≅|≆|≇|≈|≉|≊|≋|≌|≍|≎|≐|≑|≒|≓|≔|≕|≖|≗|≘|≙|≚|≛|≜|≝|≞|≟|≣|≦|≧|≨|≩|≪|≫|≬|≭|≮|≯|≰|≱|≲|≳|≴|≵|≶|≷|≸|≹|≺|≻|≼|≽|≾|≿|⊀|⊁|⊃|⊅|⊇|⊉|⊋|⊏|⊐|⊑|⊒|⊜|⊩|⊬|⊮|⊰|⊱|⊲|⊳|⊴|⊵|⊶|⊷|⋍|⋐|⋑|⋕|⋖|⋗|⋘|⋙|⋚|⋛|⋜|⋝|⋞|⋟|⋠|⋡|⋢|⋣|⋤|⋥|⋦|⋧|⋨|⋩|⋪|⋫|⋬|⋭|⋲|⋳|⋴|⋵|⋶|⋷|⋸|⋹|⋺|⋻|⋼|⋽|⋾|⋿|⟈|⟉|⟒|⦷|⧀|⧁|⧡|⧣|⧤|⧥|⩦|⩧|⩪|⩫|⩬|⩭|⩮|⩯|⩰|⩱|⩲|⩳|⩴|⩵|⩶|⩷|⩸|⩹|⩺|⩻|⩼|⩽|⩾|⩿|⪀|⪁|⪂|⪃|⪄|⪅|⪆|⪇|⪈|⪉|⪊|⪋|⪌|⪍|⪎|⪏|⪐|⪑|⪒|⪓|⪔|⪕|⪖|⪗|⪘|⪙|⪚|⪛|⪜|⪝|⪞|⪟|⪠|⪡|⪢|⪣|⪤|⪥|⪦|⪧|⪨|⪩|⪪|⪫|⪬|⪭|⪮|⪯|⪰|⪱|⪲|⪳|⪴|⪵|⪶|⪷|⪸|⪹|⪺|⪻|⪼|⪽|⪾|⪿|⫀|⫁|⫂|⫃|⫄|⫅|⫆|⫇|⫈|⫉|⫊|⫋|⫌|⫍|⫎|⫏|⫐|⫑|⫒|⫓|⫔|⫕|⫖|⫗|⫘|⫙|⫷|⫸|⫹|⫺|⊢|⊣|\+|\-|\||⊕|⊖|⊞|⊟|\+\+|∪|∨|⊔|±|∓|∔|∸|≂|≏|⊎|⊻|⊽|⋎|⋓|⧺|⧻|⨈|⨢|⨣|⨤|⨥|⨦|⨧|⨨|⨩|⨪|⨫|⨬|⨭|⨮|⨹|⨺|⩁|⩂|⩅|⩊|⩌|⩏|⩐|⩒|⩔|⩖|⩗|⩛|⩝|⩡|⩢|⩣|\&lt;\&lt;|\&gt;\&gt;|\&gt;\&gt;\&gt;|\*|/|÷|%|\&amp;|⋅|∘|×|\\|∩|∧|⊗|⊘|⊙|⊚|⊛|⊠|⊡|⊓|∗|∙|∤|⅋|≀|⊼|⋄|⋆|⋇|⋉|⋊|⋋|⋌|⋏|⋒|⟑|⦸|⦼|⦾|⦿|⧶|⧷|⨇|⨰|⨱|⨲|⨳|⨴|⨵|⨶|⨷|⨸|⨻|⨼|⨽|⩀|⩃|⩄|⩋|⩍|⩎|⩑|⩓|⩕|⩘|⩚|⩜|⩞|⩟|⩠|⫛|⊍|▷|⨝|⟕|⟖|⟗|//|\^|↑|↓|⇵|⟰|⟱|⤈|⤉|⤊|⤋|⤒|⤓|⥉|⥌|⥍|⥏|⥑|⥔|⥕|⥘|⥙|⥜|⥝|⥠|⥡|⥣|⥥|⥮|⥯|￪|￬))</string>
 					<key>name</key>
-					<string>keyword.operator.boolean.julia</string>
+					<string>keyword.operator.julia</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?:-&gt;|&lt;-|--&gt;)</string>
-					<key>name</key>
-					<string>keyword.operator.arrow.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:&gt;|&lt;|&gt;=|&lt;=|==|!=|\.&gt;|\.&lt;|\.&gt;=|\.&gt;=|\.==|\.!=|\.=|\.!|&lt;:|:&gt;)</string>
-					<key>name</key>
-					<string>keyword.operator.relation.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?::)</string>
-					<key>name</key>
-					<string>keyword.operator.range.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:&lt;&lt;|&gt;&gt;)</string>
-					<key>name</key>
-					<string>keyword.operator.shift.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:\||\&amp;|~)</string>
-					<key>name</key>
-					<string>keyword.operator.bitwise.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:\+|-|\*|\.\*|/|\./|//|\.//|%|\.%|\\|\.\\|\^|\.\^)</string>
-					<key>name</key>
-					<string>keyword.operator.arithmetic.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:::)</string>
-					<key>name</key>
-					<string>keyword.operator.isa.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:\.(?=[a-zA-Z])|\.\.+)</string>
-					<key>name</key>
-					<string>keyword.operator.dots.julia</string>
-				</dict>
-				<dict>
-					<key>match</key>
-					<string>(?:\$(?=.+))</string>
-					<key>name</key>
-					<string>keyword.operator.interpolation.julia</string>
-				</dict>
-				<dict>
-					<key>captures</key>
-					<dict>
-						<key>2</key>
-						<dict>
-							<key>name</key>
-							<string>keyword.operator.transposed-variable.julia</string>
-						</dict>
-					</dict>
-					<key>match</key>
-					<string>(\w+)(('|(\.'))*\.?')</string>
-				</dict>
-				<dict>
+					<string>(?:\w|\]|\))+(('|(\.'))*\.?')</string> <!-- Must consume chars preceding the transpose operator, otherwise it will not match because the 'string' parser runs before this praser. -->
 					<key>captures</key>
 					<dict>
 						<key>1</key>
 						<dict>
 							<key>name</key>
-							<string>keyword.bracket.end.julia</string>
-						</dict>
-						<key>2</key>
-						<dict>
-							<key>name</key>
-							<string>keyword.operator.transposed-matrix.julia</string>
+							<string>keyword.operator.transpose.julia</string>
 						</dict>
 					</dict>
-					<key>match</key>
-					<string>(\])((?:'|(?:\.'))*\.?')</string>
-				</dict>
-				<dict>
-					<key>captures</key>
-					<dict>
-						<key>1</key>
-						<dict>
-							<key>name</key>
-							<string>keyword.bracket.end.julia</string>
-						</dict>
-						<key>2</key>
-						<dict>
-							<key>name</key>
-							<string>keyword.operator.transposed-parens.julia</string>
-						</dict>
-					</dict>
-					<key>match</key>
-					<string>(\))((?:'|(?:\.'))*\.?')</string>
 				</dict>
 			</array>
 		</dict>
@@ -576,9 +542,21 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>(?&lt;![a-zA-Z0-9:&lt;]:):[a-zA-Z_][a-zA-Z0-9_]*\b</string>
+					<string>(?&lt;![\w\.\:\&lt;]:)(?&lt;=:)[^\.\:\(]?[a-zA-Z!_][\w\!\_]*</string>
 					<key>name</key>
 					<string>constant.other.symbol.julia</string>
+				</dict>
+			</array>
+		</dict>
+		<key>punctuation</key>
+		<dict>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>match</key>
+					<string>[\.,;]</string>
+					<key>name</key>
+					<string>punctuation.julia</string>
 				</dict>
 			</array>
 		</dict>
@@ -611,7 +589,8 @@
 						</dict>
 					</dict>
 					<key>match</key>
-					<string>(type|immutable)\s+(\w+)(\s*(&lt;:)\s*\w+(?:{.*})?)?</string>
+					<!-- <string>(type|immutable)\s+(\w+)(\s*(&lt;:)\s*\w+(?:{.*})?)?</string> -->
+					<string>(type|immutable)\s+(\w+)</string>
 					<key>name</key>
 					<string>meta.type.julia</string>
 				</dict>
@@ -621,6 +600,6 @@
 	<key>scopeName</key>
 	<string>source.julia</string>
 	<key>uuid</key>
-	<string>F5D95417-DF9F-48AD-92DF-21CE62F7C31B</string>
+	<string>7dfa791d-e38d-456c-ab90-a0aedd787170</string>
 </dict>
 </plist>
