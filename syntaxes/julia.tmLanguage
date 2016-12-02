@@ -268,15 +268,9 @@
 							<key>name</key>
 							<string>entity.name.function.julia</string>
 						</dict>
-						<key>2</key>
-						<dict>
-							<key>name</key>
-							<string>support.type.julia</string>
-						</dict>
 					</dict>
 					<key>match</key>
-					<!-- <string>([^\s\[\]\(\)\{\}\!]*\!?)({(?:[^(?:\&lt;:)]*(\&lt;\:))?[^}]*})?\((?=.*\)\s*=(?!=))</string> -->
-					<string>(?:\()?([^\s\[\]\(\)\{\}\!]*\!?)(?:\))?({[^}]*})?\((?=.*\)\s*=(?!=))</string>
+					<string>(?:\()?([^\s\[\]\(\)\{\}\!]*\!?)(?=(?:\))?({[^}]*})?\((?=.*\)\s*=(?!=)))</string>
 				</dict>
 				<dict>
 					<key>captures</key>
