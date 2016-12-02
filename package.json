@@ -73,6 +73,10 @@
             {
                 "command": "language-julia.runTests",
                 "title": "julia: Run tests"
+            },
+            {
+                "command": "language-julia.runFile",
+                "title": "julia: Run current file in new process"
             }
         ],
         "keybindings": [{
