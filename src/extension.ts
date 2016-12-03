@@ -50,6 +50,9 @@ export function activate(context: vscode.ExtensionContext) {
     let disposable_runTests = vscode.commands.registerCommand('language-julia.runTests', runTests);
     context.subscriptions.push(disposable_runTests);
 
+    let disposable_toggleLinter = vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter);
+    context.subscriptions.push(disposable_toggleLinter);
+
     let disposable_runFile = vscode.commands.registerCommand('language-julia.runFile', runFile);
     context.subscriptions.push(disposable_runFile);
     
@@ -151,7 +154,10 @@ async function startLanguageServer() {
 
     let clientOptions: LanguageClientOptions = {
         // Register the server for plain text documents
-        documentSelector: ['julia']
+        documentSelector: ['julia'],
+        synchronize: {
+            configurationSection: 'julia.runlinter'
+        }
     }
 
     // Create the language client and start the client.
@@ -340,6 +346,11 @@ function executeJuliaCodeInREPL() {
     // client.on('error', onError);
 }
 
+
+export function toggleLinter() {
+    let cval = vscode.workspace.getConfiguration('julia').get('runlinter', false)
+    vscode.workspace.getConfiguration('julia').update('runlinter', !cval, true)
+}
 export function runFile() {
     let fname = vscode.window.activeTextEditor.document.fileName;
     let sfname = fname.split('/')
