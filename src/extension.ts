@@ -152,7 +152,8 @@ async function startLanguageServer() {
         // Register the server for plain text documents
         documentSelector: ['julia'],
         synchronize: {
-            configurationSection: 'julia.runlinter'
+            configurationSection: 'julia.runlinter',
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
         }
     }
 
