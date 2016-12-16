@@ -50,6 +50,9 @@ export function activate(context: vscode.ExtensionContext) {
     let disposable_runTests = vscode.commands.registerCommand('language-julia.runTests', runTests);
     context.subscriptions.push(disposable_runTests);
 
+    let disposable_toggleLinter = vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter);
+    context.subscriptions.push(disposable_toggleLinter);
+
     testStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     testStatusBarItem.tooltip = 'Interrupt test run.';
     testStatusBarItem.text = '$(beaker) julia tests are running...';
@@ -147,7 +150,11 @@ async function startLanguageServer() {
 
     let clientOptions: LanguageClientOptions = {
         // Register the server for plain text documents
-        documentSelector: ['julia']
+        documentSelector: ['julia'],
+        synchronize: {
+            configurationSection: 'julia.runlinter',
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
+        }
     }
 
     // Create the language client and start the client.
@@ -334,4 +341,10 @@ function executeJuliaCodeInREPL() {
     // var failCount = 0;
 
     // client.on('error', onError);
+}
+
+
+export function toggleLinter() {
+    let cval = vscode.workspace.getConfiguration('julia').get('runlinter', false)
+    vscode.workspace.getConfiguration('julia').update('runlinter', !cval, true)
 }
