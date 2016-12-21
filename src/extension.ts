@@ -20,16 +20,28 @@ let g_context: vscode.ExtensionContext = null;
 let testOutputChannel: vscode.OutputChannel = null;
 let testChildProcess: ChildProcess = null;
 let testStatusBarItem: vscode.StatusBarItem = null;
-let weaveProvider: vscode.TextDocumentContentProvider = null;
 let lastWeaveContent: string = null;
 let weaveOutputChannel: vscode.OutputChannel = null;
 let weaveChildProcess: ChildProcess = null;
 
 export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
+    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+
     public provideTextDocumentContent(uri: vscode.Uri): string {
         return lastWeaveContent;
     }
+
+    get onDidChange(): vscode.Event<vscode.Uri> {
+        return this._onDidChange.event;
+    }
+
+    public update() {
+        
+        this._onDidChange.fire(vscode.Uri.parse('jlweave://nothing.html'));
+    }
 }
+
+let weaveProvider: WeaveDocumentContentProvider = null;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -269,6 +281,7 @@ async function weaveCommand() {
                 lastWeaveContent = await fs.readFile(output_filename, "utf-8")
 
                 let uri = vscode.Uri.parse('jlweave://nothing.html');
+                weaveProvider.update();
                 let success = await vscode.commands.executeCommand('vscode.previewHtml', uri, vscode.ViewColumn.One, "julia weave output");
             }
             else {
