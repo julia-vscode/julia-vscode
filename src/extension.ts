@@ -20,6 +20,16 @@ let g_context: vscode.ExtensionContext = null;
 let testOutputChannel: vscode.OutputChannel = null;
 let testChildProcess: ChildProcess = null;
 let testStatusBarItem: vscode.StatusBarItem = null;
+let weaveProvider: vscode.TextDocumentContentProvider = null;
+let lastWeaveContent: string = null;
+let weaveOutputChannel: vscode.OutputChannel = null;
+let weaveChildProcess: ChildProcess = null;
+
+export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
+    public provideTextDocumentContent(uri: vscode.Uri): string {
+        return lastWeaveContent;
+    }
+}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -43,6 +53,13 @@ export function activate(context: vscode.ExtensionContext) {
 
     let disposable_StartREPLCommand = vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand);
     context.subscriptions.push(disposable_StartREPLCommand);
+
+    let disposable_weaveCommand = vscode.commands.registerCommand('language-julia.weave', weaveCommand);
+    context.subscriptions.push(disposable_weaveCommand);
+
+    weaveProvider = new WeaveDocumentContentProvider();
+    let disposable_weaveProvider = vscode.workspace.registerTextDocumentContentProvider('jlweave', weaveProvider);
+    context.subscriptions.push(disposable_weaveProvider);
 
     let disposable_executeJuliaCodeInREPL = vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeJuliaCodeInREPL);
     context.subscriptions.push(disposable_executeJuliaCodeInREPL);
@@ -205,6 +222,62 @@ async function openPackageDirectoryCommand() {
     catch (e) {
         vscode.window.showInformationMessage('Error: Could not read package directory.');
     }
+}
+
+async function weaveCommand() {
+    if (vscode.window.activeTextEditor === undefined) {
+        vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
+    }
+    else if (vscode.window.activeTextEditor.document.isDirty || vscode.window.activeTextEditor.document.isUntitled) {
+        vscode.window.showErrorMessage('Please safe the current file before you weave it.');
+    }
+    else if (vscode.window.activeTextEditor.document.languageId!='julia') {
+        vscode.window.showErrorMessage('Only julia (.jl) files can be weaved.')
+    }
+    else {
+        let parsed_filename = path.parse(vscode.window.activeTextEditor.document.fileName);
+
+        let output_filename = path.join(parsed_filename.dir, parsed_filename.name + ".html");
+
+        if (weaveOutputChannel == null) {
+            weaveOutputChannel = vscode.window.createOutputChannel("julia weave");
+        }
+        weaveOutputChannel.clear();
+        weaveOutputChannel.show(true);
+
+        if (weaveChildProcess != null) {
+            try {
+                await kill(weaveChildProcess);
+            }
+            catch (e) {
+            }
+        }
+
+        weaveChildProcess = spawn(juliaExecutable, ['-e', 'using Weave; Weave.weave(Base.ARGS[1], out_path=:doc)', vscode.window.activeTextEditor.document.fileName]);
+        weaveChildProcess.stdout.on('data', function (data) {
+            weaveOutputChannel.append(String(data));
+        });
+        weaveChildProcess.stderr.on('data', function (data) {
+            weaveOutputChannel.append(String(data));
+        });
+        weaveChildProcess.on('close', async function (code) {
+            weaveChildProcess = null;
+
+            if (code==0) {
+                weaveOutputChannel.hide();
+
+                lastWeaveContent = await fs.readFile(output_filename, "utf-8")
+
+                let uri = vscode.Uri.parse('jlweave://nothing.html');
+                let success = await vscode.commands.executeCommand('vscode.previewHtml', uri, vscode.ViewColumn.One, "julia weave output");
+            }
+            else {
+                vscode.window.showErrorMessage("Error during weaving.");
+            }
+            
+        });
+    }
+    
 }
 
 async function runTests() {

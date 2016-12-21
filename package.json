@@ -27,6 +27,7 @@
         "onCommand:language-julia.startREPL",
         "onCommand:language-julia.executeJuliaCodeInREPL",
         "onCommand:language-julia.runTests",
+        "onCommand:language-julia.weave",
         "onLanguage:julia"
     ],
     "main": "./out/src/extension",
@@ -77,6 +78,10 @@
             {
                 "command": "language-julia.toggleLinter",
                 "title": "julia: Toggle Linter"
+            },
+            {
+                "command": "language-julia.weave",
+                "title": "julia: Weave document"
             }
         ],
         "keybindings": [{
