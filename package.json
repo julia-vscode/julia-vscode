@@ -43,6 +43,16 @@
                     ".jl"
                 ],
                 "configuration": "./julia.configuration.json"
+            },
+            {
+                "id": "juliamarkdown",
+                "aliases": [
+                    "julia Markdown",
+                    "juliamarkdown"
+                ],
+                "extensions": [
+                    ".jmd"
+                ]
             }
         ],
         "grammars": [

@@ -231,7 +231,7 @@ async function weaveCommand() {
     else if (vscode.window.activeTextEditor.document.isDirty || vscode.window.activeTextEditor.document.isUntitled) {
         vscode.window.showErrorMessage('Please safe the current file before you weave it.');
     }
-    else if (vscode.window.activeTextEditor.document.languageId!='julia') {
+    else if (vscode.window.activeTextEditor.document.languageId!='julia' && vscode.window.activeTextEditor.document.languageId!='juliamarkdown') {
         vscode.window.showErrorMessage('Only julia (.jl) files can be weaved.')
     }
     else {
