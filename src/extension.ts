@@ -53,6 +53,10 @@ export function activate(context: vscode.ExtensionContext) {
     let disposable_toggleLinter = vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter);
     context.subscriptions.push(disposable_toggleLinter);
 
+    let disposable_runFile = vscode.commands.registerCommand('language-julia.runFile', runFile);
+    context.subscriptions.push(disposable_runFile);
+    
+
     testStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     testStatusBarItem.tooltip = 'Interrupt test run.';
     testStatusBarItem.text = '$(beaker) julia tests are running...';
@@ -347,4 +351,10 @@ function executeJuliaCodeInREPL() {
 export function toggleLinter() {
     let cval = vscode.workspace.getConfiguration('julia').get('runlinter', false)
     vscode.workspace.getConfiguration('julia').update('runlinter', !cval, true)
+}
+export function runFile() {
+    let fname = vscode.window.activeTextEditor.document.fileName;
+    let sfname = fname.split('/')
+    let tempterm = vscode.window.createTerminal("Julia: "+sfname[sfname.length-1], juliaExecutable, ['-L', fname])
+    tempterm.show()
 }

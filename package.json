@@ -77,6 +77,10 @@
             {
                 "command": "language-julia.toggleLinter",
                 "title": "julia: Toggle Linter"
+            },
+            {
+                "command": "language-julia.runFile",
+                "title": "julia: Run current file in new process"
             }
         ],
         "keybindings": [{
