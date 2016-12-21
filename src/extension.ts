@@ -229,10 +229,10 @@ async function weaveCommand() {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
     }
     else if (vscode.window.activeTextEditor.document.isDirty || vscode.window.activeTextEditor.document.isUntitled) {
-        vscode.window.showErrorMessage('Please safe the current file before you weave it.');
+        vscode.window.showErrorMessage('Please save the current file before you weave it.');
     }
     else if (vscode.window.activeTextEditor.document.languageId!='julia' && vscode.window.activeTextEditor.document.languageId!='juliamarkdown') {
-        vscode.window.showErrorMessage('Only julia (.jl) files can be weaved.')
+        vscode.window.showErrorMessage('Only julia (.jl or .jmd) files can be weaved.')
     }
     else {
         let parsed_filename = path.parse(vscode.window.activeTextEditor.document.fileName);
