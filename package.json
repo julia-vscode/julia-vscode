@@ -59,7 +59,7 @@
             {
                 "language": "julia",
                 "scopeName": "source.julia",
-                "path": "./syntaxes/julia.tmLanguage"
+                "path": "./syntaxes/julia.json"
             },
             {
                 "language": "juliamarkdown",
