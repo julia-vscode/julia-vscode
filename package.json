@@ -60,6 +60,11 @@
                 "language": "julia",
                 "scopeName": "source.julia",
                 "path": "./syntaxes/julia.tmLanguage"
+            },
+            {
+                "language": "juliamarkdown",
+                "scopeName": "source.juliamarkdown",
+                "path": "./syntaxes/juliamarkdown.json"
             }
         ],
         "snippets": [
