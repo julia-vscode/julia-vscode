@@ -27,7 +27,9 @@
         "onCommand:language-julia.startREPL",
         "onCommand:language-julia.executeJuliaCodeInREPL",
         "onCommand:language-julia.runTests",
-        "onCommand:language-julia.weave",
+        "onCommand:language-julia.weave-open-preview",
+        "onCommand:language-julia.weave-open-preview-side",
+        "onCommand:language-julia.weave-save",
         "onLanguage:julia"
     ],
     "main": "./out/src/extension",
@@ -95,8 +97,16 @@
                 "title": "julia: Toggle Linter"
             },
             {
-                "command": "language-julia.weave",
-                "title": "julia: Weave document"
+                "command": "language-julia.weave-open-preview",
+                "title": "julia Weave: Open Preview"
+            },
+            {
+                "command": "language-julia.weave-open-preview-side",
+                "title": "julia Weave: Open Preview to the Side"
+            },
+            {
+                "command": "language-julia.weave-save",
+                "title": "julia Weave: Save to file..."
             }
         ],
         "keybindings": [{
@@ -130,7 +140,8 @@
         "vscode-languageclient": "^2.2.1",
         "child-process-promise": "^v2.2.0",
         "async-file": "^v2.0.2",
-        "async-child-process": "^v1.1.1"
+        "async-child-process": "^v1.1.1",
+        "promised-temp": "^v0.1.0"
     },
     "devDependencies": {
         "typescript": "^2.0.3",

@@ -8,6 +8,7 @@ import * as net from 'net';
 import * as os from 'os';
 var kill = require('async-child-process').kill;
 var exec = require('child-process-promise').exec;
+var tempfs = require('promised-temp').track();
 import { spawn, ChildProcess } from 'child_process';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
 
@@ -23,6 +24,7 @@ let testStatusBarItem: vscode.StatusBarItem = null;
 let lastWeaveContent: string = null;
 let weaveOutputChannel: vscode.OutputChannel = null;
 let weaveChildProcess: ChildProcess = null;
+let weaveNextChildProcess: ChildProcess = null;
 
 export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -66,8 +68,15 @@ export function activate(context: vscode.ExtensionContext) {
     let disposable_StartREPLCommand = vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand);
     context.subscriptions.push(disposable_StartREPLCommand);
 
-    let disposable_weaveCommand = vscode.commands.registerCommand('language-julia.weave', weaveCommand);
-    context.subscriptions.push(disposable_weaveCommand);
+    let weave_open_preview = vscode.commands.registerCommand('language-julia.weave-open-preview', weave_open_preview_Command);
+    context.subscriptions.push(weave_open_preview);
+
+    let weave_open_preview_side = vscode.commands.registerCommand('language-julia.weave-open-preview-side', weave_open_preview_side_Command);
+    context.subscriptions.push(weave_open_preview_side);
+
+    let weave_save = vscode.commands.registerCommand('language-julia.weave-save', weave_save_Command);
+    context.subscriptions.push(weave_save);
+    
 
     weaveProvider = new WeaveDocumentContentProvider();
     let disposable_weaveProvider = vscode.workspace.registerTextDocumentContentProvider('jlweave', weaveProvider);
@@ -236,61 +245,136 @@ async function openPackageDirectoryCommand() {
     }
 }
 
-async function weaveCommand() {
-    if (vscode.window.activeTextEditor === undefined) {
-        vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
-    }
-    else if (vscode.window.activeTextEditor.document.isDirty || vscode.window.activeTextEditor.document.isUntitled) {
-        vscode.window.showErrorMessage('Please save the current file before you weave it.');
-    }
-    else if (vscode.window.activeTextEditor.document.languageId!='julia' && vscode.window.activeTextEditor.document.languageId!='juliamarkdown') {
-        vscode.window.showErrorMessage('Only julia (.jl or .jmd) files can be weaved.')
+async function weave_core(column, selected_format:string=undefined) {
+    let parsed_filename = path.parse(vscode.window.activeTextEditor.document.fileName);
+
+    let source_filename: string;
+    let output_filename: string;
+    if (selected_format===undefined) {
+        let temporary_dirname = await tempfs.mkdir("julia-vscode-weave");
+
+        source_filename = path.join(temporary_dirname, 'source-file.jmd')
+
+        await fs.writeFile(source_filename, vscode.window.activeTextEditor.document.getText(), 'utf-8');
+    
+        output_filename = path.join(temporary_dirname, 'output-file.html');
     }
     else {
-        let parsed_filename = path.parse(vscode.window.activeTextEditor.document.fileName);
+        source_filename = vscode.window.activeTextEditor.document.fileName;
+        output_filename = '';
+    }
 
-        let output_filename = path.join(parsed_filename.dir, parsed_filename.name + ".html");
+    if (weaveOutputChannel == null) {
+        weaveOutputChannel = vscode.window.createOutputChannel("julia Weave");
+    }
+    weaveOutputChannel.clear();
+    weaveOutputChannel.show(true);
 
-        if (weaveOutputChannel == null) {
-            weaveOutputChannel = vscode.window.createOutputChannel("julia weave");
+    if (weaveChildProcess != null) {
+        try {
+            await kill(weaveChildProcess);
         }
-        weaveOutputChannel.clear();
-        weaveOutputChannel.show(true);
-
-        if (weaveChildProcess != null) {
-            try {
-                await kill(weaveChildProcess);
-            }
-            catch (e) {
-            }
+        catch (e) {
         }
+    }
 
-        weaveChildProcess = spawn(juliaExecutable, ['-e', 'using Weave; Weave.weave(Base.ARGS[1], out_path=:doc)', vscode.window.activeTextEditor.document.fileName]);
-        weaveChildProcess.stdout.on('data', function (data) {
-            weaveOutputChannel.append(String(data));
-        });
-        weaveChildProcess.stderr.on('data', function (data) {
-            weaveOutputChannel.append(String(data));
-        });
-        weaveChildProcess.on('close', async function (code) {
-            weaveChildProcess = null;
+    if (weaveNextChildProcess == null) {
+        weaveNextChildProcess = spawn(juliaExecutable, [path.join(extensionPath, 'scripts', 'weave', 'run_weave.jl')]);
+    }
+    weaveChildProcess = weaveNextChildProcess;
 
-            if (code==0) {
-                weaveOutputChannel.hide();
+    weaveChildProcess.stdin.write(source_filename + '\n');
+    weaveChildProcess.stdin.write(output_filename + '\n');
+    if (selected_format===undefined) {
+        weaveChildProcess.stdin.write('PREVIEW\n');
+    }
+    else {
+        weaveChildProcess.stdin.write(selected_format + '\n');
+    }
 
+    weaveNextChildProcess = spawn(juliaExecutable, [path.join(extensionPath, 'scripts', 'weave', 'run_weave.jl')]);
+
+    weaveChildProcess.stdout.on('data', function (data) {
+        weaveOutputChannel.append(String(data));
+    });
+    weaveChildProcess.stderr.on('data', function (data) {
+        weaveOutputChannel.append(String(data));
+    });
+    weaveChildProcess.on('close', async function (code) {
+        weaveChildProcess = null;
+
+        if (code == 0) {
+            weaveOutputChannel.hide();
+
+            if (selected_format===undefined) {
                 lastWeaveContent = await fs.readFile(output_filename, "utf-8")
 
                 let uri = vscode.Uri.parse('jlweave://nothing.html');
                 weaveProvider.update();
-                let success = await vscode.commands.executeCommand('vscode.previewHtml', uri, vscode.ViewColumn.One, "julia weave output");
+                let success = await vscode.commands.executeCommand('vscode.previewHtml', uri, column, "julia Weave Preview");
             }
-            else {
-                vscode.window.showErrorMessage("Error during weaving.");
-            }
-            
-        });
+        }
+        else {
+            vscode.window.showErrorMessage("Error during weaving.");
+        }
+
+    });
+}
+
+async function weave_open_preview_Command() {
+    if (vscode.window.activeTextEditor === undefined) {
+        vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
     }
-    
+    else if (vscode.window.activeTextEditor.document.languageId!='juliamarkdown') {
+        vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.');
+    }
+    else {
+        weave_core(vscode.ViewColumn.One);
+    }
+}
+
+async function weave_open_preview_side_Command() {
+    if (vscode.window.activeTextEditor === undefined) {
+        vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
+    }
+    else if (vscode.window.activeTextEditor.document.languageId!='juliamarkdown') {
+        vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.');
+    }
+    else {
+        weave_core(vscode.ViewColumn.Two);
+    }
+}
+
+async function weave_save_Command() {
+    if (vscode.window.activeTextEditor === undefined) {
+        vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
+    }
+    else if (vscode.window.activeTextEditor.document.languageId!='juliamarkdown') {
+        vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.');
+    }
+    else if (vscode.window.activeTextEditor.document.isDirty || vscode.window.activeTextEditor.document.isUntitled) {
+        vscode.window.showErrorMessage('Please save the file before weaving.');
+    }
+    else {
+        let formats = ['github: Github markdown',
+            'md2tex: Julia markdown to latex',
+            'pandoc2html: Markdown to HTML (requires Pandoc)',
+            'pandoc: Pandoc markdown',
+            'pandoc2pdf: Pandoc markdown',
+            'tex: Latex with custom code environments',
+            'texminted: Latex using minted for highlighting',
+            'md2html: Julia markdown to html',
+            'rst: reStructuredText and Sphinx',
+            'multimarkdown: MultiMarkdown',
+            'md2pdf: Julia markdown to latex',
+            'asciidoc: AsciiDoc'];
+        let result_format = await vscode.window.showQuickPick(formats, {placeHolder: 'Select output format'});
+        if (result_format!=undefined) {
+            let index = result_format.indexOf(':');
+            let selected_format = result_format.substring(0,index);
+            weave_core(vscode.ViewColumn.One, selected_format);
+        }
+    }
 }
 
 async function runTests() {
