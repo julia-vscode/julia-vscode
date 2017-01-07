@@ -77,7 +77,7 @@
         "keybindings": [{
             "command": "language-julia.executeJuliaCodeInREPL",
             "key": "ctrl+Enter",
-            "when": "editorTextFocus"
+            "when": "editorTextFocus && editorLangId == julia"
         }],
         "configuration": {
             "type": "object",
