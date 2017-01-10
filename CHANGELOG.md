@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+* Scope Ctrl+Enter to julia files
+* Fix whitespace bug on Windows
+
 ## 0.5.0
 
 * Migrate to a language server protocol design

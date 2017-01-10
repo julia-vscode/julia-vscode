@@ -152,7 +152,7 @@ function loadConfiguration() {
 
 async function getPkgPath() {
     if(juliaPackagePath==null) {
-        var res = await exec(`${juliaExecutable} -e "println(Pkg.dir())"`);
+        var res = await exec(`"${juliaExecutable}" -e "println(Pkg.dir())"`);
         juliaPackagePath = res.stdout.trim();
     }
     return juliaPackagePath;
