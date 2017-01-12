@@ -7,4 +7,4 @@ test/**
 src/**
 **/*.map
 tsconfig.json
-scripts/languageserver/julia_pkgdir/lib/**
+scripts/languageserver/julia_pkgdir/**
