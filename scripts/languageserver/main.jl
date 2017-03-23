@@ -15,10 +15,8 @@ elseif Base.ARGS[2]=="--debug=yes"
     const global ls_debug_mode = true
 end
 
-if !ls_debug_mode
-    push!(LOAD_PATH, joinpath(dirname(@__FILE__),"packages"))
-    push!(LOAD_PATH, Base.ARGS[1])
-end
+push!(LOAD_PATH, joinpath(dirname(@__FILE__),"packages"))
+push!(LOAD_PATH, Base.ARGS[1])
 
 using Compat
 using JSON
