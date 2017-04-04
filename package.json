@@ -109,11 +109,18 @@
                 "title": "julia Weave: Save to file..."
             }
         ],
-        "keybindings": [{
+        "keybindings": [
+            {
             "command": "language-julia.executeJuliaCodeInREPL",
             "key": "ctrl+Enter",
             "when": "editorTextFocus && editorLangId == julia"
-        }],
+            },
+            {
+            "command": "language-julia.executeJuliaCodeInREPL",
+            "key": "ctrl+Enter",
+            "when": "editorTextFocus && editorLangId == juliamarkdown"
+            }
+        ],
         "configuration": {
             "type": "object",
             "title": "julia configuration",
