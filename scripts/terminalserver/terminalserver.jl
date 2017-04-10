@@ -1,5 +1,9 @@
 module _vscodeserver
 
+import Base: display, redisplay
+
+immutable InlineDisplay <: Display end
+
 pid = Base.ARGS[1]
 
 if is_windows()
@@ -10,38 +14,56 @@ else
     error("Unknown operating system.")
 end
 
-@async begin
-    # TODO Make sure the socket gets closed before this process terminates
-    server = listen(global_lock_socket_name)
-    while true
-        sock = accept(server)
-        @async while isopen(sock)
+conn = connect(global_lock_socket_name)
 
-            header = String[]
-            line = chomp(readline(sock))
-            while length(line)>0
-                push!(header,line)
-                line = chomp(readline(sock))
-            end
-            header_dict = Dict{String,String}()
-            for h in header
-                h_parts = split(h, ":")
-                header_dict[strip(h_parts[1])] = strip(h_parts[2])
-            end
+# @async begin
+#     # TODO Make sure the socket gets closed before this process terminates
+#     server = listen(global_lock_socket_name)
+#     while true
+#         sock = accept(server)
+#         @async while isopen(sock)
+
+#             header = String[]
+#             line = chomp(readline(sock))
+#             while length(line)>0
+#                 push!(header,line)
+#                 line = chomp(readline(sock))
+#             end
+#             header_dict = Dict{String,String}()
+#             for h in header
+#                 h_parts = split(h, ":")
+#                 header_dict[strip(h_parts[1])] = strip(h_parts[2])
+#             end
         
-            message_length = parse(Int, header_dict["Content-Length"])
-            message_command = header_dict["Command"]
+#             message_length = parse(Int, header_dict["Content-Length"])
+#             message_command = header_dict["Command"]
 
-            message_body = String(read(sock,message_length))
+#             message_body = String(read(sock,message_length))
 
-            if message_command == "run"
-                command_eval = parse(message_body)
-                eval(Main, command_eval)
-            else
-                error("Unknown command")
-            end                               
-        end
-    end
- end
+#             if message_command == "run"
+#                 command_eval = parse(message_body)
+#                 eval(Main, command_eval)
+#             else
+#                 error("Unknown command")
+#             end                               
+#         end
+#     end
+#  end
+
+println(conn,"YES< THIS IS COMING FROM THE CLIENT")
+
+function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
+    println("B")
+    println(conn, stringmime(MIME("image/png"), x))
+end
+
+displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
+
+function display(d::InlineDisplay, x)
+    println("A")
+    display(d, MIME("image/png"), x)
+end
+
+Base.Multimedia.pushdisplay(InlineDisplay())
 
 end

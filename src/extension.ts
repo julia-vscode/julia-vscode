@@ -83,6 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
     let lintpkg = vscode.commands.registerCommand('language-julia.lint-package', lintPackage);
     context.subscriptions.push(lintpkg);
     
+    startREPLconnectionServer();
 
     weaveProvider = new WeaveDocumentContentProvider();
     let disposable_weaveProvider = vscode.workspace.registerTextDocumentContentProvider('jlweave', weaveProvider);
@@ -421,6 +422,33 @@ async function cancelTests() {
     }
 }
 
+function startREPLconnectionServer() {
+    let PIPE_NAME = "vscode-language-julia-terminal-" + process.pid.toString();
+    let PIPE_PATH = "\\\\.\\pipe\\" + PIPE_NAME;
+
+    var server = net.createServer(function(stream) {
+        console.log('Server: on connection');
+
+        stream.on('data', function(c) {
+            console.log('Server: on data:', c.toString());
+        });
+
+        stream.on('end', function() {
+            console.log('Server: on end');
+            server.close();
+        });
+
+    });
+
+    server.on('close',function(){
+        console.log('Server: on close');
+    })
+
+    server.listen(PIPE_PATH,function(){
+        console.log('Server: on listening');
+    })
+}
+
 function startREPLCommand() {
     startREPL();
     REPLterminal.show();
@@ -429,8 +457,7 @@ function startREPLCommand() {
 function startREPL() {
     if (REPLterminal==null) {
         let args = path.join(extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
-        // REPLterminal = vscode.window.createTerminal("julia", juliaExecutable, ['-q', '-i', args, process.pid.toString()]);
-        REPLterminal = vscode.window.createTerminal("julia", juliaExecutable, ['-q', '-i']);
+        REPLterminal = vscode.window.createTerminal("julia", juliaExecutable, ['-q', '-i', args, process.pid.toString()]);
     }
 }
 
