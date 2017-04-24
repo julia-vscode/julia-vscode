@@ -2,21 +2,35 @@ if VERSION < v"0.5"
     error("VS Code julia language server only works with julia 0.5 or newer.")
 end
 
-if length(Base.ARGS)!=2
-    error("Invalid number of arguments passed to julia language server.")
+
+user_pkg_dir = haskey(ENV, "JULIA_PKGDIR") ? ENV["JULIA_PKGDIR"] : joinpath(homedir(),".julia")
+ls_debug_mode = true
+
+function handle_flags(arg)
+    if startswith(arg,"--")
+        if arg=="--debug=no"
+            global ls_debug_mode = false
+        elseif arg=="--debug=yes"
+            global ls_debug_mode = true
+        end
+        true
+    else
+        false
+    end
+end
+
+if length(Base.ARGS)>=1
+    if !handle_flags(Base.ARGS[1])
+        user_pkg_dir = Base.ARGS[1]
+    end
+    map(handle_flags, Base.ARGS[2:end])
 end
 
 conn = STDOUT
 (outRead, outWrite) = redirect_stdout()
 
-if Base.ARGS[2]=="--debug=no"
-    const global ls_debug_mode = false
-elseif Base.ARGS[2]=="--debug=yes"
-    const global ls_debug_mode = true
-end
-
 push!(LOAD_PATH, joinpath(dirname(@__FILE__),"packages"))
-push!(LOAD_PATH, Base.ARGS[1])
+push!(LOAD_PATH, user_pkg_dir)
 
 using Compat
 using JSON
@@ -24,5 +38,5 @@ using Lint
 using URIParser
 using LanguageServer
 
-server = LanguageServerInstance(STDIN,conn, ls_debug_mode, Base.ARGS[1])
+server = LanguageServerInstance(STDIN,conn, ls_debug_mode, user_pkg_dir)
 run(server)
