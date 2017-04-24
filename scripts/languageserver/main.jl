@@ -12,6 +12,8 @@ function handle_flags(arg)
             global ls_debug_mode = false
         elseif arg=="--debug=yes"
             global ls_debug_mode = true
+        else
+            error("Unexpected flag argument: $(arg)")
         end
         true
     else
@@ -23,7 +25,7 @@ if length(Base.ARGS)>=1
     if !handle_flags(Base.ARGS[1])
         user_pkg_dir = Base.ARGS[1]
     end
-    map(handle_flags, Base.ARGS[2:end])
+    all(handle_flags, Base.ARGS[2:end]) || error("NonFlag argument not in first position. Arguments: $(Base.ARGS)")
 end
 
 conn = STDOUT
