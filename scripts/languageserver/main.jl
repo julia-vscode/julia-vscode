@@ -1,4 +1,4 @@
-if VERSION < v"0.6.0-"
+if VERSION < v"0.6.0-rc1"
     error("VS Code julia language server only works with julia 0.5 or newer.")
 end
 
