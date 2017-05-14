@@ -76,6 +76,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     let weave_save = vscode.commands.registerCommand('language-julia.weave-save', weave_save_Command);
     context.subscriptions.push(weave_save);
+
+    let applytextedit = vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit);
+    context.subscriptions.push(applytextedit);
     
 
     weaveProvider = new WeaveDocumentContentProvider();
@@ -512,4 +515,12 @@ function executeJuliaCodeInREPL() {
 export function toggleLinter() {
     let cval = vscode.workspace.getConfiguration('julia').get('runlinter', false)
     vscode.workspace.getConfiguration('julia').update('runlinter', !cval, true)
+}
+
+export function applyTextEdit(we) {
+    for (let edit of we.documentChanges[0].edits) {
+        let wse = new vscode.WorkspaceEdit()
+        wse.replace(we.documentChanges[0].textDocument.uri, new vscode.Range(edit.range.start.line, edit.range.start.character, edit.range.end.line, edit.range.end.character), edit.newText)
+        vscode.workspace.applyEdit(wse)
+    }
 }
