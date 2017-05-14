@@ -20,3 +20,6 @@
 [submodule "scripts/languageserver/packages/URIParser"]
 	path = scripts/languageserver/packages/URIParser
 	url = https://github.com/JuliaWeb/URIParser.jl.git
+[submodule "scripts/languageserver/packages/CSTParser"]
+	path = scripts/languageserver/packages/CSTParser
+	url = https://github.com/ZacLN/CSTParser.jl.git
