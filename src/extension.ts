@@ -79,6 +79,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     let applytextedit = vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit);
     context.subscriptions.push(applytextedit);
+
+    let lintpkg = vscode.commands.registerCommand('language-julia.lint-package', lintPackage);
+    context.subscriptions.push(lintpkg);
     
 
     weaveProvider = new WeaveDocumentContentProvider();
@@ -523,4 +526,8 @@ export function applyTextEdit(we) {
         wse.replace(we.documentChanges[0].textDocument.uri, new vscode.Range(edit.range.start.line, edit.range.start.character, edit.range.end.line, edit.range.end.character), edit.newText)
         vscode.workspace.applyEdit(wse)
     }
+}
+
+export function lintPackage() {
+    languageClient.sendRequest("julia/lint-package")
 }
