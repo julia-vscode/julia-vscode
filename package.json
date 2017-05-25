@@ -30,7 +30,8 @@
         "onCommand:language-julia.weave-open-preview",
         "onCommand:language-julia.weave-open-preview-side",
         "onCommand:language-julia.weave-save",
-        "onLanguage:julia"
+        "onLanguage:julia",
+        "onLanguage:juliamarkdown"
     ],
     "main": "./out/src/extension",
     "contributes": {

@@ -24,5 +24,5 @@ using Lint
 using URIParser
 using LanguageServer
 
-server = LanguageServerInstance(STDIN, conn, ls_debug_mode, Base.ARGS[1])
+server = LanguageServerInstance(STDIN, conn, true, Base.ARGS[1])
 run(server)
