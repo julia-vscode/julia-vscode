@@ -20,7 +20,6 @@ push!(LOAD_PATH, Base.ARGS[1])
 
 using Compat
 using JSON
-using Lint
 using URIParser
 using LanguageServer
 
