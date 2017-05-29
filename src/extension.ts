@@ -189,7 +189,7 @@ async function startLanguageServer() {
 
     let clientOptions: LanguageClientOptions = {
         // Register the server for plain text documents
-        documentSelector: ['julia'],
+        documentSelector: ['julia', 'juliamarkdown'],
         synchronize: {
             configurationSection: 'julia.runlinter',
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
