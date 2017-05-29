@@ -107,6 +107,10 @@
             {
                 "command": "language-julia.weave-save",
                 "title": "julia Weave: Save to file..."
+            },
+            {
+                "command": "language-julia.lint-package",
+                "title": "julia: Lint Package"
             }
         ],
         "keybindings": [
