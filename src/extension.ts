@@ -529,5 +529,15 @@ export function applyTextEdit(we) {
 }
 
 export function lintPackage() {
-    languageClient.sendRequest("julia/lint-package")
+    try {
+        languageClient.sendRequest("julia/lint-package");
+    }
+    catch(ex) {
+        if(ex.message=="Language client is not ready yet") {
+            vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
+        }
+        else {
+            throw ex;
+        }
+    }
 }
