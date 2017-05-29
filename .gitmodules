@@ -7,16 +7,9 @@
 [submodule "scripts/languageserver/packages/JSON"]
 	path = scripts/languageserver/packages/JSON
 	url = https://github.com/JuliaIO/JSON.jl.git
-[submodule "scripts/languageserver/packages/JuliaParser"]
-	path = scripts/languageserver/packages/JuliaParser
-	url = https://github.com/ZacLN/JuliaParser.jl.git
-	branch = posinfo
 [submodule "scripts/languageserver/packages/LanguageServer"]
 	path = scripts/languageserver/packages/LanguageServer
 	url = git@github.com:JuliaEditorSupport/LanguageServer.jl.git
-[submodule "scripts/languageserver/packages/Lint"]
-	path = scripts/languageserver/packages/Lint
-	url = https://github.com/tonyhffong/Lint.jl.git
 [submodule "scripts/languageserver/packages/URIParser"]
 	path = scripts/languageserver/packages/URIParser
 	url = https://github.com/JuliaWeb/URIParser.jl.git
