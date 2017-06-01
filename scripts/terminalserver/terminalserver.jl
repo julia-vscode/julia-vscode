@@ -53,17 +53,24 @@ conn = connect(global_lock_socket_name)
 println(conn,"YES< THIS IS COMING FROM THE CLIENT")
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
-    println("B")
     println(conn, stringmime(MIME("image/png"), x))
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
 
-function display(d::InlineDisplay, x)
-    println("A")
-    display(d, MIME("image/png"), x)
+function display(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
+    println(conn, stringmime(MIME("image/svg+xml"), x))
 end
 
-Base.Multimedia.pushdisplay(InlineDisplay())
+displayable(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
+
+function display(d::InlineDisplay, x)
+    display(d, MIME("image/svg+xml"), x)
+end
+
+@schedule begin
+    sleep(2)
+    Base.Multimedia.pushdisplay(InlineDisplay())
+end
 
 end
