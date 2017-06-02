@@ -118,8 +118,39 @@
             {
                 "command": "language-julia.show-plotpane",
                 "title": "julia: Show plot pane"
+            },
+            {
+                "command": "language-julia.plotpane-next",
+                "title": "julia: Show next plot"
+            },
+            {
+                "command": "language-julia.plotpane-previous",
+                "title": "julia: Show previous plot"
+            },
+            {
+                "command": "language-julia.plotpane-delete",
+                "title": "julia: Delete plot"
             }
         ],
+        "menus": {
+            "editor/title": [
+                {
+                    "when": "resourceScheme == jlplotpane",
+                    "command": "language-julia.plotpane-delete",
+                    "group": "navigation@3"
+                },
+                {
+                    "when": "resourceScheme == jlplotpane",
+                    "command": "language-julia.plotpane-next",
+                    "group": "navigation@2"
+                },
+                {
+                    "when": "resourceScheme == jlplotpane",
+                    "command": "language-julia.plotpane-previous",
+                    "group": "navigation@1"
+                }
+            ]
+        },
         "keybindings": [
             {
             "command": "language-julia.executeJuliaCodeInREPL",

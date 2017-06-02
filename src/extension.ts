@@ -25,7 +25,8 @@ let lastWeaveContent: string = null;
 let weaveOutputChannel: vscode.OutputChannel = null;
 let weaveChildProcess: ChildProcess = null;
 let weaveNextChildProcess: ChildProcess = null;
-let plotPaneContent: string = '<html></html>';
+let plots: Array<string> = new Array<string>();
+let currentPlotIndex: number = 0;
 
 export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -50,7 +51,12 @@ export class PlotPaneDocumentContentProvider implements vscode.TextDocumentConte
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
 
     public provideTextDocumentContent(uri: vscode.Uri): string {
-        return plotPaneContent;
+        if(plots.length==0) {
+            return '<html></html>';
+        }
+        else {
+            return plots[currentPlotIndex];
+        }
     }
 
     get onDidChange(): vscode.Event<vscode.Uri> {
@@ -105,6 +111,15 @@ export function activate(context: vscode.ExtensionContext) {
 
     let showplotpane = vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane);
     context.subscriptions.push(showplotpane);
+
+    let plotpaneprev = vscode.commands.registerCommand('language-julia.plotpane-previous', plotPanePrev);
+    context.subscriptions.push(plotpaneprev);
+
+    let plotpanenext = vscode.commands.registerCommand('language-julia.plotpane-next', plotPaneNext);
+    context.subscriptions.push(plotpanenext);
+
+    let plotpanedel = vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel);
+    context.subscriptions.push(plotpanedel);    
 
     startREPLconnectionServer();
 
@@ -476,10 +491,11 @@ function startREPLconnectionServer() {
                     }
 
                     if(mime_type=='image/svg+xml') {
-                        plotPaneContent = actual_image;
+                        currentPlotIndex = plots.push(actual_image)-1;
                     }
                     else if(mime_type=='image/png') {
-                        plotPaneContent = '<html><img src="data:image/png;base64,' + actual_image + '" /></html>';
+                        let plotPaneContent = '<html><img src="data:image/png;base64,' + actual_image + '" /></html>';
+                        currentPlotIndex = plots.push(plotPaneContent)-1;
                     }
                     else {
                         throw new Error();
@@ -626,4 +642,28 @@ export function lintPackage() {
 function showPlotPane() {
     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
     vscode.commands.executeCommand('vscode.previewHtml', uri, vscode.ViewColumn.One, "julia Plot Pane");
+}
+
+function plotPanePrev() {
+    if(currentPlotIndex>0) {
+        currentPlotIndex = currentPlotIndex - 1;
+        plotPaneProvider.update();
+    }
+}
+
+function plotPaneNext() {
+    if(currentPlotIndex<plots.length-1) {
+        currentPlotIndex = currentPlotIndex + 1;
+        plotPaneProvider.update();
+    }
+}
+
+function plotPaneDel() {
+    if(plots.length>0) {
+        plots.splice(currentPlotIndex,1);
+        if(currentPlotIndex>plots.length-1) {
+            currentPlotIndex = plots.length - 1;
+        }
+        plotPaneProvider.update();
+    }
 }
