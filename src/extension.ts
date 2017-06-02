@@ -465,8 +465,7 @@ async function cancelTests() {
 }
 
 function startREPLconnectionServer() {
-    let PIPE_NAME = "vscode-language-julia-terminal-" + process.pid.toString();
-    let PIPE_PATH = "\\\\.\\pipe\\" + PIPE_NAME;
+    let PIPE_PATH = generatePipeName(process.pid.toString());
 
     var server = net.createServer(function(stream) {
         let accumulatingBuffer = new Buffer(0);
