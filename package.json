@@ -121,15 +121,35 @@
             },
             {
                 "command": "language-julia.plotpane-next",
-                "title": "julia: Show next plot"
+                "title": "julia: Show next plot",
+                "icon": {
+                    "light": "./media/next.svg",
+                    "dark": "./media/next.svg"
+                }
             },
             {
                 "command": "language-julia.plotpane-previous",
-                "title": "julia: Show previous plot"
+                "title": "julia: Show previous plot",
+                "icon": {
+                    "light": "./media/previous.svg",
+                    "dark": "./media/previous.svg"
+                }
+            },
+            {
+                "command": "language-julia.plotpane-first",
+                "title": "julia: Show first plot"
+            },
+            {
+                "command": "language-julia.plotpane-last",
+                "title": "julia: Show last plot"
             },
             {
                 "command": "language-julia.plotpane-delete",
-                "title": "julia: Delete plot"
+                "title": "julia: Delete plot",
+                "icon": {
+                    "light": "./media/delete.svg",
+                    "dark": "./media/delete.svg"
+                }
             }
         ],
         "menus": {
@@ -137,17 +157,17 @@
                 {
                     "when": "resourceScheme == jlplotpane",
                     "command": "language-julia.plotpane-delete",
-                    "group": "navigation@3"
+                    "group": "navigation@0"
                 },
                 {
                     "when": "resourceScheme == jlplotpane",
                     "command": "language-julia.plotpane-next",
-                    "group": "navigation@2"
+                    "group": "navigation@-1"
                 },
                 {
                     "when": "resourceScheme == jlplotpane",
                     "command": "language-julia.plotpane-previous",
-                    "group": "navigation@1"
+                    "group": "navigation@-2"
                 }
             ]
         },
@@ -161,7 +181,52 @@
             "command": "language-julia.executeJuliaCodeInREPL",
             "key": "ctrl+Enter",
             "when": "editorTextFocus && editorLangId == juliamarkdown"
-            }
+            },
+            {
+            "command": "language-julia.plotpane-previous",
+            "key": "left",
+            "when": "resourceScheme == jlplotpane"
+            },
+            {
+            "command": "language-julia.plotpane-previous",
+            "key": "up",
+            "when": "resourceScheme == jlplotpane"
+            },
+            {
+            "command": "language-julia.plotpane-previous",
+            "key": "pageup",
+            "when": "resourceScheme == jlplotpane"
+            },
+            {
+            "command": "language-julia.plotpane-next",
+            "key": "right",
+            "when": "resourceScheme == jlplotpane"
+            },
+            {
+            "command": "language-julia.plotpane-next",
+            "key": "down",
+            "when": "resourceScheme == jlplotpane"
+            },
+            {
+            "command": "language-julia.plotpane-next",
+            "key": "pagedown",
+            "when": "resourceScheme == jlplotpane"
+            },
+            {
+            "command": "language-julia.plotpane-first",
+            "key": "home",
+            "when": "resourceScheme == jlplotpane"
+            },
+            {
+            "command": "language-julia.plotpane-last",
+            "key": "end",
+            "when": "resourceScheme == jlplotpane"
+            },
+            {
+            "command": "language-julia.plotpane-delete",
+            "key": "delete",
+            "when": "resourceScheme == jlplotpane"
+            }            
         ],
         "configuration": {
             "type": "object",

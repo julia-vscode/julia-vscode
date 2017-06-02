@@ -118,6 +118,12 @@ export function activate(context: vscode.ExtensionContext) {
     let plotpanenext = vscode.commands.registerCommand('language-julia.plotpane-next', plotPaneNext);
     context.subscriptions.push(plotpanenext);
 
+    let plotpanefirst = vscode.commands.registerCommand('language-julia.plotpane-first', plotPaneFirst);
+    context.subscriptions.push(plotpanefirst);
+
+    let plotpanelast = vscode.commands.registerCommand('language-julia.plotpane-last', plotPaneLast);
+    context.subscriptions.push(plotpanelast);
+
     let plotpanedel = vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel);
     context.subscriptions.push(plotpanedel);    
 
@@ -653,6 +659,20 @@ function plotPanePrev() {
 function plotPaneNext() {
     if(currentPlotIndex<plots.length-1) {
         currentPlotIndex = currentPlotIndex + 1;
+        plotPaneProvider.update();
+    }
+}
+
+function plotPaneFirst() {
+    if(plots.length>0) {
+        currentPlotIndex = 0;
+        plotPaneProvider.update();
+    }
+}
+
+function plotPaneLast() {
+    if(plots.length>0) {
+        currentPlotIndex = plots.length - 1;
         plotPaneProvider.update();
     }
 }
