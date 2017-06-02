@@ -124,7 +124,7 @@
                 "title": "julia: Show next plot",
                 "icon": {
                     "light": "./media/next.svg",
-                    "dark": "./media/next.svg"
+                    "dark": "./media/next-inverse.svg"
                 }
             },
             {
@@ -132,7 +132,7 @@
                 "title": "julia: Show previous plot",
                 "icon": {
                     "light": "./media/previous.svg",
-                    "dark": "./media/previous.svg"
+                    "dark": "./media/previous-inverse.svg"
                 }
             },
             {
@@ -148,7 +148,7 @@
                 "title": "julia: Delete plot",
                 "icon": {
                     "light": "./media/delete.svg",
-                    "dark": "./media/delete.svg"
+                    "dark": "./media/delete-inverse.svg"
                 }
             }
         ],
