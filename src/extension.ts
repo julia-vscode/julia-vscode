@@ -475,7 +475,16 @@ function startREPLconnectionServer() {
                         accumulatingBuffer = new Buffer(0);
                     }
 
-                    plotPaneContent = actual_image;
+                    if(mime_type=='image/svg+xml') {
+                        plotPaneContent = actual_image;
+                    }
+                    else if(mime_type=='image/png') {
+                        plotPaneContent = '<html><img src="data:image/png;base64,' + actual_image + '" /></html>';
+                    }
+                    else {
+                        throw new Error();
+                    }
+                    
 
                     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
                     plotPaneProvider.update();

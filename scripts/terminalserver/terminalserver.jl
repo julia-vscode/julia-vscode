@@ -33,7 +33,7 @@ end
 displayable(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("text/html")}, x)
-    payload = """<html><body>""" * stringmime(MIME("text/html"), x) * """</body></html>"""
+    payload = stringmime(MIME("text/html"), x)
     print(conn, "text/html", ":", length(payload), ";")
     print(conn, payload)
 end
