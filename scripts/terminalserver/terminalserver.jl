@@ -16,61 +16,43 @@ end
 
 conn = connect(global_lock_socket_name)
 
-# @async begin
-#     # TODO Make sure the socket gets closed before this process terminates
-#     server = listen(global_lock_socket_name)
-#     while true
-#         sock = accept(server)
-#         @async while isopen(sock)
-
-#             header = String[]
-#             line = chomp(readline(sock))
-#             while length(line)>0
-#                 push!(header,line)
-#                 line = chomp(readline(sock))
-#             end
-#             header_dict = Dict{String,String}()
-#             for h in header
-#                 h_parts = split(h, ":")
-#                 header_dict[strip(h_parts[1])] = strip(h_parts[2])
-#             end
-        
-#             message_length = parse(Int, header_dict["Content-Length"])
-#             message_command = header_dict["Command"]
-
-#             message_body = String(read(sock,message_length))
-
-#             if message_command == "run"
-#                 command_eval = parse(message_body)
-#                 eval(Main, command_eval)
-#             else
-#                 error("Unknown command")
-#             end                               
-#         end
-#     end
-#  end
-
-println(conn,"YES< THIS IS COMING FROM THE CLIENT")
-
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
-    println(conn, stringmime(MIME("image/png"), x))
+    payload = stringmime(MIME("image/png"), x)
+    print(conn, "image/png", ":", length(payload), ";")
+    print(conn, payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
-    println(conn, stringmime(MIME("image/svg+xml"), x))
+    payload = stringmime(MIME("image/svg+xml"), x)
+    print(conn, "image/svg+xml", ":", length(payload), ";")
+    print(conn, payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
 
-function display(d::InlineDisplay, x)
-    display(d, MIME("image/svg+xml"), x)
+function display(d::InlineDisplay, ::MIME{Symbol("text/html")}, x)
+    payload = """<html><body>""" * stringmime(MIME("text/html"), x) * """</body></html>"""
+    print(conn, "text/html", ":", length(payload), ";")
+    print(conn, payload)
 end
 
-@schedule begin
-    sleep(2)
-    Base.Multimedia.pushdisplay(InlineDisplay())
+displayable(d::InlineDisplay, ::MIME{Symbol("text/html")}) = true
+
+function display(d::InlineDisplay, x)
+    # if mimewritable("text/html", x)
+    #     display(d,"text/html", x)
+    if mimewritable("image/svg+xml", x)
+        display(d,"image/svg+xml", x)
+    elseif mimewritable("image/png", x)
+        display(d,"image/png", x)
+    else
+        throw(MethodError(display,(d,x)))
+    end
+    
 end
+
+atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
 
 end

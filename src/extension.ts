@@ -25,6 +25,7 @@ let lastWeaveContent: string = null;
 let weaveOutputChannel: vscode.OutputChannel = null;
 let weaveChildProcess: ChildProcess = null;
 let weaveNextChildProcess: ChildProcess = null;
+let plotPaneContent: string = '<html></html>';
 
 export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -44,6 +45,25 @@ export class WeaveDocumentContentProvider implements vscode.TextDocumentContentP
 }
 
 let weaveProvider: WeaveDocumentContentProvider = null;
+
+export class PlotPaneDocumentContentProvider implements vscode.TextDocumentContentProvider {
+    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+
+    public provideTextDocumentContent(uri: vscode.Uri): string {
+        return plotPaneContent;
+    }
+
+    get onDidChange(): vscode.Event<vscode.Uri> {
+        return this._onDidChange.event;
+    }
+
+    public update() {
+        
+        this._onDidChange.fire(vscode.Uri.parse('jlplotpane://nothing.html'));
+    }
+}
+
+let plotPaneProvider: PlotPaneDocumentContentProvider = null;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -82,12 +102,19 @@ export function activate(context: vscode.ExtensionContext) {
 
     let lintpkg = vscode.commands.registerCommand('language-julia.lint-package', lintPackage);
     context.subscriptions.push(lintpkg);
-    
+
+    let showplotpane = vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane);
+    context.subscriptions.push(showplotpane);
+
     startREPLconnectionServer();
 
     weaveProvider = new WeaveDocumentContentProvider();
     let disposable_weaveProvider = vscode.workspace.registerTextDocumentContentProvider('jlweave', weaveProvider);
     context.subscriptions.push(disposable_weaveProvider);
+
+    plotPaneProvider = new PlotPaneDocumentContentProvider();
+    let disposable_plotPaneProvider = vscode.workspace.registerTextDocumentContentProvider('jlplotpane', plotPaneProvider);
+    context.subscriptions.push(disposable_plotPaneProvider);
 
     let disposable_executeJuliaCodeInREPL = vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeJuliaCodeInREPL);
     context.subscriptions.push(disposable_executeJuliaCodeInREPL);
@@ -427,17 +454,35 @@ function startREPLconnectionServer() {
     let PIPE_PATH = "\\\\.\\pipe\\" + PIPE_NAME;
 
     var server = net.createServer(function(stream) {
-        console.log('Server: on connection');
+        let accumulatingBuffer = new Buffer(0);
 
         stream.on('data', function(c) {
-            console.log('Server: on data:', c.toString());
-        });
+            accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
+            let s = accumulatingBuffer.toString();
+            let index_of_sep_1 = s.indexOf(":");
+            let index_of_sep_2 = s.indexOf(";");
 
-        stream.on('end', function() {
-            console.log('Server: on end');
-            server.close();
-        });
+            if(index_of_sep_2>-1) {
+                let mime_type = s.substring(0,index_of_sep_1);
+                let msg_len_as_string = s.substring(index_of_sep_1+1,index_of_sep_2);
+                let msg_len = parseInt(msg_len_as_string);
+                if(accumulatingBuffer.length>=mime_type.length+msg_len_as_string.length+2+msg_len) {
+                    let actual_image = s.substring(index_of_sep_2+1);
+                    if(accumulatingBuffer.length > mime_type.length+msg_len_as_string.length+2+msg_len) {
+                        accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(mime_type.length+msg_len_as_string.length+2+msg_len + 1));
+                    }
+                    else {
+                        accumulatingBuffer = new Buffer(0);
+                    }
 
+                    plotPaneContent = actual_image;
+
+                    let uri = vscode.Uri.parse('jlplotpane://nothing.html');
+                    plotPaneProvider.update();
+                    vscode.commands.executeCommand('vscode.previewHtml', uri, vscode.ViewColumn.One, "julia Plot Pane");
+                }
+            }            
+        });
     });
 
     server.on('close',function(){
@@ -567,4 +612,9 @@ export function lintPackage() {
             throw ex;
         }
     }
+}
+
+function showPlotPane() {
+    let uri = vscode.Uri.parse('jlplotpane://nothing.html');
+    vscode.commands.executeCommand('vscode.previewHtml', uri, vscode.ViewColumn.One, "julia Plot Pane");
 }
