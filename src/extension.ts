@@ -509,7 +509,7 @@ function startREPLconnectionServer() {
 
                     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
                     plotPaneProvider.update();
-                    vscode.commands.executeCommand('vscode.previewHtml', uri, vscode.ViewColumn.One, "julia Plot Pane");
+                    vscode.commands.executeCommand('vscode.previewHtml', uri, undefined, "julia Plot Pane");
                 }
             }            
         });
@@ -646,7 +646,7 @@ export function lintPackage() {
 
 function showPlotPane() {
     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
-    vscode.commands.executeCommand('vscode.previewHtml', uri, vscode.ViewColumn.One, "julia Plot Pane");
+    vscode.commands.executeCommand('vscode.previewHtml', uri, undefined, "julia Plot Pane");
 }
 
 function plotPanePrev() {
