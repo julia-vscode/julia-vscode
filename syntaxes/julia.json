@@ -166,7 +166,7 @@
         "keyword": {
             "patterns": [
                 {
-                    "match": "\\b(?<![:_])(?:function|@generated|type|immutable|macro|quote|abstract|bitstype|typealias|module|baremodule|new)\\b",
+                    "match": "\\b(?<![:_])(?:function|@generated|type|immutable|macro|quote|abstract|bitstype|typealias|module|baremodule|new|struct|mutable struct|primitive type|abstract type|where)\\b",
                     "name": "keyword.other.julia"
                 },
                 {
