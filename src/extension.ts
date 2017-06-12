@@ -447,7 +447,7 @@ async function runTests() {
         }
 
         testStatusBarItem.show();
-        testChildProcess = spawn(juliaExecutable, ['-e', 'Pkg.Entry.test(AbstractString[Base.ARGS[1]])', vscode.workspace.rootPath], { cwd: vscode.workspace.rootPath });
+        testChildProcess = spawn(juliaExecutable, ['-e', 'Pkg.test(Base.ARGS[1])', vscode.workspace.rootPath]);
         testChildProcess.stdout.on('data', function (data) {
             testOutputChannel.append(String(data));
         });
