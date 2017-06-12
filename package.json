@@ -169,6 +169,28 @@
                     "command": "language-julia.plotpane-previous",
                     "group": "navigation@-2"
                 }
+            ],
+            "commandPalette": [
+                {
+                    "when": "false",
+                    "command": "language-julia.plotpane-delete"                    
+                },
+                {
+                    "when": "false",
+                    "command": "language-julia.plotpane-next"                    
+                },
+                {
+                    "when": "false",
+                    "command": "language-julia.plotpane-first"                    
+                },
+                {
+                    "when": "false",
+                    "command": "language-julia.plotpane-last"                    
+                },
+                {
+                    "when": "false",
+                    "command": "language-julia.plotpane-previous"                    
+                }
             ]
         },
         "keybindings": [
