@@ -1,7 +1,7 @@
 {
     "name": "language-julia",
-    "displayName": "julia",
-    "description": "julia language support",
+    "displayName": "Julia",
+    "description": "Julia Language Support",
     "version": "0.6.0-beta",
     "publisher": "julialang",
     "engines": {
@@ -41,8 +41,8 @@
             {
                 "id": "julia",
                 "aliases": [
-                    "julia",
-                    "Julia"
+                    "Julia",
+                    "julia"
                 ],
                 "extensions": [
                     ".jl"
@@ -52,7 +52,7 @@
             {
                 "id": "juliamarkdown",
                 "aliases": [
-                    "julia Markdown",
+                    "Julia Markdown",
                     "juliamarkdown"
                 ],
                 "extensions": [
@@ -81,47 +81,47 @@
         "commands": [
             {
                 "command": "language-julia.openPackageDirectory",
-                "title": "julia: Open Package Directory in New Window"
+                "title": "Julia: Open Package Directory in New Window"
             },
             {
                 "command": "language-julia.startREPL",
-                "title": "julia: Start REPL"
+                "title": "Julia: Start REPL"
             },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
-                "title": "julia: Execute Code"
+                "title": "Julia: Execute Code"
             },
             {
                 "command": "language-julia.runTests",
-                "title": "julia: Run tests"
+                "title": "Julia: Run tests"
             },
             {
                 "command": "language-julia.toggleLinter",
-                "title": "julia: Toggle Linter"
+                "title": "Julia: Toggle Linter"
             },
             {
                 "command": "language-julia.weave-open-preview",
-                "title": "julia Weave: Open Preview"
+                "title": "Julia Weave: Open Preview"
             },
             {
                 "command": "language-julia.weave-open-preview-side",
-                "title": "julia Weave: Open Preview to the Side"
+                "title": "Julia Weave: Open Preview to the Side"
             },
             {
                 "command": "language-julia.weave-save",
-                "title": "julia Weave: Save to file..."
+                "title": "Julia Weave: Save to file..."
             },
             {
                 "command": "language-julia.lint-package",
-                "title": "julia: Lint Package"
+                "title": "Julia: Lint Package"
             },
             {
                 "command": "language-julia.show-plotpane",
-                "title": "julia: Show plot pane"
+                "title": "Julia: Show plot pane"
             },
             {
                 "command": "language-julia.plotpane-next",
-                "title": "julia: Show next plot",
+                "title": "Julia: Show next plot",
                 "icon": {
                     "light": "./media/next.svg",
                     "dark": "./media/next-inverse.svg"
@@ -129,7 +129,7 @@
             },
             {
                 "command": "language-julia.plotpane-previous",
-                "title": "julia: Show previous plot",
+                "title": "Julia: Show previous plot",
                 "icon": {
                     "light": "./media/previous.svg",
                     "dark": "./media/previous-inverse.svg"
@@ -137,15 +137,15 @@
             },
             {
                 "command": "language-julia.plotpane-first",
-                "title": "julia: Show first plot"
+                "title": "Julia: Show first plot"
             },
             {
                 "command": "language-julia.plotpane-last",
-                "title": "julia: Show last plot"
+                "title": "Julia: Show last plot"
             },
             {
                 "command": "language-julia.plotpane-delete",
-                "title": "julia: Delete plot",
+                "title": "Julia: Delete plot",
                 "icon": {
                     "light": "./media/delete.svg",
                     "dark": "./media/delete-inverse.svg"
