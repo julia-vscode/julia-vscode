@@ -6,9 +6,17 @@ This [VS Code](https://code.visualstudio.com) extension provides support for the
 
 ## Getting started
 
-Once the extension is installed it needs to find the julia binary on your system. There are two options: if your julia binary is on the path and you have not configured something else, the extension will use that version of julia. Alternatively, you can set the ``julia.executablePath`` configuration setting to point to a julia binary, in which case the extension will always use that version of julia. To edit your configuration settings, execute the ``Preferences: Open User Settings`` command, and then make sure your user settings include the ``julia.executablePath`` setting. The format of the string should follow your platform specific conventions, and be aware that the backlash ``\`` is the escape character in JSON, so you need to use ``\\`` as the path separator character on Windows.
+Once the extension is installed it needs to find the julia binary on your system. There are two options: if your julia binary is on the path and you have not configured something else, the extension will use that version of julia. Alternatively, you can set the ``julia.executablePath`` configuration setting to point to a julia binary, in which case the extension will always use that version of julia. To edit your configuration settings, execute the ``Preferences: Open User Settings`` command, and then make sure your user settings include the ``julia.executablePath`` setting.
 
-### Note for MacOS Users
+### Windows
+
+Though Windows uses backslashes for paths, provide the path to the Julia executable using forward slashes, such as:
+```
+"julia.executablePath": "C:/Program Files/Julia/Julia-0.5.2/bin/julia.exe"
+```
+
+### macOS
+
 When setting your ``julia.executablePath``, you need to make sure that you are linking to the correct executable within your ``julia-x.x.app`` folder. The correct executable is located at
 ```
 [Path to applications folder]/Julia-x.x.app/Contents/Resources/julia/bin/julia
