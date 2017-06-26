@@ -11,6 +11,7 @@ var exec = require('child-process-promise').exec;
 var tempfs = require('promised-temp').track();
 import { spawn, ChildProcess } from 'child_process';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
+import * as rpc from 'vscode-jsonrpc';
 
 let juliaExecutable = null;
 let juliaPackagePath: string = null;
@@ -27,6 +28,10 @@ let weaveChildProcess: ChildProcess = null;
 let weaveNextChildProcess: ChildProcess = null;
 let plots: Array<string> = new Array<string>();
 let currentPlotIndex: number = 0;
+let serverstatus: vscode.StatusBarItem = null;
+
+let serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
+let serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 
 export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -127,6 +132,12 @@ export function activate(context: vscode.ExtensionContext) {
     let plotpanedel = vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel);
     context.subscriptions.push(plotpanedel);    
 
+    serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+    
+    serverstatus.show()
+    serverstatus.text = 'Julia-LS';
+    context.subscriptions.push(serverstatus);
+
     startREPLconnectionServer();
 
     weaveProvider = new WeaveDocumentContentProvider();
@@ -166,6 +177,14 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     startLanguageServer();
+    
+    
+    languageClient.onNotification(serverBusyNotification, () => {
+        serverstatus.color.fontcolor('red')
+    })
+    languageClient.onNotification(serverReadyNotification, () => {
+        serverstatus.color.fontcolor('blue')
+    })
 }
 
 // this method is called when your extension is deactivated
