@@ -135,7 +135,7 @@ export function activate(context: vscode.ExtensionContext) {
     serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     
     serverstatus.show()
-    serverstatus.text = 'Julia-LS';
+    serverstatus.text = 'Julia: starting up';
     context.subscriptions.push(serverstatus);
 
     startREPLconnectionServer();
@@ -177,14 +177,8 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     startLanguageServer();
-    
-    
-    languageClient.onNotification(serverBusyNotification, () => {
-        serverstatus.color.fontcolor('red')
-    })
-    languageClient.onNotification(serverReadyNotification, () => {
-        serverstatus.color.fontcolor('blue')
-    })
+
+
 }
 
 // this method is called when your extension is deactivated
@@ -276,6 +270,19 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         languageClient = null;
     }
+
+    languageClient.onReady().then(()=>{
+        languageClient.onNotification(serverBusyNotification, setStatusBusy)
+        languageClient.onNotification(serverReadyNotification, setStatusReady)
+    })
+}
+
+function setStatusBusy() {
+    serverstatus.text = 'Julia: busy'
+}
+
+function setStatusReady() {
+    serverstatus.text = 'Julia: ready'
 }
 
 // This method implements the language-julia.openPackageDirectory command
