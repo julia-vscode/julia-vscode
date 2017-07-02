@@ -11,6 +11,7 @@ var exec = require('child-process-promise').exec;
 var tempfs = require('promised-temp').track();
 import { spawn, ChildProcess } from 'child_process';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
+import * as rpc from 'vscode-jsonrpc';
 
 let juliaExecutable = null;
 let juliaPackagePath: string = null;
@@ -27,6 +28,9 @@ let weaveChildProcess: ChildProcess = null;
 let weaveNextChildProcess: ChildProcess = null;
 let plots: Array<string> = new Array<string>();
 let currentPlotIndex: number = 0;
+let serverstatus: vscode.StatusBarItem = null;
+let serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
+let serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 
 export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -126,6 +130,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     let plotpanedel = vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel);
     context.subscriptions.push(plotpanedel);    
+    
+    serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);   
+    serverstatus.show()
+    serverstatus.text = 'Julia: starting up';
+    context.subscriptions.push(serverstatus);
 
     startREPLconnectionServer();
 
@@ -257,6 +266,18 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         languageClient = null;
     }
+    languageClient.onReady().then(()=>{
+        languageClient.onNotification(serverBusyNotification, setStatusBusy)
+        languageClient.onNotification(serverReadyNotification, setStatusReady)
+    })
+}
+
+function setStatusBusy() {
+    serverstatus.text = 'Julia: busy'
+}
+
+function setStatusReady() {
+    serverstatus.text = 'Julia: ready'
 }
 
 // This method implements the language-julia.openPackageDirectory command
