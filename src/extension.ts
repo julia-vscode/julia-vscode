@@ -31,6 +31,7 @@ let currentPlotIndex: number = 0;
 let serverstatus: vscode.StatusBarItem = null;
 let serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
 let serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
+let taskProvider: vscode.Disposable | undefined;
 
 export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -175,6 +176,16 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     startLanguageServer();
+
+    taskProvider = vscode.workspace.registerTaskProvider('julia', {
+        provideTasks: () => {
+            return getJuliaTasks();
+        },
+        resolveTask(_task: vscode.Task): vscode.Task | undefined {
+            return undefined;
+        }
+    });
+}
 }
 
 // this method is called when your extension is deactivated
@@ -706,4 +717,27 @@ function plotPaneDel() {
         }
         plotPaneProvider.update();
     }
+}
+
+async function getJuliaTasks(): Promise<vscode.Task[]> {
+	let workspaceRoot = vscode.workspace.rootPath;
+
+	let emptyTasks: vscode.Task[] = [];
+
+	if (!workspaceRoot) {
+		return emptyTasks;
+	}
+
+	let packageJson = path.join(workspaceRoot, 'test', 'runtests.jl');
+	if (!await fs.exists(packageJson)) {
+		return emptyTasks;
+	}
+
+	try {
+		const result: vscode.Task[] = [];
+        result.push(new vscode.Task({ type: 'julia', script: 'install' }, `Run tests`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.test(Base.ARGS[1])', vscode.workspace.rootPath]), []));
+		return Promise.resolve(result);
+	} catch (e) {
+		return Promise.resolve(emptyTasks);
+	}
 }

@@ -265,7 +265,12 @@
                     "description": "Option to automatically run the Linter on active files."
                 }
             }
-        }
+        },
+        "taskDefinitions": [
+            {
+                "type": "julia"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
