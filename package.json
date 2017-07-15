@@ -268,7 +268,15 @@
         },
         "taskDefinitions": [
             {
-                "type": "julia"
+                "type": "julia",
+                "required": [
+                    "command"
+                ],
+                "properties": {
+                    "command": {
+                        "type": "string"
+                    }
+                }
             }
         ]
     },

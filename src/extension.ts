@@ -728,14 +728,23 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
 		return emptyTasks;
 	}
 
-	let packageJson = path.join(workspaceRoot, 'test', 'runtests.jl');
-	if (!await fs.exists(packageJson)) {
-		return emptyTasks;
-	}
-
 	try {
-		const result: vscode.Task[] = [];
-        result.push(new vscode.Task({ type: 'julia', script: 'install' }, `Run tests`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.test(Base.ARGS[1])', vscode.workspace.rootPath]), []));
+        const result: vscode.Task[] = [];
+
+        if (await fs.exists(path.join(workspaceRoot, 'test', 'runtests.jl'))) {
+            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, `Run tests`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.test(Base.ARGS[1])', vscode.workspace.rootPath]), []);
+            testTask.group = vscode.TaskGroup.Test;
+            testTask.presentationOptions = { echo: false };
+            result.push(testTask);
+        }
+
+        if (await fs.exists(path.join(workspaceRoot, 'deps', 'build.jl'))) {
+            let buildTask = new vscode.Task({ type: 'julia', command: 'build' }, `Run build`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.build(Base.ARGS[1])', vscode.workspace.rootPath]), []);
+            buildTask.group = vscode.TaskGroup.Build;
+            buildTask.presentationOptions = { echo: false };
+            result.push(buildTask);
+        }
+
 		return Promise.resolve(result);
 	} catch (e) {
 		return Promise.resolve(emptyTasks);
