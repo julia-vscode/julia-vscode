@@ -32,6 +32,7 @@
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.lint-package",
         "onCommand:language-julia.show-plotpane",
+        "onCommand:language-julia.reload-modules",
         "onLanguage:julia",
         "onLanguage:juliamarkdown"
     ],
