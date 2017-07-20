@@ -113,6 +113,9 @@ export function activate(context: vscode.ExtensionContext) {
     let lintpkg = vscode.commands.registerCommand('language-julia.lint-package', lintPackage);
     context.subscriptions.push(lintpkg);
 
+    let reloadmodules = vscode.commands.registerCommand('language-julia.reload-modules', reloadModules);
+    context.subscriptions.push(lintpkg);
+
     let showplotpane = vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane);
     context.subscriptions.push(showplotpane);
 
@@ -664,6 +667,21 @@ export function lintPackage() {
         }
     }
 }
+
+export function reloadModules() {
+    try {
+        languageClient.sendRequest("julia/reload-modules");
+    }
+    catch(ex) {
+        if(ex.message=="Language client is not ready yet") {
+            vscode.window.showErrorMessage('Error: Language server is not yet running.');
+        }
+        else {
+            throw ex;
+        }
+    }
+}
+
 
 function showPlotPane() {
     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
