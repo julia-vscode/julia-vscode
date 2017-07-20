@@ -116,6 +116,10 @@
                 "title": "Julia: Lint Package"
             },
             {
+                "command": "language-julia.reload-modules",
+                "title": "Julia: Reload imported modules"
+            },
+            {
                 "command": "language-julia.show-plotpane",
                 "title": "Julia: Show plot pane"
             },
