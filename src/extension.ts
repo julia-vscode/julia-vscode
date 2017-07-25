@@ -675,14 +675,16 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
         const result: vscode.Task[] = [];
 
         if (await fs.exists(path.join(workspaceRoot, 'test', 'runtests.jl'))) {
-            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, `Run tests`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.test(Base.ARGS[1])', vscode.workspace.rootPath]), []);
+            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, `Run tests`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.test(Base.ARGS[1])', vscode.workspace.rootPath]), "");
             testTask.group = vscode.TaskGroup.Test;
             testTask.presentationOptions = { echo: false };
             result.push(testTask);
         }
 
         if (await fs.exists(path.join(workspaceRoot, 'deps', 'build.jl'))) {
-            let buildTask = new vscode.Task({ type: 'julia', command: 'build' }, `Run build`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.build(Base.ARGS[1])', vscode.workspace.rootPath]), []);
+            let splitted_path = vscode.workspace.rootPath.split(path.sep);
+            let package_name = splitted_path[splitted_path.length-1];
+            let buildTask = new vscode.Task({ type: 'julia', command: 'build'}, `Run build`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.build(Base.ARGS[1])', package_name]), "");
             buildTask.group = vscode.TaskGroup.Build;
             buildTask.presentationOptions = { echo: false };
             result.push(buildTask);
