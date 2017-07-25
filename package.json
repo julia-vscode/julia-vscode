@@ -32,7 +32,10 @@
         "onCommand:language-julia.lint-package",
         "onCommand:language-julia.show-plotpane",
         "onLanguage:julia",
-        "onLanguage:juliamarkdown"
+        "onLanguage:juliamarkdown",
+        "workspaceContains:deps/build.jl",
+        "workspaceContains:test/runtests.jl",
+        "workspaceContains:benchmark/benchmarks.jl"
     ],
     "main": "./out/src/extension",
     "contributes": {
