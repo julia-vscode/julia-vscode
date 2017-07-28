@@ -175,7 +175,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 }
-}
 
 // this method is called when your extension is deactivated
 export function deactivate() {
@@ -326,7 +325,7 @@ async function weave_core(column, selected_format:string=undefined) {
 
         source_filename = path.join(temporary_dirname, 'source-file.jmd')
 
-        await fs.writeFile(source_filename, vscode.window.activeTextEditor.document.getText(), 'utf-8');
+        await fs.writeFile(source_filename, vscode.window.activeTextEditor.document.getText(), 'utf8');
     
         output_filename = path.join(temporary_dirname, 'output-file.html');
     }
@@ -378,7 +377,7 @@ async function weave_core(column, selected_format:string=undefined) {
             weaveOutputChannel.hide();
 
             if (selected_format===undefined) {
-                lastWeaveContent = await fs.readFile(output_filename, "utf-8")
+                lastWeaveContent = await fs.readFile(output_filename, "utf8")
 
                 let uri = vscode.Uri.parse('jlweave://nothing.html');
                 weaveProvider.update();
