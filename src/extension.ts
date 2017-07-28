@@ -19,9 +19,6 @@ let languageClient: LanguageClient = null;
 let REPLterminal: vscode.Terminal = null;
 let extensionPath: string = null;
 let g_context: vscode.ExtensionContext = null;
-let testOutputChannel: vscode.OutputChannel = null;
-let testChildProcess: ChildProcess = null;
-let testStatusBarItem: vscode.StatusBarItem = null;
 let lastWeaveContent: string = null;
 let weaveOutputChannel: vscode.OutputChannel = null;
 let weaveChildProcess: ChildProcess = null;
@@ -31,6 +28,7 @@ let currentPlotIndex: number = 0;
 let serverstatus: vscode.StatusBarItem = null;
 let serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
 let serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
+let taskProvider: vscode.Disposable | undefined;
 
 export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -152,19 +150,8 @@ export function activate(context: vscode.ExtensionContext) {
     let disposable_executeJuliaCodeInREPL = vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeJuliaCodeInREPL);
     context.subscriptions.push(disposable_executeJuliaCodeInREPL);
 
-    let disposable_runTests = vscode.commands.registerCommand('language-julia.runTests', runTests);
-    context.subscriptions.push(disposable_runTests);
-
     let disposable_toggleLinter = vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter);
     context.subscriptions.push(disposable_toggleLinter);
-
-    testStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-    testStatusBarItem.tooltip = 'Interrupt test run.';
-    testStatusBarItem.text = '$(beaker) julia tests are running...';
-    testStatusBarItem.command = 'language-julia.cancelTests';
-
-    let disposable_cancelTests = vscode.commands.registerCommand('language-julia.cancelTests', cancelTests);
-    context.subscriptions.push(disposable_cancelTests);
 
     vscode.window.onDidCloseTerminal(terminal=>{
         if (terminal==REPLterminal) {
@@ -178,6 +165,16 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     startLanguageServer();
+
+    taskProvider = vscode.workspace.registerTaskProvider('julia', {
+        provideTasks: () => {
+            return getJuliaTasks();
+        },
+        resolveTask(_task: vscode.Task): vscode.Task | undefined {
+            return undefined;
+        }
+    });
+}
 }
 
 // this method is called when your extension is deactivated
@@ -451,49 +448,6 @@ async function weave_save_Command() {
     }
 }
 
-async function runTests() {
-    if (vscode.workspace.rootPath === undefined) {
-        vscode.window.showInformationMessage('julia tests can only be run if a folder is opened.');
-    }
-    else {
-        if (testOutputChannel == null) {
-            testOutputChannel = vscode.window.createOutputChannel("julia tests");
-        }
-        testOutputChannel.clear();
-        testOutputChannel.show(true);
-
-        if (testChildProcess != null) {
-            try {
-                await kill(testChildProcess);
-            }
-            catch (e) {
-            }
-        }
-
-        testStatusBarItem.show();
-        testChildProcess = spawn(juliaExecutable, ['-e', 'Pkg.test(Base.ARGS[1])', vscode.workspace.rootPath]);
-        testChildProcess.stdout.on('data', function (data) {
-            testOutputChannel.append(String(data));
-        });
-        testChildProcess.stderr.on('data', function (data) {
-            testOutputChannel.append(String(data));
-        });
-        testChildProcess.on('close', function (code) {
-            testChildProcess = null;
-            testStatusBarItem.hide();
-        });
-    }
-}
-
-async function cancelTests() {
-    if(testChildProcess==null) {
-        await vscode.window.showInformationMessage('No julia tests are running.')
-    }
-    else {
-        testChildProcess.kill();
-    }
-}
-
 function startREPLconnectionServer() {
     let PIPE_PATH = generatePipeName(process.pid.toString());
 
@@ -724,4 +678,46 @@ function plotPaneDel() {
         }
         plotPaneProvider.update();
     }
+}
+
+async function getJuliaTasks(): Promise<vscode.Task[]> {
+	let workspaceRoot = vscode.workspace.rootPath;
+
+	let emptyTasks: vscode.Task[] = [];
+
+	if (!workspaceRoot) {
+		return emptyTasks;
+	}
+
+	try {
+        const result: vscode.Task[] = [];
+
+        if (await fs.exists(path.join(workspaceRoot, 'test', 'runtests.jl'))) {
+            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, `Run tests`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.test(Base.ARGS[1])', vscode.workspace.rootPath]), "");
+            testTask.group = vscode.TaskGroup.Test;
+            testTask.presentationOptions = { echo: false };
+            result.push(testTask);
+        }
+
+        if (await fs.exists(path.join(workspaceRoot, 'deps', 'build.jl'))) {
+            let splitted_path = vscode.workspace.rootPath.split(path.sep);
+            let package_name = splitted_path[splitted_path.length-1];
+            let buildTask = new vscode.Task({ type: 'julia', command: 'build'}, `Run build`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'Pkg.build(Base.ARGS[1])', package_name]), "");
+            buildTask.group = vscode.TaskGroup.Build;
+            buildTask.presentationOptions = { echo: false };
+            result.push(buildTask);
+        }
+
+        if (await fs.exists(path.join(workspaceRoot, 'benchmark', 'benchmarks.jl'))) {
+            let splitted_path = vscode.workspace.rootPath.split(path.sep);
+            let package_name = splitted_path[splitted_path.length-1];
+            let benchmarkTask = new vscode.Task({ type: 'julia', command: 'benchmark'}, `Run benchmark`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], promptsave=false, promptoverwrite=false)', package_name]), "");
+            benchmarkTask.presentationOptions = { echo: false };
+            result.push(benchmarkTask);
+        }
+
+		return Promise.resolve(result);
+	} catch (e) {
+		return Promise.resolve(emptyTasks);
+	}
 }
