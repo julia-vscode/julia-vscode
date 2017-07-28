@@ -16,7 +16,7 @@
         "type": "git",
         "url": "https://github.com/JuliaEditorSupport/julia-vscode.git"
     },
-    "icon": "images/julia-logo.svg",
+    "icon": "images/julia-logo.png",
     "categories": [
         "Languages",
         "Snippets",
