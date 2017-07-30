@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.7.0
+* Use VS Code tasks for build, test and benchmark
+* Add reload modules command
+* Add rename command
+* Bug fixes
+
+## 0.6.2
+* Bug fixes
+* Language server status bar icon
+* julia 0.6 syntax highlighting
+
+## 0.6.1
+* Bug fixes
+
+## 0.6.0
+* Use LanguageServer.jl
+* Format Document command
+* Actionable diagnostics
+* Support for .jmd files
+* Plot pane
+* Run package tests command
+* Lint package command
+
 ## 0.5.1
 
 * Scope Ctrl+Enter to julia files
