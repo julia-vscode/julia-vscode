@@ -36,7 +36,8 @@
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
         "workspaceContains:test/runtests.jl",
-        "workspaceContains:benchmark/benchmarks.jl"
+        "workspaceContains:benchmark/benchmarks.jl",
+        "workspaceContains:docs/make.jl"
     ],
     "main": "./out/src/extension",
     "contributes": {

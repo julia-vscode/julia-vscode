@@ -715,6 +715,13 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
             result.push(benchmarkTask);
         }
 
+        if (await fs.exists(path.join(workspaceRoot, 'docs', 'make.jl'))) {
+            let buildTask = new vscode.Task({ type: 'julia', command: 'docbuild'}, `Build documentation`, 'julia', new vscode.ProcessExecution(juliaExecutable, ['--color=yes', '-e', 'include(Base.ARGS[1])', path.join(workspaceRoot, 'docs', 'make.jl')]), "");
+            buildTask.group = vscode.TaskGroup.Build;
+            buildTask.presentationOptions = { echo: false };
+            result.push(buildTask);
+        }
+
 		return Promise.resolve(result);
 	} catch (e) {
 		return Promise.resolve(emptyTasks);
