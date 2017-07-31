@@ -160,7 +160,7 @@ export function activate(context: vscode.ExtensionContext) {
     })
     vscode.languages.setLanguageConfiguration('julia', {
         indentationRules: {
-            increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(if|while|for|function|macro|immutable|struct|type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!.*\bend\b[^\]]*$).*$/,
+            increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*\b(if|while|for|function|macro|immutable|struct|type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!.*\bend\b[^\]]*$).*$/,
             decreaseIndentPattern: /^\s*(end|else|elseif|catch|finally)\b.*$/
         }
     });
