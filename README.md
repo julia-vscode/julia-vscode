@@ -13,6 +13,8 @@ When setting your ``julia.executablePath``, you need to make sure that you are l
 ```
 [Path to applications folder]/Julia-x.x.app/Contents/Resources/julia/bin/julia
 ```
+### Note on auto-indentation
+Starting from VS Code 1.14 auto indentation is available. Until it becomes the default behaviour, you need to enable this feature manually by setting ``editor.autoIndent: true`` in your User Settings (see also #37).
 
 ## Features
 
