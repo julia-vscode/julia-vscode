@@ -19,3 +19,6 @@
 [submodule "scripts/languageserver/packages/Tokenize"]
 	path = scripts/languageserver/packages/Tokenize
 	url = https://github.com/KristofferC/Tokenize.jl.git
+[submodule "scripts/languageserver/packages/DocumentFormat"]
+	path = scripts/languageserver/packages/DocumentFormat
+	url = https://github.com/ZacLN/DocumentFormat.jl
