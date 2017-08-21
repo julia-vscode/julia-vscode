@@ -130,7 +130,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(plotpanelast);
 
     let plotpanedel = vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel);
-    context.subscriptions.push(plotpanedel);    
+    context.subscriptions.push(plotpanedel);
+	
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', changeREPLModule));
     
     serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);   
     serverstatus.show()
@@ -726,4 +728,11 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
 	} catch (e) {
 		return Promise.resolve(emptyTasks);
 	}
+}
+
+function changeREPLModule() {
+    let sockpath = path.join(os.tmpdir(), 'vscode-language-julia-modchange-' + process.pid);
+
+    vscode.window.showInputBox({prompt: 'Change module to: '})
+    .then(val => net.connect(sockpath).write(val + "\n"));
 }
