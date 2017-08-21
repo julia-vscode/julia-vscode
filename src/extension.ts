@@ -450,7 +450,7 @@ async function weave_save_Command() {
 }
 
 function startREPLconnectionServer() {
-    let PIPE_PATH = generatePipeName(process.pid.toString());
+    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-terminal');
 
     var server = net.createServer(function(stream) {
         let accumulatingBuffer = new Buffer(0);
@@ -515,12 +515,12 @@ function startREPL() {
     }
 }
 
-function generatePipeName(pid: string) {
+function generatePipeName(pid: string, name:string) {
     if (process.platform === 'win32') {
-        return '\\\\.\\pipe\\vscode-language-julia-terminal-' + pid;
+        return '\\\\.\\pipe\\' + name + '-' + pid;
     }
     else {
-        return path.join(os.tmpdir(), 'vscode-language-julia-terminal-' + pid);
+        return path.join(os.tmpdir(), name + '-' + pid);
     }
  }
 
@@ -731,7 +731,7 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
 }
 
 function changeREPLModule() {
-    let sockpath = path.join(os.tmpdir(), 'vscode-language-julia-modchange-' + process.pid);
+    let sockpath = generatePipeName(process.pid.toString(), 'vscode-language-julia-modchange');
 
     vscode.window.showInputBox({prompt: 'Change module to: '})
     .then(val => net.connect(sockpath).write(val + "\n"));
