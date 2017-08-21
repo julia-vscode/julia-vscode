@@ -730,9 +730,12 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
 	}
 }
 
-function changeREPLModule() {
+async function changeREPLModule() {
     let sockpath = generatePipeName(process.pid.toString(), 'vscode-language-julia-modchange');
 
-    vscode.window.showInputBox({prompt: 'Change module to: '})
-    .then(val => net.connect(sockpath).write(val + "\n"));
+    let modname = await vscode.window.showInputBox({prompt: 'Change module to: '});
+
+    if(modname) {
+        net.connect(sockpath).write(modname + "\n");
+    }
 }
