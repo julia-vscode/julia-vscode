@@ -735,7 +735,11 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
 
 function sendMessageToREPL(msg: string) {
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
-    net.connect(sock).write(msg + "\n")
+
+    let conn = net.connect(sock)
+
+    conn.write(msg + "\n")
+    conn.on('error', () => {vscode.window.showErrorMessage("REPL open")})
 }
 
 function startREPLConn() {

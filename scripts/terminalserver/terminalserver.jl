@@ -21,7 +21,7 @@ function change_module(newmodule::String)
     expr = parse(newmodule)
     repl = Base.active_repl
     main_mode = repl.interface.modes[1]
-    main_mode.prompt = string(newmodule,">")
+    main_mode.prompt = string(newmodule,"> ")
     main_mode.on_done = Base.REPL.respond(repl,main_mode; pass_empty = false) do line
         if !isempty(line)
             :( eval($expr, parse($line)) )
@@ -57,6 +57,10 @@ end
 global_lock_socket_name = generate_pipe_name("terminal")
 from_vscode = generate_pipe_name("torepl")
 to_vscode = generate_pipe_name("fromrepl")
+
+if issocket(from_vscode)
+    rm(from_vscode)
+end
 
 @async begin
     server = listen(from_vscode)
