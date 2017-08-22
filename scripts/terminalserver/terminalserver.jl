@@ -33,11 +33,12 @@ function change_module(newmodule::String)
     print_with_color(:green, string(newmodule,">"), bold = true)
 end
 
-function get_available_modules(m=Main)
-    out = Set{String}()
+function get_available_modules(m=Main, out = Module[])
     for n in names(m, true, true)
-        if isdefined(m, n) && getfield(m, n) isa Module && m != Symbol(m)
-            push!(out, string(n))
+        if isdefined(m, n) && getfield(m, n) isa Module  && !(getfield(m, n) in out)
+            M = getfield(m, n)
+            push!(out, M)
+            get_available_modules(M, out)
         end
     end
     out
@@ -63,10 +64,13 @@ to_vscode = generate_pipe_name("fromrepl")
         sock = accept(server)
         msg = readline(sock)
         if startswith(msg, "repl/getAvailableModules")
+            oSTDERR = STDERR
+            redirect_stderr()
             ms = get_available_modules(current_module())
-            push!(ms, "Main")
+            redirect_stderr(oSTDERR)
+            names = unique(sort(string.(ms)))
             out = connect(to_vscode)
-            write(out, string(join(ms, ","), "\n"))
+            write(out, string(join(names, ","), "\n"))
             close(out)
         elseif startswith(msg, "repl/changeModule")
             change_module(strip(msg[20:end], '\n'))
