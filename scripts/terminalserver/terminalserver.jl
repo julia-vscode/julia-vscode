@@ -32,24 +32,46 @@ function change_module(newmodule::String)
     print_with_color(:green, "julia> ", bold = true)
 end
 
-if is_windows()
-    global_lock_socket_name = "\\\\.\\pipe\\vscode-language-julia-terminal-$pid"
-    modchange_sock_name = "\\\\.\\pipe\\vscode-language-julia-modchange-$pid"
-elseif is_unix() 
-    global_lock_socket_name = joinpath(tempdir(), "vscode-language-julia-terminal-$pid")
-    modchange_sock_name = joinpath(tempdir(), "vscode-language-julia-modchange-$pid")
-else
-    error("Unknown operating system.")
-end
-
-@async begin
-        server = listen(modchange_sock_name)
-        while true
-            sock = accept(server)
-            msg = readline(sock)
-            change_module(strip(msg, '\n'))
+function get_available_modules(m=Main)
+    out = Set{String}()
+    for n in names(m, true, true)
+        if isdefined(m, n) && getfield(m, n) isa Module && m != Symbol(m)
+            push!(out, string(n))
         end
     end
+    out
+end
+
+function generate_pipe_name(name)
+    if is_windows()
+        "\\\\.\\pipe\\vscode-language-julia-$name-$pid"
+    elseif is_unix()
+        joinpath(tempdir(), "vscode-language-julia-$name-$pid")
+    end
+end
+
+!(is_unix() || is_windows()) && error("Unknown operating system.")
+
+global_lock_socket_name = generate_pipe_name("terminal")
+from_vscode = generate_pipe_name("torepl")
+to_vscode = generate_pipe_name("fromrepl")
+
+@async begin
+    server = listen(from_vscode)
+    while true
+        sock = accept(server)
+        msg = readline(sock)
+        if startswith(msg, "repl/getAvailableModules")
+            ms = get_available_modules(current_module())
+            push!(ms, "Main")
+            out = connect(to_vscode)
+            write(out, string(join(ms, ","), "\n"))
+            close(out)
+        elseif startswith(msg, "repl/changeModule")
+            change_module(strip(msg[20:end], '\n'))
+        end
+    end
+end
 
 conn = connect(global_lock_socket_name)
 

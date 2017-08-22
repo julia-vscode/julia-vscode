@@ -131,8 +131,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     let plotpanedel = vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel);
     context.subscriptions.push(plotpanedel);
-	
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', changeREPLModule));
+
+    // context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', changeREPLModule));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', () => sendMessageToREPL('repl/getAvailableModules')));
     
     serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);   
     serverstatus.show()
@@ -140,6 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(serverstatus);
 
     startREPLconnectionServer();
+    startREPLConn();
 
     weaveProvider = new WeaveDocumentContentProvider();
     let disposable_weaveProvider = vscode.workspace.registerTextDocumentContentProvider('jlweave', weaveProvider);
@@ -730,12 +733,32 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
 	}
 }
 
-async function changeREPLModule() {
-    let sockpath = generatePipeName(process.pid.toString(), 'vscode-language-julia-modchange');
+function sendMessageToREPL(msg: string) {
+    let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
+    net.connect(sock).write(msg + "\n")
+}
 
-    let modname = await vscode.window.showInputBox({prompt: 'Change module to: '});
+function startREPLConn() {
+    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
 
-    if(modname) {
-        net.connect(sockpath).write(modname + "\n");
-    }
+    var server = net.createServer(function(stream) {
+        let accumulatingBuffer = new Buffer(0);
+
+        stream.on('data', async function(c) {
+            accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
+            let availableMods = accumulatingBuffer.toString().split(",")
+            let result = await vscode.window.showQuickPick(availableMods, {placeHolder: 'Switch to Module...'})
+            if (result!=undefined) {
+                sendMessageToREPL('repl/changeModule: ' + result)
+            }
+        });
+    });
+
+    server.on('close',function(){
+        console.log('Server: on close');
+    })
+
+    server.listen(PIPE_PATH, function(){
+        console.log('Server: on listening');
+    })
 }
