@@ -24,7 +24,7 @@ function change_module(newmodule::String)
     main_mode.prompt = string(newmodule,"> ")
     main_mode.on_done = Base.REPL.respond(repl,main_mode; pass_empty = false) do line
         if !isempty(line)
-            :( eval($expr, parse($line)) )
+            :( eval($expr, Expr(:(=), :ans, parse($line))) )
         else
             :(  )
         end
