@@ -6,12 +6,80 @@ immutable InlineDisplay <: Display end
 
 pid = Base.ARGS[1]
 
-if is_windows()
-    global_lock_socket_name = "\\\\.\\pipe\\vscode-language-julia-terminal-$pid"
-elseif is_unix() 
-    global_lock_socket_name = joinpath(tempdir(), "vscode-language-julia-terminal-$pid")
-else
-    error("Unknown operating system.")
+function change_module(newmodule::String)
+    smods = Symbol.(split(newmodule, "."))
+
+    val = Main
+    for i = 1:length(smods)
+        if isdefined(val, smods[i])
+            val = getfield(val, smods[i])
+        else
+            println("Could not find module $newmodule")
+            return
+        end
+    end
+    expr = parse(newmodule)
+    repl = Base.active_repl
+    main_mode = repl.interface.modes[1]
+    main_mode.prompt = string(newmodule,"> ")
+    main_mode.on_done = Base.REPL.respond(repl,main_mode; pass_empty = false) do line
+        if !isempty(line)
+            :( eval($expr, Expr(:(=), :ans, parse($line))) )
+        else
+            :(  )
+        end
+    end
+    println("Changed root module to $expr")
+    print_with_color(:green, string(newmodule,">"), bold = true)
+end
+
+function get_available_modules(m=Main, out = Module[])
+    for n in names(m, true, true)
+        if isdefined(m, n) && getfield(m, n) isa Module  && !(getfield(m, n) in out)
+            M = getfield(m, n)
+            push!(out, M)
+            get_available_modules(M, out)
+        end
+    end
+    out
+end
+
+function generate_pipe_name(name)
+    if is_windows()
+        "\\\\.\\pipe\\vscode-language-julia-$name-$pid"
+    elseif is_unix()
+        joinpath(tempdir(), "vscode-language-julia-$name-$pid")
+    end
+end
+
+!(is_unix() || is_windows()) && error("Unknown operating system.")
+
+global_lock_socket_name = generate_pipe_name("terminal")
+from_vscode = generate_pipe_name("torepl")
+to_vscode = generate_pipe_name("fromrepl")
+
+if issocket(from_vscode)
+    rm(from_vscode)
+end
+
+@async begin
+    server = listen(from_vscode)
+    while true
+        sock = accept(server)
+        msg = readline(sock)
+        if startswith(msg, "repl/getAvailableModules")
+            oSTDERR = STDERR
+            redirect_stderr()
+            ms = get_available_modules(current_module())
+            redirect_stderr(oSTDERR)
+            names = unique(sort(string.(ms)))
+            out = connect(to_vscode)
+            write(out, string(join(names, ","), "\n"))
+            close(out)
+        elseif startswith(msg, "repl/changeModule")
+            change_module(strip(msg[20:end], '\n'))
+        end
+    end
 end
 
 conn = connect(global_lock_socket_name)

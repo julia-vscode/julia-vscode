@@ -130,9 +130,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(plotpanelast);
 
     let plotpanedel = vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel);
-    context.subscriptions.push(plotpanedel);    
+    context.subscriptions.push(plotpanedel);
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-file-lint', ignoreFile));   
+    // context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', changeREPLModule));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', () => sendMessageToREPL('repl/getAvailableModules')));
     
     serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);   
     serverstatus.show()
@@ -140,6 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(serverstatus);
 
     startREPLconnectionServer();
+    startREPLConn();
 
     weaveProvider = new WeaveDocumentContentProvider();
     let disposable_weaveProvider = vscode.workspace.registerTextDocumentContentProvider('jlweave', weaveProvider);
@@ -450,7 +453,7 @@ async function weave_save_Command() {
 }
 
 function startREPLconnectionServer() {
-    let PIPE_PATH = generatePipeName(process.pid.toString());
+    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-terminal');
 
     var server = net.createServer(function(stream) {
         let accumulatingBuffer = new Buffer(0);
@@ -515,12 +518,12 @@ function startREPL() {
     }
 }
 
-function generatePipeName(pid: string) {
+function generatePipeName(pid: string, name:string) {
     if (process.platform === 'win32') {
-        return '\\\\.\\pipe\\vscode-language-julia-terminal-' + pid;
+        return '\\\\.\\pipe\\' + name + '-' + pid;
     }
     else {
-        return path.join(os.tmpdir(), 'vscode-language-julia-terminal-' + pid);
+        return path.join(os.tmpdir(), name + '-' + pid);
     }
  }
 
@@ -730,8 +733,36 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
 	}
 }
 
-function ignoreFile(fileURI) {
-    if (fileURI) {
-        languageClient.sendRequest("julia/toggleFileLint" , fileURI.toString());
-    }
+function sendMessageToREPL(msg: string) {
+    let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
+
+    let conn = net.connect(sock)
+
+    conn.write(msg + "\n")
+    conn.on('error', () => {vscode.window.showErrorMessage("REPL open")})
+}
+
+function startREPLConn() {
+    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
+
+    var server = net.createServer(function(stream) {
+        let accumulatingBuffer = new Buffer(0);
+
+        stream.on('data', async function(c) {
+            accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
+            let availableMods = accumulatingBuffer.toString().split(",")
+            let result = await vscode.window.showQuickPick(availableMods, {placeHolder: 'Switch to Module...'})
+            if (result!=undefined) {
+                sendMessageToREPL('repl/changeModule: ' + result)
+            }
+        });
+    });
+
+    server.on('close',function(){
+        console.log('Server: on close');
+    })
+
+    server.listen(PIPE_PATH, function(){
+        console.log('Server: on listening');
+    })
 }

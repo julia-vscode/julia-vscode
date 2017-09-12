@@ -158,6 +158,10 @@
             {
                 "command": "language-julia.toggle-file-lint",
                 "title": "Julia: Toggle file linting"
+            },
+            {
+                "command": "language-julia.change-repl-module",
+                "title": "Julia: Change REPL module"
             }
         ],
         "menus": {
