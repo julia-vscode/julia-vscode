@@ -154,9 +154,23 @@
                     "light": "./media/delete.svg",
                     "dark": "./media/delete-inverse.svg"
                 }
+            },
+            {
+                "command": "language-julia.toggle-file-lint",
+                "title": "Julia: Toggle file linting"
             }
         ],
         "menus": {
+            "explorer/context": [
+                {
+                    "when": "resourceLangId == julia",
+                    "command": "language-julia.toggle-file-lint"
+                },
+                {
+                    "when": "explorerResourceIsFolder",
+                    "command": "language-julia.toggle-file-lint"
+                }
+            ],
             "editor/title": [
                 {
                     "when": "resourceScheme == jlplotpane",

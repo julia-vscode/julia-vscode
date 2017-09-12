@@ -131,6 +131,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     let plotpanedel = vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel);
     context.subscriptions.push(plotpanedel);    
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-file-lint', ignoreFile));   
     
     serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);   
     serverstatus.show()
@@ -726,4 +728,10 @@ async function getJuliaTasks(): Promise<vscode.Task[]> {
 	} catch (e) {
 		return Promise.resolve(emptyTasks);
 	}
+}
+
+function ignoreFile(fileURI) {
+    if (fileURI) {
+        languageClient.sendRequest("julia/toggleFileLint" , fileURI.toString());
+    }
 }
