@@ -135,7 +135,9 @@ export function activate(context: vscode.ExtensionContext) {
     // context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', changeREPLModule));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', () => sendMessageToREPL('repl/getAvailableModules')));
-    
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-log', toggleServerLogs));
+
     serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);   
     serverstatus.show()
     serverstatus.text = 'Julia: starting up';
@@ -765,4 +767,18 @@ function startREPLConn() {
     server.listen(PIPE_PATH, function(){
         console.log('Server: on listening');
     })
+}
+
+export function toggleServerLogs() {
+    try {
+        languageClient.sendRequest("julia/toggle-log");
+    }
+    catch(ex) {
+        if(ex.message=="Language client is not ready yet") {
+            vscode.window.showErrorMessage('Error: server is not running.');
+        }
+        else {
+            throw ex;
+        }
+    }
 }
