@@ -138,6 +138,21 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-log', toggleServerLogs));
 
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-file-lint', (arg) => {
+        try {
+            languageClient.sendRequest("julia/toggleFileLint", arg);
+        }
+        catch(ex) {5
+            if(ex.message=="Language client is not ready yet") {
+                vscode.window.showErrorMessage('Error: server is not running.');
+            }
+            else {
+                throw ex;
+            }
+        }
+
+    }));
+
     serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);   
     serverstatus.show()
     serverstatus.text = 'Julia: starting up';
