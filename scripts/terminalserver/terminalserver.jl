@@ -23,14 +23,15 @@ function change_module(newmodule::String)
     main_mode = repl.interface.modes[1]
     main_mode.prompt = string(newmodule,"> ")
     main_mode.on_done = Base.REPL.respond(repl,main_mode; pass_empty = false) do line
+        if !isempty(line)
+            ret = :( eval($expr, Expr(:(=), :ans, parse($line))) )
+        else
+            ret = :(  )
+        end
         out = connect(to_vscode)
         write(out, string("repl/variables,", getVariables(), "\n"))
         close(out)
-        if !isempty(line)
-            :( eval($expr, Expr(:(=), :ans, parse($line))) )
-        else
-            :(  )
-        end
+        return ret
     end
     println("Changed root module to $expr")
     print_with_color(:green, string(newmodule,">"), bold = true)
@@ -51,7 +52,7 @@ end
 function getVariables()
     M = current_module()
     variables = []
-    msg = string("repl/variableList")
+    msg = ""
     for n in names(M)
         !isdefined(M, n) && continue
         x = getfield(M, n)
@@ -143,5 +144,10 @@ function display(d::InlineDisplay, x)
 end
 
 atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
-
+@async while true
+    if isdefined(Base, :active_repl)
+        change_module("Main")
+        break
+    end
+end
 end

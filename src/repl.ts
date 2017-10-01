@@ -84,6 +84,12 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
     private juliaExecutable
     public plotPaneProvider: PlotPaneDocumentContentProvider = new PlotPaneDocumentContentProvider();
     private variables:string = ''
+    private _onDidChangeTreeData: vscode.EventEmitter<string | undefined> = new vscode.EventEmitter<string | undefined>();
+    readonly onDidChangeTreeData: vscode.Event<string | undefined> = this._onDidChangeTreeData.event;
+    
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
+    }
 
 
     constructor(extensionPath, juliaExecutable) {
@@ -97,7 +103,7 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
         }
         else {
             if (this.terminal) {
-                return [this.variables]
+                return this.variables.split(',').slice(1)
             }
             else {
                 return ['no repl attached']
@@ -129,6 +135,7 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
     
             stream.on('data', async function(c) {
                 accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
+                let bufferResult = accumulatingBuffer.toString()
                 let replResponse = accumulatingBuffer.toString().split(",")
     
                 if (replResponse[0] == "repl/returnModules") 
@@ -138,14 +145,10 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
                         replhandler.sendMessage('repl/changeModule: ' + result)
                     }
                 }
-                if (replResponse[0] == "repl/variableList") 
-                {
-                    vscode.window.showInformationMessage(replResponse.slice(1).join(","))
-                }
                 if (replResponse[0] == "repl/variables") 
                 {
-                    replhandler.variables = replResponse[1]
-                    // replhandler.refresh()
+                    replhandler.variables = bufferResult
+                    replhandler.refresh()
                 }
             });
         });
