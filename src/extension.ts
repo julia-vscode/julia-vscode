@@ -40,6 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
     
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', () => {repl.startREPL()}));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', () => {repl.executeCode()}));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', () => {repl.executeFile()}));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', () => repl.sendMessage('repl/getAvailableModules')));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', repl.plotPaneProvider.showPlotPane));

@@ -253,6 +253,17 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
         this.terminal.sendText(text, false);
     }
 
+    public executeFile() {
+        var editor = vscode.window.activeTextEditor;
+        if(!editor) {
+            return;
+        }
+        let text = editor.document.getText()
+        this.startREPL();
+        this.terminal.show(true);
+        this.terminal.sendText(text, false);
+    }
+
     public sendMessage(msg: string) {
         this.startREPL()
         let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
