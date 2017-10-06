@@ -96,6 +96,10 @@
                 "title": "Julia: Execute Code"
             },
             {
+                "command": "language-julia.executeJuliaFileInREPL",
+                "title": "Julia: Execute File"
+            },
+            {
                 "command": "language-julia.toggleLinter",
                 "title": "Julia: Toggle Linter"
             },

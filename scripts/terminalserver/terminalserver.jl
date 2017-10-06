@@ -24,16 +24,21 @@ function change_module(newmodule::String)
     main_mode.prompt = string(newmodule,"> ")
     main_mode.on_done = Base.REPL.respond(repl,main_mode; pass_empty = false) do line
         if !isempty(line)
-            :( eval($expr, Expr(:(=), :ans, parse($line))) )
+            ret = :( eval($expr, Expr(:(=), :ans, parse($line))) )
         else
-            :(  )
+            ret = :(  )
         end
+        out = connect(to_vscode)
+        write(out, string("repl/variables,", getVariables(), "\n"))
+        close(out)
+        return ret
     end
     println("Changed root module to $expr")
     print_with_color(:green, string(newmodule,">"), bold = true)
 end
 
 function get_available_modules(m=Main, out = Module[])
+    info("here")
     for n in names(m, true, true)
         if isdefined(m, n) && getfield(m, n) isa Module  && !(getfield(m, n) in out)
             M = getfield(m, n)
@@ -42,6 +47,19 @@ function get_available_modules(m=Main, out = Module[])
         end
     end
     out
+end
+
+function getVariables()
+    M = current_module()
+    variables = []
+    msg = ""
+    for n in names(M)
+        !isdefined(M, n) && continue
+        x = getfield(M, n)
+        t = typeof(x)
+        msg = string(msg, ",", n, "::", t)
+    end
+    return msg
 end
 
 function generate_pipe_name(name)
@@ -74,10 +92,14 @@ end
             redirect_stderr(oSTDERR)
             names = unique(sort(string.(ms)))
             out = connect(to_vscode)
-            write(out, string(join(names, ","), "\n"))
+            write(out, string("repl/returnModules,", join(names, ","), "\n"))
             close(out)
         elseif startswith(msg, "repl/changeModule")
             change_module(strip(msg[20:end], '\n'))
+        elseif startswith(msg, "repl/getVariables")
+            out = connect(to_vscode)
+            write(out, getVariables())
+            close(out)
         end
     end
 end
@@ -122,5 +144,10 @@ function display(d::InlineDisplay, x)
 end
 
 atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
-
+@async while true
+    if isdefined(Base, :active_repl)
+        change_module("Main")
+        break
+    end
+end
 end
