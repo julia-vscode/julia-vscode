@@ -11,6 +11,7 @@ var exec = require('child-process-promise').exec;
 var tempfs = require('promised-temp').track();
 import { spawn, ChildProcess } from 'child_process';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
+import * as vslc from 'vscode-languageclient';
 import * as rpc from 'vscode-jsonrpc';
 import { REPLHandler, PlotPaneDocumentContentProvider } from './repl'
 import { WeaveDocumentContentProvider } from './weave'
@@ -24,6 +25,13 @@ let serverstatus: vscode.StatusBarItem = null;
 let serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
 let serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 let taskProvider: vscode.Disposable | undefined;
+
+export interface TextDocumentPositionParams {
+    textDocument: vslc.TextDocumentIdentifier
+    position: vscode.Position
+}
+
+let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void,void,void>('julia/getCurrentBlockText')
 
 export function activate(context: vscode.ExtensionContext) {
     g_context = context;
@@ -39,9 +47,17 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider('REPLVariables', repl);
     
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', () => {repl.startREPL()}));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', () => {repl.executeCode()}));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', () => {repl.executeSelection()}));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', () => {repl.executeFile()}));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', () => repl.sendMessage('repl/getAvailableModules')));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', () => {
+        var editor = vscode.window.activeTextEditor;
+        let params : TextDocumentPositionParams = {textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character)}
+        languageClient.sendRequest('julia/getCurrentBlockText', params).then((text)=>{
+            repl.executeCode(text)
+            editor.show()
+        })
+    }));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', repl.plotPaneProvider.showPlotPane));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-previous', repl.plotPaneProvider.plotPanePrev));
