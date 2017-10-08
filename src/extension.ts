@@ -3,6 +3,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as fs from 'async-file';
+import * as sfs from 'fs';
 import * as path from 'path'
 import * as net from 'net';
 import * as os from 'os';
@@ -39,13 +40,13 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Activating extension language-julia');
 
     loadConfiguration();
-    
+
     // REPL
     // const replTree = new REPLTree(context);
     let repl = new REPLHandler(extensionPath, juliaExecutable)
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('jlplotpane', repl.plotPaneProvider));
     vscode.window.registerTreeDataProvider('REPLVariables', repl);
-    
+
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', () => {repl.startREPL()}));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', () => {repl.executeSelection()}));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', () => {repl.executeFile()}));
@@ -68,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
     // Status bar
-    serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);   
+    serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     serverstatus.show()
     serverstatus.text = 'Julia: starting up';
     context.subscriptions.push(serverstatus);
@@ -150,7 +151,17 @@ function loadConfiguration() {
 
     let section = vscode.workspace.getConfiguration('julia');
     if (section) {
-        juliaExecutable = section.get<string>('executablePath', null);
+        let paths = section.get('executablePath', null);
+        if (paths instanceof String) {
+            juliaExecutable = paths;
+        } else if (paths instanceof Array) {
+            paths.some(function (path) {
+                if (sfs.existsSync(path)) {
+                    juliaExecutable = path;
+                    return true;
+                }
+            })
+        }
     }
     else {
         juliaExecutable = null;
@@ -207,7 +218,7 @@ async function startLanguageServer() {
     // Create the language client and start the client.
     languageClient = new LanguageClient('julia Language Server', serverOptions, clientOptions);
 
-    // Push the disposable to the context's subscriptions so that the 
+    // Push the disposable to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
     try {
         g_context.subscriptions.push(languageClient.start());
@@ -229,7 +240,7 @@ async function openPackageDirectoryCommand() {
     };
 
     try {
-        var juliaVersionHomeDir = await getPkgPath();        
+        var juliaVersionHomeDir = await getPkgPath();
 
         let files = await fs.readdir(juliaVersionHomeDir);
 
