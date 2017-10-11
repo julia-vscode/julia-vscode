@@ -144,13 +144,16 @@ end
                     break
                 end
                 ex = remlineinfo!(ex)
-                println(ex, "\n")
-                print_with_color(:green, "julia> ")
+                println(ex)
                 cmod = eval(active_module)
-                cmod.eval(ex)
+                ans = cmod.eval(ex)
+                println(ans)
+                print_with_color(:green, "$active_module> ", bold = true)
             end
         elseif cmd == "repl/include"
-            include(strip(text, '\n'))
+            cmod = eval(active_module)
+            ex = Expr(:call, :include, strip(text, '\n'))
+            cmod.eval(ex)
         elseif cmd == "repl/getVariables"
             out = connect(to_vscode)
             write(out, getVariables())
