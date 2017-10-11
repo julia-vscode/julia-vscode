@@ -231,7 +231,12 @@
             {
             "command": "language-julia.executeJuliaCodeInREPL",
             "key": "ctrl+Enter",
-            "when": "editorTextFocus && editorLangId == julia"
+            "when": "editorTextFocus && editorLangId == julia && editorHasSelection"
+            },
+            {
+            "command": "language-julia.executeJuliaBlockInREPL",
+            "key": "ctrl+Enter",
+            "when": "editorTextFocus && editorLangId == julia && !editorHasSelection"
             },
             {
             "command": "language-julia.executeJuliaCodeInREPL",

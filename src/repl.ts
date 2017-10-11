@@ -142,7 +142,7 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
                 {
                     let result = await vscode.window.showQuickPick(replResponse.slice(1), {placeHolder: 'Switch to Module...'})
                     if (result!=undefined) {
-                        replhandler.sendMessage('repl/changeModule: ' + result)
+                        replhandler.sendMessage('repl/changeModule',result)
                     }
                 }
                 if (replResponse[0] == "repl/variables") 
@@ -224,7 +224,8 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
     
         this.startREPL();
         this.terminal.show(true);
-        this.terminal.sendText(text, false);
+        this.sendMessage('repl/eval', text)
+        // this.terminal.sendText(text, false);
     }
 
     public executeSelection() {
@@ -262,17 +263,15 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
         if(!editor) {
             return;
         }
-        let text = editor.document.getText()
-        this.executeCode(text)
-        editor.show()
+        this.sendMessage('repl/include', editor.document.fileName)
     }
 
-    public sendMessage(msg: string) {
+    public sendMessage(cmd, msg: string) {
         this.startREPL()
         let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
     
         let conn = net.connect(sock)
-        conn.write(msg + "\n")
+        conn.write(cmd + '\n' + msg + "\nrepl/endMessage")
         conn.on('error', () => {vscode.window.showErrorMessage("REPL is not open")})
     }
 }
