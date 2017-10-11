@@ -217,7 +217,17 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
         })
     }
 
-    public executeCode() {
+    public executeCode(text) {
+        if(!text.endsWith("\n")) {
+            text = text + '\n';
+        }
+    
+        this.startREPL();
+        this.terminal.show(true);
+        this.terminal.sendText(text, false);
+    }
+
+    public executeSelection() {
         var editor = vscode.window.activeTextEditor;
         if(!editor) {
             return;
@@ -243,14 +253,8 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
         var lines = text.split(/\r?\n/);
         lines = lines.filter(line=>line!='');
         text = lines.join('\n');
-    
-        if(!text.endsWith("\n")) {
-            text = text + '\n';
-        }
-    
-        this.startREPL();
-        this.terminal.show(true);
-        this.terminal.sendText(text, false);
+        this.executeCode(text)
+        editor.show()
     }
 
     public executeFile() {
@@ -259,9 +263,8 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
             return;
         }
         let text = editor.document.getText()
-        this.startREPL();
-        this.terminal.show(true);
-        this.terminal.sendText(text, false);
+        this.executeCode(text)
+        editor.show()
     }
 
     public sendMessage(msg: string) {

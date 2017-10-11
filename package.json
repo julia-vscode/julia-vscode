@@ -170,6 +170,10 @@
             {
                 "command": "language-julia.toggle-log",
                 "title": "Julia: Toggle server logs"
+            },
+            {
+                "command": "language-julia.executeJuliaBlockInREPL",
+                "title": "Julia: Execute Block"
             }
         ],
         "menus": {
