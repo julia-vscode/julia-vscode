@@ -60,7 +60,12 @@ function change_module(newmodule::String)
     main_mode.prompt = string(newmodule,"> ")
     main_mode.on_done = Base.REPL.respond(repl,main_mode; pass_empty = false) do line
         if !isempty(line)
-            ret = :( eval($expr, Expr(:(=), :ans, parse($line))) )
+            ex = parse(line)
+            if ex isa Expr && ex.head == :module
+                ret = :( eval($expr, Expr(:(=), :ans, Expr(:toplevel, parse($line)))) )    
+            else
+                ret = :( eval($expr, Expr(:(=), :ans, parse($line))) )    
+            end
         else
             ret = :(  )
         end
@@ -134,22 +139,6 @@ end
             close(out)
         elseif cmd == "repl/changeModule"
             change_module(strip(text, '\n'))
-        elseif cmd == "repl/eval"
-            
-            io = IOBuffer(text)
-            while !eof(io)
-                ex = parse(io)
-                ex isa Void && continue
-                if ex.head == :incomplete
-                    break
-                end
-                ex = remlineinfo!(ex)
-                println(ex)
-                cmod = eval(active_module)
-                ans = cmod.eval(ex)
-                println(ans)
-                print_with_color(:green, "$active_module> ", bold = true)
-            end
         elseif cmd == "repl/include"
             cmod = eval(active_module)
             ex = Expr(:call, :include, strip(text, '\n'))

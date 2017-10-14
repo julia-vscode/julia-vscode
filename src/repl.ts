@@ -224,8 +224,10 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
     
         this.startREPL();
         this.terminal.show(true);
-        this.sendMessage('repl/eval', text)
-        // this.terminal.sendText(text, false);
+        var lines = text.split(/\r?\n/);
+        lines = lines.filter(line=>line!='');
+        text = lines.join('\n');
+        this.terminal.sendText(text + '\n', false);
     }
 
     public executeSelection() {
@@ -235,7 +237,7 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
         }
     
         var selection = editor.selection;
-    
+
         var text = selection.isEmpty ? editor.document.lineAt(selection.start.line).text : editor.document.getText(selection);
     
         // If no text was selected, try to move the cursor to the end of the next line
@@ -249,11 +251,6 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
             }
             }
         }
-    
-        // This is the version that sends code to the REPL directly
-        var lines = text.split(/\r?\n/);
-        lines = lines.filter(line=>line!='');
-        text = lines.join('\n');
         this.executeCode(text)
         editor.show()
     }
