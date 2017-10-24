@@ -267,11 +267,11 @@ export function toggleLinter() {
 }
 
 export function applyTextEdit(we) {
+    let wse = new vscode.WorkspaceEdit()
     for (let edit of we.documentChanges[0].edits) {
-        let wse = new vscode.WorkspaceEdit()
         wse.replace(we.documentChanges[0].textDocument.uri, new vscode.Range(edit.range.start.line, edit.range.start.character, edit.range.end.line, edit.range.end.character), edit.newText)
-        vscode.workspace.applyEdit(wse)
     }
+    vscode.workspace.applyEdit(wse)
 }
 
 export function lintPackage() {
