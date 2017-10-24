@@ -1,12 +1,47 @@
 module _vscodeserver
 
+@static if VERSION < v"0.7.0-DEV.357"
+    function remlineinfo!(x)
+        if isa(x, Expr)
+            id = find(map(x -> (isa(x, Expr) && x.head == :line) || (isdefined(:LineNumberNode) && x isa LineNumberNode), x.args))
+            deleteat!(x.args, id)
+            for j in x.args
+                remlineinfo!(j)
+            end
+        end
+        x
+    end
+else
+    function remlineinfo!(x)
+        if isa(x, Expr)
+            if x.head == :macrocall && x.args[2] != nothing
+                id = find(map(x -> (isa(x, Expr) && x.head == :line) || (isdefined(:LineNumberNode) && x isa LineNumberNode), x.args))
+                deleteat!(x.args, id)
+                for j in x.args
+                    remlineinfo!(j)
+                end
+                insert!(x.args, 2, nothing)
+            else
+                id = find(map(x -> (isa(x, Expr) && x.head == :line) || (isdefined(:LineNumberNode) && x isa LineNumberNode), x.args))
+                deleteat!(x.args, id)
+                for j in x.args
+                    remlineinfo!(j)
+                end
+            end
+        end
+        x
+    end
+end
+
 import Base: display, redisplay
+global active_module = :Main
 
 immutable InlineDisplay <: Display end
 
 pid = Base.ARGS[1]
 
 function change_module(newmodule::String)
+    global active_module
     smods = Symbol.(split(newmodule, "."))
 
     val = Main
@@ -19,12 +54,18 @@ function change_module(newmodule::String)
         end
     end
     expr = parse(newmodule)
+    active_module = expr
     repl = Base.active_repl
     main_mode = repl.interface.modes[1]
     main_mode.prompt = string(newmodule,"> ")
     main_mode.on_done = Base.REPL.respond(repl,main_mode; pass_empty = false) do line
         if !isempty(line)
-            ret = :( eval($expr, Expr(:(=), :ans, parse($line))) )
+            ex = parse(line)
+            if ex isa Expr && ex.head == :module
+                ret = :( eval($expr, Expr(:(=), :ans, Expr(:toplevel, parse($line)))) )    
+            else
+                ret = :( eval($expr, Expr(:(=), :ans, parse($line))) )    
+            end
         else
             ret = :(  )
         end
@@ -84,8 +125,10 @@ end
     server = listen(from_vscode)
     while true
         sock = accept(server)
-        msg = readline(sock)
-        if startswith(msg, "repl/getAvailableModules")
+        cmd = readline(sock)
+        !startswith(cmd, "repl/") && continue
+        text = readuntil(sock, "repl/endMessage")[1:end-15]
+        if cmd == "repl/getAvailableModules"
             oSTDERR = STDERR
             redirect_stderr()
             ms = get_available_modules(current_module())
@@ -94,9 +137,13 @@ end
             out = connect(to_vscode)
             write(out, string("repl/returnModules,", join(names, ","), "\n"))
             close(out)
-        elseif startswith(msg, "repl/changeModule")
-            change_module(strip(msg[20:end], '\n'))
-        elseif startswith(msg, "repl/getVariables")
+        elseif cmd == "repl/changeModule"
+            change_module(strip(text, '\n'))
+        elseif cmd == "repl/include"
+            cmod = eval(active_module)
+            ex = Expr(:call, :include, strip(text, '\n'))
+            cmod.eval(ex)
+        elseif cmd == "repl/getVariables"
             out = connect(to_vscode)
             write(out, getVariables())
             close(out)

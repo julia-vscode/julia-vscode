@@ -142,7 +142,7 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
                 {
                     let result = await vscode.window.showQuickPick(replResponse.slice(1), {placeHolder: 'Switch to Module...'})
                     if (result!=undefined) {
-                        replhandler.sendMessage('repl/changeModule: ' + result)
+                        replhandler.sendMessage('repl/changeModule',result)
                     }
                 }
                 if (replResponse[0] == "repl/variables") 
@@ -224,7 +224,10 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
     
         this.startREPL();
         this.terminal.show(true);
-        this.terminal.sendText(text, false);
+        var lines = text.split(/\r?\n/);
+        lines = lines.filter(line=>line!='');
+        text = lines.join('\n');
+        this.terminal.sendText(text + '\n', false);
     }
 
     public executeSelection() {
@@ -234,7 +237,7 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
         }
     
         var selection = editor.selection;
-    
+
         var text = selection.isEmpty ? editor.document.lineAt(selection.start.line).text : editor.document.getText(selection);
     
         // If no text was selected, try to move the cursor to the end of the next line
@@ -248,11 +251,6 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
             }
             }
         }
-    
-        // This is the version that sends code to the REPL directly
-        var lines = text.split(/\r?\n/);
-        lines = lines.filter(line=>line!='');
-        text = lines.join('\n');
         this.executeCode(text)
         editor.show()
     }
@@ -262,17 +260,15 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
         if(!editor) {
             return;
         }
-        let text = editor.document.getText()
-        this.executeCode(text)
-        editor.show()
+        this.sendMessage('repl/include', editor.document.fileName)
     }
 
-    public sendMessage(msg: string) {
+    public sendMessage(cmd, msg: string) {
         this.startREPL()
         let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
     
         let conn = net.connect(sock)
-        conn.write(msg + "\n")
+        conn.write(cmd + '\n' + msg + "\nrepl/endMessage")
         conn.on('error', () => {vscode.window.showErrorMessage("REPL is not open")})
     }
 }

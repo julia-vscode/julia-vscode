@@ -49,13 +49,16 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', () => {repl.startREPL()}));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', () => {repl.executeSelection()}));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', () => {repl.executeFile()}));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', () => repl.sendMessage('repl/getAvailableModules')));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', () => {
+        repl.sendMessage('repl/getAvailableModules', '')
+        vscode.window.showTextDocument(vscode.window.activeTextEditor.document)
+    }));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', () => {
         var editor = vscode.window.activeTextEditor;
         let params : TextDocumentPositionParams = {textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character)}
         languageClient.sendRequest('julia/getCurrentBlockText', params).then((text)=>{
             repl.executeCode(text)
-            editor.show()
+            vscode.window.showTextDocument(vscode.window.activeTextEditor.document)
         })
     }));
 
