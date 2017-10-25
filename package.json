@@ -207,23 +207,23 @@
             "commandPalette": [
                 {
                     "when": "false",
-                    "command": "language-julia.plotpane-delete"                    
+                    "command": "language-julia.plotpane-delete"
                 },
                 {
                     "when": "false",
-                    "command": "language-julia.plotpane-next"                    
+                    "command": "language-julia.plotpane-next"
                 },
                 {
                     "when": "false",
-                    "command": "language-julia.plotpane-first"                    
+                    "command": "language-julia.plotpane-first"
                 },
                 {
                     "when": "false",
-                    "command": "language-julia.plotpane-last"                    
+                    "command": "language-julia.plotpane-last"
                 },
                 {
                     "when": "false",
-                    "command": "language-julia.plotpane-previous"                    
+                    "command": "language-julia.plotpane-previous"
                 }
             ]
         },
@@ -287,14 +287,14 @@
             "command": "language-julia.plotpane-delete",
             "key": "delete",
             "when": "resourceScheme == jlplotpane"
-            }            
+            }
         ],
         "configuration": {
             "type": "object",
             "title": "julia configuration",
             "properties": {
                 "julia.executablePath": {
-                    "type": ["string", "null"],
+                    "type": ["array", "string", "null"],
                     "default": null,
                     "description": "Points to the julia executable."
                 },
