@@ -10,7 +10,7 @@ let g_languageClient: vslc.LanguageClient = null;
 let juliaPackagePath: string = null;
 
 export async function getPkgPath() {
-    if(juliaPackagePath==null) {
+    if (juliaPackagePath == null) {
         var res = await exec(`"${g_settings.juliaExePath}" -e "println(Pkg.dir())"`);
         juliaPackagePath = res.stdout.trim();
     }
@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 }
 
 export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-    if(g_settings.juliaExePath != newSettings.juliaExePath) {
+    if (g_settings.juliaExePath != newSettings.juliaExePath) {
         juliaPackagePath = null;
     }
 }

@@ -66,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
 }
 
-function setLanguageClient(languageClient:vslc.LanguageClient) {
+function setLanguageClient(languageClient: vslc.LanguageClient) {
     g_languageClient = languageClient;
 
     repl.onNewLanguageClient(g_languageClient);
@@ -93,8 +93,8 @@ function configChanged(params) {
         need_to_restart_server = true;
     }
 
-    if(need_to_restart_server) {
-        if(g_languageClient!=null) {
+    if (need_to_restart_server) {
+        if (g_languageClient != null) {
             g_languageClient.stop();
             setLanguageClient(null);
         }
@@ -150,8 +150,8 @@ async function startLanguageServer() {
         g_languageClient = null;
     }
 
-    g_languageClient.onReady().then(()=>{
-        g_languageClient.onNotification(g_serverBusyNotification, ()=>{g_serverstatus.text = 'Julia: busy'})
-        g_languageClient.onNotification(g_serverReadyNotification, ()=>{g_serverstatus.text = 'Julia: ready'})
+    g_languageClient.onReady().then(() => {
+        g_languageClient.onNotification(g_serverBusyNotification, () => { g_serverstatus.text = 'Julia: busy' })
+        g_languageClient.onNotification(g_serverReadyNotification, () => { g_serverstatus.text = 'Julia: ready' })
     })
 }

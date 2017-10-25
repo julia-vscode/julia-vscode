@@ -36,13 +36,13 @@ export class WeaveDocumentContentProvider implements vscode.TextDocumentContentP
 
 let g_weaveProvider: WeaveDocumentContentProvider = null;
 
-async function weave_core(column, selected_format:string=undefined) {
+async function weave_core(column, selected_format: string = undefined) {
     let parsed_filename = path.parse(vscode.window.activeTextEditor.document.fileName);
     let weaveProvider = this
 
     let source_filename: string;
     let output_filename: string;
-    if (selected_format===undefined) {
+    if (selected_format === undefined) {
         let temporary_dirname = await tempfs.mkdir("julia-vscode-weave");
 
         source_filename = path.join(temporary_dirname, 'source-file.jmd')
@@ -77,7 +77,7 @@ async function weave_core(column, selected_format:string=undefined) {
 
     g_weaveChildProcess.stdin.write(source_filename + '\n');
     g_weaveChildProcess.stdin.write(output_filename + '\n');
-    if (selected_format===undefined) {
+    if (selected_format === undefined) {
         g_weaveChildProcess.stdin.write('PREVIEW\n');
     }
     else {
@@ -98,7 +98,7 @@ async function weave_core(column, selected_format:string=undefined) {
         if (code == 0) {
             weaveProvider.weaveOutputChannel.hide();
 
-            if (selected_format===undefined) {
+            if (selected_format === undefined) {
                 weaveProvider.lastWeaveContent = await fs.readFile(output_filename, "utf8")
 
                 let uri = vscode.Uri.parse('jlweave://nothing.html');
@@ -117,7 +117,7 @@ async function open_preview() {
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
     }
-    else if (vscode.window.activeTextEditor.document.languageId!='juliamarkdown') {
+    else if (vscode.window.activeTextEditor.document.languageId != 'juliamarkdown') {
         vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.');
     }
     else {
@@ -129,7 +129,7 @@ async function open_preview_side() {
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
     }
-    else if (vscode.window.activeTextEditor.document.languageId!='juliamarkdown') {
+    else if (vscode.window.activeTextEditor.document.languageId != 'juliamarkdown') {
         vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.');
     }
     else {
@@ -141,7 +141,7 @@ async function save() {
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
     }
-    else if (vscode.window.activeTextEditor.document.languageId!='juliamarkdown') {
+    else if (vscode.window.activeTextEditor.document.languageId != 'juliamarkdown') {
         vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.');
     }
     else if (vscode.window.activeTextEditor.document.isDirty || vscode.window.activeTextEditor.document.isUntitled) {
@@ -160,10 +160,10 @@ async function save() {
             'multimarkdown: MultiMarkdown',
             'md2pdf: Julia markdown to latex',
             'asciidoc: AsciiDoc'];
-        let result_format = await vscode.window.showQuickPick(formats, {placeHolder: 'Select output format'});
-        if (result_format!=undefined) {
+        let result_format = await vscode.window.showQuickPick(formats, { placeHolder: 'Select output format' });
+        if (result_format != undefined) {
             let index = result_format.indexOf(':');
-            let selected_format = result_format.substring(0,index);
+            let selected_format = result_format.substring(0, index);
             weave_core(vscode.ViewColumn.One, selected_format);
         }
     }
