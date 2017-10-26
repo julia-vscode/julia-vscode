@@ -249,6 +249,11 @@
                 "when": "resourceScheme == jlplotpane"
             },
             {
+                "command": "language-julia.executeJuliaFileInREPL",
+                "key": "F5",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
                 "command": "language-julia.plotpane-previous",
                 "key": "up",
                 "when": "resourceScheme == jlplotpane"
