@@ -15,6 +15,8 @@ let g_terminal: vscode.Terminal = null
 let g_plots: Array<string> = new Array<string>();
 let g_currentPlotIndex: number = 0;
 
+let g_replVariables: string = '';
+
 export class PlotPaneDocumentContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
 
@@ -90,8 +92,7 @@ function generatePipeName(pid: string, name: string) {
     }
 }
 
-export class REPLHandler implements vscode.TreeDataProvider<string> {
-    private variables: string = ''
+export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
     private _onDidChangeTreeData: vscode.EventEmitter<string | undefined> = new vscode.EventEmitter<string | undefined>();
     readonly onDidChangeTreeData: vscode.Event<string | undefined> = this._onDidChangeTreeData.event;
 
@@ -105,7 +106,7 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
         }
         else {
             if (g_terminal) {
-                return this.variables.split(',').slice(1)
+                return g_replVariables.split(',').slice(1)
             }
             else {
                 return ['no repl attached']
@@ -119,6 +120,8 @@ export class REPLHandler implements vscode.TreeDataProvider<string> {
     }
 }
 
+let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
+
 function startREPL() {
     if (g_terminal == null) {
         startREPLConn()
@@ -131,7 +134,6 @@ function startREPL() {
 
 function startREPLConn() {
     let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
-    let replhandler = this
 
     var server = net.createServer(function (stream) {
         let accumulatingBuffer = new Buffer(0);
@@ -144,12 +146,12 @@ function startREPLConn() {
             if (replResponse[0] == "repl/returnModules") {
                 let result = await vscode.window.showQuickPick(replResponse.slice(1), { placeHolder: 'Switch to Module...' })
                 if (result != undefined) {
-                    replhandler.sendMessage('repl/changeModule', result)
+                    sendMessage('repl/changeModule', result)
                 }
             }
             if (replResponse[0] == "repl/variables") {
-                replhandler.variables = bufferResult
-                replhandler.refresh()
+                g_replVariables = bufferResult;
+                g_REPLTreeDataProvider.refresh();
             }
         });
     });
@@ -276,6 +278,11 @@ function executeJuliaBlockInRepl() {
     }
 }
 
+function changeREPLmode() {
+    sendMessage('repl/getAvailableModules', '');
+    vscode.window.showTextDocument(vscode.window.activeTextEditor.document);
+}
+
 function sendMessage(cmd, msg: string) {
     startREPL()
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
@@ -299,7 +306,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_plotPaneProvider = new PlotPaneDocumentContentProvider();
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('jlplotpane', g_plotPaneProvider));
 
-    context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', new REPLHandler()));
+    g_REPLTreeDataProvider = new REPLTreeDataProvider();
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPL));
 
@@ -307,11 +315,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
 
-    // TODO DA I don't understand what this does
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', () => {
-        sendMessage('repl/getAvailableModules', '')
-        vscode.window.showTextDocument(vscode.window.activeTextEditor.document)
-    }));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', changeREPLmode));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
 
