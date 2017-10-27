@@ -106,7 +106,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
         }
         else {
             if (g_terminal) {
-                return g_replVariables.split(',').slice(1)
+                return g_replVariables.split(';').slice(1)
             }
             else {
                 return ['no repl attached']
