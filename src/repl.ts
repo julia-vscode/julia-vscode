@@ -203,7 +203,7 @@ function startPlotDisplayServer() {
 
                     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
                     g_plotPaneProvider.update();
-                    vscode.commands.executeCommand('vscode.previewHtml', uri, undefined, "julia Plot Pane");
+                    vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia Plot Pane");
                 }
             }
         });
