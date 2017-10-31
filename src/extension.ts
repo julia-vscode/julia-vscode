@@ -36,7 +36,8 @@ export function activate(context: vscode.ExtensionContext) {
     // Status bar
     g_serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     g_serverstatus.show()
-    g_serverstatus.text = 'Julia: starting up';
+    g_serverstatus.text = 'Julia';
+    g_serverstatus.color = 'red';
     context.subscriptions.push(g_serverstatus);
 
     // Config change
@@ -151,7 +152,9 @@ async function startLanguageServer() {
     }
 
     g_languageClient.onReady().then(() => {
-        g_languageClient.onNotification(g_serverBusyNotification, () => { g_serverstatus.text = 'Julia: busy' })
-        g_languageClient.onNotification(g_serverReadyNotification, () => { g_serverstatus.text = 'Julia: ready' })
+        g_languageClient.onNotification(g_serverBusyNotification, () => { g_serverstatus.color = 'red' 
+    })
+        g_languageClient.onNotification(g_serverReadyNotification, () => { g_serverstatus.color = '' 
+    })
     })
 }
