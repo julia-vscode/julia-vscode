@@ -98,7 +98,7 @@ function getVariables()
         !isdefined(M, n) && continue
         x = getfield(M, n)
         t = typeof(x)
-        msg = string(msg, ",", n, "::", t)
+        msg = string(msg, ";", n, "::", t)
     end
     return msg
 end
