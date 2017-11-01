@@ -5,6 +5,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
+import {getJuliaExePath} from './packagepath';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -122,12 +123,14 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
 
 let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
 
-function startREPL() {
+async function startREPL() {
+    console.log("asdf")
     if (g_terminal == null) {
         startREPLConn()
         startPlotDisplayServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
-        g_terminal = vscode.window.createTerminal("julia", g_settings.juliaExePath, ['-q', '-i', args, process.pid.toString()]);
+        let exepath = await getJuliaExePath();
+        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString()]);
     }
     g_terminal.show();
 }
@@ -218,12 +221,12 @@ function startPlotDisplayServer() {
     })
 }
 
-function executeCode(text) {
+async function executeCode(text) {
     if (!text.endsWith("\n")) {
         text = text + '\n';
     }
 
-    startREPL();
+    await startREPL();
     g_terminal.show(true);
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
@@ -283,8 +286,8 @@ function changeREPLmode() {
     vscode.window.showTextDocument(vscode.window.activeTextEditor.document);
 }
 
-function sendMessage(cmd, msg: string) {
-    startREPL()
+async function sendMessage(cmd, msg: string) {
+    await startREPL()
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
     let conn = net.connect(sock)
