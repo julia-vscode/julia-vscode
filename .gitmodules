@@ -9,7 +9,7 @@
 	url = https://github.com/JuliaIO/JSON.jl.git
 [submodule "scripts/languageserver/packages/LanguageServer"]
 	path = scripts/languageserver/packages/LanguageServer
-	url = git@github.com:JuliaEditorSupport/LanguageServer.jl.git
+	url = https://github.com/JuliaEditorSupport/LanguageServer.jl.git
 [submodule "scripts/languageserver/packages/URIParser"]
 	path = scripts/languageserver/packages/URIParser
 	url = https://github.com/JuliaWeb/URIParser.jl.git
