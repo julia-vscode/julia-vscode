@@ -155,7 +155,7 @@ conn = connect(global_lock_socket_name)
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
     payload = stringmime(MIME("image/png"), x)
-    print(conn, "image/png", ":", length(payload), ";")
+    print(conn, "image/png", ":", endof(payload), ";")
     print(conn, payload)
 end
 
@@ -163,7 +163,7 @@ displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
     payload = stringmime(MIME("image/svg+xml"), x)
-    print(conn, "image/svg+xml", ":", length(payload), ";")
+    print(conn, "image/svg+xml", ":", endof(payload), ";")
     print(conn, payload)
 end
 
@@ -171,7 +171,7 @@ displayable(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("text/html")}, x)
     payload = stringmime(MIME("text/html"), x)
-    print(conn, "text/html", ":", length(payload), ";")
+    print(conn, "text/html", ":", endof(payload), ";")
     print(conn, payload)
 end
 
