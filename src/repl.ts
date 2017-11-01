@@ -42,7 +42,7 @@ let g_plotPaneProvider: PlotPaneDocumentContentProvider = null;
 
 export function showPlotPane() {
     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
-    vscode.commands.executeCommand('vscode.previewHtml', uri, undefined, "julia Plot Pane");
+    vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia Plot Pane");
 }
 
 export function plotPanePrev() {
