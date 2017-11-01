@@ -122,14 +122,18 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
 
 let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
 
-function startREPL() {
+function startREPLCommand() {
+    startREPL(false);
+}
+
+function startREPL(preserveFocus: boolean) {
     if (g_terminal == null) {
         startREPLConn()
         startPlotDisplayServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         g_terminal = vscode.window.createTerminal("julia", g_settings.juliaExePath, ['-q', '-i', args, process.pid.toString()]);
     }
-    g_terminal.show();
+    g_terminal.show(preserveFocus);
 }
 
 function startREPLConn() {
@@ -223,7 +227,7 @@ function executeCode(text) {
         text = text + '\n';
     }
 
-    startREPL();
+    startREPL(true);
     g_terminal.show(true);
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
@@ -253,7 +257,7 @@ function executeSelection() {
         }
     }
     executeCode(text)
-    editor.show()
+    vscode.window.showTextDocument(editor.document);
 }
 
 function executeFile() {
@@ -273,7 +277,7 @@ function executeJuliaBlockInRepl() {
         let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
         g_languageClient.sendRequest('julia/getCurrentBlockText', params).then((text) => {
             executeCode(text)
-            vscode.window.showTextDocument(vscode.window.activeTextEditor.document)
+            vscode.window.showTextDocument(editor.document);
         })
     }
 }
@@ -284,7 +288,7 @@ function changeREPLmode() {
 }
 
 function sendMessage(cmd, msg: string) {
-    startREPL()
+    startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
     let conn = net.connect(sock)
@@ -309,7 +313,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_REPLTreeDataProvider = new REPLTreeDataProvider();
     context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPL));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
 
