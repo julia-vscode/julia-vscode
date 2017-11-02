@@ -10,9 +10,9 @@ the julia extension to find your local julia binary.
 
 ### Installing VS Code
 
-Just head over to the [VS Code]() homepage and follow the installation
-instructions for your platform. At the end of this step you should be
-able to start VS Code.
+Just head over to the [VS Code](https://code.visualstudio.com/) homepage
+and follow the installation instructions for your platform. At the end of
+this step you should be able to start VS Code.
 
 ### Install the julia extension
 
