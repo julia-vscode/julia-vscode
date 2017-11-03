@@ -40,7 +40,7 @@ immutable InlineDisplay <: Display end
 
 pid = Base.ARGS[1]
 
-function change_module(newmodule::String)
+function change_module(newmodule::String, print_change = true)
     global active_module
     smods = Symbol.(split(newmodule, "."))
 
@@ -74,7 +74,8 @@ function change_module(newmodule::String)
         close(out)
         return ret
     end
-    println("Changed root module to $expr")
+    print(" \r ")
+    print_change && println("Changed root module to $expr")
     print_with_color(:green, string(newmodule,">"), bold = true)
 end
 
@@ -193,7 +194,8 @@ end
 atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
 @async while true
     if isdefined(Base, :active_repl)
-        change_module("Main")
+        print("\r")
+        change_module("Main", false)
         break
     end
 end
