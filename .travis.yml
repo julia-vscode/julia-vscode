@@ -9,12 +9,14 @@ before_install:
 
 install:
 - npm install
-- npm run compile
-- npm install -g vsce
-- vsce package
 
 script:
+- npm run compile
 - npm test --silent
+
+before_deploy:
+- npm install -g vsce
+- vsce package
 
 deploy:
   provider: releases
