@@ -20,7 +20,6 @@ node_js:
 
 install:
 - npm install
-- npm run compile
 - npm install -g vsce
 - vsce package
 
