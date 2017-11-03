@@ -275,8 +275,9 @@ function executeJuliaBlockInRepl() {
     else {
         var editor = vscode.window.activeTextEditor;
         let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
-        g_languageClient.sendRequest('julia/getCurrentBlockText', params).then((text) => {
-            executeCode(text)
+        g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params).then((param) => {
+            executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(param[0]), vscode.window.activeTextEditor.document.positionAt(param[1]))))
+            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(param[1]), vscode.window.activeTextEditor.document.positionAt(param[1]))
             vscode.window.showTextDocument(editor.document);
         })
     }
