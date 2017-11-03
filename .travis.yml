@@ -14,7 +14,7 @@ install:
 - vsce package
 
 script:
-  - npm test --silent
+- npm test --silent
 
 # deploy:
 #   provider: releases
