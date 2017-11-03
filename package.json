@@ -39,7 +39,7 @@
         "workspaceContains:benchmark/benchmarks.jl",
         "workspaceContains:docs/make.jl"
     ],
-    "main": "./out/src/extension",
+    "main": "./out/extension",
     "contributes": {
         "languages": [
             {
