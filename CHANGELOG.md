@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0
+* Add eval into module option to REPL
+* Add toggle lint command
+* Add toggle log command
+* Add REPL variable list to UI
+* Add execute file command
+* Add execute block command
+* Add support for region folding
+* Bug fixes
+
 ## 0.7.0
 * Use VS Code tasks for build, test and benchmark
 * Add reload modules command
