@@ -302,7 +302,7 @@ export interface TextDocumentPositionParams {
     position: vscode.Position
 }
 
-let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockText')
+let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockOffsetRange')
 
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
