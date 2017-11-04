@@ -257,7 +257,6 @@ function executeSelection() {
         }
     }
     executeCode(text)
-    vscode.window.showTextDocument(editor.document);
 }
 
 function executeFile() {
@@ -278,14 +277,12 @@ function executeJuliaBlockInRepl() {
         g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params).then((param) => {
             executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(param[0]), vscode.window.activeTextEditor.document.positionAt(param[1]))))
             vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(param[1]), vscode.window.activeTextEditor.document.positionAt(param[1]))
-            vscode.window.showTextDocument(editor.document);
         })
     }
 }
 
 function changeREPLmode() {
     sendMessage('repl/getAvailableModules', '');
-    vscode.window.showTextDocument(vscode.window.activeTextEditor.document);
 }
 
 function sendMessage(cmd, msg: string) {
@@ -302,7 +299,7 @@ export interface TextDocumentPositionParams {
     position: vscode.Position
 }
 
-let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockText')
+let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockOffsetRange')
 
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
