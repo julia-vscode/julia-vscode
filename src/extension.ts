@@ -36,7 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Status bar
     g_serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     g_serverstatus.show()
-    g_serverstatus.text = 'Julia';
+    g_serverstatus.text = 'Julia Language Server is busy';
     g_serverstatus.color = 'red';
     context.subscriptions.push(g_serverstatus);
 
@@ -152,9 +152,12 @@ async function startLanguageServer() {
     }
 
     g_languageClient.onReady().then(() => {
-        g_languageClient.onNotification(g_serverBusyNotification, () => { g_serverstatus.color = 'red' 
-    })
-        g_languageClient.onNotification(g_serverReadyNotification, () => { g_serverstatus.color = '' 
-    })
+        g_languageClient.onNotification(g_serverBusyNotification, () => {
+            g_serverstatus.show();
+        })
+
+        g_languageClient.onNotification(g_serverReadyNotification, () => {
+            g_serverstatus.hide();
+        })
     })
 }
