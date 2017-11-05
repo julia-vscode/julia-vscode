@@ -267,17 +267,28 @@ function executeFile() {
     sendMessage('repl/include', editor.document.fileName)
 }
 
-function executeJuliaBlockInRepl() {
+async function executeJuliaBlockInRepl() {
     if (g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Language server is not running.');
     }
     else {
         var editor = vscode.window.activeTextEditor;
         let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
-        g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params).then((param) => {
-            executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(param[0]), vscode.window.activeTextEditor.document.positionAt(param[1]))))
-            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(param[1]), vscode.window.activeTextEditor.document.positionAt(param[1]))
-        })
+
+        try {
+            let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
+
+            executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0]), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))))
+            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[1]), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))
+        }
+        catch (ex) {
+            if (ex.message == "Language client is not ready yet") {
+                vscode.window.showErrorMessage('Execute code block only works once the Julia Language Server is ready.');
+            }
+            else {
+                throw ex;
+            }
+        }
     }
 }
 
