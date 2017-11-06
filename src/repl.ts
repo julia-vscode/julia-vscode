@@ -293,7 +293,12 @@ async function executeJuliaBlockInRepl() {
 }
 
 function changeREPLmode() {
-    sendMessage('repl/getAvailableModules', '');
+    if (g_terminal == null) {
+        vscode.window.showErrorMessage("Cannot change REPL mode without a running julia REPL.");
+    }
+    else {
+        sendMessage('repl/getAvailableModules', '');
+    }
 }
 
 function sendMessage(cmd, msg: string) {
