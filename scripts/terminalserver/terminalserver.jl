@@ -76,7 +76,7 @@ function change_module(newmodule::String, print_change = true)
     end
     print(" \r ")
     print_change && println("Changed root module to $expr")
-    print_with_color(:green, string(newmodule,">"), bold = true)
+    print_with_color(:green, string(newmodule,"> "), bold = true)
 end
 
 function get_available_modules(m=Main, out = Module[])
