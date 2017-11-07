@@ -120,7 +120,8 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
     }
 }
 
-let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
+// TODO Enable again
+// let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
 
 function startREPLCommand() {
     startREPL(false);
@@ -155,7 +156,8 @@ function startREPLConn() {
             }
             if (replResponse[0] == "repl/variables") {
                 g_replVariables = bufferResult;
-                g_REPLTreeDataProvider.refresh();
+                // TODO Enable again
+                // g_REPLTreeDataProvider.refresh();
             }
         });
     });
@@ -324,8 +326,9 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_plotPaneProvider = new PlotPaneDocumentContentProvider();
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('jlplotpane', g_plotPaneProvider));
 
-    g_REPLTreeDataProvider = new REPLTreeDataProvider();
-    context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
+    // TODO Enable again
+    // g_REPLTreeDataProvider = new REPLTreeDataProvider();
+    // context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand));
 
