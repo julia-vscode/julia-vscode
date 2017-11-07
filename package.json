@@ -325,15 +325,7 @@
                     }
                 }
             }
-        ],
-        "views": {
-            "explorer": [
-                {
-                    "id": "REPLVariables",
-                    "name": "REPL Variables"
-                }
-            ]
-        }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
