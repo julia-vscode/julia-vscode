@@ -61,3 +61,9 @@ The extension currently provides
 * [a linter](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Information#linter)
 * [code navigation](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Navigation)
 * test run command
+
+## Known issues and workarounds
+
+Please visit the [known issues and workarounds](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Know-issues-and-workarounds)
+for up-to-date information about known issues and solutions for those
+problems.
