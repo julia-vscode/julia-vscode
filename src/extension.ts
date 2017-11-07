@@ -37,7 +37,6 @@ export function activate(context: vscode.ExtensionContext) {
     g_serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     g_serverstatus.show()
     g_serverstatus.text = 'Julia Language Server is busy';
-    g_serverstatus.color = 'red';
     context.subscriptions.push(g_serverstatus);
 
     // Config change
