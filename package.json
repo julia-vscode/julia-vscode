@@ -231,11 +231,11 @@
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == julia && editorHasSelection"
+                "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
-                "key": "ctrl+Enter",
+                "key": "alt+Enter",
                 "when": "editorTextFocus && editorLangId == julia && !editorHasSelection"
             },
             {
