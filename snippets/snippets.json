@@ -19,24 +19,24 @@
 		"description": "While loop",
 		"scope": "source.julia"
 	},
-	"Type Declaration": {
-		"prefix": "type",
+	"Mutable Struct Declaration": {
+		"prefix": "mutable",
 		"body": [
-			"type $1",
+			"mutable struct $1",
 			"\t$2",
 			"end"
 		],
-		"description": "Type declaration",
+		"description": "Mutable struct declaration",
 		"scope": "source.julia"
 	},
-	"Immutable Declaration": {
-		"prefix": "immutable",
+	"Struct Declaration": {
+		"prefix": "struct",
 		"body": [
-			"type $1",
+			"struct $1",
 			"\t$2",
 			"end"
 		],
-		"description": "Immutable declaration",
+		"description": "Struct declaration",
 		"scope": "source.julia"
 	},
 	"Function Declaration": {
@@ -57,6 +57,26 @@
 			"end"
 		],
 		"description": "Macro declaration",
+		"scope": "source.julia"
+	},
+	"Let Block": {
+		"prefix": "let",
+		"body": [
+			"let $1",
+			"\t$2",
+			"end"
+		],
+		"description": "Let Block",
+		"scope": "source.julia"
+	},
+	"Begin Block": {
+		"prefix": "begin",
+		"body": [
+			"begin",
+			"\t$1",
+			"end"
+		],
+		"description": "Begin Block",
 		"scope": "source.julia"
 	}
 }
