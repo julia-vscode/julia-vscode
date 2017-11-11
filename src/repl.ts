@@ -266,7 +266,10 @@ function executeFile() {
     if (!editor) {
         return;
     }
-    sendMessage('repl/include', editor.document.fileName)
+
+    let text = editor.document.getText();
+
+    executeCode(text)
 }
 
 async function executeJuliaBlockInRepl() {
