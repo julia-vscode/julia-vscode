@@ -64,6 +64,6 @@ The extension currently provides
 
 ## Known issues and workarounds
 
-Please visit the [known issues and workarounds](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Know-issues-and-workarounds)
+Please visit the [known issues and workarounds](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Known-issues-and-workarounds)
 for up-to-date information about known issues and solutions for those
 problems.
