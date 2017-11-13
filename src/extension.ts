@@ -138,7 +138,7 @@ async function startLanguageServer() {
 
     // Create the language client and start the client.
     g_languageClient = new LanguageClient('julia Language Server', serverOptions, clientOptions);
-
+    g_languageClient.registerProposedFeatures();
     // Push the disposable to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
     try {
@@ -158,5 +158,8 @@ async function startLanguageServer() {
         g_languageClient.onNotification(g_serverReadyNotification, () => {
             g_serverstatus.hide();
         })
+    })
+    vscode.workspace.onDidChangeWorkspaceFolders((e) => {
+        g_languageClient.sendRequest('workspace/didChangeWorkspaceFolders', e.added)
     })
 }

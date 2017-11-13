@@ -266,7 +266,7 @@ function executeFile() {
     if (!editor) {
         return;
     }
-
+    
     let text = editor.document.getText();
 
     executeCode(text)
