@@ -106,7 +106,7 @@
     "function_call": {
       "patterns": [
         {
-          "begin": "([[:alpha:]_][[:word:]⁺-ₜ!′]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?\\.?\\(",
+          "begin": "([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?\\.?\\(",
           "beginCaptures": {
             "1": {
               "name": "support.function.julia"
@@ -140,7 +140,7 @@
               "name": "support.type.julia"
             }
           },
-          "match": "([[:alpha:]_][[:word:]⁺-ₜ!′]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?\\((?=.*\\)(::[^\\s]+)?(\\s*\\bwhere\\b\\s*[^\\s]+)?\\s*?=(?![=>]))",
+          "match": "([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?\\((?=.*\\)(::[^\\s]+)?(\\s*\\bwhere\\b\\s*[^\\s]+)?\\s*?=(?![=>]))",
           "comment": "This is different from the one in tpoisot's package"
         },
         {
@@ -158,7 +158,7 @@
               "name": "support.type.julia"
             }
           },
-          "match": "\\b(function|macro)\\s+(?:[[:alpha:]_][[:word:]⁺-ₜ!′]*(\\.))?([[:alpha:]_][[:word:]⁺-ₜ!′]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?\\(",
+          "match": "\\b(function|macro)(?:\\s+(?:[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*(\\.))?([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?|\\s*)\\(",
           "comment": "similar regex to previous, but with keyword not 1-line syntax"
         }
       ]
@@ -166,7 +166,7 @@
     "keyword": {
       "patterns": [
         {
-          "match": "\\b(?<![:_])(?:function|@generated|type|immutable|mutable struct|struct|macro|quote|abstract|abstract type|primitive type|bitstype|typealias|module|baremodule|new|where)\\b",
+          "match": "\\b(?<![:_])(?:function|@generated|type|immutable|mutable|struct|macro|quote|abstract|bitstype|typealias|module|baremodule|new|where)\\b",
           "name": "keyword.other.julia"
         },
         {
@@ -198,7 +198,7 @@
           "name": "keyword.control.using.julia"
         },
         {
-          "match": "(@[[:alpha:]_][[:word:]⁺-ₜ!′]*)",
+          "match": "(@[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)",
           "name": "support.function.macro.julia"
         },
         {
@@ -210,7 +210,7 @@
     "number": {
       "patterns": [
         {
-          "match": "((\\b0(x|X)[0-9a-fA-F](_?[0-9a-fA-F])*)|(\\b0o[0-7](_?[0-7])*)|(\\b0b[0-1](_?[0-1])*)|((\\b[0-9](_?[0-9])*\\.?(_?[0-9]*))|(\\.[0-9](_?[0-9])*))([eE][+-]?[0-9](_?[0-9])*)?(im)?|\\bInf(32)?\\b|\\bNaN(32)?\\b)",
+          "match": "((\\b0(x|X)[0-9a-fA-F](_?[0-9a-fA-F])*)|(\\b0o[0-7](_?[0-7])*)|(\\b0b[0-1](_?[0-1])*)|((\\b[0-9](_?[0-9])*\\.?(_?[0-9]*))|(\\.[0-9](_?[0-9])*))([eE][+-]?[0-9](_?[0-9])*)?(im\\b)?|\\bInf(32)?\\b|\\bNaN(32)?\\b)",
           "name": "constant.numeric.julia"
         },
         {
@@ -234,7 +234,7 @@
           "name": "keyword.operator.shift.julia"
         },
         {
-          "match": "(?:\\s*(::|<:)\\s*((?:(?:Union)?\\([^)]*\\)|[[:alpha:]_][[:word:]⁺-ₜ!′\\.]*(?:{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?)))(?:\\.\\.\\.)?",
+          "match": "(?:\\s*(::|>:|<:)\\s*((?:(?:Union)?\\([^)]*\\)|[[:alpha:]_][[:word:]⁺-ₜ!′\\.]*(?:{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?)))(?:\\.\\.\\.)?",
           "captures": {
             "1": {
               "name": "keyword.operator.relation.julia"
@@ -245,7 +245,7 @@
           }
         },
         {
-          "match": "(?:===|(?<=\\s)in(?=\\s)|\\.==|!==|!=|\\.>=|\\.>|\\.<|==|\\.!=|\\.=|\\.!|<:|:>|(?<!>)>=|(?<!<)<=|\\.<=|>|<)",
+          "match": "(?:===|(?<=\\s)in(?=\\s)|\\.==|!==|!=|\\.>=|\\.>|\\.<=|\\.<|==|\\.!=|\\.=|\\.!|<:|>:|:>|(?<!>)>=|(?<!<)<=|>|<)",
           "name": "keyword.operator.relation.julia"
         },
         {
@@ -257,7 +257,7 @@
           "name": "keyword.operator.boolean.julia"
         },
         {
-          "match": "(?::)",
+          "match": "(?<=[[:word:]⁺-ₜ!′])(?::)",
           "name": "keyword.operator.range.julia"
         },
         {
@@ -290,7 +290,7 @@
               "name": "keyword.operator.transposed-variable.julia"
             }
           },
-          "match": "([[:alpha:]_][[:word:]⁺-ₜ!′]*)(('|(\\.'))*\\.?')"
+          "match": "([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)(('|(\\.'))*\\.?')"
         },
         {
           "captures": {
@@ -373,7 +373,7 @@
           ]
         },
         {
-          "begin": "^\\s?([[:alpha:]_][[:word:]⁺-ₜ!′]*)?(\"\"\")\\s?$",
+          "begin": "^\\s?([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)?(\"\"\")\\s?$",
           "beginCaptures": {
             "1": {
               "name": "support.function.macro.julia"
@@ -496,13 +496,13 @@
           ]
         },
         {
-          "begin": "\\b[[:alpha:]_][[:word:]⁺-ₜ!′]*\"",
+          "begin": "\\b[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*\"",
           "beginCaptures": {
             "0": {
               "name": "punctuation.definition.string.begin.julia"
             }
           },
-          "end": "\"([[:alpha:]_][[:word:]⁺-ₜ!′]*)?",
+          "end": "\"([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)?",
           "endCaptures": {
             "0": {
               "name": "punctuation.definition.string.end.julia"
@@ -584,7 +584,7 @@
     "string_dollar_sign_interpolate": {
       "patterns": [
         {
-          "match": "\\$[[:alpha:]_][[:word:]⁺-ₜ!′]*",
+          "match": "\\$[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*",
           "name": "variable.interpolation.julia"
         },
         {
@@ -622,7 +622,7 @@
     "symbol": {
       "patterns": [
         {
-          "match": "(?<![a-zA-Z0-9:<]:)(?<=:)[[:alpha:]_][[:word:]⁺-ₜ!′]*",
+          "match": "(?<![[:word:]⁺-ₜ!′∇]):(?:[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)",
           "name": "constant.other.symbol.julia",
           "comment": "This is string.quoted.symbol.julia in tpoisot's package"
         }
@@ -642,7 +642,7 @@
               "name": "punctuation.separator.inheritance.julia"
             }
           },
-          "match": "(?>!:_)(?:type|immutable|struct)\\s+([[:alpha:]_][[:word:]⁺-ₜ!′]*)(\\s*(<:)\\s*[[:alpha:]_][[:word:]⁺-ₜ!′]*(?:{.*})?)?",
+          "match": "(?>!:_)(?:type|immutable|struct)\\s+([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)(\\s*(<:)\\s*[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*(?:{.*})?)?",
           "name": "meta.type.julia"
         }
       ]
