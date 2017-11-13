@@ -60,7 +60,13 @@ The extension currently provides
 * [hover help](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Information#hover-help)
 * [a linter](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Information#linter)
 * [code navigation](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Navigation)
-* test run command
+* tasks for running tests, builds, benchmarks and build documentation
+
+## Documentation
+
+The [documentation](https://github.com/JuliaEditorSupport/julia-vscode/wiki)
+has sections that describe the features of this extension (including
+e.g. keyboard shortcuts).
 
 ## Known issues and workarounds
 
