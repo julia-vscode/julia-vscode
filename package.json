@@ -304,7 +304,8 @@
                         "null"
                     ],
                     "default": null,
-                    "description": "Points to the julia executable."
+                    "description": "Points to the julia executable.",
+                    "scope": "window"
                 },
                 "julia.runlinter": {
                     "type": "boolean",
