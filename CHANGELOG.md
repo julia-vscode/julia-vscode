@@ -4,7 +4,6 @@
 * Add eval into module option to REPL
 * Add toggle lint command
 * Add toggle log command
-* Add REPL variable list to UI
 * Add execute file command
 * Add execute block command
 * Add support for region folding
