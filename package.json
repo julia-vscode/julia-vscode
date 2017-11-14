@@ -349,10 +349,5 @@
 		"mocha": "^4.0.1",
 		"@types/node": "^8.0.47",
 		"@types/mocha": "^2.2.44"
-	},
-	"__metadata": {
-		"id": "038dd41f-4a41-48e3-87de-ab2ea4310780",
-		"publisherDisplayName": "julialang",
-		"publisherId": "205aeff7-3cad-4caf-9f66-11fb2a0cbc74"
 	}
 }
