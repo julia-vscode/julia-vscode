@@ -341,6 +341,7 @@
         "child-process-promise": "^v2.2.1",
         "async-file": "^v2.0.2",
         "async-child-process": "^v1.1.1",
+        "promise-timeout": "^1.1.1",
         "promised-temp": "^v0.1.0"
     },
     "devDependencies": {
