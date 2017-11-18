@@ -203,6 +203,9 @@ function startPlotDisplayServer() {
                         let plotPaneContent = '<html><img src="data:image/png;base64,' + actual_image + '" /></html>';
                         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
                     }
+                    else if (mime_type == 'juliavscode/html') {
+                        g_currentPlotIndex = g_plots.push(actual_image) - 1;
+                    }
                     else {
                         throw new Error();
                     }
