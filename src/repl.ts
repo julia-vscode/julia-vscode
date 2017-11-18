@@ -284,7 +284,7 @@ async function executeJuliaBlockInRepl() {
             let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
 
             executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))))
-            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[1]), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))
+            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
         }
         catch (ex) {
             if (ex.message == "Language client is not ready yet") {
