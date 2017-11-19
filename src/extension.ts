@@ -160,6 +160,6 @@ async function startLanguageServer() {
         })
     })
     vscode.workspace.onDidChangeWorkspaceFolders((e) => {
-        g_languageClient.sendRequest('workspace/didChangeWorkspaceFolders', e.added)
+        g_languageClient.sendRequest('workspace/didChangeWorkspaceFolders', e)
     })
 }
