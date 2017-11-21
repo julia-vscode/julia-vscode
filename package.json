@@ -313,7 +313,12 @@
                     "description": "Option to automatically run the Linter on active files."
                 }
             }
-        },
+		},
+		"configurationDefaults": {
+			"[julia]": {
+				"editor.quickSuggestions": true
+			}
+		},
         "taskDefinitions": [
             {
                 "type": "julia",
