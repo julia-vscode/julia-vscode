@@ -33,7 +33,8 @@ you have not configured something else, the extension will use that
 version of julia. Alternatively, you can set the ``julia.executablePath``
 configuration setting to point to a julia binary, in which case the
 extension will always use that version of julia. To edit your configuration
-settings, execute the ``Preferences: Open User Settings`` command, and
+settings, execute the ``Preferences: Open User Settings`` command (you can
+also access it via the menu ``File->Preferences->Settings``), and
 then make sure your user settings include the ``julia.executablePath``
 setting. The format of the string should follow your platform specific
 conventions, and be aware that the backlash ``\`` is the escape character
