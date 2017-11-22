@@ -337,7 +337,7 @@
         "update2latest": "git pull && git submodule init && git submodule update && npm install && npm run compile"
     },
     "dependencies": {
-        "vscode-languageclient": "^3.4.5",
+        "vscode-languageclient": "^3.5.0",
         "child-process-promise": "^v2.2.1",
         "async-file": "^v2.0.2",
         "async-child-process": "^v1.1.1",
