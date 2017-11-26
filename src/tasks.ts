@@ -44,7 +44,16 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
             let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(g_settings.juliaExePath, ['--color=yes', '-e', 'Pkg.test(Base.ARGS[1])', rootPath]), "");
             testTask.group = vscode.TaskGroup.Test;
             testTask.presentationOptions = { echo: false };
-            result.push(testTask);
+            result.push(testTask);   
+        }
+
+        if (await fs.exists(path.join(rootPath, 'REQUIRE'))) {
+            let scriptpath = path.join(g_context.extensionPath, 'scripts', 'test_deps.jl')
+            let depTestTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests on dependents`, 'julia', new vscode.ProcessExecution(g_settings.juliaExePath, ['--color=yes', '-e', 'include("' + scriptpath + '")', path.basename(rootPath)]), "");
+            
+            depTestTask.group = vscode.TaskGroup.Test;
+            depTestTask.presentationOptions = { echo: false };
+            result.push(depTestTask);   
         }
 
         if (await fs.exists(path.join(rootPath, 'deps', 'build.jl'))) {
