@@ -5,6 +5,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
+import {generatePipeName} from './utils';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -80,15 +81,6 @@ export function plotPaneDel() {
             g_currentPlotIndex = g_plots.length - 1;
         }
         g_plotPaneProvider.update();
-    }
-}
-
-function generatePipeName(pid: string, name: string) {
-    if (process.platform === 'win32') {
-        return '\\\\.\\pipe\\' + name + '-' + pid;
-    }
-    else {
-        return path.join(os.tmpdir(), name + '-' + pid);
     }
 }
 
