@@ -337,18 +337,18 @@
         "update2latest": "git pull && git submodule init && git submodule update && npm install && npm run compile"
     },
     "dependencies": {
-        "vscode-languageclient": "^3.5.0",
-        "child-process-promise": "^v2.2.1",
+        "applicationinsights": "^1.0.1",
+        "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
-        "async-child-process": "^v1.1.1",        
+        "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
-        "vscode-extension-telemetry": "0.0.8"        
+        "vscode-languageclient": "^3.5.0"
     },
     "devDependencies": {
-        "typescript": "^2.6.1",
-        "vscode": "^1.1.6",
+        "@types/mocha": "^2.2.45",
+        "@types/node": "^8.5.2",
         "mocha": "^4.0.1",
-        "@types/node": "^8.0.47",
-        "@types/mocha": "^2.2.44"
+        "typescript": "^2.6.2",
+        "vscode": "^1.1.10"
     }
 }
