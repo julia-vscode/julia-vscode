@@ -6,7 +6,7 @@ import * as fs from 'async-file';
 import * as path from 'path'
 import * as net from 'net';
 import * as os from 'os';
-import * as telemetry from 'vscode-extension-telemetry';
+import * as telemetry from './telemetry';
 import { spawn, ChildProcess } from 'child_process';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
 import * as vslc from 'vscode-languageclient';
@@ -27,20 +27,15 @@ let g_serverstatus: vscode.StatusBarItem = null;
 let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
 let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 
-const extensionId = 'julia-vscode';
-
-// extension version will be reported as a property with each event 
-const extensionVersion = '0.9.0-beta';
-
-// the application insights key
-const key = 'ca3da077-1720-48b9-979b-5fdbc8253d74'; 
-
 // telemetry reporter 
-let reporter;
+let appInsightsClient 
 
 export function activate(context: vscode.ExtensionContext) {
-    reporter = new telemetry.default(extensionId, extensionVersion, key);
-    context.subscriptions.push(reporter);
+    appInsightsClient = telemetry.init();
+
+    telemetry.traceEvent(appInsightsClient, 'activate');
+
+    telemetry.startLsCrashServer(appInsightsClient);
 
     g_context = context;
 
@@ -75,8 +70,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Start language server
     startLanguageServer();
-
-    reporter.sendTelemetryEvent('sampleEvent', { 'stringProp': 'some string' }, { 'numericMeasure': 123});
 }
 
 // this method is called when your extension is deactivated
@@ -130,8 +123,8 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         return;
     }
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=no'];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=yes'];
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=no', process.pid.toString()];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=yes', process.pid.toString()];
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -153,7 +146,7 @@ async function startLanguageServer() {
         }
     }
 
-    // Create the language client and start the client.
+        // Create the language client and start the client.
     g_languageClient = new LanguageClient('julia Language Server', serverOptions, clientOptions);
     g_languageClient.registerProposedFeatures()
 
