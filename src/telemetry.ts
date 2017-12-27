@@ -7,40 +7,53 @@ import * as vslc from 'vscode-languageclient';
 let appInsights = require('applicationinsights');
 import {generatePipeName} from './utils';
 
-export function init() {
-    let extversion: String = vscode.extensions.getExtension('julialang.language-julia').packageJSON.version;
+let enableCrashReporter: boolean = false;
+let enableTelemetry: boolean = false;
 
-    // The Application Insights Key
-    let key = '';
-    if (vscode.env.machineId=="someValue.machineId") {
-        // Use the debug environment
-        key = '82cf1bd4-8560-43ec-97a6-79847395d791';
-    }
-    else if (extversion.includes('-')) {
-        // Use the dev environment
-        key = '94d316b7-bba0-4d03-9525-81e25c7da22f';
+export function init() {
+    let section = vscode.workspace.getConfiguration('julia');
+
+    enableCrashReporter = section.get<boolean>('enableCrashReporter', false);
+    enableTelemetry = section.get<boolean>('enableTelemetry', false);
+
+    if (enableCrashReporter || enableTelemetry) {
+        let extversion: String = vscode.extensions.getExtension('julialang.language-julia').packageJSON.version;
+
+        // The Application Insights Key
+        let key = '';
+        if (vscode.env.machineId=="someValue.machineId") {
+            // Use the debug environment
+            key = '82cf1bd4-8560-43ec-97a6-79847395d791';
+        }
+        else if (extversion.includes('-')) {
+            // Use the dev environment
+            key = '94d316b7-bba0-4d03-9525-81e25c7da22f';
+        }
+        else {
+            // Use the production environment
+            key = 'ca1fb443-8d44-4a06-91fe-0235cfdf635f';
+        }
+
+        appInsights.setup(key)
+            .setAutoDependencyCorrelation(false)
+            .setAutoCollectRequests(false)
+            .setAutoCollectPerformance(false)
+            .setAutoCollectExceptions(enableCrashReporter)
+            .setAutoCollectDependencies(false)
+            .setAutoCollectConsole(false)
+            .setUseDiskRetryCaching(true)
+            .start();
+
+        appInsights.defaultClient.commonProperties["vscodemachineid"] = vscode.env.machineId;
+        appInsights.defaultClient.commonProperties["vscodesessionid"] = vscode.env.sessionId;
+        appInsights.defaultClient.commonProperties["vscodeversion"] = vscode.version;
+        appInsights.defaultClient.commonProperties["extversion"] = extversion;
+
+        return appInsights.defaultClient;
     }
     else {
-        // Use the production environment
-        key = 'ca1fb443-8d44-4a06-91fe-0235cfdf635f';
+        return undefined;
     }
-
-    appInsights.setup(key)
-        .setAutoDependencyCorrelation(false)
-        .setAutoCollectRequests(false)
-        .setAutoCollectPerformance(false)
-        .setAutoCollectExceptions(true)
-        .setAutoCollectDependencies(false)
-        .setAutoCollectConsole(false)
-        .setUseDiskRetryCaching(true)
-        .start();
-
-    appInsights.defaultClient.commonProperties["vscodemachineid"] = vscode.env.machineId;
-    appInsights.defaultClient.commonProperties["vscodesessionid"] = vscode.env.sessionId;
-    appInsights.defaultClient.commonProperties["vscodeversion"] = vscode.version;
-    appInsights.defaultClient.commonProperties["extversion"] = extversion;
-
-    return appInsights.defaultClient;
 }
 
 export function startLsCrashServer(client) {
@@ -59,7 +72,9 @@ export function startLsCrashServer(client) {
             let replResponse = accumulatingBuffer.toString().split("\n")
             let stacktrace = replResponse.slice(2,replResponse.length-1).join('\n');
 
-            client.track({exception: {name: replResponse[0], message: replResponse[1], stack: stacktrace}}, appInsights.Contracts.TelemetryType.Exception)
+            if (enableCrashReporter) {
+                client.track({exception: {name: replResponse[0], message: replResponse[1], stack: stacktrace}}, appInsights.Contracts.TelemetryType.Exception)
+            }
         });
     });
 
@@ -67,5 +82,7 @@ export function startLsCrashServer(client) {
 }
 
 export function traceEvent(client, message) {
-    client.trackEvent({name: message});
+    if (enableTelemetry) {
+        client.trackEvent({name: message});
+    }
 }
