@@ -310,7 +310,8 @@
                 "julia.runlinter": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Option to automatically run the Linter on active files."
+                    "description": "Option to automatically run the Linter on active files.",
+                    "scope": "window"
                 }
             }
         },
