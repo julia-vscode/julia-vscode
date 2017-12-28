@@ -13,22 +13,26 @@ let enableTelemetry: boolean = false;
 
 let extensionClient
 
-function filterTelemetry ( envelope, context ) {
+function filterTelemetry(envelope, context) {
     if (enableTelemetry) {
-        if (envelope.tags["ai.cloud.roleInstance"] !== undefined) {
-            envelope.tags["ai.cloud.roleInstance"] = "";
-        }
+        if (envelope.data.baseType == "ExceptionData") {
+            for (let i_ex in envelope.data.baseData.exceptions) {
+                if (!enableExtendedCrashReports) {
+                    envelope.data.baseData.exceptions[i_ex].hasFullStack = false;
+                    envelope.data.baseData.exceptions[i_ex].message = "AnonymisedError";
+                    envelope.data.baseData.exceptions[i_ex].parsedStack = undefined;
+                    envelope.data.baseData.exceptions[i_ex].typeName = "AnonymisedError";
+                } else {
+                    for (let i_sf in envelope.data.baseData.exceptions[i_ex].parsedStack) {
+                        let sf = envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf]
+                        envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].assembly = "";
 
-        if (!enableExtendedCrashReports) {
-            if (envelope.data.baseType=="ExceptionData") {
-                for (let i in envelope.data.baseData.exceptions) {
-                    envelope.data.baseData.exceptions[i].hasFullStack = false;
-                    envelope.data.baseData.exceptions[i].message = "AnonymisedError";
-                    envelope.data.baseData.exceptions[i].parsedStack = undefined;
-                    envelope.data.baseData.exceptions[i].typeName = "AnonymisedError";
+                        envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].sizeInBytes = sf.method.length + sf.fileName.length + sf.assembly.length + 58 + sf.level.toString().length + sf.line.toString().length
+                    }
                 }
             }
         }
+
         return true
     }
     else {
@@ -85,6 +89,7 @@ export function init() {
     extensionClient.commonProperties["vscodeversion"] = vscode.version;
     extensionClient.commonProperties["extversion"] = extversion;
     extensionClient.context.tags[extensionClient.context.keys.cloudRole] = "Extension";
+    extensionClient.context.tags[extensionClient.context.keys.cloudRoleInstance] = "";
 }
 
 export function startLsCrashServer() {
