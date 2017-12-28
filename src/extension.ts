@@ -27,15 +27,12 @@ let g_serverstatus: vscode.StatusBarItem = null;
 let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
 let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 
-// telemetry reporter 
-let appInsightsClient 
+export async function activate(context: vscode.ExtensionContext) {  
+    telemetry.init();
 
-export function activate(context: vscode.ExtensionContext) {
-    appInsightsClient = telemetry.init();
+    telemetry.traceEvent('activate');
 
-    telemetry.traceEvent(appInsightsClient, 'activate');
-
-    telemetry.startLsCrashServer(appInsightsClient);
+    telemetry.startLsCrashServer();
 
     g_context = context;
 
@@ -70,6 +67,18 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Start language server
     startLanguageServer();
+
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('enableExtendedCrashReports')===null) {
+        vscode.window.showInformationMessage("Please enable automatic extended crash reporting for the julia extension. This helps us improve the quality of the extension, but might have privacy implications. See our privacy policy to understand what data we collect.", 'Enable', 'Disable')
+            .then(crash_choice => {
+                if (crash_choice == "Enable") {
+                    vscode.workspace.getConfiguration('julia').update('enableExtendedCrashReports', true, true);
+                }
+                else if (crash_choice == "Disable") {
+                    vscode.workspace.getConfiguration('julia').update('enableExtendedCrashReports', false, true);
+                }
+            });
+    }        
 }
 
 // this method is called when your extension is deactivated
@@ -90,6 +99,7 @@ function setLanguageClient(languageClient: vslc.LanguageClient) {
 function configChanged(params) {
     let newSettings = settings.loadSettings();
 
+    telemetry.onDidChangeConfiguration(newSettings);
     repl.onDidChangeConfiguration(newSettings);
     weave.onDidChangeConfiguration(newSettings);
     tasks.onDidChangeConfiguration(newSettings);
