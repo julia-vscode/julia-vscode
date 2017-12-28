@@ -41,7 +41,7 @@ catch e
         # Send stack trace, one frame per line
         # Note that stack frames need to be formatted in Node.js style
         for s in st
-            print(pipe_to_vscode, "at ")
+            print(pipe_to_vscode, " at ")
             Base.StackTraces.show_spec_linfo(pipe_to_vscode, s)
 
             # The ? line number will be ignored on the Node side.
