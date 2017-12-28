@@ -44,8 +44,8 @@ catch e
             print(pipe_to_vscode, " at ")
             Base.StackTraces.show_spec_linfo(pipe_to_vscode, s)
 
-            # The ? line number will be ignored on the Node side.
-            print(pipe_to_vscode, " (", string(s.file), ":", s.line >= 0 ? s.line : "?", ":1)" )
+            # Use a line number of "0" as a proxy for unknown line number
+            print(pipe_to_vscode, " (", filename, ":", s.line >= 0 ? s.line : "0", ":1)" )
 
             # TODO Unclear how we can fit this into the Node.js format
             # if s.inlined
