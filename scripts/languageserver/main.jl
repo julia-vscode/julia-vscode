@@ -35,7 +35,7 @@ catch e
         println(pipe_to_vscode, typeof(e))
 
         # Send error message as one line
-        show(pipe_to_vscode, e)        
+        showerror(pipe_to_vscode, e)        
         println(pipe_to_vscode)
 
         # Send stack trace, one frame per line
