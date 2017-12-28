@@ -22,3 +22,6 @@
 [submodule "scripts/languageserver/packages/DocumentFormat"]
 	path = scripts/languageserver/packages/DocumentFormat
 	url = https://github.com/ZacLN/DocumentFormat.jl
+[submodule "scripts/languageserver/packages/Nullables"]
+	path = scripts/languageserver/packages/Nullables
+	url = https://github.com/JuliaArchive/Nullables.jl.git
