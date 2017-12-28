@@ -44,6 +44,22 @@ catch e
             print(pipe_to_vscode, " at ")
             Base.StackTraces.show_spec_linfo(pipe_to_vscode, s)
 
+            filename = string(s.file)
+
+            # Now we need to sanitize the filename so that we don't transmit
+            # things like a username in the path name
+            filename = normpath(filename)
+            if isabspath(filename)
+                root_path_of_extension = normpath(joinpath(@__DIR__, "..", ".."))
+                if startswith(filename, root_path_of_extension)
+                    filename = joinpath(".", filename[endof(root_path_of_extension)+1:end])
+                else
+                    filename = basename(filename)
+                end
+            else
+                filename = basename(filename)
+            end
+
             # Use a line number of "0" as a proxy for unknown line number
             print(pipe_to_vscode, " (", filename, ":", s.line >= 0 ? s.line : "0", ":1)" )
 
