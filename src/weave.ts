@@ -38,7 +38,6 @@ let g_weaveProvider: WeaveDocumentContentProvider = null;
 
 async function weave_core(column, selected_format: string = undefined) {
     let parsed_filename = path.parse(vscode.window.activeTextEditor.document.fileName);
-    let weaveProvider = this
 
     let source_filename: string;
     let output_filename: string;
@@ -84,25 +83,25 @@ async function weave_core(column, selected_format: string = undefined) {
         g_weaveChildProcess.stdin.write(selected_format + '\n');
     }
 
-    weaveProvider.weaveNextChildProcess = spawn(g_settings.juliaExePath, [path.join(weaveProvider.extensionPath, 'scripts', 'weave', 'run_weave.jl')]);
+    g_weaveNextChildProcess = spawn(g_settings.juliaExePath, [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]);
 
-    weaveProvider.weaveChildProcess.stdout.on('data', function (data) {
-        weaveProvider.weaveOutputChannel.append(String(data));
+    g_weaveChildProcess.stdout.on('data', function (data) {
+        g_weaveOutputChannel.append(String(data));
     });
-    weaveProvider.weaveChildProcess.stderr.on('data', function (data) {
-        weaveProvider.weaveOutputChannel.append(String(data));
+    g_weaveChildProcess.stderr.on('data', function (data) {
+        g_weaveOutputChannel.append(String(data));
     });
-    weaveProvider.weaveChildProcess.on('close', async function (code) {
-        weaveProvider.weaveChildProcess = null;
+    g_weaveChildProcess.on('close', async function (code) {
+        g_weaveChildProcess = null;
 
         if (code == 0) {
-            weaveProvider.weaveOutputChannel.hide();
+            g_weaveOutputChannel.hide();
 
             if (selected_format === undefined) {
-                weaveProvider.lastWeaveContent = await fs.readFile(output_filename, "utf8")
+                g_lastWeaveContent = await fs.readFile(output_filename, "utf8")
 
                 let uri = vscode.Uri.parse('jlweave://nothing.html');
-                weaveProvider.update();
+                g_weaveProvider.update();
                 let success = await vscode.commands.executeCommand('vscode.previewHtml', uri, column, "julia Weave Preview");
             }
         }
