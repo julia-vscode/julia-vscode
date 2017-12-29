@@ -40,7 +40,7 @@ immutable InlineDisplay <: Display end
 
 pid = Base.ARGS[1]
 
-function change_module(newmodule::String)
+function change_module(newmodule::String, print_change = true)
     global active_module
     smods = Symbol.(split(newmodule, "."))
 
@@ -74,8 +74,9 @@ function change_module(newmodule::String)
         close(out)
         return ret
     end
-    println("Changed root module to $expr")
-    print_with_color(:green, string(newmodule,">"), bold = true)
+    print(" \r ")
+    print_change && println("Changed root module to $expr")
+    print_with_color(:green, string(newmodule,"> "), bold = true)
 end
 
 function get_available_modules(m=Main, out = Module[])
@@ -155,7 +156,7 @@ conn = connect(global_lock_socket_name)
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
     payload = stringmime(MIME("image/png"), x)
-    print(conn, "image/png", ":", length(payload), ";")
+    print(conn, "image/png", ":", endof(payload), ";")
     print(conn, payload)
 end
 
@@ -163,7 +164,7 @@ displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
     payload = stringmime(MIME("image/svg+xml"), x)
-    print(conn, "image/svg+xml", ":", length(payload), ";")
+    print(conn, "image/svg+xml", ":", endof(payload), ";")
     print(conn, payload)
 end
 
@@ -171,7 +172,7 @@ displayable(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("text/html")}, x)
     payload = stringmime(MIME("text/html"), x)
-    print(conn, "text/html", ":", length(payload), ";")
+    print(conn, "text/html", ":", endof(payload), ";")
     print(conn, payload)
 end
 
@@ -193,7 +194,8 @@ end
 atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
 @async while true
     if isdefined(Base, :active_repl)
-        change_module("Main")
+        print("\r")
+        change_module("Main", false)
         break
     end
 end

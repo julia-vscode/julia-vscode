@@ -43,7 +43,7 @@ let g_plotPaneProvider: PlotPaneDocumentContentProvider = null;
 
 export function showPlotPane() {
     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
-    vscode.commands.executeCommand('vscode.previewHtml', uri, undefined, "julia Plot Pane");
+    vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia Plot Pane");
 }
 
 export function plotPanePrev() {
@@ -121,9 +121,14 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
     }
 }
 
-let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
+// TODO Enable again
+// let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
 
-async function startREPL() {
+function startREPLCommand() {
+    startREPL(false);
+}
+
+async function startREPL(preserveFocus: boolean) {
     console.log("asdf")
     if (g_terminal == null) {
         startREPLConn()
@@ -132,7 +137,7 @@ async function startREPL() {
         let exepath = await getJuliaExePath();
         g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString()]);
     }
-    g_terminal.show();
+    g_terminal.show(preserveFocus);
 }
 
 function startREPLConn() {
@@ -154,7 +159,8 @@ function startREPLConn() {
             }
             if (replResponse[0] == "repl/variables") {
                 g_replVariables = bufferResult;
-                g_REPLTreeDataProvider.refresh();
+                // TODO Enable again
+                // g_REPLTreeDataProvider.refresh();
             }
         });
     });
@@ -226,7 +232,7 @@ async function executeCode(text) {
         text = text + '\n';
     }
 
-    await startREPL();
+    await startREPL(true);
     g_terminal.show(true);
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
@@ -256,7 +262,6 @@ function executeSelection() {
         }
     }
     executeCode(text)
-    editor.show()
 }
 
 function executeFile() {
@@ -264,30 +269,48 @@ function executeFile() {
     if (!editor) {
         return;
     }
-    sendMessage('repl/include', editor.document.fileName)
+
+    let text = editor.document.getText();
+
+    executeCode(text)
 }
 
-function executeJuliaBlockInRepl() {
+async function executeJuliaBlockInRepl() {
     if (g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Language server is not running.');
     }
     else {
         var editor = vscode.window.activeTextEditor;
         let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
-        g_languageClient.sendRequest('julia/getCurrentBlockText', params).then((text) => {
-            executeCode(text)
-            vscode.window.showTextDocument(vscode.window.activeTextEditor.document)
-        })
+
+        try {
+            let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
+
+            executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))))
+            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
+        }
+        catch (ex) {
+            if (ex.message == "Language client is not ready yet") {
+                vscode.window.showErrorMessage('Execute code block only works once the Julia Language Server is ready.');
+            }
+            else {
+                throw ex;
+            }
+        }
     }
 }
 
 function changeREPLmode() {
-    sendMessage('repl/getAvailableModules', '');
-    vscode.window.showTextDocument(vscode.window.activeTextEditor.document);
+    if (g_terminal == null) {
+        vscode.window.showErrorMessage("Cannot change REPL mode without a running julia REPL.");
+    }
+    else {
+        sendMessage('repl/getAvailableModules', '');
+    }
 }
 
 async function sendMessage(cmd, msg: string) {
-    await startREPL()
+    await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
     let conn = net.connect(sock)
@@ -300,7 +323,7 @@ export interface TextDocumentPositionParams {
     position: vscode.Position
 }
 
-let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockText')
+let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockOffsetRange')
 
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
@@ -309,10 +332,11 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_plotPaneProvider = new PlotPaneDocumentContentProvider();
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('jlplotpane', g_plotPaneProvider));
 
-    g_REPLTreeDataProvider = new REPLTreeDataProvider();
-    context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
+    // TODO Enable again
+    // g_REPLTreeDataProvider = new REPLTreeDataProvider();
+    // context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPL));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
 

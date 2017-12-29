@@ -1,10 +1,11 @@
 .vscode/**
-.gitignore
-CONTRIBUTING.md
-*.vsix
+.vscode-test/**
 out/test/**
-test/**
+out/**/*.map
 src/**
-**/*.map
+.gitignore
 tsconfig.json
 scripts/languageserver/julia_pkgdir/**
+CONTRIBUTING.md
+*.vsix
+.travis.yml

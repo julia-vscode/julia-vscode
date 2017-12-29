@@ -36,8 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Status bar
     g_serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     g_serverstatus.show()
-    g_serverstatus.text = 'Julia';
-    g_serverstatus.color = 'red';
+    g_serverstatus.text = 'Julia Language Server is busy';
     context.subscriptions.push(g_serverstatus);
 
     // Config change
@@ -139,6 +138,7 @@ async function startLanguageServer() {
 
     // Create the language client and start the client.
     g_languageClient = new LanguageClient('julia Language Server', serverOptions, clientOptions);
+    g_languageClient.registerProposedFeatures()
 
     // Push the disposable to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
@@ -152,9 +152,12 @@ async function startLanguageServer() {
     }
 
     g_languageClient.onReady().then(() => {
-        g_languageClient.onNotification(g_serverBusyNotification, () => { g_serverstatus.color = 'red' 
-    })
-        g_languageClient.onNotification(g_serverReadyNotification, () => { g_serverstatus.color = '' 
-    })
+        g_languageClient.onNotification(g_serverBusyNotification, () => {
+            g_serverstatus.show();
+        })
+
+        g_languageClient.onNotification(g_serverReadyNotification, () => {
+            g_serverstatus.hide();
+        })
     })
 }

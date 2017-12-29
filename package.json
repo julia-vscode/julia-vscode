@@ -2,10 +2,10 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "0.8.0-beta",
+    "version": "0.10.0-dev",
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.14.0"
+        "vscode": "^1.17.2"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -39,7 +39,7 @@
         "workspaceContains:benchmark/benchmarks.jl",
         "workspaceContains:docs/make.jl"
     ],
-    "main": "./out/src/extension",
+    "main": "./out/extension",
     "contributes": {
         "languages": [
             {
@@ -231,11 +231,11 @@
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == julia && editorHasSelection"
+                "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
-                "key": "ctrl+Enter",
+                "key": "alt+Enter",
                 "when": "editorTextFocus && editorLangId == julia && !editorHasSelection"
             },
             {
@@ -304,15 +304,22 @@
                         "null"
                     ],
                     "default": null,
-                    "description": "Points to the julia executable."
+                    "description": "Points to the julia executable.",
+                    "scope": "window"
                 },
                 "julia.runlinter": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Option to automatically run the Linter on active files."
+                    "description": "Option to automatically run the Linter on active files.",
+                    "scope": "window"
                 }
             }
-        },
+		},
+		"configurationDefaults": {
+			"[julia]": {
+				"editor.quickSuggestions": true
+			}
+		},
         "taskDefinitions": [
             {
                 "type": "julia",
@@ -325,33 +332,28 @@
                     }
                 }
             }
-        ],
-        "views": {
-            "explorer": [
-                {
-                    "id": "REPLVariables",
-                    "name": "REPL Variables"
-                }
-            ]
-        }
+        ]
     },
     "scripts": {
-        "vscode:prepublish": "tsc -p ./",
-        "compile": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install"
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test",
+        "update2latest": "git pull && git submodule init && git submodule update && npm install && npm run compile"
     },
     "dependencies": {
-        "vscode-languageclient": "^3.3.0",
-        "child-process-promise": "^v2.2.0",
+        "vscode-languageclient": "^3.5.0",
+        "child-process-promise": "^v2.2.1",
         "async-file": "^v2.0.2",
         "async-child-process": "^v1.1.1",
         "promised-temp": "^v0.1.0"
     },
     "devDependencies": {
-        "typescript": "^2.0.3",
-        "vscode": "^1.0.0",
-        "mocha": "^2.3.3",
-        "@types/node": "^6.0.40",
-        "@types/mocha": "^2.2.32"
+        "typescript": "^2.6.1",
+        "vscode": "^1.1.6",
+        "mocha": "^4.0.1",
+        "@types/node": "^8.0.47",
+        "@types/mocha": "^2.2.44"
     }
 }
