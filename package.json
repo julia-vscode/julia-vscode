@@ -314,7 +314,12 @@
                     "scope": "window"
                 }
             }
-        },
+		},
+		"configurationDefaults": {
+			"[julia]": {
+				"editor.quickSuggestions": true
+			}
+		},
         "taskDefinitions": [
             {
                 "type": "julia",
