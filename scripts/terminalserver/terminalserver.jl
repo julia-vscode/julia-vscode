@@ -39,6 +39,7 @@ global active_module = :Main
 immutable InlineDisplay <: Display end
 
 pid = Base.ARGS[1]
+Base.ENV["JULIA_EDITOR"] = Base.ARGS[2]
 
 function change_module(newmodule::String, print_change = true)
     global active_module
