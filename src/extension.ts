@@ -26,12 +26,12 @@ let g_serverstatus: vscode.StatusBarItem = null;
 let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
 let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     g_context = context;
 
     console.log('Activating extension language-julia');
 
-    g_settings = settings.loadSettings();
+    g_settings = await settings.loadSettings();
 
     // Status bar
     g_serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -77,8 +77,8 @@ function setLanguageClient(languageClient: vslc.LanguageClient) {
     openpackagedirectory.onNewLanguageClient(g_languageClient);
 }
 
-function configChanged(params) {
-    let newSettings = settings.loadSettings();
+async function configChanged(params) {
+    let newSettings = await settings.loadSettings();
 
     repl.onDidChangeConfiguration(newSettings);
     weave.onDidChangeConfiguration(newSettings);
