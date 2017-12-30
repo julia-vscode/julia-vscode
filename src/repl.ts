@@ -129,7 +129,6 @@ function startREPLCommand() {
 }
 
 async function startREPL(preserveFocus: boolean) {
-    console.log("asdf")
     if (g_terminal == null) {
         startREPLConn()
         startPlotDisplayServer()
