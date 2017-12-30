@@ -42,9 +42,9 @@
 	"Function Declaration": {
 		"prefix": "function",
 		"body": [
-			"function $1($2)",
-			"\t$3",
-			"end"
+			"function ${1:name}($2)",
+			"\t$0",
+			"end  # function ${1:name}"
 		],
 		"description": "Function declaration",
 		"scope": "source.julia"
@@ -52,9 +52,9 @@
 	"Macro Declaration": {
 		"prefix": "macro",
 		"body": [
-			"macro $1($2)",
-			"\t$3",
-			"end"
+			"macro ${1:name}($2)",
+			"\t$0",
+			"end  # macro ${1:name}"
 		],
 		"description": "Macro declaration",
 		"scope": "source.julia"
