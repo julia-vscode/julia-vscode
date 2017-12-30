@@ -314,12 +314,12 @@
                     "scope": "window"
                 }
             }
-		},
-		"configurationDefaults": {
-			"[julia]": {
-				"editor.quickSuggestions": true
-			}
-		},
+        },
+        "configurationDefaults": {
+            "[julia]": {
+                "editor.quickSuggestions": true
+            }
+        },
         "taskDefinitions": [
             {
                 "type": "julia",
@@ -350,10 +350,10 @@
         "promised-temp": "^v0.1.0"
     },
     "devDependencies": {
-        "typescript": "^2.6.1",
-        "vscode": "^1.1.6",
-        "mocha": "^4.0.1",
-        "@types/node": "^8.0.47",
-        "@types/mocha": "^2.2.44"
+        "@types/mocha": "^2.2.45",
+        "@types/node": "^8.5.2",
+        "mocha": "^4.1.0",
+        "typescript": "^2.6.2",
+        "vscode": "^1.1.10"
     }
 }
