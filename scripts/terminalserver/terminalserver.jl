@@ -178,10 +178,22 @@ end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("text/html")}) = true
 
+function display(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}, x)
+    payload = stringmime(MIME("juliavscode/html"), x)
+    print(conn, "juliavscode/html", ":", endof(payload), ";")
+    print(conn, payload)
+end
+
+Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
+
+displayable(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}) = true
+
 function display(d::InlineDisplay, x)
-    # if mimewritable("text/html", x)
+    if mimewritable("juliavscode/html", x)
+        display(d,"juliavscode/html", x)
+    # elseif mimewritable("text/html", x)
     #     display(d,"text/html", x)
-    if mimewritable("image/svg+xml", x)
+    elseif mimewritable("image/svg+xml", x)
         display(d,"image/svg+xml", x)
     elseif mimewritable("image/png", x)
         display(d,"image/png", x)
