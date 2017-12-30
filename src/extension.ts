@@ -17,6 +17,7 @@ import * as settings from './settings';
 import * as smallcommands from './smallcommands';
 import * as packagepath from './packagepath';
 import * as openpackagedirectory from './openpackagedirectory';
+import * as juliaexepath from './juliaexepath';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -51,6 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Active features from other files
+    juliaexepath.activate(context, g_settings);
     repl.activate(context, g_settings);
     weave.activate(context, g_settings);
     tasks.activate(context, g_settings);
@@ -69,6 +71,7 @@ export function deactivate() {
 function setLanguageClient(languageClient: vslc.LanguageClient) {
     g_languageClient = languageClient;
 
+    juliaexepath.onNewLanguageClient(g_languageClient);
     repl.onNewLanguageClient(g_languageClient);
     weave.onNewLanguageClient(g_languageClient);
     tasks.onNewLanguageClient(g_languageClient);
@@ -80,6 +83,7 @@ function setLanguageClient(languageClient: vslc.LanguageClient) {
 function configChanged(params) {
     let newSettings = settings.loadSettings();
 
+    juliaexepath.onDidChangeConfiguration(newSettings);
     repl.onDidChangeConfiguration(newSettings);
     weave.onDidChangeConfiguration(newSettings);
     tasks.onDidChangeConfiguration(newSettings);
@@ -123,9 +127,11 @@ async function startLanguageServer() {
         }
     };
 
+    let jlexepath = await juliaexepath.getJuliaExePath();
+
     let serverOptions = {
-        run: { command: g_settings.juliaExePath, args: serverArgsRun, options: spawnOptions },
-        debug: { command: g_settings.juliaExePath, args: serverArgsDebug, options: spawnOptions }
+        run: { command: jlexepath, args: serverArgsRun, options: spawnOptions },
+        debug: { command: jlexepath, args: serverArgsDebug, options: spawnOptions }
     };
 
     let clientOptions: LanguageClientOptions = {

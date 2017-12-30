@@ -5,7 +5,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
-import {getJuliaExePath} from './packagepath';
+import * as juliaexepath from './juliaexepath';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -134,7 +134,7 @@ async function startREPL(preserveFocus: boolean) {
         startREPLConn()
         startPlotDisplayServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
-        let exepath = await getJuliaExePath();
+        let exepath = await juliaexepath.getJuliaExePath();
         g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString()]);
     }
     g_terminal.show(preserveFocus);
