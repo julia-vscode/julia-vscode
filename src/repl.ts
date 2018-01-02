@@ -17,6 +17,65 @@ let g_currentPlotIndex: number = 0;
 
 let g_replVariables: string = '';
 
+export class TableViewContentProvider implements vscode.TextDocumentContentProvider {
+    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+
+    public provideTextDocumentContent(uri: vscode.Uri): string {
+            return `
+            <html>
+                <head>
+                    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.css">
+  
+                    <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-1.12.4.js"></script>
+                    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+                </head>
+                <body>
+
+                <table id="example" class="display">
+                    <thead>
+                        <tr>
+                            <th>Column 1</th>
+                            <th>Column 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Row 1 Data 1</td>
+                            <td>Row 1 Data 2</td>
+                        </tr>
+                        <tr>
+                            <td>Row 2 Data 1</td>
+                            <td>Row 2 Data 2</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </body>
+                <script>
+                $(document).ready(function() {
+                    $('#example').DataTable({
+                        paging: false
+                    });
+                } );
+                </script>
+            </html>`;
+    }
+
+    get onDidChange(): vscode.Event<vscode.Uri> {
+        return this._onDidChange.event;
+    }
+
+    public update() {
+        this._onDidChange.fire(vscode.Uri.parse('jltableview://nothing.html'));
+    }  
+}
+
+let g_tableViewContentProvider: TableViewContentProvider = null;
+
+export function showTableView() {
+    let uri = vscode.Uri.parse('jltableview://nothing.html');
+    vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia table view");
+}
+
 export class PlotPaneDocumentContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
 
@@ -332,6 +391,9 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_plotPaneProvider = new PlotPaneDocumentContentProvider();
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('jlplotpane', g_plotPaneProvider));
 
+    g_tableViewContentProvider = new TableViewContentProvider();
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('jltableview', g_tableViewContentProvider))
+
     // TODO Enable again
     // g_REPLTreeDataProvider = new REPLTreeDataProvider();
     // context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
@@ -357,6 +419,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-last', plotPaneLast));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.showTableView', showTableView));
 
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal == g_terminal) {

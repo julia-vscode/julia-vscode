@@ -32,6 +32,7 @@
         "onCommand:language-julia.lint-package",
         "onCommand:language-julia.show-plotpane",
         "onCommand:language-julia.reload-modules",
+        "onCommand:language-julia.showTableView",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
@@ -174,6 +175,10 @@
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
                 "title": "Julia: Execute Block"
+            },
+            {
+                "command": "language-julia.showTableView",
+                "title": "Julia: show table view"
             }
         ],
         "menus": {
