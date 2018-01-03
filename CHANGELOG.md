@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1
+* Update chhangelog
+
+## 0.9.0
+* Enable multi-root workspace support
+* Bug fixes
+
 ## 0.8.0
 * Add eval into module option to REPL
 * Add toggle lint command
