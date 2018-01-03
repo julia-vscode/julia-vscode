@@ -68,17 +68,14 @@ export async function activate(context: vscode.ExtensionContext) {
     // Start language server
     startLanguageServer();
 
-    if (vscode.workspace.getConfiguration('julia').get<boolean>('enableExtendedCrashReports')===null) {
-        vscode.window.showInformationMessage("Please enable automatic extended crash reporting for the julia extension. This helps us improve the quality of the extension, but might have privacy implications. See our privacy policy to understand what data we collect.", 'Enable', 'Disable')
-            .then(crash_choice => {
-                if (crash_choice == "Enable") {
-                    vscode.workspace.getConfiguration('julia').update('enableExtendedCrashReports', true, true);
-                }
-                else if (crash_choice == "Disable") {
-                    vscode.workspace.getConfiguration('julia').update('enableExtendedCrashReports', false, true);
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry')===null) {
+        vscode.window.showInformationMessage("Do you agree to provide anonymous usage data to the julia extension team? See our privacy policy to understand what data we collect.", 'Agree')
+            .then(telemetry_choice => {
+                if (telemetry_choice == "Agree") {
+                    vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true);
                 }
             });
-    }        
+    }
 }
 
 // this method is called when your extension is deactivated

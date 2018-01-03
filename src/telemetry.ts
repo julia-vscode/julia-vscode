@@ -13,6 +13,9 @@ let enableTelemetry: boolean = false;
 
 let extensionClient
 
+let crashReporterUIVisible: boolean = false;
+let crashReporterQueue = []
+
 function filterTelemetry(envelope, context) {
     if (enableTelemetry) {
         if (envelope.data.baseType == "ExceptionData") {
@@ -43,16 +46,12 @@ function filterTelemetry(envelope, context) {
 function loadConfig() {
     let section = vscode.workspace.getConfiguration('julia');
 
-    enableExtendedCrashReports = section.get<boolean>('enableExtendedCrashReports', false)
+    enableExtendedCrashReports = section.get<boolean>('enableCrashReporter', false)
     enableTelemetry = section.get<boolean>('enableTelemetry', false);
 }
 
 export function init() {
     loadConfig();
-
-    if (enableExtendedCrashReports===null) {
-        enableExtendedCrashReports = false;
-    }
 
     let extversion: String = vscode.extensions.getExtension('julialang.language-julia').packageJSON.version;
 
@@ -108,7 +107,7 @@ export function startLsCrashServer() {
             let replResponse = accumulatingBuffer.toString().split("\n")
             let stacktrace = replResponse.slice(2,replResponse.length-1).join('\n');
 
-            extensionClient.track({exception: {name: replResponse[0], message: replResponse[1], stack: stacktrace}}, appInsights.Contracts.TelemetryType.Exception)
+            crashReporterQueue.push({exception: {name: replResponse[0], message: replResponse[1], stack: stacktrace}});
         });
     });
 
@@ -121,4 +120,31 @@ export function traceEvent(message) {
 
 export function onDidChangeConfiguration(newSettings: settings.ISettings) {
     loadConfig();
+}
+
+async function showCrashReporterUIConsent() {
+    if (crashReporterUIVisible) {
+        return;
+    }
+    else {
+        crashReporterUIVisible = true;
+        try {
+            var choice = await vscode.window.showInformationMessage("Something went wrong in the julia extension. Do you agree to send a crash report?", 'Agree', 'Always Agree');
+
+            if (choice=='Always Agree') {
+                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, true);
+            }
+
+            if (choice=='Agree' || choice=='Always Agree') {
+                var own_copy = crashReporterQueue;
+                crashReporterQueue = [];
+                for (var i of own_copy) {
+                    extensionClient.track(i, appInsights.Contracts.TelemetryType.Exception)
+                }
+            }
+        }
+        finally {
+            crashReporterUIVisible = false;
+        }
+    }
 }

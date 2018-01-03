@@ -312,18 +312,21 @@
                     "default": true,
                     "description": "Option to automatically run the Linter on active files."
                 },
-                "julia.enableExtendedCrashReports": {
+                "julia.enableCrashReporter": {
                     "type": [
                         "boolean",
                         "null"
                     ],
                     "default": null,
-                    "description": "Enable extended crash reports to be sent to the julia VS Code extension developers.",
+                    "description": "Enable crash reports to be sent to the julia VS Code extension developers.",
                     "scope": "window"
                 },
                 "julia.enableTelemetry": {
-                    "type":"boolean",
-                    "default":true,
+                    "type":[
+                        "boolean",
+                        "null"
+                    ],
+                    "default": null,
                     "description": "Enable usage data and errors to be sent to the julia VS Code extension developers.",
                     "scope": "window"
                 }
