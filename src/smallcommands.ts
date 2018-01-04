@@ -1,17 +1,22 @@
 import * as vscode from 'vscode';
 import * as settings from './settings'
 import * as vslc from 'vscode-languageclient';
+import * as telemetry from './telemetry';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
 let g_languageClient: vslc.LanguageClient = null;
 
 function toggleLinter() {
+    telemetry.traceEvent('command-togglelinter');
+
     let cval = vscode.workspace.getConfiguration('julia').get('runlinter', false)
     vscode.workspace.getConfiguration('julia').update('runlinter', !cval, true)
 }
 
 function applyTextEdit(we) {
+    telemetry.traceEvent('command-applytextedit');
+
     let wse = new vscode.WorkspaceEdit()
     for (let edit of we.documentChanges[0].edits) {
         wse.replace(we.documentChanges[0].textDocument.uri, new vscode.Range(edit.range.start.line, edit.range.start.character, edit.range.end.line, edit.range.end.character), edit.newText)
@@ -20,6 +25,8 @@ function applyTextEdit(we) {
 }
 
 function lintPackage() {
+    telemetry.traceEvent('command-lintpackage');
+
     if (g_languageClient == null) {
         vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
     }
@@ -39,6 +46,8 @@ function lintPackage() {
 }
 
 function reloadModules() {
+    telemetry.traceEvent('command-reloadmodules');
+
     if (g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Language server is not yet running.');
     }
@@ -58,6 +67,8 @@ function reloadModules() {
 }
 
 function toggleServerLogs() {
+    telemetry.traceEvent('command-juliatogglelog');
+
     if (g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Lanuage server is not yet running.');
     }
@@ -77,6 +88,8 @@ function toggleServerLogs() {
 }
 
 function toggleFileLint(arg) {
+    telemetry.traceEvent('command-juliatogglefilelint');
+
     if (g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Lanuage server is not yet running.');
     }

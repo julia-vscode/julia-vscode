@@ -104,6 +104,8 @@ export function startLsCrashServer() {
 
             crashReporterQueue.push({exception: {name: replResponse[0], message: replResponse[1], stack: stacktrace}});
 
+            traceEvent('lserror');
+
             if (enableCrashReporter) {
                 sendCrashReportQueue();
             }

@@ -3,6 +3,7 @@ import * as vslc from 'vscode-languageclient';
 import * as fs from 'async-file';
 import * as path from 'path'
 import * as settings from './settings'
+import * as telemetry from './telemetry';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -30,6 +31,7 @@ async function provideJuliaTasks(): Promise<vscode.Task[]> {
 }
 
 async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promise<vscode.Task[]> {
+    telemetry.traceEvent('task-provide');
 	let emptyTasks: vscode.Task[] = [];
     
     if (folder.uri.scheme !== 'file') {
