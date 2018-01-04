@@ -8,7 +8,7 @@ import * as settings from './settings';
 let appInsights = require('applicationinsights');
 import {generatePipeName} from './utils';
 
-let enableExtendedCrashReports: boolean = false;
+let enableCrashReporter: boolean = false;
 let enableTelemetry: boolean = false;
 
 let extensionClient
@@ -17,36 +17,31 @@ let crashReporterUIVisible: boolean = false;
 let crashReporterQueue = []
 
 function filterTelemetry(envelope, context) {
-    if (enableTelemetry) {
-        if (envelope.data.baseType == "ExceptionData") {
+    if (envelope.data.baseType == "ExceptionData") {
+        if (enableCrashReporter) {
             for (let i_ex in envelope.data.baseData.exceptions) {
-                if (!enableExtendedCrashReports) {
-                    envelope.data.baseData.exceptions[i_ex].hasFullStack = false;
-                    envelope.data.baseData.exceptions[i_ex].message = "AnonymisedError";
-                    envelope.data.baseData.exceptions[i_ex].parsedStack = undefined;
-                    envelope.data.baseData.exceptions[i_ex].typeName = "AnonymisedError";
-                } else {
-                    for (let i_sf in envelope.data.baseData.exceptions[i_ex].parsedStack) {
-                        let sf = envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf]
-                        envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].assembly = "";
+                for (let i_sf in envelope.data.baseData.exceptions[i_ex].parsedStack) {
+                    let sf = envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf]
+                    envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].assembly = "";
 
-                        envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].sizeInBytes = sf.method.length + sf.fileName.length + sf.assembly.length + 58 + sf.level.toString().length + sf.line.toString().length
-                    }
+                    envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].sizeInBytes = sf.method.length + sf.fileName.length + sf.assembly.length + 58 + sf.level.toString().length + sf.line.toString().length
                 }
             }
+            return true;
         }
-
-        return true
+        else {
+            return false;
+        }
     }
     else {
-        return false;
+        return enableTelemetry;
     }
 }
 
 function loadConfig() {
     let section = vscode.workspace.getConfiguration('julia');
 
-    enableExtendedCrashReports = section.get<boolean>('enableCrashReporter', false)
+    enableCrashReporter = section.get<boolean>('enableCrashReporter', false)
     enableTelemetry = section.get<boolean>('enableTelemetry', false);
 }
 
@@ -108,6 +103,13 @@ export function startLsCrashServer() {
             let stacktrace = replResponse.slice(2,replResponse.length-1).join('\n');
 
             crashReporterQueue.push({exception: {name: replResponse[0], message: replResponse[1], stack: stacktrace}});
+
+            if (enableCrashReporter) {
+                sendCrashReportQueue();
+            }
+            else {
+                showCrashReporterUIConsent();
+            }
         });
     });
 
@@ -122,6 +124,14 @@ export function onDidChangeConfiguration(newSettings: settings.ISettings) {
     loadConfig();
 }
 
+function sendCrashReportQueue() {
+    var own_copy = crashReporterQueue;
+    crashReporterQueue = [];
+    for (var i of own_copy) {
+        extensionClient.track(i, appInsights.Contracts.TelemetryType.Exception)
+    }
+}
+
 async function showCrashReporterUIConsent() {
     if (crashReporterUIVisible) {
         return;
@@ -129,18 +139,14 @@ async function showCrashReporterUIConsent() {
     else {
         crashReporterUIVisible = true;
         try {
-            var choice = await vscode.window.showInformationMessage("Something went wrong in the julia extension. Do you agree to send a crash report?", 'Agree', 'Always Agree');
+            var choice = await vscode.window.showInformationMessage("The julia language extension crashed. Do you want to send more information about the problem to the development team?", 'Agree', 'Always Agree');
 
             if (choice=='Always Agree') {
                 vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, true);
             }
 
             if (choice=='Agree' || choice=='Always Agree') {
-                var own_copy = crashReporterQueue;
-                crashReporterQueue = [];
-                for (var i of own_copy) {
-                    extensionClient.track(i, appInsights.Contracts.TelemetryType.Exception)
-                }
+                sendCrashReportQueue();
             }
         }
         finally {
