@@ -132,7 +132,7 @@ function startREPL(preserveFocus: boolean) {
         startREPLConn()
         startPlotDisplayServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
-        g_terminal = vscode.window.createTerminal("julia", g_settings.juliaExePath, ['-q', '-i', args, process.pid.toString()]);
+        g_terminal = vscode.window.createTerminal("julia", g_settings.juliaExePath, ['-q', '-i', args, process.pid.toString(), process.execPath]);
     }
     g_terminal.show(preserveFocus);
 }
