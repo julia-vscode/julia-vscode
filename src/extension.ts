@@ -156,7 +156,8 @@ async function startLanguageServer() {
         synchronize: {
             configurationSection: ['julia.runlinter', 'julia.lintIgnoreList'],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
-        }
+        },
+        revealOutputChannelOn: RevealOutputChannelOn.never
     }
 
         // Create the language client and start the client.
