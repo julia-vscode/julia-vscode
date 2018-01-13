@@ -48,7 +48,9 @@ async function weave_core(column, selected_format: string = undefined) {
 
         source_filename = path.join(temporary_dirname, 'source-file.jmd')
 
-        await fs.writeFile(source_filename, vscode.window.activeTextEditor.document.getText(), 'utf8');
+        let source_text = vscode.window.activeTextEditor.document.getText()
+
+        await fs.writeTextFile(source_filename, source_text, 'utf8');
 
         output_filename = path.join(temporary_dirname, 'output-file.html');
     }
@@ -126,7 +128,7 @@ async function open_preview() {
         vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.');
     }
     else {
-        weave_core(vscode.ViewColumn.One);
+        await weave_core(vscode.ViewColumn.One);
     }
 }
 
