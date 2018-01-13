@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as settings from './settings';
 import * as packagepath from './packagepath'
 import * as vslc from 'vscode-languageclient';
+import * as telemetry from './telemetry';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -11,6 +12,8 @@ let g_languageClient: vslc.LanguageClient = null;
 
 // This method implements the language-julia.openPackageDirectory command
 async function openPackageDirectoryCommand() {
+    telemetry.traceEvent('command-openpackagedirectory');
+    
     const optionsPackage: vscode.QuickPickOptions = {
         placeHolder: 'Select package'
     };
