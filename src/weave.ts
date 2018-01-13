@@ -4,6 +4,7 @@ import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'async-file';
 import * as settings from './settings'
+import * as juliaexepath from './juliaexepath';
 import * as telemetry from './telemetry';
 
 var tempfs = require('promised-temp').track();
@@ -70,8 +71,10 @@ async function weave_core(column, selected_format: string = undefined) {
         }
     }
 
+    let jlexepath = await juliaexepath.getJuliaExePath();
+
     if (g_weaveNextChildProcess == null) {
-        g_weaveNextChildProcess = spawn(g_settings.juliaExePath, [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]);
+        g_weaveNextChildProcess = spawn(jlexepath, [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]);
     }
     g_weaveChildProcess = g_weaveNextChildProcess;
 
@@ -84,7 +87,7 @@ async function weave_core(column, selected_format: string = undefined) {
         g_weaveChildProcess.stdin.write(selected_format + '\n');
     }
 
-    g_weaveNextChildProcess = spawn(g_settings.juliaExePath, [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]);
+    g_weaveNextChildProcess = spawn(jlexepath, [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]);
 
     g_weaveChildProcess.stdout.on('data', function (data) {
         g_weaveOutputChannel.append(String(data));

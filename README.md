@@ -4,9 +4,8 @@ This [VS Code](https://code.visualstudio.com) extension provides support for the
 
 ## Getting started
 
-Getting the julia extension for VS Code to work involves three steps: 1.
-Install VS Code, 2. Install the julia extension and 3. configure the
-julia extension to find your local julia binary.
+Getting the julia extension for VS Code to work involves two steps: 1.
+Install VS Code and 2. Install the julia extension.
 
 ### Installing VS Code
 
@@ -27,11 +26,15 @@ You might have to restart VS Code after this step.
 
 ### Configure the julia extension
 
-Once the extension is installed it needs to find the julia binary on your
-system. There are two options: if your julia binary is on the path and
-you have not configured something else, the extension will use that
-version of julia. Alternatively, you can set the ``julia.executablePath``
-configuration setting to point to a julia binary, in which case the
+If you have installed julia into a standard location on Mac or Windows, or
+if the julia binary is on your ``PATH``, the julia VS Code extension should
+automatically find your julia installation and you should not need to
+configure anything.
+
+If the extension does not find your julia installation automatically, or
+if you want to use a different julia installation than the default one,
+you can set the ``julia.executablePath`` to point to the julia executable
+that the extension should use. In that case the
 extension will always use that version of julia. To edit your configuration
 settings, execute the ``Preferences: Open User Settings`` command (you can
 also access it via the menu ``File->Preferences->Settings``), and
@@ -39,14 +42,6 @@ then make sure your user settings include the ``julia.executablePath``
 setting. The format of the string should follow your platform specific
 conventions, and be aware that the backlash ``\`` is the escape character
 in JSON, so you need to use ``\\`` as the path separator character on Windows.
-
-#### Note for MacOS Users
-When setting your ``julia.executablePath``, you need to make sure that
-you are linking to the correct executable within your ``julia-x.x.app``
-folder. The correct executable is located at
-```
-[Path to applications folder]/Julia-x.x.app/Contents/Resources/julia/bin/julia
-```
 
 ## Features
 

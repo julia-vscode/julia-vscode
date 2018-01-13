@@ -5,6 +5,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
+import * as juliaexepath from './juliaexepath';
 import {generatePipeName} from './utils';
 import * as telemetry from './telemetry';
 
@@ -132,12 +133,13 @@ function startREPLCommand() {
     startREPL(false);
 }
 
-function startREPL(preserveFocus: boolean) {
+async function startREPL(preserveFocus: boolean) {
     if (g_terminal == null) {
         startREPLConn()
         startPlotDisplayServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
-        g_terminal = vscode.window.createTerminal("julia", g_settings.juliaExePath, ['-q', '-i', args, process.pid.toString(), process.execPath]);
+        let exepath = await juliaexepath.getJuliaExePath();
+        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath]);
     }
     g_terminal.show(preserveFocus);
 }
@@ -232,12 +234,12 @@ function startPlotDisplayServer() {
     })
 }
 
-function executeCode(text) {
+async function executeCode(text) {
     if (!text.endsWith("\n")) {
         text = text + '\n';
     }
 
-    startREPL(true);
+    await startREPL(true);
     g_terminal.show(true);
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
@@ -322,8 +324,8 @@ function changeREPLmode() {
     }
 }
 
-function sendMessage(cmd, msg: string) {
-    startREPL(true)
+async function sendMessage(cmd, msg: string) {
+    await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
     let conn = net.connect(sock)
