@@ -8,7 +8,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as telemetry from './telemetry';
 import { spawn, ChildProcess } from 'child_process';
-import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo } from 'vscode-languageclient';
+import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo, RevealOutputChannelOn } from 'vscode-languageclient';
 import * as vslc from 'vscode-languageclient';
 import * as rpc from 'vscode-jsonrpc';
 import * as repl from './repl';
@@ -157,7 +157,7 @@ async function startLanguageServer() {
             configurationSection: ['julia.runlinter', 'julia.lintIgnoreList'],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
         },
-        revealOutputChannelOn: RevealOutputChannelOn.never
+        revealOutputChannelOn: RevealOutputChannelOn.Never
     }
 
         // Create the language client and start the client.
