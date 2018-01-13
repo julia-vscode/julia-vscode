@@ -6,6 +6,8 @@ import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
 import * as juliaexepath from './juliaexepath';
+import {generatePipeName} from './utils';
+import * as telemetry from './telemetry';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -42,11 +44,15 @@ export class PlotPaneDocumentContentProvider implements vscode.TextDocumentConte
 let g_plotPaneProvider: PlotPaneDocumentContentProvider = null;
 
 export function showPlotPane() {
+    telemetry.traceEvent('command-showplotpane');
+
     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
     vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia Plot Pane");
 }
 
 export function plotPanePrev() {
+    telemetry.traceEvent('command-plotpaneprevious');
+
     if (g_currentPlotIndex > 0) {
         g_currentPlotIndex = g_currentPlotIndex - 1;
         g_plotPaneProvider.update();
@@ -54,6 +60,8 @@ export function plotPanePrev() {
 }
 
 export function plotPaneNext() {
+    telemetry.traceEvent('command-plotpanenext');
+
     if (g_currentPlotIndex < g_plots.length - 1) {
         g_currentPlotIndex = g_currentPlotIndex + 1;
         g_plotPaneProvider.update();
@@ -61,6 +69,8 @@ export function plotPaneNext() {
 }
 
 export function plotPaneFirst() {
+    telemetry.traceEvent('command-plotpanefirst');
+
     if (g_plots.length > 0) {
         g_currentPlotIndex = 0;
         g_plotPaneProvider.update();
@@ -68,6 +78,7 @@ export function plotPaneFirst() {
 }
 
 export function plotPaneLast() {
+    telemetry.traceEvent('command-plotpanelast');
     if (g_plots.length > 0) {
         g_currentPlotIndex = g_plots.length - 1;
         g_plotPaneProvider.update();
@@ -75,21 +86,13 @@ export function plotPaneLast() {
 }
 
 export function plotPaneDel() {
+    telemetry.traceEvent('command-plotpanedelete');
     if (g_plots.length > 0) {
         g_plots.splice(g_currentPlotIndex, 1);
         if (g_currentPlotIndex > g_plots.length - 1) {
             g_currentPlotIndex = g_plots.length - 1;
         }
         g_plotPaneProvider.update();
-    }
-}
-
-function generatePipeName(pid: string, name: string) {
-    if (process.platform === 'win32') {
-        return '\\\\.\\pipe\\' + name + '-' + pid;
-    }
-    else {
-        return path.join(os.tmpdir(), name + '-' + pid);
     }
 }
 
@@ -125,6 +128,8 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
 // let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
 
 function startREPLCommand() {
+    telemetry.traceEvent('command-startrepl');
+
     startREPL(false);
 }
 
@@ -134,7 +139,7 @@ async function startREPL(preserveFocus: boolean) {
         startPlotDisplayServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         let exepath = await juliaexepath.getJuliaExePath();
-        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString()]);
+        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath]);
     }
     g_terminal.show(preserveFocus);
 }
@@ -205,6 +210,9 @@ function startPlotDisplayServer() {
                         let plotPaneContent = '<html><img src="data:image/png;base64,' + actual_image + '" /></html>';
                         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
                     }
+                    else if (mime_type == 'juliavscode/html') {
+                        g_currentPlotIndex = g_plots.push(actual_image) - 1;
+                    }
                     else {
                         throw new Error();
                     }
@@ -240,6 +248,8 @@ async function executeCode(text) {
 }
 
 function executeSelection() {
+    telemetry.traceEvent('command-executejuliacodeinrepl');
+
     var editor = vscode.window.activeTextEditor;
     if (!editor) {
         return;
@@ -264,6 +274,8 @@ function executeSelection() {
 }
 
 function executeFile() {
+    telemetry.traceEvent('command-executejuliafileinrepl');
+
     var editor = vscode.window.activeTextEditor;
     if (!editor) {
         return;
@@ -275,6 +287,8 @@ function executeFile() {
 }
 
 async function executeJuliaBlockInRepl() {
+    telemetry.traceEvent('command-executejuliablockinrepl');
+
     if (g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Language server is not running.');
     }
@@ -300,6 +314,8 @@ async function executeJuliaBlockInRepl() {
 }
 
 function changeREPLmode() {
+    telemetry.traceEvent('command-changereplmodule');
+
     if (g_terminal == null) {
         vscode.window.showErrorMessage("Cannot change REPL mode without a running julia REPL.");
     }

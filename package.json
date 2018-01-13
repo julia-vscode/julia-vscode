@@ -310,16 +310,33 @@
                 "julia.runlinter": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Option to automatically run the Linter on active files.",
+                    "description": "Option to automatically run the Linter on active files."
+                },
+                "julia.enableCrashReporter": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "default": null,
+                    "description": "Enable crash reports to be sent to the julia VS Code extension developers.",
+                    "scope": "window"
+                },
+                "julia.enableTelemetry": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "default": null,
+                    "description": "Enable usage data and errors to be sent to the julia VS Code extension developers.",
                     "scope": "window"
                 }
             }
-		},
-		"configurationDefaults": {
-			"[julia]": {
-				"editor.quickSuggestions": true
-			}
-		},
+        },
+        "configurationDefaults": {
+            "[julia]": {
+                "editor.quickSuggestions": true
+            }
+        },
         "taskDefinitions": [
             {
                 "type": "julia",
@@ -343,17 +360,18 @@
         "update2latest": "git pull && git submodule init && git submodule update && npm install && npm run compile"
     },
     "dependencies": {
-        "vscode-languageclient": "^3.5.0",
-        "child-process-promise": "^v2.2.1",
-        "async-file": "^v2.0.2",
+        "applicationinsights": "^1.0.1",
         "async-child-process": "^v1.1.1",
-        "promised-temp": "^v0.1.0"
+        "async-file": "^v2.0.2",
+        "child-process-promise": "^v2.2.1",
+        "promised-temp": "^v0.1.0",
+        "vscode-languageclient": "^3.5.0"
     },
     "devDependencies": {
-        "typescript": "^2.6.1",
-        "vscode": "^1.1.6",
-        "mocha": "^4.0.1",
-        "@types/node": "^8.0.47",
-        "@types/mocha": "^2.2.44"
+        "@types/mocha": "^2.2.45",
+        "@types/node": "^8.5.2",
+        "mocha": "^4.1.0",
+        "typescript": "^2.6.2",
+        "vscode": "^1.1.10"
     }
 }

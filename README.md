@@ -69,3 +69,7 @@ e.g. keyboard shortcuts).
 Please visit the [known issues and workarounds](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Known-issues-and-workarounds)
 for up-to-date information about known issues and solutions for those
 problems.
+
+## Data/Telemetry
+
+The julia extension for Visual Studio Code collects usage data and sends it to the development team to help improve the extension. Read our [privacy policy](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Privacy-Policy) to learn more and how to disable any telemetry.

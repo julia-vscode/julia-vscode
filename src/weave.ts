@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as fs from 'async-file';
 import * as settings from './settings'
 import * as juliaexepath from './juliaexepath';
+import * as telemetry from './telemetry';
 
 var tempfs = require('promised-temp').track();
 var kill = require('async-child-process').kill;
@@ -116,6 +117,8 @@ async function weave_core(column, selected_format: string = undefined) {
 }
 
 async function open_preview() {
+    telemetry.traceEvent('command-weaveopenpreview');
+
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
     }
@@ -128,6 +131,8 @@ async function open_preview() {
 }
 
 async function open_preview_side() {
+    telemetry.traceEvent('command-weaveopenpreviewside');
+
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
     }
@@ -140,6 +145,8 @@ async function open_preview_side() {
 }
 
 async function save() {
+    telemetry.traceEvent('command-weavesave');
+
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.');
     }
