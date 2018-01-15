@@ -22,7 +22,7 @@
 
 </HEAD>
   <BODY>
-    <div class ="container">
+    <div class ="container" style="background-color: white">
       <div class = "row">
         <div class = "col-md-12 twelve columns">
 
