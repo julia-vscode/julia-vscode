@@ -20,11 +20,30 @@ let g_currentPlotIndex: number = 0;
 
 let g_replVariables: string = '';
 
+interface ITable {
+    name: string,
+    header: Array<string>,
+    rows: Array<Array<any>>
+}
+
+// let g_tables: Array<ITable> = new Array<ITable>();
+let g_tables: Array<ITable> = [
+    {
+        name: "Table numero uno",
+        header: ["Name", "Age", "Children"],
+        rows: [
+            ["Sally", 23.4, 4],
+            ["John", 54., 2]
+        ]
+    }
+]
+
 export class TableViewContentProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
 
     public provideTextDocumentContent(uri: vscode.Uri): string {
-            return `
+        let table_index: number = +uri.authority;
+        let res: string = `
             <html>
                 <head>
                     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.css">
@@ -36,20 +55,27 @@ export class TableViewContentProvider implements vscode.TextDocumentContentProvi
 
                 <table id="example" class="display">
                     <thead>
-                        <tr>
-                            <th>Column 1</th>
-                            <th>Column 2</th>
+                        <tr>`;
+
+        for (let col_name of g_tables[table_index].header) {
+            res += '<th>';
+            res += col_name;
+            res += '</th>';
+        }
+        res += `
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>Row 1 Data 1</td>
-                            <td>Row 1 Data 2</td>
-                        </tr>
-                        <tr>
-                            <td>Row 2 Data 1</td>
-                            <td>Row 2 Data 2</td>
-                        </tr>
+                    <tbody>`;
+        for (let row of g_tables[table_index].rows) {
+            res += '<tr>';
+            for (let col_val of row) {
+                res += '<td>';
+                res += col_val;
+                res += '</td>';
+            }
+            res += '</tr>';
+        }
+        res += `                        
                     </tbody>
                 </table>
                 </body>
@@ -61,21 +87,23 @@ export class TableViewContentProvider implements vscode.TextDocumentContentProvi
                 } );
                 </script>
             </html>`;
+        
+            return res;
     }
 
     get onDidChange(): vscode.Event<vscode.Uri> {
         return this._onDidChange.event;
     }
 
-    public update() {
-        this._onDidChange.fire(vscode.Uri.parse('jltableview://nothing.html'));
-    }  
+    // public update() {
+    //     this._onDidChange.fire(vscode.Uri.parse('jltableview://nothing.html'));
+    // }  
 }
 
 let g_tableViewContentProvider: TableViewContentProvider = null;
 
 export function showTableView() {
-    let uri = vscode.Uri.parse('jltableview://nothing.html');
+    let uri = vscode.Uri.parse('jltableview://0');
     vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia table view");
 }
 
