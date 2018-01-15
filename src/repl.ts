@@ -152,7 +152,10 @@ function startREPLConn() {
 
         stream.on('data', async function (c) {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
-            let bufferResult = accumulatingBuffer.toString()
+        });
+
+        stream.on('end', async function () {
+            let bufferResult = accumulatingBuffer.toString();
             let replResponse = accumulatingBuffer.toString().split(",")
 
             if (replResponse[0] == "repl/returnModules") {
@@ -166,7 +169,7 @@ function startREPLConn() {
                 // TODO Enable again
                 // g_REPLTreeDataProvider.refresh();
             }
-        });
+        })
     });
 
     server.on('close', function () {
