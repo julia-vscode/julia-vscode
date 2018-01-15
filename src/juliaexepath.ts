@@ -35,7 +35,7 @@ export async function getJuliaExePath() {
             let foundJulia = false;
             for (let p of pathsToSearch) {
                 try {
-                    var res = await exec(`"${p}" -e "println(VERSION < v\\"0.7-\\" ? JULIA_HOME : Sys.BINDIR)"`);
+                    var res = await exec(`"${p}" --startup-file=no --history-file=no -e "println(VERSION < v\\"0.7-\\" ? JULIA_HOME : Sys.BINDIR)"`);
                     if (p == 'julia' || p == "julia.exe") {
                         // use full path
                         actualJuliaExePath = path.join(res.stdout.trim(), p);
