@@ -14,7 +14,7 @@ let actualJuliaExePath: string = null;
 
 export async function getJuliaExePath() {
     if (actualJuliaExePath == null) {
-        if (g_settings.juliaExePath==null) {
+        if (g_settings.juliaExePath == null) {
             let homedir = os.homedir();
             let pathsToSearch = [];
             if (process.platform == "win32") {
@@ -33,15 +33,19 @@ export async function getJuliaExePath() {
                 pathsToSearch = ["julia"];
             }
             let foundJulia = false;
-            for (let path of pathsToSearch) {
+            for (let p of pathsToSearch) {
                 try {
-                    var res = await exec(`"${path}" -v`);
-
-                    actualJuliaExePath = path;
+                    var res = await exec(`"${p}" -e "println(VERSION < v\\"0.7-\\" ? JULIA_HOME : Sys.BINDIR)"`);
+                    if (p == 'julia' || p == "julia.exe") {
+                        // use full path
+                        actualJuliaExePath = path.join(res.stdout.trim(), p);
+                    } else {
+                        actualJuliaExePath = p;
+                    }
                     foundJulia = true;
-                    break;                    
+                    break;
                 }
-                catch(e) {
+                catch (e) {
                 }
             }
             if (!foundJulia) {
