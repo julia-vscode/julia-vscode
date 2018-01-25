@@ -84,9 +84,11 @@ async function weave_core(column, selected_format: string = undefined) {
     g_weaveChildProcess.stdin.write(output_filename + '\n');
     if (selected_format === undefined) {
         g_weaveChildProcess.stdin.write('PREVIEW\n');
+        g_weaveOutputChannel.append(String('Weaving preview of ' + source_filename + '\n'));
     }
     else {
         g_weaveChildProcess.stdin.write(selected_format + '\n');
+        g_weaveOutputChannel.append(String('Weaving ' + source_filename + ' to ' + output_filename + '\n'));
     }
 
     g_weaveNextChildProcess = spawn(jlexepath, [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]);
