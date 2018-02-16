@@ -6,7 +6,7 @@
     ],
     "patterns": [
         {
-            "begin": "^(```)(\\{|\\{\\.|)(julia)(;|)\\s*(.*?)(\\}|)\\s*$",
+            "begin": "^(```)(\\{|\\{\\.|)(julia|jldoctest)(;|)\\s*(.*?)(\\}|)\\s*$",
             "beginCaptures": {
                 "1": {
                     "name": "markup.heading.juliamarkdown"
