@@ -36,7 +36,7 @@ end
 import Base: display, redisplay
 global active_module = :Main
 
-immutable InlineDisplay <: Display end
+struct InlineDisplay <: Display end
 
 pid = Base.ARGS[1]
 Base.ENV["JULIA_EDITOR"] = Base.ARGS[2]
