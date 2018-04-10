@@ -62,10 +62,13 @@ export async function activate(context: vscode.ExtensionContext) {
     juliaexepath.activate(context, g_settings);
     repl.activate(context, g_settings);
     weave.activate(context, g_settings);
-    tasks.activate(context, g_settings);
     smallcommands.activate(context, g_settings);
     packagepath.activate(context, g_settings);
     openpackagedirectory.activate(context, g_settings);
+
+    if (vscode.workspace.rootPath) {
+        tasks.activate(context, g_settings);
+    }
 
     // Start language server
     startLanguageServer();
@@ -152,7 +155,10 @@ async function startLanguageServer() {
     };
 
     let clientOptions: LanguageClientOptions = {
-        documentSelector: ['julia', 'juliamarkdown'],
+        documentSelector: [
+            { language: 'julia', scheme: 'file' },
+            { language: 'juliamarkdown', scheme: 'file' },
+        ],
         synchronize: {
             configurationSection: ['julia.runlinter', 'julia.lintIgnoreList'],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
