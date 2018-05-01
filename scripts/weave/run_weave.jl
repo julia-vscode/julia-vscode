@@ -11,13 +11,8 @@ close(rserr)
 close(wrerr)
 
 input_file = readline()
-input_file = chomp(input_file)
-
 output_file = readline()
-output_file = chomp(output_file)
-
 doctype = readline()
-doctype = chomp(doctype)
 
 if doctype=="PREVIEW"
     template_path = joinpath(dirname(@__FILE__), "preview.tpl")
