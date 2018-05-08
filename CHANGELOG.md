@@ -1,7 +1,14 @@
 # Changelog
 
+## 0.10.0
+* Auto-detect julia installation
+* Telemetry support
+* Crash reporting
+* Fix weave support
+* Various bug fixes
+
 ## 0.9.1
-* Update chhangelog
+* Update changelog
 
 ## 0.9.0
 * Enable multi-root workspace support
