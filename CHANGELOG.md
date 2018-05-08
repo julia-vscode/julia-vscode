@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.1
+* Fix some small bugs
+
 ## 0.10.0
 * Auto-detect julia installation
 * Telemetry support
