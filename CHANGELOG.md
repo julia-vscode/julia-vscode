@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.2
+* Fix automatic julia detection on Mac
+
 ## 0.10.1
 * Fix some small bugs
 
