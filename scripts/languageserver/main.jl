@@ -1,8 +1,8 @@
-try
-    if VERSION < v"0.6.0-rc1"
-        error("VS Code julia language server only works with julia 0.6 or newer.")
-    end
+if VERSION < v"0.6.0-rc1" || VERSION >= v"0.7-"
+    error("VS Code julia language server only works with julia 0.6.")
+end
 
+try
     if length(Base.ARGS) != 3
         error("Invalid number of arguments passed to julia language server.")
     end
