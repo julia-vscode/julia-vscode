@@ -84,6 +84,8 @@ export function init() {
     extensionClient.commonProperties["extversion"] = extversion;
     extensionClient.context.tags[extensionClient.context.keys.cloudRole] = "Extension";
     extensionClient.context.tags[extensionClient.context.keys.cloudRoleInstance] = "";
+    extensionClient.context.tags[extensionClient.context.keys.sessionId] = vscode.env.sessionId;
+    extensionClient.context.tags[extensionClient.context.keys.userId] = vscode.env.machineId;
 }
 
 export function startLsCrashServer() {
