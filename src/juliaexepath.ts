@@ -27,7 +27,7 @@ export async function getJuliaExePath() {
             else if (process.platform == "darwin") {
                 pathsToSearch = ["julia",
                     path.join(homedir, "Applications", "Julia-0.6.app", "Contents", "Resources", "julia", "bin", "julia"),
-                    path.join("Applications", "Julia-0.6.app", "Contents", "Resources", "julia", "bin", "julia")];
+                    path.join("/", "Applications", "Julia-0.6.app", "Contents", "Resources", "julia", "bin", "julia")];
             }
             else {
                 pathsToSearch = ["julia"];
