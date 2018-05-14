@@ -8,12 +8,16 @@ import * as settings from './settings';
 import * as juliaexepath from './juliaexepath';
 import {generatePipeName} from './utils';
 import * as telemetry from './telemetry';
+import * as util from 'util';
+
+
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
 let g_languageClient: vslc.LanguageClient = null;
 
 let g_terminal: vscode.Terminal = null
+let g_terminal_pipe: net.Socket = null;
 
 let g_plots: Array<string> = new Array<string>();
 let g_currentPlotIndex: number = 0;
@@ -133,106 +137,144 @@ function startREPLCommand() {
     startREPL(false);
 }
 
-async function startREPL(preserveFocus: boolean) {
-    if (g_terminal == null) {
-        startREPLConn()
-        startPlotDisplayServer()
-        let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
-        let exepath = await juliaexepath.getJuliaExePath();
-        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath]);
-    }
-    g_terminal.show(preserveFocus);
-}
+function startREPL(preserveFocus: boolean) {
+    return new Promise(async function(resolve, reject) {
+        if (g_terminal == null) {
+            let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-newrepl');
 
-function startREPLConn() {
-    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
+            let server = net.createServer(function (socket) {
+                g_terminal_pipe = socket;
+                let accumulatingBuffer = new Buffer(0);
 
-    var server = net.createServer(function (stream) {
-        let accumulatingBuffer = new Buffer(0);
+                socket.on('data', async function (data) {
+                    accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(data)]);
+                    let index_of_new_line = accumulatingBuffer.indexOf('\n')
+                    while (index_of_new_line >= 0) {
+                        let header_as_string = accumulatingBuffer.toString('utf8', 0, index_of_new_line);
+                        let header_split = header_as_string.split(':');
 
-        stream.on('data', async function (c) {
-            accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
-            let bufferResult = accumulatingBuffer.toString()
-            let replResponse = accumulatingBuffer.toString().split(",")
+                        let payload_length = parseInt(header_split[1]);
+                        let cmd = header_split[2];
 
-            if (replResponse[0] == "repl/returnModules") {
-                let result = await vscode.window.showQuickPick(replResponse.slice(1), { placeHolder: 'Switch to Module...' })
-                if (result != undefined) {
-                    sendMessage('repl/changeModule', result)
-                }
-            }
-            if (replResponse[0] == "repl/variables") {
-                g_replVariables = bufferResult;
-                // TODO Enable again
-                // g_REPLTreeDataProvider.refresh();
-            }
-        });
+                        if (accumulatingBuffer.length >= index_of_new_line + payload_length + 1) {
+                            let msg = accumulatingBuffer.slice(index_of_new_line + 1, index_of_new_line + payload_length + 2);
+
+                            process_msg(cmd, msg);
+
+                            accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(index_of_new_line + payload_length + 2, accumulatingBuffer.length));
+                        }
+                        index_of_new_line = accumulatingBuffer.indexOf('\n')
+                    }
+                });
+                resolve();
+            });
+
+            server.listen(PIPE_PATH, async function () {
+                let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
+                let exepath = await juliaexepath.getJuliaExePath();
+                g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath]);
+            });
+        }
+        else {
+            g_terminal.show(preserveFocus);
+            resolve();
+        }
     });
-
-    server.on('close', function () {
-        console.log('Server: on close');
-    })
-
-    server.listen(PIPE_PATH, function () {
-        console.log('Server: on listening');
-    })
 }
 
-function startPlotDisplayServer() {
-    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-terminal');
-
-    var server = net.createServer(function (stream) {
-        let accumulatingBuffer = new Buffer(0);
-
-        stream.on('data', function (c) {
-            accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
-            let s = accumulatingBuffer.toString();
-            let index_of_sep_1 = s.indexOf(":");
-            let index_of_sep_2 = s.indexOf(";");
-
-            if (index_of_sep_2 > -1) {
-                let mime_type = s.substring(0, index_of_sep_1);
-                let msg_len_as_string = s.substring(index_of_sep_1 + 1, index_of_sep_2);
-                let msg_len = parseInt(msg_len_as_string);
-                if (accumulatingBuffer.length >= mime_type.length + msg_len_as_string.length + 2 + msg_len) {
-                    let actual_image = s.substring(index_of_sep_2 + 1);
-                    if (accumulatingBuffer.length > mime_type.length + msg_len_as_string.length + 2 + msg_len) {
-                        accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(mime_type.length + msg_len_as_string.length + 2 + msg_len + 1));
-                    }
-                    else {
-                        accumulatingBuffer = new Buffer(0);
-                    }
-
-                    if (mime_type == 'image/svg+xml') {
-                        g_currentPlotIndex = g_plots.push(actual_image) - 1;
-                    }
-                    else if (mime_type == 'image/png') {
-                        let plotPaneContent = '<html><img src="data:image/png;base64,' + actual_image + '" /></html>';
-                        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-                    }
-                    else if (mime_type == 'juliavscode/html') {
-                        g_currentPlotIndex = g_plots.push(actual_image) - 1;
-                    }
-                    else {
-                        throw new Error();
-                    }
-
-                    let uri = vscode.Uri.parse('jlplotpane://nothing.html');
-                    g_plotPaneProvider.update();
-                    vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia Plot Pane");
-                }
-            }
-        });
-    });
-
-    server.on('close', function () {
-        console.log('Server: on close');
-    })
-
-    server.listen(PIPE_PATH, function () {
-        console.log('Server: on listening');
-    })
+function process_msg(cmd, msg) {
+    console.log(cmd);
 }
+
+// function startREPLConn() {
+//     let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
+
+//     var server = net.createServer(function (stream) {
+//         let accumulatingBuffer = new Buffer(0);
+
+//         stream.on('data', async function (c) {
+//             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
+//             let bufferResult = accumulatingBuffer.toString()
+//             let replResponse = accumulatingBuffer.toString().split(",")
+
+//             if (replResponse[0] == "repl/returnModules") {
+//                 let result = await vscode.window.showQuickPick(replResponse.slice(1), { placeHolder: 'Switch to Module...' })
+//                 if (result != undefined) {
+//                     sendMessage('repl/changeModule', result)
+//                 }
+//             }
+//             if (replResponse[0] == "repl/variables") {
+//                 g_replVariables = bufferResult;
+//                 // TODO Enable again
+//                 // g_REPLTreeDataProvider.refresh();
+//             }
+//         });
+//     });
+
+//     server.on('close', function () {
+//         console.log('Server: on close');
+//     })
+
+//     server.listen(PIPE_PATH, function () {
+//         console.log('Server: on listening');
+//     })
+// }
+
+// function startPlotDisplayServer() {
+//     let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-terminal');
+
+//     var server = net.createServer(function (stream) {
+//         let accumulatingBuffer = new Buffer(0);
+
+//         stream.on('data', function (c) {
+//             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
+//             let s = accumulatingBuffer.toString();
+//             let index_of_sep_1 = s.indexOf(":");
+//             let index_of_sep_2 = s.indexOf(";");
+
+//             if (index_of_sep_2 > -1) {
+//                 let mime_type = s.substring(0, index_of_sep_1);
+//                 let msg_len_as_string = s.substring(index_of_sep_1 + 1, index_of_sep_2);
+//                 let msg_len = parseInt(msg_len_as_string);
+//                 if (accumulatingBuffer.length >= mime_type.length + msg_len_as_string.length + 2 + msg_len) {
+//                     let actual_image = s.substring(index_of_sep_2 + 1);
+//                     if (accumulatingBuffer.length > mime_type.length + msg_len_as_string.length + 2 + msg_len) {
+//                         accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(mime_type.length + msg_len_as_string.length + 2 + msg_len + 1));
+//                     }
+//                     else {
+//                         accumulatingBuffer = new Buffer(0);
+//                     }
+
+//                     if (mime_type == 'image/svg+xml') {
+//                         g_currentPlotIndex = g_plots.push(actual_image) - 1;
+//                     }
+//                     else if (mime_type == 'image/png') {
+//                         let plotPaneContent = '<html><img src="data:image/png;base64,' + actual_image + '" /></html>';
+//                         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+//                     }
+//                     else if (mime_type == 'juliavscode/html') {
+//                         g_currentPlotIndex = g_plots.push(actual_image) - 1;
+//                     }
+//                     else {
+//                         throw new Error();
+//                     }
+
+//                     let uri = vscode.Uri.parse('jlplotpane://nothing.html');
+//                     g_plotPaneProvider.update();
+//                     vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia Plot Pane");
+//                 }
+//             }
+//         });
+//     });
+
+//     server.on('close', function () {
+//         console.log('Server: on close');
+//     })
+
+//     server.listen(PIPE_PATH, function () {
+//         console.log('Server: on listening');
+//     })
+// }
 
 async function executeCode(text) {
     if (!text.endsWith("\n")) {
@@ -244,7 +286,10 @@ async function executeCode(text) {
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
     text = lines.join('\n');
-    g_terminal.sendText(text + '\n', false);
+    let payload = Buffer.from(text);
+    let header = `${payload.length}:repl/executeCode\n`;
+    g_terminal_pipe.write(header);
+    g_terminal_pipe.write(payload);
 }
 
 function executeSelection() {
