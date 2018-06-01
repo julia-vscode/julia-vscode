@@ -213,6 +213,36 @@ function startPlotDisplayServer() {
                     else if (mime_type == 'juliavscode/html') {
                         g_currentPlotIndex = g_plots.push(actual_image) - 1;
                     }
+                    else if (mime_type == 'application/vnd.vegalite.v2+json') {
+                        let plotPaneContent = `
+                            <html>
+                                <head>
+                                    <script src="file:///C:/Users/david/.julia/v0.6/ElectronDisplay/assets/vega/vega-embed.min.js"></script>
+                                    <script src="file:///C:/Users/david/.julia/v0.6/ElectronDisplay/assets/vega/vega-lite.min.js"></script>
+                                    <script src="file:///C:/Users/david/.julia/v0.6/ElectronDisplay/assets/vega/vega.min.js"></script>
+                                </head>
+                                <body>
+                                    <div id="plotdiv"></div>
+                                </body>
+                                <style media="screen">
+                                    .vega-actions a {
+                                        margin-right: 10px;
+                                        font-family: sans-serif;
+                                        font-size: x-small;
+                                        font-style: italic;
+                                    }
+                                </style>
+                                <script type="text/javascript">
+                                    var opt = {
+                                        mode: "vega-lite",
+                                        actions: false
+                                    }
+                                    var spec = ${actual_image}
+                                    vegaEmbed('#plotdiv', spec, opt);
+                                </script>
+                            </html>`;
+                        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+                    }
                     else {
                         throw new Error();
                     }

@@ -189,15 +189,25 @@ Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
 
 displayable(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}) = true
 
+function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}, x)
+    payload = stringmime(MIME("application/vnd.vegalite.v2+json"), x)
+    print(conn, "application/vnd.vegalite.v2+json", ":", endof(payload), ";")
+    print(conn, payload)
+end
+
+displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}) = true
+
 function display(d::InlineDisplay, x)
-    if mimewritable("juliavscode/html", x)
-        display(d,"juliavscode/html", x)
+    if mimewritable("application/vnd.vegalite.v2+json", x)
+        display(d,"application/vnd.vegalite.v2+json", x)
+    # elseif mimewritable("juliavscode/html", x)
+    #     display(d,"juliavscode/html", x)
     # elseif mimewritable("text/html", x)
     #     display(d,"text/html", x)
-    elseif mimewritable("image/svg+xml", x)
-        display(d,"image/svg+xml", x)
-    elseif mimewritable("image/png", x)
-        display(d,"image/png", x)
+    # elseif mimewritable("image/svg+xml", x)
+    #     display(d,"image/svg+xml", x)
+    # elseif mimewritable("image/png", x)
+    #     display(d,"image/png", x)
     else
         throw(MethodError(display,(d,x)))
     end
