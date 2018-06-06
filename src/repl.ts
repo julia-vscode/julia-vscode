@@ -24,13 +24,13 @@ let g_replVariables: string = '';
 let c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus';
 
 function getPlotPaneContent() {
-        if (g_plots.length == 0) {
-            return '<html></html>';
-        }
-        else {
-            return g_plots[g_currentPlotIndex];
-        }
+    if (g_plots.length == 0) {
+        return '<html></html>';
     }
+    else {
+        return g_plots[g_currentPlotIndex];
+    }
+}
 
 function showPlotPane() {
     telemetry.traceEvent('command-showplotpane');
@@ -54,7 +54,7 @@ function showPlotPane() {
         g_plotPanel.title = plotTitle;
         g_plotPanel.webview.html = getPlotPaneContent();
         g_plotPanel.reveal();
-}
+    }
 }
 
 function updatePlotPane() {
@@ -223,6 +223,39 @@ function startPlotDisplayServer() {
                     }
                     else if (mime_type == 'juliavscode/html') {
                         g_currentPlotIndex = g_plots.push(actual_image) - 1;
+                    }
+                    else if (mime_type == 'application/vnd.vegalite.v2+json') {
+                        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+                        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
+                        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+                        let plotPaneContent = `
+                            <html>
+                                <head>
+                                    <script src="${uriVega}"></script>
+                                    <script src="${uriVegaLite}"></script>
+                                    <script src="${uriVegaEmbed}"></script>
+                                </head>
+                                <body>
+                                    <div id="plotdiv"></div>
+                                </body>
+                                <style media="screen">
+                                    .vega-actions a {
+                                        margin-right: 10px;
+                                        font-family: sans-serif;
+                                        font-size: x-small;
+                                        font-style: italic;
+                                    }
+                                </style>
+                                <script type="text/javascript">
+                                    var opt = {
+                                        mode: "vega-lite",
+                                        actions: false
+                                    }
+                                    var spec = ${actual_image}
+                                    vegaEmbed('#plotdiv', spec, opt);
+                                </script>
+                            </html>`;
+                        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
                     }
                     else {
                         throw new Error();
