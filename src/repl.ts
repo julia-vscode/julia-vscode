@@ -17,13 +17,13 @@ let g_terminal: vscode.Terminal = null
 
 let g_plots: Array<string> = new Array<string>();
 let g_currentPlotIndex: number = 0;
+let g_plotPanel: vscode.WebviewPanel | undefined = undefined;
 
 let g_replVariables: string = '';
 
-export class PlotPaneDocumentContentProvider implements vscode.TextDocumentContentProvider {
-    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+let c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus';
 
-    public provideTextDocumentContent(uri: vscode.Uri): string {
+function getPlotPaneContent() {
         if (g_plots.length == 0) {
             return '<html></html>';
         }
@@ -32,22 +32,33 @@ export class PlotPaneDocumentContentProvider implements vscode.TextDocumentConte
         }
     }
 
-    get onDidChange(): vscode.Event<vscode.Uri> {
-        return this._onDidChange.event;
-    }
+function showPlotPane() {
+    telemetry.traceEvent('command-showplotpane');
+    let plotTitle = g_plots.length > 0 ? `Julia Plots (${g_currentPlotIndex+1}/${g_plots.length})` : "Julia Plots (0/0)";
+    if (!g_plotPanel) {
+        // Otherwise, create a new panel
+        g_plotPanel = vscode.window.createWebviewPanel('jlplotpane', plotTitle, vscode.ViewColumn.Active, {enableScripts: true});
+        g_plotPanel.webview.html = getPlotPaneContent();
+        vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true);
 
-    public update() {
-        this._onDidChange.fire(vscode.Uri.parse('jlplotpane://nothing.html'));
+        // Reset when the current panel is closed
+        g_plotPanel.onDidDispose(() => {
+            g_plotPanel = undefined;
+        }, null, g_context.subscriptions);
+
+        g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
+		    vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.visible);
+		});
     }
+    else {
+        g_plotPanel.title = plotTitle;
+        g_plotPanel.webview.html = getPlotPaneContent();
+        g_plotPanel.reveal();
+}
 }
 
-let g_plotPaneProvider: PlotPaneDocumentContentProvider = null;
-
-export function showPlotPane() {
-    telemetry.traceEvent('command-showplotpane');
-
-    let uri = vscode.Uri.parse('jlplotpane://nothing.html');
-    vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia Plot Pane");
+function updatePlotPane() {
+    showPlotPane();
 }
 
 export function plotPanePrev() {
@@ -55,7 +66,7 @@ export function plotPanePrev() {
 
     if (g_currentPlotIndex > 0) {
         g_currentPlotIndex = g_currentPlotIndex - 1;
-        g_plotPaneProvider.update();
+        updatePlotPane();
     }
 }
 
@@ -64,7 +75,7 @@ export function plotPaneNext() {
 
     if (g_currentPlotIndex < g_plots.length - 1) {
         g_currentPlotIndex = g_currentPlotIndex + 1;
-        g_plotPaneProvider.update();
+        updatePlotPane();
     }
 }
 
@@ -73,7 +84,7 @@ export function plotPaneFirst() {
 
     if (g_plots.length > 0) {
         g_currentPlotIndex = 0;
-        g_plotPaneProvider.update();
+        updatePlotPane();
     }
 }
 
@@ -81,7 +92,7 @@ export function plotPaneLast() {
     telemetry.traceEvent('command-plotpanelast');
     if (g_plots.length > 0) {
         g_currentPlotIndex = g_plots.length - 1;
-        g_plotPaneProvider.update();
+        updatePlotPane();
     }
 }
 
@@ -92,7 +103,7 @@ export function plotPaneDel() {
         if (g_currentPlotIndex > g_plots.length - 1) {
             g_currentPlotIndex = g_plots.length - 1;
         }
-        g_plotPaneProvider.update();
+        updatePlotPane();
     }
 }
 
@@ -217,9 +228,7 @@ function startPlotDisplayServer() {
                         throw new Error();
                     }
 
-                    let uri = vscode.Uri.parse('jlplotpane://nothing.html');
-                    g_plotPaneProvider.update();
-                    vscode.commands.executeCommand('vscode.previewHtml', uri, 2, "julia Plot Pane");
+                    showPlotPane();
                 }
             }
         });
@@ -343,9 +352,6 @@ let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, v
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
     g_settings = settings;
-
-    g_plotPaneProvider = new PlotPaneDocumentContentProvider();
-    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('jlplotpane', g_plotPaneProvider));
 
     // TODO Enable again
     // g_REPLTreeDataProvider = new REPLTreeDataProvider();
