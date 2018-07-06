@@ -5,7 +5,7 @@
     "version": "0.11.0-dev",
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.23.0"
+        "vscode": "^1.25.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -328,6 +328,13 @@
                     ],
                     "default": null,
                     "description": "Enable usage data and errors to be sent to the julia VS Code extension developers.",
+                    "scope": "window"
+                },
+                "julia.trace.server": {
+                    "type": "string",
+                    "default": "off",
+                    "enum": ["off", "messages", "verbose"],
+                    "description": "Traces the communication between VS Code and the language server.",
                     "scope": "window"
                 }
             }
