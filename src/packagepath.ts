@@ -13,7 +13,7 @@ let juliaPackagePath: string = null;
 export async function getPkgPath() {
     if (juliaPackagePath == null) {
         let jlexepath = await juliaexepath.getJuliaExePath();
-        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "println(Pkg.dir())"`);
+        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "(oldstdout = stdout;redirect_stdout();using Pkg;p = filter(p-> p != nothing,[(p.new.path) for p in Pkg.status(Pkg.Types.Context(), Pkg.Types.PKGMODE_COMBINED)])[1];redirect_stdout(oldstdout); println(dirname(p)))"`);
         juliaPackagePath = res.stdout.trim();
     }
     return juliaPackagePath;

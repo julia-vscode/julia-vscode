@@ -1,13 +1,13 @@
-if VERSION < v"0.6.0-rc1" || VERSION >= v"0.7-"
-    error("VS Code julia language server only works with julia 0.6.")
-end
-
 try
+    if VERSION < v"0.7-"
+        error("VS Code julia language server only works with julia 0.6.")
+    end
+
     if length(Base.ARGS) != 3
         error("Invalid number of arguments passed to julia language server.")
     end
 
-    conn = STDOUT
+    conn = stdout
     (outRead, outWrite) = redirect_stdout()
 
     if Base.ARGS[2] == "--debug=no"
@@ -15,20 +15,21 @@ try
     elseif Base.ARGS[2] == "--debug=yes"
         const global ls_debug_mode = true
     end
+    const global ls_debug_mode = true
 
-    push!(LOAD_PATH, joinpath(dirname(@__FILE__), "packages"))
-    push!(LOAD_PATH, Base.ARGS[1])
+    # push!(LOAD_PATH, joinpath(dirname(@__FILE__), "packages"))
+    # push!(LOAD_PATH, Base.ARGS[1])
 
-    using Compat
-    using JSON
-    using URIParser
-    using LanguageServer
+    # using Compat
+    # using JSON
+    # using URIParser
+    using LanguageServer, Sockets
 
-    server = LanguageServerInstance(STDIN, conn, ls_debug_mode, Base.ARGS[1])
+    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1])
     run(server)
 catch e
-    st = catch_stacktrace()
-    vscode_pipe_name = is_windows() ? "\\\\.\\pipe\\vscode-language-julia-lscrashreports-$(Base.ARGS[3])" : joinpath(tempdir(), "vscode-language-julia-lscrashreports-$(Base.ARGS[3])")
+    st = stacktrace(catch_backtrace())
+    vscode_pipe_name = Sys.iswindows() ? "\\\\.\\pipe\\vscode-language-julia-lscrashreports-$(Base.ARGS[3])" : joinpath(tempdir(), "vscode-language-julia-lscrashreports-$(Base.ARGS[3])")
     pipe_to_vscode = connect(vscode_pipe_name)
     try
         # Send error type as one line
@@ -52,7 +53,7 @@ catch e
             if isabspath(filename)
                 root_path_of_extension = normpath(joinpath(@__DIR__, "..", ".."))
                 if startswith(filename, root_path_of_extension)
-                    filename = joinpath(".", filename[endof(root_path_of_extension)+1:end])
+                    filename = joinpath(".", filename[lastindex(root_path_of_extension)+1:end])
                 else
                     filename = basename(filename)
                 end
