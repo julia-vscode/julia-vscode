@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.3
+* Auto detect julia 0.6.4
+
 ## 0.10.2
 * Fix automatic julia detection on Mac
 
