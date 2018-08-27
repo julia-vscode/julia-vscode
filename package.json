@@ -164,10 +164,6 @@
                 "title": "Julia: Toggle file linting"
             },
             {
-                "command": "language-julia.change-repl-module",
-                "title": "Julia: Change REPL module"
-            },
-            {
                 "command": "language-julia.toggle-log",
                 "title": "Julia: Toggle server logs"
             },

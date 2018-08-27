@@ -1,6 +1,6 @@
 try
-    if VERSION < v"0.7-"
-        error("VS Code julia language server only works with julia 0.6.")
+    if VERSION < v"1.0.0"
+        error("VS Code julia language server only works with julia 1.0.0+")
     end
 
     if length(Base.ARGS) != 3
@@ -24,6 +24,7 @@ try
     # using JSON
     # using URIParser
     using LanguageServer, Sockets
+    LanguageServer.StaticLint.loadpkgs()
 
     server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1])
     run(server)

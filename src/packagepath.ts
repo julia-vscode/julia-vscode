@@ -13,7 +13,9 @@ let juliaPackagePath: string = null;
 export async function getPkgPath() {
     if (juliaPackagePath == null) {
         let jlexepath = await juliaexepath.getJuliaExePath();
-        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "(oldstdout = stdout;redirect_stdout();using Pkg;p = filter(p-> p != nothing,[(p.new.path) for p in Pkg.status(Pkg.Types.Context(), Pkg.Types.PKGMODE_COMBINED)])[1];redirect_stdout(oldstdout); println(dirname(p)))"`);
+        // TODO: there's got to be a better way to do this.
+        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "(using Pkg;println(dirname([u[1][String([0x70,0x61,0x74,0x68])] for (p,u) in Pkg.Types.Context().env.manifest if haskey(u[1], String([0x70,0x61,0x74,0x68]))][1])))"`);
+        
         juliaPackagePath = res.stdout.trim();
     }
     return juliaPackagePath;

@@ -355,23 +355,14 @@ async function executeJuliaBlockInRepl() {
     }
 }
 
-function changeREPLmode() {
-    telemetry.traceEvent('command-changereplmodule');
-
-    if (g_terminal == null) {
-        vscode.window.showErrorMessage("Cannot change REPL mode without a running julia REPL.");
-    }
-    else {
-        sendMessage('repl/getAvailableModules', '');
-    }
-}
-
 async function sendMessage(cmd, msg: string) {
     await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
     let conn = net.connect(sock)
-    conn.write(cmd + '\n' + msg + "\nrepl/endMessage")
+    let outmsg = cmd + '\n' + msg + "\nrepl/endMessage";
+    console.log(outmsg)
+    conn.write(outmsg)
     conn.on('error', () => { vscode.window.showErrorMessage("REPL is not open") })
 }
 
@@ -396,7 +387,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', changeREPLmode));
+    
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
 

@@ -3,7 +3,7 @@ module _vscodeserver
 function remlineinfo!(x)
     if isa(x, Expr)
         if x.head == :macrocall && x.args[2] != nothing
-            id = find(map(x -> (isa(x, Expr) && x.head == :line) || (isdefined(:LineNumberNode) && x isa LineNumberNode), x.args))
+            id = findall(map(x -> (isa(x, Expr) && x.head == :line) || (isdefined(:LineNumberNode) && x isa LineNumberNode), x.args))
             deleteat!(x.args, id)
             for j in x.args
                 remlineinfo!(j)
@@ -69,7 +69,7 @@ function change_module(newmodule::String, print_change = true)
 end
 
 function get_available_modules(m=Main, out = Module[])
-    for n in names(m, true, true)
+    for n in names(m, all = true, imported = true)
         if isdefined(m, n) && getfield(m, n) isa Module  && !(getfield(m, n) in out)
             M = getfield(m, n)
             push!(out, M)
@@ -80,7 +80,7 @@ function get_available_modules(m=Main, out = Module[])
 end
 
 function getVariables()
-    M = current_module()
+    M = @__MODULE__
     variables = []
     msg = ""
     for n in names(M)
@@ -117,18 +117,7 @@ end
         cmd = readline(sock)
         !startswith(cmd, "repl/") && continue
         text = readuntil(sock, "repl/endMessage")[1:end-15]
-        if cmd == "repl/getAvailableModules"
-            oSTDERR = stderr
-            redirect_stderr()
-            ms = get_available_modules(current_module())
-            redirect_stderr(oSTDERR)
-            names = unique(sort(string.(ms)))
-            out = connect(to_vscode)
-            write(out, string("repl/returnModules,", join(names, ","), "\n"))
-            close(out)
-        elseif cmd == "repl/changeModule"
-            change_module(strip(text, '\n'))
-        elseif cmd == "repl/include"
+        if cmd == "repl/include"
             cmod = Core.eval(active_module)
             ex = Expr(:call, :include, strip(text, '\n'))
             cmod.eval(ex)
@@ -202,11 +191,7 @@ function display(d::InlineDisplay, x)
 end
 
 atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
-@async while true
-    if isdefined(Base, :active_repl)
-        print("\r")
-        change_module("Main", false)
-        break
-    end
 end
-end
+
+@eval using Revise
+Revise.async_steal_repl_backend()
