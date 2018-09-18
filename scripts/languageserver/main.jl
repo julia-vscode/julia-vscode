@@ -17,18 +17,16 @@ try
     end
     const global ls_debug_mode = true
 
-    # push!(LOAD_PATH, joinpath(dirname(@__FILE__), "packages"))
-    # push!(LOAD_PATH, Base.ARGS[1])
-
-    # using Compat
-    # using JSON
-    # using URIParser
+    pushfirst!(LOAD_PATH, Base.ARGS[1])
+    pushfirst!(LOAD_PATH, joinpath(dirname(@__FILE__), "packages"))
+    
     using LanguageServer, Sockets
     LanguageServer.StaticLint.loadpkgs()
 
     server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1])
     run(server)
 catch e
+    using Sockets
     st = stacktrace(catch_backtrace())
     vscode_pipe_name = Sys.iswindows() ? "\\\\.\\pipe\\vscode-language-julia-lscrashreports-$(Base.ARGS[3])" : joinpath(tempdir(), "vscode-language-julia-lscrashreports-$(Base.ARGS[3])")
     pipe_to_vscode = connect(vscode_pipe_name)
