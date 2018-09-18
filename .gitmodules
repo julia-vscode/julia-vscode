@@ -16,3 +16,6 @@
 [submodule "scripts/languageserver/packages/DocumentFormat"]
 	path = scripts/languageserver/packages/DocumentFormat
 	url = https://github.com/ZacLN/DocumentFormat.jl
+[submodule "scripts/languageserver/packages/StaticLint"]
+	path = scripts/languageserver/packages/StaticLint
+	url = https://github.com/ZacLN/StaticLint.jl
