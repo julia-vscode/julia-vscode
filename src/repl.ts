@@ -361,7 +361,6 @@ async function sendMessage(cmd, msg: string) {
 
     let conn = net.connect(sock)
     let outmsg = cmd + '\n' + msg + "\nrepl/endMessage";
-    console.log(outmsg)
     conn.write(outmsg)
     conn.on('error', () => { vscode.window.showErrorMessage("REPL is not open") })
 }
