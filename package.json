@@ -170,6 +170,10 @@
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
                 "title": "Julia: Execute Block"
+            },
+            {
+                "command": "language-julia.build-store",
+                "title": "Julia: Rebuild package store"
             }
         ],
         "menus": {

@@ -67,6 +67,9 @@ export async function activate(context: vscode.ExtensionContext) {
     packagepath.activate(context, g_settings);
     openpackagedirectory.activate(context, g_settings);
 
+        
+    // Check StaticLint/store is filled
+    packagepath.checkPackageStore(context)
     // Start language server
     startLanguageServer();
 
