@@ -329,6 +329,11 @@
                     "default": null,
                     "description": "Enable usage data and errors to be sent to the julia VS Code extension developers.",
                     "scope": "window"
+                },
+                "julia.useRevise": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Option to load Revise on startup of the REPL."
                 }
             }
         },

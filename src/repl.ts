@@ -150,7 +150,7 @@ async function startREPL(preserveFocus: boolean) {
         startPlotDisplayServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         let exepath = await juliaexepath.getJuliaExePath();
-        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath]);
+        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath, vscode.workspace.getConfiguration("julia").get("useRevise")]);
     }
     g_terminal.show(preserveFocus);
 }
@@ -386,8 +386,6 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
-
-    
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
 

@@ -20,7 +20,7 @@ function remlineinfo!(x)
     x
 end
 
-using REPL, Sockets, Base64
+using REPL, Sockets, Base64, Pkg
 import Base: display, redisplay
 global active_module = :Main
 
@@ -191,7 +191,13 @@ function display(d::InlineDisplay, x)
 end
 
 atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
+
+# Load revise?
+load_revise = haskey(Pkg.Types.Context().env.manifest, "Revise") && Base.ARGS[3] == "true"
+
 end
 
-@eval using Revise
-Revise.async_steal_repl_backend()
+if _vscodeserver.load_revise
+    @eval using Revise
+    Revise.async_steal_repl_backend()
+end
