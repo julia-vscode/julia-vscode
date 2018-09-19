@@ -10,7 +10,7 @@ function remlineinfo!(x)
             end
             insert!(x.args, 2, nothing)
         else
-            id = find(map(x -> (isa(x, Expr) && x.head == :line) || (isdefined(:LineNumberNode) && x isa LineNumberNode), x.args))
+            id = findall(map(x -> (isa(x, Expr) && x.head == :line) || (isdefined(:LineNumberNode) && x isa LineNumberNode), x.args))
             deleteat!(x.args, id)
             for j in x.args
                 remlineinfo!(j)
@@ -133,7 +133,7 @@ conn = connect(global_lock_socket_name)
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
     payload = stringmime(MIME("image/png"), x)
-    print(conn, "image/png", ":", endof(payload), ";")
+    print(conn, "image/png", ":", sizeof(payload), ";")
     print(conn, payload)
 end
 
@@ -141,7 +141,7 @@ displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
     payload = stringmime(MIME("image/svg+xml"), x)
-    print(conn, "image/svg+xml", ":", endof(payload), ";")
+    print(conn, "image/svg+xml", ":", sizeof(payload), ";")
     print(conn, payload)
 end
 
@@ -149,7 +149,7 @@ displayable(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("text/html")}, x)
     payload = stringmime(MIME("text/html"), x)
-    print(conn, "text/html", ":", endof(payload), ";")
+    print(conn, "text/html", ":", sizeof(payload), ";")
     print(conn, payload)
 end
 
@@ -157,7 +157,7 @@ displayable(d::InlineDisplay, ::MIME{Symbol("text/html")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}, x)
     payload = stringmime(MIME("juliavscode/html"), x)
-    print(conn, "juliavscode/html", ":", endof(payload), ";")
+    print(conn, "juliavscode/html", ":", sizeof(payload), ";")
     print(conn, payload)
 end
 
@@ -167,7 +167,7 @@ displayable(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}, x)
     payload = stringmime(MIME("application/vnd.vegalite.v2+json"), x)
-    print(conn, "application/vnd.vegalite.v2+json", ":", endof(payload), ";")
+    print(conn, "application/vnd.vegalite.v2+json", ":", sizeof(payload), ";")
     print(conn, payload)
 end
 
