@@ -116,14 +116,6 @@
                 "title": "Julia Weave: Save to file..."
             },
             {
-                "command": "language-julia.lint-package",
-                "title": "Julia: Lint Package"
-            },
-            {
-                "command": "language-julia.reload-modules",
-                "title": "Julia: Reload imported modules"
-            },
-            {
                 "command": "language-julia.show-plotpane",
                 "title": "Julia: Show plot pane"
             },

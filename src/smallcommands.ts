@@ -45,26 +45,6 @@ function lintPackage() {
     }
 }
 
-function reloadModules() {
-    telemetry.traceEvent('command-reloadmodules');
-
-    if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: Language server is not yet running.');
-    }
-    else {
-        try {
-            g_languageClient.sendRequest("julia/reload-modules");
-        }
-        catch (ex) {
-            if (ex.message == "Language client is not ready yet") {
-                vscode.window.showErrorMessage('Error: Language server is not yet running.');
-            }
-            else {
-                throw ex;
-            }
-        }
-    }
-}
 
 function toggleServerLogs() {
     telemetry.traceEvent('command-juliatogglelog');
