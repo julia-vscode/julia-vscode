@@ -24,26 +24,26 @@ function applyTextEdit(we) {
     vscode.workspace.applyEdit(wse)
 }
 
-function lintPackage() {
-    telemetry.traceEvent('command-lintpackage');
+// function lintPackage() {
+//     telemetry.traceEvent('command-lintpackage');
 
-    if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
-    }
-    else {
-        try {
-            g_languageClient.sendRequest("julia/lint-package");
-        }
-        catch (ex) {
-            if (ex.message == "Language client is not ready yet") {
-                vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
-            }
-            else {
-                throw ex;
-            }
-        }
-    }
-}
+//     if (g_languageClient == null) {
+//         vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
+//     }
+//     else {
+//         try {
+//             g_languageClient.sendRequest("julia/lint-package");
+//         }
+//         catch (ex) {
+//             if (ex.message == "Language client is not ready yet") {
+//                 vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
+//             }
+//             else {
+//                 throw ex;
+//             }
+//         }
+//     }
+// }
 
 
 function toggleServerLogs() {
