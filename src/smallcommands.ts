@@ -94,9 +94,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_settings = settings;
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.lint-package', lintPackage));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.reload-modules', reloadModules));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-log', toggleServerLogs));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-file-lint', toggleFileLint));
 }
