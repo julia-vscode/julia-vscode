@@ -161,7 +161,11 @@
             },
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
-                "title": "Julia: Execute Block"
+                "title": "Julia: Execute code block"
+            },
+            {
+                "command": "language-julia.selectBlock",
+                "title": "Julia: Select code block"
             },
             {
                 "command": "language-julia.build-store",

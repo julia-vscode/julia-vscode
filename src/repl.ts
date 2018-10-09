@@ -328,6 +328,30 @@ function executeFile() {
     executeCode(text)
 }
 
+async function selectJuliaBlock() {
+    if (g_languageClient == null) {
+        vscode.window.showErrorMessage('Error: Language server is not running.');
+    }
+    else {
+        var editor = vscode.window.activeTextEditor;
+        let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
+
+        try {
+            let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
+            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))
+            vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1])))
+        }
+        catch (ex) {
+            if (ex.message == "Language client is not ready yet") {
+                vscode.window.showErrorMessage('Select code block only works once the Julia Language Server is ready.');
+            }
+            else {
+                throw ex;
+            }
+        }
+    }
+}
+
 async function executeJuliaBlockInRepl() {
     telemetry.traceEvent('command-executejuliablockinrepl');
 
@@ -388,6 +412,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane));
 
