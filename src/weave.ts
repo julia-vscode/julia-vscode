@@ -6,6 +6,7 @@ import * as fs from 'async-file';
 import * as settings from './settings'
 import * as juliaexepath from './juliaexepath';
 import * as telemetry from './telemetry';
+import { stringify } from 'querystring';
 
 var tempfs = require('promised-temp').track();
 var kill = require('async-child-process').kill;
@@ -56,7 +57,8 @@ async function weave_core(column, selected_format: string = undefined) {
     }
     else {
         source_filename = vscode.window.activeTextEditor.document.fileName;
-        output_filename = '';
+        let output_uri = await vscode.window.showSaveDialog({});
+        output_filename = output_uri.fsPath;
     }
 
     if (g_weaveOutputChannel == null) {

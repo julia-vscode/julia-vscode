@@ -1,10 +1,10 @@
-stderr_copy = Base.STDERR
+stderr_copy = stderr
 
 rserr, wrerr = redirect_stderr()
 
 using Weave
 # For some reason this is needed on Windows, without it we see lots of errors
-info("Ignore")
+@info "Ignore"
 
 redirect_stderr(stderr_copy)
 close(rserr)
@@ -13,11 +13,11 @@ close(wrerr)
 input_file = readline()
 output_file = readline()
 doctype = readline()
-
+@info output_file
 if doctype=="PREVIEW"
     template_path = joinpath(dirname(@__FILE__), "preview.tpl")
 
     Weave.weave(input_file, out_path=output_file, template=template_path)
 else
-    Weave.weave(input_file, out_path=:doc, doctype=doctype)
+    Weave.weave(input_file, out_path=output_file, doctype=doctype)
 end
