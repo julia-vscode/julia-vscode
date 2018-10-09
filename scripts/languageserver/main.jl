@@ -15,7 +15,6 @@ try
     elseif Base.ARGS[2] == "--debug=yes"
         const global ls_debug_mode = true
     end
-    const global ls_debug_mode = true
 
     pushfirst!(LOAD_PATH, Base.ARGS[1])
     pushfirst!(LOAD_PATH, joinpath(dirname(@__FILE__), "packages"))
