@@ -46,7 +46,7 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
         let jlexepath = await juliaexepath.getJuliaExePath();
 
         if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
-            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', '-e', 'Pkg.test(Base.ARGS[1])', rootPath]), "");
+            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', path.join(rootPath, 'test', 'runtests.jl')]), "");
             testTask.group = vscode.TaskGroup.Test;
             testTask.presentationOptions = { echo: false };
             result.push(testTask);
@@ -55,7 +55,7 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
         if (await fs.exists(path.join(rootPath, 'deps', 'build.jl'))) {
             let splitted_path = rootPath.split(path.sep);
             let package_name = splitted_path[splitted_path.length - 1];
-            let buildTask = new vscode.Task({ type: 'julia', command: 'build' }, folder, `Run build`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', '-e', 'Pkg.build(Base.ARGS[1])', package_name]), "");
+            let buildTask = new vscode.Task({ type: 'julia', command: 'build' }, folder, `Run build`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', path.join(rootPath, 'deps', 'build.jl')]), "");
             buildTask.group = vscode.TaskGroup.Build;
             buildTask.presentationOptions = { echo: false };
             result.push(buildTask);
