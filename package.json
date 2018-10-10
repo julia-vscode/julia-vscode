@@ -296,21 +296,18 @@
         ],
         "configuration": {
             "type": "object",
-            "title": "julia configuration",
+            "title": "Julia",
             "properties": {
                 "julia.executablePath": {
-                    "type": [
-                        "string",
-                        "null"
-                    ],
-                    "default": null,
+                    "type": "string",
+                    "default": "",
                     "description": "Points to the julia executable.",
                     "scope": "window"
                 },
-                "julia.runlinter": {
+                "julia.runLinter": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Option to automatically run the Linter on active files."
+                    "description": "Run the linter on active files."
                 },
                 "julia.enableCrashReporter": {
                     "type": [
@@ -333,7 +330,7 @@
                 "julia.useRevise": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Option to load Revise on startup of the REPL."
+                    "description": "Load Revise.jl on startup of the REPL."
                 }
             }
         },
