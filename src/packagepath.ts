@@ -13,6 +13,8 @@ let g_languageClient: vslc.LanguageClient = null;
 
 let juliaPackagePath: string = null;
 
+let juliaDepotPath: string[] = null;
+
 export async function getPkgPath() {
     if (juliaPackagePath == null) {
         let jlexepath = await juliaexepath.getJuliaExePath();
@@ -21,6 +23,15 @@ export async function getPkgPath() {
         juliaPackagePath = res.stdout.trim();
     }
     return juliaPackagePath;
+}
+
+export async function getPkgDepotPath() {
+    if (juliaDepotPath == null) {
+        let jlexepath = await juliaexepath.getJuliaExePath();
+        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "using Pkg; println.(Pkg.depots())"`);
+        juliaDepotPath = res.stdout.trim().split('\n');
+    }
+    return juliaDepotPath;
 }
 
 export async function checkPackageStore(context: vscode.ExtensionContext) {

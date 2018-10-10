@@ -19,6 +19,7 @@ import * as smallcommands from './smallcommands';
 import * as packagepath from './packagepath';
 import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
+import * as jlpkgenv from './jlpkgenv';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -66,7 +67,7 @@ export async function activate(context: vscode.ExtensionContext) {
     smallcommands.activate(context, g_settings);
     packagepath.activate(context, g_settings);
     openpackagedirectory.activate(context, g_settings);
-
+    jlpkgenv.activate(context, g_settings);
         
     // Check StaticLint/store is filled
     packagepath.checkPackageStore(context)
@@ -97,6 +98,7 @@ function setLanguageClient(languageClient: vslc.LanguageClient) {
     smallcommands.onNewLanguageClient(g_languageClient);
     packagepath.onNewLanguageClient(g_languageClient);
     openpackagedirectory.onNewLanguageClient(g_languageClient);
+    jlpkgenv.onNewLanguageClient(g_languageClient);
 }
 
 function configChanged(params) {
@@ -110,6 +112,7 @@ function configChanged(params) {
     smallcommands.onDidChangeConfiguration(newSettings);
     packagepath.onDidChangeConfiguration(newSettings);
     openpackagedirectory.onDidChangeConfiguration(newSettings);
+    jlpkgenv.onDidChangeConfiguration(newSettings);
 
     let need_to_restart_server = false;
 
