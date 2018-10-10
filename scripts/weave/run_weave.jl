@@ -19,5 +19,6 @@ if doctype=="PREVIEW"
 
     Weave.weave(input_file, out_path=output_file, template=template_path)
 else
+    cd(dirname(input_file))
     Weave.weave(input_file, out_path=:doc, doctype=doctype)
 end
