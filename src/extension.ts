@@ -25,8 +25,8 @@ let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
 
 let g_serverstatus: vscode.StatusBarItem = null;
-let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
-let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
+// let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
+// let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 
 export async function activate(context: vscode.ExtensionContext) {  
     telemetry.init();
@@ -44,7 +44,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Status bar
     g_serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     g_serverstatus.show()
-    g_serverstatus.text = 'Julia Language Server is busy';
+    g_serverstatus.text = 'Julia';
     context.subscriptions.push(g_serverstatus);
 
     // Config change
@@ -67,6 +67,9 @@ export async function activate(context: vscode.ExtensionContext) {
     packagepath.activate(context, g_settings);
     openpackagedirectory.activate(context, g_settings);
 
+        
+    // Check StaticLint/store is filled
+    packagepath.checkPackageStore(context)
     // Start language server
     startLanguageServer();
 
@@ -131,7 +134,9 @@ async function startLanguageServer() {
         var originalJuliaPkgDir = await packagepath.getPkgPath();
     }
     catch (e) {
+
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
+        vscode.window.showErrorMessage(e)
         return;
     }
     let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=no', process.pid.toString()];
@@ -171,17 +176,18 @@ async function startLanguageServer() {
         setLanguageClient(g_languageClient);
     }
     catch (e) {
+
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         g_languageClient = null;
     }
 
-    g_languageClient.onReady().then(() => {
-        g_languageClient.onNotification(g_serverBusyNotification, () => {
-            g_serverstatus.show();
-        })
+    // g_languageClient.onReady().then(() => {
+    //     g_languageClient.onNotification(g_serverBusyNotification, () => {
+    //         g_serverstatus.show();
+    //     })
 
-        g_languageClient.onNotification(g_serverReadyNotification, () => {
-            g_serverstatus.hide();
-        })
-    })
+    //     g_languageClient.onNotification(g_serverReadyNotification, () => {
+    //         g_serverstatus.hide();
+    //     })
+    // })
 }

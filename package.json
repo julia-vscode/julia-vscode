@@ -116,14 +116,6 @@
                 "title": "Julia Weave: Save to file..."
             },
             {
-                "command": "language-julia.lint-package",
-                "title": "Julia: Lint Package"
-            },
-            {
-                "command": "language-julia.reload-modules",
-                "title": "Julia: Reload imported modules"
-            },
-            {
                 "command": "language-julia.show-plotpane",
                 "title": "Julia: Show plot pane"
             },
@@ -164,16 +156,20 @@
                 "title": "Julia: Toggle file linting"
             },
             {
-                "command": "language-julia.change-repl-module",
-                "title": "Julia: Change REPL module"
-            },
-            {
                 "command": "language-julia.toggle-log",
                 "title": "Julia: Toggle server logs"
             },
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
-                "title": "Julia: Execute Block"
+                "title": "Julia: Execute code block"
+            },
+            {
+                "command": "language-julia.selectBlock",
+                "title": "Julia: Select code block"
+            },
+            {
+                "command": "language-julia.build-store",
+                "title": "Julia: Rebuild package store"
             }
         ],
         "menus": {
@@ -329,6 +325,11 @@
                     "default": null,
                     "description": "Enable usage data and errors to be sent to the julia VS Code extension developers.",
                     "scope": "window"
+                },
+                "julia.useRevise": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Option to load Revise on startup of the REPL."
                 }
             }
         },

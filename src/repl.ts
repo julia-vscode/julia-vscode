@@ -150,7 +150,7 @@ async function startREPL(preserveFocus: boolean) {
         startPlotDisplayServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         let exepath = await juliaexepath.getJuliaExePath();
-        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath]);
+        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath, vscode.workspace.getConfiguration("julia").get("useRevise")]);
     }
     g_terminal.show(preserveFocus);
 }
@@ -328,6 +328,30 @@ function executeFile() {
     executeCode(text)
 }
 
+async function selectJuliaBlock() {
+    if (g_languageClient == null) {
+        vscode.window.showErrorMessage('Error: Language server is not running.');
+    }
+    else {
+        var editor = vscode.window.activeTextEditor;
+        let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
+
+        try {
+            let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
+            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))
+            vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1])))
+        }
+        catch (ex) {
+            if (ex.message == "Language client is not ready yet") {
+                vscode.window.showErrorMessage('Select code block only works once the Julia Language Server is ready.');
+            }
+            else {
+                throw ex;
+            }
+        }
+    }
+}
+
 async function executeJuliaBlockInRepl() {
     telemetry.traceEvent('command-executejuliablockinrepl');
 
@@ -343,6 +367,7 @@ async function executeJuliaBlockInRepl() {
 
             executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))))
             vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
+            vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2])))
         }
         catch (ex) {
             if (ex.message == "Language client is not ready yet") {
@@ -355,23 +380,13 @@ async function executeJuliaBlockInRepl() {
     }
 }
 
-function changeREPLmode() {
-    telemetry.traceEvent('command-changereplmodule');
-
-    if (g_terminal == null) {
-        vscode.window.showErrorMessage("Cannot change REPL mode without a running julia REPL.");
-    }
-    else {
-        sendMessage('repl/getAvailableModules', '');
-    }
-}
-
 async function sendMessage(cmd, msg: string) {
     await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
     let conn = net.connect(sock)
-    conn.write(cmd + '\n' + msg + "\nrepl/endMessage")
+    let outmsg = cmd + '\n' + msg + "\nrepl/endMessage";
+    conn.write(outmsg)
     conn.on('error', () => { vscode.window.showErrorMessage("REPL is not open") })
 }
 
@@ -396,9 +411,9 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', changeREPLmode));
-
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane));
 
