@@ -162,7 +162,7 @@ async function startLanguageServer() {
     let clientOptions: LanguageClientOptions = {
         documentSelector: ['julia', 'juliamarkdown'],
         synchronize: {
-            configurationSection: ['julia.runlinter', 'julia.lintIgnoreList'],
+            configurationSection: ['julia.runLinter', 'julia.lintIgnoreList'],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never
