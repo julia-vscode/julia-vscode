@@ -5,6 +5,8 @@ import * as telemetry from './telemetry';
 import * as fs from 'async-file';
 import * as packagepath from './packagepath'
 import * as path from 'path'
+import * as juliaexepath from './juliaexepath';
+var exec = require('child-process-promise').exec;
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -13,13 +15,12 @@ let g_languageClient: vslc.LanguageClient = null;
 let g_current_environment: vscode.StatusBarItem = null;
 
 let g_path_of_current_environment: string = null;
-let g_name_of_current_environment: string = null;
 
-function switchEnvToPath(envpath: string) {
+async function switchEnvToPath(envpath: string) {
     g_path_of_current_environment = envpath;
-    g_name_of_current_environment = path.basename(g_path_of_current_environment);
-    g_current_environment.text = g_name_of_current_environment;        
+    g_current_environment.text = await getEnvName();
 
+    g_languageClient.sendNotification("julia/activateenvironment", envpath);
 }
 
 async function changeJuliaEnvironment() {
@@ -69,8 +70,18 @@ async function changeJuliaEnvironment() {
     }
 }
 
-export function getEnvPath() {
+export async function getEnvPath() {
+    if (g_path_of_current_environment==null){
+        let jlexepath = await juliaexepath.getJuliaExePath();
+        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "using Pkg; println(dirname(Pkg.Types.Context().env.project_file))"`);
+        g_path_of_current_environment = res.stdout.trim();
+    }
     return g_path_of_current_environment;
+}
+
+export async function getEnvName() {
+    let envpath = await getEnvPath();
+    return path.basename(envpath);
 }
 
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
