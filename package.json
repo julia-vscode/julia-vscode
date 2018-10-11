@@ -170,10 +170,6 @@
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select code block"
-            },
-            {
-                "command": "language-julia.build-store",
-                "title": "Julia: Rebuild package store"
             }
         ],
         "menus": {
