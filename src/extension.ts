@@ -131,8 +131,9 @@ function configChanged(params) {
 async function startLanguageServer() {
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
+    let jlEnvPath = '';
     try {
-        var originalJuliaPkgDir = await packagepath.getPkgPath();
+        jlEnvPath = await jlpkgenv.getEnvPath();    
     }
     catch (e) {
 
@@ -140,12 +141,13 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage(e)
         return;
     }
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=no', process.pid.toString()];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=yes', process.pid.toString()];
+    let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=no', process.pid.toString(), oldDepotPath];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=yes', process.pid.toString(), oldDepotPath];
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_PKGDIR: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
             HOME: process.env.HOME ? process.env.HOME : os.homedir()
         }
     };

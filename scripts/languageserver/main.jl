@@ -3,7 +3,7 @@ try
         error("VS Code julia language server only works with julia 1.0.0+")
     end
 
-    if length(Base.ARGS) != 3
+    if length(Base.ARGS) != 4
         error("Invalid number of arguments passed to julia language server.")
     end
 
@@ -16,13 +16,13 @@ try
         const global ls_debug_mode = true
     end
 
-    pushfirst!(LOAD_PATH, Base.ARGS[1])
-    pushfirst!(LOAD_PATH, joinpath(dirname(@__FILE__), "packages"))
+    empty!(LOAD_PATH)
+    push!(LOAD_PATH, joinpath(dirname(@__FILE__), "packages"))
+    push!(LOAD_PATH, "@stdlib")
     
     using LanguageServer, Sockets
-    LanguageServer.StaticLint.loadpkgs()
 
-    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1])
+    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4])
     run(server)
 catch e
     using Sockets
