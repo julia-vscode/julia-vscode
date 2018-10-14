@@ -69,7 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         
     // Check StaticLint/store is filled
-    packagepath.checkPackageStore(context)
+    // packagepath.checkPackageStore(context)
     // Start language server
     startLanguageServer();
 

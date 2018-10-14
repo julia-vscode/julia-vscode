@@ -19,3 +19,6 @@
 [submodule "scripts/languageserver/packages/StaticLint"]
 	path = scripts/languageserver/packages/StaticLint
 	url = https://github.com/ZacLN/StaticLint.jl
+[submodule "scripts/languageserver/packages/SymbolServer"]
+	path = scripts/languageserver/packages/SymbolServer
+	url = https://github.com/zacln/symbolserver.jl
