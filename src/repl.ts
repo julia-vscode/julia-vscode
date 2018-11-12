@@ -336,7 +336,7 @@ async function executeFile() {
 
 async function selectJuliaBlock() {
     if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: Language server is not running.');
+        vscode.window.showErrorMessage('Error: Language server is not running. [selectJuliaBlock]');
     }
     else {
         var editor = vscode.window.activeTextEditor;
@@ -347,12 +347,12 @@ async function selectJuliaBlock() {
             vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))
             vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1])))
         }
-        catch (ex) {
-            if (ex.message == "Language client is not ready yet") {
+        catch (e) {
+            if (e.message == "Language client is not ready yet") {
                 vscode.window.showErrorMessage('Select code block only works once the Julia Language Server is ready.');
             }
             else {
-                throw ex;
+                throw e;
             }
         }
     }
@@ -362,7 +362,7 @@ async function executeJuliaBlockInRepl() {
     telemetry.traceEvent('command-executejuliablockinrepl');
 
     if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: Language server is not running.');
+        vscode.window.showErrorMessage('Error: Language server is not running. [executeJuliaBlockInRepl]');
     }
     else {
         var editor = vscode.window.activeTextEditor;
@@ -375,12 +375,12 @@ async function executeJuliaBlockInRepl() {
             vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
             vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2])))
         }
-        catch (ex) {
-            if (ex.message == "Language client is not ready yet") {
+        catch (e) {
+            if (e.message == "Language client is not ready yet") {
                 vscode.window.showErrorMessage('Execute code block only works once the Julia Language Server is ready.');
             }
             else {
-                throw ex;
+                throw e;
             }
         }
     }
@@ -393,7 +393,7 @@ async function sendMessage(cmd, msg: string) {
     let conn = net.connect(sock)
     let outmsg = cmd + '\n' + msg + "\nrepl/endMessage";
     conn.write(outmsg)
-    conn.on('error', () => { vscode.window.showErrorMessage("REPL is not open") })
+    conn.on('error', () => { vscode.window.showErrorMessage("REPL is not open [sendMessage]") })
 }
 
 export interface TextDocumentPositionParams {

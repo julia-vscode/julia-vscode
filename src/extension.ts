@@ -134,8 +134,7 @@ async function startLanguageServer() {
         var originalJuliaPkgDir = await packagepath.getPkgPath();
     }
     catch (e) {
-
-        vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
+        vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary. [startLanguageServer 1]');
         vscode.window.showErrorMessage(e)
         return;
     }
@@ -176,8 +175,8 @@ async function startLanguageServer() {
         setLanguageClient(g_languageClient);
     }
     catch (e) {
-
-        vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
+        vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary. [startLanguageServer 2]');
+        vscode.window.showErrorMessage(e)
         g_languageClient = null;
     }
 

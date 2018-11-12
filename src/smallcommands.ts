@@ -50,7 +50,7 @@ function toggleServerLogs() {
     telemetry.traceEvent('command-juliatogglelog');
 
     if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: Lanuage server is not yet running.');
+        vscode.window.showErrorMessage('Error: Lanuage server is not yet running. [toggleServerLogs 1]');
     }
     else {
         try {
@@ -58,7 +58,7 @@ function toggleServerLogs() {
         }
         catch (ex) {
             if (ex.message == "Language client is not ready yet") {
-                vscode.window.showErrorMessage('Error: server is not running.');
+                vscode.window.showErrorMessage('Error: server is not running. [toggleServerLogs 2]');
             }
             else {
                 throw ex;
@@ -71,7 +71,7 @@ function toggleFileLint(arg) {
     telemetry.traceEvent('command-juliatogglefilelint');
 
     if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: Lanuage server is not yet running.');
+        vscode.window.showErrorMessage('Error: Lanuage server is not yet running. [toggleFileLint 1]');
     }
     else {
         try {
@@ -80,7 +80,7 @@ function toggleFileLint(arg) {
         catch (ex) {
             5
             if (ex.message == "Language client is not ready yet") {
-                vscode.window.showErrorMessage('Error: server is not running.');
+                vscode.window.showErrorMessage('Error: server is not running. [toggleFileLint 1]');
             }
             else {
                 throw ex;
