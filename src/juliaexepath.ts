@@ -20,7 +20,8 @@ export async function getJuliaExePath() {
             if (process.platform == "win32") {
                 pathsToSearch = ["julia.exe",
                     path.join(homedir, "AppData", "Local", "Julia-1.0.0", "bin", "julia.exe"),
-                    path.join(homedir, "AppData", "Local", "Julia-1.0.1", "bin", "julia.exe")
+                    path.join(homedir, "AppData", "Local", "Julia-1.0.1", "bin", "julia.exe"),
+                    path.join(homedir, "AppData", "Local", "Julia-1.0.2", "bin", "julia.exe")
                 ];
             }
             else if (process.platform == "darwin") {
