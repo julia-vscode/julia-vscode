@@ -144,7 +144,7 @@ async function startLanguageServer() {
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_PKGDIR: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            JULIA_PKGDIR: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'packages'),
             HOME: process.env.HOME ? process.env.HOME : os.homedir()
         }
     };

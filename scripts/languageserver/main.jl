@@ -20,11 +20,7 @@ try
     pushfirst!(LOAD_PATH, Base.ARGS[1])
     pushfirst!(LOAD_PATH, joinpath(dirname(@__FILE__), "packages"))
     
-    using LanguageServer, Sockets
-    
-    # ss_server = LanguageServer.StaticLint.SymbolServer.SymbolServerProcess()
-    # packages = LanguageServer.StaticLint.SymbolServer.getstore(ss_server)
-    # kill(ss_server)
+    using LanguageServer, Sockets, SymbolServer
 
     server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Dict())
     run(server)

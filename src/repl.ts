@@ -8,6 +8,8 @@ import * as settings from './settings';
 import * as juliaexepath from './juliaexepath';
 import {generatePipeName} from './utils';
 import * as telemetry from './telemetry';
+import * as fs from 'async-file';
+import { exec } from 'child_process';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -315,17 +317,21 @@ function executeSelection() {
     executeCode(text)
 }
 
-function executeFile() {
+async function executeFile() {
     telemetry.traceEvent('command-executejuliafileinrepl');
 
     var editor = vscode.window.activeTextEditor;
     if (!editor) {
         return;
     }
-
-    let text = editor.document.getText();
-
-    executeCode(text)
+    let fname = editor.document.fileName;
+    if (await fs.exists(fname)) {
+        executeCode('include("' + fname + '")')
+    }
+    else {
+        let text = editor.document.getText();
+        executeCode(text)
+    }
 }
 
 async function selectJuliaBlock() {
