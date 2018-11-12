@@ -17,7 +17,9 @@ export async function getPkgPath() {
     if (juliaPackagePath == null) {
         let jlexepath = await juliaexepath.getJuliaExePath();
         // TODO: there's got to be a better way to do this.
-        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "(using Pkg;println(dirname([u[1][string(:path)] for (p,u) in Pkg.Types.Context().env.manifest if haskey(u[1], string(:path))][1])))"`);
+        let scriptpath = join(g_context.extensionPath, "scripts", "languageserver", "pkgdir.jl");
+        // var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "(using Pkg;println(dirname([u[1][string(:path)] for (p,u) in Pkg.Types.Context().env.manifest if haskey(u[1], string(:path))][1])))"`);
+        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no ${scriptpath}`);
         juliaPackagePath = res.stdout.trim();
     }
     return juliaPackagePath;
