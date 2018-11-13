@@ -88,6 +88,10 @@
                 "title": "Julia: Open Package Directory in New Window"
             },
             {
+                "command": "language-julia.changeCurrentEnvironment",
+                "title": "Julia: Change the current environment"
+            },            
+            {
                 "command": "language-julia.startREPL",
                 "title": "Julia: Start REPL"
             },
@@ -166,10 +170,6 @@
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select code block"
-            },
-            {
-                "command": "language-julia.build-store",
-                "title": "Julia: Rebuild package store"
             }
         ],
         "menus": {
