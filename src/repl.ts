@@ -8,6 +8,7 @@ import * as settings from './settings';
 import * as juliaexepath from './juliaexepath';
 import {generatePipeName} from './utils';
 import * as telemetry from './telemetry';
+import * as jlpkgenv from './jlpkgenv';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -150,7 +151,13 @@ async function startREPL(preserveFocus: boolean) {
         startPlotDisplayServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         let exepath = await juliaexepath.getJuliaExePath();
-        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath, vscode.workspace.getConfiguration("julia").get("useRevise").toString()]);
+        let pkgenvpath = jlpkgenv.getEnvPath();
+        if (pkgenvpath==null) {
+            g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath, vscode.workspace.getConfiguration("julia").get("useRevise").toString()]);
+        }
+        else {
+            g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', `--project=${pkgenvpath}`, args, process.pid.toString(), process.execPath, vscode.workspace.getConfiguration("julia").get("useRevise").toString()]);
+        }
     }
     g_terminal.show(preserveFocus);
 }

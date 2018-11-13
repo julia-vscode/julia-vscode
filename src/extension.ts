@@ -19,6 +19,7 @@ import * as smallcommands from './smallcommands';
 import * as packagepath from './packagepath';
 import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
+import * as jlpkgenv from './jlpkgenv';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -66,10 +67,8 @@ export async function activate(context: vscode.ExtensionContext) {
     smallcommands.activate(context, g_settings);
     packagepath.activate(context, g_settings);
     openpackagedirectory.activate(context, g_settings);
+    jlpkgenv.activate(context, g_settings);
 
-        
-    // Check StaticLint/store is filled
-    packagepath.checkPackageStore(context)
     // Start language server
     startLanguageServer();
 
@@ -97,6 +96,7 @@ function setLanguageClient(languageClient: vslc.LanguageClient) {
     smallcommands.onNewLanguageClient(g_languageClient);
     packagepath.onNewLanguageClient(g_languageClient);
     openpackagedirectory.onNewLanguageClient(g_languageClient);
+    jlpkgenv.onNewLanguageClient(g_languageClient);
 }
 
 function configChanged(params) {
@@ -110,6 +110,7 @@ function configChanged(params) {
     smallcommands.onDidChangeConfiguration(newSettings);
     packagepath.onDidChangeConfiguration(newSettings);
     openpackagedirectory.onDidChangeConfiguration(newSettings);
+    jlpkgenv.onDidChangeConfiguration(newSettings);
 
     let need_to_restart_server = false;
 
@@ -130,8 +131,9 @@ function configChanged(params) {
 async function startLanguageServer() {
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
+    let jlEnvPath = '';
     try {
-        var originalJuliaPkgDir = await packagepath.getPkgPath();
+        jlEnvPath = await jlpkgenv.getEnvPath();
     }
     catch (e) {
 
@@ -139,12 +141,13 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage(e)
         return;
     }
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=no', process.pid.toString()];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=yes', process.pid.toString()];
+    let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=no', process.pid.toString(), oldDepotPath];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=yes', process.pid.toString(), oldDepotPath];    
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_PKGDIR: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
             HOME: process.env.HOME ? process.env.HOME : os.homedir()
         }
     };
@@ -159,7 +162,7 @@ async function startLanguageServer() {
     let clientOptions: LanguageClientOptions = {
         documentSelector: ['julia', 'juliamarkdown'],
         synchronize: {
-            configurationSection: ['julia.runlinter', 'julia.lintIgnoreList'],
+            configurationSection: ['julia.runLinter', 'julia.lintIgnoreList'],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never
