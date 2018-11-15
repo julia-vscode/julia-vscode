@@ -293,7 +293,7 @@ async function executeCode(text) {
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
     text = lines.join('\n');
-    g_terminal.sendText(text + '\n', false);
+    g_terminal.sendText('\e[200~' + text + '\n' + '\e[201~', false);
 }
 
 function executeSelection() {
