@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "0.11.0-alpha",
+    "version": "0.11.0-beta.1",
     "publisher": "julialang",
     "engines": {
         "vscode": "^1.28.0"
@@ -90,7 +90,7 @@
             {
                 "command": "language-julia.changeCurrentEnvironment",
                 "title": "Julia: Change the current environment"
-            },            
+            },
             {
                 "command": "language-julia.startREPL",
                 "title": "Julia: Start REPL"
