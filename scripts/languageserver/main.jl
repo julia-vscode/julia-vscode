@@ -25,9 +25,11 @@ try
     server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], Dict())
     run(server)
 catch e
+    @info "Language Server crashed with"
+    @info e
     using Sockets
     st = stacktrace(catch_backtrace())
-    vscode_pipe_name = Sys.iswindows() ? "\\\\.\\pipe\\vscode-language-julia-lscrashreports-$(Base.ARGS[3])" : joinpath(tempdir(), "vscode-language-julia-lscrashreports-$(Base.ARGS[3])")
+    vscode_pipe_name = Base.ARGS[3]
     pipe_to_vscode = connect(vscode_pipe_name)
     try
         # Send error type as one line
