@@ -358,7 +358,7 @@
         "update2latest": "git pull && git submodule init && git submodule update && npm install && npm run compile"
     },
     "dependencies": {
-        "applicationinsights": "^1.0.5",
+        "applicationinsights": "^1.0.6",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "child-process-promise": "^v2.2.1",
@@ -368,7 +368,7 @@
     },
     "devDependencies": {
         "@types/mocha": "^5.2.5",
-        "@types/node": "^10.11.6",
+        "@types/node": "^10.12.7",
         "mocha": "^5.2.0",
         "typescript": "^2.9.2",
         "vscode": "^1.1.21"
