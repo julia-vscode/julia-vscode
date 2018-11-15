@@ -118,6 +118,8 @@ export function startLsCrashServer() {
     });
 
     server.listen(pipe_path);
+
+    return pipe_path;
 }
 
 export function traceEvent(message) {

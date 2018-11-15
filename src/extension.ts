@@ -29,12 +29,14 @@ let g_serverstatus: vscode.StatusBarItem = null;
 // let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
 // let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 
+let g_lscrashreportingpipename: string = null;
+
 export async function activate(context: vscode.ExtensionContext) {  
     telemetry.init();
 
     telemetry.traceEvent('activate');
 
-    telemetry.startLsCrashServer();
+    g_lscrashreportingpipename = telemetry.startLsCrashServer();
 
     g_context = context;
 
@@ -142,8 +144,8 @@ async function startLanguageServer() {
         return;
     }
     let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=no', process.pid.toString(), oldDepotPath];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=yes', process.pid.toString(), oldDepotPath];    
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];    
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
