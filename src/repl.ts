@@ -294,7 +294,12 @@ async function executeCode(text) {
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
     text = lines.join('\n');
-    g_terminal.sendText('\u001B[200~' + text + '\n' + '\u001B[201~', false);
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('smartPaste')===true) {
+        g_terminal.sendText('\u001B[200~' + text + '\n' + '\u001B[201~', false);
+    }
+    else {
+        g_terminal.sendText(text + '\n', false);
+    }
 }
 
 function executeSelection() {

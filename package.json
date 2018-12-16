@@ -321,6 +321,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Load Revise.jl on startup of the REPL."
+                },
+                "julia.smartPaste": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Allow line continuation when pasting to REPL."
                 }
             }
         },
