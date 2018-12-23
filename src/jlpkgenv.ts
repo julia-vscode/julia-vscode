@@ -18,7 +18,7 @@ let g_path_of_current_environment: string = null;
 
 async function switchEnvToPath(envpath: string) {
     g_path_of_current_environment = envpath;
-    g_current_environment.text = await getEnvName();
+    g_current_environment.text = "Julia env: " + await getEnvName();
 
     g_languageClient.sendNotification("julia/activateenvironment", envpath);
 }
@@ -54,10 +54,11 @@ async function changeJuliaEnvironment() {
             let resultFolder = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true });
             // Is this actually an environment?
             if (resultFolder !== undefined) {
-                let envPath = resultFolder[0].toString();
+                let envPathUri = resultFolder[0].toString();
+                let envPath = vscode.Uri.parse(envPathUri).fsPath;
                 let isThisAEnv = await fs.exists(path.join(envPath, 'Project.toml'));
                 if (isThisAEnv) {
-
+                    switchEnvToPath(envPath);
                 }
                 else {
                     vscode.window.showErrorMessage('The selected path is not a julia environment.');
