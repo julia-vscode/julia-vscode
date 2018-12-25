@@ -338,7 +338,7 @@ async function executeFile() {
     let fname = editor.document.fileName;
     let isfile = await fs.exists(fname)
     if (isfile && !(editor.document.isDirty)) {
-	    executeCode('include("' + fname + '")')
+	    executeCode('include(raw"' + fname + '")')
     }
     else {
 	    executeCode(editor.document.getText())
