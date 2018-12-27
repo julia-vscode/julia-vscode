@@ -55,7 +55,6 @@ function showPlotPane() {
     else {
         g_plotPanel.title = plotTitle;
         g_plotPanel.webview.html = getPlotPaneContent();
-        g_plotPanel.reveal();
     }
 }
 
