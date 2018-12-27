@@ -49,7 +49,7 @@ function showPlotPane() {
         }, null, g_context.subscriptions);
 
         g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
-		    vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.visible);
+		    vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active);
 		});
     }
     else {
