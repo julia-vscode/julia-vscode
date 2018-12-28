@@ -173,9 +173,19 @@ end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}) = true
 
+function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}, x)
+    payload = stringmime(MIME("application/vnd.plotly.v1+json"), x)
+    print(conn, "application/vnd.plotly.v1+json", ":", sizeof(payload), ";")
+    print(conn, payload)
+end
+
+displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
+
 function display(d::InlineDisplay, x)
     if showable("application/vnd.vegalite.v2+json", x)
         display(d,"application/vnd.vegalite.v2+json", x)
+    elseif showable("application/vnd.plotly.v1+json", x)
+        display(d,"application/vnd.plotly.v1+json", x)
     elseif showable("juliavscode/html", x)
         display(d,"juliavscode/html", x)
     # elseif showable("text/html", x)

@@ -233,9 +233,9 @@ function startPlotDisplayServer() {
                         g_currentPlotIndex = g_plots.push(actual_image) - 1;
                     }
                     else if (mime_type == 'application/vnd.vegalite.v2+json') {
-                        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-                        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-                        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+                        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+                        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
+                        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega.min.js')).with({ scheme: 'vscode-resource' });
                         let plotPaneContent = `
                             <html>
                                 <head>
@@ -263,6 +263,39 @@ function startPlotDisplayServer() {
                                     vegaEmbed('#plotdiv', spec, opt);
                                 </script>
                             </html>`;
+                        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+                    }
+                    else if (mime_type == 'application/vnd.plotly.v1+json') {
+                        let uriPlotly = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')).with({ scheme: 'vscode-resource' });
+                        let plotPaneContent = `
+                        <html>
+                        <head>
+                            <script src="${uriPlotly}"></script>
+                        </head>
+                        <body>
+                        </body>
+                        <script type="text/javascript">
+                            gd = (function() {
+                                var WIDTH_IN_PERCENT_OF_PARENT = 100
+                                var HEIGHT_IN_PERCENT_OF_PARENT = 100;
+                                var gd = Plotly.d3.select('body')
+                                    .append('div').attr("id", "plotdiv")
+                                    .style({
+                                        width: WIDTH_IN_PERCENT_OF_PARENT + '%',
+                                        'margin-left': (100 - WIDTH_IN_PERCENT_OF_PARENT) / 2 + '%',
+                                        height: HEIGHT_IN_PERCENT_OF_PARENT + 'vh',
+                                        'margin-top': (100 - HEIGHT_IN_PERCENT_OF_PARENT) / 2 + 'vh'
+                                    })
+                                    .node();
+                                var spec = ${actual_image};
+                                Plotly.newPlot(gd, spec.data, spec.layout);
+                                window.onresize = function() {
+                                    Plotly.Plots.resize(gd);
+                                    };
+                                return gd;
+                            })();
+                        </script>
+                        </html>`;
                         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
                     }
                     else {
