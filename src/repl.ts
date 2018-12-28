@@ -233,9 +233,9 @@ function startPlotDisplayServer() {
                         g_currentPlotIndex = g_plots.push(actual_image) - 1;
                     }
                     else if (mime_type == 'application/vnd.vegalite.v2+json') {
-                        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-                        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-                        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+                        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+                        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
+                        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega.min.js')).with({ scheme: 'vscode-resource' });
                         let plotPaneContent = `
                             <html>
                                 <head>
