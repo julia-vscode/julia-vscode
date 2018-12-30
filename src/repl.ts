@@ -46,11 +46,12 @@ function showPlotPane() {
         // Reset when the current panel is closed
         g_plotPanel.onDidDispose(() => {
             g_plotPanel = undefined;
+            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, false);
         }, null, g_context.subscriptions);
 
         g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
-		    vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active);
-		});
+            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active);
+        });        
     }
     else {
         g_plotPanel.title = plotTitle;
