@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.1
+* Update CHANGELOG
+
+## 0.11.0
+* Add julia 1.0 support, drop julia 0.6 support
+* Add support for interactive Plotly figures
+* Various bugfixes
+
 ## 0.10.2
 * Fix automatic julia detection on Mac
 
