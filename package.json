@@ -321,6 +321,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Load Revise.jl on startup of the REPL."
+                },
+                "julia.usePlotPane": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Display plots within vscode."
                 }
             }
         },
