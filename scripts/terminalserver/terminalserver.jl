@@ -199,8 +199,9 @@ function display(d::InlineDisplay, x)
     end
     
 end
-
-atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
+if length(Base.ARGS) >= 4 && Base.ARGS[4] == "true"
+    atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
+end
 
 # Load revise?
 load_revise = haskey(Pkg.Types.Context().env.manifest, "Revise") && Base.ARGS[3] == "true"
