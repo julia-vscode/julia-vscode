@@ -27,7 +27,6 @@ global active_module = :Main
 struct InlineDisplay <: AbstractDisplay end
 
 pid = Base.ARGS[1]
-Base.ENV["JULIA_EDITOR"] = Base.ARGS[2]
 
 function change_module(newmodule::String, print_change = true)
     global active_module
@@ -199,12 +198,12 @@ function display(d::InlineDisplay, x)
     end
     
 end
-if length(Base.ARGS) >= 4 && Base.ARGS[4] == "true"
+if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
     atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
 end
 
 # Load revise?
-load_revise = haskey(Pkg.Types.Context().env.manifest, "Revise") && Base.ARGS[3] == "true"
+load_revise = haskey(Pkg.Types.Context().env.manifest, "Revise") && Base.ARGS[2] == "true"
 
 end
 
