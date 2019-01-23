@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.3
+* Fix julia 1.1 compat issue
+
 ## 0.11.2
 * Various bug fixes
 * Add option to enable/disable plot pane
