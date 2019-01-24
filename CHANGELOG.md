@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.4
+* Fix another julia 1.1 compat issue
+
 ## 0.11.3
 * Fix julia 1.1 compat issue
 
