@@ -2,6 +2,8 @@
 
 This [VS Code](https://code.visualstudio.com) extension provides support for the [julia programming language](http://julialang.org/).
 
+**Note:** Currently, some features of this extension will *not* work with julia 1.1 or later. We are [working on a fix](https://github.com/JuliaEditorSupport/julia-vscode/issues/647)!
+
 ## Getting started
 
 Getting the julia extension for VS Code to work involves two steps: 1.
