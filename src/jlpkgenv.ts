@@ -4,6 +4,7 @@ import * as vslc from 'vscode-languageclient';
 import * as telemetry from './telemetry';
 import * as fs from 'async-file';
 import * as packagepath from './packagepath'
+import * as os from 'os';
 import * as path from 'path'
 import * as juliaexepath from './juliaexepath';
 var exec = require('child-process-promise').exec;
@@ -30,9 +31,29 @@ async function changeJuliaEnvironment() {
         placeHolder: 'Select environment'
     };
 
-    let depotPaths = await packagepath.getPkgDepotPath();
+    const depotPaths = await packagepath.getPkgDepotPath();
+    const projectNames = ['JuliaProject.toml', 'Project.toml'];
+    const homeDir = os.homedir();
 
     let envFolders = [{ label: '(pick a folder)', description: '' }];
+
+    if (vscode.workspace.workspaceFolders) {
+        for (let workspaceFolder of vscode.workspace.workspaceFolders) {
+            let curPath = workspaceFolder.uri.fsPath.toString();
+            while (true) {
+                let oldPath = curPath;
+                for (let projectName of projectNames) {
+                    if (await fs.exists(path.join(curPath, projectName))) {
+                        envFolders.push({ label: path.basename(curPath), description: curPath });
+                        break;
+                    }
+                }
+                if (curPath == homeDir) break;
+                curPath = path.dirname(curPath);
+                if (oldPath == curPath) break;
+            }
+        }
+    }
 
     for (let depotPath of depotPaths) {
         let envFolderForThisDepot = path.join(depotPath, 'environments');
