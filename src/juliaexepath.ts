@@ -4,7 +4,10 @@ import * as vslc from 'vscode-languageclient';
 import * as os from 'os';
 import * as path from 'path';
 import * as process from 'process';
+import * as util from 'util';
+import * as which from 'which';
 var exec = require('child-process-promise').exec;
+const whichAsync = util.promisify(which);
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -58,7 +61,12 @@ export async function getJuliaExePath() {
             }
         }
         else {
-            actualJuliaExePath = g_settings.juliaExePath;
+            if (g_settings.juliaExePath.includes(path.sep)) {
+                actualJuliaExePath = g_settings.juliaExePath;
+            } else {
+                // resolve full path
+                actualJuliaExePath = await whichAsync(g_settings.juliaExePath);
+            }
         }
     }
     return actualJuliaExePath;
