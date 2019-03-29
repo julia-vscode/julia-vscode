@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.5
+* Fix julia 1.1 compat issue in SymbolServer
+* Update vega-lite to 3.0 and vega to 5.2
+
 ## 0.11.4
 * Fix another julia 1.1 compat issue
 
