@@ -150,15 +150,15 @@ async function startREPL(preserveFocus: boolean) {
     if (g_terminal == null) {
         startREPLConn()
         startPlotDisplayServer()
-        let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
+        let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver_monitor.jl')
         let exepath = await juliaexepath.getJuliaExePath();
         let pkgenvpath = await jlpkgenv.getEnvPath();
         if (pkgenvpath==null) {
             g_terminal = vscode.window.createTerminal(
                 {
-                    name: "julia", 
-                    shellPath: exepath, 
-                    shellArgs: ['-q', '-i', args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()],
+                    name: "julia",
+                    shellPath: exepath,
+                    shellArgs: ['-q', args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()],
                     env: {
                         JULIA_EDITOR: `"${process.execPath}"`
                     }});
@@ -168,7 +168,7 @@ async function startREPL(preserveFocus: boolean) {
                 {
                     name: "julia",
                     shellPath: exepath,
-                    shellArgs: ['-q', '-i', `--project=${pkgenvpath}`, args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(),vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()],
+                    shellArgs: ['-q', `--project=${pkgenvpath}`, args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()],
                     env: {
                         JULIA_EDITOR: `"${process.execPath}"`
                     }});
