@@ -8,7 +8,12 @@ try
     script = joinpath(@__DIR__, "terminalserver.jl")
     run(`$bin -q -i --project=$prj $script $ARGS`, wait = true)
 catch e
-    @error e
-    println("\nPress ENTER to dismiss terminal.")
+    msg = "Unexpected error: $e\n\n"
+    try
+        code = match(r"ProcessExited\(([^\(\)]+)\)", msg)[1]
+        msg = "Julia exited with error code $code. "
+    catch
+    end
+    println("$(msg)Press ENTER to dismiss terminal.")
     readline()
 end
