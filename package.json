@@ -326,6 +326,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Display plots within vscode."
+                },
+                "julia.closeTerminalOnSuccess": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "When enabled, the Julia terminal will close without prompting for a restart if the Julia process terminated with success."
                 }
             }
         },

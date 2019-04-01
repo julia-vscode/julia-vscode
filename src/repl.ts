@@ -150,29 +150,31 @@ async function startREPL(preserveFocus: boolean) {
     if (g_terminal == null) {
         startREPLConn()
         startPlotDisplayServer()
-        let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver_monitor.jl')
         let exepath = await juliaexepath.getJuliaExePath();
         let pkgenvpath = await jlpkgenv.getEnvPath();
-        if (pkgenvpath==null) {
-            g_terminal = vscode.window.createTerminal(
-                {
-                    name: "julia",
-                    shellPath: exepath,
-                    shellArgs: ['-q', args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()],
-                    env: {
-                        JULIA_EDITOR: `"${process.execPath}"`
-                    }});
+
+        // build up the command line arguments
+        let args = ['-q', '--startup-file=no', '--history-file=no']
+        if (pkgenvpath != null) {
+            args.push(`--project=${pkgenvpath}`)
         }
-        else {
-            g_terminal = vscode.window.createTerminal(
-                {
-                    name: "julia",
-                    shellPath: exepath,
-                    shellArgs: ['-q', `--project=${pkgenvpath}`, args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()],
-                    env: {
-                        JULIA_EDITOR: `"${process.execPath}"`
-                    }});
-        }
+        args.push(
+            path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver_monitor.jl'),
+            vscode.workspace.getConfiguration("julia").get("closeTerminalOnSuccess").toString(),
+            process.pid.toString(),
+            vscode.workspace.getConfiguration("julia").get("useRevise").toString(),
+            vscode.workspace.getConfiguration("julia").get("usePlotPane").toString())
+
+        // create the terminal
+        g_terminal = vscode.window.createTerminal(
+            {
+                name: "julia",
+                shellPath: exepath,
+                shellArgs: args,
+                env: {
+                    JULIA_EDITOR: `"${process.execPath}"`
+                }
+            });
     }
     g_terminal.show(preserveFocus);
 }
