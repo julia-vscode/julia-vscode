@@ -6,8 +6,9 @@ const always_terminate_on_success = parse(Bool, popfirst!(ARGS))
 const opts = Base.JLOptions()
 const bin = unsafe_string(opts.julia_bin)
 const prj = unsafe_string(opts.project)
+const prj_flag = length(prj) > 0 ? "--project=$prj" : ""
 const script = joinpath(@__DIR__, "terminalserver.jl")
-const cmd = `$bin -q -i --project=$prj $script $ARGS`
+const cmd = `$bin -q -i $prj_flag $script $ARGS`
 
 let done = false
     while !done
