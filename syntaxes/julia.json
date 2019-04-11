@@ -493,7 +493,7 @@
           ]
         },
         {
-          "begin": "\"\"\"",
+          "begin": "(?<![[:word:]⁺-ₜ!′∇])\"\"\"",
           "beginCaptures": {
             "0": {
               "name": "punctuation.definition.string.multiline.begin.julia"
@@ -518,13 +518,13 @@
         },
         {
           "name": "string.quoted.double.julia",
-          "begin": "\"",
+          "begin": "(?<![[:word:]⁺-ₜ!′∇\"])\"(?!\"\")",
           "beginCaptures": {
             "0": {
               "name": "punctuation.definition.string.begin.julia"
             }
           },
-          "end": "\"",
+          "end": "(?<!\\\\)\"",
           "endCaptures": {
             "0": {
               "name": "punctuation.definition.string.end.julia"
@@ -565,13 +565,39 @@
           ]
         },
         {
-          "begin": "\\b[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*\"",
+          "begin": "\\b([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)\"\"\"",
           "beginCaptures": {
             "0": {
               "name": "punctuation.definition.string.begin.julia"
+            },
+            "1": {
+              "name": "support.function.macro.julia"
             }
           },
-          "end": "\"([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)?",
+          "end": "\"\"\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "name": "string.quoted.other.julia",
+          "patterns": [
+            {
+              "include": "#string_escaped_char"
+            }
+          ]
+        },
+        {
+          "begin": "\\b([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)\"(?!\")",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.julia"
+            },
+            "1": {
+              "name": "support.function.macro.julia"
+            }
+          },
+          "end": "(?<!\\\\)\"([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)?",
           "endCaptures": {
             "0": {
               "name": "punctuation.definition.string.end.julia"
