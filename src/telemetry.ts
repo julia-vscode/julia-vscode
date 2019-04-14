@@ -139,7 +139,7 @@ function sendCrashReportQueue() {
 }
 
 async function showCrashReporterUIConsent() {
-    if (crashReporterUIVisible) {
+    if (crashReporterUIVisible || vscode.workspace.getConfiguration('julia').get<boolean>('enableCrashReporter')===false) {
         return;
     }
     else {
