@@ -203,7 +203,7 @@ if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
 end
 
 # Load revise?
-load_revise = haskey(Pkg.Types.Context().env.manifest, "Revise") && Base.ARGS[2] == "true"
+load_revise = Base.ARGS[2] == "true" && (VERSION < v"1.1" ? haskey(Pkg.Types.Context().env.manifest, "Revise") : haskey(Pkg.Types.Context().env.project.deps, "Revise"))
 
 end
 
