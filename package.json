@@ -150,6 +150,14 @@
                 }
             },
             {
+                "command": "language-julia.plotpane-delete-all",
+                "title": "Julia: Delete all plots",
+                "icon": {
+                    "light": "./media/delete.svg",
+                    "dark": "./media/delete-inverse.svg"
+                }
+            },
+            {
                 "command": "language-julia.toggle-file-lint",
                 "title": "Julia: Toggle file linting"
             },
@@ -195,6 +203,10 @@
                 }
             ],
             "commandPalette": [
+                {
+                    "when": "false",
+                    "command": "language-julia.plotpane-delete-all"
+                },
                 {
                     "when": "false",
                     "command": "language-julia.plotpane-delete"
@@ -281,6 +293,11 @@
             {
                 "command": "language-julia.plotpane-delete",
                 "key": "delete",
+                "when": "jlplotpaneFocus"
+            },
+            {
+                "command": "language-julia.plotpane-delete-all",
+                "key": "shift+delete",
                 "when": "jlplotpaneFocus"
             }
         ],
