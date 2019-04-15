@@ -112,7 +112,7 @@ export function plotPaneDel() {
 export function plotPaneDelAll() {
     // telemetry.traceEvent('command-plotpanedeleteall');
     if (g_plots.length > 0) {
-        g_plots.splice(g_currentPlotIndex, g_plots.length);
+        g_plots.splice(0, g_plots.length);
         g_currentPlotIndex = 0;
         updatePlotPane();
     }

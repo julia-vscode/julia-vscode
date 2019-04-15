@@ -188,6 +188,11 @@
             "editor/title": [
                 {
                     "when": "jlplotpaneFocus",
+                    "command": "language-julia.plotpane-delete-all",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete",
                     "group": "navigation@0"
                 },
