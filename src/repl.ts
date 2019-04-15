@@ -109,6 +109,15 @@ export function plotPaneDel() {
     }
 }
 
+export function plotPaneDelAll() {
+    // telemetry.traceEvent('command-plotpanedeleteall');
+    if (g_plots.length > 0) {
+        g_plots.splice(g_currentPlotIndex, g_plots.length);
+        g_currentPlotIndex = 0;
+        updatePlotPane();
+    }
+}
+
 export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
     private _onDidChangeTreeData: vscode.EventEmitter<string | undefined> = new vscode.EventEmitter<string | undefined>();
     readonly onDidChangeTreeData: vscode.Event<string | undefined> = this._onDidChangeTreeData.event;
@@ -490,6 +499,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-last', plotPaneLast));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll));
 
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal == g_terminal) {
