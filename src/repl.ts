@@ -154,21 +154,25 @@ async function startREPL(preserveFocus: boolean) {
         let exepath = await juliaexepath.getJuliaExePath();
         let pkgenvpath = await jlpkgenv.getEnvPath();
         if (pkgenvpath==null) {
+            let jlarg1 = ['-i','--banner=no'].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
+            let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: "julia", 
                     shellPath: exepath, 
-                    shellArgs: ['-q', '-i', args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()],
+                    shellArgs: jlarg1.concat(jlarg2),
                     env: {
                         JULIA_EDITOR: `"${process.execPath}"`
                     }});
         }
         else {
+            let jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
+            let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(),vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: "julia",
                     shellPath: exepath,
-                    shellArgs: ['-q', '-i', `--project=${pkgenvpath}`, args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(),vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()],
+                    shellArgs: jlarg1.concat(jlarg2),
                     env: {
                         JULIA_EDITOR: `"${process.execPath}"`
                     }});
