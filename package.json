@@ -326,6 +326,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Display plots within vscode."
+                },
+                "julia.additionalArgs": {
+                    "type": "array",
+                    "default": [],
+                    "description": "Additional julia arguments."
                 }
             }
         },
