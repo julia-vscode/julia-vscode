@@ -148,8 +148,7 @@ function startREPLCommand() {
 
 async function startREPL(preserveFocus: boolean) {
     if (g_terminal == null) {
-        startREPLConn()
-        startPlotDisplayServer()
+        startREPLMsgServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         let exepath = await juliaexepath.getJuliaExePath();
         let pkgenvpath = await jlpkgenv.getEnvPath();
@@ -181,42 +180,100 @@ async function startREPL(preserveFocus: boolean) {
     g_terminal.show(preserveFocus);
 }
 
-function startREPLConn() {
-    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
-
-    var server = net.createServer(function (stream) {
-        let accumulatingBuffer = new Buffer(0);
-
-        stream.on('data', async function (c) {
-            accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
-            let bufferResult = accumulatingBuffer.toString()
-            let replResponse = accumulatingBuffer.toString().split(",")
-
-            if (replResponse[0] == "repl/returnModules") {
-                let result = await vscode.window.showQuickPick(replResponse.slice(1), { placeHolder: 'Switch to Module...' })
-                if (result != undefined) {
-                    sendMessage('repl/changeModule', result)
-                }
-            }
-            if (replResponse[0] == "repl/variables") {
-                g_replVariables = bufferResult;
-                // TODO Enable again
-                // g_REPLTreeDataProvider.refresh();
-            }
-        });
-    });
-
-    server.on('close', function () {
-        console.log('Server: on close');
-    })
-
-    server.listen(PIPE_PATH, function () {
-        console.log('Server: on listening');
-    })
+function processMsg(cmd, payload) {
+    if (cmd == 'image/svg+xml') {
+        g_currentPlotIndex = g_plots.push(payload) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'image/png') {
+        let plotPaneContent = '<html><img src="data:image/png;base64,' + payload + '" /></html>';
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'juliavscode/html') {
+        g_currentPlotIndex = g_plots.push(payload) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.vegalite.v2+json') {
+        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaLite}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plotdiv"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega-lite",
+                        actions: false
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plotdiv', spec, opt);
+                </script>
+            </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.plotly.v1+json') {
+        let uriPlotly = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+        <html>
+        <head>
+            <script src="${uriPlotly}"></script>
+        </head>
+        <body>
+        </body>
+        <script type="text/javascript">
+            gd = (function() {
+                var WIDTH_IN_PERCENT_OF_PARENT = 100
+                var HEIGHT_IN_PERCENT_OF_PARENT = 100;
+                var gd = Plotly.d3.select('body')
+                    .append('div').attr("id", "plotdiv")
+                    .style({
+                        width: WIDTH_IN_PERCENT_OF_PARENT + '%',
+                        'margin-left': (100 - WIDTH_IN_PERCENT_OF_PARENT) / 2 + '%',
+                        height: HEIGHT_IN_PERCENT_OF_PARENT + 'vh',
+                        'margin-top': (100 - HEIGHT_IN_PERCENT_OF_PARENT) / 2 + 'vh'
+                    })
+                    .node();
+                var spec = ${payload};
+                Plotly.newPlot(gd, spec.data, spec.layout);
+                window.onresize = function() {
+                    Plotly.Plots.resize(gd);
+                    };
+                return gd;
+            })();
+        </script>
+        </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'repl/variables') {
+        g_replVariables = payload;
+        // TODO Enable again
+        // g_REPLTreeDataProvider.refresh();
+    }
+    else {
+        throw new Error();
+    }
 }
 
-function startPlotDisplayServer() {
-    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-terminal');
+function startREPLMsgServer() {
+    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
 
     var server = net.createServer(function (stream) {
         let accumulatingBuffer = new Buffer(0);
@@ -225,102 +282,22 @@ function startPlotDisplayServer() {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
             let s = accumulatingBuffer.toString();
             let index_of_sep_1 = s.indexOf(":");
-            let index_of_sep_2 = s.indexOf(";");
+            let index_of_sep_2 = s.indexOf("\n");
 
             if (index_of_sep_2 > -1) {
-                let mime_type = s.substring(0, index_of_sep_1);
+                let cmd = s.substring(0, index_of_sep_1);
                 let msg_len_as_string = s.substring(index_of_sep_1 + 1, index_of_sep_2);
                 let msg_len = parseInt(msg_len_as_string);
-                if (accumulatingBuffer.length >= mime_type.length + msg_len_as_string.length + 2 + msg_len) {
-                    let actual_image = s.substring(index_of_sep_2 + 1);
-                    if (accumulatingBuffer.length > mime_type.length + msg_len_as_string.length + 2 + msg_len) {
-                        accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(mime_type.length + msg_len_as_string.length + 2 + msg_len + 1));
+                if (accumulatingBuffer.length >= cmd.length + msg_len_as_string.length + 2 + msg_len) {
+                    let payload = s.substring(index_of_sep_2 + 1);
+                    if (accumulatingBuffer.length > cmd.length + msg_len_as_string.length + 2 + msg_len) {
+                        accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(cmd.length + msg_len_as_string.length + 2 + msg_len + 1));
                     }
                     else {
                         accumulatingBuffer = new Buffer(0);
                     }
 
-                    if (mime_type == 'image/svg+xml') {
-                        g_currentPlotIndex = g_plots.push(actual_image) - 1;
-                    }
-                    else if (mime_type == 'image/png') {
-                        let plotPaneContent = '<html><img src="data:image/png;base64,' + actual_image + '" /></html>';
-                        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-                    }
-                    else if (mime_type == 'juliavscode/html') {
-                        g_currentPlotIndex = g_plots.push(actual_image) - 1;
-                    }
-                    else if (mime_type == 'application/vnd.vegalite.v2+json') {
-                        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-                        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-                        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite', 'vega.min.js')).with({ scheme: 'vscode-resource' });
-                        let plotPaneContent = `
-                            <html>
-                                <head>
-                                    <script src="${uriVega}"></script>
-                                    <script src="${uriVegaLite}"></script>
-                                    <script src="${uriVegaEmbed}"></script>
-                                </head>
-                                <body>
-                                    <div id="plotdiv"></div>
-                                </body>
-                                <style media="screen">
-                                    .vega-actions a {
-                                        margin-right: 10px;
-                                        font-family: sans-serif;
-                                        font-size: x-small;
-                                        font-style: italic;
-                                    }
-                                </style>
-                                <script type="text/javascript">
-                                    var opt = {
-                                        mode: "vega-lite",
-                                        actions: false
-                                    }
-                                    var spec = ${actual_image}
-                                    vegaEmbed('#plotdiv', spec, opt);
-                                </script>
-                            </html>`;
-                        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-                    }
-                    else if (mime_type == 'application/vnd.plotly.v1+json') {
-                        let uriPlotly = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')).with({ scheme: 'vscode-resource' });
-                        let plotPaneContent = `
-                        <html>
-                        <head>
-                            <script src="${uriPlotly}"></script>
-                        </head>
-                        <body>
-                        </body>
-                        <script type="text/javascript">
-                            gd = (function() {
-                                var WIDTH_IN_PERCENT_OF_PARENT = 100
-                                var HEIGHT_IN_PERCENT_OF_PARENT = 100;
-                                var gd = Plotly.d3.select('body')
-                                    .append('div').attr("id", "plotdiv")
-                                    .style({
-                                        width: WIDTH_IN_PERCENT_OF_PARENT + '%',
-                                        'margin-left': (100 - WIDTH_IN_PERCENT_OF_PARENT) / 2 + '%',
-                                        height: HEIGHT_IN_PERCENT_OF_PARENT + 'vh',
-                                        'margin-top': (100 - HEIGHT_IN_PERCENT_OF_PARENT) / 2 + 'vh'
-                                    })
-                                    .node();
-                                var spec = ${actual_image};
-                                Plotly.newPlot(gd, spec.data, spec.layout);
-                                window.onresize = function() {
-                                    Plotly.Plots.resize(gd);
-                                    };
-                                return gd;
-                            })();
-                        </script>
-                        </html>`;
-                        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-                    }
-                    else {
-                        throw new Error();
-                    }
-
-                    showPlotPane();
+                    processMsg(cmd, payload);
                 }
             }
         });
@@ -452,8 +429,9 @@ async function sendMessage(cmd, msg: string) {
     await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
-    let conn = net.connect(sock)
-    let outmsg = cmd + '\n' + msg + "\nrepl/endMessage";
+    let conn = net.connect(sock)    
+    let payload_size = Buffer.byteLength(msg, 'utf8');
+    let outmsg = cmd + ':' + payload_size.toString() + '\n' + msg;
     conn.write(outmsg)
     conn.on('error', () => { vscode.window.showErrorMessage("REPL is not open") })
 }
