@@ -148,7 +148,7 @@ function startREPLCommand() {
 
 async function startREPL(preserveFocus: boolean) {
     if (g_terminal == null) {
-        startREPLMsgServer()
+        let juliaIsConnectedPromise = startREPLMsgServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         let exepath = await juliaexepath.getJuliaExePath();
         let pkgenvpath = await jlpkgenv.getEnvPath();
@@ -176,8 +176,12 @@ async function startREPL(preserveFocus: boolean) {
                         JULIA_EDITOR: `"${process.execPath}"`
                     }});
         }
+        g_terminal.show(preserveFocus);
+        await juliaIsConnectedPromise;
     }
+    else {
     g_terminal.show(preserveFocus);
+}
 }
 
 function processMsg(cmd, payload) {
@@ -275,10 +279,13 @@ function processMsg(cmd, payload) {
 function startREPLMsgServer() {
     let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
 
-    var server = net.createServer(function (stream) {
+    let connectedPromise = new Promise(function (resolveCallback, rejectCallback) {
+        var server = net.createServer(function (socket) {
+            resolveCallback();
+
         let accumulatingBuffer = new Buffer(0);
 
-        stream.on('data', function (c) {
+            socket.on('data', function (c) {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
             let s = accumulatingBuffer.toString();
             let index_of_sep_1 = s.indexOf(":");
@@ -301,6 +308,8 @@ function startREPLMsgServer() {
                 }
             }
         });
+
+            socket.on('close', function (hadError) { server.close(); });
     });
 
     server.on('close', function () {
@@ -310,6 +319,9 @@ function startREPLMsgServer() {
     server.listen(PIPE_PATH, function () {
         console.log('Server: on listening');
     })
+    });
+
+    return connectedPromise;
 }
 
 async function executeCode(text) {

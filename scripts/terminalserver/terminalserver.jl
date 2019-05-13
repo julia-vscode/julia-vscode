@@ -106,7 +106,7 @@ if issocket(pipename_torepl)
     rm(pipename_torepl)
 end
 
-conn = connect(pipename_fromrepl)
+
 
 function sendMsgToVscode(cmd, payload)
     println(conn, cmd, ":", sizeof(payload))
@@ -115,6 +115,7 @@ end
 
 @async begin
     server = listen(pipename_torepl)
+    conn = connect(pipename_fromrepl)
     while true
         sock = accept(server)
         header = readline(sock)
