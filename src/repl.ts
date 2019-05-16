@@ -51,7 +51,7 @@ function showPlotPane() {
 
         g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
             vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active);
-        });        
+        });
     }
     else {
         g_plotPanel.title = plotTitle;
@@ -157,8 +157,8 @@ async function startREPL(preserveFocus: boolean) {
             let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
             g_terminal = vscode.window.createTerminal(
                 {
-                    name: "julia", 
-                    shellPath: exepath, 
+                    name: "julia",
+                    shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
                         JULIA_EDITOR: `"${process.execPath}"`
@@ -265,6 +265,57 @@ function processMsg(cmd, payload) {
         </html>`;
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
         showPlotPane();
+    }
+    else if (cmd == 'application/vnd.dataresource+json') {
+        let uriAgGrid = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid-community.min.noStyle.js')).with({ scheme: 'vscode-resource' });
+        let uriAgGridCSS = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css')).with({ scheme: 'vscode-resource' });
+        let uriAgGridTheme = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-theme-balham.css')).with({ scheme: 'vscode-resource' });
+        let grid_content = `
+            <html>
+                <head>
+                    <script src="${uriAgGrid}"></script>
+                    <link rel="stylesheet" href="${uriAgGridCSS}">
+                    <link rel="stylesheet" href="${uriAgGridTheme}">
+                </head>
+            <body>
+                <div id="myGrid" style="height: 100%; width: 100%;" class="ag-theme-balham"></div>
+            </body>
+            <script type="text/javascript">
+                var payload = ${payload};
+                var gridOptions = {
+                    onGridReady: event => event.api.sizeColumnsToFit(),
+                    onGridSizeChanged: event => event.api.sizeColumnsToFit(),
+                    defaultColDef: {
+                        resizable: true,
+                        filter: true,
+                        sortable: true
+                    },
+                    columnDefs: payload.schema.fields.map(function(x) {
+                        if (x.type == "number" || x.type == "integer") {
+                            return {
+                                field: x.name,
+                                type: "numericColumn",
+                                filter: "agNumberColumnFilter"
+                            };
+                        } else if (x.type == "date") {
+                            return {
+                                field: x.name,
+                                filter: "agDateColumnFilter"
+                            };
+                        } else {
+                            return {field: x.name};
+                        };
+                    }),
+                rowData: payload.data
+                };
+                var eGridDiv = document.querySelector('#myGrid');
+                new agGrid.Grid(eGridDiv, gridOptions);
+            </script>
+        </html>
+        `;
+
+        let grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', vscode.ViewColumn.Active, {enableScripts: true, retainContextWhenHidden: true});
+        grid_panel.webview.html = grid_content;
     }
     else if (cmd == 'repl/variables') {
         g_replVariables = payload;
@@ -441,7 +492,7 @@ async function sendMessage(cmd, msg: string) {
     await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
-    let conn = net.connect(sock)    
+    let conn = net.connect(sock)
     let payload_size = Buffer.byteLength(msg, 'utf8');
     let outmsg = cmd + ':' + payload_size.toString() + '\n' + msg;
     conn.write(outmsg)

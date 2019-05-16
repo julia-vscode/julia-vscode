@@ -50,9 +50,9 @@ function change_module(newmodule::String, print_change = true)
         if !isempty(line)
             ex = Meta.parse(line)
             if ex isa Expr && ex.head == :module
-                ret = :( Base.eval($expr, Expr(:(=), :ans, Expr(:toplevel, Meta.parse($line)))) )    
+                ret = :( Base.eval($expr, Expr(:(=), :ans, Expr(:toplevel, Meta.parse($line)))) )
             else
-                ret = :( Core.eval($expr, Expr(:(=), :ans, Meta.parse($line))) )  
+                ret = :( Core.eval($expr, Expr(:(=), :ans, Meta.parse($line))) )
             end
         else
             ret = :(  )
@@ -179,6 +179,13 @@ function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json
     sendMsgToVscode("application/vnd.plotly.v1+json", payload)
 end
 
+displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
+
+function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}, x)
+    payload = stringmime(MIME("application/vnd.dataresource+json"), x)
+    sendMsgToVscode("application/vnd.dataresource+json", payload)
+end
+
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
 function display(d::InlineDisplay, x)
@@ -186,6 +193,8 @@ function display(d::InlineDisplay, x)
         display(d,"application/vnd.vegalite.v2+json", x)
     elseif showable("application/vnd.plotly.v1+json", x)
         display(d,"application/vnd.plotly.v1+json", x)
+    elseif showable("application/vnd.dataresource+json", x)
+        display(d, "application/vnd.dataresource+json", x)
     elseif showable("juliavscode/html", x)
         display(d,"juliavscode/html", x)
     # elseif showable("text/html", x)
@@ -197,7 +206,7 @@ function display(d::InlineDisplay, x)
     else
         throw(MethodError(display,(d,x)))
     end
-    
+
 end
 if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
     atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
