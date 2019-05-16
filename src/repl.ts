@@ -274,6 +274,7 @@ function processMsg(cmd, payload) {
             <html>
                 <head>
                     <script src="${uriAgGrid}"></script>
+                    <style> html, body { margin: 0; padding: 0; height: 100%; } </style>
                     <link rel="stylesheet" href="${uriAgGridCSS}">
                     <link rel="stylesheet" href="${uriAgGridTheme}">
                 </head>
