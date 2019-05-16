@@ -51,7 +51,7 @@ function showPlotPane() {
 
         g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
             vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active);
-        });        
+        });
     }
     else {
         g_plotPanel.title = plotTitle;
@@ -157,8 +157,8 @@ async function startREPL(preserveFocus: boolean) {
             let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
             g_terminal = vscode.window.createTerminal(
                 {
-                    name: "julia", 
-                    shellPath: exepath, 
+                    name: "julia",
+                    shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
                         JULIA_EDITOR: `"${process.execPath}"`
@@ -312,9 +312,9 @@ function startREPLMsgServer() {
             socket.on('close', function (hadError) { server.close(); });
     });
 
-    server.on('close', function () {
-        console.log('Server: on close');
-    })
+        server.on('close', function () {
+            console.log('Server: on close');
+        })
 
     server.listen(PIPE_PATH, function () {
         console.log('Server: on listening');
@@ -422,7 +422,17 @@ async function executeJuliaBlockInRepl() {
         try {
             let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
 
-            executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))))
+            let start_pos = vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1)
+            let end_pos = vscode.window.activeTextEditor.document.positionAt(ret_val[1])
+
+            let code_to_run = vscode.window.activeTextEditor.document.getText(new vscode.Range(start_pos, end_pos))
+
+            let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
+                start_pos.line.toString() + ':' + start_pos.character.toString() + '\n' +
+                code_to_run
+
+            sendMessage('repl/runcode', msg_body)
+
             vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
             vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2])))
         }
@@ -441,7 +451,7 @@ async function sendMessage(cmd, msg: string) {
     await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
-    let conn = net.connect(sock)    
+    let conn = net.connect(sock)
     let payload_size = Buffer.byteLength(msg, 'utf8');
     let outmsg = cmd + ':' + payload_size.toString() + '\n' + msg;
     conn.write(outmsg)

@@ -1,5 +1,7 @@
 module _vscodeserver
 
+include("repl.jl")
+
 function remlineinfo!(x)
     if isa(x, Expr)
         if x.head == :macrocall && x.args[2] != nothing
@@ -50,9 +52,9 @@ function change_module(newmodule::String, print_change = true)
         if !isempty(line)
             ex = Meta.parse(line)
             if ex isa Expr && ex.head == :module
-                ret = :( Base.eval($expr, Expr(:(=), :ans, Expr(:toplevel, Meta.parse($line)))) )    
+                ret = :( Base.eval($expr, Expr(:(=), :ans, Expr(:toplevel, Meta.parse($line)))) )
             else
-                ret = :( Core.eval($expr, Expr(:(=), :ans, Meta.parse($line))) )  
+                ret = :( Core.eval($expr, Expr(:(=), :ans, Meta.parse($line))) )
             end
         else
             ret = :(  )
@@ -133,6 +135,25 @@ end
             @info "RECEIVED A debug/info message"
             @info "With payload_size=$payload_size"
             @info String(payload)
+        elseif cmd == "repl/runcode"
+            payload_as_string = String(payload)
+            end_first_line_pos = findfirst("\n", payload_as_string)[1]
+            end_second_line_pos = findnext("\n", payload_as_string, end_first_line_pos+1)[1]
+
+            source_filename = payload_as_string[1:end_first_line_pos-1]
+            code_line, code_column = parse.(Int, split(payload_as_string[end_first_line_pos+1:end_second_line_pos-1], ':'))
+            source_code = payload_as_string[end_second_line_pos+1:end]
+
+            hideprompt() do
+                println(' '^code_column * source_code)
+
+                try
+
+                    include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                catch err
+                    Base.display_error(stderr, err, catch_backtrace())
+                end
+            end
         end
     end
 end
@@ -197,7 +218,7 @@ function display(d::InlineDisplay, x)
     else
         throw(MethodError(display,(d,x)))
     end
-    
+
 end
 if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
     atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
