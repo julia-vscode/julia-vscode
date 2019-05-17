@@ -20,7 +20,7 @@ function remlineinfo!(x)
     x
 end
 
-using REPL, Sockets, Base64, Pkg
+using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
 global active_module = :Main
 
@@ -221,13 +221,29 @@ end
 # Load revise?
 load_revise = Base.ARGS[2] == "true" && (VERSION < v"1.1" ? haskey(Pkg.Types.Context().env.manifest, "Revise") : haskey(Pkg.Types.Context().env.project.deps, "Revise"))
 
+const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
+
+global _isiterabletable = i -> false
+global _getiterator = i -> i
+
+function pkgload(pkg)
+    if pkg.uuid==tabletraits_uuid
+        x = Base.require(pkg)
+
+        global _isiterabletable = x.isiterabletable
+        global _getiterator = x.getiterator
+    end
+end
+
+push!(Base.package_callbacks, pkgload)
+
 end
 
 function vscodedisplay(x)
     if showable("application/vnd.dataresource+json", x)
         _vscodeserver._display(_vscodeserver.InlineDisplay(), x)
-    # elseif _vscodeserver._isiterabletable(x)===true
-    #     @info "A TABLE TRAITS SOURCE"
+    elseif _vscodeserver._isiterabletable(x)===true
+        @info "A TABLE TRAITS SOURCE"
     #     # _display(showable, DataresourceTableTraitsWrapper(x))
     # elseif _vscodeserver._isiterabletable(x)===missing
     #     error("Not yet implemented")
