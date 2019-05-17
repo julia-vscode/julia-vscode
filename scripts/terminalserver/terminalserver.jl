@@ -193,8 +193,6 @@ function display(d::InlineDisplay, x)
         display(d,"application/vnd.vegalite.v2+json", x)
     elseif showable("application/vnd.plotly.v1+json", x)
         display(d,"application/vnd.plotly.v1+json", x)
-    elseif showable("application/vnd.dataresource+json", x)
-        display(d, "application/vnd.dataresource+json", x)
     elseif showable("juliavscode/html", x)
         display(d,"juliavscode/html", x)
     # elseif showable("text/html", x)
@@ -206,8 +204,16 @@ function display(d::InlineDisplay, x)
     else
         throw(MethodError(display,(d,x)))
     end
-
 end
+
+function _display(d::InlineDisplay, x)
+    if showable("application/vnd.dataresource+json", x)
+        display(d, "application/vnd.dataresource+json", x)
+    else
+        display(d, x)
+    end
+end
+
 if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
     atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
 end
@@ -216,6 +222,29 @@ end
 load_revise = Base.ARGS[2] == "true" && (VERSION < v"1.1" ? haskey(Pkg.Types.Context().env.manifest, "Revise") : haskey(Pkg.Types.Context().env.project.deps, "Revise"))
 
 end
+
+function vscodedisplay(x)
+    if showable("application/vnd.dataresource+json", x)
+        _vscodeserver._display(_vscodeserver.InlineDisplay(), x)
+    # elseif _vscodeserver._isiterabletable(x)===true
+    #     @info "A TABLE TRAITS SOURCE"
+    #     # _display(showable, DataresourceTableTraitsWrapper(x))
+    # elseif _vscodeserver._isiterabletable(x)===missing
+    #     error("Not yet implemented")
+    #     # try
+    #     #     buffer = IOBuffer()
+    #     #     TableShowUtils.printdataresource(buffer, IteratorInterfaceExtensions.getiterator(x))
+    #     #     buffer_asstring = CachedDataResourceString(String(take!(buffer)))
+    #     #     _display(showable, buffer_asstring)
+    #     # catch err
+    #     #     _display(showable, x)
+    #     # end
+    else
+        error("Can't show x.")
+    end
+end
+
+vscodedisplay() = i -> vscodedisplay(i)
 
 if _vscodeserver.load_revise
     @eval using Revise
