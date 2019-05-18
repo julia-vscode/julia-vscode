@@ -315,7 +315,7 @@ function processMsg(cmd, payload) {
         </html>
         `;
 
-        let grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', vscode.ViewColumn.Active, {enableScripts: true, retainContextWhenHidden: true});
+        let grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true, retainContextWhenHidden: true});
         grid_panel.webview.html = grid_content;
     }
     else if (cmd == 'repl/variables') {
