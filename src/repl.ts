@@ -51,7 +51,7 @@ function showPlotPane() {
 
         g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
             vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active);
-        });        
+        });
     }
     else {
         g_plotPanel.title = plotTitle;
@@ -110,7 +110,7 @@ export function plotPaneDel() {
 }
 
 export function plotPaneDelAll() {
-    // telemetry.traceEvent('command-plotpanedeleteall');
+    telemetry.traceEvent('command-plotpanedeleteall');
     if (g_plots.length > 0) {
         g_plots.splice(0, g_plots.length);
         g_currentPlotIndex = 0;
@@ -166,8 +166,8 @@ async function startREPL(preserveFocus: boolean) {
             let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
             g_terminal = vscode.window.createTerminal(
                 {
-                    name: "julia", 
-                    shellPath: exepath, 
+                    name: "julia",
+                    shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
                         JULIA_EDITOR: `"${process.execPath}"`
@@ -450,7 +450,7 @@ async function sendMessage(cmd, msg: string) {
     await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
-    let conn = net.connect(sock)    
+    let conn = net.connect(sock)
     let payload_size = Buffer.byteLength(msg, 'utf8');
     let outmsg = cmd + ':' + payload_size.toString() + '\n' + msg;
     conn.write(outmsg)
