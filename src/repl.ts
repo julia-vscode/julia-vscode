@@ -375,14 +375,12 @@ async function executeFile() {
     if (!editor) {
         return;
     }
-    let fname = editor.document.fileName;
-    let isfile = await fs.exists(fname)
-    if (isfile && !(editor.document.isDirty)) {
-	    executeCode('include(raw"' + fname + '")')
-    }
-    else {
-	    executeCode(editor.document.getText())
-    }
+
+    let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
+    '0:0' + '\n' +
+    editor.document.getText()
+
+    sendMessage('repl/runcode', msg_body)
 }
 
 async function selectJuliaBlock() {
