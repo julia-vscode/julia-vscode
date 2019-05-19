@@ -4,6 +4,7 @@ import * as vslc from 'vscode-languageclient';
 import * as telemetry from './telemetry';
 import * as fs from 'async-file';
 import * as packagepath from './packagepath'
+import * as os from 'os';
 import * as path from 'path'
 import * as juliaexepath from './juliaexepath';
 var exec = require('child-process-promise').exec;
@@ -30,9 +31,29 @@ async function changeJuliaEnvironment() {
         placeHolder: 'Select environment'
     };
 
-    let depotPaths = await packagepath.getPkgDepotPath();
+    const depotPaths = await packagepath.getPkgDepotPath();
+    const projectNames = ['JuliaProject.toml', 'Project.toml'];
+    const homeDir = os.homedir();
 
     let envFolders = [{ label: '(pick a folder)', description: '' }];
+
+    if (vscode.workspace.workspaceFolders) {
+        for (let workspaceFolder of vscode.workspace.workspaceFolders) {
+            let curPath = workspaceFolder.uri.fsPath.toString();
+            while (true) {
+                let oldPath = curPath;
+                for (let projectName of projectNames) {
+                    if (await fs.exists(path.join(curPath, projectName))) {
+                        envFolders.push({ label: path.basename(curPath), description: curPath });
+                        break;
+                    }
+                }
+                if (curPath == homeDir) break;
+                curPath = path.dirname(curPath);
+                if (oldPath == curPath) break;
+            }
+        }
+    }
 
     for (let depotPath of depotPaths) {
         let envFolderForThisDepot = path.join(depotPath, 'environments');
@@ -74,7 +95,8 @@ async function changeJuliaEnvironment() {
 export async function getEnvPath() {
     if (g_path_of_current_environment == null) {
         let jlexepath = await juliaexepath.getJuliaExePath();
-        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "using Pkg; println(dirname(Pkg.Types.Context().env.project_file))"`);
+        if (vscode.workspace.workspaceFolders) process.chdir(vscode.workspace.workspaceFolders[0].uri.fsPath.toString());
+        var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no --project -e "using Pkg; println(dirname(Pkg.Types.Context().env.project_file))"`);
         g_path_of_current_environment = res.stdout.trim();
     }
     return g_path_of_current_environment;
@@ -85,16 +107,17 @@ export async function getEnvName() {
     return path.basename(envpath);
 }
 
-export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
+export async function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
     g_settings = settings;
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment));
     // Environment status bar
     g_current_environment = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     g_current_environment.show();
-    g_current_environment.text = "Julia env: v1.0";
+    g_current_environment.text = "Julia env: [loading]";
     g_current_environment.command = "language-julia.changeCurrentEnvironment";
     context.subscriptions.push(g_current_environment);
+    switchEnvToPath(await getEnvPath());
 }
 
 export function onDidChangeConfiguration(newSettings: settings.ISettings) {
