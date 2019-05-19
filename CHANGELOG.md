@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.6
+* Add option to permanently opt out of crash reporting
+* Fix bug related to Revise integration
+* Add option for passing command line arguments to julia REPL process
+* Rework communication between REPL and extension
+* Auto-detect julia 1.1.1 and 1.2.0
+
 ## 0.11.5
 * Fix julia 1.1 compat issue in SymbolServer
 * Update vega-lite to 3.0 and vega to 5.2

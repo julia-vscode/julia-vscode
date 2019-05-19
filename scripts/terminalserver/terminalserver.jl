@@ -117,7 +117,7 @@ end
 
 @async begin
     server = listen(pipename_torepl)
-    conn = connect(pipename_fromrepl)
+    global conn = connect(pipename_fromrepl)
     while true
         sock = accept(server)
         header = readline(sock)
