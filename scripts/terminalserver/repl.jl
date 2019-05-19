@@ -1,3 +1,5 @@
+# Most of the code here is copied from the Juno codebase
+
 using REPL
 using REPL.LineEdit
 
