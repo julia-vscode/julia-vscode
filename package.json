@@ -151,11 +151,7 @@
             },
             {
                 "command": "language-julia.plotpane-delete-all",
-                "title": "Julia: Delete all plots",
-                "icon": {
-                    "light": "./media/delete.svg",
-                    "dark": "./media/delete-inverse.svg"
-                }
+                "title": "Julia: Delete all plots"
             },
             {
                 "command": "language-julia.toggle-file-lint",
@@ -188,11 +184,6 @@
             "editor/title": [
                 {
                     "when": "jlplotpaneFocus",
-                    "command": "language-julia.plotpane-delete-all",
-                    "group": "navigation@1"
-                },
-                {
-                    "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete",
                     "group": "navigation@0"
                 },
@@ -205,6 +196,10 @@
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-previous",
                     "group": "navigation@-2"
+                },
+                {
+                    "when": "jlplotpaneFocus",
+                    "command": "language-julia.plotpane-delete-all"
                 }
             ],
             "commandPalette": [
