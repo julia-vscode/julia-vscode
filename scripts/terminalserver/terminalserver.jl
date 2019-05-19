@@ -57,9 +57,7 @@ function change_module(newmodule::String, print_change = true)
         else
             ret = :(  )
         end
-        out = connect(to_vscode)
-        write(out, string("repl/variables,", getVariables(), "\n"))
-        close(out)
+        sendMsgToVscode("repl/variables", getVariables())
         return ret
     end
     print(" \r ")
@@ -101,63 +99,68 @@ end
 
 !(Sys.isunix() || Sys.iswindows()) && error("Unknown operating system.")
 
-global_lock_socket_name = generate_pipe_name("terminal")
-from_vscode = generate_pipe_name("torepl")
-to_vscode = generate_pipe_name("fromrepl")
+pipename_fromrepl = generate_pipe_name("fromrepl")
+pipename_torepl = generate_pipe_name("torepl")
 
-if issocket(from_vscode)
-    rm(from_vscode)
+if issocket(pipename_torepl)
+    rm(pipename_torepl)
+end
+
+
+
+function sendMsgToVscode(cmd, payload)
+    println(conn, cmd, ":", sizeof(payload))
+    print(conn, payload)
 end
 
 @async begin
-    server = listen(from_vscode)
+    server = listen(pipename_torepl)
+    global conn = connect(pipename_fromrepl)
     while true
         sock = accept(server)
-        cmd = readline(sock)
-        !startswith(cmd, "repl/") && continue
-        text = readuntil(sock, "repl/endMessage")[1:end-15]
+        header = readline(sock)
+        cmd, payload_size_asstring = split(header, ':')
+        payload_size = parse(Int, payload_size_asstring)
+        payload = read(sock, payload_size)
         if cmd == "repl/include"
+            text = String(payload)
             cmod = Core.eval(active_module)
             ex = Expr(:call, :include, strip(text, '\n'))
             cmod.eval(ex)
         elseif cmd == "repl/getVariables"
-            out = connect(to_vscode)
-            write(out, getVariables())
-            close(out)
+            sendMsgToVscode("repl/variables", getVariables())
+        elseif cmd == "debug/info"
+            @info "RECEIVED A debug/info message"
+            @info "With payload_size=$payload_size"
+            @info String(payload)
         end
     end
 end
 
-conn = connect(global_lock_socket_name)
-
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
     payload = stringmime(MIME("image/png"), x)
-    print(conn, "image/png", ":", sizeof(payload), ";")
-    print(conn, payload)
+    sendMsgToVscode("image/png", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
     payload = stringmime(MIME("image/svg+xml"), x)
-    print(conn, "image/svg+xml", ":", sizeof(payload), ";")
-    print(conn, payload)
+    sendMsgToVscode("image/svg+xml", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("text/html")}, x)
     payload = stringmime(MIME("text/html"), x)
-    print(conn, "text/html", ":", sizeof(payload), ";")
-    print(conn, payload)
+    sendMsgToVscode("text/html", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("text/html")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}, x)
     payload = stringmime(MIME("juliavscode/html"), x)
-    print(conn, "juliavscode/html", ":", sizeof(payload), ";")
-    print(conn, payload)
+    sendMsgToVscode("juliavscode/html", payload)
 end
 
 Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
@@ -166,16 +169,14 @@ displayable(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}, x)
     payload = stringmime(MIME("application/vnd.vegalite.v2+json"), x)
-    print(conn, "application/vnd.vegalite.v2+json", ":", sizeof(payload), ";")
-    print(conn, payload)
+    sendMsgToVscode("application/vnd.vegalite.v2+json", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}, x)
     payload = stringmime(MIME("application/vnd.plotly.v1+json"), x)
-    print(conn, "application/vnd.plotly.v1+json", ":", sizeof(payload), ";")
-    print(conn, payload)
+    sendMsgToVscode("application/vnd.plotly.v1+json", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
@@ -203,7 +204,7 @@ if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
 end
 
 # Load revise?
-load_revise = haskey(Pkg.Types.Context().env.manifest, "Revise") && Base.ARGS[2] == "true"
+load_revise = Base.ARGS[2] == "true" && (VERSION < v"1.1" ? haskey(Pkg.Types.Context().env.manifest, "Revise") : haskey(Pkg.Types.Context().env.project.deps, "Revise"))
 
 end
 

@@ -4,7 +4,10 @@ import * as vslc from 'vscode-languageclient';
 import * as os from 'os';
 import * as path from 'path';
 import * as process from 'process';
+import * as util from 'util';
+import * as which from 'which';
 var exec = require('child-process-promise').exec;
+const whichAsync = util.promisify(which);
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -19,16 +22,20 @@ export async function getJuliaExePath() {
             let pathsToSearch = [];
             if (process.platform == "win32") {
                 pathsToSearch = ["julia.exe",
+                    path.join(homedir, "AppData", "Local", "Julia-1.2.0", "bin", "julia.exe"),
+                    path.join(homedir, "AppData", "Local", "Julia-1.1.1", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.1.0", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.0.4", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.0.3", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.0.2", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.0.1", "bin", "julia.exe"),
-                    path.join(homedir, "AppData", "Local", "Julia-1.0.0", "bin", "julia.exe")                    
+                    path.join(homedir, "AppData", "Local", "Julia-1.0.0", "bin", "julia.exe")
                 ];
             }
             else if (process.platform == "darwin") {
                 pathsToSearch = ["julia",
+                    path.join(homedir, "Applications", "Julia-1.2.app", "Contents", "Resources", "julia", "bin", "julia"),
+                    path.join("/", "Applications", "Julia-1.2.app", "Contents", "Resources", "julia", "bin", "julia"),
                     path.join(homedir, "Applications", "Julia-1.1.app", "Contents", "Resources", "julia", "bin", "julia"),
                     path.join("/", "Applications", "Julia-1.1.app", "Contents", "Resources", "julia", "bin", "julia"),
                     path.join(homedir, "Applications", "Julia-1.0.app", "Contents", "Resources", "julia", "bin", "julia"),
@@ -58,7 +65,12 @@ export async function getJuliaExePath() {
             }
         }
         else {
-            actualJuliaExePath = g_settings.juliaExePath;
+            if (g_settings.juliaExePath.includes(path.sep)) {
+                actualJuliaExePath = g_settings.juliaExePath;
+            } else {
+                // resolve full path
+                actualJuliaExePath = await whichAsync(g_settings.juliaExePath);
+            }
         }
     }
     return actualJuliaExePath;
