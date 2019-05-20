@@ -348,6 +348,12 @@
                     "type": "array",
                     "default": [],
                     "description": "Additional julia arguments."
+                },
+                "julia.environmentPath": {
+                    "type": ["string", "null"],
+                    "default": null,
+                    "description": "Path to a julia environment.",
+                    "scope": "window"
                 }
             }
         },
