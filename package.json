@@ -350,7 +350,10 @@
                     "description": "Additional julia arguments."
                 },
                 "julia.environmentPath": {
-                    "type": ["string", "null"],
+                    "type": [
+                        "string",
+                        "null"
+                    ],
                     "default": null,
                     "description": "Path to a julia environment.",
                     "scope": "window"
@@ -396,9 +399,9 @@
     },
     "devDependencies": {
         "@types/mocha": "^5.2.6",
-        "@types/node": "^10.14.6",
+        "@types/node": "^10.14.7",
         "mocha": "^5.2.0",
-        "typescript": "^3.2.2",
+        "typescript": "^3.4.5",
         "vscode": "^1.1.34"
     }
 }
