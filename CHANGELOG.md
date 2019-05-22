@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.0
+* Add vscodedisplay() function for a grid view of tables
+* Add a command to delete all plots from the plot pane
+* Store Julia environment choice in settings
+* Auto detect Julia environments
+* Change how execute block sends code to the REPL
+* Preserve focus of REPL when plot pane is shown
+
 ## 0.11.6
 * Add option to permanently opt out of crash reporting
 * Fix bug related to Revise integration
