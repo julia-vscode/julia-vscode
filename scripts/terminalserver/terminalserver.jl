@@ -1,5 +1,7 @@
 module _vscodeserver
 
+include("repl.jl")
+
 function remlineinfo!(x)
     if isa(x, Expr)
         if x.head == :macrocall && x.args[2] != nothing
@@ -134,6 +136,25 @@ end
             @info "RECEIVED A debug/info message"
             @info "With payload_size=$payload_size"
             @info String(payload)
+        elseif cmd == "repl/runcode"
+            payload_as_string = String(payload)
+            end_first_line_pos = findfirst("\n", payload_as_string)[1]
+            end_second_line_pos = findnext("\n", payload_as_string, end_first_line_pos+1)[1]
+
+            source_filename = payload_as_string[1:end_first_line_pos-1]
+            code_line, code_column = parse.(Int, split(payload_as_string[end_first_line_pos+1:end_second_line_pos-1], ':'))
+            source_code = payload_as_string[end_second_line_pos+1:end]
+
+            hideprompt() do
+                # println(' '^code_column * source_code)
+
+                try
+
+                    include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                catch err
+                    Base.display_error(stderr, err, catch_backtrace())
+                end
+            end
         end
     end
 end

@@ -39,7 +39,7 @@ function showPlotPane() {
     let plotTitle = g_plots.length > 0 ? `Julia Plots (${g_currentPlotIndex+1}/${g_plots.length})` : "Julia Plots (0/0)";
     if (!g_plotPanel) {
         // Otherwise, create a new panel
-        g_plotPanel = vscode.window.createWebviewPanel('jlplotpane', plotTitle, vscode.ViewColumn.Active, {enableScripts: true});
+        g_plotPanel = vscode.window.createWebviewPanel('jlplotpane', plotTitle, {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true});
         g_plotPanel.webview.html = getPlotPaneContent();
         vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true);
 
@@ -105,6 +105,15 @@ export function plotPaneDel() {
         if (g_currentPlotIndex > g_plots.length - 1) {
             g_currentPlotIndex = g_plots.length - 1;
         }
+        updatePlotPane();
+    }
+}
+
+export function plotPaneDelAll() {
+    telemetry.traceEvent('command-plotpanedeleteall');
+    if (g_plots.length > 0) {
+        g_plots.splice(0, g_plots.length);
+        g_currentPlotIndex = 0;
         updatePlotPane();
     }
 }
@@ -364,9 +373,9 @@ function startREPLMsgServer() {
             socket.on('close', function (hadError) { server.close(); });
     });
 
-    server.on('close', function () {
-        console.log('Server: on close');
-    })
+        server.on('close', function () {
+            console.log('Server: on close');
+        })
 
     server.listen(PIPE_PATH, function () {
         console.log('Server: on listening');
@@ -427,14 +436,12 @@ async function executeFile() {
     if (!editor) {
         return;
     }
-    let fname = editor.document.fileName;
-    let isfile = await fs.exists(fname)
-    if (isfile && !(editor.document.isDirty)) {
-	    executeCode('include(raw"' + fname + '")')
-    }
-    else {
-	    executeCode(editor.document.getText())
-    }
+
+    let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
+    '0:0' + '\n' +
+    editor.document.getText()
+
+    sendMessage('repl/runcode', msg_body)
 }
 
 async function selectJuliaBlock() {
@@ -474,7 +481,17 @@ async function executeJuliaBlockInRepl() {
         try {
             let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
 
-            executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))))
+            let start_pos = vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1)
+            let end_pos = vscode.window.activeTextEditor.document.positionAt(ret_val[1])
+
+            let code_to_run = vscode.window.activeTextEditor.document.getText(new vscode.Range(start_pos, end_pos))
+
+            let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
+                start_pos.line.toString() + ':' + start_pos.character.toString() + '\n' +
+                code_to_run
+
+            sendMessage('repl/runcode', msg_body)
+
             vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
             vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2])))
         }
@@ -536,6 +553,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-last', plotPaneLast));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll));
 
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal == g_terminal) {

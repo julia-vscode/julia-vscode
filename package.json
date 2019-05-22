@@ -150,6 +150,10 @@
                 }
             },
             {
+                "command": "language-julia.plotpane-delete-all",
+                "title": "Julia: Delete all plots"
+            },
+            {
                 "command": "language-julia.toggle-file-lint",
                 "title": "Julia: Toggle file linting"
             },
@@ -192,9 +196,17 @@
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-previous",
                     "group": "navigation@-2"
+                },
+                {
+                    "when": "jlplotpaneFocus",
+                    "command": "language-julia.plotpane-delete-all"
                 }
             ],
             "commandPalette": [
+                {
+                    "when": "false",
+                    "command": "language-julia.plotpane-delete-all"
+                },
                 {
                     "when": "false",
                     "command": "language-julia.plotpane-delete"
@@ -282,6 +294,11 @@
                 "command": "language-julia.plotpane-delete",
                 "key": "delete",
                 "when": "jlplotpaneFocus"
+            },
+            {
+                "command": "language-julia.plotpane-delete-all",
+                "key": "shift+delete",
+                "when": "jlplotpaneFocus"
             }
         ],
         "configuration": {
@@ -331,6 +348,12 @@
                     "type": "array",
                     "default": [],
                     "description": "Additional julia arguments."
+                },
+                "julia.environmentPath": {
+                    "type": ["string", "null"],
+                    "default": null,
+                    "description": "Path to a julia environment.",
+                    "scope": "window"
                 }
             }
         },
