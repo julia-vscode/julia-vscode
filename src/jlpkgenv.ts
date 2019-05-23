@@ -47,7 +47,7 @@ async function switchEnvToPath(envpath: string) {
             vscode.workspace.workspaceFolders[0].uri.fsPath;
 
         let jlexepath = await juliaexepath.getJuliaExePath();
-        var res = await exec(`"${jlexepath}" --project=${g_path_of_current_environment} --startup-file=no --history-file=no -e "using Pkg; println(in(ARGS[1], realpath.(filter(i->i!==nothing, getproperty.(values(Pkg.Types.Context().env.manifest), :path)))))" "${case_adjusted}"`);
+        var res = await exec(`"${jlexepath}" --project=${g_path_of_current_environment} --startup-file=no --history-file=no -e "using Pkg; println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ? realpath.(filter(i->i!==nothing, getproperty.(values(Pkg.Types.Context().env.manifest), :path))) : realpath.(filter(i->i!=nothing, map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))" "${case_adjusted}"`);
 
         if (res.stdout.trim()=="false") {
             vscode.window.showInformationMessage("You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?", 'Change Julia environment')
