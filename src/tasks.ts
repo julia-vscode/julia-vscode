@@ -4,6 +4,7 @@ import * as fs from 'async-file';
 import * as path from 'path'
 import * as settings from './settings'
 import * as juliaexepath from './juliaexepath';
+import * as jlpkgenv from './jlpkgenv';
 import * as telemetry from './telemetry';
 
 let g_context: vscode.ExtensionContext = null;
@@ -34,37 +35,34 @@ async function provideJuliaTasks(): Promise<vscode.Task[]> {
 async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promise<vscode.Task[]> {
     telemetry.traceEvent('task-provide');
 	let emptyTasks: vscode.Task[] = [];
-    
+
     if (folder.uri.scheme !== 'file') {
         return emptyTasks;
     }
     let rootPath = folder.uri.fsPath;
-       
+
     try {
         const result: vscode.Task[] = [];
 
         let jlexepath = await juliaexepath.getJuliaExePath();
+        let pkgenvpath = await jlpkgenv.getEnvPath();
 
         if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
-            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', path.join(rootPath, 'test', 'runtests.jl')]), "");
+            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.test("${folder.name}")`]), "");
             testTask.group = vscode.TaskGroup.Test;
             testTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(testTask);
         }
 
         if (await fs.exists(path.join(rootPath, 'deps', 'build.jl'))) {
-            let splitted_path = rootPath.split(path.sep);
-            let package_name = splitted_path[splitted_path.length - 1];
-            let buildTask = new vscode.Task({ type: 'julia', command: 'build' }, folder, `Run build`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', path.join(rootPath, 'deps', 'build.jl')]), "");
+            let buildTask = new vscode.Task({ type: 'julia', command: 'build' }, folder, `Run build`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.build("${folder.name}")`]), "");
             buildTask.group = vscode.TaskGroup.Build;
             buildTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(buildTask);
         }
 
         if (await fs.exists(path.join(rootPath, 'benchmark', 'benchmarks.jl'))) {
-            let splitted_path = rootPath.split(path.sep);
-            let package_name = splitted_path[splitted_path.length - 1];
-            let benchmarkTask = new vscode.Task({ type: 'julia', command: 'benchmark' }, folder, `Run benchmark`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', '-e', 'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], promptsave=false, promptoverwrite=false)', package_name]), "");
+            let benchmarkTask = new vscode.Task({ type: 'julia', command: 'benchmark' }, folder, `Run benchmark`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', 'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], promptsave=false, promptoverwrite=false)', folder.name]), "");
             benchmarkTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(benchmarkTask);
         }
