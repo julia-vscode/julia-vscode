@@ -19,25 +19,6 @@ let g_weaveOutputChannel: vscode.OutputChannel = null;
 let g_weaveChildProcess: ChildProcess = null;
 let g_weaveNextChildProcess: ChildProcess = null;
 
-
-export class WeaveDocumentContentProvider implements vscode.TextDocumentContentProvider {
-    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
-
-    public provideTextDocumentContent(uri: vscode.Uri): string {
-        return g_lastWeaveContent;
-    }
-
-    get onDidChange(): vscode.Event<vscode.Uri> {
-        return this._onDidChange.event;
-    }
-
-    public update() {
-        this._onDidChange.fire(vscode.Uri.parse('jlweave://nothing.html'));
-    }
-}
-
-let g_weaveProvider: WeaveDocumentContentProvider = null;
-
 async function weave_core(column, selected_format: string = undefined) {
     let parsed_filename = path.parse(vscode.window.activeTextEditor.document.fileName);
 
@@ -108,9 +89,9 @@ async function weave_core(column, selected_format: string = undefined) {
             if (selected_format === undefined) {
                 g_lastWeaveContent = await fs.readFile(output_filename, "utf8")
 
-                let uri = vscode.Uri.parse('jlweave://nothing.html');
-                g_weaveProvider.update();
-                let success = await vscode.commands.executeCommand('vscode.previewHtml', uri, column, "julia Weave Preview");
+                let weaveWebViewPanel = vscode.window.createWebviewPanel('jlweavepane', "Julia Weave Preview", {preserveFocus: true, viewColumn: column});
+
+                weaveWebViewPanel.webview.html = g_lastWeaveContent;
             }
         }
         else {
@@ -130,7 +111,7 @@ async function open_preview() {
         vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.');
     }
     else {
-        await weave_core(vscode.ViewColumn.One);
+        await weave_core(vscode.ViewColumn.Active);
     }
 }
 
@@ -185,10 +166,6 @@ async function save() {
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
     g_settings = settings;
-
-    // Weave
-    g_weaveProvider = new WeaveDocumentContentProvider();
-    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('jlweave', g_weaveProvider));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview', open_preview));
 
