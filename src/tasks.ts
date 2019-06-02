@@ -52,6 +52,11 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
             testTask.group = vscode.TaskGroup.Test;
             testTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(testTask);
+
+            let testTaskWithCoverage = new vscode.Task({ type: 'julia', command: 'testcoverage' }, folder, `Run tests with coverage`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_test.jl'), folder.name]), "");
+            testTaskWithCoverage.group = vscode.TaskGroup.Test;
+            testTaskWithCoverage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
+            result.push(testTaskWithCoverage);
         }
 
         if (await fs.exists(path.join(rootPath, 'deps', 'build.jl'))) {
