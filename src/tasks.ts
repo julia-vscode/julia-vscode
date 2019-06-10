@@ -81,14 +81,14 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
                 new vscode.ProcessExecution(
                     jlexepath,
                     [
-                        '--project=.',
+                        '--project=./docs',
                         '--color=yes',
                         '-e',
-                        'using Pkg; Pkg.instantiate(); include(Base.ARGS[1]); Sys.isapple() ? run(`open $(Base.ARGS[2])`) : Sys.iswindows() ? run(`cmd /c start $(Base.ARGS[2])`) : Sys.islinux() ? run(`xdg-open $(Base.ARGS[2])`) : nothing',
+                        'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); include(Base.ARGS[1]); Sys.isapple() ? run(`open $(Base.ARGS[2])`) : Sys.iswindows() ? run(`cmd /c start $(Base.ARGS[2])`) : Sys.islinux() ? run(`xdg-open $(Base.ARGS[2])`) : nothing',
                         path.join(rootPath, 'docs', 'make.jl'),
                         path.join(rootPath, 'docs', 'build', 'index.html')
                     ],
-                    {cwd: path.join(rootPath, 'docs')}
+                    {cwd: rootPath}
                 ),
                 ""
             );
