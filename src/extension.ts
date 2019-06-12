@@ -144,8 +144,9 @@ async function startLanguageServer() {
         return;
     }
     let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];    
+    let envForLSPath = path.join(g_context.extensionPath, "scripts", "languageserver", "packages")
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];    
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {

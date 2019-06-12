@@ -16,10 +16,6 @@ try
         const global ls_debug_mode = true
     end
 
-    empty!(LOAD_PATH)
-    push!(LOAD_PATH, joinpath(@__DIR__, "packages"))
-    push!(LOAD_PATH, "@stdlib")
-
     using LanguageServer, Sockets, SymbolServer
 
     server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], Dict())
