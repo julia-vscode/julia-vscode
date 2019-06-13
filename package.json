@@ -5,7 +5,7 @@
     "version": "0.12.0-alpha",
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.30.0"
+        "vscode": "^1.35.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
