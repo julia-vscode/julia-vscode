@@ -31,7 +31,7 @@ let g_serverstatus: vscode.StatusBarItem = null;
 
 let g_lscrashreportingpipename: string = null;
 
-export async function activate(context: vscode.ExtensionContext) {  
+export async function activate(context: vscode.ExtensionContext) {
     telemetry.init();
 
     telemetry.traceEvent('activate');
@@ -105,7 +105,7 @@ function configChanged(params) {
     let newSettings = settings.loadSettings();
 
     telemetry.onDidChangeConfiguration(newSettings);
-    juliaexepath.onDidChangeConfiguration(newSettings);    
+    juliaexepath.onDidChangeConfiguration(newSettings);
     repl.onDidChangeConfiguration(newSettings);
     weave.onDidChangeConfiguration(newSettings);
     tasks.onDidChangeConfiguration(newSettings);
@@ -146,7 +146,7 @@ async function startLanguageServer() {
     let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
     let envForLSPath = path.join(g_context.extensionPath, "scripts", "languageserver", "packages")
     let serverArgsRun = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];    
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -172,7 +172,7 @@ async function startLanguageServer() {
     }
 
         // Create the language client and start the client.
-    g_languageClient = new LanguageClient('julia Language Server', serverOptions, clientOptions);
+    g_languageClient = new LanguageClient('Julia Language Server', serverOptions, clientOptions);
     g_languageClient.registerProposedFeatures()
 
     // Push the disposable to the context's subscriptions so that the
