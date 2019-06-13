@@ -118,6 +118,8 @@ export function startLsCrashServer() {
     });
 
     server.listen(pipe_path);
+
+    return pipe_path;
 }
 
 export function traceEvent(message) {
@@ -137,7 +139,7 @@ function sendCrashReportQueue() {
 }
 
 async function showCrashReporterUIConsent() {
-    if (crashReporterUIVisible) {
+    if (crashReporterUIVisible || vscode.workspace.getConfiguration('julia').get<boolean>('enableCrashReporter')===false) {
         return;
     }
     else {

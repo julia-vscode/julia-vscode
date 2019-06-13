@@ -7,7 +7,13 @@ export interface ISettings {
 export function loadSettings(): ISettings {
     let section = vscode.workspace.getConfiguration('julia');
 
-    return {
-        juliaExePath: section ? section.get<string>('executablePath', null) : null
+    let jlpath = section ? section.get<string>('executablePath', null) : null
+
+    if (jlpath==="") {
+        jlpath = null
+    }
+
+    return {        
+        juliaExePath: jlpath
     };
 }

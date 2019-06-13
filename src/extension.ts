@@ -19,21 +19,24 @@ import * as smallcommands from './smallcommands';
 import * as packagepath from './packagepath';
 import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
+import * as jlpkgenv from './jlpkgenv';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
 
 let g_serverstatus: vscode.StatusBarItem = null;
-let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
-let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
+// let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
+// let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
+
+let g_lscrashreportingpipename: string = null;
 
 export async function activate(context: vscode.ExtensionContext) {  
     telemetry.init();
 
     telemetry.traceEvent('activate');
 
-    telemetry.startLsCrashServer();
+    g_lscrashreportingpipename = telemetry.startLsCrashServer();
 
     g_context = context;
 
@@ -44,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Status bar
     g_serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     g_serverstatus.show()
-    g_serverstatus.text = 'Julia Language Server is busy';
+    g_serverstatus.text = 'Julia';
     context.subscriptions.push(g_serverstatus);
 
     // Config change
@@ -66,12 +69,13 @@ export async function activate(context: vscode.ExtensionContext) {
     smallcommands.activate(context, g_settings);
     packagepath.activate(context, g_settings);
     openpackagedirectory.activate(context, g_settings);
+    jlpkgenv.activate(context, g_settings);
 
     // Start language server
     startLanguageServer();
 
     if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry')===null) {
-        vscode.window.showInformationMessage("To help improve the julia extension, you can anonymously send usage statistics to the team. See our [privacy policy](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Privacy-Policy) for details.", 'Yes, I want to help improve the julia extension')
+        vscode.window.showInformationMessage("To help improve the julia extension, you can anonymously send usage statistics to the team. See our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) for details.", 'Yes, I want to help improve the julia extension')
             .then(telemetry_choice => {
                 if (telemetry_choice == "Yes, I want to help improve the julia extension") {
                     vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true);
@@ -94,6 +98,7 @@ function setLanguageClient(languageClient: vslc.LanguageClient) {
     smallcommands.onNewLanguageClient(g_languageClient);
     packagepath.onNewLanguageClient(g_languageClient);
     openpackagedirectory.onNewLanguageClient(g_languageClient);
+    jlpkgenv.onNewLanguageClient(g_languageClient);
 }
 
 function configChanged(params) {
@@ -107,6 +112,7 @@ function configChanged(params) {
     smallcommands.onDidChangeConfiguration(newSettings);
     packagepath.onDidChangeConfiguration(newSettings);
     openpackagedirectory.onDidChangeConfiguration(newSettings);
+    jlpkgenv.onDidChangeConfiguration(newSettings);
 
     let need_to_restart_server = false;
 
@@ -127,19 +133,24 @@ function configChanged(params) {
 async function startLanguageServer() {
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
+    let jlEnvPath = '';
     try {
-        var originalJuliaPkgDir = await packagepath.getPkgPath();
+        jlEnvPath = await jlpkgenv.getEnvPath();
     }
     catch (e) {
+
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
+        vscode.window.showErrorMessage(e)
         return;
     }
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=no', process.pid.toString()];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', 'main.jl', originalJuliaPkgDir, '--debug=yes', process.pid.toString()];
+    let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
+    let envForLSPath = path.join(g_context.extensionPath, "scripts", "languageserver", "packages")
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];    
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_PKGDIR: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
             HOME: process.env.HOME ? process.env.HOME : os.homedir()
         }
     };
@@ -154,7 +165,7 @@ async function startLanguageServer() {
     let clientOptions: LanguageClientOptions = {
         documentSelector: ['julia', 'juliamarkdown'],
         synchronize: {
-            configurationSection: ['julia.runlinter', 'julia.lintIgnoreList'],
+            configurationSection: ['julia.runLinter', 'julia.lintIgnoreList'],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never
@@ -171,17 +182,18 @@ async function startLanguageServer() {
         setLanguageClient(g_languageClient);
     }
     catch (e) {
+
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         g_languageClient = null;
     }
 
-    g_languageClient.onReady().then(() => {
-        g_languageClient.onNotification(g_serverBusyNotification, () => {
-            g_serverstatus.show();
-        })
+    // g_languageClient.onReady().then(() => {
+    //     g_languageClient.onNotification(g_serverBusyNotification, () => {
+    //         g_serverstatus.show();
+    //     })
 
-        g_languageClient.onNotification(g_serverReadyNotification, () => {
-            g_serverstatus.hide();
-        })
-    })
+    //     g_languageClient.onNotification(g_serverReadyNotification, () => {
+    //         g_serverstatus.hide();
+    //     })
+    // })
 }

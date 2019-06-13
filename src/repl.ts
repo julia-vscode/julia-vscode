@@ -8,6 +8,8 @@ import * as settings from './settings';
 import * as juliaexepath from './juliaexepath';
 import {generatePipeName} from './utils';
 import * as telemetry from './telemetry';
+import * as jlpkgenv from './jlpkgenv';
+import * as fs from 'async-file';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -37,23 +39,23 @@ function showPlotPane() {
     let plotTitle = g_plots.length > 0 ? `Julia Plots (${g_currentPlotIndex+1}/${g_plots.length})` : "Julia Plots (0/0)";
     if (!g_plotPanel) {
         // Otherwise, create a new panel
-        g_plotPanel = vscode.window.createWebviewPanel('jlplotpane', plotTitle, vscode.ViewColumn.Active, {enableScripts: true});
+        g_plotPanel = vscode.window.createWebviewPanel('jlplotpane', plotTitle, {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true});
         g_plotPanel.webview.html = getPlotPaneContent();
         vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true);
 
         // Reset when the current panel is closed
         g_plotPanel.onDidDispose(() => {
             g_plotPanel = undefined;
+            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, false);
         }, null, g_context.subscriptions);
 
         g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
-		    vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.visible);
-		});
+            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active);
+        });
     }
     else {
         g_plotPanel.title = plotTitle;
         g_plotPanel.webview.html = getPlotPaneContent();
-        g_plotPanel.reveal();
     }
 }
 
@@ -107,6 +109,15 @@ export function plotPaneDel() {
     }
 }
 
+export function plotPaneDelAll() {
+    telemetry.traceEvent('command-plotpanedeleteall');
+    if (g_plots.length > 0) {
+        g_plots.splice(0, g_plots.length);
+        g_currentPlotIndex = 0;
+        updatePlotPane();
+    }
+}
+
 export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
     private _onDidChangeTreeData: vscode.EventEmitter<string | undefined> = new vscode.EventEmitter<string | undefined>();
     readonly onDidChangeTreeData: vscode.Event<string | undefined> = this._onDidChangeTreeData.event;
@@ -146,134 +157,362 @@ function startREPLCommand() {
 
 async function startREPL(preserveFocus: boolean) {
     if (g_terminal == null) {
-        startREPLConn()
-        startPlotDisplayServer()
+        let juliaIsConnectedPromise = startREPLMsgServer()
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         let exepath = await juliaexepath.getJuliaExePath();
-        g_terminal = vscode.window.createTerminal("julia", exepath, ['-q', '-i', args, process.pid.toString(), process.execPath]);
+        let pkgenvpath = await jlpkgenv.getEnvPath();
+        if (pkgenvpath==null) {
+            let jlarg1 = ['-i','--banner=no'].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
+            let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
+            g_terminal = vscode.window.createTerminal(
+                {
+                    name: "julia",
+                    shellPath: exepath,
+                    shellArgs: jlarg1.concat(jlarg2),
+                    env: {
+                        JULIA_EDITOR: `"${process.execPath}"`
+                    }});
+        }
+        else {
+            let jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
+            let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(),vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
+            g_terminal = vscode.window.createTerminal(
+                {
+                    name: "julia",
+                    shellPath: exepath,
+                    shellArgs: jlarg1.concat(jlarg2),
+                    env: {
+                        JULIA_EDITOR: `"${process.execPath}"`
+                    }});
+        }
+        g_terminal.show(preserveFocus);
+        await juliaIsConnectedPromise;
     }
+    else {
     g_terminal.show(preserveFocus);
 }
-
-function startREPLConn() {
-    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
-
-    var server = net.createServer(function (stream) {
-        let accumulatingBuffer = new Buffer(0);
-
-        stream.on('data', async function (c) {
-            accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
-            let bufferResult = accumulatingBuffer.toString()
-            let replResponse = accumulatingBuffer.toString().split(",")
-
-            if (replResponse[0] == "repl/returnModules") {
-                let result = await vscode.window.showQuickPick(replResponse.slice(1), { placeHolder: 'Switch to Module...' })
-                if (result != undefined) {
-                    sendMessage('repl/changeModule', result)
-                }
-            }
-            if (replResponse[0] == "repl/variables") {
-                g_replVariables = bufferResult;
-                // TODO Enable again
-                // g_REPLTreeDataProvider.refresh();
-            }
-        });
-    });
-
-    server.on('close', function () {
-        console.log('Server: on close');
-    })
-
-    server.listen(PIPE_PATH, function () {
-        console.log('Server: on listening');
-    })
 }
 
-function startPlotDisplayServer() {
-    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-terminal');
+function processMsg(cmd, payload) {
+    if (cmd == 'image/svg+xml') {
+        g_currentPlotIndex = g_plots.push(payload) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'image/png') {
+        let plotPaneContent = '<html><img src="data:image/png;base64,' + payload + '" /></html>';
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'juliavscode/html') {
+        g_currentPlotIndex = g_plots.push(payload) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.vegalite.v2+json') {
+        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaLite}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plotdiv"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega-lite",
+                        actions: false
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plotdiv', spec, opt);
+                </script>
+            </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.vegalite.v3+json') {
+        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaLite}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plotdiv"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega-lite",
+                        actions: false
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plotdiv', spec, opt);
+                </script>
+            </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.vega.v3+json') {
+        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plotdiv"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega",
+                        actions: false
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plotdiv', spec, opt);
+                </script>
+            </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.vega.v4+json') {
+        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plotdiv"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega",
+                        actions: false
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plotdiv', spec, opt);
+                </script>
+            </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.vega.v5+json') {
+        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plotdiv"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega",
+                        actions: false
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plotdiv', spec, opt);
+                </script>
+            </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.plotly.v1+json') {
+        let uriPlotly = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+        <html>
+        <head>
+            <script src="${uriPlotly}"></script>
+        </head>
+        <body>
+        </body>
+        <script type="text/javascript">
+            gd = (function() {
+                var WIDTH_IN_PERCENT_OF_PARENT = 100
+                var HEIGHT_IN_PERCENT_OF_PARENT = 100;
+                var gd = Plotly.d3.select('body')
+                    .append('div').attr("id", "plotdiv")
+                    .style({
+                        width: WIDTH_IN_PERCENT_OF_PARENT + '%',
+                        'margin-left': (100 - WIDTH_IN_PERCENT_OF_PARENT) / 2 + '%',
+                        height: HEIGHT_IN_PERCENT_OF_PARENT + 'vh',
+                        'margin-top': (100 - HEIGHT_IN_PERCENT_OF_PARENT) / 2 + 'vh'
+                    })
+                    .node();
+                var spec = ${payload};
+                Plotly.newPlot(gd, spec.data, spec.layout);
+                window.onresize = function() {
+                    Plotly.Plots.resize(gd);
+                    };
+                return gd;
+            })();
+        </script>
+        </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.dataresource+json') {
+        let uriAgGrid = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid-community.min.noStyle.js')).with({ scheme: 'vscode-resource' });
+        let uriAgGridCSS = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css')).with({ scheme: 'vscode-resource' });
+        let uriAgGridTheme = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-theme-balham.css')).with({ scheme: 'vscode-resource' });
+        let grid_content = `
+            <html>
+                <head>
+                    <script src="${uriAgGrid}"></script>
+                    <style> html, body { margin: 0; padding: 0; height: 100%; } </style>
+                    <link rel="stylesheet" href="${uriAgGridCSS}">
+                    <link rel="stylesheet" href="${uriAgGridTheme}">
+                </head>
+            <body>
+                <div id="myGrid" style="height: 100%; width: 100%;" class="ag-theme-balham"></div>
+            </body>
+            <script type="text/javascript">
+                var payload = ${payload};
+                var gridOptions = {
+                    onGridReady: event => event.api.sizeColumnsToFit(),
+                    onGridSizeChanged: event => event.api.sizeColumnsToFit(),
+                    defaultColDef: {
+                        resizable: true,
+                        filter: true,
+                        sortable: true
+                    },
+                    columnDefs: payload.schema.fields.map(function(x) {
+                        if (x.type == "number" || x.type == "integer") {
+                            return {
+                                field: x.name,
+                                type: "numericColumn",
+                                filter: "agNumberColumnFilter"
+                            };
+                        } else if (x.type == "date") {
+                            return {
+                                field: x.name,
+                                filter: "agDateColumnFilter"
+                            };
+                        } else {
+                            return {field: x.name};
+                        };
+                    }),
+                rowData: payload.data
+                };
+                var eGridDiv = document.querySelector('#myGrid');
+                new agGrid.Grid(eGridDiv, gridOptions);
+            </script>
+        </html>
+        `;
 
-    var server = net.createServer(function (stream) {
+        let grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true, retainContextWhenHidden: true});
+        grid_panel.webview.html = grid_content;
+    }
+    else if (cmd == 'repl/variables') {
+        g_replVariables = payload;
+        // TODO Enable again
+        // g_REPLTreeDataProvider.refresh();
+    }
+    else {
+        throw new Error();
+    }
+}
+
+function startREPLMsgServer() {
+    let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
+
+    let connectedPromise = new Promise(function (resolveCallback, rejectCallback) {
+        var server = net.createServer(function (socket) {
+            resolveCallback();
+
         let accumulatingBuffer = new Buffer(0);
 
-        stream.on('data', function (c) {
+            socket.on('data', function (c) {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
             let s = accumulatingBuffer.toString();
             let index_of_sep_1 = s.indexOf(":");
-            let index_of_sep_2 = s.indexOf(";");
+            let index_of_sep_2 = s.indexOf("\n");
 
             if (index_of_sep_2 > -1) {
-                let mime_type = s.substring(0, index_of_sep_1);
+                let cmd = s.substring(0, index_of_sep_1);
                 let msg_len_as_string = s.substring(index_of_sep_1 + 1, index_of_sep_2);
                 let msg_len = parseInt(msg_len_as_string);
-                if (accumulatingBuffer.length >= mime_type.length + msg_len_as_string.length + 2 + msg_len) {
-                    let actual_image = s.substring(index_of_sep_2 + 1);
-                    if (accumulatingBuffer.length > mime_type.length + msg_len_as_string.length + 2 + msg_len) {
-                        accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(mime_type.length + msg_len_as_string.length + 2 + msg_len + 1));
+                if (accumulatingBuffer.length >= cmd.length + msg_len_as_string.length + 2 + msg_len) {
+                    let payload = s.substring(index_of_sep_2 + 1);
+                    if (accumulatingBuffer.length > cmd.length + msg_len_as_string.length + 2 + msg_len) {
+                        accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(cmd.length + msg_len_as_string.length + 2 + msg_len + 1));
                     }
                     else {
                         accumulatingBuffer = new Buffer(0);
                     }
 
-                    if (mime_type == 'image/svg+xml') {
-                        g_currentPlotIndex = g_plots.push(actual_image) - 1;
-                    }
-                    else if (mime_type == 'image/png') {
-                        let plotPaneContent = '<html><img src="data:image/png;base64,' + actual_image + '" /></html>';
-                        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-                    }
-                    else if (mime_type == 'juliavscode/html') {
-                        g_currentPlotIndex = g_plots.push(actual_image) - 1;
-                    }
-                    else if (mime_type == 'application/vnd.vegalite.v2+json') {
-                        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-                        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-                        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'vega-lite', 'vega.min.js')).with({ scheme: 'vscode-resource' });
-                        let plotPaneContent = `
-                            <html>
-                                <head>
-                                    <script src="${uriVega}"></script>
-                                    <script src="${uriVegaLite}"></script>
-                                    <script src="${uriVegaEmbed}"></script>
-                                </head>
-                                <body>
-                                    <div id="plotdiv"></div>
-                                </body>
-                                <style media="screen">
-                                    .vega-actions a {
-                                        margin-right: 10px;
-                                        font-family: sans-serif;
-                                        font-size: x-small;
-                                        font-style: italic;
-                                    }
-                                </style>
-                                <script type="text/javascript">
-                                    var opt = {
-                                        mode: "vega-lite",
-                                        actions: false
-                                    }
-                                    var spec = ${actual_image}
-                                    vegaEmbed('#plotdiv', spec, opt);
-                                </script>
-                            </html>`;
-                        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-                    }
-                    else {
-                        throw new Error();
-                    }
-
-                    showPlotPane();
+                    processMsg(cmd, payload);
                 }
             }
         });
+
+            socket.on('close', function (hadError) { server.close(); });
     });
 
-    server.on('close', function () {
-        console.log('Server: on close');
-    })
+        server.on('close', function () {
+            console.log('Server: on close');
+        })
 
     server.listen(PIPE_PATH, function () {
         console.log('Server: on listening');
     })
+    });
+
+    return connectedPromise;
 }
 
 async function executeCode(text) {
@@ -286,7 +525,12 @@ async function executeCode(text) {
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
     text = lines.join('\n');
-    g_terminal.sendText(text + '\n', false);
+    if (process.platform == "win32") {
+        g_terminal.sendText(text + '\n', false);
+    }
+    else {
+        g_terminal.sendText('\u001B[200~' + text + '\n' + '\u001B[201~', false);
+    }
 }
 
 function executeSelection() {
@@ -315,7 +559,7 @@ function executeSelection() {
     executeCode(text)
 }
 
-function executeFile() {
+async function executeFile() {
     telemetry.traceEvent('command-executejuliafileinrepl');
 
     var editor = vscode.window.activeTextEditor;
@@ -323,9 +567,35 @@ function executeFile() {
         return;
     }
 
-    let text = editor.document.getText();
+    let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
+    '0:0' + '\n' +
+    editor.document.getText()
 
-    executeCode(text)
+    sendMessage('repl/runcode', msg_body)
+}
+
+async function selectJuliaBlock() {
+    if (g_languageClient == null) {
+        vscode.window.showErrorMessage('Error: Language server is not running.');
+    }
+    else {
+        var editor = vscode.window.activeTextEditor;
+        let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
+
+        try {
+            let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
+            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))
+            vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1])))
+        }
+        catch (ex) {
+            if (ex.message == "Language client is not ready yet") {
+                vscode.window.showErrorMessage('Select code block only works once the Julia Language Server is ready.');
+            }
+            else {
+                throw ex;
+            }
+        }
+    }
 }
 
 async function executeJuliaBlockInRepl() {
@@ -341,8 +611,19 @@ async function executeJuliaBlockInRepl() {
         try {
             let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
 
-            executeCode(vscode.window.activeTextEditor.document.getText(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))))
+            let start_pos = vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1)
+            let end_pos = vscode.window.activeTextEditor.document.positionAt(ret_val[1])
+
+            let code_to_run = vscode.window.activeTextEditor.document.getText(new vscode.Range(start_pos, end_pos))
+
+            let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
+                start_pos.line.toString() + ':' + start_pos.character.toString() + '\n' +
+                code_to_run
+
+            sendMessage('repl/runcode', msg_body)
+
             vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
+            vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2])))
         }
         catch (ex) {
             if (ex.message == "Language client is not ready yet") {
@@ -355,23 +636,14 @@ async function executeJuliaBlockInRepl() {
     }
 }
 
-function changeREPLmode() {
-    telemetry.traceEvent('command-changereplmodule');
-
-    if (g_terminal == null) {
-        vscode.window.showErrorMessage("Cannot change REPL mode without a running julia REPL.");
-    }
-    else {
-        sendMessage('repl/getAvailableModules', '');
-    }
-}
-
 async function sendMessage(cmd, msg: string) {
     await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
     let conn = net.connect(sock)
-    conn.write(cmd + '\n' + msg + "\nrepl/endMessage")
+    let payload_size = Buffer.byteLength(msg, 'utf8');
+    let outmsg = cmd + ':' + payload_size.toString() + '\n' + msg;
+    conn.write(outmsg)
     conn.on('error', () => { vscode.window.showErrorMessage("REPL is not open") })
 }
 
@@ -396,9 +668,9 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.change-repl-module', changeREPLmode));
-
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane));
 
@@ -411,6 +683,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-last', plotPaneLast));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll));
 
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal == g_terminal) {

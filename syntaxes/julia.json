@@ -4,8 +4,6 @@
     "jl"
   ],
   "firstLineMatch": "^#!.*\\bjulia\\s*$",
-  "foldingStartMarker": "^\\s*(?:if|while|for|begin|function|macro|module|baremodule|type|immutable|struct|try|let)\\b(?!.*\\bend\\b).*$",
-  "foldingStopMarker": "^\\s*(?:end)\\b.*$",
   "name": "Julia",
   "patterns": [
     {
@@ -47,8 +45,16 @@
       "patterns": [
         {
           "begin": "\\[",
-          "end": "\\]((\\.)?'*)",
+          "beginCaptures": {
+            "0": {
+              "name": "meta.bracket.julia"
+            }
+          },
+          "end": "(?:\\])(?:(\\.)?'*)",
           "endCaptures": {
+            "0": {
+              "name": "meta.bracket.julia"
+            },
             "1": {
               "name": "keyword.operator.transpose.julia"
             }
@@ -81,19 +87,7 @@
     "comment": {
       "patterns": [
         {
-          "begin": "#=",
-          "beginCaptures": {
-            "0": {
-              "name": "punctuation.definition.comment.begin.julia"
-            }
-          },
-          "end": "=#",
-          "endCaptures": {
-            "0": {
-              "name": "punctuation.definition.comment.end.julia"
-            }
-          },
-          "name": "comment.block.number-sign-equals.julia"
+          "include": "#comment_block"
         },
         {
           "begin": "#",
@@ -107,10 +101,34 @@
         }
       ]
     },
+    "comment_block": {
+      "patterns": [
+        {
+          "begin": "#=",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.begin.julia"
+            }
+          },
+          "end": "=#",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.end.julia"
+            }
+          },
+          "name": "comment.block.number-sign-equals.julia",
+          "patterns": [
+            {
+              "include": "#comment_block"
+            }
+          ]
+        }
+      ]
+    },
     "function_call": {
       "patterns": [
         {
-          "begin": "([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?\\.?\\(",
+          "begin": "([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?\\.?(?=\\()",
           "beginCaptures": {
             "1": {
               "name": "support.function.julia"
@@ -121,6 +139,9 @@
           },
           "end": "\\)(('|(\\.'))*\\.?')?",
           "endCaptures": {
+            "0": {
+              "name": "meta.bracket.julia"
+            },
             "1": {
               "name": "keyword.operator.transposed-func.julia"
             }
@@ -148,7 +169,7 @@
               "name": "support.type.julia"
             }
           },
-          "match": "([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?\\((?=.*\\)(::[^\\s]+)?(\\s*\\bwhere\\b\\s*[^\\s]+)?\\s*?=(?![=>]))",
+          "match": "([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?(?=\\(.*\\)(::[^\\s]+)?(\\s*\\bwhere\\b\\s+.+?)?\\s*?=(?![=>]))",
           "comment": "This is different from the one in tpoisot's package"
         },
         {
@@ -166,7 +187,7 @@
               "name": "support.type.julia"
             }
           },
-          "match": "\\b(function|macro)(?:\\s+(?:[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*(\\.))?([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?|\\s*)\\(",
+          "match": "\\b(function|macro)(?:\\s+(?:[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*(\\.))?([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)({(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?|\\s*)(?=\\()",
           "comment": "similar regex to previous, but with keyword not 1-line syntax"
         }
       ]
@@ -174,7 +195,7 @@
     "keyword": {
       "patterns": [
         {
-          "match": "\\b(?<![:_])(?:function|@generated|type|immutable|mutable|struct|macro|quote|abstract|bitstype|typealias|module|baremodule|new|where)\\b",
+          "match": "\\b(?<![:_\\.])(?:function|mutable\\s+struct|struct|macro|quote|abstract\\s+type|primitive\\s+type|module|baremodule|where)\\b",
           "name": "keyword.other.julia"
         },
         {
@@ -206,7 +227,7 @@
         },
         {
           "match": "\\b(?<![:_])(?:global|local|const)\\b",
-          "name": "storage.modifier.variable.julia"
+          "name": "keyword.storage.modifier.julia"
         },
         {
           "match": "\\b(?<![:_])(?:export)\\b",
@@ -215,10 +236,6 @@
         {
           "match": "\\b(?<![:_])(?:import)\\b",
           "name": "keyword.control.import.julia"
-        },
-        {
-          "match": "\\b(?<![:_])(?:importall)\\b",
-          "name": "keyword.control.importall.julia"
         },
         {
           "match": "\\b(?<![:_])(?:using)\\b",
@@ -261,7 +278,7 @@
           "name": "keyword.operator.shift.julia"
         },
         {
-          "match": "(?:\\s*(::|>:|<:)\\s*((?:(?:Union)?\\([^)]*\\)|[[:alpha:]_][[:word:]⁺-ₜ!′\\.]*(?:{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})?)))(?:\\.\\.\\.)?",
+          "match": "(?:\\s*(::|>:|<:)\\s*((?:(?:Union)?\\([^)]*\\)|[[:alpha:]_][[:word:]\u207A-\u209C!\u2032\\.]*(?:(?:{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*})|(?:\".+\"))?)))(?:\\.\\.\\.)?",
           "captures": {
             "1": {
               "name": "keyword.operator.relation.julia"
@@ -284,7 +301,7 @@
           "name": "keyword.operator.boolean.julia"
         },
         {
-          "match": "(?<=[[:word:]⁺-ₜ!′])(?::)",
+          "match": "(?<=[[:word:]⁺-ₜ!′∇\\)\\]\\}])(?::)",
           "name": "keyword.operator.range.julia"
         },
         {
@@ -476,7 +493,7 @@
           ]
         },
         {
-          "begin": "\"\"\"",
+          "begin": "(?<![[:word:]⁺-ₜ!′∇])\"\"\"",
           "beginCaptures": {
             "0": {
               "name": "punctuation.definition.string.multiline.begin.julia"
@@ -501,7 +518,7 @@
         },
         {
           "name": "string.quoted.double.julia",
-          "begin": "\"",
+          "begin": "(?<![[:word:]⁺-ₜ!′∇])\"(?!\"\")",
           "beginCaptures": {
             "0": {
               "name": "punctuation.definition.string.begin.julia"
@@ -548,15 +565,47 @@
           ]
         },
         {
-          "begin": "\\b[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*\"",
+          "begin": "(?<!\")\\b([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)\"\"\"",
           "beginCaptures": {
             "0": {
               "name": "punctuation.definition.string.begin.julia"
+            },
+            "1": {
+              "name": "support.function.macro.julia"
             }
           },
-          "end": "\"([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)?",
+          "end": "(\"\"\")([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)?",
           "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.end.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "name": "string.quoted.other.julia",
+          "patterns": [
+            {
+              "include": "#string_escaped_char"
+            }
+          ]
+        },
+        {
+          "begin": "(?<!\")\\b([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)\"(?!\")",
+          "beginCaptures": {
             "0": {
+              "name": "punctuation.definition.string.begin.julia"
+            },
+            "1": {
+              "name": "support.function.macro.julia"
+            }
+          },
+          "end": "(\")([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)?",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.end.julia"
+            },
+            "2": {
               "name": "punctuation.definition.string.end.julia"
             }
           },
@@ -641,7 +690,7 @@
     "symbol": {
       "patterns": [
         {
-          "match": "(?<![[:word:]⁺-ₜ!′∇]):(?:[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)",
+          "match": "(?<![[:word:]⁺-ₜ!′∇\\)\\]\\}]):(?:[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)",
           "name": "constant.other.symbol.julia",
           "comment": "This is string.quoted.symbol.julia in tpoisot's package"
         }
@@ -661,7 +710,7 @@
               "name": "punctuation.separator.inheritance.julia"
             }
           },
-          "match": "(?>!:_)(?:type|immutable|struct)\\s+([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)(\\s*(<:)\\s*[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*(?:{.*})?)?",
+          "match": "(?>!:_)(?:struct|mutable\\s+struct|abstract\\s+type|primitive\\s+type)\\s+([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)(\\s*(<:)\\s*[[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*(?:{.*})?)?",
           "name": "meta.type.julia"
         }
       ]

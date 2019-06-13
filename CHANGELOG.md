@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.12.0
+* Add vscodedisplay() function for a grid view of tables
+* Add a command to delete all plots from the plot pane
+* Store Julia environment choice in settings
+* Auto detect Julia environments
+* Change how execute block sends code to the REPL
+* Preserve focus of REPL when plot pane is shown
+
+## 0.11.6
+* Add option to permanently opt out of crash reporting
+* Fix bug related to Revise integration
+* Add option for passing command line arguments to julia REPL process
+* Rework communication between REPL and extension
+* Auto-detect julia 1.1.1 and 1.2.0
+
+## 0.11.5
+* Fix julia 1.1 compat issue in SymbolServer
+* Update vega-lite to 3.0 and vega to 5.2
+
+## 0.11.4
+* Fix another julia 1.1 compat issue
+
+## 0.11.3
+* Fix julia 1.1 compat issue
+
+## 0.11.2
+* Various bug fixes
+* Add option to enable/disable plot pane
+* Search for julia 1.0.4 and 1.1
+
+## 0.11.1
+* Update CHANGELOG
+
+## 0.11.0
+* Add julia 1.0 support, drop julia 0.6 support
+* Add support for interactive Plotly figures
+* Various bugfixes
+
 ## 0.10.2
 * Fix automatic julia detection on Mac
 

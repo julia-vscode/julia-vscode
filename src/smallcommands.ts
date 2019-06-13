@@ -10,8 +10,8 @@ let g_languageClient: vslc.LanguageClient = null;
 function toggleLinter() {
     telemetry.traceEvent('command-togglelinter');
 
-    let cval = vscode.workspace.getConfiguration('julia').get('runlinter', false)
-    vscode.workspace.getConfiguration('julia').update('runlinter', !cval, true)
+    let cval = vscode.workspace.getConfiguration('julia').get('runLinter', false)
+    vscode.workspace.getConfiguration('julia').update('runLinter', !cval, true)
 }
 
 function applyTextEdit(we) {
@@ -24,47 +24,27 @@ function applyTextEdit(we) {
     vscode.workspace.applyEdit(wse)
 }
 
-function lintPackage() {
-    telemetry.traceEvent('command-lintpackage');
+// function lintPackage() {
+//     telemetry.traceEvent('command-lintpackage');
 
-    if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
-    }
-    else {
-        try {
-            g_languageClient.sendRequest("julia/lint-package");
-        }
-        catch (ex) {
-            if (ex.message == "Language client is not ready yet") {
-                vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
-            }
-            else {
-                throw ex;
-            }
-        }
-    }
-}
+//     if (g_languageClient == null) {
+//         vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
+//     }
+//     else {
+//         try {
+//             g_languageClient.sendRequest("julia/lint-package");
+//         }
+//         catch (ex) {
+//             if (ex.message == "Language client is not ready yet") {
+//                 vscode.window.showErrorMessage('Error: package linting only works with a running julia language server.');
+//             }
+//             else {
+//                 throw ex;
+//             }
+//         }
+//     }
+// }
 
-function reloadModules() {
-    telemetry.traceEvent('command-reloadmodules');
-
-    if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: Language server is not yet running.');
-    }
-    else {
-        try {
-            g_languageClient.sendRequest("julia/reload-modules");
-        }
-        catch (ex) {
-            if (ex.message == "Language client is not ready yet") {
-                vscode.window.showErrorMessage('Error: Language server is not yet running.');
-            }
-            else {
-                throw ex;
-            }
-        }
-    }
-}
 
 function toggleServerLogs() {
     telemetry.traceEvent('command-juliatogglelog');
@@ -114,9 +94,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_settings = settings;
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.lint-package', lintPackage));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.reload-modules', reloadModules));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-log', toggleServerLogs));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-file-lint', toggleFileLint));
 }

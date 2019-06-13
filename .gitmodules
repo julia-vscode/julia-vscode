@@ -1,27 +1,24 @@
-[submodule "scripts/languageserver/packages/AbstractTrees"]
-	path = scripts/languageserver/packages/AbstractTrees
-	url = https://github.com/Keno/AbstractTrees.jl.git
-[submodule "scripts/languageserver/packages/Compat"]
-	path = scripts/languageserver/packages/Compat
-	url = https://github.com/JuliaLang/Compat.jl.git
 [submodule "scripts/languageserver/packages/JSON"]
 	path = scripts/languageserver/packages/JSON
 	url = https://github.com/JuliaIO/JSON.jl.git
 [submodule "scripts/languageserver/packages/LanguageServer"]
 	path = scripts/languageserver/packages/LanguageServer
-	url = https://github.com/JuliaEditorSupport/LanguageServer.jl.git
+	url = https://github.com/julia-vscode/LanguageServer.jl.git
 [submodule "scripts/languageserver/packages/URIParser"]
 	path = scripts/languageserver/packages/URIParser
 	url = https://github.com/JuliaWeb/URIParser.jl.git
 [submodule "scripts/languageserver/packages/CSTParser"]
 	path = scripts/languageserver/packages/CSTParser
-	url = https://github.com/ZacLN/CSTParser.jl.git
+	url = https://github.com/julia-vscode/CSTParser.jl.git
 [submodule "scripts/languageserver/packages/Tokenize"]
 	path = scripts/languageserver/packages/Tokenize
-	url = https://github.com/KristofferC/Tokenize.jl.git
+	url = https://github.com/JuliaLang/Tokenize.jl.git
 [submodule "scripts/languageserver/packages/DocumentFormat"]
 	path = scripts/languageserver/packages/DocumentFormat
-	url = https://github.com/ZacLN/DocumentFormat.jl
-[submodule "scripts/languageserver/packages/Nullables"]
-	path = scripts/languageserver/packages/Nullables
-	url = https://github.com/JuliaArchive/Nullables.jl.git
+	url = https://github.com/julia-vscode/DocumentFormat.jl
+[submodule "scripts/languageserver/packages/StaticLint"]
+	path = scripts/languageserver/packages/StaticLint
+	url = https://github.com/julia-vscode/StaticLint.jl
+[submodule "scripts/languageserver/packages/SymbolServer"]
+	path = scripts/languageserver/packages/SymbolServer
+	url = https://github.com/julia-vscode/SymbolServer.jl.git

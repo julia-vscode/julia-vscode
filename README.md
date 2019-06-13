@@ -49,27 +49,27 @@ The extension currently provides
 
 * syntax highlighting
 * snippets
-* [latex snippets](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Snippets#latex)
-* [julia specific commands](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Commands)
-* [integrated julia REPL](https://github.com/JuliaEditorSupport/julia-vscode/wiki/REPL)
-* [code completion](https://github.com/JuliaEditorSupport/julia-vscode/wiki/IntelliSense)
-* [hover help](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Information#hover-help)
-* [a linter](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Information#linter)
-* [code navigation](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Navigation)
+* [latex snippets](https://github.com/julia-vscode/julia-vscode/wiki/Snippets#latex)
+* [julia specific commands](https://github.com/julia-vscode/julia-vscode/wiki/Commands)
+* [integrated julia REPL](https://github.com/julia-vscode/julia-vscode/wiki/REPL)
+* [code completion](https://github.com/julia-vscode/julia-vscode/wiki/IntelliSense)
+* [hover help](https://github.com/julia-vscode/julia-vscode/wiki/Information#hover-help)
+* [a linter](https://github.com/julia-vscode/julia-vscode/wiki/Information#linter)
+* [code navigation](https://github.com/julia-vscode/julia-vscode/wiki/Navigation)
 * tasks for running tests, builds, benchmarks and build documentation
 
 ## Documentation
 
-The [documentation](https://github.com/JuliaEditorSupport/julia-vscode/wiki)
+The [documentation](https://github.com/julia-vscode/julia-vscode/wiki)
 has sections that describe the features of this extension (including
 e.g. keyboard shortcuts).
 
 ## Known issues and workarounds
 
-Please visit the [known issues and workarounds](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Known-issues-and-workarounds)
+Please visit the [known issues and workarounds](https://github.com/julia-vscode/julia-vscode/wiki/Known-issues-and-workarounds)
 for up-to-date information about known issues and solutions for those
 problems.
 
 ## Data/Telemetry
 
-The julia extension for Visual Studio Code collects usage data and sends it to the development team to help improve the extension. Read our [privacy policy](https://github.com/JuliaEditorSupport/julia-vscode/wiki/Privacy-Policy) to learn more and how to disable any telemetry.
+The julia extension for Visual Studio Code collects usage data and sends it to the development team to help improve the extension. Read our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more and how to disable any telemetry.
