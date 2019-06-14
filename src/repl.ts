@@ -182,7 +182,7 @@ async function startREPL(preserveFocus: boolean) {
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
-                        JULIA_EDITOR: `"${process.execPath}"`
+                        JULIA_EDITOR: process.platform == 'darwin' ? `"${path.join(vscode.env.appRoot, 'bin', 'code')}"` : `"${process.execPath}"`
                     }});
         }
         g_terminal.show(preserveFocus);
