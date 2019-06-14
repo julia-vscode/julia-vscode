@@ -12,7 +12,7 @@ install:
 
 script:
 - npm run compile
-- npm test --silent
+- npm test
 
 before_deploy:
 - npm install -g vsce
