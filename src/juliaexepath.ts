@@ -66,7 +66,7 @@ export async function getJuliaExePath() {
         }
         else {
             if (g_settings.juliaExePath.includes(path.sep)) {
-                actualJuliaExePath = g_settings.juliaExePath;
+                actualJuliaExePath = g_settings.juliaExePath.replace(/^~/, os.homedir());
             } else {
                 // resolve full path
                 actualJuliaExePath = await whichAsync(g_settings.juliaExePath);
