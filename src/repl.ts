@@ -515,7 +515,7 @@ function startREPLMsgServer() {
     return connectedPromise;
 }
 
-async function executeCode(text) {
+async function executeCode(text, individualLine) {
     if (!text.endsWith("\n")) {
         text = text + '\n';
     }
@@ -525,7 +525,7 @@ async function executeCode(text) {
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
     text = lines.join('\n');
-    if (process.platform == "win32") {
+    if (individualLine || process.platform == "win32") {
         g_terminal.sendText(text + '\n', false);
     }
     else {
@@ -556,7 +556,7 @@ function executeSelection() {
             }
         }
     }
-    executeCode(text)
+    executeCode(text, selection.isEmpty)
 }
 
 async function executeFile() {
