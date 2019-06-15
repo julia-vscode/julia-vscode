@@ -26,5 +26,5 @@ deploy:
   file: "*.vsix"
   skip_cleanup: true
   on:
-    repo: JuliaEditorSupport/julia-vscode
+    repo: julia-vscode/julia-vscode
     tags: true
