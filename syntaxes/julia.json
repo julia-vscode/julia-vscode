@@ -408,7 +408,7 @@
             }
           },
           "name": "embed.cxx.julia",
-          "contentName": "source.cpp",
+          "contentName": "meta.embedded.block.cpp",
           "patterns": [
             {
               "include": "source.cpp"
@@ -435,7 +435,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "source.cpp",
+          "contentName": "meta.embedded.block.cpp",
           "patterns": [
             {
               "include": "source.cpp"
@@ -446,7 +446,218 @@
           ]
         },
         {
-          "begin": "^\\s?([[:alpha:]_∇][[:word:]⁺-ₜ!′∇]*)?(\"\"\")\\s?$",
+          "begin": "(js)(\"\"\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"\"\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "contentName": "meta.embedded.block.js",
+          "patterns": [
+            {
+              "include": "source.js"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(js)(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"",
+          "name": "embed.js.julia",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "contentName": "meta.embedded.block.js",
+          "patterns": [
+            {
+              "include": "source.js"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(R)(\"\"\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"\"\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "contentName": "meta.embedded.block.r",
+          "patterns": [
+            {
+              "include": "source.r"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(R)(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"",
+          "name": "embed.r.julia",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "contentName": "source.r",
+          "patterns": [
+            {
+              "include": "source.r"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(py)(\"\"\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"\"\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "contentName": "meta.embedded.block.python",
+          "patterns": [
+            {
+              "include": "source.python"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(py)(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "contentName": "meta.embedded.block.python",
+          "patterns": [
+            {
+              "include": "source.python"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(md)(\"\"\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"\"\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "contentName": "meta.embedded.block.markdown",
+          "patterns": [
+            {
+              "include": "text.html.markdown"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(md)(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"",
+          "name": "embed.markdown.julia",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "contentName": "meta.embedded.block.markdown",
+          "patterns": [
+            {
+              "include": "text.html.markdown"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "^\\s*(doc|raw)?(\"\"\")\\s?$",
           "beginCaptures": {
             "1": {
               "name": "support.function.macro.julia"
