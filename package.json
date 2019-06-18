@@ -68,7 +68,14 @@
             {
                 "language": "julia",
                 "scopeName": "source.julia",
-                "path": "./syntaxes/julia.json"
+                "path": "./syntaxes/julia.json",
+                "embeddedLanguages": {
+                    "meta.embedded.block.cpp": "cpp",
+                    "meta.embedded.block.js": "javascript",
+                    "meta.embedded.block.markdown": "markdown",
+                    "meta.embedded.block.python": "python",
+                    "meta.embedded.block.r": "r"
+                }
             },
             {
                 "language": "juliamarkdown",
