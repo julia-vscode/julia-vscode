@@ -7,6 +7,14 @@
 * Auto detect Julia environments
 * Change how execute block sends code to the REPL
 * Preserve focus of REPL when plot pane is shown
+* Fix weave preview
+* Make tasks work with julia environments
+* Add a test task that outputs coverage information
+* Open docs after build task
+* Support vega 3, 4 and 5, and vega-lite 2 and 3
+* Allow paths starting with ~ for julia bin location
+* Fix JULIA_EDITOR integration on Mac
+* Add support for custom sysimages
 
 ## 0.11.6
 * Add option to permanently opt out of crash reporting
