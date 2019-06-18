@@ -177,7 +177,7 @@ async function startREPL(preserveFocus: boolean) {
             let env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath);
 
             let sysImageArgs = [];
-            if (env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
+            if (vscode.workspace.getConfiguration("julia").get("useCustomSysimage") && env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
                 let date_sysimage = await fs.stat(env_file_paths.sysimage_path);
                 let date_manifest = await fs.stat(env_file_paths.manifest_toml_path);
 
