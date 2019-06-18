@@ -174,7 +174,21 @@ async function startREPL(preserveFocus: boolean) {
                     }});
         }
         else {
-            let jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
+            let env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath);
+
+            let sysImageArgs = [];
+            if (env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
+                let date_sysimage = await fs.stat(env_file_paths.sysimage_path);
+                let date_manifest = await fs.stat(env_file_paths.manifest_toml_path);
+
+                if (date_sysimage.mtime > date_manifest.mtime) {
+                    sysImageArgs = ['-J', env_file_paths.sysimage_path]
+                }
+                else {
+                    vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
+                }
+            }
+            let jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
             let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(),vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
             g_terminal = vscode.window.createTerminal(
                 {

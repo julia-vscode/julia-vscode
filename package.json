@@ -357,6 +357,12 @@
                     "default": null,
                     "description": "Path to a julia environment.",
                     "scope": "window"
+                },
+                "julia.useCustomSysimage": {
+                    "type": "boolean",
+                    "default": "false",
+                    "description": "Use an existing custom sysimage when starting the REPL",
+                    "scope": "application"
                 }
             }
         },
