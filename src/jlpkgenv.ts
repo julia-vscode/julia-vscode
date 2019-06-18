@@ -53,7 +53,8 @@ async function switchEnvToPath(envpath: string) {
 
     if (vscode.workspace.workspaceFolders!==undefined &&
         vscode.workspace.workspaceFolders.length==1 &&
-        vscode.workspace.workspaceFolders[0].uri.fsPath != g_path_of_current_environment) {
+        vscode.workspace.workspaceFolders[0].uri.fsPath != g_path_of_current_environment &&
+        (await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Project.toml')) || await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaProject.toml')))) {
 
         let case_adjusted = process.platform == "win32" ?
             vscode.workspace.workspaceFolders[0].uri.fsPath.charAt(0).toUpperCase() + vscode.workspace.workspaceFolders[0].uri.fsPath.slice(1) :
