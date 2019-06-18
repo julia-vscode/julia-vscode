@@ -18,6 +18,19 @@ let g_current_environment: vscode.StatusBarItem = null;
 let g_path_of_current_environment: string = null;
 let g_path_of_default_environment: string = null;
 
+export async function getProjectFilePaths(envpath: string) {
+    let dlext = process.platform == 'darwin' ? 'dylib' : process.platform == 'win32' ? 'dll': 'so';
+    return {
+        project_toml_path: (await fs.exists(path.join(envpath, 'JuliaProject.toml'))) ?
+            path.join(envpath, 'JuliaProject.toml') :
+            (await fs.exists(path.join(envpath, 'Project.toml'))) ? path.join(envpath, 'Project.toml') : undefined,
+        manifest_toml_path: (await fs.exists(path.join(envpath, 'JuliaManifest.toml'))) ?
+            path.join(envpath, 'JuliaManifest.toml') :
+            (await fs.exists(path.join(envpath, 'Manifest.toml'))) ? path.join(envpath, 'Manifest.toml') : undefined,
+        sysimage_path: (await fs.exists(path.join(envpath, `JuliaSysimage.${dlext}`))) ? path.join(envpath, `JuliaSysimage.${dlext}`) : undefined
+    }
+}
+
 async function switchEnvToPath(envpath: string) {
     g_path_of_current_environment = envpath;
 
@@ -40,7 +53,8 @@ async function switchEnvToPath(envpath: string) {
 
     if (vscode.workspace.workspaceFolders!==undefined &&
         vscode.workspace.workspaceFolders.length==1 &&
-        vscode.workspace.workspaceFolders[0].uri.fsPath != g_path_of_current_environment) {
+        vscode.workspace.workspaceFolders[0].uri.fsPath != g_path_of_current_environment &&
+        (await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Project.toml')) || await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaProject.toml')))) {
 
         let case_adjusted = process.platform == "win32" ?
             vscode.workspace.workspaceFolders[0].uri.fsPath.charAt(0).toUpperCase() + vscode.workspace.workspaceFolders[0].uri.fsPath.slice(1) :
