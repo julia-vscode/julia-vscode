@@ -407,10 +407,11 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.cpp",
+          "name": "embed.cxx.julia",
+          "contentName": "source.cpp",
           "patterns": [
             {
-              "include": "source.cpp#root_context"
+              "include": "source.cpp"
             },
             {
               "include": "#string_dollar_sign_interpolate"
@@ -428,15 +429,16 @@
             }
           },
           "end": "\"",
+          "name": "embed.cxx.julia",
           "endCaptures": {
             "0": {
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.cpp",
+          "contentName": "source.cpp",
           "patterns": [
             {
-              "include": "source.cpp#root_context"
+              "include": "source.cpp"
             },
             {
               "include": "#string_dollar_sign_interpolate"
@@ -459,7 +461,8 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.python",
+          "name": "embed.python.julia",
+          "contentName": "source.python",
           "patterns": [
             {
               "include": "source.python"
@@ -480,12 +483,13 @@
             }
           },
           "end": "\"",
+          "name": "embed.python.julia",
           "endCaptures": {
             "0": {
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.python",
+          "contentName": "source.python",
           "patterns": [
             {
               "include": "source.python"
@@ -511,7 +515,8 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.js",
+          "name": "embed.js.julia",
+          "contentName": "source.js",
           "patterns": [
             {
               "include": "source.js"
@@ -532,12 +537,13 @@
             }
           },
           "end": "\"",
+          "name": "embed.js.julia",
           "endCaptures": {
             "0": {
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.js",
+          "contentName": "source.js",
           "patterns": [
             {
               "include": "source.js"
@@ -563,7 +569,8 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.r",
+          "name": "embed.R.julia",
+          "contentName": "source.r",
           "patterns": [
             {
               "include": "source.r"
@@ -584,12 +591,13 @@
             }
           },
           "end": "\"",
+          "name": "embed.R.julia",
           "endCaptures": {
             "0": {
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.r",
+          "contentName": "source.r",
           "patterns": [
             {
               "include": "source.r"
@@ -615,10 +623,11 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.markdown",
+          "name": "embed.markdown.julia",
+          "contentName": "source.gfm",
           "patterns": [
             {
-              "include": "text.html.markdown"
+              "include": "source.gfm"
             },
             {
               "include": "#string_dollar_sign_interpolate"
@@ -636,15 +645,16 @@
             }
           },
           "end": "\"",
+          "name": "embed.markdown.julia",
           "endCaptures": {
             "0": {
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.markdown",
+          "contentName": "source.gfm",
           "patterns": [
             {
-              "include": "text.html.markdown"
+              "include": "source.gfm"
             },
             {
               "include": "#string_dollar_sign_interpolate"
