@@ -516,7 +516,7 @@
             }
           },
           "name": "embed.js.julia",
-          "contentName": "meta.embedded.block.js",
+          "contentName": "meta.embedded.block.javascript",
           "patterns": [
             {
               "include": "source.js"
@@ -543,7 +543,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.js",
+          "contentName": "meta.embedded.block.javascript",
           "patterns": [
             {
               "include": "source.js"
@@ -753,6 +753,30 @@
             },
             {
               "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "r\"\"\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.regexp.begin.julia"
+            }
+          },
+          "end": "(\"\"\")([imsx]{0,4})?",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.regexp.end.julia"
+            },
+            "2": {
+              "comment": "I took this scope name from python regex grammar",
+              "name": "keyword.other.option-toggle.regexp.julia"
+            }
+          },
+          "name": "string.regexp.julia",
+          "patterns": [
+            {
+              "include": "#string_escaped_char"
             }
           ]
         },

@@ -71,7 +71,7 @@
                 "path": "./syntaxes/julia.json",
                 "embeddedLanguages": {
                     "meta.embedded.block.cpp": "cpp",
-                    "meta.embedded.block.js": "javascript",
+                    "meta.embedded.block.javascript": "javascript",
                     "meta.embedded.block.markdown": "markdown",
                     "meta.embedded.block.python": "python",
                     "meta.embedded.block.r": "r"
@@ -81,6 +81,16 @@
                 "language": "juliamarkdown",
                 "scopeName": "source.juliamarkdown",
                 "path": "./syntaxes/juliamarkdown.json"
+            },
+            {
+                "scopeName": "markdown.julia.codeblock",
+                "path": "./syntaxes/juliacodeblock.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.julia": "julia"
+                }
             }
         ],
         "commands": [
