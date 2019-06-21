@@ -16,7 +16,7 @@ json = Ref(read(open(pipeline(`cson2json`, stdin=IOBuffer(cson))), String))
 # apply substitutions
 sub!(pr) = json.x = replace(json.x, pr; count=typemax(Int))
 
-sub!(r"(\"include\"\s*:\s*\")source\.gfm(\")" => s"\1text.html.markdown\2")
+sub!(r"(\"include\"\s*:\s*\")source\.gfm(\")" => s"\1text.html.markdown.julia\2")
 
 # Skip over-zealous top-level production in `source.cpp`. See offending pattern here:
 # https://github.com/microsoft/vscode/blob/c3fe2d8acde04e579880413ae4622a1f551efdcc/extensions/cpp/syntaxes/cpp.tmLanguage.json#L745

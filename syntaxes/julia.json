@@ -627,7 +627,7 @@
           "contentName": "meta.embedded.block.markdown",
           "patterns": [
             {
-              "include": "text.html.markdown"
+              "include": "text.html.markdown.julia"
             },
             {
               "include": "#string_dollar_sign_interpolate"
@@ -654,7 +654,7 @@
           "contentName": "meta.embedded.block.markdown",
           "patterns": [
             {
-              "include": "text.html.markdown"
+              "include": "text.html.markdown.julia"
             },
             {
               "include": "#string_dollar_sign_interpolate"
