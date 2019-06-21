@@ -1,40 +1,12 @@
 {
     "name": "julia Markdown",
-    "scopeName": "source.juliamarkdown",
+    "scopeName": "text.html.markdown.julia",
     "fileTypes": [
         "jmd"
     ],
     "patterns": [
         {
-            "begin": "^(```)(\\{|\\{\\.|)(julia|jldoctest)(;|)\\s*(.*?)(\\}|)\\s*$",
-            "beginCaptures": {
-                "1": {
-                    "name": "markup.heading.juliamarkdown"
-                },
-                "3": {
-                    "name": "markup.bold.juliamarkdown"
-                },
-                "5": {
-                    "contentName": "source.julia",
-                    "patterns": [
-                        {
-                            "include": "source.julia"
-                        }
-                    ]
-                }
-            },
-            "end": "^```\\s*$",
-            "endCaptures": {
-                "0": {
-                    "name": "markup.heading.juliamarkdown"
-                }
-            },
-            "contentName": "source.julia",
-            "patterns": [
-                {
-                    "include": "source.julia"
-                }
-            ]
+            "include": "markdown.julia.codeblock"
         },
         {
             "include": "text.html.markdown"

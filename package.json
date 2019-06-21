@@ -70,17 +70,27 @@
                 "scopeName": "source.julia",
                 "path": "./syntaxes/julia.json",
                 "embeddedLanguages": {
-                    "meta.embedded.block.cpp": "cpp",
-                    "meta.embedded.block.js": "javascript",
-                    "meta.embedded.block.markdown": "markdown",
-                    "meta.embedded.block.python": "python",
-                    "meta.embedded.block.r": "r"
+                    "meta.embedded.inline.cpp": "cpp",
+                    "meta.embedded.inline.javascript": "javascript",
+                    "meta.embedded.inline.markdown": "juliamarkdown",
+                    "meta.embedded.inline.python": "python",
+                    "meta.embedded.inline.r": "r"
                 }
             },
             {
                 "language": "juliamarkdown",
-                "scopeName": "source.juliamarkdown",
+                "scopeName": "text.html.markdown.julia",
                 "path": "./syntaxes/juliamarkdown.json"
+            },
+            {
+                "scopeName": "markdown.julia.codeblock",
+                "path": "./syntaxes/juliacodeblock.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.julia": "julia"
+                }
             }
         ],
         "commands": [
