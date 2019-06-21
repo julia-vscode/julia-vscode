@@ -70,11 +70,11 @@
                 "scopeName": "source.julia",
                 "path": "./syntaxes/julia.json",
                 "embeddedLanguages": {
-                    "meta.embedded.block.cpp": "cpp",
-                    "meta.embedded.block.javascript": "javascript",
-                    "meta.embedded.block.markdown": "juliamarkdown",
-                    "meta.embedded.block.python": "python",
-                    "meta.embedded.block.r": "r"
+                    "meta.embedded.inline.cpp": "cpp",
+                    "meta.embedded.inline.javascript": "javascript",
+                    "meta.embedded.inline.markdown": "juliamarkdown",
+                    "meta.embedded.inline.python": "python",
+                    "meta.embedded.inline.r": "r"
                 }
             },
             {

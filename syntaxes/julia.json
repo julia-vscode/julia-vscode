@@ -408,7 +408,7 @@
             }
           },
           "name": "embed.cxx.julia",
-          "contentName": "meta.embedded.block.cpp",
+          "contentName": "meta.embedded.inline.cpp",
           "patterns": [
             {
               "include": "source.cpp#root_context"
@@ -435,7 +435,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.cpp",
+          "contentName": "meta.embedded.inline.cpp",
           "patterns": [
             {
               "include": "source.cpp#root_context"
@@ -462,7 +462,7 @@
             }
           },
           "name": "embed.python.julia",
-          "contentName": "meta.embedded.block.python",
+          "contentName": "meta.embedded.inline.python",
           "patterns": [
             {
               "include": "source.python"
@@ -489,7 +489,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.python",
+          "contentName": "meta.embedded.inline.python",
           "patterns": [
             {
               "include": "source.python"
@@ -516,7 +516,7 @@
             }
           },
           "name": "embed.js.julia",
-          "contentName": "meta.embedded.block.javascript",
+          "contentName": "meta.embedded.inline.javascript",
           "patterns": [
             {
               "include": "source.js"
@@ -543,7 +543,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.javascript",
+          "contentName": "meta.embedded.inline.javascript",
           "patterns": [
             {
               "include": "source.js"
@@ -570,7 +570,7 @@
             }
           },
           "name": "embed.R.julia",
-          "contentName": "meta.embedded.block.r",
+          "contentName": "meta.embedded.inline.r",
           "patterns": [
             {
               "include": "source.r"
@@ -597,7 +597,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.r",
+          "contentName": "meta.embedded.inline.r",
           "patterns": [
             {
               "include": "source.r"
@@ -624,7 +624,7 @@
             }
           },
           "name": "embed.markdown.julia",
-          "contentName": "meta.embedded.block.markdown",
+          "contentName": "meta.embedded.inline.markdown",
           "patterns": [
             {
               "include": "text.html.markdown.julia"
@@ -651,7 +651,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "meta.embedded.block.markdown",
+          "contentName": "meta.embedded.inline.markdown",
           "patterns": [
             {
               "include": "text.html.markdown.julia"

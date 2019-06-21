@@ -24,11 +24,11 @@ sub!(r"(\"include\"\s*:\s*\"source\.cpp)(\")" => s"\1#root_context\2")
 
 # Choose content names consistent with the vscode conventions for embedded code. Cf.:
 # https://code.visualstudio.com/api/language-extensions/syntax-highlight-guide#embedded-languages
-sub!(r"(\"contentName\"\s*:\s*\")source\.cpp(\")" => s"\1meta.embedded.block.cpp\2")
-sub!(r"(\"contentName\"\s*:\s*\")source\.gfm(\")" => s"\1meta.embedded.block.markdown\2")
-sub!(r"(\"contentName\"\s*:\s*\")source\.js(\")" => s"\1meta.embedded.block.javascript\2")
-sub!(r"(\"contentName\"\s*:\s*\")source\.r(\")" => s"\1meta.embedded.block.r\2")
-sub!(r"(\"contentName\"\s*:\s*\")source\.python(\")" => s"\1meta.embedded.block.python\2")
+sub!(r"(\"contentName\"\s*:\s*\")source\.cpp(\")" => s"\1meta.embedded.inline.cpp\2")
+sub!(r"(\"contentName\"\s*:\s*\")source\.gfm(\")" => s"\1meta.embedded.inline.markdown\2")
+sub!(r"(\"contentName\"\s*:\s*\")source\.js(\")" => s"\1meta.embedded.inline.javascript\2")
+sub!(r"(\"contentName\"\s*:\s*\")source\.r(\")" => s"\1meta.embedded.inline.r\2")
+sub!(r"(\"contentName\"\s*:\s*\")source\.python(\")" => s"\1meta.embedded.inline.python\2")
 
 # print out the transformed syntax
 println(json.x)
