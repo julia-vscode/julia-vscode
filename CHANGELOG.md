@@ -15,6 +15,7 @@
 * Allow paths starting with ~ for julia bin location
 * Fix JULIA_EDITOR integration on Mac
 * Add support for custom sysimages
+* Reworked syntax highlighting
 
 ## 0.11.6
 * Add option to permanently opt out of crash reporting
