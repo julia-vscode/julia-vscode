@@ -31,9 +31,13 @@ catch e
         # Send error type as one line
         println(pipe_to_vscode, typeof(e))
 
-        # Send error message as one line
-        showerror(pipe_to_vscode, e)        
-        println(pipe_to_vscode)
+        # Send error message
+        temp_io = IOBuffer()
+        showerror(temp_io, e)
+        error_message_str = chomp(String(take!(temp_io)))
+        n = count(i->i=='\n', error_message_str) + 1
+        println(pipe_to_vscode, n)
+        println(pipe_to_vscode, error_message_str)
 
         # Send stack trace, one frame per line
         # Note that stack frames need to be formatted in Node.js style

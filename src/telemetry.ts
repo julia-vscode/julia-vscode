@@ -100,11 +100,12 @@ export function startLsCrashServer() {
         });
 
         connection.on('close', async function (had_err) {
-            let bufferResult = accumulatingBuffer.toString()
             let replResponse = accumulatingBuffer.toString().split("\n")
-            let stacktrace = replResponse.slice(2,replResponse.length-1).join('\n');
+            let errorMessageLines = parseInt(replResponse[1])
+            let errorMessage = replResponse.slice(2, 2 + errorMessageLines).join('\n');
+            let stacktrace = replResponse.slice(2 + errorMessageLines,replResponse.length-1).join('\n');
 
-            crashReporterQueue.push({exception: {name: replResponse[0], message: replResponse[1], stack: stacktrace}});
+            crashReporterQueue.push({exception: {name: replResponse[0], message: errorMessage, stack: stacktrace}});
 
             traceEvent('lserror');
 
