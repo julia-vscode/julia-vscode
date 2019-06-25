@@ -612,6 +612,37 @@ async function selectJuliaBlock() {
     }
 }
 
+async function executeJuliaCellInRepl() {
+    telemetry.traceEvent('command-executejuliacellinrepl');
+
+    let ed = vscode.window.activeTextEditor;
+    let doc = ed.document;
+    let rx = new RegExp("^(##|#---|#%%|# %%)"); // atom-julia-client defaults
+    let curr = ed.selection.active.line;
+    var start = curr;
+    while (start >= 0) {
+        if (rx.test(doc.lineAt(start).text)) {
+            break;
+        } else {
+            start -= 1;
+        }
+    }
+    start += 1;
+    var end = start;
+    while (end < doc.lineCount) {
+        if (rx.test(doc.lineAt(end).text)) {
+            break;
+        } else {
+            end += 1;
+        }
+    }
+    end -= 1;
+    let startpos = new vscode.Position(start, 0);
+    let endpos = new vscode.Position(end, doc.lineAt(end).text.length);
+    let code = doc.getText(new vscode.Range(startpos, endpos));
+    executeCode(code, false)
+}
+
 async function executeJuliaBlockInRepl() {
     telemetry.traceEvent('command-executejuliablockinrepl');
 
@@ -681,6 +712,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCellInREPL', executeJuliaCellInRepl));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
 
