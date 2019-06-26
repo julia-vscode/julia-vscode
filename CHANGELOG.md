@@ -16,6 +16,7 @@
 * Fix JULIA_EDITOR integration on Mac
 * Add support for custom sysimages
 * Reworked syntax highlighting
+* Add support for code cell execution with Shift+Enter
 
 ## 0.11.6
 * Add option to permanently opt out of crash reporting
