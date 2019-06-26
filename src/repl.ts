@@ -573,6 +573,12 @@ function executeSelection() {
     executeCode(text, selection.isEmpty)
 }
 
+async function executeInRepl(code: string, filename: string, start: vscode.Position) {
+    let msg = filename + '\n' + start.line.toString() + ':' +
+        start.character.toString() + '\n' + code
+    sendMessage('repl/runcode', msg)
+}
+
 async function executeFile() {
     telemetry.traceEvent('command-executejuliafileinrepl');
 
@@ -580,12 +586,8 @@ async function executeFile() {
     if (!editor) {
         return;
     }
-
-    let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
-    '0:0' + '\n' +
-    editor.document.getText()
-
-    sendMessage('repl/runcode', msg_body)
+    let document = editor.document;
+    executeInRepl(document.getText(), document.fileName, new vscode.Position(0, 0))
 }
 
 async function selectJuliaBlock() {
@@ -612,6 +614,37 @@ async function selectJuliaBlock() {
     }
 }
 
+async function executeJuliaCellInRepl() {
+    telemetry.traceEvent('command-executejuliacellinrepl');
+
+    let ed = vscode.window.activeTextEditor;
+    let doc = ed.document;
+    let rx = new RegExp("^##");
+    let curr = ed.selection.active.line;
+    var start = curr;
+    while (start >= 0) {
+        if (rx.test(doc.lineAt(start).text)) {
+            break;
+        } else {
+            start -= 1;
+        }
+    }
+    start += 1;
+    var end = start;
+    while (end < doc.lineCount) {
+        if (rx.test(doc.lineAt(end).text)) {
+            break;
+        } else {
+            end += 1;
+        }
+    }
+    end -= 1;
+    let startpos = new vscode.Position(start, 0);
+    let endpos = new vscode.Position(end, doc.lineAt(end).text.length);
+    let code = doc.getText(new vscode.Range(startpos, endpos));
+    executeInRepl(code, doc.fileName, startpos)
+}
+
 async function executeJuliaBlockInRepl() {
     telemetry.traceEvent('command-executejuliablockinrepl');
 
@@ -630,11 +663,7 @@ async function executeJuliaBlockInRepl() {
 
             let code_to_run = vscode.window.activeTextEditor.document.getText(new vscode.Range(start_pos, end_pos))
 
-            let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
-                start_pos.line.toString() + ':' + start_pos.character.toString() + '\n' +
-                code_to_run
-
-            sendMessage('repl/runcode', msg_body)
+            executeInRepl(code_to_run, vscode.window.activeTextEditor.document.fileName, start_pos)
 
             vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
             vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2])))
@@ -681,6 +710,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCellInREPL', executeJuliaCellInRepl));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
 

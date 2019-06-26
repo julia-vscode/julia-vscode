@@ -25,6 +25,7 @@
     "activationEvents": [
         "onCommand:language-julia.openPackageDirectory",
         "onCommand:language-julia.startREPL",
+        "onCommand:language-julia.executeJuliaCellInREPL",
         "onCommand:language-julia.executeJuliaCodeInREPL",
         "onCommand:language-julia.weave-open-preview",
         "onCommand:language-julia.weave-open-preview-side",
@@ -179,6 +180,10 @@
                 "title": "Julia: Toggle server logs"
             },
             {
+                "command": "language-julia.executeJuliaCellInREPL",
+                "title": "Julia: Execute code cell"
+            },
+            {
                 "command": "language-julia.executeJuliaBlockInREPL",
                 "title": "Julia: Execute code block"
             },
@@ -250,6 +255,11 @@
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "key": "ctrl+Enter",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.executeJuliaCellInREPL",
+                "key": "shift+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
