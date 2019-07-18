@@ -25,6 +25,7 @@ export async function getJuliaExePath() {
                     path.join(homedir, "AppData", "Local", "Julia-1.2.0", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.1.1", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.1.0", "bin", "julia.exe"),
+                    path.join(homedir, "AppData", "Local", "Julia-1.0.5", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.0.4", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.0.3", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.0.2", "bin", "julia.exe"),
