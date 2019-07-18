@@ -33,6 +33,9 @@ catch e
 
         # Send error message
         temp_io = IOBuffer()
+        versioninfo(temp_io, verbose=true)
+        println(temp_io)
+        println(temp_io)
         showerror(temp_io, e)
         error_message_str = chomp(String(take!(temp_io)))
         n = count(i->i=='\n', error_message_str) + 1
