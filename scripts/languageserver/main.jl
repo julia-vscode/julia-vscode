@@ -33,7 +33,7 @@ catch e
 
         # Send error message
         temp_io = IOBuffer()
-        versioninfo(temp_io, verbose=true)
+        versioninfo(temp_io, verbose=false)
         println(temp_io)
         println(temp_io)
         showerror(temp_io, e)
