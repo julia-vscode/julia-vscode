@@ -390,6 +390,11 @@
                     "default": "false",
                     "description": "Use an existing custom sysimage when starting the REPL",
                     "scope": "application"
+                },
+				"julia.REPLThreads": {
+					"type": "integer",
+					"default": 1,
+					"description": "Number of threads to use for REPL processes."
                 }
             }
         },
