@@ -2,6 +2,8 @@ if VERSION < v"1.0.0"
     error("VS Code julia language server only works with julia 1.0.0+")
 end
 
+using InteractiveUtils
+
 try
     if length(Base.ARGS) != 4
         error("Invalid number of arguments passed to julia language server.")
