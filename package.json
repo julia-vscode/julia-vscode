@@ -190,7 +190,11 @@
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select code block"
-            }
+            },
+			{
+				"command": "language-julia.help",
+				"title": "Julia: help"
+			}
         ],
         "menus": {
             "explorer/context": [
