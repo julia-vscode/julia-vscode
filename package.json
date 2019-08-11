@@ -390,7 +390,12 @@
                     "default": "false",
                     "description": "Use an existing custom sysimage when starting the REPL",
                     "scope": "application"
-                }
+                },
+				"julia.parallelLanguageServer": {
+					"type": "boolean",
+					"default": "true",
+					"description": "Run the language server across two processes."
+				}
             }
         },
         "configurationDefaults": {
