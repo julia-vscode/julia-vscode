@@ -148,6 +148,10 @@ async function startLanguageServer() {
     let envForLSPath = path.join(g_context.extensionPath, "scripts", "languageserver", "packages")
     let serverArgsRun = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath];
     let serverArgsDebug = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];
+    if (vscode.workspace.getConfiguration('julia.parallelLanguageServer')) {
+        serverArgsDebug.splice(3, 0, `-p 1`)
+        serverArgsRun.splice(3, 0, `-p 1`)
+    }
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
