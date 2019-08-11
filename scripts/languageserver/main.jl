@@ -1,27 +1,19 @@
-if VERSION < v"1.0.0"
-    error("VS Code julia language server only works with julia 1.0.0+")
-end
+VERSION < v"1.0.0" && error("VS Code julia language server only works with julia 1.0.0+")
+length(Base.ARGS) != 4 && error("Invalid number of arguments passed to julia language server.")
 
-using InteractiveUtils
+const global ls_debug_mode = Base.ARGS[2] == "--debug=yes"
+using InteractiveUtils, Distributed, Sockets
+@everywhere using Pkg
+conn = stdout
+(outRead, outWrite) = redirect_stdout()
+
+wid = last(procs()) # Worker id (maybe pass to LSP)
+@everywhere Pkg.activate(joinpath(@__DIR__, "packages")) # Ensure vscode env is activated
+@everywhere using  SymbolServer, LanguageServer # Load code across workers
 
 try
-    if length(Base.ARGS) != 4
-        error("Invalid number of arguments passed to julia language server.")
-    end
-
-    conn = stdout
-    (outRead, outWrite) = redirect_stdout()
-
-    if Base.ARGS[2] == "--debug=no"
-        const global ls_debug_mode = false
-    elseif Base.ARGS[2] == "--debug=yes"
-        const global ls_debug_mode = true
-    end
-
-    using LanguageServer, Sockets, SymbolServer
-
-    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], Dict())
-    run(server)
+   
+    run(LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4]))
 catch e
     @info "Language Server crashed with"
     @info e
