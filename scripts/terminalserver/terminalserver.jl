@@ -149,8 +149,9 @@ end
                 # println(' '^code_column * source_code)
 
                 try
-
-                    include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                    withpath(source_filename) do
+                        include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                    end
                 catch err
                     Base.display_error(stderr, err, catch_backtrace())
                 end
