@@ -539,7 +539,7 @@ async function executeCode(text, individualLine) {
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
     text = lines.join('\n');
-    if (individualLine || process.platform == "win32") {
+    if (individualLine) {
         g_terminal.sendText(text + '\n', false);
     }
     else {
