@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.12.1
+* Various bug fixes
+
 ## 0.12.0
 * Add vscodedisplay() function for a grid view of tables
 * Add a command to delete all plots from the plot pane
