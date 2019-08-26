@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.12.2
+* Various bug fixes
+
 ## 0.12.1
 * Various bug fixes
 
