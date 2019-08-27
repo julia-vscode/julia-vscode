@@ -258,6 +258,11 @@
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
+                "command": "language-julia.executeJuliaCodeInREPL",
+                "key": "alt+Enter",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
                 "command": "language-julia.executeJuliaCellInREPL",
                 "key": "shift+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
