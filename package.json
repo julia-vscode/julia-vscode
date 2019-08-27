@@ -265,7 +265,7 @@
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
                 "key": "alt+Enter",
-                "when": "editorTextFocus && editorLangId == julia && !editorHasSelection"
+                "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
