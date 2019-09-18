@@ -101,7 +101,7 @@
             },
             {
                 "command": "language-julia.changeCurrentEnvironment",
-                "title": "Julia: Change the current environment"
+                "title": "Julia: Change Current Environment"
             },
             {
                 "command": "language-julia.startREPL",
@@ -129,15 +129,15 @@
             },
             {
                 "command": "language-julia.weave-save",
-                "title": "Julia Weave: Save to file..."
+                "title": "Julia Weave: Save to File..."
             },
             {
                 "command": "language-julia.show-plotpane",
-                "title": "Julia: Show plot pane"
+                "title": "Julia: Show Plot"
             },
             {
                 "command": "language-julia.plotpane-next",
-                "title": "Julia: Show next plot",
+                "title": "Julia: Show Next Plot",
                 "icon": {
                     "light": "./media/next.svg",
                     "dark": "./media/next-inverse.svg"
@@ -145,7 +145,7 @@
             },
             {
                 "command": "language-julia.plotpane-previous",
-                "title": "Julia: Show previous plot",
+                "title": "Julia: Show Previous Plot",
                 "icon": {
                     "light": "./media/previous.svg",
                     "dark": "./media/previous-inverse.svg"
@@ -153,11 +153,11 @@
             },
             {
                 "command": "language-julia.plotpane-first",
-                "title": "Julia: Show first plot"
+                "title": "Julia: Show First Plot"
             },
             {
                 "command": "language-julia.plotpane-last",
-                "title": "Julia: Show last plot"
+                "title": "Julia: Show Last Plot"
             },
             {
                 "command": "language-julia.plotpane-delete",
@@ -169,27 +169,27 @@
             },
             {
                 "command": "language-julia.plotpane-delete-all",
-                "title": "Julia: Delete all plots"
+                "title": "Julia: Delete All Plots"
             },
             {
                 "command": "language-julia.toggle-file-lint",
-                "title": "Julia: Toggle file linting"
+                "title": "Julia: Toggle File Linting"
             },
             {
                 "command": "language-julia.toggle-log",
-                "title": "Julia: Toggle server logs"
+                "title": "Julia: Toggle Server Logs"
             },
             {
                 "command": "language-julia.executeJuliaCellInREPL",
-                "title": "Julia: Execute code cell"
+                "title": "Julia: Execute Code Cell"
             },
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
-                "title": "Julia: Execute code block"
+                "title": "Julia: Execute Code Block"
             },
             {
                 "command": "language-julia.selectBlock",
-                "title": "Julia: Select code block"
+                "title": "Julia: Select Code Block"
             }
         ],
         "menus": {
