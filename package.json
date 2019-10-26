@@ -390,6 +390,11 @@
                     "default": "false",
                     "description": "Use an existing custom sysimage when starting the REPL",
                     "scope": "application"
+                },
+                "julia.forceDebug": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Force enabling debug for language server."
                 }
             }
         },

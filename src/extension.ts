@@ -75,7 +75,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Start language server
     startLanguageServer();
 
-    if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry')===null) {
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
         vscode.window.showInformationMessage("To help improve the julia extension, you can anonymously send usage statistics to the team. See our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) for details.", 'Yes, I want to help improve the julia extension')
             .then(telemetry_choice => {
                 if (telemetry_choice == "Yes, I want to help improve the julia extension") {
@@ -172,8 +172,10 @@ async function startLanguageServer() {
         revealOutputChannelOn: RevealOutputChannelOn.Never
     }
 
-        // Create the language client and start the client.
-    g_languageClient = new LanguageClient('Julia Language Server', serverOptions, clientOptions);
+    let forceDebug = vscode.workspace.getConfiguration('julia').get<boolean>('forceDebug');
+
+    // Create the language client and start the client.
+    g_languageClient = new LanguageClient('Julia Language Server', serverOptions, clientOptions, forceDebug);
     g_languageClient.registerProposedFeatures()
 
     // Push the disposable to the context's subscriptions so that the
@@ -189,17 +191,17 @@ async function startLanguageServer() {
     }
 
     g_languageClient.onReady().then(() => {
-    //     g_languageClient.onNotification(g_serverBusyNotification, () => {
-    //         g_serverstatus.show();
-    //     })
+        //     g_languageClient.onNotification(g_serverBusyNotification, () => {
+        //         g_serverstatus.show();
+        //     })
 
-    //     g_languageClient.onNotification(g_serverReadyNotification, () => {
-    //         g_serverstatus.hide();
-    //     })
+        //     g_languageClient.onNotification(g_serverReadyNotification, () => {
+        //         g_serverstatus.hide();
+        //     })
         g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
-            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString()==uri)
+            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString() == uri)
             doc.getText()
-            g_languageClient.sendNotification("julia/reloadText", {textDocument: {uri: uri, languageId: "julia", version: 1,text: doc.getText()}})
+            g_languageClient.sendNotification("julia/reloadText", { textDocument: { uri: uri, languageId: "julia", version: 1, text: doc.getText() } })
         })
     })
 }
