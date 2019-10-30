@@ -391,6 +391,11 @@
                     "description": "Use an existing custom sysimage when starting the REPL",
                     "scope": "application"
                 },
+                "julia.NumThreads": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Number of threads to use for Julia processes."
+                },
                 "julia.format.indent": {
                     "type": "integer",
                     "default": 4,
