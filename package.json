@@ -394,47 +394,56 @@
 				"julia.format.indent": {
 					"type": "integer",
 					"default": 4,
-					"description": "Indent size for formatting."
+                    "description": "Indent size for formatting.",
+                    "scope": "window"
 				},
 				"julia.format.indents": {
 					"type": "boolean",
 					"default": true,
-					"description": "Format file indents."
+					"description": "Format file indents.",
+                    "scope": "window"
 				},
 				"julia.format.ops": {
 					"type": "boolean",
 					"default": true,
-					"description": "Format whitespace around operators."
+					"description": "Format whitespace around operators.",
+                    "scope": "window"
 				},
 				"julia.format.tuples": {
 					"type": "boolean",
 					"default": true,
-					"description": "Format tuples."
+					"description": "Format tuples.",
+                    "scope": "window"
 				},
 				"julia.format.curly": {
 					"type": "boolean",
 					"default": true,
-					"description": "Format braces."
+					"description": "Format braces.",
+                    "scope": "window"
 				},
 				"julia.format.calls": {
 					"type": "boolean",
 					"default": true,
-					"description": "Format function calls."
+					"description": "Format function calls.",
+                    "scope": "window"
 				},
 				"julia.format.iterOps": {
 					"type": "boolean",
 					"default": true,
-					"description": "Format loop iterators."
+					"description": "Format loop iterators.",
+                    "scope": "window"
 				},
 				"julia.format.comments": {
 					"type": "boolean",
 					"default": true,
-					"description": "Format comments."
+					"description": "Format comments.",
+                    "scope": "window"
 				},
 				"julia.format.docs": {
 					"type": "boolean",
 					"default": true,
-					"description": "Format inline documentation."
+					"description": "Format inline documentation.",
+                    "scope": "window"
 				}
             }
         },
