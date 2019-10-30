@@ -51,4 +51,16 @@ function hideprompt(f)
     LineEdit.edit_insert(LineEdit.buffer(mistate), buf)
     LineEdit.refresh_multi_line(mistate)
     r
-  end
+end
+
+function withpath(f, path)
+    tls = task_local_storage()
+    hassource = haskey(tls, :SOURCE_PATH)
+    hassource && (path′ = tls[:SOURCE_PATH])
+    tls[:SOURCE_PATH] = path
+    try
+        return f()
+    finally
+        hassource ? (tls[:SOURCE_PATH] = path′) : delete!(tls, :SOURCE_PATH)
+    end
+end

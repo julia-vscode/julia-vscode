@@ -2,6 +2,8 @@ if VERSION < v"1.0.0"
     error("VS Code julia language server only works with julia 1.0.0+")
 end
 
+using InteractiveUtils
+
 try
     if length(Base.ARGS) != 4
         error("Invalid number of arguments passed to julia language server.")
@@ -33,6 +35,9 @@ catch e
 
         # Send error message
         temp_io = IOBuffer()
+        versioninfo(temp_io, verbose=false)
+        println(temp_io)
+        println(temp_io)
         showerror(temp_io, e)
         error_message_str = chomp(String(take!(temp_io)))
         n = count(i->i=='\n', error_message_str) + 1

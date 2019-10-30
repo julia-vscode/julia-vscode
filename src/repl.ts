@@ -197,7 +197,7 @@ async function startREPL(preserveFocus: boolean) {
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
                         JULIA_EDITOR: process.platform == 'darwin' ? `"${path.join(vscode.env.appRoot, 'bin', 'code')}"` : `"${process.execPath}"`,
-                        JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("REPLThreads").toString()
+                        JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()
                     }});
         }
         g_terminal.show(preserveFocus);
@@ -649,8 +649,20 @@ async function executeJuliaCellInRepl() {
 async function executeJuliaBlockInRepl() {
     telemetry.traceEvent('command-executejuliablockinrepl');
 
-    if (g_languageClient == null) {
+    var editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        return;
+    }
+
+    var selection = editor.selection;
+
+    if (selection.isEmpty && g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Language server is not running.');
+    }
+    else if (!selection.isEmpty) {
+        let code_to_run = editor.document.getText(selection);
+
+        executeInRepl(code_to_run, editor.document.fileName, selection.start);
     }
     else {
         var editor = vscode.window.activeTextEditor;
