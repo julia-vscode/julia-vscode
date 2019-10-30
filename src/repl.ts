@@ -648,8 +648,20 @@ async function executeJuliaCellInRepl() {
 async function executeJuliaBlockInRepl() {
     telemetry.traceEvent('command-executejuliablockinrepl');
 
-    if (g_languageClient == null) {
+    var editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        return;
+    }
+
+    var selection = editor.selection;
+
+    if (selection.isEmpty && g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Language server is not running.');
+    }
+    else if (!selection.isEmpty) {
+        let code_to_run = editor.document.getText(selection);
+
+        executeInRepl(code_to_run, editor.document.fileName, selection.start);
     }
     else {
         var editor = vscode.window.activeTextEditor;
