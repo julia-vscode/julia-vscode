@@ -56,6 +56,7 @@
                 "extensions": [
                     ".jl"
                 ],
+                "firstLine": "^#!\\s*/.*\\bjulia[0-9.-]*\\b",
                 "configuration": "./julia.configuration.json"
             },
             {
