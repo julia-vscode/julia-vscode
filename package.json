@@ -4,8 +4,9 @@
     "description": "Julia Language Support",
     "version": "0.13.0-alpha",
     "publisher": "julialang",
+    "enableProposedApi": true,
     "engines": {
-        "vscode": "^1.35.0"
+        "vscode": "^1.41.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {

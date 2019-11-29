@@ -572,6 +572,9 @@ function executeSelection() {
         }
     }
     executeCode(text, selection.isEmpty)
+
+    let asdf = vscode.window.createWebviewTextEditorInset(editor, selection.isEmpty ? selection.start.line : selection.end.line, 3)
+    asdf.webview.html = "TESTTEST"
 }
 
 async function executeInRepl(code: string, filename: string, start: vscode.Position) {
