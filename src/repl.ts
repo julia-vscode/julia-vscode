@@ -290,6 +290,40 @@ function processMsg(cmd, payload) {
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
         showPlotPane();
     }
+    else if (cmd == 'application/vnd.vegalite.v4+json') {
+        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaLite}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plotdiv"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega-lite",
+                        actions: false
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plotdiv', spec, opt);
+                </script>
+            </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
     else if (cmd == 'application/vnd.vega.v3+json') {
         let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
         let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')).with({ scheme: 'vscode-resource' });

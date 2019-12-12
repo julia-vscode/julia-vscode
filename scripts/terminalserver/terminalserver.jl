@@ -204,6 +204,13 @@ end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v3+json")}) = true
 
+function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}, x)
+    payload = stringmime(MIME("application/vnd.vegalite.v4+json"), x)
+    sendMsgToVscode("application/vnd.vegalite.v4+json", payload)
+end
+
+displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}) = true
+
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v3+json")}, x)
     payload = stringmime(MIME("application/vnd.vega.v3+json"), x)
     sendMsgToVscode("application/vnd.vega.v3+json", payload)
@@ -242,7 +249,9 @@ Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
 function display(d::InlineDisplay, x)
-    if showable("application/vnd.vegalite.v3+json", x)
+    if showable("application/vnd.vegalite.v4+json", x)
+        display(d,"application/vnd.vegalite.v4+json", x)
+    elseif showable("application/vnd.vegalite.v3+json", x)
         display(d,"application/vnd.vegalite.v3+json", x)
     elseif showable("application/vnd.vegalite.v2+json", x)
         display(d,"application/vnd.vegalite.v2+json", x)
