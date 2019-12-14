@@ -116,6 +116,10 @@ function sendMsgToVscode(cmd, payload)
     print(conn, payload)
 end
 
+function ends_with_semicolon(x)
+    return REPL.ends_with_semicolon(split(x,'\n',keepempty = false)[end])
+end
+
 @async begin
     server = listen(pipename_torepl)
     global conn = connect(pipename_fromrepl)
@@ -150,7 +154,11 @@ end
 
                 try
                     withpath(source_filename) do
-                        include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                        res = include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+
+                        if res !== nothing && !ends_with_semicolon(source_code)
+                            display(res)
+                        end
                     end
                 catch err
                     Base.display_error(stderr, err, catch_backtrace())
