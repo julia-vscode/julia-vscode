@@ -22,3 +22,6 @@
 [submodule "scripts/languageserver/packages/SymbolServer"]
 	path = scripts/languageserver/packages/SymbolServer
 	url = https://github.com/julia-vscode/SymbolServer.jl.git
+[submodule "scripts/languageserver/packages/FilePathsBase"]
+	path = scripts/languageserver/packages/FilePathsBase
+	url = https://github.com/rofinn/FilePathsBase.jl.git
