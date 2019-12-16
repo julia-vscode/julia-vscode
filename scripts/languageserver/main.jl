@@ -20,7 +20,7 @@ try
 
     using LanguageServer, Sockets, SymbolServer
 
-    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], Dict())
+    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4])
     run(server)
 catch e
     @info "Language Server crashed with"
