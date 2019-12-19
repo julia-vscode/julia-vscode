@@ -676,8 +676,11 @@ async function executeJuliaCellInRepl() {
     end -= 1;
     let startpos = new vscode.Position(start, 0);
     let endpos = new vscode.Position(end, doc.lineAt(end).text.length);
+    let nextpos = new vscode.Position(end + 1, 0);
     let code = doc.getText(new vscode.Range(startpos, endpos));
     executeInRepl(code, doc.fileName, startpos)
+    vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
+    vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
 }
 
 async function executeJuliaBlockInRepl() {
