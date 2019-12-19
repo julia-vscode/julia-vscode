@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.1
+* Update CHANGELOG
+
+## 0.13.0
+* Support for Julia 1.3
+* Configuration options for the code formatter
+* Bug fixes
+
 ## 0.12.3
 * Add support for running a selection with Alt+Enter
 * Fix a bug in the LS when an environment path doesn't exist
