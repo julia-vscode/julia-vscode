@@ -48,7 +48,7 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
         let pkgenvpath = await jlpkgenv.getEnvPath();
 
         if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
-            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.test("${folder.name}")`]), "");
+            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.test("${folder.name}")`], { env: { JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()}}), "");
             testTask.group = vscode.TaskGroup.Test;
             testTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(testTask);
@@ -59,7 +59,7 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
             result.push(testTaskWithCoverage);
         }
 
-        let buildJuliaSysimage = new vscode.Task({ type: 'julia', command: 'juliasysimagebuild' }, folder, `Build custom sysimage for current environment (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '--startup-file=no', '--history-file=no', path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_compileenv.jl')], { env: { JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()}}), "");
+        let buildJuliaSysimage = new vscode.Task({ type: 'julia', command: 'juliasysimagebuild' }, folder, `Build custom sysimage for current environment (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '--startup-file=no', '--history-file=no', path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_compileenv.jl')]), "");
         buildJuliaSysimage.group = vscode.TaskGroup.Build;
         buildJuliaSysimage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
         result.push(buildJuliaSysimage);
