@@ -53,13 +53,13 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
             testTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(testTask);
 
-            let testTaskWithCoverage = new vscode.Task({ type: 'julia', command: 'testcoverage' }, folder, `Run tests with coverage`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_test.jl'), folder.name]), "");
+            let testTaskWithCoverage = new vscode.Task({ type: 'julia', command: 'testcoverage' }, folder, `Run tests with coverage`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_test.jl'), folder.name], { env: { JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()}}), "");
             testTaskWithCoverage.group = vscode.TaskGroup.Test;
             testTaskWithCoverage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(testTaskWithCoverage);
         }
 
-        let buildJuliaSysimage = new vscode.Task({ type: 'julia', command: 'juliasysimagebuild' }, folder, `Build custom sysimage for current environment (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '--startup-file=no', '--history-file=no', path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_compileenv.jl')]), "");
+        let buildJuliaSysimage = new vscode.Task({ type: 'julia', command: 'juliasysimagebuild' }, folder, `Build custom sysimage for current environment (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '--startup-file=no', '--history-file=no', path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_compileenv.jl')], { env: { JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()}}), "");
         buildJuliaSysimage.group = vscode.TaskGroup.Build;
         buildJuliaSysimage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
         result.push(buildJuliaSysimage);
