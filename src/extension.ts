@@ -169,7 +169,7 @@ async function startLanguageServer() {
             configurationSection: ['julia.runLinter', 'julia.format.indent',
                 'julia.format.indents', 'julia.format.ops', 'julia.format.tuples',
                 'julia.format.curly', 'julia.format.calls', 'julia.format.iterOps',
-                'julia.format.comments', 'julia.format.docs'],
+                'julia.format.comments', 'julia.format.docs', 'julia.format.kw'],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never

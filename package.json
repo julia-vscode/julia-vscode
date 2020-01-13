@@ -454,6 +454,12 @@
                     "default": true,
                     "description": "Format inline documentation.",
                     "scope": "window"
+                },
+                "julia.format.kw": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Format kw.",
+                    "scope": "window"
                 }
             }
         },
