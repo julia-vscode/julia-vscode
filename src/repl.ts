@@ -234,7 +234,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -268,7 +268,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -302,7 +302,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -334,7 +334,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -366,7 +366,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -398,7 +398,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
