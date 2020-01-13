@@ -523,7 +523,7 @@ function startREPLMsgServer() {
         var server = net.createServer(function (socket) {
             resolveCallback();
 
-        let accumulatingBuffer = new Buffer(0);
+        let accumulatingBuffer = Buffer.alloc(0);
 
             socket.on('data', function (c) {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
@@ -541,7 +541,7 @@ function startREPLMsgServer() {
                         accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(cmd.length + msg_len_as_string.length + 2 + msg_len + 1));
                     }
                     else {
-                        accumulatingBuffer = new Buffer(0);
+                        accumulatingBuffer = Buffer.alloc(0);
                     }
 
                     processMsg(cmd, payload);
