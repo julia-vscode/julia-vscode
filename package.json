@@ -458,7 +458,7 @@
                 "julia.format.kw": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Format kw.",
+                    "description": "Remove spaces around = in function keywords.",
                     "scope": "window"
                 }
             }
