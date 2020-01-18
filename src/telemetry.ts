@@ -93,7 +93,7 @@ export function startLsCrashServer() {
     let pipe_path = generatePipeName(process.pid.toString(), 'vscode-language-julia-lscrashreports');
 
     let server = net.createServer(function (connection) {
-        let accumulatingBuffer = new Buffer(0);
+        let accumulatingBuffer = Buffer.alloc(0);
 
         connection.on('data', async function (c) {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);

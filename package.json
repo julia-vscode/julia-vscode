@@ -343,11 +343,51 @@
                     "description": "Points to the julia executable.",
                     "scope": "window"
                 },
-                "julia.runLinter": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Run the linter on active files."
-                },
+                "julia.lint.run": {
+					"type": "boolean",
+					"default": true,
+					"description": "Run the linter on active files."
+				},
+				"julia.lint.missingrefs": {
+					"type": "boolean",
+					"default": true,
+					"description": "Report possibly missing references."
+				},
+				"julia.lint.call": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check calls against existing methods."
+				},
+				"julia.lint.iter": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check iterator syntax of loops."
+				},
+				"julia.lint.constif": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check for constant conditionals of if statements."
+				},
+				"julia.lint.lazy": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check for deterministic lazy boolean operators."
+				},
+				"julia.lint.typeparam": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check for unused DataType parameters."
+				},
+				"julia.lint.modname": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check for invalid submodule names."
+				},
+				"julia.lint.pirates": {
+					"type": "boolean",
+					"default": true,
+					"description": "Check for type piracy."
+				},
                 "julia.enableCrashReporter": {
                     "type": [
                         "boolean",

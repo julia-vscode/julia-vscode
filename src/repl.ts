@@ -234,7 +234,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -268,7 +268,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -302,7 +302,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -334,7 +334,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -366,7 +366,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -398,7 +398,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -523,7 +523,7 @@ function startREPLMsgServer() {
         var server = net.createServer(function (socket) {
             resolveCallback();
 
-        let accumulatingBuffer = new Buffer(0);
+        let accumulatingBuffer = Buffer.alloc(0);
 
             socket.on('data', function (c) {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
@@ -541,7 +541,7 @@ function startREPLMsgServer() {
                         accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(cmd.length + msg_len_as_string.length + 2 + msg_len + 1));
                     }
                     else {
-                        accumulatingBuffer = new Buffer(0);
+                        accumulatingBuffer = Buffer.alloc(0);
                     }
 
                     processMsg(cmd, payload);
