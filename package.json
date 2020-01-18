@@ -494,6 +494,12 @@
                     "default": true,
                     "description": "Format inline documentation.",
                     "scope": "window"
+                },
+                "julia.format.kw": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Remove spaces around = in function keywords.",
+                    "scope": "window"
                 }
             }
         },
