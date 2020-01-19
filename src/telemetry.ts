@@ -88,6 +88,17 @@ export function init() {
     extensionClient.context.tags[extensionClient.context.keys.userId] = vscode.env.machineId;
 }
 
+export function handleNewCrashReport(name: string, message: string, stacktrace: string) {
+    crashReporterQueue.push({exception: {name: name, message: message, stack: stacktrace}});  
+
+    if (enableCrashReporter) {
+        sendCrashReportQueue();
+    }
+    else {
+        showCrashReporterUIConsent();
+    }
+}
+
 export function startLsCrashServer() {
 
     let pipe_path = generatePipeName(process.pid.toString(), 'vscode-language-julia-lscrashreports');
@@ -105,16 +116,9 @@ export function startLsCrashServer() {
             let errorMessage = replResponse.slice(2, 2 + errorMessageLines).join('\n');
             let stacktrace = replResponse.slice(2 + errorMessageLines,replResponse.length-1).join('\n');
 
-            crashReporterQueue.push({exception: {name: replResponse[0], message: errorMessage, stack: stacktrace}});
-
             traceEvent('lserror');
 
-            if (enableCrashReporter) {
-                sendCrashReportQueue();
-            }
-            else {
-                showCrashReporterUIConsent();
-            }
+            handleNewCrashReport(replResponse[0], errorMessage, stacktrace);
         });
     });
 
