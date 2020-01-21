@@ -59,7 +59,7 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
             result.push(testTaskWithCoverage);
         }
 
-        let buildJuliaSysimage = new vscode.Task({ type: 'julia', command: 'juliasysimagebuild' }, folder, `Build custom sysimage for current environment (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '--startup-file=no', '--history-file=no', path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_compileenv.jl')]), "");
+        let buildJuliaSysimage = new vscode.Task({ type: 'julia', command: 'juliasysimagebuild' }, folder, `Build custom sysimage for current environment (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${path.join(g_context.extensionPath, 'scripts', 'tasks', 'sysimageenv')}`, '--startup-file=no', '--history-file=no', path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_compileenv.jl'), pkgenvpath]), "");
         buildJuliaSysimage.group = vscode.TaskGroup.Build;
         buildJuliaSysimage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
         result.push(buildJuliaSysimage);
