@@ -26,8 +26,6 @@ let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
 
 let g_serverstatus: vscode.StatusBarItem = null;
-// let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
-// let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 let g_serverFullTextNotification = new rpc.NotificationType<string, string>('julia/getFullText');
 
 let g_lscrashreportingpipename: string = null;
@@ -144,9 +142,10 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage(e)
         return;
     }
+    let serverDebugMode = vscode.workspace.getConfiguration('julia').get<boolean>('forceServerDebug') ? '--debug=yes': '--debug=no'
     let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
     let envForLSPath = path.join(g_context.extensionPath, "scripts", "languageserver", "packages")
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath];
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, serverDebugMode, g_lscrashreportingpipename, oldDepotPath];
     let serverArgsDebug = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
@@ -209,13 +208,10 @@ async function startLanguageServer() {
     }
 
     g_languageClient.onReady().then(() => {
-    //     g_languageClient.onNotification(g_serverBusyNotification, () => {
-    //         g_serverstatus.show();
-    //     })
-
-    //     g_languageClient.onNotification(g_serverReadyNotification, () => {
-    //         g_serverstatus.hide();
-    //     })
+        g_languageClient.onNotification(new rpc.NotificationType<string, string>('julia/setStatus'), (status) => { 
+                g_serverstatus.text = 'Julia [' + status + ']' 
+                g_serverstatus.show() 
+            })
         g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
             let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString()==uri)
             doc.getText()
