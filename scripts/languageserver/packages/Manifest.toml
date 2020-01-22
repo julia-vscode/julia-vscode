@@ -91,7 +91,7 @@ path = "StaticLint"
 uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
 
 [[SymbolServer]]
-deps = ["LibGit2", "Pkg", "SHA", "Serialization"]
+deps = ["LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization"]
 path = "SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
 
