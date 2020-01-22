@@ -500,7 +500,13 @@
                     "default": true,
                     "description": "Remove spaces around = in function keywords.",
                     "scope": "window"
-                }
+                },
+                "julia.forceServerDebug": {
+					"type": "boolean",
+					"default": "false",
+					"description": "Initiates the Language Server in debug mode, printing all client<->server communication to the output pane.",
+					"scope": "application"
+				}
             }
         },
         "configurationDefaults": {
