@@ -1,7 +1,7 @@
 language: node_js
 
 node_js:
-- '6'
+- 10
 
 before_install:
 - if [ $TRAVIS_OS_NAME == "linux" ]; then export CXX="g++-4.9" CC="gcc-4.9" DISPLAY=:99.0;
@@ -12,7 +12,7 @@ install:
 
 script:
 - npm run compile
-- npm test --silent
+# - npm test
 
 before_deploy:
 - npm install -g vsce
@@ -26,5 +26,5 @@ deploy:
   file: "*.vsix"
   skip_cleanup: true
   on:
-    repo: JuliaEditorSupport/julia-vscode
+    repo: julia-vscode/julia-vscode
     tags: true

@@ -28,10 +28,11 @@ let g_context: vscode.ExtensionContext = null;
 let g_serverstatus: vscode.StatusBarItem = null;
 // let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
 // let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
+let g_serverFullTextNotification = new rpc.NotificationType<string, string>('julia/getFullText');
 
 let g_lscrashreportingpipename: string = null;
 
-export async function activate(context: vscode.ExtensionContext) {  
+export async function activate(context: vscode.ExtensionContext) {
     telemetry.init();
 
     telemetry.traceEvent('activate');
@@ -105,7 +106,7 @@ function configChanged(params) {
     let newSettings = settings.loadSettings();
 
     telemetry.onDidChangeConfiguration(newSettings);
-    juliaexepath.onDidChangeConfiguration(newSettings);    
+    juliaexepath.onDidChangeConfiguration(newSettings);
     repl.onDidChangeConfiguration(newSettings);
     weave.onDidChangeConfiguration(newSettings);
     tasks.onDidChangeConfiguration(newSettings);
@@ -146,7 +147,7 @@ async function startLanguageServer() {
     let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
     let envForLSPath = path.join(g_context.extensionPath, "scripts", "languageserver", "packages")
     let serverArgsRun = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];    
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -165,14 +166,34 @@ async function startLanguageServer() {
     let clientOptions: LanguageClientOptions = {
         documentSelector: ['julia', 'juliamarkdown'],
         synchronize: {
-            configurationSection: ['julia.runLinter', 'julia.lintIgnoreList'],
+            configurationSection: ['julia.format.indent',
+                                   'julia.format.indents', 
+                                   'julia.format.ops',
+                                   'julia.format.tuples',
+                                   'julia.format.curly', 
+                                   'julia.format.calls', 
+                                   'julia.format.iterOps',
+                                   'julia.format.comments', 
+                                   'julia.format.docs',
+                                   'julia.format.lineends',
+                                   'julia.format.kw',
+                                   'julia.lint.run',
+                                   'julia.lint.call',
+                                   'julia.lint.iter',
+                                   'julia.lint.nothingcomp',
+                                   'julia.lint.constif',
+                                   'julia.lint.lazy',
+                                   'julia.lint.datadecl',
+                                   'julia.lint.typeparam',
+                                   'julia.lint.modname',
+                                   'julia.lint.pirates',],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never
     }
 
         // Create the language client and start the client.
-    g_languageClient = new LanguageClient('julia', 'julia Language Server', serverOptions, clientOptions);
+    g_languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions);
     g_languageClient.registerProposedFeatures()
 
     // Push the disposable to the context's subscriptions so that the
@@ -187,7 +208,7 @@ async function startLanguageServer() {
         g_languageClient = null;
     }
 
-    // g_languageClient.onReady().then(() => {
+    g_languageClient.onReady().then(() => {
     //     g_languageClient.onNotification(g_serverBusyNotification, () => {
     //         g_serverstatus.show();
     //     })
@@ -195,5 +216,10 @@ async function startLanguageServer() {
     //     g_languageClient.onNotification(g_serverReadyNotification, () => {
     //         g_serverstatus.hide();
     //     })
-    // })
+        g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
+            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString()==uri)
+            doc.getText()
+            g_languageClient.sendNotification("julia/reloadText", {textDocument: {uri: uri, languageId: "julia", version: 1,text: doc.getText()}})
+        })
+    })
 }

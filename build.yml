@@ -1,0 +1,71 @@
+jobs:
+  - job: Windows
+    pool:
+      name: Hosted VS2017
+      demands: npm
+    steps:
+      - task: NodeTool@0
+        displayName: 'Use Node 8.x'
+        inputs:
+          versionSpec: 8.x
+      - task: Npm@1
+        displayName: 'Install dependencies'
+        inputs:
+          verbose: false
+      - task: Npm@1
+        displayName: 'Compile sources'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run compile'
+      - script: 'node node_modules/vscode/bin/test'
+        displayName: 'Run tests'
+  - job: macOS
+    pool:
+      name: Hosted macOS
+      demands: npm
+    steps:
+      - task: NodeTool@0
+        displayName: 'Use Node 8.x'
+        inputs:
+          versionSpec: 8.x
+      - task: Npm@1
+        displayName: 'Install dependencies'
+        inputs:
+          verbose: false
+      - task: Npm@1
+        displayName: 'Compile sources'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run compile'
+      - script: 'node node_modules/vscode/bin/test'
+        displayName: 'Run tests'
+  - job: Linux
+    pool:
+      name: Hosted Ubuntu 1604
+      demands: npm
+    steps:
+      - task: NodeTool@0
+        displayName: 'Use Node 8.x'
+        inputs:
+          versionSpec: 8.x
+      - task: Npm@1
+        displayName: 'Install dependencies'
+        inputs:
+          verbose: false
+      - task: Npm@1
+        displayName: 'Compile sources'
+        inputs:
+          command: custom
+          verbose: false
+          customCommand: 'run compile'
+      - script: |
+          set -e
+          /usr/bin/Xvfb :10 -ac >> /tmp/Xvfb.out 2>&1 &
+          disown -ar
+        displayName: 'Start xvfb'
+      - script: 'node node_modules/vscode/bin/test'
+        displayName: 'Run tests'
+        env:
+          DISPLAY: :10

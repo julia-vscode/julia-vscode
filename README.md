@@ -1,4 +1,6 @@
-# julia
+# Julia
+
+[![Build Status](https://dev.azure.com/julia-vscode/julia-vscode/_apis/build/status/julia-vscode.julia-vscode?branchName=master)](https://dev.azure.com/julia-vscode/julia-vscode/_build/latest?definitionId=1&branchName=master)
 
 This [VS Code](https://code.visualstudio.com) extension provides support for the [julia programming language](http://julialang.org/).
 

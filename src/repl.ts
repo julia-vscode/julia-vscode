@@ -174,7 +174,21 @@ async function startREPL(preserveFocus: boolean) {
                     }});
         }
         else {
-            let jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
+            let env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath);
+
+            let sysImageArgs = [];
+            if (vscode.workspace.getConfiguration("julia").get("useCustomSysimage") && env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
+                let date_sysimage = await fs.stat(env_file_paths.sysimage_path);
+                let date_manifest = await fs.stat(env_file_paths.manifest_toml_path);
+
+                if (date_sysimage.mtime > date_manifest.mtime) {
+                    sysImageArgs = ['-J', env_file_paths.sysimage_path]
+                }
+                else {
+                    vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
+                }
+            }
+            let jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
             let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(),vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
             g_terminal = vscode.window.createTerminal(
                 {
@@ -182,7 +196,8 @@ async function startREPL(preserveFocus: boolean) {
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
-                        JULIA_EDITOR: `"${process.execPath}"`
+                        JULIA_EDITOR: process.platform == 'darwin' ? `"${path.join(vscode.env.appRoot, 'bin', 'code')}"` : `"${process.execPath}"`,
+                        JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()
                     }});
         }
         g_terminal.show(preserveFocus);
@@ -219,7 +234,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -253,7 +268,41 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega-lite",
+                        actions: false
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plotdiv', spec, opt);
+                </script>
+            </html>`;
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
+        showPlotPane();
+    }
+    else if (cmd == 'application/vnd.vegalite.v4+json') {
+        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
+        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        let plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaLite}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -285,7 +334,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -317,7 +366,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -349,7 +398,7 @@ function processMsg(cmd, payload) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv"></div>
+                    <div id="plotdiv" style="width:100%;height:100%;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -474,7 +523,7 @@ function startREPLMsgServer() {
         var server = net.createServer(function (socket) {
             resolveCallback();
 
-        let accumulatingBuffer = new Buffer(0);
+        let accumulatingBuffer = Buffer.alloc(0);
 
             socket.on('data', function (c) {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
@@ -492,7 +541,7 @@ function startREPLMsgServer() {
                         accumulatingBuffer = Buffer.from(accumulatingBuffer.slice(cmd.length + msg_len_as_string.length + 2 + msg_len + 1));
                     }
                     else {
-                        accumulatingBuffer = new Buffer(0);
+                        accumulatingBuffer = Buffer.alloc(0);
                     }
 
                     processMsg(cmd, payload);
@@ -515,7 +564,7 @@ function startREPLMsgServer() {
     return connectedPromise;
 }
 
-async function executeCode(text) {
+async function executeCode(text, individualLine) {
     if (!text.endsWith("\n")) {
         text = text + '\n';
     }
@@ -525,7 +574,7 @@ async function executeCode(text) {
     var lines = text.split(/\r?\n/);
     lines = lines.filter(line => line != '');
     text = lines.join('\n');
-    if (process.platform == "win32") {
+    if (individualLine || process.platform == "win32") {
         g_terminal.sendText(text + '\n', false);
     }
     else {
@@ -556,7 +605,13 @@ function executeSelection() {
             }
         }
     }
-    executeCode(text)
+    executeCode(text, selection.isEmpty)
+}
+
+async function executeInRepl(code: string, filename: string, start: vscode.Position) {
+    let msg = filename + '\n' + start.line.toString() + ':' +
+        start.character.toString() + '\n' + code
+    sendMessage('repl/runcode', msg)
 }
 
 async function executeFile() {
@@ -566,12 +621,8 @@ async function executeFile() {
     if (!editor) {
         return;
     }
-
-    let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
-    '0:0' + '\n' +
-    editor.document.getText()
-
-    sendMessage('repl/runcode', msg_body)
+    let document = editor.document;
+    executeInRepl(document.getText(), document.fileName, new vscode.Position(0, 0))
 }
 
 async function selectJuliaBlock() {
@@ -598,11 +649,57 @@ async function selectJuliaBlock() {
     }
 }
 
+async function executeJuliaCellInRepl() {
+    telemetry.traceEvent('command-executejuliacellinrepl');
+
+    let ed = vscode.window.activeTextEditor;
+    let doc = ed.document;
+    let rx = new RegExp("^##");
+    let curr = ed.selection.active.line;
+    var start = curr;
+    while (start >= 0) {
+        if (rx.test(doc.lineAt(start).text)) {
+            break;
+        } else {
+            start -= 1;
+        }
+    }
+    start += 1;
+    var end = start;
+    while (end < doc.lineCount) {
+        if (rx.test(doc.lineAt(end).text)) {
+            break;
+        } else {
+            end += 1;
+        }
+    }
+    end -= 1;
+    let startpos = new vscode.Position(start, 0);
+    let endpos = new vscode.Position(end, doc.lineAt(end).text.length);
+    let nextpos = new vscode.Position(end + 1, 0);
+    let code = doc.getText(new vscode.Range(startpos, endpos));
+    executeInRepl(code, doc.fileName, startpos)
+    vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
+    vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
+}
+
 async function executeJuliaBlockInRepl() {
     telemetry.traceEvent('command-executejuliablockinrepl');
 
-    if (g_languageClient == null) {
+    var editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        return;
+    }
+
+    var selection = editor.selection;
+
+    if (selection.isEmpty && g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Language server is not running.');
+    }
+    else if (!selection.isEmpty) {
+        let code_to_run = editor.document.getText(selection);
+
+        executeInRepl(code_to_run, editor.document.fileName, selection.start);
     }
     else {
         var editor = vscode.window.activeTextEditor;
@@ -616,11 +713,7 @@ async function executeJuliaBlockInRepl() {
 
             let code_to_run = vscode.window.activeTextEditor.document.getText(new vscode.Range(start_pos, end_pos))
 
-            let msg_body = vscode.window.activeTextEditor.document.fileName + '\n' +
-                start_pos.line.toString() + ':' + start_pos.character.toString() + '\n' +
-                code_to_run
-
-            sendMessage('repl/runcode', msg_body)
+            executeInRepl(code_to_run, vscode.window.activeTextEditor.document.fileName, start_pos)
 
             vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
             vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2])))
@@ -667,6 +760,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCellInREPL', executeJuliaCellInRepl));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
 

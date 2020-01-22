@@ -116,6 +116,10 @@ function sendMsgToVscode(cmd, payload)
     print(conn, payload)
 end
 
+function ends_with_semicolon(x)
+    return REPL.ends_with_semicolon(split(x,'\n',keepempty = false)[end])
+end
+
 @async begin
     server = listen(pipename_torepl)
     global conn = connect(pipename_fromrepl)
@@ -149,8 +153,13 @@ end
                 # println(' '^code_column * source_code)
 
                 try
+                    withpath(source_filename) do
+                        res = include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
 
-                    include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                        if res !== nothing && !ends_with_semicolon(source_code)
+                            display(res)
+                        end
+                    end
                 catch err
                     Base.display_error(stderr, err, catch_backtrace())
                 end
@@ -203,6 +212,13 @@ end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v3+json")}) = true
 
+function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}, x)
+    payload = stringmime(MIME("application/vnd.vegalite.v4+json"), x)
+    sendMsgToVscode("application/vnd.vegalite.v4+json", payload)
+end
+
+displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}) = true
+
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v3+json")}, x)
     payload = stringmime(MIME("application/vnd.vega.v3+json"), x)
     sendMsgToVscode("application/vnd.vega.v3+json", payload)
@@ -241,7 +257,9 @@ Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
 function display(d::InlineDisplay, x)
-    if showable("application/vnd.vegalite.v3+json", x)
+    if showable("application/vnd.vegalite.v4+json", x)
+        display(d,"application/vnd.vegalite.v4+json", x)
+    elseif showable("application/vnd.vegalite.v3+json", x)
         display(d,"application/vnd.vegalite.v3+json", x)
     elseif showable("application/vnd.vegalite.v2+json", x)
         display(d,"application/vnd.vegalite.v2+json", x)

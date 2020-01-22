@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.13.1
+* Update CHANGELOG
+
+## 0.13.0
+* Support for Julia 1.3
+* Configuration options for the code formatter
+* Bug fixes
+
+## 0.12.3
+* Add support for running a selection with Alt+Enter
+* Fix a bug in the LS when an environment path doesn't exist
+* Clean up labeling of commands
+
+## 0.12.2
+* Various bug fixes
+
+## 0.12.1
+* Various bug fixes
+
 ## 0.12.0
 * Add vscodedisplay() function for a grid view of tables
 * Add a command to delete all plots from the plot pane
@@ -7,6 +26,16 @@
 * Auto detect Julia environments
 * Change how execute block sends code to the REPL
 * Preserve focus of REPL when plot pane is shown
+* Fix weave preview
+* Make tasks work with julia environments
+* Add a test task that outputs coverage information
+* Open docs after build task
+* Support vega 3, 4 and 5, and vega-lite 2 and 3
+* Allow paths starting with ~ for julia bin location
+* Fix JULIA_EDITOR integration on Mac
+* Add support for custom sysimages
+* Reworked syntax highlighting
+* Add support for code cell execution with Shift+Enter
 
 ## 0.11.6
 * Add option to permanently opt out of crash reporting

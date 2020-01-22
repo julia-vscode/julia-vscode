@@ -93,18 +93,19 @@ export function startLsCrashServer() {
     let pipe_path = generatePipeName(process.pid.toString(), 'vscode-language-julia-lscrashreports');
 
     let server = net.createServer(function (connection) {
-        let accumulatingBuffer = new Buffer(0);
+        let accumulatingBuffer = Buffer.alloc(0);
 
         connection.on('data', async function (c) {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)]);
         });
 
         connection.on('close', async function (had_err) {
-            let bufferResult = accumulatingBuffer.toString()
             let replResponse = accumulatingBuffer.toString().split("\n")
-            let stacktrace = replResponse.slice(2,replResponse.length-1).join('\n');
+            let errorMessageLines = parseInt(replResponse[1])
+            let errorMessage = replResponse.slice(2, 2 + errorMessageLines).join('\n');
+            let stacktrace = replResponse.slice(2 + errorMessageLines,replResponse.length-1).join('\n');
 
-            crashReporterQueue.push({exception: {name: replResponse[0], message: replResponse[1], stack: stacktrace}});
+            crashReporterQueue.push({exception: {name: replResponse[0], message: errorMessage, stack: stacktrace}});
 
             traceEvent('lserror');
 
