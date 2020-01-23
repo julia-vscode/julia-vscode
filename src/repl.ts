@@ -614,15 +614,24 @@ async function executeInRepl(code: string, filename: string, start: vscode.Posit
     sendMessage('repl/runcode', msg)
 }
 
-async function executeFile() {
+async function executeFile(uri?: vscode.Uri) {
     telemetry.traceEvent('command-executejuliafileinrepl');
 
-    var editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        return;
+    let path = ""
+    let code = ""
+    if (uri) {
+        path = uri.fsPath
+        code = await fs.readTextFile(path)
     }
-    let document = editor.document;
-    executeInRepl(document.getText(), document.fileName, new vscode.Position(0, 0))
+    else {
+        let editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return;
+        }
+        path = editor.document.fileName;
+        code = editor.document.getText()
+    }
+    executeInRepl(code, path, new vscode.Position(0, 0))
 }
 
 async function selectJuliaBlock() {
@@ -759,7 +768,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', (uri?: vscode.Uri) => { executeFile(uri) }));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCellInREPL', executeJuliaCellInRepl));
 
