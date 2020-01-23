@@ -409,7 +409,11 @@
                 "julia.trace.server": {
                     "type": "string",
                     "default": "off",
-                    "enum": ["off", "messages", "verbose"],
+                    "enum": [
+                        "off",
+                        "messages",
+                        "verbose"
+                    ],
                     "description": "Traces the communication between VS Code and the language server.",
                     "scope": "window"
                 },

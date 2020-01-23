@@ -189,7 +189,8 @@ async function startLanguageServer() {
                                    'julia.lint.pirates',],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
         },
-        revealOutputChannelOn: RevealOutputChannelOn.Never
+        revealOutputChannelOn: RevealOutputChannelOn.Never,
+        traceOutputChannel: vscode.window.createOutputChannel('Julia Language Server trace')
     }
 
         // Create the language client and start the client.
