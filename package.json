@@ -406,6 +406,17 @@
                     "description": "Enable usage data and errors to be sent to the julia VS Code extension developers.",
                     "scope": "window"
                 },
+                "julia.trace.server": {
+                    "type": "string",
+                    "default": "off",
+                    "enum": [
+                        "off",
+                        "messages",
+                        "verbose"
+                    ],
+                    "description": "Traces the communication between VS Code and the language server.",
+                    "scope": "window"
+                },
                 "julia.useRevise": {
                     "type": "boolean",
                     "default": true,
