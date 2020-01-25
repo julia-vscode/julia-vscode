@@ -769,7 +769,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', (uri?: vscode.Uri) => { executeFile(uri) }));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCellInREPL', executeJuliaCellInRepl));
 
