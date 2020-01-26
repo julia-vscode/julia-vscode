@@ -614,15 +614,25 @@ async function executeInRepl(code: string, filename: string, start: vscode.Posit
     sendMessage('repl/runcode', msg)
 }
 
-async function executeFile() {
+async function executeFile(uri?: vscode.Uri) {
     telemetry.traceEvent('command-executejuliafileinrepl');
 
-    var editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        return;
+    let path = "";
+    let code = "";
+    if (uri) {
+        path = uri.fsPath;
+        const readBytes = await vscode.workspace.fs.readFile(uri);
+        code = Buffer.from(readBytes).toString('utf8');
     }
-    let document = editor.document;
-    executeInRepl(document.getText(), document.fileName, new vscode.Position(0, 0))
+    else {
+        let editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return;
+        }
+        path = editor.document.fileName;
+        code = editor.document.getText();
+    }
+    executeInRepl(code, path, new vscode.Position(0, 0));
 }
 
 async function selectJuliaBlock() {
