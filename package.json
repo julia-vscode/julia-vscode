@@ -20,9 +20,11 @@
     "categories": [
         "Programming Languages",
         "Snippets",
-        "Linters"
+        "Linters",
+        "Debuggers"
     ],
     "activationEvents": [
+        "onDebug",
         "onCommand:language-julia.openPackageDirectory",
         "onCommand:language-julia.changeCurrentEnvironment",
         "onCommand:language-julia.startREPL",
@@ -537,6 +539,21 @@
                         "type": "string"
                     }
                 }
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "julia",
+                "label": "Julia Debug",
+                "languages": ["julia"],
+                "adapterExecutableCommand": "language-julia.adapterExecutableCommand",
+                "initialConfigurations": [
+                    {
+                        "name": "julia",
+                        "type": "julia",
+                        "request": "launch"
+                    }
+                ]
             }
         ]
     },

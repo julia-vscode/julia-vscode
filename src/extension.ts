@@ -20,6 +20,7 @@ import * as packagepath from './packagepath';
 import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
 import * as jlpkgenv from './jlpkgenv';
+import {JuliaDebugConfigurationProvider} from './debugConfigurationProvider';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -74,6 +75,17 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Start language server
     startLanguageServer();
+
+    vscode.commands.registerCommand('language-julia.adapterExecutableCommand', () => {
+        console.log('foo');
+        return {
+             
+            command: "C:/Users/david/AppData/Local/Julia-1.3.1/bin/julia.exe",  // paths initially hardcoded for simplicity
+            args: ["c:/Users/david/source/julia-vscode/scripts/debugger/foo.jl"]
+        }
+    });
+
+    // context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('julia', new JuliaDebugConfigurationProvider(g_context)));
 
     if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry')===null) {
         vscode.window.showInformationMessage("To help improve the julia extension, you can anonymously send usage statistics to the team. See our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) for details.", 'Yes, I want to help improve the julia extension')
