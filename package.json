@@ -5,7 +5,7 @@
     "version": "0.13.2-DEV",
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.35.0"
+        "vscode": "^1.41.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -201,11 +201,18 @@
             "explorer/context": [
                 {
                     "when": "resourceLangId == julia",
-                    "command": "language-julia.toggle-file-lint"
+                    "command": "language-julia.executeJuliaFileInREPL",
+                    "group": "julia"
+                },
+                {
+                    "when": "resourceLangId == julia",
+                    "command": "language-julia.toggle-file-lint",
+                    "group": "julia"
                 },
                 {
                     "when": "explorerResourceIsFolder",
-                    "command": "language-julia.toggle-file-lint"
+                    "command": "language-julia.toggle-file-lint",
+                    "group": "julia"
                 }
             ],
             "editor/title": [
@@ -344,50 +351,50 @@
                     "scope": "window"
                 },
                 "julia.lint.run": {
-					"type": "boolean",
-					"default": true,
-					"description": "Run the linter on active files."
-				},
-				"julia.lint.missingrefs": {
-					"type": "boolean",
-					"default": true,
-					"description": "Report possibly missing references."
-				},
-				"julia.lint.call": {
-					"type": "boolean",
-					"default": true,
-					"description": "Check calls against existing methods."
-				},
-				"julia.lint.iter": {
-					"type": "boolean",
-					"default": true,
-					"description": "Check iterator syntax of loops."
-				},
-				"julia.lint.constif": {
-					"type": "boolean",
-					"default": true,
-					"description": "Check for constant conditionals of if statements."
-				},
-				"julia.lint.lazy": {
-					"type": "boolean",
-					"default": true,
-					"description": "Check for deterministic lazy boolean operators."
-				},
-				"julia.lint.typeparam": {
-					"type": "boolean",
-					"default": true,
-					"description": "Check for unused DataType parameters."
-				},
-				"julia.lint.modname": {
-					"type": "boolean",
-					"default": true,
-					"description": "Check for invalid submodule names."
-				},
-				"julia.lint.pirates": {
-					"type": "boolean",
-					"default": true,
-					"description": "Check for type piracy."
-				},
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Run the linter on active files."
+                },
+                "julia.lint.missingrefs": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Report possibly missing references."
+                },
+                "julia.lint.call": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check calls against existing methods."
+                },
+                "julia.lint.iter": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check iterator syntax of loops."
+                },
+                "julia.lint.constif": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check for constant conditionals of if statements."
+                },
+                "julia.lint.lazy": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check for deterministic lazy boolean operators."
+                },
+                "julia.lint.typeparam": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check for unused DataType parameters."
+                },
+                "julia.lint.modname": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check for invalid submodule names."
+                },
+                "julia.lint.pirates": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check for type piracy."
+                },
                 "julia.enableCrashReporter": {
                     "type": [
                         "boolean",
@@ -404,6 +411,17 @@
                     ],
                     "default": null,
                     "description": "Enable usage data and errors to be sent to the julia VS Code extension developers.",
+                    "scope": "window"
+                },
+                "julia.trace.server": {
+                    "type": "string",
+                    "default": "off",
+                    "enum": [
+                        "off",
+                        "messages",
+                        "verbose"
+                    ],
+                    "description": "Traces the communication between VS Code and the language server.",
                     "scope": "window"
                 },
                 "julia.useRevise": {
@@ -526,25 +544,25 @@
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "npm run compile && node ./node_modules/vscode/bin/test",
+        "test": "node ./out/test/runTest.js",
         "update2latest": "git pull && git submodule init && git submodule update && npm install && npm run compile"
     },
     "dependencies": {
+        "@types/vscode": "^1.41.0",
         "applicationinsights": "^1.5.0",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
-        "vscode-jsonrpc": "^4.0.0",
-        "vscode-languageclient": "^5.2.1",
+        "vscode-jsonrpc": "^5.0.1",
+        "vscode-languageclient": "^6.0.1",
         "which": "^1.3.1"
     },
     "devDependencies": {
         "@types/mocha": "^5.2.7",
-        "@types/node": "^12.12.17",
+        "@types/node": "^12.12.25",
         "mocha": "^6.2.2",
-        "typescript": "^3.7.3",
-        "vscode": "^1.1.36"
+        "typescript": "^3.7.5",
+        "vscode-test": "^1.3.0"
     }
 }
