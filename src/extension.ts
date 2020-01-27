@@ -64,6 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Active features from other files
     juliaexepath.activate(context, g_settings);
+    await juliaexepath.getJuliaExePath(); // We run this function now and await to make sure we don't run in twice simultaneously later
     repl.activate(context, g_settings);
     weave.activate(context, g_settings);
     tasks.activate(context, g_settings);
