@@ -6,6 +6,8 @@ import * as path from 'path';
 import * as process from 'process';
 import * as util from 'util';
 import * as which from 'which';
+import * as child_process from 'child_process';
+import { setCurrentJuliaVersion } from './telemetry';
 var exec = require('child-process-promise').exec;
 const whichAsync = util.promisify(which);
 
@@ -14,6 +16,18 @@ let g_settings: settings.ISettings = null;
 let g_languageClient: vslc.LanguageClient = null;
 
 let actualJuliaExePath: string = null;
+
+async function setNewJuliaExePath(newPath: string) {
+    actualJuliaExePath = newPath;
+
+    child_process.exec(`"${newPath}" --version`, (error, stdout, stderr) => {
+        if (error) {
+            return;
+        }
+        const version = stdout.trim();
+        setCurrentJuliaVersion(version);
+    });
+}
 
 export async function getJuliaExePath() {
     if (actualJuliaExePath == null) {
@@ -57,9 +71,9 @@ export async function getJuliaExePath() {
                     var res = await exec(`"${p}" --startup-file=no --history-file=no -e "println(Sys.BINDIR)"`);
                     if (p == 'julia' || p == "julia.exe") {
                         // use full path
-                        actualJuliaExePath = path.join(res.stdout.trim(), p);
+                        setNewJuliaExePath(path.join(res.stdout.trim(), p));
                     } else {
-                        actualJuliaExePath = p;
+                        setNewJuliaExePath(p);
                     }
                     foundJulia = true;
                     break;
@@ -68,15 +82,15 @@ export async function getJuliaExePath() {
                 }
             }
             if (!foundJulia) {
-                actualJuliaExePath = g_settings.juliaExePath;
+                setNewJuliaExePath(g_settings.juliaExePath);
             }
         }
         else {
             if (g_settings.juliaExePath.includes(path.sep)) {
-                actualJuliaExePath = g_settings.juliaExePath.replace(/^~/, os.homedir());
+                setNewJuliaExePath(g_settings.juliaExePath.replace(/^~/, os.homedir()));
             } else {
                 // resolve full path
-                actualJuliaExePath = await whichAsync(g_settings.juliaExePath);
+                setNewJuliaExePath(await whichAsync(g_settings.juliaExePath));
             }
         }
     }
