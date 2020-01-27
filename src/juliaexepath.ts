@@ -38,9 +38,9 @@ export async function getJuliaExePath() {
             let pathsToSearch = [];
             if (process.platform == "win32") {
                 pathsToSearch = ["julia.exe",
+                    path.join(homedir, "AppData", "Local", "Julia-1.3.2", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.3.1", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.3.0", "bin", "julia.exe"),
-                    path.join(homedir, "AppData", "Local", "Julia-1.2.1", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.2.0", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.1.1", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.1.0", "bin", "julia.exe"),
