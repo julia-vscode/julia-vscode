@@ -77,6 +77,10 @@ export function init() {
         .setUseDiskRetryCaching(true)
         .start();
 
+    if (vscode.env.machineId == "someValue.machineId") {
+        // Make sure we send out messages right away
+        appInsights.defaultClient.config.maxBatchSize = 0;
+    }
     
     extensionClient = appInsights.defaultClient;
     extensionClient.addTelemetryProcessor(filterTelemetry);
