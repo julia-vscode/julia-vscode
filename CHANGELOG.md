@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.0
+* Make Language Server indexing async
+
 ## 0.13.1
 * Update CHANGELOG
 
