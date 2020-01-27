@@ -7,7 +7,7 @@ import * as process from 'process';
 import * as util from 'util';
 import * as which from 'which';
 import * as child_process from 'child_process';
-import { setCurrentJuliaVersion } from './telemetry';
+import { setCurrentJuliaVersion, traceEvent } from './telemetry';
 var exec = require('child-process-promise').exec;
 const whichAsync = util.promisify(which);
 
@@ -26,6 +26,8 @@ async function setNewJuliaExePath(newPath: string) {
         }
         const version = stdout.trim();
         setCurrentJuliaVersion(version);
+
+        traceEvent('configured-new-julia-binary');
     });
 }
 
