@@ -25,9 +25,6 @@ let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
 
-let g_serverstatus: vscode.StatusBarItem = null;
-// let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
-// let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 let g_serverFullTextNotification = new rpc.NotificationType<string, string>('julia/getFullText');
 
 let g_lscrashreportingpipename: string = null;
@@ -44,12 +41,6 @@ export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating extension language-julia');
 
     g_settings = settings.loadSettings();
-
-    // Status bar
-    g_serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-    g_serverstatus.show()
-    g_serverstatus.text = 'Julia';
-    context.subscriptions.push(g_serverstatus);
 
     // Config change
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(configChanged));
@@ -210,13 +201,6 @@ async function startLanguageServer() {
     }
 
     g_languageClient.onReady().then(() => {
-    //     g_languageClient.onNotification(g_serverBusyNotification, () => {
-    //         g_serverstatus.show();
-    //     })
-
-    //     g_languageClient.onNotification(g_serverReadyNotification, () => {
-    //         g_serverstatus.hide();
-    //     })
         g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
             let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString()==uri)
             doc.getText()
