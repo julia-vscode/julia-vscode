@@ -11,6 +11,8 @@ import {generatePipeName} from './utils';
 let enableCrashReporter: boolean = false;
 let enableTelemetry: boolean = false;
 
+let g_currentJuliaVersion: string = "";
+
 let extensionClient
 
 let crashReporterUIVisible: boolean = false;
@@ -75,6 +77,10 @@ export function init() {
         .setUseDiskRetryCaching(true)
         .start();
 
+    if (vscode.env.machineId == "someValue.machineId") {
+        // Make sure we send out messages right away
+        appInsights.defaultClient.config.maxBatchSize = 0;
+    }
     
     extensionClient = appInsights.defaultClient;
     extensionClient.addTelemetryProcessor(filterTelemetry);
@@ -82,6 +88,7 @@ export function init() {
     extensionClient.commonProperties["vscodesessionid"] = vscode.env.sessionId;
     extensionClient.commonProperties["vscodeversion"] = vscode.version;
     extensionClient.commonProperties["extversion"] = extversion;
+    extensionClient.commonProperties["juliaversion"] = g_currentJuliaVersion;
     extensionClient.context.tags[extensionClient.context.keys.cloudRole] = "Extension";
     extensionClient.context.tags[extensionClient.context.keys.cloudRoleInstance] = "";
     extensionClient.context.tags[extensionClient.context.keys.sessionId] = vscode.env.sessionId;
@@ -159,5 +166,13 @@ async function showCrashReporterUIConsent() {
         finally {
             crashReporterUIVisible = false;
         }
+    }
+}
+
+export function setCurrentJuliaVersion(version: string) {
+    g_currentJuliaVersion = version;
+
+    if (extensionClient) {
+        extensionClient.commonProperties["juliaversion"] = g_currentJuliaVersion;
     }
 }
