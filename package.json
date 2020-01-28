@@ -545,15 +545,7 @@
             {
                 "type": "julia",
                 "label": "Julia Debug",
-                "languages": ["julia"],
-                "adapterExecutableCommand": "language-julia.adapterExecutableCommand",
-                "initialConfigurations": [
-                    {
-                        "name": "julia",
-                        "type": "julia",
-                        "request": "launch"
-                    }
-                ]
+                "languages": ["julia"]
             }
         ]
     },
