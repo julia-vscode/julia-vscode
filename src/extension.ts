@@ -20,7 +20,6 @@ import * as packagepath from './packagepath';
 import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
 import * as jlpkgenv from './jlpkgenv';
-import {JuliaDebugConfigurationProvider} from './debugConfigurationProvider';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
