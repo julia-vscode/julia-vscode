@@ -31,7 +31,7 @@ let g_lscrashreportingpipename: string = null;
 
 class DebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorFactory {
 
-	async createDebugAdapterDescriptor(_session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+    async createDebugAdapterDescriptor(_session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
         console.log('Is this ever called?');
         const command = await juliaexepath.getJuliaExePath();
         const args = [
@@ -44,8 +44,8 @@ class DebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorFact
         // executable = new vscode.DebugAdapterExecutable(command, args, options);
         executable = new vscode.DebugAdapterExecutable(command, args);
 
-		return executable;
-	}
+        return executable;
+    }
 }
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -87,7 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
     startLanguageServer();
 
     let factory = new DebugAdapterExecutableFactory();
-    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('juliadbg', factory));
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory));
     if ('dispose' in factory) {
 		context.subscriptions.push(factory);
 	}
