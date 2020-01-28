@@ -30,6 +30,25 @@ let g_serverFullTextNotification = new rpc.NotificationType<string, string>('jul
 
 let g_lscrashreportingpipename: string = null;
 
+class DebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorFactory {
+
+	async createDebugAdapterDescriptor(_session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+        console.log('Is this ever called?');
+        const command = await juliaexepath.getJuliaExePath();
+        const args = [
+            "./scripts/debugger/debugadapter.jl",
+        ];
+        // const options = {
+        // 	cwd: "working directory for executable",
+        // 	env: { "VAR": "some value" }
+        // };
+        // executable = new vscode.DebugAdapterExecutable(command, args, options);
+        executable = new vscode.DebugAdapterExecutable(command, args);
+
+		return executable;
+	}
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     telemetry.init();
 
@@ -68,16 +87,11 @@ export async function activate(context: vscode.ExtensionContext) {
     // Start language server
     startLanguageServer();
 
-    vscode.commands.registerCommand('language-julia.adapterExecutableCommand', () => {
-        console.log('foo');
-        return {
-             
-            command: "C:/Users/david/AppData/Local/Julia-1.3.1/bin/julia.exe",  // paths initially hardcoded for simplicity
-            args: ["c:/Users/david/source/julia-vscode/scripts/debugger/foo.jl"]
-        }
-    });
-
-    // context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('julia', new JuliaDebugConfigurationProvider(g_context)));
+    let factory = new DebugAdapterExecutableFactory();
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('juliadbg', factory));
+    if ('dispose' in factory) {
+		context.subscriptions.push(factory);
+	}
 
     if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry')===null) {
         vscode.window.showInformationMessage("To help improve the julia extension, you can anonymously send usage statistics to the team. See our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) for details.", 'Yes, I want to help improve the julia extension')
