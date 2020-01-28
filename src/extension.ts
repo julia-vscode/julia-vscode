@@ -31,20 +31,21 @@ let g_lscrashreportingpipename: string = null;
 
 class DebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorFactory {
 
-    async createDebugAdapterDescriptor(_session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+    createDebugAdapterDescriptor(_session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
         console.log('Is this ever called?');
-        const command = await juliaexepath.getJuliaExePath();
-        const args = [
-            "./scripts/debugger/debugadapter.jl",
-        ];
-        // const options = {
-        // 	cwd: "working directory for executable",
-        // 	env: { "VAR": "some value" }
-        // };
-        // executable = new vscode.DebugAdapterExecutable(command, args, options);
-        executable = new vscode.DebugAdapterExecutable(command, args);
 
-        return executable;
+        return (async () => {
+            const command = await juliaexepath.getJuliaExePath();
+            const args = [
+                "./scripts/debugger/debugadapter.jl",
+            ];
+            // const options = {
+            // 	cwd: "working directory for executable",
+            // 	env: { "VAR": "some value" }
+            // };
+
+            return new vscode.DebugAdapterExecutable(command, args);
+        })();
     }
 }
 
