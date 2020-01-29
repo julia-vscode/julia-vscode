@@ -20,6 +20,7 @@ import * as packagepath from './packagepath';
 import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
 import * as jlpkgenv from './jlpkgenv';
+import { JuliaDebugSession } from './juliaDebug';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -63,6 +64,13 @@ export async function activate(context: vscode.ExtensionContext) {
     packagepath.activate(context, g_settings);
     openpackagedirectory.activate(context, g_settings);
     jlpkgenv.activate(context, g_settings);
+
+    // register a configuration provider for 'mock' debug type
+	const provider = new JuliaDebugConfigurationProvider();
+    context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('julia', provider));
+    
+    let factory = new InlineDebugAdapterFactory();
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory));
 
     // Start language server
     startLanguageServer();
@@ -208,4 +216,32 @@ async function startLanguageServer() {
             g_languageClient.sendNotification("julia/reloadText", {textDocument: {uri: uri, languageId: "julia", version: 1,text: doc.getText()}})
         })
     })
+}
+
+export class JuliaDebugConfigurationProvider
+    implements vscode.DebugConfigurationProvider {
+
+    public resolveDebugConfiguration(
+        folder: vscode.WorkspaceFolder | undefined,
+        config: vscode.DebugConfiguration,
+        token?: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.DebugConfiguration> {  
+        if (!config.script) {   
+            config.type = 'julia';
+            config.request = 'launch';
+            config.name = 'Launch';
+            config.script = vscode.window.activeTextEditor.document.fileName;
+        }
+
+        return config;
+    }
+}
+
+class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
+
+	createDebugAdapterDescriptor(_session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+        return ( async () => {
+            return new vscode.DebugAdapterInlineImplementation(<any> new JuliaDebugSession(g_context, await juliaexepath.getJuliaExePath() ));
+        })();
+	}
 }

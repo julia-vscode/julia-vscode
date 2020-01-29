@@ -5,7 +5,7 @@
     "version": "0.14.0-beta",
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.41.0"
+        "vscode": "^1.42.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -20,9 +20,12 @@
     "categories": [
         "Programming Languages",
         "Snippets",
-        "Linters"
+        "Linters",
+        "Debuggers"
     ],
     "activationEvents": [
+        "onDebugInitialConfigurations",
+        "onDebugResolve:julia",
         "onCommand:language-julia.openPackageDirectory",
         "onCommand:language-julia.changeCurrentEnvironment",
         "onCommand:language-julia.startREPL",
@@ -290,11 +293,6 @@
                 "when": "jlplotpaneFocus"
             },
             {
-                "command": "language-julia.executeJuliaFileInREPL",
-                "key": "F5",
-                "when": "editorTextFocus && editorLangId == julia"
-            },
-            {
                 "command": "language-julia.plotpane-previous",
                 "key": "up",
                 "when": "jlplotpaneFocus"
@@ -538,6 +536,47 @@
                     }
                 }
             }
+        ],
+        "debuggers": [
+            {
+                "type": "julia",
+                "label": "Julia Debug",
+                "languages": [
+                    "julia"
+                ],
+                "configurationAttributes": {
+                    "launch": {
+                        "required": ["script"],
+                        "properties": {
+                            "script": {
+                                "type": "string",
+                                "description": "Absolute path to a Julia script.",
+                                "default": "${file}"
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "julia",
+                        "request": "launch",
+                        "name": "Run Julia file",
+                        "script": "${file}"
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "Julia Debug: Launch",
+                        "description": "A new configuration for launch a Julia debug program",
+                        "body": {
+                            "type": "julia",
+                            "request": "launch",
+                            "name": "${2:Launch Program}",
+                            "script": "^\"\\${workspaceFolder}/${1:Program}\""
+                        }
+                    }
+                ]
+            }
         ]
     },
     "scripts": {
@@ -549,12 +588,13 @@
         "package": "git submodule init && git submodule update && npm install --no-save && npm run compile && vsce package"
     },
     "dependencies": {
-        "@types/vscode": "^1.41.0",
         "applicationinsights": "^1.6.0",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
+        "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
+        "vscode-debugadapter": "1.38.0-pre.4",
         "vscode-jsonrpc": "^5.0.1",
         "vscode-languageclient": "^6.1.0",
         "which": "^1.3.1"
