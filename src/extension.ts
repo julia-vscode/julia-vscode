@@ -29,6 +29,24 @@ let g_serverFullTextNotification = new rpc.NotificationType<string, string>('jul
 
 let g_lscrashreportingpipename: string = null;
 
+
+export class JuliaDebugConfigurationProvider
+    implements vscode.DebugConfigurationProvider {
+
+    public resolveDebugConfiguration(
+        folder: vscode.WorkspaceFolder | undefined,
+        config: vscode.DebugConfiguration,
+        token?: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.DebugConfiguration> {     
+
+        return (async () => {
+            config.type = 'julia';
+            config.request = 'launch';
+            return config;
+        })();
+    }
+}
+
 class DebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorFactory {
 
     createDebugAdapterDescriptor(_session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
@@ -37,7 +55,7 @@ class DebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorFact
         return (async () => {
             const command = await juliaexepath.getJuliaExePath();
             const args = [
-                "./scripts/debugger/debugadapter.jl",
+                path.join(g_context.extensionPath, "scripts/debugger/debugadapter.jl"),
             ];
             // const options = {
             // 	cwd: "working directory for executable",
@@ -91,6 +109,12 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory));
     if ('dispose' in factory) {
 		context.subscriptions.push(factory);
+	}
+
+    let factory2 = new JuliaDebugConfigurationProvider();
+    vscode.debug.registerDebugConfigurationProvider('julia', factory2)
+    if ('dispose' in factory2) {
+		context.subscriptions.push(factory2);
 	}
 
     if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry')===null) {
