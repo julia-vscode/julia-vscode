@@ -226,7 +226,7 @@ export class JuliaDebugConfigurationProvider
         config: vscode.DebugConfiguration,
         token?: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.DebugConfiguration> {  
-        if (!config.script) {   
+        if (!config.script && config.request!='attach') {   
             config.type = 'julia';
             config.request = 'launch';
             config.name = 'Launch';

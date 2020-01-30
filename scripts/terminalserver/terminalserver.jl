@@ -1,6 +1,7 @@
 module _vscodeserver
 
 include("repl.jl")
+include("../debugger/repl_debugger.jl")
 
 function remlineinfo!(x)
     if isa(x, Expr)
@@ -164,6 +165,12 @@ end
                     Base.display_error(stderr, err, catch_backtrace())
                 end
             end
+        elseif cmd == "repl/startdebugger"
+            @info "WE GOT HIS"
+            payload_as_string = String(payload)
+            @info payload_as_string
+
+            REPLDebugger.startdebug(payload_as_string)
         end
     end
 end
@@ -467,4 +474,8 @@ vscodedisplay() = i -> vscodedisplay(i)
 if _vscodeserver.load_revise
     @eval using Revise
     Revise.async_steal_repl_backend()
+end
+
+function debug(command::String)
+    _vscodeserver.sendMsgToVscode("debugger/eval", command)
 end

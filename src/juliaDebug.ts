@@ -17,6 +17,7 @@ const { Subject } = require('await-notify');
 import * as readline from 'readline';
 import { generatePipeName } from './utils';
 import { uuid } from 'uuidv4';
+import { sendMessage } from './repl';
 
 function timeout(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -104,11 +105,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		});
 	}
 
-	protected async attachRequest(response: DebugProtocol.AttachResponse, args: DebugProtocol.AttachRequestArguments): Promise<void> {
-		console.log('We attach');
-		this.sendResponse(response);
-	}
-
 	/**
 	 * The 'initialize' request is the first request called by the frontend
 	 * to interrogate the features the debug adapter provides.
@@ -141,6 +137,75 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		// make VS Code send the breakpointLocations request
 		response.body.supportsBreakpointLocationsRequest = true;
+
+		this.sendResponse(response);
+	}
+
+	/**
+	 * Called at the end of the configuration sequence.
+	 * Indicates that all breakpoints etc. have been sent to the DA and that the 'launch' can start.
+	 */
+	protected configurationDoneRequest(response: DebugProtocol.ConfigurationDoneResponse, args: DebugProtocol.ConfigurationDoneArguments): void {
+		super.configurationDoneRequest(response, args);
+
+		this._debuggeeSocket.write('\n');
+
+		// notify the launchRequest that configuration has finished
+		this._configurationDone.notify();
+	}
+
+	protected async attachRequest(response: DebugProtocol.AttachResponse, args: DebugProtocol.AttachRequestArguments) {
+		const pn = generatePipeName(uuid(), 'vscode-language-julia-debugger');
+
+		let connectedPromise = new Subject();
+		let serverListeningPromise = new Subject();
+
+		let server = net.createServer(socket => {
+			this._debuggeeSocket = socket;
+			// const rl = readline.createInterface(socket);
+
+			// rl.on('line', line => {
+			// 		console.log(line);
+			// });
+
+			connectedPromise.notify();
+		});
+
+		server.listen(pn, () => {
+			serverListeningPromise.notify();
+		});
+
+		await serverListeningPromise.wait();
+
+		sendMessage('repl/startdebugger', pn);
+
+		await connectedPromise.wait();		
+
+		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
+		// we request them early by sending an 'initializeRequest' to the frontend.
+		// The frontend will end the configuration sequence by calling 'configurationDone' request.
+		this.sendEvent(new InitializedEvent());
+
+		// wait until configuration has finished (and configurationDoneRequest has been called)
+		// await this._configurationDone.wait(1000);
+		await this._configurationDone.wait();
+
+
+		let code_to_run = args['code']
+
+		let encoded_code = Buffer.from(code_to_run).toString('base64');
+
+		this._debuggeeSocket.write(`EXEC:${encoded_code}\n`)
+
+		// NOW SEND A MESSAGE TO THE REPL TO RUN SOME CODE
+
+		this.sendResponse(response);
+	}
+
+	protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
+
+		// make sure to 'Stop' the buffered logging if 'trace' is not set
+		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false);
 
 		let connectedPromise = new Subject();
 		let serverListeningPromise = new Subject();
@@ -178,33 +243,12 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			}
 		}, this, asdf);
 
-		await connectedPromise.wait();
-
-		this.sendResponse(response);
+		await connectedPromise.wait();		
 
 		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
 		// we request them early by sending an 'initializeRequest' to the frontend.
 		// The frontend will end the configuration sequence by calling 'configurationDone' request.
 		this.sendEvent(new InitializedEvent());
-	}
-
-	/**
-	 * Called at the end of the configuration sequence.
-	 * Indicates that all breakpoints etc. have been sent to the DA and that the 'launch' can start.
-	 */
-	protected configurationDoneRequest(response: DebugProtocol.ConfigurationDoneResponse, args: DebugProtocol.ConfigurationDoneArguments): void {
-		super.configurationDoneRequest(response, args);
-
-		this._debuggeeSocket.write('\n');
-
-		// notify the launchRequest that configuration has finished
-		this._configurationDone.notify();
-	}
-
-	protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
-
-		// make sure to 'Stop' the buffered logging if 'trace' is not set
-		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false);
 
 		// wait until configuration has finished (and configurationDoneRequest has been called)
 		// await this._configurationDone.wait(1000);

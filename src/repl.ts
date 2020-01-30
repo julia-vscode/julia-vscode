@@ -209,7 +209,16 @@ async function startREPL(preserveFocus: boolean) {
 }
 
 function processMsg(cmd, payload) {
-    if (cmd == 'image/svg+xml') {
+    if (cmd == 'debugger/eval') {
+        let x = {
+            type:'julia',
+            request: 'attach',
+            name: 'something',
+            code: payload
+        }
+        vscode.debug.startDebugging(undefined, x);
+    }
+    else if (cmd == 'image/svg+xml') {
         g_currentPlotIndex = g_plots.push(payload) - 1;
         showPlotPane();
     }
@@ -739,7 +748,7 @@ async function executeJuliaBlockInRepl() {
     }
 }
 
-async function sendMessage(cmd, msg: string) {
+export async function sendMessage(cmd, msg: string) {
     await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
 
