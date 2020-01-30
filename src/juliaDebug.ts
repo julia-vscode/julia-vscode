@@ -12,7 +12,11 @@ import { homedir } from 'os';
 import { downloadAndUnzipVSCode } from 'vscode-test';
 import { window, ExtensionContext, Terminal } from 'vscode';
 import { Disposable } from 'vscode-jsonrpc';
+import * as net from 'net';
 const { Subject } = require('await-notify');
+import * as readline from 'readline';
+import { generatePipeName } from './utils';
+import { uuid } from 'uuidv4';
 
 function timeout(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -26,7 +30,7 @@ function timeout(ms) {
  */
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	/** An absolute path to the "program" to debug. */
-	program: string;
+	script: string;
 	/** Automatically stop target after launch. If not specified, target does not stop. */
 	stopOnEntry?: boolean;
 	/** enable logging the Debug Adapter Protocol */
@@ -52,6 +56,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	private _context: ExtensionContext;
 
 	private _debuggeeTerminal: Terminal;
+	private _debuggeeSocket: net.Socket;
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -103,7 +108,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	 * The 'initialize' request is the first request called by the frontend
 	 * to interrogate the features the debug adapter provides.
 	 */
-	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
+	protected async initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): Promise<void> {
 
 		// build and return the capabilities of this debug adapter:
 		response.body = response.body || {};
@@ -122,13 +127,51 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		// make VS Code to support completion in REPL
 		response.body.supportsCompletionsRequest = true;
-		response.body.completionTriggerCharacters = [ ".", "[" ];
+		response.body.completionTriggerCharacters = [".", "["];
 
 		// make VS Code to send cancelRequests
 		response.body.supportsCancelRequest = true;
 
 		// make VS Code send the breakpointLocations request
 		response.body.supportsBreakpointLocationsRequest = true;
+
+		let connectedPromise = new Subject();
+		let serverListeningPromise = new Subject();
+
+		const pn = generatePipeName(uuid(), 'vscode-language-julia-debugger');
+
+		let server = net.createServer(socket => {
+			this._debuggeeSocket = socket;
+			// const rl = readline.createInterface(socket);
+
+			// rl.on('line', line => {
+			// 		console.log(line);
+			// });
+
+			connectedPromise.notify();
+		});
+
+		server.listen(pn, () => {
+			serverListeningPromise.notify();
+		});
+
+		await serverListeningPromise.wait();
+
+		this._debuggeeTerminal = window.createTerminal({
+			name: "Julia Debugger",
+			shellPath: this._juliaPath,
+			shellArgs: ['--color=yes', join(this._context.extensionPath, 'scripts', 'debugger', 'run_debugger.jl'), pn]
+		});
+		this._debuggeeTerminal.show(false);
+		let asdf: Array<Disposable> = [];
+		window.onDidCloseTerminal((terminal) => {
+			if (terminal == this._debuggeeTerminal) {
+				this.sendEvent(new TerminatedEvent());
+				asdf[0].dispose();
+			}
+		}, this, asdf);
+
+		await connectedPromise.wait();
 
 		this.sendResponse(response);
 
@@ -145,6 +188,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	protected configurationDoneRequest(response: DebugProtocol.ConfigurationDoneResponse, args: DebugProtocol.ConfigurationDoneArguments): void {
 		super.configurationDoneRequest(response, args);
 
+		this._debuggeeSocket.write('\n');
+
 		// notify the launchRequest that configuration has finished
 		this._configurationDone.notify();
 	}
@@ -155,30 +200,14 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false);
 
 		// wait until configuration has finished (and configurationDoneRequest has been called)
-		await this._configurationDone.wait(1000);
+		// await this._configurationDone.wait(1000);
+		await this._configurationDone.wait();
 
 		if (args.noDebug) {
-			this._debuggeeTerminal = window.createTerminal({
-				name: "Julia Debugee",
-                    shellPath: this._juliaPath,
-                    shellArgs: ['--color=yes', join(this._context.extensionPath, 'scripts', 'debugger', 'run_with_no_debug.jl'), args['script']]
-			});
-			this._debuggeeTerminal.show(false);
-			let asdf: Array<Disposable> = [];
-			window.onDidCloseTerminal((terminal) =>{
-				if (terminal==this._debuggeeTerminal) {
-					this.sendEvent(new TerminatedEvent());
-					asdf[0].dispose();
-				}
-			}, this, asdf);
-			// let asdf = homedir();
-			// this.runInTerminalRequest({kind: 'external', args:[this._juliaPath, '--version'], cwd: asdf}, 2, (response) => {
-			// 	console.log("SOMETHNG");
-			// });
+			this._debuggeeSocket.write(`RUN:${args.script}\n`);
 		}
 		else {
-			// start the program in the runtime
-			this._runtime.start(args.program, !!args.stopOnEntry);
+			this._debuggeeSocket.write(`DEBUG:${args.script}\n`);
 		}
 
 		this.sendResponse(response);
@@ -187,22 +216,28 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
 		const path = <string>args.source.path;
-		const clientLines = args.lines || [];
+		const clientLines = args.breakpoints || [];
+
+		for (let i of args.breakpoints) {
+			let msg = `${path};${i.line}\n`;
+			this._debuggeeSocket.write(msg);
+		}
 
 		// clear all breakpoints for this file
-		this._runtime.clearBreakpoints(path);
+		// this._runtime.clearBreakpoints(path);
 
 		// set and verify breakpoint locations
-		const actualBreakpoints = clientLines.map(l => {
-			let { verified, line, id } = this._runtime.setBreakPoint(path, this.convertClientLineToDebugger(l));
-			const bp = <DebugProtocol.Breakpoint> new Breakpoint(verified, this.convertDebuggerLineToClient(line));
-			bp.id= id;
-			return bp;
-		});
+		// const actualBreakpoints = clientLines.map(l => {
+		// 	let { verified, line, id } = this._runtime.setBreakPoint(path, this.convertClientLineToDebugger(l));
+		// 	const bp = <DebugProtocol.Breakpoint>new Breakpoint(verified, this.convertDebuggerLineToClient(line));
+		// 	bp.id = id;
+		// 	return bp;
+		// });
 
 		// send back the actual breakpoint positions
 		response.body = {
-			breakpoints: actualBreakpoints
+			// breakpoints: actualBreakpoints
+			breakpoints: args.breakpoints.map(i=>new Breakpoint(true))
 		};
 		this.sendResponse(response);
 	}
@@ -346,10 +381,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments) : void {
+	protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments): void {
 		this._runtime.continue(true);
 		this.sendResponse(response);
- 	}
+	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 		this._runtime.step();
@@ -376,8 +411,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			const matches = /new +([0-9]+)/.exec(args.expression);
 			if (matches && matches.length === 2) {
 				const mbp = this._runtime.setBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
-				const bp = <DebugProtocol.Breakpoint> new Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(this._runtime.sourceFile));
-				bp.id= mbp.id;
+				const bp = <DebugProtocol.Breakpoint>new Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(this._runtime.sourceFile));
+				bp.id = mbp.id;
 				this.sendEvent(new BreakpointEvent('new', bp));
 				reply = `breakpoint created`;
 			} else {
@@ -385,8 +420,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				if (matches && matches.length === 2) {
 					const mbp = this._runtime.clearBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
 					if (mbp) {
-						const bp = <DebugProtocol.Breakpoint> new Breakpoint(false);
-						bp.id= mbp.id;
+						const bp = <DebugProtocol.Breakpoint>new Breakpoint(false);
+						bp.id = mbp.id;
 						this.sendEvent(new BreakpointEvent('removed', bp));
 						reply = `breakpoint deleted`;
 					}
@@ -404,18 +439,18 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	protected dataBreakpointInfoRequest(response: DebugProtocol.DataBreakpointInfoResponse, args: DebugProtocol.DataBreakpointInfoArguments): void {
 
 		response.body = {
-            dataId: null,
-            description: "cannot break on data access",
-            accessTypes: undefined,
-            canPersist: false
-        };
+			dataId: null,
+			description: "cannot break on data access",
+			accessTypes: undefined,
+			canPersist: false
+		};
 
 		if (args.variablesReference && args.name) {
 			const id = this._variableHandles.get(args.variablesReference);
 			if (id.startsWith("global_")) {
 				response.body.dataId = args.name;
 				response.body.description = args.name;
-				response.body.accessTypes = [ "read" ];
+				response.body.accessTypes = ["read"];
 				response.body.canPersist = true;
 			}
 		}

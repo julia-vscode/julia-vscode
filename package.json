@@ -537,6 +537,11 @@
                 }
             }
         ],
+        "breakpoints": [
+            {
+                "language": "julia"
+            }
+        ],
         "debuggers": [
             {
                 "type": "julia",
@@ -546,7 +551,9 @@
                 ],
                 "configurationAttributes": {
                     "launch": {
-                        "required": ["script"],
+                        "required": [
+                            "script"
+                        ],
                         "properties": {
                             "script": {
                                 "type": "string",
@@ -594,6 +601,7 @@
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
+        "uuidv4": "^6.0.2",
         "vscode-debugadapter": "1.38.0-pre.4",
         "vscode-jsonrpc": "^5.0.1",
         "vscode-languageclient": "^6.1.0",
