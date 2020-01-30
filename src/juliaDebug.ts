@@ -104,11 +104,18 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		});
 	}
 
+	protected async attachRequest(response: DebugProtocol.AttachResponse, args: DebugProtocol.AttachRequestArguments): Promise<void> {
+		console.log('We attach');
+		this.sendResponse(response);
+	}
+
 	/**
 	 * The 'initialize' request is the first request called by the frontend
 	 * to interrogate the features the debug adapter provides.
 	 */
 	protected async initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): Promise<void> {
+
+		console.log(args);
 
 		// build and return the capabilities of this debug adapter:
 		response.body = response.body || {};
