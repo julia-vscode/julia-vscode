@@ -162,11 +162,14 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		let server = net.createServer(socket => {
 			this._debuggeeSocket = socket;
-			// const rl = readline.createInterface(socket);
+			const rl = readline.createInterface(socket);
 
-			// rl.on('line', line => {
-			// 		console.log(line);
-			// });
+			rl.on('line', line => {
+				if (line=='STOPPEDBP') {
+					this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
+				}
+				console.log(line);
+			});
 
 			connectedPromise.notify();
 		});
@@ -196,8 +199,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		let encoded_code = Buffer.from(code_to_run).toString('base64');
 
 		this._debuggeeSocket.write(`EXEC:${encoded_code}\n`)
-
-		// NOW SEND A MESSAGE TO THE REPL TO RUN SOME CODE
 
 		this.sendResponse(response);
 	}

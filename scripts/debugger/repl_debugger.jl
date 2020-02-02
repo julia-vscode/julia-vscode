@@ -5,7 +5,27 @@ import Sockets, Base64
 
 function startdebug(pipename)
 
+    # in_queue = Channel{Any}(Inf)
+    # out_queue = Channel{Any}(Inf)
+
     conn = Sockets.connect(pipename)
+
+    # @async try
+    #     while true
+    #         l = readline(conn)        
+
+    #         i = findfirst(":", l)
+
+    #         i===nothing && error()
+
+    #         cmd = i[1:i.stop-1]
+    #         payload = i[i.stop+1, end]
+
+    #         push!(in_queue, (cmd=cmd, payload=payload))
+    #     end
+    # catch err
+    #     Base.display_error, Base.catch_stack()
+    # end
 
     @info "CONNECTED"
 
@@ -48,7 +68,11 @@ function startdebug(pipename)
 
         @info "NOW: $x"
 
-            frame = JuliaInterpreter.enter_call_expr(x)
+        @info "Here are the bp:"
+
+        @info JuliaInterpreter.breakpoints()
+
+        frame = JuliaInterpreter.enter_call_expr(x)
 
         @info "FRAME WORKED"
 
@@ -56,20 +80,16 @@ function startdebug(pipename)
 
         ret = JuliaInterpreter.finish_and_return!(frame)
           
-            @info "HEREREERER"
+        @info "HEREREERER"
 
 
-            @info ret
+        @info ret
+        @info typeof(ret)
+        @info propertynames(ret)
 
-        asdf = :(JuliaInterpreter.@interpret $(Meta.parse(decoded_code)))
-        @info asdf
-        try
-            res = Main.eval(asdf)
-            @info "DID WE make it?"
-            @show res
-        catch err
-            @info "SOMETHING WENG WRONG"
-        end
+        @info "NOW WE NEED TO SEND A ON STOP MSG"
+
+        println(conn, "STOPPEDBP")
     end
 end
 
