@@ -34,13 +34,41 @@ function getPlotPaneContent() {
     }
 }
 
-function showPlotPane() {
+async function showPlotPane() {
+    await displayPlot();
+}
+
+async function displayPlot(plot?) {
     telemetry.traceEvent('command-showplotpane');
-    let plotTitle = g_plots.length > 0 ? `Julia Plots (${g_currentPlotIndex+1}/${g_plots.length})` : "Julia Plots (0/0)";
+    const plotTitle = "Julia Plots";
     if (!g_plotPanel) {
         // Otherwise, create a new panel
-        g_plotPanel = vscode.window.createWebviewPanel('jlplotpane', plotTitle, {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true});
-        g_plotPanel.webview.html = getPlotPaneContent();
+        g_plotPanel = vscode.window.createWebviewPanel(
+            'jlplotpane',
+            plotTitle, 
+            {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, 
+            {
+                enableScripts: true,
+                localResourceRoots: [vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotgallery'))]
+            }
+        );
+
+        const filePath: vscode.Uri = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotgallery', 'index.html'));
+        const fileContent = (await fs.readFile(filePath.fsPath, 'utf8')).replace(/<head>([\S\s]*)<\/head>/,
+            function(_arg1, arg2,_arg3,_arg4,_arg5){
+                return `<head> <base href="${vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotgallery')).with({ scheme: 'vscode-resource' })}/"> ${arg2}</head>`;
+            }
+        );
+        g_plotPanel.webview.html = `
+        ${fileContent}
+
+        <script>
+            window.addEventListener('message', event => {
+                const message = event.data;
+                (eval(message.functionName)) (...message.parameters);
+            });
+        </script>`;
+
         vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true);
 
         // Reset when the current panel is closed
@@ -53,69 +81,46 @@ function showPlotPane() {
             vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active);
         });
     }
-    else {
-        g_plotPanel.title = plotTitle;
-        g_plotPanel.webview.html = getPlotPaneContent();
+    if(plot) {
+        runJavaScript("addPlot", [plot]);
     }
 }
 
-function updatePlotPane() {
-    showPlotPane();
+function runJavaScript(functionName:string, parameters?:Array<any>) {
+    if (!parameters) {
+        parameters = [];
+    }
+    g_plotPanel.webview.postMessage({functionName, parameters});
 }
 
 export function plotPanePrev() {
     telemetry.traceEvent('command-plotpaneprevious');
-
-    if (g_currentPlotIndex > 0) {
-        g_currentPlotIndex = g_currentPlotIndex - 1;
-        updatePlotPane();
-    }
+    runJavaScript("previousPlot");
 }
 
 export function plotPaneNext() {
     telemetry.traceEvent('command-plotpanenext');
-
-    if (g_currentPlotIndex < g_plots.length - 1) {
-        g_currentPlotIndex = g_currentPlotIndex + 1;
-        updatePlotPane();
-    }
+    runJavaScript("nextPlot");
 }
 
 export function plotPaneFirst() {
     telemetry.traceEvent('command-plotpanefirst');
-
-    if (g_plots.length > 0) {
-        g_currentPlotIndex = 0;
-        updatePlotPane();
-    }
+    runJavaScript("firstPlot");
 }
 
 export function plotPaneLast() {
     telemetry.traceEvent('command-plotpanelast');
-    if (g_plots.length > 0) {
-        g_currentPlotIndex = g_plots.length - 1;
-        updatePlotPane();
-    }
+    runJavaScript("lastPlot");
 }
 
 export function plotPaneDel() {
     telemetry.traceEvent('command-plotpanedelete');
-    if (g_plots.length > 0) {
-        g_plots.splice(g_currentPlotIndex, 1);
-        if (g_currentPlotIndex > g_plots.length - 1) {
-            g_currentPlotIndex = g_plots.length - 1;
-        }
-        updatePlotPane();
-    }
+    runJavaScript("deleteCurrentPlot");
 }
 
 export function plotPaneDelAll() {
     telemetry.traceEvent('command-plotpanedeleteall');
-    if (g_plots.length > 0) {
-        g_plots.splice(0, g_plots.length);
-        g_currentPlotIndex = 0;
-        updatePlotPane();
-    }
+    runJavaScript("deleteAllPlots");
 }
 
 export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
@@ -210,219 +215,24 @@ async function startREPL(preserveFocus: boolean) {
 
 function processMsg(cmd, payload) {
     if (cmd == 'image/svg+xml') {
-        g_currentPlotIndex = g_plots.push(payload) - 1;
-        showPlotPane();
+        displayPlot({type: "image", data: 'data:image/svg+xml;base64, ' + Buffer.from(payload).toString('base64')});
     }
     else if (cmd == 'image/png') {
-        let plotPaneContent = '<html><img src="data:image/png;base64,' + payload + '" /></html>';
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-        showPlotPane();
+        let plot = {type: "image", data: 'data:image/png;base64,' + payload};
+        displayPlot(plot);
     }
     else if (cmd == 'juliavscode/html') {
-        g_currentPlotIndex = g_plots.push(payload) - 1;
-        showPlotPane();
+        let grid_panel = vscode.window.createWebviewPanel('juliavscode_html', 'HTML', {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true, retainContextWhenHidden: true});
+        grid_panel.webview.html = payload;
+    } else if (cmd == 'application/vnd.vegalite.v2+json' || cmd == 'application/vnd.vegalite.v3+json' || cmd == 'application/vnd.vegalite.v4+json') {
+        displayPlot({type: "vega-lite", data: JSON.parse(payload)});
     }
-    else if (cmd == 'application/vnd.vegalite.v2+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')).with({ scheme: 'vscode-resource' });
-        let plotPaneContent = `
-            <html>
-                <head>
-                    <script src="${uriVega}"></script>
-                    <script src="${uriVegaLite}"></script>
-                    <script src="${uriVegaEmbed}"></script>
-                </head>
-                <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
-                </body>
-                <style media="screen">
-                    .vega-actions a {
-                        margin-right: 10px;
-                        font-family: sans-serif;
-                        font-size: x-small;
-                        font-style: italic;
-                    }
-                </style>
-                <script type="text/javascript">
-                    var opt = {
-                        mode: "vega-lite",
-                        actions: false
-                    }
-                    var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
-                </script>
-            </html>`;
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-        showPlotPane();
-    }
-    else if (cmd == 'application/vnd.vegalite.v3+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
-        let plotPaneContent = `
-            <html>
-                <head>
-                    <script src="${uriVega}"></script>
-                    <script src="${uriVegaLite}"></script>
-                    <script src="${uriVegaEmbed}"></script>
-                </head>
-                <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
-                </body>
-                <style media="screen">
-                    .vega-actions a {
-                        margin-right: 10px;
-                        font-family: sans-serif;
-                        font-size: x-small;
-                        font-style: italic;
-                    }
-                </style>
-                <script type="text/javascript">
-                    var opt = {
-                        mode: "vega-lite",
-                        actions: false
-                    }
-                    var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
-                </script>
-            </html>`;
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-        showPlotPane();
-    }
-    else if (cmd == 'application/vnd.vegalite.v4+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
-        let plotPaneContent = `
-            <html>
-                <head>
-                    <script src="${uriVega}"></script>
-                    <script src="${uriVegaLite}"></script>
-                    <script src="${uriVegaEmbed}"></script>
-                </head>
-                <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
-                </body>
-                <style media="screen">
-                    .vega-actions a {
-                        margin-right: 10px;
-                        font-family: sans-serif;
-                        font-size: x-small;
-                        font-style: italic;
-                    }
-                </style>
-                <script type="text/javascript">
-                    var opt = {
-                        mode: "vega-lite",
-                        actions: false
-                    }
-                    var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
-                </script>
-            </html>`;
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-        showPlotPane();
-    }
-    else if (cmd == 'application/vnd.vega.v3+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')).with({ scheme: 'vscode-resource' });
-        let plotPaneContent = `
-            <html>
-                <head>
-                    <script src="${uriVega}"></script>
-                    <script src="${uriVegaEmbed}"></script>
-                </head>
-                <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
-                </body>
-                <style media="screen">
-                    .vega-actions a {
-                        margin-right: 10px;
-                        font-family: sans-serif;
-                        font-size: x-small;
-                        font-style: italic;
-                    }
-                </style>
-                <script type="text/javascript">
-                    var opt = {
-                        mode: "vega",
-                        actions: false
-                    }
-                    var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
-                </script>
-            </html>`;
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-        showPlotPane();
-    }
-    else if (cmd == 'application/vnd.vega.v4+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js')).with({ scheme: 'vscode-resource' });
-        let plotPaneContent = `
-            <html>
-                <head>
-                    <script src="${uriVega}"></script>
-                    <script src="${uriVegaEmbed}"></script>
-                </head>
-                <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
-                </body>
-                <style media="screen">
-                    .vega-actions a {
-                        margin-right: 10px;
-                        font-family: sans-serif;
-                        font-size: x-small;
-                        font-style: italic;
-                    }
-                </style>
-                <script type="text/javascript">
-                    var opt = {
-                        mode: "vega",
-                        actions: false
-                    }
-                    var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
-                </script>
-            </html>`;
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-        showPlotPane();
-    }
-    else if (cmd == 'application/vnd.vega.v5+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
-        let plotPaneContent = `
-            <html>
-                <head>
-                    <script src="${uriVega}"></script>
-                    <script src="${uriVegaEmbed}"></script>
-                </head>
-                <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
-                </body>
-                <style media="screen">
-                    .vega-actions a {
-                        margin-right: 10px;
-                        font-family: sans-serif;
-                        font-size: x-small;
-                        font-style: italic;
-                    }
-                </style>
-                <script type="text/javascript">
-                    var opt = {
-                        mode: "vega",
-                        actions: false
-                    }
-                    var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
-                </script>
-            </html>`;
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-        showPlotPane();
+    else if (cmd == 'application/vnd.vega.v3+json' || cmd == 'application/vnd.vega.v4+json' || cmd == 'application/vnd.vega.v5+json') {
+        displayPlot({type: "vega", data: JSON.parse(payload)});
     }
     else if (cmd == 'application/vnd.plotly.v1+json') {
         let uriPlotly = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')).with({ scheme: 'vscode-resource' });
-        let plotPaneContent = `
+        let htmlContent = `
         <html>
         <head>
             <script src="${uriPlotly}"></script>
@@ -451,8 +261,9 @@ function processMsg(cmd, payload) {
             })();
         </script>
         </html>`;
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1;
-        showPlotPane();
+
+        let grid_panel = vscode.window.createWebviewPanel('jlplotly', 'Julia Plotly', {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true, retainContextWhenHidden: true});
+        grid_panel.webview.html = htmlContent;
     }
     else if (cmd == 'application/vnd.dataresource+json') {
         let uriAgGrid = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid-community.min.noStyle.js')).with({ scheme: 'vscode-resource' });
@@ -512,14 +323,14 @@ function processMsg(cmd, payload) {
         // g_REPLTreeDataProvider.refresh();
     }
     else {
-        throw new Error();
+        throw new Error("Message command type not supported: " + cmd);
     }
 }
 
 function startREPLMsgServer() {
     let PIPE_PATH = generatePipeName(process.pid.toString(), 'vscode-language-julia-fromrepl');
 
-    let connectedPromise = new Promise(function (resolveCallback, rejectCallback) {
+    let connectedPromise = new Promise(function (resolveCallback, _rejectCallback) {
         var server = net.createServer(function (socket) {
             resolveCallback();
 
@@ -549,7 +360,7 @@ function startREPLMsgServer() {
             }
         });
 
-            socket.on('close', function (hadError) { server.close(); });
+            socket.on('close', function (_hadError) { server.close(); });
     });
 
         server.on('close', function () {
@@ -798,7 +609,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     })
 }
 
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
+export function onDidChangeConfiguration(_newSettings: settings.ISettings) {
 
 }
 
