@@ -59,6 +59,15 @@ async function displayPlot(plot?) {
                 return `<head> <base href="${vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotgallery')).with({ scheme: 'vscode-resource' })}/"> ${arg2}</head>`;
             }
         );
+
+        g_plotPanel.webview.onDidReceiveMessage(message => {
+            if (message.command=='initialized') {
+                if(plot) {
+                    runJavaScript("addPlot", [plot]);
+                }
+            }
+        });
+
         g_plotPanel.webview.html = `
         ${fileContent}
 
@@ -67,6 +76,7 @@ async function displayPlot(plot?) {
                 const message = event.data;
                 (eval(message.functionName)) (...message.parameters);
             });
+            acquireVsCodeApi().postMessage({command: 'initialized'})
         </script>`;
 
         vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true);
@@ -81,8 +91,10 @@ async function displayPlot(plot?) {
             vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active);
         });
     }
-    if(plot) {
-        runJavaScript("addPlot", [plot]);
+    else {
+        if(plot) {
+            runJavaScript("addPlot", [plot]);
+        }
     }
 }
 
