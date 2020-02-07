@@ -595,6 +595,7 @@
         "package": "git submodule init && git submodule update && npm install --no-save && npm run compile && vsce package"
     },
     "dependencies": {
+        "@types/vscode": "^1.42.0",
         "applicationinsights": "^1.7.0",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
