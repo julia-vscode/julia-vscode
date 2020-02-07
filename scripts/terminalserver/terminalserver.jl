@@ -476,6 +476,6 @@ if _vscodeserver.load_revise
     Revise.async_steal_repl_backend()
 end
 
-function debug(command::String)
-    _vscodeserver.sendMsgToVscode("debugger/eval", command)
+macro enter(command)
+    :(_vscodeserver.sendMsgToVscode("debugger/eval", $(string(command))))
 end

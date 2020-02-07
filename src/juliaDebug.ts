@@ -120,20 +120,20 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		response.body.supportsConfigurationDoneRequest = true;
 
 		// make VS Code to use 'evaluate' when hovering over source
-		response.body.supportsEvaluateForHovers = true;
+		response.body.supportsEvaluateForHovers = false;
 
 		// make VS Code to show a 'step back' button
-		response.body.supportsStepBack = true;
+		response.body.supportsStepBack = false;
 
 		// make VS Code to support data breakpoints
-		response.body.supportsDataBreakpoints = true;
+		response.body.supportsDataBreakpoints = false;
 
 		// make VS Code to support completion in REPL
-		response.body.supportsCompletionsRequest = true;
-		response.body.completionTriggerCharacters = [".", "["];
+		response.body.supportsCompletionsRequest = false;
+		// response.body.completionTriggerCharacters = [".", "["];
 
 		// make VS Code to send cancelRequests
-		response.body.supportsCancelRequest = true;
+		response.body.supportsCancelRequest = false;
 
 		// make VS Code send the breakpointLocations request
 		response.body.supportsBreakpointLocationsRequest = true;
@@ -167,6 +167,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			rl.on('line', line => {
 				if (line=='STOPPEDBP') {
 					this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
+				}
+				else if (line=='FINISHED') {
+					this.sendEvent(new TerminatedEvent())
 				}
 				console.log(line);
 			});

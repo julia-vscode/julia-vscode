@@ -78,18 +78,22 @@ function startdebug(pipename)
 
         @info frame
 
-        ret = JuliaInterpreter.finish_and_return!(frame)
+        ret = JuliaInterpreter.debug_command(frame, :finish)
           
         @info "HEREREERER"
 
+        if ret===nothing
+            @info "WE ARE SENDING FINISHED"
+            println(conn, "FINISHED")
+        else
+            fr, bpr = ret
 
-        @info ret
-        @info typeof(ret)
-        @info propertynames(ret)
+            @info "NOW WE NEED TO SEND A ON STOP MSG"
 
-        @info "NOW WE NEED TO SEND A ON STOP MSG"
+            println(conn, "STOPPEDBP")    
+        end
 
-        println(conn, "STOPPEDBP")
+
     end
 end
 
