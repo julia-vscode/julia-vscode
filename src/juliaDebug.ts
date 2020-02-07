@@ -59,6 +59,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	private _debuggeeTerminal: Terminal;
 	private _debuggeeSocket: net.Socket;
 
+	private _resultFromDebugger: string;
+	private _resultFromDebuggerArrived = new Subject();
+
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
 	 * We configure the default implementation of a debug adapter here.
@@ -69,8 +72,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		this._juliaPath = juliaPath;
 
 		// this debugger uses zero-based lines and columns
-		this.setDebuggerLinesStartAt1(false);
-		this.setDebuggerColumnsStartAt1(false);
+		this.setDebuggerLinesStartAt1(true);
+		this.setDebuggerColumnsStartAt1(true);
 
 		this._runtime = new MockRuntime();
 
@@ -119,6 +122,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		// the adapter implements the configurationDoneRequest.
 		response.body.supportsConfigurationDoneRequest = true;
 
+		response.body.supportsFunctionBreakpoints = true;
+
 		// make VS Code to use 'evaluate' when hovering over source
 		response.body.supportsEvaluateForHovers = false;
 
@@ -138,6 +143,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		// make VS Code send the breakpointLocations request
 		response.body.supportsBreakpointLocationsRequest = true;
 
+		response.body.exceptionBreakpointFilters = [{filter: 'error', label: 'Break any time an uncaught exception is thrown', default: true}, {filter: 'throw', label: 'Break any time a throw is executed', default: false}];
+
 		this.sendResponse(response);
 	}
 
@@ -147,8 +154,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	 */
 	protected configurationDoneRequest(response: DebugProtocol.ConfigurationDoneResponse, args: DebugProtocol.ConfigurationDoneArguments): void {
 		super.configurationDoneRequest(response, args);
-
-		this._debuggeeSocket.write('\n');
 
 		// notify the launchRequest that configuration has finished
 		this._configurationDone.notify();
@@ -170,6 +175,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				}
 				else if (line=='FINISHED') {
 					this.sendEvent(new TerminatedEvent())
+				}
+				else if(line.startsWith('RESULT:')) {
+					this._resultFromDebugger = Buffer.from(line.slice(7), 'base64').toString();
+					this._resultFromDebuggerArrived.notify();
 				}
 				console.log(line);
 			});
@@ -273,10 +282,12 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		const path = <string>args.source.path;
 		const clientLines = args.breakpoints || [];
 
+		let msgForClient = `SETBREAKPOINTS:${path}`
+
 		for (let i of args.breakpoints) {
-			let msg = `${path};${i.line}\n`;
-			this._debuggeeSocket.write(msg);
+			msgForClient = msgForClient + `;${i.line}`			
 		}
+		this._debuggeeSocket.write(msgForClient + '\n');
 
 		// clear all breakpoints for this file
 		// this._runtime.clearBreakpoints(path);
@@ -294,6 +305,24 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			// breakpoints: actualBreakpoints
 			breakpoints: args.breakpoints.map(i=>new Breakpoint(true))
 		};
+		this.sendResponse(response);
+	}
+
+	protected setFunctionBreakPointsRequest(response: DebugProtocol.SetFunctionBreakpointsResponse, args: DebugProtocol.SetFunctionBreakpointsArguments): void {
+		let msgForClient = 'SETFUNCBREAKPOINTS:' + args.breakpoints.map(i=>i.name).join(';') + '\n';
+
+		this._debuggeeSocket.write(msgForClient);
+
+		response.body = {
+			breakpoints: args.breakpoints.map(i=>new Breakpoint(true))
+		}
+
+		this.sendResponse(response);
+	}
+
+	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments): void {
+		this._debuggeeSocket.write(`SETEXCEPTIONBREAKPOINTS:${args.filters.join(';')}\n`);
+
 		this.sendResponse(response);
 	}
 
@@ -328,17 +357,29 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
+	protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
+		this._debuggeeSocket.write(`GETSTACKTRACE\n`);
 
-		const startFrame = typeof args.startFrame === 'number' ? args.startFrame : 0;
-		const maxLevels = typeof args.levels === 'number' ? args.levels : 1000;
-		const endFrame = startFrame + maxLevels;
+		await this._resultFromDebuggerArrived.wait();
 
-		const stk = this._runtime.stack(startFrame, endFrame);
+		const stk = this._resultFromDebugger.split('\n');
+
+
+
+		// const startFrame = typeof args.startFrame === 'number' ? args.startFrame : 0;
+		// const maxLevels = typeof args.levels === 'number' ? args.levels : 1000;
+		// const endFrame = startFrame + maxLevels;
+
+		// const stk = this._runtime.stack(startFrame, endFrame);
 
 		response.body = {
-			stackFrames: stk.frames.map(f => new StackFrame(f.index, f.name, this.createSource(f.file), this.convertDebuggerLineToClient(f.line))),
-			totalFrames: stk.count
+			stackFrames: stk.map(f => {
+				const parts = f.split(';');
+				// TODO Figure out how we can get a proper stackframe ID
+				// TODO Make sure ; is a good separator here...
+				return new StackFrame(1, parts[0], this.createSource(parts[1]), this.convertDebuggerLineToClient(parseInt(parts[2])))
+			}),
+			totalFrames: stk.length
 		};
 		this.sendResponse(response);
 	}
@@ -432,7 +473,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-		this._runtime.continue();
+		this._debuggeeSocket.write('CONTINUE\n');
 		this.sendResponse(response);
 	}
 
@@ -442,12 +483,27 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		this._runtime.step();
+		this._debuggeeSocket.write('NEXT\n');
+		this.sendResponse(response);
+	}
+
+	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
+		this._debuggeeSocket.write('STEPIN\n');
+		this.sendResponse(response);
+	}
+
+	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
+		this._debuggeeSocket.write('STEPOUT\n');
 		this.sendResponse(response);
 	}
 
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-		this._debuggeeTerminal.dispose();
+		if (this._debuggeeTerminal) {
+			this._debuggeeTerminal.dispose();
+		}
+		else {
+			this._debuggeeSocket.write(`DISCONNECT\n`);
+		}
 
 		this.sendResponse(response);
 	}
