@@ -166,11 +166,14 @@ end
                 end
             end
         elseif cmd == "repl/startdebugger"
-            @info "WE GOT HIS"
-            payload_as_string = String(payload)
-            @info payload_as_string
-
-            REPLDebugger.startdebug(payload_as_string)
+            hideprompt() do
+                payload_as_string = String(payload)
+                try
+                    REPLDebugger.startdebug(payload_as_string)
+                catch err
+                    Base.display_error(err, catch_backtrace())
+                end
+            end
         end
     end
 end
