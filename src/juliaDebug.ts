@@ -114,8 +114,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	 */
 	protected async initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): Promise<void> {
 
-		console.log(args);
-
 		// build and return the capabilities of this debug adapter:
 		response.body = response.body || {};
 
@@ -180,7 +178,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 					this._resultFromDebugger = Buffer.from(line.slice(7), 'base64').toString();
 					this._resultFromDebuggerArrived.notify();
 				}
-				console.log(line);
 			});
 
 			connectedPromise.notify();
