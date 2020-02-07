@@ -155,7 +155,7 @@ end
 
                 try
                     withpath(source_filename) do
-                        res = include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                        res = Base.invokelatest(include_string, Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
 
                         if res !== nothing && !ends_with_semicolon(source_code)
                             display(res)
