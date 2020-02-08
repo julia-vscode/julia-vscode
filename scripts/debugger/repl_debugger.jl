@@ -117,9 +117,10 @@ function startdebug(pipename)
 
                 frames_as_string = String[]
 
+                id = 1
                 while curr_fr!==nothing
-                    push!(frames_as_string, string(JuliaInterpreter.scopeof(curr_fr).name, ";", JuliaInterpreter.whereis(curr_fr)[1], ";", JuliaInterpreter.whereis(curr_fr)[2]))
-
+                    push!(frames_as_string, string(id, ";", JuliaInterpreter.scopeof(curr_fr).name, ";", JuliaInterpreter.whereis(curr_fr)[1], ";", JuliaInterpreter.whereis(curr_fr)[2]))
+                    id += 1
                     curr_fr = curr_fr.caller
                 end
 
@@ -127,6 +128,35 @@ function startdebug(pipename)
 
                 println(conn, "RESULT:$encoded_version\n")
                 @info "DONE SENDING stacktrace"
+            elseif startswith(l, "GETVARIABLES:")
+                @info "START VARS"
+                payload = l[14:end]
+
+                frameId = parse(Int, payload)
+
+                fr, bpr = ret
+
+                curr_fr = JuliaInterpreter.leaf(fr)
+
+                i = 1
+
+                while frameId > i
+                    curr_fr = curr_fr.caller
+                    i += 1
+                end
+
+                vars = JuliaInterpreter.locals(curr_fr)
+
+                vars_as_string = String[]
+
+                for v in vars
+                    push!(vars_as_string, string(v.name, ";", v.value))
+                end
+
+                encoded_version = Base64.base64encode(join(vars_as_string, '\n'))
+
+                println(conn, "RESULT:$encoded_version\n")
+                @info "DONE VARS"
             elseif l=="CONTINUE"
                 ret = JuliaInterpreter.debug_command(ret[1], :c)
 

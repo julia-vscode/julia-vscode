@@ -46,7 +46,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	// a Mock runtime (or debugger)
 	private _runtime: MockRuntime;
 
-	private _variableHandles = new Handles<string>();
+	private _variableHandles = new Handles<{scope: string, frameId: number}>();
 
 	private _configurationDone = new Subject();
 
@@ -141,7 +141,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		// make VS Code send the breakpointLocations request
 		response.body.supportsBreakpointLocationsRequest = true;
 
-		response.body.exceptionBreakpointFilters = [{filter: 'error', label: 'Break any time an uncaught exception is thrown', default: true}, {filter: 'throw', label: 'Break any time a throw is executed', default: false}];
+		response.body.exceptionBreakpointFilters = [{ filter: 'error', label: 'Break any time an uncaught exception is thrown', default: true }, { filter: 'throw', label: 'Break any time a throw is executed', default: false }];
 
 		this.sendResponse(response);
 	}
@@ -168,13 +168,13 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			const rl = readline.createInterface(socket);
 
 			rl.on('line', line => {
-				if (line=='STOPPEDBP') {
+				if (line == 'STOPPEDBP') {
 					this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
 				}
-				else if (line=='FINISHED') {
+				else if (line == 'FINISHED') {
 					this.sendEvent(new TerminatedEvent())
 				}
-				else if(line.startsWith('RESULT:')) {
+				else if (line.startsWith('RESULT:')) {
 					this._resultFromDebugger = Buffer.from(line.slice(7), 'base64').toString();
 					this._resultFromDebuggerArrived.notify();
 				}
@@ -191,7 +191,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		sendMessage('repl/startdebugger', pn);
 
-		await connectedPromise.wait();		
+		await connectedPromise.wait();
 
 		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
 		// we request them early by sending an 'initializeRequest' to the frontend.
@@ -253,7 +253,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			}
 		}, this, asdf);
 
-		await connectedPromise.wait();		
+		await connectedPromise.wait();
 
 		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
 		// we request them early by sending an 'initializeRequest' to the frontend.
@@ -282,7 +282,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		let msgForClient = `SETBREAKPOINTS:${path}`
 
 		for (let i of args.breakpoints) {
-			msgForClient = msgForClient + `;${i.line}`			
+			msgForClient = msgForClient + `;${i.line}`
 		}
 		this._debuggeeSocket.write(msgForClient + '\n');
 
@@ -300,18 +300,18 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		// send back the actual breakpoint positions
 		response.body = {
 			// breakpoints: actualBreakpoints
-			breakpoints: args.breakpoints.map(i=>new Breakpoint(true))
+			breakpoints: args.breakpoints.map(i => new Breakpoint(true))
 		};
 		this.sendResponse(response);
 	}
 
 	protected setFunctionBreakPointsRequest(response: DebugProtocol.SetFunctionBreakpointsResponse, args: DebugProtocol.SetFunctionBreakpointsArguments): void {
-		let msgForClient = 'SETFUNCBREAKPOINTS:' + args.breakpoints.map(i=>i.name).join(';') + '\n';
+		let msgForClient = 'SETFUNCBREAKPOINTS:' + args.breakpoints.map(i => i.name).join(';') + '\n';
 
 		this._debuggeeSocket.write(msgForClient);
 
 		response.body = {
-			breakpoints: args.breakpoints.map(i=>new Breakpoint(true))
+			breakpoints: args.breakpoints.map(i => new Breakpoint(true))
 		}
 
 		this.sendResponse(response);
@@ -374,7 +374,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				const parts = f.split(';');
 				// TODO Figure out how we can get a proper stackframe ID
 				// TODO Make sure ; is a good separator here...
-				return new StackFrame(1, parts[0], this.createSource(parts[1]), this.convertDebuggerLineToClient(parseInt(parts[2])))
+				return new StackFrame(parseInt(parts[0]), parts[1], this.createSource(parts[2]), this.convertDebuggerLineToClient(parseInt(parts[3])))
 			}),
 			totalFrames: stk.length
 		};
@@ -385,8 +385,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		response.body = {
 			scopes: [
-				new Scope("Local", this._variableHandles.create("local"), false),
-				new Scope("Global", this._variableHandles.create("global"), true)
+				new Scope("Local", this._variableHandles.create({scope: "local", frameId: args.frameId}), false),
+				// new Scope("Global", this._variableHandles.create("global"), true)
 			]
 		};
 		this.sendResponse(response);
@@ -396,71 +396,23 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		const variables: DebugProtocol.Variable[] = [];
 
-		if (this._isLongrunning.get(args.variablesReference)) {
-			// long running
+		const details = this._variableHandles.get(args.variablesReference);		
 
-			if (request) {
-				this._cancelationTokens.set(request.seq, false);
-			}
+		this._debuggeeSocket.write(`GETVARIABLES:${details.frameId}\n`);
 
-			for (let i = 0; i < 100; i++) {
-				await timeout(1000);
-				variables.push({
-					name: `i_${i}`,
-					type: "integer",
-					value: `${i}`,
-					variablesReference: 0
-				});
-				if (request && this._cancelationTokens.get(request.seq)) {
-					break;
-				}
-			}
+		await this._resultFromDebuggerArrived.wait();
 
-			if (request) {
-				this._cancelationTokens.delete(request.seq);
-			}
+		const vars = this._resultFromDebugger.split('\n');
 
-		} else {
+		for (let v of vars) {
+			let parts = v.split(';')
 
-			const id = this._variableHandles.get(args.variablesReference);
-
-			if (id) {
-				variables.push({
-					name: id + "_i",
-					type: "integer",
-					value: "123",
-					variablesReference: 0
-				});
-				variables.push({
-					name: id + "_f",
-					type: "float",
-					value: "3.14",
-					variablesReference: 0
-				});
-				variables.push({
-					name: id + "_s",
-					type: "string",
-					value: "hello world",
-					variablesReference: 0
-				});
-				variables.push({
-					name: id + "_o",
-					type: "object",
-					value: "Object",
-					variablesReference: this._variableHandles.create(id + "_o")
-				});
-
-				// cancelation support for long running requests
-				const nm = id + "_long_running";
-				const ref = this._variableHandles.create(id + "_lr");
-				variables.push({
-					name: nm,
-					type: "object",
-					value: "Object",
-					variablesReference: ref
-				});
-				this._isLongrunning.set(ref, true);
-			}
+			variables.push({
+				name: parts[0],
+				type: 'string',
+				value: parts[1],
+				variablesReference: 0
+			});
 		}
 
 		response.body = {
@@ -554,7 +506,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		};
 
 		if (args.variablesReference && args.name) {
-			const id = this._variableHandles.get(args.variablesReference);
+			// const id = this._variableHandles.get(args.variablesReference);
+			// TODO FIX THIS
+			const id = '';
 			if (id.startsWith("global_")) {
 				response.body.dataId = args.name;
 				response.body.description = args.name;
