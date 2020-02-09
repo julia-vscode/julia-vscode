@@ -38,13 +38,25 @@ end
     return LineNumberNode(lnn.line-1, filename)
 end
 
-function our_debug_command(frame, cmd, modexs)
+function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
     ret = nothing
     while true
         @debug "Now running the following FRAME:"
         @debug frame
 
         ret = JuliaInterpreter.debug_command(frame, cmd, true)
+
+        for func_name in not_yet_set_function_breakpoints
+            @debug "setting func breakpoint for $func_name"
+            try
+                f = Main.eval(Meta.parse(func_name))
+                @debug "Setting breakpoint for $f"
+                JuliaInterpreter.breakpoint(f)
+                delete!(not_yet_set_function_breakpoints, func_name)
+            catch err
+                push!(not_yet_set_function_breakpoints, func_name)
+            end
+        end        
 
         # @debug "We got $ret"
 
@@ -90,6 +102,8 @@ function startdebug(pipename)
     try
         modexs = []
         frame = nothing
+
+        not_yet_set_function_breakpoints = Set{String}()
 
         while true      
             @debug "Current FRAME is"    
@@ -137,7 +151,7 @@ function startdebug(pipename)
                 if stop_on_entry
                     send_msg(conn, "STOPPEDBP")
                 else
-                    ret = our_debug_command(frame, :finish, modexs)
+                    ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints)
 
                     if ret===nothing
                         send_msg(conn, "FINISHED")
@@ -216,9 +230,13 @@ function startdebug(pipename)
 
                 for func_name in func_names
                     @debug "setting func breakpoint for $func_name"
-                    f = Main.eval(Meta.parse(func_name))
-                    @debug "Setting breakpoint for $f"
-                    JuliaInterpreter.breakpoint(f)
+                    try
+                        f = Main.eval(Meta.parse(func_name))
+                        @debug "Setting breakpoint for $f"
+                        JuliaInterpreter.breakpoint(f)
+                    catch err
+                        push!(not_yet_set_function_breakpoints, func_name)
+                    end
                 end
             elseif msg_cmd=="GETSTACKTRACE"
                 @debug "Stacktrace requested"
@@ -278,7 +296,7 @@ function startdebug(pipename)
                 send_msg(conn, "RESULT", join(vars_as_string, '\n'))
                 @debug "DONE VARS"
             elseif msg_cmd=="CONTINUE"
-                ret = our_debug_command(frame, :c, modexs)
+                ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -290,7 +308,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="NEXT"
                 @debug "NEXT COMMAND"
-                ret = our_debug_command(frame, :n, modexs)
+                ret = our_debug_command(frame, :n, modexs, not_yet_set_function_breakpoints)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -302,7 +320,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="STEPIN"
                 @debug "STEPIN COMMAND"
-                ret = our_debug_command(frame, :s, modexs)
+                ret = our_debug_command(frame, :s, modexs, not_yet_set_function_breakpoints)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -314,7 +332,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="STEPOUT"
                 @debug "STEPOUT COMMAND"
-                ret = our_debug_command(frame, :finish, modexs)
+                ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
