@@ -490,8 +490,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 			variables.push({
 				name: parts[0],
-				type: 'string',
-				value: parts[1],
+				type: parts[1],
+				value: parts[2],
 				variablesReference: 0
 			});
 		}
