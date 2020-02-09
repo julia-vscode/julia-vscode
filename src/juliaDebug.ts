@@ -18,6 +18,8 @@ import * as readline from 'readline';
 import { generatePipeName } from './utils';
 import { uuid } from 'uuidv4';
 import { sendMessage } from './repl';
+import * as vscode from 'vscode';
+import { getVSCodeDownloadUrl } from 'vscode-test/out/util';
 
 function timeout(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -31,7 +33,7 @@ function timeout(ms) {
  */
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	/** An absolute path to the "program" to debug. */
-	script: string;
+	program: string;
 	/** Automatically stop target after launch. If not specified, target does not stop. */
 	stopOnEntry?: boolean;
 	/** enable logging the Debug Adapter Protocol */
@@ -276,10 +278,26 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		await serverListeningPromise.wait();
 
+		let cwdForDebuggee = "";
+
+		if (vscode.workspace.workspaceFolders) {
+			if (vscode.workspace.workspaceFolders.length==1) {
+				cwdForDebuggee = vscode.workspace.workspaceFolders[0].uri.fsPath;
+			}
+		}
+
 		this._debuggeeTerminal = window.createTerminal({
 			name: "Julia Debugger",
 			shellPath: this._juliaPath,
-			shellArgs: ['--color=yes', '--startup-file=no', '--history-file=no', join(this._context.extensionPath, 'scripts', 'debugger', 'launch_wrapper.jl'), pn, pnForWrapper]
+			shellArgs: [
+				'--color=yes',
+				'--startup-file=no',
+				'--history-file=no',
+				join(this._context.extensionPath, 'scripts', 'debugger', 'launch_wrapper.jl'),
+				pn,
+				pnForWrapper,
+				cwdForDebuggee
+			]
 		});
 		this._debuggeeTerminal.show(false);
 		let asdf: Array<Disposable> = [];
@@ -304,10 +322,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		this._launchedWithoutDebug = args.noDebug;
 
 		if (args.noDebug) {
-			this.sendMsgToDebugger('RUN', args.script);
+			this.sendMsgToDebugger('RUN', args.program);
 		}
 		else {
-			this.sendMsgToDebugger('DEBUG', args.script);
+			this.sendMsgToDebugger('DEBUG', args.program);
 		}
 
 		this.sendResponse(response);

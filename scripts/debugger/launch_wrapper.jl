@@ -2,6 +2,7 @@ using Sockets
 
 pipename_for_wrapper = ARGS[2]
 pipename_for_debugger = ARGS[1]
+cwd = ARGS[3]
 
 @debug "STARTED WRAPPER"
 
@@ -16,7 +17,7 @@ jl_cmd = joinpath(Sys.BINDIR, Base.julia_exename())
 
 debugger_script = joinpath(@__DIR__, "run_debugger.jl")
 
-cmd = `$jl_cmd --color=yes $debugger_script $pipename_for_debugger`
+cmd = Cmd(`$jl_cmd --color=yes $debugger_script $pipename_for_debugger`, dir=cwd)
 
 p = run(pipeline(cmd, stdin=stdin, stdout=stdout, stderr=stderr), wait=false)
 

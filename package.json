@@ -552,10 +552,10 @@
                 "configurationAttributes": {
                     "launch": {
                         "required": [
-                            "script"
+                            "program"
                         ],
                         "properties": {
-                            "script": {
+                            "program": {
                                 "type": "string",
                                 "description": "Absolute path to a Julia script.",
                                 "default": "${file}"
@@ -568,7 +568,7 @@
                         "type": "julia",
                         "request": "launch",
                         "name": "Run Julia file",
-                        "script": "${file}"
+                        "program": "${file}"
                     }
                 ],
                 "configurationSnippets": [
@@ -579,7 +579,7 @@
                             "type": "julia",
                             "request": "launch",
                             "name": "${2:Launch Program}",
-                            "script": "^\"\\${workspaceFolder}/${1:Program}\""
+                            "program": "^\"\\${workspaceFolder}/${1:Program}\""
                         }
                     }
                 ]
