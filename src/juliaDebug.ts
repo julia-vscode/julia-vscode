@@ -191,6 +191,18 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				if (line == 'STOPPEDBP') {
 					this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
 				}
+				else if (line == 'STOPPEDSTEP') {
+					this.sendEvent(new StoppedEvent('step', JuliaDebugSession.THREAD_ID));
+				}
+				else if (line == 'STOPPEDEXCEPTION') {
+					this.sendEvent(new StoppedEvent('exception', JuliaDebugSession.THREAD_ID));
+				}
+				else if (line == 'STOPPEDFUNCBP') {
+					this.sendEvent(new StoppedEvent('function breakpoint', JuliaDebugSession.THREAD_ID));
+				}
+				else if (line == 'STOPPEDENTRY') {
+					this.sendEvent(new StoppedEvent('entry', JuliaDebugSession.THREAD_ID));
+				}
 				else if (line == 'FINISHED') {
 					this.sendEvent(new TerminatedEvent())
 				}
@@ -249,6 +261,18 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			rl.on('line', line => {
 				if (line == 'STOPPEDBP') {
 					this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
+				}
+				else if (line == 'STOPPEDSTEP') {
+					this.sendEvent(new StoppedEvent('step', JuliaDebugSession.THREAD_ID));
+				}
+				else if (line == 'STOPPEDEXCEPTION') {
+					this.sendEvent(new StoppedEvent('exception', JuliaDebugSession.THREAD_ID));
+				}
+				else if (line == 'STOPPEDFUNCBP') {
+					this.sendEvent(new StoppedEvent('function breakpoint', JuliaDebugSession.THREAD_ID));
+				}
+				else if (line == 'STOPPEDENTRY') {
+					this.sendEvent(new StoppedEvent('entry', JuliaDebugSession.THREAD_ID));
 				}
 				else if (line == 'FINISHED') {
 					this.sendEvent(new TerminatedEvent())

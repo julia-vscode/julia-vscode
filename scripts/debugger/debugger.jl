@@ -149,7 +149,7 @@ function startdebug(pipename)
                 deleteat!(modexs, 1)
 
                 if stop_on_entry
-                    send_msg(conn, "STOPPEDBP")
+                    send_msg(conn, "STOPPEDENTRY")
                 else
                     ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints)
 
@@ -316,7 +316,7 @@ function startdebug(pipename)
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDBP")
+                    send_msg(conn, "STOPPEDSTEP")
                 end
             elseif msg_cmd=="STEPIN"
                 @debug "STEPIN COMMAND"
@@ -328,7 +328,7 @@ function startdebug(pipename)
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDBP")
+                    send_msg(conn, "STOPPEDSTEP")
                 end
             elseif msg_cmd=="STEPOUT"
                 @debug "STEPOUT COMMAND"
@@ -340,7 +340,7 @@ function startdebug(pipename)
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDBP")
+                    send_msg(conn, "STOPPEDSTEP")
                 end
             end
         end
