@@ -113,7 +113,6 @@ function startdebug(pipename)
                 end
 
                 send_msg(conn, "FINISHED")                
-                break
             elseif msg_cmd=="DEBUG"
                 index_of_sep = findfirst(';', msg_body)
 
@@ -142,7 +141,6 @@ function startdebug(pipename)
 
                     if ret===nothing
                         send_msg(conn, "FINISHED")
-                        break
                     else
                         frame = ret[1]
                         send_msg(conn, "STOPPEDBP")
@@ -163,7 +161,6 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED")
-                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -171,7 +168,6 @@ function startdebug(pipename)
                 end                
             elseif msg_cmd=="TERMINATE"
                 send_msg(conn, "FINISHED")
-                break
             elseif msg_cmd=="SETBREAKPOINTS"
                 splitted_line = split(msg_body, ';')
 
@@ -287,7 +283,6 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED")
-                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -300,7 +295,6 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED")
-                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -313,7 +307,6 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED")
-                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -326,7 +319,6 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED")
-                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
