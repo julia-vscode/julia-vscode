@@ -115,7 +115,13 @@ function startdebug(pipename)
                 send_msg(conn, "FINISHED")                
                 break
             elseif msg_cmd=="DEBUG"
-                filename_to_debug = msg_body
+                index_of_sep = findfirst(';', msg_body)
+
+                stop_on_entry_as_string = msg_body[1:index_of_sep-1]
+
+                stop_on_entry = stop_on_entry_as_string=="stopOnEntry=true"
+
+                filename_to_debug = msg_body[index_of_sep+1:end]
 
                 @debug "We are debugging $filename_to_debug"
 
@@ -129,14 +135,18 @@ function startdebug(pipename)
                 frame = JuliaInterpreter.prepare_thunk(modexs[1])
                 deleteat!(modexs, 1)
 
-                ret = our_debug_command(frame, :finish, modexs)
-
-                if ret===nothing
-                    send_msg(conn, "FINISHED")
-                    break
-                else
-                    frame = ret[1]
+                if stop_on_entry
                     send_msg(conn, "STOPPEDBP")
+                else
+                    ret = our_debug_command(frame, :finish, modexs)
+
+                    if ret===nothing
+                        send_msg(conn, "FINISHED")
+                        break
+                    else
+                        frame = ret[1]
+                        send_msg(conn, "STOPPEDBP")
+                    end
                 end
             elseif msg_cmd=="EXEC"
                 @debug "WE ARE EXECUTING"

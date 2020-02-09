@@ -247,6 +247,10 @@ export class JuliaDebugConfigurationProvider
             config.internalConsoleOptions = "neverOpen";
         }
 
+        if (!config.stopOnEntry) {
+            config.stopOnEntry = false;
+        }
+
         return config;
     }
 

@@ -559,6 +559,11 @@
                                 "type": "string",
                                 "description": "Absolute path to a Julia script.",
                                 "default": "${file}"
+                            },
+                            "stopOnEntry": {
+                                "type": "bool",
+                                "description": "Automatically pause the Julia program after launch",
+                                "default": false
                             }
                         }
                     }
@@ -568,7 +573,8 @@
                         "type": "julia",
                         "request": "launch",
                         "name": "Run Julia file",
-                        "program": "${file}"
+                        "program": "${file}",
+                        "stopOnEntry": false
                     }
                 ],
                 "configurationSnippets": [
@@ -579,7 +585,8 @@
                             "type": "julia",
                             "request": "launch",
                             "name": "${2:Launch Program}",
-                            "program": "^\"\\${workspaceFolder}/${1:Program}\""
+                            "program": "^\"\\${workspaceFolder}/${1:Program}\"",
+                            "stopOnEntry": false                                
                         }
                     }
                 ]

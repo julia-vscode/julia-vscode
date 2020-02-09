@@ -325,7 +325,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			this.sendMsgToDebugger('RUN', args.program);
 		}
 		else {
-			this.sendMsgToDebugger('DEBUG', args.program);
+			this.sendMsgToDebugger('DEBUG', `${args.stopOnEntry ? 'stopOnEntry=true' : 'stopOnEntry=false'};${args.program}`);
 		}
 
 		this.sendResponse(response);
