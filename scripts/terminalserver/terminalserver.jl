@@ -1,7 +1,7 @@
 module _vscodeserver
 
 include("repl.jl")
-include("../debugger/repl_debugger.jl")
+include("../debugger/debugger.jl")
 
 function remlineinfo!(x)
     if isa(x, Expr)
@@ -169,7 +169,7 @@ end
             hideprompt() do
                 payload_as_string = String(payload)
                 try
-                    REPLDebugger.startdebug(payload_as_string)
+                    VSCodeDebugger.startdebug(payload_as_string)
                 catch err
                     Base.display_error(err, catch_backtrace())
                 end

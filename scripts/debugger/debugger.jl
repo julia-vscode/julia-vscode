@@ -1,4 +1,4 @@
-module REPLDebugger
+module VSCodeDebugger
 
 import JuliaInterpreter
 import Sockets, Base64

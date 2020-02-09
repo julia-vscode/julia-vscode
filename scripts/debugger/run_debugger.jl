@@ -1,10 +1,10 @@
 # ENV["JULIA_DEBUG"] = "all"
 
-include("repl_debugger.jl")
+include("debugger.jl")
 
 try
 
-REPLDebugger.startdebug(ARGS[1])
+    VSCodeDebugger.startdebug(ARGS[1])
 
 catch err
     Base.display_error(err, catch_backtrace())
