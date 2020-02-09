@@ -483,7 +483,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		await this._resultFromDebuggerArrived.wait();
 
-		const vars = this._resultFromDebugger.split('\n');
+		const vars = this._resultFromDebugger=='' ? [] : this._resultFromDebugger.split('\n');
 
 		for (let v of vars) {
 			let parts = v.split(';')

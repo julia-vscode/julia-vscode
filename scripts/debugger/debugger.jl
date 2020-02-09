@@ -290,7 +290,11 @@ function startdebug(pipename)
                 vars_as_string = String[]
 
                 for v in vars
-                    push!(vars_as_string, string(v.name, ";", v.value))
+                    # TODO Figure out why #self# is here in the first place
+                    # For now we don't report it to the client
+                    if string(v.name)!="#self#"
+                        push!(vars_as_string, string(v.name, ";", v.value))
+                    end
                 end
 
                 send_msg(conn, "RESULT", join(vars_as_string, '\n'))
