@@ -138,6 +138,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		// make VS Code to send cancelRequests
 		response.body.supportsCancelRequest = false;
 
+		response.body.supportsTerminateRequest = true;
+
 		// make VS Code send the breakpointLocations request
 		response.body.supportsBreakpointLocationsRequest = true;
 
@@ -155,6 +157,17 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		// notify the launchRequest that configuration has finished
 		this._configurationDone.notify();
+	}
+
+	protected sendMsgToDebugger(cmd: string, body?: string) {
+		if (body) {
+			let encoded_body = Buffer.from(body).toString('base64');
+
+			this._debuggeeSocket.write(`${cmd}:${encoded_body}\n`)
+		}
+		else {
+			this._debuggeeSocket.write(`${cmd}\n`);
+		}
 	}
 
 	protected async attachRequest(response: DebugProtocol.AttachResponse, args: DebugProtocol.AttachRequestArguments) {
@@ -205,9 +218,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		let code_to_run = args['code']
 
-		let encoded_code = Buffer.from(code_to_run).toString('base64');
-
-		this._debuggeeSocket.write(`EXEC:${encoded_code}\n`)
+		this.sendMsgToDebugger('EXEC', code_to_run);
 
 		this.sendResponse(response);
 	}
@@ -224,11 +235,20 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		let server = net.createServer(socket => {
 			this._debuggeeSocket = socket;
-			// const rl = readline.createInterface(socket);
+			const rl = readline.createInterface(socket);
 
-			// rl.on('line', line => {
-			// 		console.log(line);
-			// });
+			rl.on('line', line => {
+				if (line == 'STOPPEDBP') {
+					this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
+				}
+				else if (line == 'FINISHED') {
+					this.sendEvent(new TerminatedEvent())
+				}
+				else if (line.startsWith('RESULT:')) {
+					this._resultFromDebugger = Buffer.from(line.slice(7), 'base64').toString();
+					this._resultFromDebuggerArrived.notify();
+				}
+			});
 
 			connectedPromise.notify();
 		});
@@ -265,10 +285,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		await this._configurationDone.wait();
 
 		if (args.noDebug) {
-			this._debuggeeSocket.write(`RUN:${args.script}\n`);
+			this.sendMsgToDebugger('RUN', args.script);
 		}
 		else {
-			this._debuggeeSocket.write(`DEBUG:${args.script}\n`);
+			this.sendMsgToDebugger('DEBUG', args.script);
 		}
 
 		this.sendResponse(response);
@@ -279,12 +299,12 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		const path = <string>args.source.path;
 		const clientLines = args.breakpoints || [];
 
-		let msgForClient = `SETBREAKPOINTS:${path}`
+		let msgForClient = path;
 
 		for (let i of args.breakpoints) {
 			msgForClient = msgForClient + `;${i.line}`
 		}
-		this._debuggeeSocket.write(msgForClient + '\n');
+		this.sendMsgToDebugger('SETBREAKPOINTS', msgForClient)
 
 		// clear all breakpoints for this file
 		// this._runtime.clearBreakpoints(path);
@@ -306,9 +326,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected setFunctionBreakPointsRequest(response: DebugProtocol.SetFunctionBreakpointsResponse, args: DebugProtocol.SetFunctionBreakpointsArguments): void {
-		let msgForClient = 'SETFUNCBREAKPOINTS:' + args.breakpoints.map(i => i.name).join(';') + '\n';
+		let msgForClient = args.breakpoints.map(i => i.name).join(';');
 
-		this._debuggeeSocket.write(msgForClient);
+		this.sendMsgToDebugger('SETFUNCBREAKPOINTS', msgForClient)
 
 		response.body = {
 			breakpoints: args.breakpoints.map(i => new Breakpoint(true))
@@ -318,7 +338,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments): void {
-		this._debuggeeSocket.write(`SETEXCEPTIONBREAKPOINTS:${args.filters.join(';')}\n`);
+		this.sendMsgToDebugger('SETEXCEPTIONBREAKPOINTS', args.filters.join(';'))
 
 		this.sendResponse(response);
 	}
@@ -355,7 +375,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
-		this._debuggeeSocket.write(`GETSTACKTRACE\n`);
+		this.sendMsgToDebugger('GETSTACKTRACE');
 
 		await this._resultFromDebuggerArrived.wait();
 
@@ -398,7 +418,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		const details = this._variableHandles.get(args.variablesReference);		
 
-		this._debuggeeSocket.write(`GETVARIABLES:${details.frameId}\n`);
+		this.sendMsgToDebugger('GETVARIABLES', details.frameId.toString());
 
 		await this._resultFromDebuggerArrived.wait();
 
@@ -422,7 +442,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-		this._debuggeeSocket.write('CONTINUE\n');
+		this.sendMsgToDebugger('CONTINUE');
 		this.sendResponse(response);
 	}
 
@@ -432,26 +452,31 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		this._debuggeeSocket.write('NEXT\n');
+		this.sendMsgToDebugger('NEXT');
 		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
-		this._debuggeeSocket.write('STEPIN\n');
+		this.sendMsgToDebugger('STEPIN');
 		this.sendResponse(response);
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
-		this._debuggeeSocket.write('STEPOUT\n');
+		this.sendMsgToDebugger('STEPOUT');
+		this.sendResponse(response);
+	}
+
+	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments): void {
+		this.sendMsgToDebugger('TERMINATE');
 		this.sendResponse(response);
 	}
 
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
 		if (this._debuggeeTerminal) {
-			this._debuggeeTerminal.dispose();
+			// this._debuggeeTerminal.dispose();
 		}
 		else {
-			this._debuggeeSocket.write(`DISCONNECT\n`);
+			this.sendMsgToDebugger('DISCONNECT');
 		}
 
 		this.sendResponse(response);
