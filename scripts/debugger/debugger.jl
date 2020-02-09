@@ -138,29 +138,15 @@ function startdebug(pipename)
                     frame = ret[1]
                     send_msg(conn, "STOPPEDBP")
                 end
-            elseif msg_cmd=="TERMINATE"
-                send_msg(conn, "FINISHED")
-                break
             elseif msg_cmd=="EXEC"
                 @debug "WE ARE EXECUTING"
     
-                x = Meta.parse(msg_body)
+                ex = Meta.parse(msg_body)
+
+                modexs, _ = JuliaInterpreter.split_expressions(Main, ex)
     
-                @debug "OK: $x"
-    
-                y = Main.eval(x.args[1])
-    
-                @debug "Y: $y"
-    
-                x.args[1]=y
-    
-                @debug "NOW: $x"
-    
-                frame = JuliaInterpreter.enter_call_expr(x)
-    
-                @debug "FRAME WORKED"
-    
-                @debug frame
+                frame = JuliaInterpreter.prepare_thunk(modexs[1])
+                deleteat!(modexs, 1)
     
                 ret = our_debug_command(frame, :finish, modexs)
 
@@ -172,7 +158,10 @@ function startdebug(pipename)
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
                     send_msg(conn, "STOPPEDBP")
-                end
+                end                
+            elseif msg_cmd=="TERMINATE"
+                send_msg(conn, "FINISHED")
+                break
             elseif msg_cmd=="SETBREAKPOINTS"
                 splitted_line = split(msg_body, ';')
 
