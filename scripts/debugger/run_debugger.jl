@@ -9,7 +9,3 @@ try
 catch err
     Base.display_error(err, catch_backtrace())
 end
-
-println();
-println("Finished running, press ENTER to quit.");
-readline()

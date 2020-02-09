@@ -3,14 +3,14 @@ using Sockets
 pipename_for_wrapper = ARGS[2]
 pipename_for_debugger = ARGS[1]
 
-@info "STARTED WRAPPER"
+@debug "STARTED WRAPPER"
 
-@info pipename_for_debugger
-@info pipename_for_wrapper
+@debug pipename_for_debugger
+@debug pipename_for_wrapper
 
 conn = Sockets.connect(pipename_for_wrapper)
 
-@info "CONNECTED WRAPPER"
+@debug "CONNECTED WRAPPER"
 
 jl_cmd = joinpath(Sys.BINDIR, Base.julia_exename())
 
@@ -24,18 +24,19 @@ p = run(pipeline(cmd, stdin=stdin, stdout=stdout, stderr=stderr), wait=false)
     l = readline(conn)
 
     if l=="TERMINATE"
-        @info "NOW KILLING DEBUGGEE"
+        @debug "NOW KILLING DEBUGGEE"
         kill(p)
-        @info "DEBUGGEE IS NO MORE"
+        @debug "DEBUGGEE IS NO MORE"
     else
-        @info "This shouldn't happen"
+        @debug "This shouldn't happen"
     end
 end
 
-println("WE STARTED THE CLIENT PROCS")
+@debug "We started the client proc"
 
 wait(p)
 
-println("NOW WE ARE REALLy dONE")
+println()
+printstyled("Julia debuggee finished. Press ENTER to close this terminal.\n", bold=true)
 
 readline()
