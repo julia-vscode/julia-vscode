@@ -328,6 +328,11 @@ function startdebug(pipename)
                     end
                 end
 
+                if JuliaInterpreter.isexpr(JuliaInterpreter.pc_expr(curr_fr), :return)
+                    ret_val = JuliaInterpreter.get_return(curr_fr)
+                    push!(vars_as_string, string("Return Value", ";", typeof(ret_val), ";", ret_val))
+                end
+
                 send_msg(conn, "RESPONSE", msg_id, join(vars_as_string, '\n'))
                 @debug "DONE VARS"
             elseif msg_cmd=="CONTINUE"
