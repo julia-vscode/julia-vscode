@@ -64,11 +64,12 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	private _debuggeeSocket: net.Socket;
 	private _debuggeeWrapperSocket: net.Socket;
 
-	private _resultFromDebugger: string;
-	private _resultFromDebuggerArrived = new Subject();
-
 	private _launchMode: boolean;
 	private _launchedWithoutDebug: boolean;
+
+	private _nextRequestId: number = 0;
+
+	private _requestResponses: Map<number, {requestArrived: any, data: string}> = new Map<number, {requestArrived: any, data: string}>();
 
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
@@ -167,14 +168,63 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		this._configurationDone.notify();
 	}
 
-	protected sendMsgToDebugger(cmd: string, body?: string) {
-		if (body) {
-			let encoded_body = Buffer.from(body).toString('base64');
+	protected sendNotificationToDebugger(cmd: string, body: string='') {
+		let encoded_body = Buffer.from(body).toString('base64');
 
-			this._debuggeeSocket.write(`${cmd}:${encoded_body}\n`)
+		this._debuggeeSocket.write(`notification:${cmd}:${encoded_body}\n`)
+	}
+
+	protected async sendRequestToDebugger(cmd: string, body: string=''): Promise<string> {
+		const requestId = this._nextRequestId;
+		this._nextRequestId += 1;
+
+		const responseArrived = new Subject();
+
+		this._requestResponses[requestId] = {requestArrived: responseArrived, data: ''};
+
+		let encoded_body = Buffer.from(body).toString('base64');
+
+		this._debuggeeSocket.write(`${requestId}:${cmd}:${encoded_body}\n`)
+
+		await responseArrived.wait();
+
+		const response = this._requestResponses[requestId].data;
+
+		this._requestResponses.delete(requestId);
+
+		return response
+	}
+
+	protected processMsgFromDebugger(line: string) {
+		const parts = line.split(':');
+		const msg_cmd = parts[0];
+		const msg_id = parts[1];
+		const msg_body = Buffer.from(parts[2], 'base64').toString();
+
+		if (msg_cmd == 'STOPPEDBP') {
+			this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
+		}
+		else if (msg_cmd == 'STOPPEDSTEP') {
+			this.sendEvent(new StoppedEvent('step', JuliaDebugSession.THREAD_ID));
+		}
+		else if (msg_cmd == 'STOPPEDEXCEPTION') {
+			this.sendEvent(new StoppedEvent('exception', JuliaDebugSession.THREAD_ID));
+		}
+		else if (msg_cmd == 'STOPPEDFUNCBP') {
+			this.sendEvent(new StoppedEvent('function breakpoint', JuliaDebugSession.THREAD_ID));
+		}
+		else if (msg_cmd == 'STOPPEDENTRY') {
+			this.sendEvent(new StoppedEvent('entry', JuliaDebugSession.THREAD_ID));
+		}
+		else if (msg_cmd == 'FINISHED') {
+			this.sendEvent(new TerminatedEvent())
+		}
+		else if (msg_cmd == 'RESPONSE') {
+			this._requestResponses[parseInt(msg_id)].data = msg_body;
+			this._requestResponses[parseInt(msg_id)].requestArrived.notify();
 		}
 		else {
-			this._debuggeeSocket.write(`${cmd}\n`);
+			throw "Unknown message received";			
 		}
 	}
 
@@ -189,30 +239,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			this._debuggeeSocket = socket;
 			const rl = readline.createInterface(socket);
 
-			rl.on('line', line => {
-				if (line == 'STOPPEDBP') {
-					this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'STOPPEDSTEP') {
-					this.sendEvent(new StoppedEvent('step', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'STOPPEDEXCEPTION') {
-					this.sendEvent(new StoppedEvent('exception', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'STOPPEDFUNCBP') {
-					this.sendEvent(new StoppedEvent('function breakpoint', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'STOPPEDENTRY') {
-					this.sendEvent(new StoppedEvent('entry', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'FINISHED') {
-					this.sendEvent(new TerminatedEvent())
-				}
-				else if (line.startsWith('RESULT:')) {
-					this._resultFromDebugger = Buffer.from(line.slice(7), 'base64').toString();
-					this._resultFromDebuggerArrived.notify();
-				}
-			});
+			rl.on('line', this.processMsgFromDebugger.bind(this));
 
 			connectedPromise.notify();
 		});
@@ -239,7 +266,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		let code_to_run = args['code']
 
-		this.sendMsgToDebugger('EXEC', code_to_run);
+		this.sendNotificationToDebugger('EXEC', code_to_run);
 
 		this.sendResponse(response);
 	}
@@ -260,30 +287,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			this._debuggeeSocket = socket;
 			const rl = readline.createInterface(socket);
 
-			rl.on('line', line => {
-				if (line == 'STOPPEDBP') {
-					this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'STOPPEDSTEP') {
-					this.sendEvent(new StoppedEvent('step', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'STOPPEDEXCEPTION') {
-					this.sendEvent(new StoppedEvent('exception', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'STOPPEDFUNCBP') {
-					this.sendEvent(new StoppedEvent('function breakpoint', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'STOPPEDENTRY') {
-					this.sendEvent(new StoppedEvent('entry', JuliaDebugSession.THREAD_ID));
-				}
-				else if (line == 'FINISHED') {
-					this.sendEvent(new TerminatedEvent())
-				}
-				else if (line.startsWith('RESULT:')) {
-					this._resultFromDebugger = Buffer.from(line.slice(7), 'base64').toString();
-					this._resultFromDebuggerArrived.notify();
-				}
-			});
+			rl.on('line', this.processMsgFromDebugger.bind(this));
 
 			connectedPromise.notify();
 		});
@@ -341,10 +345,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		this._launchedWithoutDebug = args.noDebug;
 
 		if (args.noDebug) {
-			this.sendMsgToDebugger('RUN', args.program);
+			this.sendNotificationToDebugger('RUN', args.program);
 		}
 		else {
-			this.sendMsgToDebugger('DEBUG', `${args.stopOnEntry ? 'stopOnEntry=true' : 'stopOnEntry=false'};${args.program}`);
+			this.sendNotificationToDebugger('DEBUG', `${args.stopOnEntry ? 'stopOnEntry=true' : 'stopOnEntry=false'};${args.program}`);
 		}
 
 		this.sendResponse(response);
@@ -360,7 +364,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		for (let i of args.breakpoints) {
 			msgForClient = msgForClient + `;${i.line}`
 		}
-		this.sendMsgToDebugger('SETBREAKPOINTS', msgForClient)
+		this.sendNotificationToDebugger('SETBREAKPOINTS', msgForClient)
 
 		// clear all breakpoints for this file
 		// this._runtime.clearBreakpoints(path);
@@ -384,7 +388,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	protected setFunctionBreakPointsRequest(response: DebugProtocol.SetFunctionBreakpointsResponse, args: DebugProtocol.SetFunctionBreakpointsArguments): void {
 		let msgForClient = args.breakpoints.map(i => i.name).join(';');
 
-		this.sendMsgToDebugger('SETFUNCBREAKPOINTS', msgForClient)
+		this.sendNotificationToDebugger('SETFUNCBREAKPOINTS', msgForClient)
 
 		response.body = {
 			breakpoints: args.breakpoints.map(i => new Breakpoint(true))
@@ -394,7 +398,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments): void {
-		this.sendMsgToDebugger('SETEXCEPTIONBREAKPOINTS', args.filters.join(';'))
+		this.sendNotificationToDebugger('SETEXCEPTIONBREAKPOINTS', args.filters.join(';'))
 
 		this.sendResponse(response);
 	}
@@ -431,11 +435,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
-		this.sendMsgToDebugger('GETSTACKTRACE');
-
-		await this._resultFromDebuggerArrived.wait();
-
-		const stk = this._resultFromDebugger.split('\n');
+		const resp = await this.sendRequestToDebugger('GETSTACKTRACE');
+		const stk = resp.split('\n');
 
 
 
@@ -448,12 +449,31 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		response.body = {
 			stackFrames: stk.map(f => {
 				const parts = f.split(';');
-				// TODO Figure out how we can get a proper stackframe ID
-				// TODO Make sure ; is a good separator here...
-				return new StackFrame(parseInt(parts[0]), parts[1], this.createSource(parts[2]), this.convertDebuggerLineToClient(parseInt(parts[3])))
+
+				if (parts[2]=='path') {
+					// TODO Figure out how we can get a proper stackframe ID
+					// TODO Make sure ; is a good separator here...
+					return new StackFrame(parseInt(parts[0]), parts[1], this.createSource(parts[3]), this.convertDebuggerLineToClient(parseInt(parts[4])))
+				}
+				else {
+					return new StackFrame(
+						parseInt(parts[0]),
+						parts[1],
+						new Source(parts[5],undefined,parseInt(parts[3])),
+						this.convertDebuggerLineToClient(parseInt(parts[4]))
+					)
+				}
 			}),
 			totalFrames: stk.length
 		};
+		this.sendResponse(response);
+	}
+
+	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments) {
+		const ret = await this.sendRequestToDebugger('GETSOURCE', args.sourceReference.toString());	
+
+		response.body = {content: ret};
+
 		this.sendResponse(response);
 	}
 
@@ -472,13 +492,11 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		const variables: DebugProtocol.Variable[] = [];
 
-		const details = this._variableHandles.get(args.variablesReference);		
+		const details = this._variableHandles.get(args.variablesReference);
 
-		this.sendMsgToDebugger('GETVARIABLES', details.frameId.toString());
+		const ret = await this.sendRequestToDebugger('GETVARIABLES', details.frameId.toString());
 
-		await this._resultFromDebuggerArrived.wait();
-
-		const vars = this._resultFromDebugger=='' ? [] : this._resultFromDebugger.split('\n');
+		const vars = ret=='' ? [] : ret.split('\n');
 
 		for (let v of vars) {
 			let parts = v.split(';')
@@ -498,7 +516,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
-		this.sendMsgToDebugger('CONTINUE');
+		this.sendNotificationToDebugger('CONTINUE');
 		this.sendResponse(response);
 	}
 
@@ -508,17 +526,17 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-		this.sendMsgToDebugger('NEXT');
+		this.sendNotificationToDebugger('NEXT');
 		this.sendResponse(response);
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments): void {
-		this.sendMsgToDebugger('STEPIN');
+		this.sendNotificationToDebugger('STEPIN');
 		this.sendResponse(response);
 	}
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
-		this.sendMsgToDebugger('STEPOUT');
+		this.sendNotificationToDebugger('STEPOUT');
 		this.sendResponse(response);
 	}
 
@@ -528,7 +546,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			this.sendEvent(new TerminatedEvent());
 		}
 		else {
-			this.sendMsgToDebugger('TERMINATE');
+			this.sendNotificationToDebugger('TERMINATE');
 		}
 		this.sendResponse(response);
 	}
@@ -538,7 +556,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			this._debuggeeWrapperSocket.write('TERMINATE\n');
 		}
 		else {
-			this.sendMsgToDebugger('DISCONNECT');
+			this.sendNotificationToDebugger('DISCONNECT');
 		}
 
 		this.sendResponse(response);

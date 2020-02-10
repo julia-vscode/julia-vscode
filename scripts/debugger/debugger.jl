@@ -59,23 +59,18 @@ end
 
 function decode_msg(line::AbstractString)
     pos = findfirst(':', line)
-    if pos===nothing
-        return line, ""
-    else
-        msg_cmd = line[1:pos-1]
-        msg_body_encoded = line[pos+1:end]
-        msg_body = String(Base64.base64decode(msg_body_encoded))
-        return msg_cmd, msg_body
-    end
+    pos2 = findnext(':', line, pos+1)
+
+    msg_id = line[1:pos-1]        
+    msg_cmd = line[pos+1:pos2-1]
+    msg_body_encoded = line[pos2+1:end]
+    msg_body = String(Base64.base64decode(msg_body_encoded))
+    return msg_id, msg_cmd, msg_body
 end
 
-function send_msg(conn, msg_cmd::AbstractString, msg_body::Union{AbstractString,Nothing}=nothing)
-    if msg_body===nothing
-        println(conn, msg_cmd)
-    else
-        encoded_msg_body = Base64.base64encode(msg_body)
-        println(conn, msg_cmd, ':', encoded_msg_body)
-    end
+function send_msg(conn, msg_cmd::AbstractString, msg_id::AbstractString, msg_body::AbstractString="")
+    encoded_msg_body = Base64.base64encode(msg_body)
+    println(conn, msg_cmd, ':', msg_id, ':', encoded_msg_body)
 end
 
 function startdebug(pipename)
@@ -86,13 +81,16 @@ function startdebug(pipename)
 
         not_yet_set_function_breakpoints = Set{String}()
 
+        sources = Dict{Int,String}()
+        curr_source_id = 1
+
         while true      
             @debug "Current FRAME is"    
             @debug frame
             @debug "NOW WAITING FOR COMMAND FROM DAP"
             le = readline(conn)
 
-            msg_cmd, msg_body = decode_msg(le)
+            msg_id, msg_cmd, msg_body = decode_msg(le)
             
             @debug "COMMAND is '$le'"
 
@@ -107,7 +105,7 @@ function startdebug(pipename)
                     Base.display_error(stderr, err, catch_backtrace())
                 end
 
-                send_msg(conn, "FINISHED")                
+                send_msg(conn, "FINISHED", "notification")                
             elseif msg_cmd=="DEBUG"
                 index_of_sep = findfirst(';', msg_body)
 
@@ -130,15 +128,15 @@ function startdebug(pipename)
                 deleteat!(modexs, 1)
 
                 if stop_on_entry
-                    send_msg(conn, "STOPPEDENTRY")
+                    send_msg(conn, "STOPPEDENTRY", "notification")
                 else
                     ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints)
 
                     if ret===nothing
-                        send_msg(conn, "FINISHED")
+                        send_msg(conn, "FINISHED", "notification")
                     else
                         frame = ret[1]
-                        send_msg(conn, "STOPPEDBP")
+                        send_msg(conn, "STOPPEDBP", "notification")
                     end
                 end
             elseif msg_cmd=="EXEC"
@@ -151,18 +149,18 @@ function startdebug(pipename)
                 frame = JuliaInterpreter.prepare_thunk(modexs[1])
                 deleteat!(modexs, 1)
     
-                ret = our_debug_command(frame, :finish, modexs)
+                ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
-                    send_msg(conn, "FINISHED")
+                    send_msg(conn, "FINISHED", "notification")
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDBP")
+                    send_msg(conn, "STOPPEDBP", "notification")
                 end                
             elseif msg_cmd=="TERMINATE"
-                send_msg(conn, "FINISHED")
+                send_msg(conn, "FINISHED", "notification")
             elseif msg_cmd=="SETBREAKPOINTS"
                 splitted_line = split(msg_body, ';')
 
@@ -242,15 +240,28 @@ function startdebug(pipename)
                     curr_whereis = JuliaInterpreter.whereis(curr_fr)
                     # TODO This is a bug fix, for some reason curr_whereis[1]
                     # returns a truncated filename
-                    fname = curr_fr.framecode.src.linetable[1].file
+                    fname = curr_whereis[1]
 
-                    push!(frames_as_string, string(id, ";", curr_scopeof isa Method ? curr_scopeof.name : string(curr_scopeof), ";", fname, ";", curr_whereis[2]))
+                    @info fname
+
+                    if isfile(fname)
+                        push!(frames_as_string, string(id, ";", curr_scopeof isa Method ? curr_scopeof.name : string(curr_scopeof), ";path;", fname, ";", curr_whereis[2]))
+                    elseif curr_scopeof isa Method
+                        sources[curr_source_id], loc = JuliaInterpreter.CodeTracking.definition(String, curr_fr.framecode.scope)
+                        push!(frames_as_string, string(id, ";", curr_scopeof isa Method ? curr_scopeof.name : string(curr_scopeof), ";ref;", curr_source_id, ";", curr_whereis[2], ";", fname))
+                        curr_source_id += 1
+                    end
+                    
                     id += 1
                     curr_fr = curr_fr.caller
                 end
 
-                send_msg(conn, "RESULT", join(frames_as_string, '\n'))
+                send_msg(conn, "RESPONSE", msg_id, join(frames_as_string, '\n'))
                 @debug "DONE SENDING stacktrace"
+            elseif msg_cmd=="GETSOURCE"
+                source_id = parse(Int, msg_body)
+
+                send_msg(conn, "RESPONSE", msg_id, sources[source_id])
             elseif msg_cmd=="GETVARIABLES"
                 @debug "START VARS"
 
@@ -278,18 +289,18 @@ function startdebug(pipename)
                     end
                 end
 
-                send_msg(conn, "RESULT", join(vars_as_string, '\n'))
+                send_msg(conn, "RESPONSE", msg_id, join(vars_as_string, '\n'))
                 @debug "DONE VARS"
             elseif msg_cmd=="CONTINUE"
                 ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
-                    send_msg(conn, "FINISHED")
+                    send_msg(conn, "FINISHED", "notification")
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDBP")
+                    send_msg(conn, "STOPPEDBP", "notification")
                 end
             elseif msg_cmd=="NEXT"
                 @debug "NEXT COMMAND"
@@ -297,11 +308,11 @@ function startdebug(pipename)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
-                    send_msg(conn, "FINISHED")
+                    send_msg(conn, "FINISHED", "notification")
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDSTEP")
+                    send_msg(conn, "STOPPEDSTEP", "notification")
                 end
             elseif msg_cmd=="STEPIN"
                 @debug "STEPIN COMMAND"
@@ -309,11 +320,11 @@ function startdebug(pipename)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
-                    send_msg(conn, "FINISHED")
+                    send_msg(conn, "FINISHED", "notification")
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDSTEP")
+                    send_msg(conn, "STOPPEDSTEP", "notification")
                 end
             elseif msg_cmd=="STEPOUT"
                 @debug "STEPOUT COMMAND"
@@ -321,11 +332,11 @@ function startdebug(pipename)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
-                    send_msg(conn, "FINISHED")
+                    send_msg(conn, "FINISHED", "notification")
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDSTEP")
+                    send_msg(conn, "STOPPEDSTEP", "notification")
                 end
             end
         end
