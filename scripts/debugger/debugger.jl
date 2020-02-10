@@ -122,7 +122,7 @@ function startdebug(pipename)
             @debug frame
             @debug "NOW WAITING FOR COMMAND FROM DAP"
             le = readline(conn)
-
+            
             msg_id, msg_cmd, msg_body = decode_msg(le)
             
             @debug "COMMAND is '$msg_cmd'"
@@ -138,7 +138,8 @@ function startdebug(pipename)
                     Base.display_error(stderr, err, catch_backtrace())
                 end
 
-                send_msg(conn, "FINISHED", "notification")                
+                send_msg(conn, "FINISHED", "notification")     
+                break           
             elseif msg_cmd=="DEBUG"
                 index_of_sep = findfirst(';', msg_body)
 
@@ -170,6 +171,7 @@ function startdebug(pipename)
 
                     if ret===nothing
                         send_msg(conn, "FINISHED", "notification")
+                        break
                     else
                         frame = ret[1]
                         send_msg(conn, "STOPPEDBP", "notification")
@@ -191,6 +193,7 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
+                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -198,6 +201,7 @@ function startdebug(pipename)
                 end                
             elseif msg_cmd=="TERMINATE"
                 send_msg(conn, "FINISHED", "notification")
+                break
             elseif msg_cmd=="SETBREAKPOINTS"
                 splitted_line = split(msg_body, ';')
 
@@ -341,6 +345,7 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
+                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -353,6 +358,7 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
+                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -365,6 +371,7 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
+                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -377,6 +384,7 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
+                    break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
