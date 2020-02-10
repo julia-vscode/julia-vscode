@@ -545,7 +545,7 @@
         "debuggers": [
             {
                 "type": "julia",
-                "label": "Julia Debug",
+                "label": "Julia",
                 "languages": [
                     "julia"
                 ],
@@ -561,9 +561,27 @@
                                 "default": "${file}"
                             },
                             "stopOnEntry": {
-                                "type": "bool",
-                                "description": "Automatically pause the Julia program after launch",
+                                "type": "boolean",
+                                "description": "Automatically stop after launch.",
                                 "default": false
+                            },
+                            "cwd": {
+                                "type": "string",
+                                "description": "Absolute path to the working directory of the program being debugged. Default is the root directory of the file (leave empty).",
+                                "default": "${workspaceFolder}"
+                            },
+                            "env": {
+                                "type": "object",
+                                "description": "Environment variables defined as a key value pair. Property ends up being the Environment Variable and the value of the property ends up being the value of the Env Variable.",
+                                "default": {},
+                                "additionalProperties": {
+                                    "type": "string"
+                                }
+                            },
+                            "juliaEnv": {
+                                "type": "string",
+                                "description": "Absolute path to the Julia environment.",
+                                "default": ""
                             }
                         }
                     }
@@ -572,9 +590,10 @@
                     {
                         "type": "julia",
                         "request": "launch",
-                        "name": "Run Julia file",
+                        "name": "Run active Julia file",
                         "program": "${file}",
-                        "stopOnEntry": false
+                        "stopOnEntry": false,
+                        "cwd": "${workspaceFolder}"
                     }
                 ],
                 "configurationSnippets": [
@@ -587,6 +606,17 @@
                             "name": "${2:Launch Program}",
                             "program": "^\"\\${workspaceFolder}/${1:Program}\"",
                             "stopOnEntry": false                                
+                        }
+                    },
+                    {
+                        "label": "Julia Debug: Launch tests",
+                        "description": "A new configuration for launch Julia tests",
+                        "body": {
+                            "type": "julia",
+                            "request": "launch",
+                            "name": "Launch Julia tests",
+                            "program": "^\"\\${workspaceFolder}/test/runtests.jl\"",
+                            "stopOnEntry": true
                         }
                     }
                 ]
