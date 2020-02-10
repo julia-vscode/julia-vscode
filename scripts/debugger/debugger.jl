@@ -45,10 +45,13 @@ function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
             break
         end
 
-        frame = JuliaInterpreter.prepare_thunk(modexs[1])
+        insert_bp!(modexs[1][2])
+        frame = JuliaInterpreter.prepare_thunk(modexs[1])        
         deleteat!(modexs, 1)
 
-        if ret===nothing && cmd==:n
+        ret!==nothing && error("THIS SHOULDN't happen")
+
+        if ret===nothing && (cmd==:n || JuliaInterpreter.shouldbreak(frame, frame.pc))
             ret = (frame, nothing)
             break
         end
@@ -73,6 +76,36 @@ function send_msg(conn, msg_cmd::AbstractString, msg_id::AbstractString, msg_bod
     println(conn, msg_cmd, ':', msg_id, ':', encoded_msg_body)
 end
 
+function lowercase_drive(a)
+    if length(a) >= 2 && a[2]==':'
+        return lowercase(a[1]) * a[2:end]
+    else
+        return a
+    end
+end
+
+function insert_bp!(expr)
+    i = length(expr.args)
+    for arg in reverse(expr.args)
+        if arg isa LineNumberNode
+            lln = arg
+            for bp in JuliaInterpreter.breakpoints()
+                if bp isa JuliaInterpreter.BreakpointFileLocation
+                    if lowercase_drive(string(lln.file)) == lowercase_drive(bp.abspath) && lln.line == bp.line                        
+                        insert!(expr.args, i, JuliaInterpreter.BREAKPOINT_EXPR)
+                        insert!(expr.args, i, lln)
+                        i -= 1
+                    end
+                end
+            end
+        end
+        if arg isa Expr && !(arg.head in (:function, :struct))
+            insert_bp!(arg)
+        end
+        i -= 1
+    end
+end
+
 function startdebug(pipename)
     conn = Sockets.connect(pipename)
     try
@@ -92,7 +125,7 @@ function startdebug(pipename)
 
             msg_id, msg_cmd, msg_body = decode_msg(le)
             
-            @debug "COMMAND is '$le'"
+            @debug "COMMAND is '$msg_cmd'"
 
             if msg_cmd=="DISCONNECT"
                 @debug "DISCONNECT"
@@ -124,11 +157,14 @@ function startdebug(pipename)
 
                 modexs, _ = JuliaInterpreter.split_expressions(Main, ex)
 
+                insert_bp!(modexs[1][2])
                 frame = JuliaInterpreter.prepare_thunk(modexs[1])
                 deleteat!(modexs, 1)
 
                 if stop_on_entry
                     send_msg(conn, "STOPPEDENTRY", "notification")
+                elseif JuliaInterpreter.shouldbreak(frame, frame.pc)
+                    send_msg(conn, "STOPPEDBP", "notification")
                 else
                     ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints)
 
@@ -146,6 +182,7 @@ function startdebug(pipename)
 
                 modexs, _ = JuliaInterpreter.split_expressions(Main, ex)
     
+                insert_bp!(modexs[1][2])
                 frame = JuliaInterpreter.prepare_thunk(modexs[1])
                 deleteat!(modexs, 1)
     
@@ -242,8 +279,10 @@ function startdebug(pipename)
                     # returns a truncated filename
                     fname = curr_whereis[1]
 
-                    @info fname
-
+                    # @show fname
+                    # @show typeof(curr_scopeof)
+                    # @show curr_scopeof
+                    # @show curr_whereis
                     if isfile(fname)
                         push!(frames_as_string, string(id, ";", curr_scopeof isa Method ? curr_scopeof.name : string(curr_scopeof), ";path;", fname, ";", curr_whereis[2]))
                     elseif curr_scopeof isa Method
