@@ -34,7 +34,7 @@ p = run(pipeline(cmd, stdin=stdin, stdout=stdout, stderr=stderr), wait=false)
     end
 end
 
-@debug "We started the client proc"
+@debug "We started the debuggee"
 
 wait(p)
 

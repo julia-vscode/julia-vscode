@@ -3,9 +3,7 @@
 include("debugger.jl")
 
 try
-
     VSCodeDebugger.startdebug(ARGS[1])
-
 catch err
     Base.display_error(err, catch_backtrace())
 end
