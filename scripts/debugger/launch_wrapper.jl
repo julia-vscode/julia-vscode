@@ -18,7 +18,7 @@ jl_cmd = joinpath(Sys.BINDIR, Base.julia_exename())
 
 debugger_script = joinpath(@__DIR__, "run_debugger.jl")
 
-cmd = Cmd(`$jl_cmd --color=yes --project=$julia_env $debugger_script $pipename_for_debugger`, dir=cwd)
+cmd = Cmd(`$jl_cmd --color=yes --history-file=no --startup-file=no --project=$julia_env $debugger_script $pipename_for_debugger`, dir=cwd)
 
 p = run(pipeline(cmd, stdin=stdin, stdout=stdout, stderr=stderr), wait=false)
 
