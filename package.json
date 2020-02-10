@@ -362,8 +362,8 @@
                 },
                 "julia.lint.call": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Check calls against existing methods."
+                    "default": false,
+                    "description": "Check calls against existing methods. (experimental)"
                 },
                 "julia.lint.iter": {
                     "type": "boolean",
