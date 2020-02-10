@@ -15,27 +15,8 @@ end
 import .JuliaInterpreter
 import Sockets, Base64
 
-@inline function _parse_julia_file(filename::String)
-    _filename = realpath(filename)
-    _filename = filename
-    file_contents::String = read(_filename, String)::String
-    block = Meta.parse("begin\n $(file_contents)\n end\n")
-    fixed_block = _fix_filename(block, _filename)
-    lines = fixed_block.args
-    return fixed_block
-    return lines
-end
-
-@inline function _fix_filename(expr::Expr, filename::String)
-    return Expr(expr.head, _fix_filename.(expr.args, filename)...)
-end
-
-@inline function _fix_filename(sym, filename::String)
-    return sym
-end
-
-@inline function _fix_filename(lnn::LineNumberNode, filename::String)
-    return LineNumberNode(lnn.line-1, filename)
+function _parse_julia_file(filename::String)
+    return Base.parse_input_line(read(filename, String); filename=filename)
 end
 
 function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
