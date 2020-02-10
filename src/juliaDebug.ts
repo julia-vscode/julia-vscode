@@ -36,6 +36,8 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	program: string;
 	/** Automatically stop target after launch. If not specified, target does not stop. */
 	stopOnEntry?: boolean;
+	cwd?: string;
+	juliaEnv?: string,
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;
 }
@@ -302,14 +304,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		await serverListeningPromise.wait();
 
-		let cwdForDebuggee = "";
-
-		if (vscode.workspace.workspaceFolders) {
-			if (vscode.workspace.workspaceFolders.length==1) {
-				cwdForDebuggee = vscode.workspace.workspaceFolders[0].uri.fsPath;
-			}
-		}
-
 		this._debuggeeTerminal = window.createTerminal({
 			name: "Julia Debugger",
 			shellPath: this._juliaPath,
@@ -320,7 +314,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				join(this._context.extensionPath, 'scripts', 'debugger', 'launch_wrapper.jl'),
 				pn,
 				pnForWrapper,
-				cwdForDebuggee
+				args.cwd,
+				args.juliaEnv
 			]
 		});
 		this._debuggeeTerminal.show(false);
