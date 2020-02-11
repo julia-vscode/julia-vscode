@@ -21,6 +21,25 @@ end
 
 is_toplevel_return(frame) = frame.framecode.scope isa Module && JuliaInterpreter.isexpr(JuliaInterpreter.pc_expr(frame), :return)
 
+function attempt_to_set_f_breakpoints!(bps)
+    for bp in bps
+        @debug "setting func breakpoint for $(bp.name)"
+        try
+            f = Core.eval(bp.mod, bp.name)
+
+            signat = if bp.signature!==nothing
+                Tuple{(Core.eval(Main, i) for i in bp.signature)...}
+            else
+                nothing
+            end
+            @debug "Setting breakpoint for $f"
+            JuliaInterpreter.breakpoint(f, signat, bp.condition)
+            delete!(bps, bp)
+        catch err
+        end
+    end
+end
+
 function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
     ret = nothing
     while true
@@ -29,19 +48,9 @@ function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
 
         ret = JuliaInterpreter.debug_command(frame, cmd, true)
 
-        for func_name in not_yet_set_function_breakpoints
-            @debug "setting func breakpoint for $func_name"
-            try
-                f = Main.eval(Meta.parse(func_name))
-                @debug "Setting breakpoint for $f"
-                JuliaInterpreter.breakpoint(f)
-                delete!(not_yet_set_function_breakpoints, func_name)
-            catch err
-                push!(not_yet_set_function_breakpoints, func_name)
-            end
-        end
+        attempt_to_set_f_breakpoints!(not_yet_set_function_breakpoints)
 
-        # @debug "We got $ret"
+        @debug "We got $ret"
 
         if ret!==nothing && is_toplevel_return(ret[1])
             ret = nothing
@@ -211,8 +220,19 @@ function startdebug(pipename)
             elseif msg_cmd=="SETBREAKPOINTS"
                 splitted_line = split(msg_body, ';')
 
-                lines_as_num = parse.(Int, splitted_line[2:end])
                 file = splitted_line[1]
+                bps = map(split(i, ':') for i in splitted_line[2:end]) do i
+                    decoded_condition = String(Base64.base64decode(i[2]))
+                    # We handle conditions that don't parse properly as
+                    # no condition for now
+                    parsed_condition = try
+                        decoded_condition=="" ? nothing : Meta.parse(decoded_condition)
+                    catch err
+                        nothing
+                    end
+
+                    (line=parse(Int,i[1]), condition=parsed_condition)
+                end
 
                 for bp in JuliaInterpreter.breakpoints()
                     if bp isa JuliaInterpreter.BreakpointFileLocation
@@ -222,10 +242,10 @@ function startdebug(pipename)
                     end
                 end
     
-                for line_as_num in lines_as_num
-                    @debug "Setting one breakpoint at line $line_as_num in file $file"
+                for bp in bps
+                    @debug "Setting one breakpoint at line $(bp.line) with condition $(bp.condition) in file $file"
     
-                    JuliaInterpreter.breakpoint(string(file), line_as_num)                        
+                    JuliaInterpreter.breakpoint(string(file), bp.line, bp.condition)                        
                 end
             elseif msg_cmd=="SETEXCEPTIONBREAKPOINTS"
                 opts = Set(split(msg_body, ';'))
@@ -244,9 +264,58 @@ function startdebug(pipename)
             elseif msg_cmd=="SETFUNCBREAKPOINTS"
                 @debug "SETTING FUNC BREAKPOINT"                
 
-                func_names = split(msg_body, ';', keepempty=false)
+                funcs = split(msg_body, ';', keepempty=false)
 
-                @debug func_names
+                bps = map(split(i, ':') for i in funcs) do i
+                    decoded_name = String(Base64.base64decode(i[1]))
+                    decoded_condition = String(Base64.base64decode(i[2]))
+
+                    parsed_condition = try
+                        decoded_condition=="" ? nothing : Meta.parse(decoded_condition)
+                    catch err
+                        nothing
+                    end
+
+                    try
+                        parsed_name = Meta.parse(decoded_name)
+
+                        if parsed_name isa Symbol
+                            return (mod=Main, name=parsed_name, signature=nothing, condition=parsed_condition)
+                        elseif parsed_name isa Expr
+                            if parsed_name.head==:.
+                                # TODO Support this case
+                                return nothing
+                            elseif parsed_name.head==:call
+                                all_args_are_legit = true
+                                if length(parsed_name.args)>1
+                                    for arg in parsed_name.args[2:end]
+                                        if !(arg isa Expr) || arg.head!=Symbol("::") || length(arg.args)!=1
+                                            all_args_are_legit =false
+                                        end
+                                    end
+                                    if all_args_are_legit
+
+                                        return (mod=Main, name=parsed_name.args[1], signature=map(j->j.args[1], parsed_name.args[2:end]), condition=parsed_condition)
+                                    else
+                                        return (mod=Main, name=parsed_name.args[1], signature=nothing, condition=parsed_condition)
+                                    end
+                                else
+                                    return (mod=Main, name=parsed_name.args[1], signature=nothing, condition=parsed_condition)
+                                end
+                            else
+                                return nothing
+                            end
+                        else
+                            return nothing
+                        end
+                    catch err
+                        return nothing
+                    end
+
+                    return nothing
+                end
+
+                bps = filter(i->i!==nothing, bps)
 
                 for bp in JuliaInterpreter.breakpoints()
                     if bp isa JuliaInterpreter.BreakpointSignature
@@ -254,16 +323,9 @@ function startdebug(pipename)
                     end
                 end
 
-                for func_name in func_names
-                    @debug "setting func breakpoint for $func_name"
-                    try
-                        f = Main.eval(Meta.parse(func_name))
-                        @debug "Setting breakpoint for $f"
-                        JuliaInterpreter.breakpoint(f)
-                    catch err
-                        push!(not_yet_set_function_breakpoints, func_name)
-                    end
-                end
+                not_yet_set_function_breakpoints = Set(bps)
+
+                attempt_to_set_f_breakpoints!(not_yet_set_function_breakpoints)
             elseif msg_cmd=="GETSTACKTRACE"
                 @debug "Stacktrace requested"
 

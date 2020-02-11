@@ -152,7 +152,13 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		response.body.supportsTerminateRequest = true;
 
 		// make VS Code send the breakpointLocations request
-		response.body.supportsBreakpointLocationsRequest = true;
+		response.body.supportsBreakpointLocationsRequest = false;
+
+		response.body.supportsConditionalBreakpoints = true;
+
+		response.body.supportsHitConditionalBreakpoints = false;
+
+		response.body.supportsLogPoints = false;
 
 		response.body.exceptionBreakpointFilters = [{ filter: 'error', label: 'Break any time an uncaught exception is thrown', default: true }, { filter: 'throw', label: 'Break any time a throw is executed', default: false }];
 
@@ -360,12 +366,13 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
 		const path = <string>args.source.path;
-		const clientLines = args.breakpoints || [];
 
 		let msgForClient = path;
 
 		for (let i of args.breakpoints) {
-			msgForClient = msgForClient + `;${i.line}`
+			let condition_text = i.condition ? i.condition : '';
+			let encoded_condition = Buffer.from(condition_text).toString('base64')
+			msgForClient = msgForClient + `;${i.line}:${encoded_condition}`
 		}
 		this.sendNotificationToDebugger('SETBREAKPOINTS', msgForClient)
 
@@ -389,7 +396,13 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected setFunctionBreakPointsRequest(response: DebugProtocol.SetFunctionBreakpointsResponse, args: DebugProtocol.SetFunctionBreakpointsArguments): void {
-		let msgForClient = args.breakpoints.map(i => i.name).join(';');
+		let msgForClient = args.breakpoints.map(i => {
+			let encoded_name = Buffer.from(i.name).toString('base64')
+
+			let condition_text = i.condition ? i.condition : '';
+			let encoded_condition = Buffer.from(condition_text).toString('base64')
+			return `${encoded_name}:${encoded_condition}`
+		}).join(';');
 
 		this.sendNotificationToDebugger('SETFUNCBREAKPOINTS', msgForClient)
 
