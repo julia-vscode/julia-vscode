@@ -57,5 +57,6 @@ function global_err_handler(e, bt)
     finally
         close(pipe_to_vscode)
     end
+    Base.display_error(e, bt)
     exit(1)
 end
