@@ -327,7 +327,7 @@ function startdebug(pipename)
                 for v in vars
                     # TODO Figure out why #self# is here in the first place
                     # For now we don't report it to the client
-                    if !startswith(string(v.name), "#")
+                    if !startswith(string(v.name), "#") && string(v.name)!=""
                         push!(vars_as_string, string(v.name, ";", typeof(v.value), ";", v.value))
                     end
                 end
