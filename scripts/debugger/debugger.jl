@@ -19,6 +19,8 @@ function _parse_julia_file(filename::String)
     return Base.parse_input_line(read(filename, String); filename=filename)
 end
 
+is_toplevel_return(frame) = frame.framecode.scope isa Module && JuliaInterpreter.isexpr(JuliaInterpreter.pc_expr(frame), :return)
+
 function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
     ret = nothing
     while true
@@ -37,9 +39,13 @@ function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
             catch err
                 push!(not_yet_set_function_breakpoints, func_name)
             end
-        end        
+        end
 
         # @debug "We got $ret"
+
+        if ret!==nothing && is_toplevel_return(ret[1])
+            ret = nothing
+        end
 
         if ret!==nothing || length(modexs)==0
             break
@@ -51,7 +57,7 @@ function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
 
         ret!==nothing && error("THIS SHOULDN't happen")
 
-        if ret===nothing && (cmd==:n || JuliaInterpreter.shouldbreak(frame, frame.pc))
+        if ret===nothing && (cmd==:n ||cmd==:s || cmd==:finish || JuliaInterpreter.shouldbreak(frame, frame.pc))
             ret = (frame, nothing)
             break
         end
@@ -167,7 +173,7 @@ function startdebug(pipename)
                 elseif JuliaInterpreter.shouldbreak(frame, frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints)
+                    ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints)
 
                     if ret===nothing
                         send_msg(conn, "FINISHED", "notification")
