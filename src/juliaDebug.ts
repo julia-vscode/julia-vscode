@@ -473,7 +473,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments) {
-		const ret = await this.sendRequestToDebugger('GETSOURCE', args.sourceReference.toString());	
+		const ret = await this.sendRequestToDebugger('GETSOURCE', args.source.sourceReference.toString());	
 
 		response.body = {content: ret};
 
