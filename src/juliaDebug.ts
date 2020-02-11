@@ -555,8 +555,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-		if (this._launchMode && !this._no_need_for_force_kill) {
-			this._debuggeeWrapperSocket.write('TERMINATE\n');
+		if (this._launchMode) {
+			if (!this._no_need_for_force_kill) {
+				this._debuggeeWrapperSocket.write('TERMINATE\n');
+			}
 		}
 		else {
 			this.sendNotificationToDebugger('DISCONNECT');
