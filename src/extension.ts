@@ -20,6 +20,7 @@ import * as packagepath from './packagepath';
 import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
 import * as jlpkgenv from './jlpkgenv';
+import { JuliaNotebookProvider } from './notebookProvider';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -75,6 +76,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             });
     }
+
+    context.subscriptions.push(vscode.window.registerNotebookProvider('julianotebook', new JuliaNotebookProvider(context.extensionPath, true)));
 }
 
 // this method is called when your extension is deactivated

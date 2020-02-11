@@ -538,6 +538,17 @@
                     }
                 }
             }
+        ],
+        "notebookProvider": [
+            {
+                "viewType": "julianotebook",
+                "displayName": "Julia Notebook",
+                "selector": [
+                    {
+                        "filenamePattern": "*.jmd"
+                    }
+                ]
+            }
         ]
     },
     "scripts": {
@@ -549,7 +560,6 @@
         "package": "git submodule init && git submodule update && npm install --no-save && npm run compile && vsce package"
     },
     "dependencies": {
-        "@types/vscode": "^1.41.0",
         "applicationinsights": "^1.6.0",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
