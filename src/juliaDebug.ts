@@ -71,6 +71,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	private _requestResponses: Map<number, {requestArrived: any, data: string}> = new Map<number, {requestArrived: any, data: string}>();
 
+	private _no_need_for_force_kill: boolean = false;
+
 	/**
 	 * Creates a new debug adapter that is used for one debug session.
 	 * We configure the default implementation of a debug adapter here.
@@ -217,6 +219,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			this.sendEvent(new StoppedEvent('entry', JuliaDebugSession.THREAD_ID));
 		}
 		else if (msg_cmd == 'FINISHED') {
+			this._no_need_for_force_kill = true;
 			this.sendEvent(new TerminatedEvent())
 		}
 		else if (msg_cmd == 'RESPONSE') {
@@ -552,7 +555,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
-		if (this._launchMode) {
+		if (this._launchMode && !this._no_need_for_force_kill) {
 			this._debuggeeWrapperSocket.write('TERMINATE\n');
 		}
 		else {
