@@ -25,12 +25,12 @@
 [submodule "scripts/languageserver/packages/FilePathsBase"]
 	path = scripts/languageserver/packages/FilePathsBase
 	url = https://github.com/rofinn/FilePathsBase.jl.git
-[submodule "scripts/tasks/sysimageenv/PackageCompilerX"]
-	path = scripts/tasks/sysimageenv/PackageCompilerX
-	url = https://github.com/KristofferC/PackageCompilerX.jl.git
 [submodule "scripts/debugger/packages/JuliaInterpreter"]
 	path = scripts/debugger/packages/JuliaInterpreter
 	url = https://github.com/JuliaDebug/JuliaInterpreter.jl.git
 [submodule "scripts/debugger/packages/CodeTracking"]
 	path = scripts/debugger/packages/CodeTracking
 	url = https://github.com/timholy/CodeTracking.jl.git
+[submodule "scripts/tasks/sysimageenv/PackageCompiler"]
+	path = scripts/tasks/sysimageenv/PackageCompiler
+	url = https://github.com/JuliaLang/PackageCompiler.jl.git
