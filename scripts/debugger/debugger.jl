@@ -269,8 +269,6 @@ function startdebug(pipename)
 
                 id = 1
                 while curr_fr!==nothing
-                    @debug "UUUUUU"
-
                     @debug JuliaInterpreter.scopeof(curr_fr)
                     @debug typeof(JuliaInterpreter.scopeof(curr_fr))
                     @debug JuliaInterpreter.whereis(curr_fr)
@@ -279,20 +277,19 @@ function startdebug(pipename)
                     # This can be either a Method or a Module
                     curr_scopeof = JuliaInterpreter.scopeof(curr_fr)
                     curr_whereis = JuliaInterpreter.whereis(curr_fr)
-                    # TODO This is a bug fix, for some reason curr_whereis[1]
-                    # returns a truncated filename
                     fname = curr_whereis[1]
+                    lineno = curr_whereis[2]
+                    meth_or_mod_name = curr_scopeof isa Method ? curr_scopeof.name : string(curr_scopeof)
 
-                    # @show fname
-                    # @show typeof(curr_scopeof)
-                    # @show curr_scopeof
-                    # @show curr_whereis
                     if isfile(fname)
-                        push!(frames_as_string, string(id, ";", curr_scopeof isa Method ? curr_scopeof.name : string(curr_scopeof), ";path;", fname, ";", curr_whereis[2]))
+                        push!(frames_as_string, string(id, ";", meth_or_mod_name, ";path;", fname, ";", lineno))
                     elseif curr_scopeof isa Method
                         sources[curr_source_id], loc = JuliaInterpreter.CodeTracking.definition(String, curr_fr.framecode.scope)
-                        push!(frames_as_string, string(id, ";", curr_scopeof isa Method ? curr_scopeof.name : string(curr_scopeof), ";ref;", curr_source_id, ";", curr_whereis[2], ";", fname))
+                        s = string(id, ";", meth_or_mod_name, ";ref;", curr_source_id, ";", lineno, ";", fname)
+                        push!(frames_as_string, s)
                         curr_source_id += 1
+                    else
+                        # TODO Handle this case
                     end
                     
                     id += 1
