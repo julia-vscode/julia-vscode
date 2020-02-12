@@ -479,8 +479,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 					return new StackFrame(
 						parseInt(parts[0]),
 						parts[1],
-						new Source(parts[5],undefined,parseInt(parts[3])),
-						this.convertDebuggerLineToClient(parseInt(parts[4]))
+						new Source(parts[4],undefined,parseInt(parts[3])),
+						this.convertDebuggerLineToClient(parseInt(parts[5]))
 					)
 				}
 			}),
@@ -497,14 +497,43 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void {
+	protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments) {
 
-		response.body = {
-			scopes: [
-				new Scope("Local", this._variableHandles.create({scope: "local", frameId: args.frameId}), false),
-				// new Scope("Global", this._variableHandles.create("global"), true)
-			]
-		};
+		let resp = await this.sendRequestToDebugger('GETSCOPE', args.frameId.toString());
+
+		if (resp=='') {
+			response.body = {
+				scopes: [
+					new Scope("Local", this._variableHandles.create({scope: "local", frameId: args.frameId}), false),
+					// new Scope("Global", this._variableHandles.create("global"), true)
+				]
+			};	
+		}
+		else {
+			let parts = resp.split(';');
+
+			let filename = parts[2];
+
+			response.body = {
+				scopes: [
+					{
+						name: 'Local', 
+						variablesReference: this._variableHandles.create({scope: "local", frameId: args.frameId}),
+						expensive: false,
+						line: parseInt(parts[0]),
+						endLine: parseInt(parts[1]),
+						source: {
+							name: basename(filename),
+							path: this.convertDebuggerPathToClient(filename)
+
+						}
+					}
+					
+					// new Scope("Global", this._variableHandles.create("global"), true)
+				]
+			};	
+
+		}
 		this.sendResponse(response);
 	}
 

@@ -377,14 +377,14 @@ function startdebug(pipename)
                         push!(frames_as_string, string(id, ";", meth_or_mod_name, ";path;", file_name, ";", lineno))
                     elseif curr_scopeof isa Method
                         sources[curr_source_id], loc = JuliaInterpreter.CodeTracking.definition(String, curr_fr.framecode.scope)
-                        s = string(id, ";", meth_or_mod_name, ";ref;", curr_source_id, ";", lineno, ";", file_name)
+                        s = string(id, ";", meth_or_mod_name, ";ref;", curr_source_id, ";", file_name, ";", lineno)
                         push!(frames_as_string, s)
                         curr_source_id += 1
                     else
                         # For now we are assuming that this can only happen
                         # for code that is passed via the @enter or @run macros,
                         # and that code we have stored as source with id 0
-                        s = string(id, ";", meth_or_mod_name, ";ref;", 0, ";", lineno, ";", "REPL")
+                        s = string(id, ";", meth_or_mod_name, ";ref;", 0, ";", "REPL", ";", lineno)
                         push!(frames_as_string, s)
                     end
                     
@@ -394,6 +394,29 @@ function startdebug(pipename)
 
                 send_msg(conn, "RESPONSE", msg_id, join(frames_as_string, '\n'))
                 @debug "DONE SENDING stacktrace"
+            elseif msg_cmd=="GETSCOPE"
+                frameId = parse(Int, msg_body)
+
+                curr_fr = JuliaInterpreter.leaf(frame)
+
+                i = 1
+
+                while frameId > i
+                    curr_fr = curr_fr.caller
+                    i += 1
+                end
+
+                curr_scopeof = JuliaInterpreter.scopeof(curr_fr)
+                curr_whereis = JuliaInterpreter.whereis(curr_fr)
+
+                file_name = curr_whereis[1]
+                code_range = curr_scopeof isa Method ? JuliaInterpreter.compute_corrected_linerange(curr_scopeof) : nothing
+
+                if isfile(file_name) && code_range!==nothing
+                    send_msg(conn, "RESPONSE", msg_id, "$(code_range.start);$(code_range.stop);$file_name")
+                else
+                    send_msg(conn, "RESPONSE", msg_id, "")
+                end
             elseif msg_cmd=="GETSOURCE"
                 source_id = parse(Int, msg_body)
 
