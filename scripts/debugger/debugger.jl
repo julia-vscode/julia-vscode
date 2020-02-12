@@ -15,6 +15,25 @@ end
 import .JuliaInterpreter
 import Sockets, Base64
 
+function clean_up_ARGS_in_launch_mode()
+    pipename = ARGS[1]
+    deleteat!(ARGS, 1)
+
+    if ENV["JL_ARGS"] != ""
+        cmd_ln_args_encoded = split(ENV["JL_ARGS"], ';')
+
+        delete!(ENV, "JL_ARGS")
+
+        cmd_ln_args_decoded = map(i->String(Base64.base64decode(i)), cmd_ln_args_encoded)
+
+        for arg in cmd_ln_args_decoded
+            push!(ARGS, arg)
+        end
+    end
+
+    return pipename
+end
+
 function _parse_julia_file(filename::String)
     return Base.parse_input_line(read(filename, String); filename=filename)
 end

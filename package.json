@@ -40,6 +40,7 @@
         "onCommand:language-julia.executeJuliaCellInREPL",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
+        "onCommand:language-julia.debug.getActiveJuliaEnvironment",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
@@ -570,6 +571,14 @@
                                 "description": "Absolute path to the working directory of the program being debugged. Default is the root directory of the file (leave empty).",
                                 "default": "${workspaceFolder}"
                             },
+                            "args": {
+                                "type": "array",
+                                "description": "Command line arguments passed to the program",
+                                "default": [],
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
                             "env": {
                                 "type": "object",
                                 "description": "Environment variables defined as a key value pair. Property ends up being the Environment Variable and the value of the property ends up being the value of the Env Variable.",
@@ -581,7 +590,7 @@
                             "juliaEnv": {
                                 "type": "string",
                                 "description": "Absolute path to the Julia environment.",
-                                "default": ""
+                                "default": "${command:activeJuliaEnvironment}"
                             }
                         }
                     }
@@ -593,7 +602,8 @@
                         "name": "Run active Julia file",
                         "program": "${file}",
                         "stopOnEntry": false,
-                        "cwd": "${workspaceFolder}"
+                        "cwd": "${workspaceFolder}",
+                        "juliaEnv": "${command:activeJuliaEnvironment}"
                     }
                 ],
                 "configurationSnippets": [
@@ -619,7 +629,10 @@
                             "stopOnEntry": true
                         }
                     }
-                ]
+                ],
+                "variables": {
+                    "activeJuliaEnvironment": "language-julia.debug.getActiveJuliaEnvironment"
+                }
             }
         ]
     },

@@ -72,6 +72,11 @@ export async function activate(context: vscode.ExtensionContext) {
     let factory = new InlineDebugAdapterFactory();
     context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory));
 
+    vscode.commands.registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
+        let pkgenvpath = await jlpkgenv.getEnvPath();
+        return pkgenvpath;
+    });
+
     // Start language server
     startLanguageServer();
 
@@ -257,9 +262,8 @@ export class JuliaDebugConfigurationProvider
                 config.cwd = '${workspaceFolder}';
             }
 
-            if (!config.juliaEnv) {
-                let pkgenvpath = await jlpkgenv.getEnvPath();
-                config.juliaEnv = pkgenvpath;
+            if (!config.juliaEnv) {                
+                config.juliaEnv = '${command:activeJuliaEnvironment}';
             }
 
             return config;

@@ -35,6 +35,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	juliaEnv?: string,
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;
+	args?: string[];
 }
 
 interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
@@ -333,7 +334,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				pnForWrapper,
 				args.cwd,
 				args.juliaEnv
-			]
+			],
+			env: {
+				JL_ARGS: args.args ? args.args.map(i=>Buffer.from(i).toString('base64')).join(';') : ''
+			}
 		});
 		this._debuggeeTerminal.show(false);
 		let asdf: Array<Disposable> = [];
