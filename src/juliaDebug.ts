@@ -7,10 +7,6 @@ import {
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename, join } from 'path';
 import { MockRuntime, MockBreakpoint } from './mockRuntime';
-import { pathToFileURL } from 'url';
-import { homedir } from 'os';
-import { downloadAndUnzipVSCode } from 'vscode-test';
-import { window, ExtensionContext, Terminal } from 'vscode';
 import { Disposable } from 'vscode-jsonrpc';
 import * as net from 'net';
 const { Subject } = require('await-notify');
@@ -19,7 +15,6 @@ import { generatePipeName } from './utils';
 import { uuid } from 'uuidv4';
 import { sendMessage } from './repl';
 import * as vscode from 'vscode';
-import { getVSCodeDownloadUrl } from 'vscode-test/out/util';
 
 function timeout(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -63,9 +58,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	private _isLongrunning = new Map<number, boolean>();
 
 	private _juliaPath: string;
-	private _context: ExtensionContext;
+	private _context: vscode.ExtensionContext;
 
-	private _debuggeeTerminal: Terminal;
+	private _debuggeeTerminal: vscode.Terminal;
 	private _debuggeeSocket: net.Socket;
 	private _debuggeeWrapperSocket: net.Socket;
 
@@ -82,7 +77,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	 * Creates a new debug adapter that is used for one debug session.
 	 * We configure the default implementation of a debug adapter here.
 	 */
-	public constructor(context: ExtensionContext, juliaPath: string) {
+	public constructor(context: vscode.ExtensionContext, juliaPath: string) {
 		super("mock-debug.txt");
 		this._context = context;
 		this._juliaPath = juliaPath;
@@ -326,7 +321,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		await serverListeningPromise.wait();
 
-		this._debuggeeTerminal = window.createTerminal({
+		this._debuggeeTerminal = vscode.window.createTerminal({
 			name: "Julia Debugger",
 			shellPath: this._juliaPath,
 			shellArgs: [
@@ -342,7 +337,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		});
 		this._debuggeeTerminal.show(false);
 		let asdf: Array<Disposable> = [];
-		window.onDidCloseTerminal((terminal) => {
+		vscode.window.onDidCloseTerminal((terminal) => {
 			if (terminal == this._debuggeeTerminal) {
 				this.sendEvent(new TerminatedEvent());
 				asdf[0].dispose();
