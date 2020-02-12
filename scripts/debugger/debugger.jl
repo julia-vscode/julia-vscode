@@ -478,6 +478,33 @@ function startdebug(pipename)
                     frame = ret[1]
                     send_msg(conn, "STOPPEDSTEP", "notification")
                 end
+            elseif msg_cmd=="EVALUATE"
+                index_of_sep = findfirst(':', msg_body)
+
+                stack_id = parse(Int, msg_body[1:index_of_sep-1])
+
+                expression = msg_body[index_of_sep+1:end]
+
+                curr_fr = frame
+                curr_i = 1
+
+                while stack_id > curr_i
+                    if curr_fr.caller!==nothing
+                        curr_fr = curr_fr.caller
+                        curr_i += 1
+                    else
+                        break
+                    end
+                end
+
+                try
+                    ret_val = JuliaInterpreter.eval_code(curr_fr, expression)
+
+                    send_msg(conn, "RESPONSE", msg_id, string(ret_val))
+                catch err
+                    send_msg(conn, "RESPONSE", msg_id, "#error")
+                end
+
             end
         end
     finally
