@@ -6,6 +6,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as juliaexepath from './juliaexepath';
+import * as readline from 'readline';
+import { generatePipeName } from './utils';
+import * as net from 'net';
+import { uuid } from 'uuidv4';
+import { getEnvPath } from './jlpkgenv';
+const { Subject } = require('await-notify');
 
 export class JuliaNotebookCell {
 	public outputs: vscode.CellOutput[] = [];
@@ -49,8 +55,11 @@ export class JuliaNotebookCell {
 
 export class JuliaNotebook {
 	public mapping: Map<number, any> = new Map();
+	private request_id_to_cell_handle: Map<number, any> = new Map();
 	private preloadScript = false;
 	private _terminal: vscode.Terminal;
+	private _socket: net.Socket;
+	private _current_request_id: number = 0;
 	constructor(
 		private _extensionPath: string,
 		public document: vscode.NotebookDocument,
@@ -104,18 +113,96 @@ export class JuliaNotebook {
 		editor.document.cells = cells;		
 	}
 
+	async startKernel() {
+		let connectedPromise = new Subject();
+		let serverListeningPromise = new Subject();
+
+		const pn = generatePipeName(uuid(), 'vscode-language-julia-notebook-kernel');
+
+		let server = net.createServer(socket => {
+			this._socket = socket;
+			const rl = readline.createInterface(socket);
+
+			rl.on('line', line => {
+				let cmd_end = line.indexOf(":");
+				let cmd = line.slice(undefined, cmd_end);
+				let payload = line.slice(cmd_end + 1);
+
+				if (cmd == 'image/png') {
+					let parts = payload.split(';');
+
+					let cellHandle = this.request_id_to_cell_handle.get(parseInt(parts[0]));
+
+					console.log(this.document.cells);
+
+					let cell = this.document.cells.find(i=>i.handle==cellHandle);
+
+					if (cell) {
+						cell.outputs.unshift({
+							'output_type': 'execute_result',
+							'data': {
+								'image/png': [parts[1]]
+							}
+						});
+					}
+
+
+					console.log(cell);
+				}
+
+				console.log(cmd);
+				console.log(payload);
+			});
+
+			connectedPromise.notify();
+		});
+
+		server.listen(pn, () => {
+			serverListeningPromise.notify();
+		});
+
+		await serverListeningPromise.wait();
+
+		const jlexepath = await juliaexepath.getJuliaExePath();
+		let pkgenvpath = await getEnvPath();
+
+		this._terminal = vscode.window.createTerminal({
+			name: "Julia Notebook Kernel",
+			shellPath: jlexepath,
+			shellArgs: [
+				'--color=yes',
+				`--project=${pkgenvpath}`,
+				'--startup-file=no',
+				'--history-file=no',
+				path.join(this._extensionPath, 'scripts', 'notebook', 'notebook.jl'),
+				pn
+			]
+		});
+		this._terminal.show(false);
+		let asdf: Array<vscode.Disposable> = [];
+		vscode.window.onDidCloseTerminal((terminal) => {
+			if (terminal == this._terminal) {
+				asdf[0].dispose();
+				this._terminal = undefined;
+				this._socket = undefined;
+			}
+		}, this, asdf);
+
+		await connectedPromise.wait();
+	}
+
 	async execute(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined) {
 		if (!this._terminal) {
-			const exepath = await juliaexepath.getJuliaExePath();
-			this._terminal = vscode.window.createTerminal({
-				name: "julia",
-				shellPath: exepath,
-				shellArgs: [path.join(this._extensionPath, 'scripts', 'notebook', 'notebook.jl')]
-			});
-	
+			await this.startKernel()	
 		}		
 
 		if (cell) {
+			let code = cell.getContent();
+			let encoded_code = Buffer.from(code).toString('base64')
+			this._socket.write(`${this._current_request_id}:${encoded_code}\n`);
+			this.request_id_to_cell_handle.set(this._current_request_id, cell.handle);
+			this._current_request_id += 1;
+
 			let rawCell = this.mapping.get(cell.handle);
 
 			if (!this.preloadScript) {
