@@ -369,23 +369,18 @@ function startdebug(pipename)
 
                 id = 1
                 while curr_fr!==nothing
-                    @debug JuliaInterpreter.scopeof(curr_fr)
-                    @debug typeof(JuliaInterpreter.scopeof(curr_fr))
-                    @debug JuliaInterpreter.whereis(curr_fr)
-                    @debug typeof(JuliaInterpreter.whereis(curr_fr))
-
-                    # This can be either a Method or a Module
                     curr_scopeof = JuliaInterpreter.scopeof(curr_fr)
                     curr_whereis = JuliaInterpreter.whereis(curr_fr)
-                    fname = curr_whereis[1]
-                    lineno = curr_whereis[2]
-                    meth_or_mod_name = curr_scopeof isa Method ? curr_scopeof.name : string(curr_scopeof)
 
-                    if isfile(fname)
-                        push!(frames_as_string, string(id, ";", meth_or_mod_name, ";path;", fname, ";", lineno))
+                    file_name = curr_whereis[1]
+                    lineno = curr_whereis[2]
+                    meth_or_mod_name = Base.nameof(curr_fr)
+
+                    if isfile(file_name)
+                        push!(frames_as_string, string(id, ";", meth_or_mod_name, ";path;", file_name, ";", lineno))
                     elseif curr_scopeof isa Method
                         sources[curr_source_id], loc = JuliaInterpreter.CodeTracking.definition(String, curr_fr.framecode.scope)
-                        s = string(id, ";", meth_or_mod_name, ";ref;", curr_source_id, ";", lineno, ";", fname)
+                        s = string(id, ";", meth_or_mod_name, ";ref;", curr_source_id, ";", lineno, ";", file_name)
                         push!(frames_as_string, s)
                         curr_source_id += 1
                     else
