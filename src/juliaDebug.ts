@@ -165,7 +165,11 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		response.body.supportsLogPoints = false;
 
-		response.body.exceptionBreakpointFilters = [{ filter: 'error', label: 'Break any time an uncaught exception is thrown', default: true }, { filter: 'throw', label: 'Break any time a throw is executed', default: false }];
+		response.body.exceptionBreakpointFilters = [
+			{ filter: 'compilemode', label: 'Enable compile mode (experimental)', default: false },
+			{ filter: 'error', label: 'Break any time an uncaught exception is thrown', default: true },
+			{ filter: 'throw', label: 'Break any time a throw is executed', default: false }
+		];
 
 		this.sendResponse(response);
 	}

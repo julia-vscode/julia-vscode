@@ -40,26 +40,15 @@ function attempt_to_set_f_breakpoints!(bps)
     end
 end
 
-function recurse_option()
-    # For now we always use interpreter mode because the compiled
-    # mode seems to behave differently when it comes to stepping,
-    # which makes it difficult to implement
-    if false && length(JuliaInterpreter.breakpoints())==0
-        @info "COMPILED"
-        return JuliaInterpreter.Compiled()
-    else
-        @info "INTERPRETED"
-        return JuliaInterpreter.finish_and_return!
-    end
-end
-
-function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
+function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints, compile_mode)
     ret = nothing
     while true
         @debug "Now running the following FRAME:"
         @debug frame
 
-        ret = JuliaInterpreter.debug_command(recurse_option(), frame, cmd, true)
+        @debug compile_mode
+
+        ret = Base.invokelatest(JuliaInterpreter.debug_command, compile_mode, frame, cmd, true)
 
         attempt_to_set_f_breakpoints!(not_yet_set_function_breakpoints)
 
@@ -147,6 +136,8 @@ function startdebug(pipename)
 
         debug_mode = missing
 
+        compile_mode = JuliaInterpreter.finish_and_return!
+
         while true      
             @debug "Current FRAME is"    
             @debug frame
@@ -199,7 +190,7 @@ function startdebug(pipename)
                 elseif JuliaInterpreter.shouldbreak(frame, frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints)
+                    ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints, compile_mode)
 
                     if ret===nothing
                         send_msg(conn, "FINISHED", "notification")
@@ -236,7 +227,7 @@ function startdebug(pipename)
                 elseif JuliaInterpreter.shouldbreak(frame, frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints)
+                    ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints, compile_mode)
 
                     if ret===nothing
                         @debug "WE ARE SENDING FINISHED"
@@ -292,6 +283,12 @@ function startdebug(pipename)
                     JuliaInterpreter.break_on(:throw )
                 else
                     JuliaInterpreter.break_off(:throw )
+                end
+
+                if "compilemode" in opts
+                    compile_mode = JuliaInterpreter.Compiled()
+                else
+                    compile_mode = JuliaInterpreter.finish_and_return!
                 end
             elseif msg_cmd=="SETFUNCBREAKPOINTS"
                 @debug "SETTING FUNC BREAKPOINT"                
@@ -436,7 +433,7 @@ function startdebug(pipename)
                 send_msg(conn, "RESPONSE", msg_id, join(vars_as_string, '\n'))
                 @debug "DONE VARS"
             elseif msg_cmd=="CONTINUE"
-                ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints)
+                ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -449,7 +446,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="NEXT"
                 @debug "NEXT COMMAND"
-                ret = our_debug_command(frame, :n, modexs, not_yet_set_function_breakpoints)
+                ret = our_debug_command(frame, :n, modexs, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -462,7 +459,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="STEPIN"
                 @debug "STEPIN COMMAND"
-                ret = our_debug_command(frame, :s, modexs, not_yet_set_function_breakpoints)
+                ret = our_debug_command(frame, :s, modexs, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -475,7 +472,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="STEPOUT"
                 @debug "STEPOUT COMMAND"
-                ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints)
+                ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
