@@ -42,6 +42,11 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	trace?: boolean;
 }
 
+interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
+	code: string;
+	stopOnEntry: boolean;
+}
+
 export class JuliaDebugSession extends LoggingDebugSession {
 
 	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
@@ -237,7 +242,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		}
 	}
 
-	protected async attachRequest(response: DebugProtocol.AttachResponse, args: DebugProtocol.AttachRequestArguments) {
+	protected async attachRequest(response: DebugProtocol.AttachResponse, args: AttachRequestArguments) {
 		this._launchMode = false;
 		const pn = generatePipeName(uuid(), 'vscode-language-julia-debugger');
 
@@ -273,9 +278,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		await this._configurationDone.wait();
 
 
-		let code_to_run = args['code']
+		let code_to_run = args.code;
 
-		this.sendNotificationToDebugger('EXEC', code_to_run);
+		this.sendNotificationToDebugger('EXEC', `${args.stopOnEntry ? 'stopOnEntry=true' : 'stopOnEntry=false'};${code_to_run}`);
 
 		this.sendResponse(response);
 	}

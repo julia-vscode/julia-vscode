@@ -209,12 +209,23 @@ async function startREPL(preserveFocus: boolean) {
 }
 
 function processMsg(cmd, payload) {
-    if (cmd == 'debugger/eval') {
+    if (cmd == 'debugger/run') {
         let x = {
             type:'julia',
             request: 'attach',
-            name: 'something',
-            code: payload
+            name: 'Julia REPL',
+            code: payload,
+            stopOnEntry: false
+        }
+        vscode.debug.startDebugging(undefined, x);
+    }
+    else if (cmd == 'debugger/enter') {
+        let x = {
+            type:'julia',
+            request: 'attach',
+            name: 'Julia REPL',
+            code: payload,
+            stopOnEntry: true
         }
         vscode.debug.startDebugging(undefined, x);
     }

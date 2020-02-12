@@ -132,6 +132,8 @@ function startdebug(pipename)
         sources = Dict{Int,String}()
         curr_source_id = 1
 
+        debug_mode = missing
+
         while true      
             @debug "Current FRAME is"    
             @debug frame
@@ -146,6 +148,7 @@ function startdebug(pipename)
                 @debug "DISCONNECT"
                 break
             elseif msg_cmd=="RUN"
+                debug_mode = :launch
                 @debug "WE ARE RUNNING"
                 try
                     include(msg_body)
@@ -156,6 +159,7 @@ function startdebug(pipename)
                 send_msg(conn, "FINISHED", "notification")     
                 break           
             elseif msg_cmd=="DEBUG"
+                debug_mode = :launch
                 index_of_sep = findfirst(';', msg_body)
 
                 stop_on_entry_as_string = msg_body[1:index_of_sep-1]
@@ -193,9 +197,20 @@ function startdebug(pipename)
                     end
                 end
             elseif msg_cmd=="EXEC"
+                debug_mode = :attach
                 @debug "WE ARE EXECUTING"
-    
-                ex = Meta.parse(msg_body)
+
+                index_of_sep = findfirst(';', msg_body)
+
+                stop_on_entry_as_string = msg_body[1:index_of_sep-1]
+
+                stop_on_entry = stop_on_entry_as_string=="stopOnEntry=true"
+
+                code_to_debug = msg_body[index_of_sep+1:end]
+
+                sources[0] = code_to_debug
+
+                ex = Meta.parse(code_to_debug)
 
                 modexs, _ = JuliaInterpreter.split_expressions(Main, ex)
     
@@ -203,20 +218,24 @@ function startdebug(pipename)
                 frame = JuliaInterpreter.prepare_thunk(modexs[1])
                 deleteat!(modexs, 1)
     
-                ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints)
-
-                if ret===nothing
-                    @debug "WE ARE SENDING FINISHED"
-                    send_msg(conn, "FINISHED", "notification")
-                    break
-                else
-                    @debug "NOW WE NEED TO SEND A ON STOP MSG"
-                    frame = ret[1]
+                if stop_on_entry
+                    send_msg(conn, "STOPPEDENTRY", "notification")
+                elseif JuliaInterpreter.shouldbreak(frame, frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
-                end                
+                else
+                    ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints)
+
+                    if ret===nothing
+                        @debug "WE ARE SENDING FINISHED"
+                        send_msg(conn, "FINISHED", "notification")
+                    else
+                        @debug "NOW WE NEED TO SEND A ON STOP MSG"
+                        frame = ret[1]
+                        send_msg(conn, "STOPPEDBP", "notification")
+                    end                
+                end
             elseif msg_cmd=="TERMINATE"
                 send_msg(conn, "FINISHED", "notification")
-                break
             elseif msg_cmd=="SETBREAKPOINTS"
                 splitted_line = split(msg_body, ';')
 
@@ -357,7 +376,11 @@ function startdebug(pipename)
                         push!(frames_as_string, s)
                         curr_source_id += 1
                     else
-                        # TODO Handle this case
+                        # For now we are assuming that this can only happen
+                        # for code that is passed via the @enter or @run macros,
+                        # and that code we have stored as source with id 0
+                        s = string(id, ";", meth_or_mod_name, ";ref;", 0, ";", lineno, ";", "REPL")
+                        push!(frames_as_string, s)
                     end
                     
                     id += 1
@@ -410,7 +433,7 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
-                    break
+                    debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -423,7 +446,7 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
-                    break
+                    debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -436,7 +459,7 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
-                    break
+                    debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
@@ -449,7 +472,7 @@ function startdebug(pipename)
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
-                    break
+                    debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]

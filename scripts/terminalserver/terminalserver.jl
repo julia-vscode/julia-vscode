@@ -446,6 +446,16 @@ function printdataresource(io::IO, source)
     print(io, "]}")
 end
 
+function remove_lln!(ex::Expr)
+    for i in length(ex.args):-1:1
+        if ex.args[i] isa LineNumberNode
+            deleteat!(ex.args, i)
+        elseif ex.args[i] isa Expr
+            remove_lln!(ex.args[i])
+        end
+    end
+end
+
 end
 
 function vscodedisplay(x)
@@ -480,5 +490,11 @@ if _vscodeserver.load_revise
 end
 
 macro enter(command)
-    :(_vscodeserver.sendMsgToVscode("debugger/eval", $(string(command))))
+    _vscodeserver.remove_lln!(command)
+    :(_vscodeserver.sendMsgToVscode("debugger/enter", $(string(command))))
+end
+
+macro run(command)
+    _vscodeserver.remove_lln!(command)
+    :(_vscodeserver.sendMsgToVscode("debugger/run", $(string(command))))
 end
