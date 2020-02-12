@@ -179,7 +179,8 @@ async function startLanguageServer() {
                                    'julia.lint.datadecl',
                                    'julia.lint.typeparam',
                                    'julia.lint.modname',
-                                   'julia.lint.pirates',],
+                                   'julia.lint.pirates',
+                                   'julia.lint.missingrefs',],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
