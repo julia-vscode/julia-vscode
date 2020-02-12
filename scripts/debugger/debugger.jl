@@ -40,13 +40,26 @@ function attempt_to_set_f_breakpoints!(bps)
     end
 end
 
+function recurse_option()
+    # For now we always use interpreter mode because the compiled
+    # mode seems to behave differently when it comes to stepping,
+    # which makes it difficult to implement
+    if false && length(JuliaInterpreter.breakpoints())==0
+        @info "COMPILED"
+        return JuliaInterpreter.Compiled()
+    else
+        @info "INTERPRETED"
+        return JuliaInterpreter.finish_and_return!
+    end
+end
+
 function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints)
     ret = nothing
     while true
         @debug "Now running the following FRAME:"
         @debug frame
 
-        ret = JuliaInterpreter.debug_command(frame, cmd, true)
+        ret = JuliaInterpreter.debug_command(recurse_option(), frame, cmd, true)
 
         attempt_to_set_f_breakpoints!(not_yet_set_function_breakpoints)
 
