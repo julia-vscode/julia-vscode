@@ -605,7 +605,7 @@
                             "request": "launch",
                             "name": "${2:Launch Program}",
                             "program": "^\"\\${workspaceFolder}/${1:Program}\"",
-                            "stopOnEntry": false                                
+                            "stopOnEntry": false
                         }
                     },
                     {
