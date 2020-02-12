@@ -139,7 +139,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		response.body.supportsFunctionBreakpoints = true;
 
 		// make VS Code to use 'evaluate' when hovering over source
-		response.body.supportsEvaluateForHovers = false;
+		response.body.supportsEvaluateForHovers = true;
 
 		// make VS Code to show a 'step back' button
 		response.body.supportsStepBack = false;
