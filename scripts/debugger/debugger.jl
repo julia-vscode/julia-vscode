@@ -19,9 +19,10 @@ mutable struct DebuggerState
     last_exception
     top_level_expressions::Vector{Any}
     current_top_level_expression::Int
+    frame
 
     function DebuggerState()
-        return new(nothing, [], 0)
+        return new(nothing, [], 0, nothing)
     end
 end
 
@@ -81,15 +82,14 @@ function get_next_top_level_frame(state)
     end
 end
 
-function our_debug_command(frame, cmd, state, not_yet_set_function_breakpoints, compile_mode)
-    ret = nothing
+function our_debug_command(cmd, state, not_yet_set_function_breakpoints, compile_mode)
     while true
         @debug "Now running the following FRAME:"
-        @debug frame
+        @debug state.frame
 
         @debug compile_mode
 
-        ret = Base.invokelatest(JuliaInterpreter.debug_command, compile_mode, frame, cmd, true)
+        ret = Base.invokelatest(JuliaInterpreter.debug_command, compile_mode, state.frame, cmd, true)
 
         attempt_to_set_f_breakpoints!(not_yet_set_function_breakpoints)
 
@@ -100,24 +100,22 @@ function our_debug_command(frame, cmd, state, not_yet_set_function_breakpoints, 
         end
 
         if ret!==nothing
-            break
+            state.frame = ret[1]
+            return ret[2]
         end
 
-        frame = get_next_top_level_frame(state)
+        state.frame = get_next_top_level_frame(state)
 
-        if frame===nothing
-            break
+        if state.frame===nothing
+            return nothing
         end
 
         ret!==nothing && error("THIS SHOULDN't happen")
 
-        if ret===nothing && (cmd==:n ||cmd==:s || cmd==:finish || JuliaInterpreter.shouldbreak(frame, frame.pc))
-            ret = (frame, nothing)
-            break
+        if ret===nothing && (cmd==:n ||cmd==:s || cmd==:finish || JuliaInterpreter.shouldbreak(state.frame, state.frame.pc))
+            return state.frame.pc
         end
     end
-
-    return ret
 end
 
 function decode_msg(line::AbstractString)
@@ -163,8 +161,6 @@ function startdebug(pipename)
     conn = Sockets.connect(pipename)
     try
         state = DebuggerState()
-
-        frame = nothing
 
         not_yet_set_function_breakpoints = Set{String}()
 
@@ -219,21 +215,20 @@ function startdebug(pipename)
                 state.top_level_expressions, _ = JuliaInterpreter.split_expressions(Main, ex)
                 state.current_top_level_expression = 0
 
-                frame = get_next_top_level_frame(state)
+                state.frame = get_next_top_level_frame(state)
 
                 if stop_on_entry
                     send_msg(conn, "STOPPEDENTRY", "notification")
-                elseif JuliaInterpreter.shouldbreak(frame, frame.pc)
+                elseif JuliaInterpreter.shouldbreak(state.frame, state.frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(frame, :c, state, not_yet_set_function_breakpoints, compile_mode)
+                    ret = our_debug_command(:c, state, not_yet_set_function_breakpoints, compile_mode)
 
                     if ret===nothing
                         send_msg(conn, "FINISHED", "notification")
                         break
                     else
-                        frame = ret[1]
-                        send_stopped_msg(conn, ret[2], state)                        
+                        send_stopped_msg(conn, ret, state)                        
                     end
                 end
             elseif msg_cmd=="EXEC"
@@ -255,22 +250,21 @@ function startdebug(pipename)
                 state.top_level_expressions, _ = JuliaInterpreter.split_expressions(Main, ex)
                 state.current_top_level_expression = 0
     
-                frame = get_next_top_level_frame(state)
+                state.frame = get_next_top_level_frame(state)
     
                 if stop_on_entry
                     send_msg(conn, "STOPPEDENTRY", "notification")
-                elseif JuliaInterpreter.shouldbreak(frame, frame.pc)
+                elseif JuliaInterpreter.shouldbreak(state.frame, state.frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(frame, :c, state, not_yet_set_function_breakpoints, compile_mode)
+                    ret = our_debug_command(:c, state, not_yet_set_function_breakpoints, compile_mode)
 
                     if ret===nothing
                         @debug "WE ARE SENDING FINISHED"
                         send_msg(conn, "FINISHED", "notification")
                     else
                         @debug "NOW WE NEED TO SEND A ON STOP MSG"
-                        frame = ret[1]
-                        send_stopped_msg(conn, ret[2], state)
+                        send_stopped_msg(conn, ret, state)
                     end                
                 end
             elseif msg_cmd=="TERMINATE"
@@ -393,7 +387,7 @@ function startdebug(pipename)
             elseif msg_cmd=="GETSTACKTRACE"
                 @debug "Stacktrace requested"
 
-                fr = frame
+                fr = state.frame
 
                 curr_fr = JuliaInterpreter.leaf(fr)
 
@@ -432,7 +426,7 @@ function startdebug(pipename)
             elseif msg_cmd=="GETSCOPE"
                 frameId = parse(Int, msg_body)
 
-                curr_fr = JuliaInterpreter.leaf(frame)
+                curr_fr = JuliaInterpreter.leaf(state.frame)
 
                 i = 1
 
@@ -461,7 +455,7 @@ function startdebug(pipename)
 
                 frameId = parse(Int, msg_body)
 
-                fr = frame
+                fr = state.frame
                 curr_fr = JuliaInterpreter.leaf(fr)
 
                 i = 1
@@ -491,7 +485,7 @@ function startdebug(pipename)
                 send_msg(conn, "RESPONSE", msg_id, join(vars_as_string, '\n'))
                 @debug "DONE VARS"
             elseif msg_cmd=="CONTINUE"
-                ret = our_debug_command(frame, :c, state, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(:c, state, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -499,12 +493,11 @@ function startdebug(pipename)
                     debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
-                    frame = ret[1]
-                    send_stopped_msg(conn, ret[2], state)
+                    send_stopped_msg(conn, ret, state)
                 end
             elseif msg_cmd=="NEXT"
                 @debug "NEXT COMMAND"
-                ret = our_debug_command(frame, :n, state, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(:n, state, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -512,12 +505,11 @@ function startdebug(pipename)
                     debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
-                    frame = ret[1]
-                    send_stopped_msg(conn, ret[2], state)
+                    send_stopped_msg(conn, ret, state)
                 end
             elseif msg_cmd=="STEPIN"
-                @debug "STEPIN COMMAND"
-                ret = our_debug_command(frame, :s, state, not_yet_set_function_breakpoints, compile_mode)
+                @debug "STEPIN COMMAND"                
+                ret = our_debug_command(:s, state, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -525,12 +517,11 @@ function startdebug(pipename)
                     debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
-                    frame = ret[1]
-                    send_stopped_msg(conn, ret[2], state)
+                    send_stopped_msg(conn, ret, state)
                 end
             elseif msg_cmd=="STEPOUT"
                 @debug "STEPOUT COMMAND"
-                ret = our_debug_command(frame, :finish, state, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(:finish, state, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -538,8 +529,7 @@ function startdebug(pipename)
                     debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
-                    frame = ret[1]
-                    send_stopped_msg(conn, ret[2], state)
+                    send_stopped_msg(conn, ret, state)
                 end
             elseif msg_cmd=="EVALUATE"
                 index_of_sep = findfirst(':', msg_body)
@@ -548,7 +538,7 @@ function startdebug(pipename)
 
                 expression = msg_body[index_of_sep+1:end]
 
-                curr_fr = frame
+                curr_fr = state.frame
                 curr_i = 1
 
                 while stack_id > curr_i
