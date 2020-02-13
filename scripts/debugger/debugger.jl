@@ -89,7 +89,6 @@ function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints,
             break
         end
 
-        insert_bp!(modexs[1][2])
         frame = JuliaInterpreter.prepare_thunk(modexs[1])        
         deleteat!(modexs, 1)
 
@@ -125,28 +124,6 @@ function lowercase_drive(a)
         return lowercase(a[1]) * a[2:end]
     else
         return a
-    end
-end
-
-function insert_bp!(expr)
-    i = length(expr.args)
-    for arg in reverse(expr.args)
-        if arg isa LineNumberNode
-            lln = arg
-            for bp in JuliaInterpreter.breakpoints()
-                if bp isa JuliaInterpreter.BreakpointFileLocation
-                    if lowercase_drive(string(lln.file)) == lowercase_drive(bp.abspath) && lln.line == bp.line                        
-                        insert!(expr.args, i, JuliaInterpreter.BREAKPOINT_EXPR)
-                        insert!(expr.args, i, lln)
-                        i -= 1
-                    end
-                end
-            end
-        end
-        if arg isa Expr && !(arg.head in (:function, :struct))
-            insert_bp!(arg)
-        end
-        i -= 1
     end
 end
 
@@ -225,7 +202,6 @@ function startdebug(pipename)
 
                 modexs, _ = JuliaInterpreter.split_expressions(Main, ex)
 
-                insert_bp!(modexs[1][2])
                 frame = JuliaInterpreter.prepare_thunk(modexs[1])
                 deleteat!(modexs, 1)
 
@@ -262,7 +238,6 @@ function startdebug(pipename)
 
                 modexs, _ = JuliaInterpreter.split_expressions(Main, ex)
     
-                insert_bp!(modexs[1][2])
                 frame = JuliaInterpreter.prepare_thunk(modexs[1])
                 deleteat!(modexs, 1)
     
