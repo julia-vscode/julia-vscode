@@ -20,9 +20,9 @@ function timeout(ms) {
 }
 
 /**
- * This interface describes the mock-debug specific launch attributes
+ * This interface describes the Julia specific launch attributes
  * (which are not part of the Debug Adapter Protocol).
- * The schema for these attributes lives in the package.json of the mock-debug extension.
+ * The schema for these attributes lives in the package.json of the Julia extension.
  * The interface should always match this schema.
  */
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
@@ -47,7 +47,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
 	private static THREAD_ID = 1;
 
-	private _variableHandles = new Handles<{scope: string, frameId: number}>();
+	private _variableHandles = new Handles<{ scope: string, frameId: number }>();
 
 	private _configurationDone = new Subject();
 
@@ -66,7 +66,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	private _nextRequestId: number = 0;
 
-	private _requestResponses: Map<number, {requestArrived: any, data: string}> = new Map<number, {requestArrived: any, data: string}>();
+	private _requestResponses: Map<number, { requestArrived: any, data: string }> = new Map<number, { requestArrived: any, data: string }>();
 
 	private _no_need_for_force_kill: boolean = false;
 
@@ -75,7 +75,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	 * We configure the default implementation of a debug adapter here.
 	 */
 	public constructor(context: vscode.ExtensionContext, juliaPath: string) {
-		super("mock-debug.txt");
+		super("julia-debug.txt");
 		this._context = context;
 		this._juliaPath = juliaPath;
 
@@ -147,19 +147,19 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		this._configurationDone.notify();
 	}
 
-	protected sendNotificationToDebugger(cmd: string, body: string='') {
+	protected sendNotificationToDebugger(cmd: string, body: string = '') {
 		let encoded_body = Buffer.from(body).toString('base64');
 
 		this._debuggeeSocket.write(`notification:${cmd}:${encoded_body}\n`)
 	}
 
-	protected async sendRequestToDebugger(cmd: string, body: string=''): Promise<string> {
+	protected async sendRequestToDebugger(cmd: string, body: string = ''): Promise<string> {
 		const requestId = this._nextRequestId;
 		this._nextRequestId += 1;
 
 		const responseArrived = new Subject();
 
-		this._requestResponses[requestId] = {requestArrived: responseArrived, data: ''};
+		this._requestResponses[requestId] = { requestArrived: responseArrived, data: '' };
 
 		let encoded_body = Buffer.from(body).toString('base64');
 
@@ -204,7 +204,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			this._requestResponses[parseInt(msg_id)].requestArrived.notify();
 		}
 		else {
-			throw "Unknown message received";			
+			throw "Unknown message received";
 		}
 	}
 
@@ -302,7 +302,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				args.juliaEnv
 			],
 			env: {
-				JL_ARGS: args.args ? args.args.map(i=>Buffer.from(i).toString('base64')).join(';') : ''
+				JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : ''
 			}
 		});
 		this._debuggeeTerminal.show(false);
@@ -445,7 +445,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			stackFrames: stk.map(f => {
 				const parts = f.split(';');
 
-				if (parts[2]=='path') {
+				if (parts[2] == 'path') {
 					// TODO Figure out how we can get a proper stackframe ID
 					// TODO Make sure ; is a good separator here...
 					return new StackFrame(parseInt(parts[0]), parts[1], this.createSource(parts[3]), this.convertDebuggerLineToClient(parseInt(parts[4])))
@@ -454,7 +454,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 					return new StackFrame(
 						parseInt(parts[0]),
 						parts[1],
-						new Source(parts[4],undefined,parseInt(parts[3])),
+						new Source(parts[4], undefined, parseInt(parts[3])),
 						this.convertDebuggerLineToClient(parseInt(parts[5]))
 					)
 				}
@@ -465,9 +465,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments) {
-		const ret = await this.sendRequestToDebugger('GETSOURCE', args.source.sourceReference.toString());	
+		const ret = await this.sendRequestToDebugger('GETSOURCE', args.source.sourceReference.toString());
 
-		response.body = {content: ret};
+		response.body = { content: ret };
 
 		this.sendResponse(response);
 	}
@@ -476,13 +476,13 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		let resp = await this.sendRequestToDebugger('GETSCOPE', args.frameId.toString());
 
-		if (resp=='') {
+		if (resp == '') {
 			response.body = {
 				scopes: [
-					new Scope("Local", this._variableHandles.create({scope: "local", frameId: args.frameId}), false),
+					new Scope("Local", this._variableHandles.create({ scope: "local", frameId: args.frameId }), false),
 					// new Scope("Global", this._variableHandles.create("global"), true)
 				]
-			};	
+			};
 		}
 		else {
 			let parts = resp.split(';');
@@ -492,8 +492,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			response.body = {
 				scopes: [
 					{
-						name: 'Local', 
-						variablesReference: this._variableHandles.create({scope: "local", frameId: args.frameId}),
+						name: 'Local',
+						variablesReference: this._variableHandles.create({ scope: "local", frameId: args.frameId }),
 						expensive: false,
 						line: parseInt(parts[0]),
 						endLine: parseInt(parts[1]),
@@ -503,10 +503,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 						}
 					}
-					
+
 					// new Scope("Global", this._variableHandles.create("global"), true)
 				]
-			};	
+			};
 
 		}
 		this.sendResponse(response);
@@ -520,7 +520,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		const ret = await this.sendRequestToDebugger('GETVARIABLES', details.frameId.toString());
 
-		const vars = ret=='' ? [] : ret.split('\n');
+		const vars = ret == '' ? [] : ret.split('\n');
 
 		for (let v of vars) {
 			let parts = v.split(';')
@@ -638,7 +638,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected async exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {		
+	protected async exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {
 		response.body = {
 			exceptionId: 'SOMEID',
 			description: 'THE DESCRIPTION IN THE BODY',
@@ -685,6 +685,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	//---- helpers
 
 	private createSource(filePath: string): Source {
-		return new Source(basename(filePath), this.convertDebuggerPathToClient(filePath), undefined, undefined, 'mock-adapter-data');
+		return new Source(basename(filePath), this.convertDebuggerPathToClient(filePath), undefined, undefined, 'julia-adapter-data');
 	}
 }
