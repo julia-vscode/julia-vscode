@@ -17,9 +17,11 @@ import Sockets, Base64
 
 mutable struct DebuggerState
     last_exception
+    top_level_expressions::Vector{Any}
+    current_top_level_expression::Int
 
     function DebuggerState()
-        return new(nothing)
+        return new(nothing, [], 0)
     end
 end
 
@@ -67,7 +69,19 @@ function attempt_to_set_f_breakpoints!(bps)
     end
 end
 
-function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints, compile_mode)
+function get_next_top_level_frame(state)
+    state.current_top_level_expression += 1
+    
+    if state.current_top_level_expression > length(state.top_level_expressions)
+        return nothing
+    else
+        next_top_level = state.top_level_expressions[state.current_top_level_expression]
+        next_frame = JuliaInterpreter.prepare_thunk(next_top_level)
+        return next_frame
+    end
+end
+
+function our_debug_command(frame, cmd, state, not_yet_set_function_breakpoints, compile_mode)
     ret = nothing
     while true
         @debug "Now running the following FRAME:"
@@ -85,12 +99,15 @@ function our_debug_command(frame, cmd, modexs, not_yet_set_function_breakpoints,
             ret = nothing
         end
 
-        if ret!==nothing || length(modexs)==0
+        if ret!==nothing
             break
         end
 
-        frame = JuliaInterpreter.prepare_thunk(modexs[1])        
-        deleteat!(modexs, 1)
+        frame = get_next_top_level_frame(state)
+
+        if frame===nothing
+            break
+        end
 
         ret!==nothing && error("THIS SHOULDN't happen")
 
@@ -147,7 +164,6 @@ function startdebug(pipename)
     try
         state = DebuggerState()
 
-        modexs = []
         frame = nothing
 
         not_yet_set_function_breakpoints = Set{String}()
@@ -200,17 +216,17 @@ function startdebug(pipename)
                 @debug typeof(ex)
                 @debug ex
 
-                modexs, _ = JuliaInterpreter.split_expressions(Main, ex)
+                state.top_level_expressions, _ = JuliaInterpreter.split_expressions(Main, ex)
+                state.current_top_level_expression = 0
 
-                frame = JuliaInterpreter.prepare_thunk(modexs[1])
-                deleteat!(modexs, 1)
+                frame = get_next_top_level_frame(state)
 
                 if stop_on_entry
                     send_msg(conn, "STOPPEDENTRY", "notification")
                 elseif JuliaInterpreter.shouldbreak(frame, frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints, compile_mode)
+                    ret = our_debug_command(frame, :c, state, not_yet_set_function_breakpoints, compile_mode)
 
                     if ret===nothing
                         send_msg(conn, "FINISHED", "notification")
@@ -236,17 +252,17 @@ function startdebug(pipename)
 
                 ex = Meta.parse(code_to_debug)
 
-                modexs, _ = JuliaInterpreter.split_expressions(Main, ex)
+                state.top_level_expressions, _ = JuliaInterpreter.split_expressions(Main, ex)
+                state.current_top_level_expression = 0
     
-                frame = JuliaInterpreter.prepare_thunk(modexs[1])
-                deleteat!(modexs, 1)
+                frame = get_next_top_level_frame(state)
     
                 if stop_on_entry
                     send_msg(conn, "STOPPEDENTRY", "notification")
                 elseif JuliaInterpreter.shouldbreak(frame, frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints, compile_mode)
+                    ret = our_debug_command(frame, :c, state, not_yet_set_function_breakpoints, compile_mode)
 
                     if ret===nothing
                         @debug "WE ARE SENDING FINISHED"
@@ -475,7 +491,7 @@ function startdebug(pipename)
                 send_msg(conn, "RESPONSE", msg_id, join(vars_as_string, '\n'))
                 @debug "DONE VARS"
             elseif msg_cmd=="CONTINUE"
-                ret = our_debug_command(frame, :c, modexs, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(frame, :c, state, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -488,7 +504,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="NEXT"
                 @debug "NEXT COMMAND"
-                ret = our_debug_command(frame, :n, modexs, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(frame, :n, state, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -501,7 +517,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="STEPIN"
                 @debug "STEPIN COMMAND"
-                ret = our_debug_command(frame, :s, modexs, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(frame, :s, state, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -514,7 +530,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="STEPOUT"
                 @debug "STEPOUT COMMAND"
-                ret = our_debug_command(frame, :finish, modexs, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(frame, :finish, state, not_yet_set_function_breakpoints, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
