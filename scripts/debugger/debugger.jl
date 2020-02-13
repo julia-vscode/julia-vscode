@@ -15,6 +15,14 @@ end
 import .JuliaInterpreter
 import Sockets, Base64
 
+mutable struct DebuggerState
+    last_exception
+
+    function DebuggerState()
+        return new(nothing)
+    end
+end
+
 function clean_up_ARGS_in_launch_mode()
     pipename = ARGS[1]
     deleteat!(ARGS, 1)
@@ -142,9 +150,24 @@ function insert_bp!(expr)
     end
 end
 
+function send_stopped_msg(conn, ret_val, state)
+    if ret_val isa JuliaInterpreter.BreakpointRef
+        if ret_val.err===nothing
+            send_msg(conn, "STOPPEDBP", "notification")
+        else
+            state.last_exception = ret_val.err
+            send_msg(conn, "STOPPEDEXCEPTION", "notification", string(ret_val.err))
+        end
+    elseif ret_val isa Number
+        send_msg(conn, "STOPPEDSTEP", "notification")
+    end
+end
+
 function startdebug(pipename)
     conn = Sockets.connect(pipename)
     try
+        state = DebuggerState()
+
         modexs = []
         frame = nothing
 
@@ -216,7 +239,7 @@ function startdebug(pipename)
                         break
                     else
                         frame = ret[1]
-                        send_msg(conn, "STOPPEDBP", "notification")
+                        send_stopped_msg(conn, ret[2], state)                        
                     end
                 end
             elseif msg_cmd=="EXEC"
@@ -254,7 +277,7 @@ function startdebug(pipename)
                     else
                         @debug "NOW WE NEED TO SEND A ON STOP MSG"
                         frame = ret[1]
-                        send_msg(conn, "STOPPEDBP", "notification")
+                        send_stopped_msg(conn, ret[2], state)
                     end                
                 end
             elseif msg_cmd=="TERMINATE"
@@ -484,7 +507,7 @@ function startdebug(pipename)
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDBP", "notification")
+                    send_stopped_msg(conn, ret[2], state)
                 end
             elseif msg_cmd=="NEXT"
                 @debug "NEXT COMMAND"
@@ -497,7 +520,7 @@ function startdebug(pipename)
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDSTEP", "notification")
+                    send_stopped_msg(conn, ret[2], state)
                 end
             elseif msg_cmd=="STEPIN"
                 @debug "STEPIN COMMAND"
@@ -510,7 +533,7 @@ function startdebug(pipename)
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDSTEP", "notification")
+                    send_stopped_msg(conn, ret[2], state)
                 end
             elseif msg_cmd=="STEPOUT"
                 @debug "STEPOUT COMMAND"
@@ -523,7 +546,7 @@ function startdebug(pipename)
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     frame = ret[1]
-                    send_msg(conn, "STOPPEDSTEP", "notification")
+                    send_stopped_msg(conn, ret[2], state)
                 end
             elseif msg_cmd=="EVALUATE"
                 index_of_sep = findfirst(':', msg_body)

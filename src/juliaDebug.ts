@@ -161,6 +161,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		response.body.supportsLogPoints = false;
 
+		response.body.supportsExceptionInfoRequest = true;
+
 		response.body.exceptionBreakpointFilters = [
 			{ filter: 'compilemode', label: 'Enable compile mode (experimental)', default: false },
 			{ filter: 'error', label: 'Break any time an uncaught exception is thrown', default: true },
@@ -221,7 +223,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			this.sendEvent(new StoppedEvent('step', JuliaDebugSession.THREAD_ID));
 		}
 		else if (msg_cmd == 'STOPPEDEXCEPTION') {
-			this.sendEvent(new StoppedEvent('exception', JuliaDebugSession.THREAD_ID));
+			this.sendEvent(new StoppedEvent('exception', JuliaDebugSession.THREAD_ID, msg_body));
 		}
 		else if (msg_cmd == 'STOPPEDFUNCBP') {
 			this.sendEvent(new StoppedEvent('function breakpoint', JuliaDebugSession.THREAD_ID));
@@ -664,6 +666,23 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			});
 		}
 
+		this.sendResponse(response);
+	}
+
+	protected async exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {		
+		response.body = {
+			exceptionId: 'SOMEID',
+			description: 'THE DESCRIPTION IN THE BODY',
+			breakMode: 'userUnhandled',
+			details: {
+				message: 'THIS IS THE MESSAGE in the DETAILS',
+				typeName: 'THETYPNAMEINTHDETAILS'
+				// fullTypeName: 'THE FULL TYPENAME'
+				// stackTrace: 'THE STACK TRACE'
+			}
+		}
+
+		// throw new Error("foo")
 		this.sendResponse(response);
 	}
 
