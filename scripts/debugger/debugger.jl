@@ -20,9 +20,10 @@ mutable struct DebuggerState
     top_level_expressions::Vector{Any}
     current_top_level_expression::Int
     frame
+    not_yet_set_function_breakpoints::Set{String}
 
     function DebuggerState()
-        return new(nothing, [], 0, nothing)
+        return new(nothing, [], 0, nothing, Set{String}())
     end
 end
 
@@ -82,7 +83,7 @@ function get_next_top_level_frame(state)
     end
 end
 
-function our_debug_command(cmd, state, not_yet_set_function_breakpoints, compile_mode)
+function our_debug_command(cmd, state, compile_mode)
     while true
         @debug "Now running the following FRAME:"
         @debug state.frame
@@ -91,7 +92,7 @@ function our_debug_command(cmd, state, not_yet_set_function_breakpoints, compile
 
         ret = Base.invokelatest(JuliaInterpreter.debug_command, compile_mode, state.frame, cmd, true)
 
-        attempt_to_set_f_breakpoints!(not_yet_set_function_breakpoints)
+        attempt_to_set_f_breakpoints!(state.not_yet_set_function_breakpoints)
 
         @debug "We got $ret"
 
@@ -162,7 +163,7 @@ function startdebug(pipename)
     try
         state = DebuggerState()
 
-        not_yet_set_function_breakpoints = Set{String}()
+        
 
         sources = Dict{Int,String}()
         curr_source_id = 1
@@ -222,7 +223,7 @@ function startdebug(pipename)
                 elseif JuliaInterpreter.shouldbreak(state.frame, state.frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(:c, state, not_yet_set_function_breakpoints, compile_mode)
+                    ret = our_debug_command(:c, state, compile_mode)
 
                     if ret===nothing
                         send_msg(conn, "FINISHED", "notification")
@@ -257,7 +258,7 @@ function startdebug(pipename)
                 elseif JuliaInterpreter.shouldbreak(state.frame, state.frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(:c, state, not_yet_set_function_breakpoints, compile_mode)
+                    ret = our_debug_command(:c, state, compile_mode)
 
                     if ret===nothing
                         @debug "WE ARE SENDING FINISHED"
@@ -381,9 +382,9 @@ function startdebug(pipename)
                     end
                 end
 
-                not_yet_set_function_breakpoints = Set(bps)
+                state.not_yet_set_function_breakpoints = Set(bps)
 
-                attempt_to_set_f_breakpoints!(not_yet_set_function_breakpoints)
+                attempt_to_set_f_breakpoints!(state.not_yet_set_function_breakpoints)
             elseif msg_cmd=="GETSTACKTRACE"
                 @debug "Stacktrace requested"
 
@@ -485,7 +486,7 @@ function startdebug(pipename)
                 send_msg(conn, "RESPONSE", msg_id, join(vars_as_string, '\n'))
                 @debug "DONE VARS"
             elseif msg_cmd=="CONTINUE"
-                ret = our_debug_command(:c, state, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(:c, state, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -497,7 +498,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="NEXT"
                 @debug "NEXT COMMAND"
-                ret = our_debug_command(:n, state, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(:n, state, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -509,7 +510,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="STEPIN"
                 @debug "STEPIN COMMAND"                
-                ret = our_debug_command(:s, state, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(:s, state, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
@@ -521,7 +522,7 @@ function startdebug(pipename)
                 end
             elseif msg_cmd=="STEPOUT"
                 @debug "STEPOUT COMMAND"
-                ret = our_debug_command(:finish, state, not_yet_set_function_breakpoints, compile_mode)
+                ret = our_debug_command(:finish, state, compile_mode)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
