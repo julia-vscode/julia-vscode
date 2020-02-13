@@ -271,23 +271,6 @@ export class JuliaDebugConfigurationProvider
         })();
     }
 
-    public resolveDebugConfigurationWithSubstitutedVariables(
-        folder: vscode.WorkspaceFolder | undefined,
-        config: vscode.DebugConfiguration,
-        token?: vscode.CancellationToken): vscode.ProviderResult<vscode.DebugConfiguration> {
-        // TODO Make this conversion from relative paths to absolute paths more robust
-        if (config.program) {
-            if (!path.isAbsolute(config.program)) {
-                if (vscode.workspace.workspaceFolders) {
-                    if (vscode.workspace.workspaceFolders.length == 1) {
-                        config.program = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, config.program)
-                    }
-                }
-            }
-        }
-
-        return config;
-    }
 }
 
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
