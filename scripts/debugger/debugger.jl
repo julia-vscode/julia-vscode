@@ -160,6 +160,8 @@ function send_stopped_msg(conn, ret_val, state)
         end
     elseif ret_val isa Number
         send_msg(conn, "STOPPEDSTEP", "notification")
+    elseif ret_val===nothing
+        send_msg(conn, "STOPPEDSTEP", "notification")
     end
 end
 
