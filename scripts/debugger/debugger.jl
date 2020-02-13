@@ -2,9 +2,6 @@ module VSCodeDebugger
 
 include("../terminalserver/repl.jl")
 
-# Small hack to fool the linter
-JuliaInterpreter = nothing
-
 # This patches JuliaInterpreter.jl to use our private copy of CodeTracking.jl
 filename_of_juliainterpreter = joinpath(@__DIR__, "packages", "JuliaInterpreter", "src", "JuliaInterpreter.jl")
 filename_of_codetracking = joinpath(@__DIR__, "packages", "CodeTracking", "src", "CodeTracking.jl")
