@@ -327,6 +327,15 @@ function getvariables_request(conn, state, msg_body, msg_id)
     send_response(conn, msg_id, join(vars_as_string, '\n'))
 end
 
+function getexceptioninfo_request(conn, state, msg_body, msg_id)
+    exception_id = string(typeof(state.last_exception))
+    exception_description = sprint(Base.showerror, state.last_exception)
+
+    exception_stacktrace = sprint(Base.show_backtrace, state.frame)
+    
+    send_response(conn, msg_id, string(Base64.base64encode(exception_id), ';', Base64.base64encode(exception_description), ';', Base64.base64encode(exception_stacktrace)))
+end
+
 function evaluate_request(conn, state, msg_body, msg_id)
     @debug "evaluate_request"
 

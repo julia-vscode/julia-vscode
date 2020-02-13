@@ -448,14 +448,15 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				if (parts[2] == 'path') {
 					// TODO Figure out how we can get a proper stackframe ID
 					// TODO Make sure ; is a good separator here...
-					return new StackFrame(parseInt(parts[0]), parts[1], this.createSource(parts[3]), this.convertDebuggerLineToClient(parseInt(parts[4])))
+					return new StackFrame(parseInt(parts[0]), parts[1], this.createSource(parts[3]), this.convertDebuggerLineToClient(parseInt(parts[4])), 1)
 				}
 				else {
 					return new StackFrame(
 						parseInt(parts[0]),
 						parts[1],
 						new Source(parts[4], undefined, parseInt(parts[3])),
-						this.convertDebuggerLineToClient(parseInt(parts[5]))
+						this.convertDebuggerLineToClient(parseInt(parts[5])),
+						1
 					)
 				}
 			}),
@@ -639,15 +640,20 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected async exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {
+		let resp = await this.sendRequestToDebugger('GETEXCEPTIONINFO');
+
+		let decoded_parts = resp.split(';').map(i=>Buffer.from(i, 'base64').toString());
+
+		let exception_id = decoded_parts[0];
+		let exception_description = decoded_parts[1];
+		let excpetion_stacktrace = decoded_parts[2];
+
 		response.body = {
-			exceptionId: 'SOMEID',
-			description: 'THE DESCRIPTION IN THE BODY',
+			exceptionId: exception_id,
+			description: exception_description,
 			breakMode: 'userUnhandled',
 			details: {
-				message: 'THIS IS THE MESSAGE in the DETAILS',
-				typeName: 'THETYPNAMEINTHDETAILS'
-				// fullTypeName: 'THE FULL TYPENAME'
-				// stackTrace: 'THE STACK TRACE'
+				stackTrace: excpetion_stacktrace
 			}
 		}
 
