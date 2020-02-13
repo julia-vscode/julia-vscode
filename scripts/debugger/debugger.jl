@@ -21,9 +21,11 @@ mutable struct DebuggerState
     current_top_level_expression::Int
     frame
     not_yet_set_function_breakpoints::Set{String}
+    debug_mode::Symbol
+    compile_mode
 
     function DebuggerState()
-        return new(nothing, [], 0, nothing, Set{String}())
+        return new(nothing, [], 0, nothing, Set{String}(), :unknown, JuliaInterpreter.finish_and_return!)
     end
 end
 
@@ -83,14 +85,14 @@ function get_next_top_level_frame(state)
     end
 end
 
-function our_debug_command(cmd, state, compile_mode)
+function our_debug_command(cmd, state)
     while true
         @debug "Now running the following FRAME:"
         @debug state.frame
 
-        @debug compile_mode
+        @debug state.compile_mode
 
-        ret = Base.invokelatest(JuliaInterpreter.debug_command, compile_mode, state.frame, cmd, true)
+        ret = Base.invokelatest(JuliaInterpreter.debug_command, state.compile_mode, state.frame, cmd, true)
 
         attempt_to_set_f_breakpoints!(state.not_yet_set_function_breakpoints)
 
@@ -161,16 +163,10 @@ end
 function startdebug(pipename)
     conn = Sockets.connect(pipename)
     try
-        state = DebuggerState()
-
-        
+        state = DebuggerState()     
 
         sources = Dict{Int,String}()
         curr_source_id = 1
-
-        debug_mode = missing
-
-        compile_mode = JuliaInterpreter.finish_and_return!
 
         while true      
             @debug "Current FRAME is"    
@@ -186,7 +182,7 @@ function startdebug(pipename)
                 @debug "DISCONNECT"
                 break
             elseif msg_cmd=="RUN"
-                debug_mode = :launch
+                state.debug_mode = :launch
                 @debug "WE ARE RUNNING"
                 try
                     include(msg_body)
@@ -197,7 +193,7 @@ function startdebug(pipename)
                 send_msg(conn, "FINISHED", "notification")     
                 break           
             elseif msg_cmd=="DEBUG"
-                debug_mode = :launch
+                state.debug_mode = :launch
                 index_of_sep = findfirst(';', msg_body)
 
                 stop_on_entry_as_string = msg_body[1:index_of_sep-1]
@@ -223,7 +219,7 @@ function startdebug(pipename)
                 elseif JuliaInterpreter.shouldbreak(state.frame, state.frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(:c, state, compile_mode)
+                    ret = our_debug_command(:c, state)
 
                     if ret===nothing
                         send_msg(conn, "FINISHED", "notification")
@@ -233,7 +229,7 @@ function startdebug(pipename)
                     end
                 end
             elseif msg_cmd=="EXEC"
-                debug_mode = :attach
+                state.debug_mode = :attach
                 @debug "WE ARE EXECUTING"
 
                 index_of_sep = findfirst(';', msg_body)
@@ -258,7 +254,7 @@ function startdebug(pipename)
                 elseif JuliaInterpreter.shouldbreak(state.frame, state.frame.pc)
                     send_msg(conn, "STOPPEDBP", "notification")
                 else
-                    ret = our_debug_command(:c, state, compile_mode)
+                    ret = our_debug_command(:c, state)
 
                     if ret===nothing
                         @debug "WE ARE SENDING FINISHED"
@@ -316,9 +312,9 @@ function startdebug(pipename)
                 end
 
                 if "compilemode" in opts
-                    compile_mode = JuliaInterpreter.Compiled()
+                    state.compile_mode = JuliaInterpreter.Compiled()
                 else
-                    compile_mode = JuliaInterpreter.finish_and_return!
+                    state.compile_mode = JuliaInterpreter.finish_and_return!
                 end
             elseif msg_cmd=="SETFUNCBREAKPOINTS"
                 @debug "SETTING FUNC BREAKPOINT"                
@@ -486,48 +482,48 @@ function startdebug(pipename)
                 send_msg(conn, "RESPONSE", msg_id, join(vars_as_string, '\n'))
                 @debug "DONE VARS"
             elseif msg_cmd=="CONTINUE"
-                ret = our_debug_command(:c, state, compile_mode)
+                ret = our_debug_command(:c, state)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
-                    debug_mode==:launch && break
+                    state.debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     send_stopped_msg(conn, ret, state)
                 end
             elseif msg_cmd=="NEXT"
                 @debug "NEXT COMMAND"
-                ret = our_debug_command(:n, state, compile_mode)
+                ret = our_debug_command(:n, state)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
-                    debug_mode==:launch && break
+                    state.debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     send_stopped_msg(conn, ret, state)
                 end
             elseif msg_cmd=="STEPIN"
                 @debug "STEPIN COMMAND"                
-                ret = our_debug_command(:s, state, compile_mode)
+                ret = our_debug_command(:s, state)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
-                    debug_mode==:launch && break
+                    state.debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     send_stopped_msg(conn, ret, state)
                 end
             elseif msg_cmd=="STEPOUT"
                 @debug "STEPOUT COMMAND"
-                ret = our_debug_command(:finish, state, compile_mode)
+                ret = our_debug_command(:finish, state)
 
                 if ret===nothing
                     @debug "WE ARE SENDING FINISHED"
                     send_msg(conn, "FINISHED", "notification")
-                    debug_mode==:launch && break
+                    state.debug_mode==:launch && break
                 else
                     @debug "NOW WE NEED TO SEND A ON STOP MSG"
                     send_stopped_msg(conn, ret, state)
