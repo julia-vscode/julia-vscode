@@ -23,9 +23,11 @@ mutable struct DebuggerState
     not_yet_set_function_breakpoints::Set{String}
     debug_mode::Symbol
     compile_mode
+    sources::Dict{Int,String}
+    next_source_id::Int
 
     function DebuggerState()
-        return new(nothing, [], 0, nothing, Set{String}(), :unknown, JuliaInterpreter.finish_and_return!)
+        return new(nothing, [], 0, nothing, Set{String}(), :unknown, JuliaInterpreter.finish_and_return!, Dict{Int,String}(), 1)
     end
 end
 
@@ -165,8 +167,6 @@ function startdebug(pipename)
     try
         state = DebuggerState()     
 
-        sources = Dict{Int,String}()
-        curr_source_id = 1
 
         while true      
             @debug "Current FRAME is"    
@@ -240,7 +240,7 @@ function startdebug(pipename)
 
                 code_to_debug = msg_body[index_of_sep+1:end]
 
-                sources[0] = code_to_debug
+                state.sources[0] = code_to_debug
 
                 ex = Meta.parse(code_to_debug)
 
@@ -402,10 +402,10 @@ function startdebug(pipename)
                     if isfile(file_name)
                         push!(frames_as_string, string(id, ";", meth_or_mod_name, ";path;", file_name, ";", lineno))
                     elseif curr_scopeof isa Method
-                        sources[curr_source_id], loc = JuliaInterpreter.CodeTracking.definition(String, curr_fr.framecode.scope)
-                        s = string(id, ";", meth_or_mod_name, ";ref;", curr_source_id, ";", file_name, ";", lineno)
+                        state.sources[state.next_source_id], loc = JuliaInterpreter.CodeTracking.definition(String, curr_fr.framecode.scope)
+                        s = string(id, ";", meth_or_mod_name, ";ref;", state.next_source_id, ";", file_name, ";", lineno)
                         push!(frames_as_string, s)
-                        curr_source_id += 1
+                        state.next_source_id += 1
                     else
                         # For now we are assuming that this can only happen
                         # for code that is passed via the @enter or @run macros,
@@ -446,7 +446,7 @@ function startdebug(pipename)
             elseif msg_cmd=="GETSOURCE"
                 source_id = parse(Int, msg_body)
 
-                send_msg(conn, "RESPONSE", msg_id, sources[source_id])
+                send_msg(conn, "RESPONSE", msg_id, state.sources[source_id])
             elseif msg_cmd=="GETVARIABLES"
                 @debug "START VARS"
 
