@@ -6,7 +6,6 @@ import {
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename, join } from 'path';
-import { MockRuntime, MockBreakpoint } from './mockRuntime';
 import { Disposable } from 'vscode-jsonrpc';
 import * as net from 'net';
 const { Subject } = require('await-notify');
@@ -48,9 +47,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
 	private static THREAD_ID = 1;
 
-	// a Mock runtime (or debugger)
-	private _runtime: MockRuntime;
-
 	private _variableHandles = new Handles<{scope: string, frameId: number}>();
 
 	private _configurationDone = new Subject();
@@ -86,38 +82,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		// this debugger uses zero-based lines and columns
 		this.setDebuggerLinesStartAt1(true);
 		this.setDebuggerColumnsStartAt1(true);
-
-		this._runtime = new MockRuntime();
-
-		// setup event handlers
-		this._runtime.on('stopOnEntry', () => {
-			this.sendEvent(new StoppedEvent('entry', JuliaDebugSession.THREAD_ID));
-		});
-		this._runtime.on('stopOnStep', () => {
-			this.sendEvent(new StoppedEvent('step', JuliaDebugSession.THREAD_ID));
-		});
-		this._runtime.on('stopOnBreakpoint', () => {
-			this.sendEvent(new StoppedEvent('breakpoint', JuliaDebugSession.THREAD_ID));
-		});
-		this._runtime.on('stopOnDataBreakpoint', () => {
-			this.sendEvent(new StoppedEvent('data breakpoint', JuliaDebugSession.THREAD_ID));
-		});
-		this._runtime.on('stopOnException', () => {
-			this.sendEvent(new StoppedEvent('exception', JuliaDebugSession.THREAD_ID));
-		});
-		this._runtime.on('breakpointValidated', (bp: MockBreakpoint) => {
-			this.sendEvent(new BreakpointEvent('changed', <DebugProtocol.Breakpoint>{ verified: bp.verified, id: bp.id }));
-		});
-		this._runtime.on('output', (text, filePath, line, column) => {
-			const e: DebugProtocol.OutputEvent = new OutputEvent(`${text}\n`);
-			e.body.source = this.createSource(filePath);
-			e.body.line = this.convertDebuggerLineToClient(line);
-			e.body.column = this.convertDebuggerColumnToClient(column);
-			this.sendEvent(e);
-		});
-		this._runtime.on('end', () => {
-			this.sendEvent(new TerminatedEvent());
-		});
 	}
 
 	/**
@@ -431,21 +395,26 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request?: DebugProtocol.Request): void {
 
-		if (args.source.path) {
-			const bps = this._runtime.getBreakpoints(args.source.path, this.convertClientLineToDebugger(args.line));
-			response.body = {
-				breakpoints: bps.map(col => {
-					return {
-						line: args.line,
-						column: this.convertDebuggerColumnToClient(col)
-					}
-				})
-			};
-		} else {
-			response.body = {
-				breakpoints: []
-			};
-		}
+		// if (args.source.path) {
+		// 	const bps = this._runtime.getBreakpoints(args.source.path, this.convertClientLineToDebugger(args.line));
+		// 	response.body = {
+		// 		breakpoints: bps.map(col => {
+		// 			return {
+		// 				line: args.line,
+		// 				column: this.convertDebuggerColumnToClient(col)
+		// 			}
+		// 		})
+		// 	};
+		// } else {
+		// 	response.body = {
+		// 		breakpoints: []
+		// 	};
+		// }
+
+		response.body = {
+			breakpoints: []
+		};
+
 		this.sendResponse(response);
 	}
 
@@ -651,20 +620,20 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	protected setDataBreakpointsRequest(response: DebugProtocol.SetDataBreakpointsResponse, args: DebugProtocol.SetDataBreakpointsArguments): void {
 
-		// clear all data breakpoints
-		this._runtime.clearAllDataBreakpoints();
+		// // clear all data breakpoints
+		// this._runtime.clearAllDataBreakpoints();
 
-		response.body = {
-			breakpoints: []
-		};
+		// response.body = {
+		// 	breakpoints: []
+		// };
 
-		for (let dbp of args.breakpoints) {
-			// assume that id is the "address" to break on
-			const ok = this._runtime.setDataBreakpoint(dbp.dataId);
-			response.body.breakpoints.push({
-				verified: ok
-			});
-		}
+		// for (let dbp of args.breakpoints) {
+		// 	// assume that id is the "address" to break on
+		// 	const ok = this._runtime.setDataBreakpoint(dbp.dataId);
+		// 	response.body.breakpoints.push({
+		// 		verified: ok
+		// 	});
+		// }
 
 		this.sendResponse(response);
 	}
