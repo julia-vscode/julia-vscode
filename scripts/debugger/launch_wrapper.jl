@@ -5,14 +5,7 @@ pipename_for_debugger = ARGS[1]
 cwd = ARGS[3]
 julia_env = ARGS[4]
 
-@debug "STARTED WRAPPER"
-
-@debug pipename_for_debugger
-@debug pipename_for_wrapper
-
 conn = Sockets.connect(pipename_for_wrapper)
-
-@debug "CONNECTED WRAPPER"
 
 jl_cmd = joinpath(Sys.BINDIR, Base.julia_exename())
 
@@ -25,16 +18,13 @@ p = run(pipeline(cmd, stdin=stdin, stdout=stdout, stderr=stderr), wait=false)
 @async begin
     l = readline(conn)
 
-    if l=="TERMINATE"
-        @debug "NOW KILLING DEBUGGEE"
+    if l == "TERMINATE"
         kill(p)
-        @debug "DEBUGGEE IS NO MORE"
     else
-        @debug "This shouldn't happen"
+        error("Invalid state.")
     end
 end
 
-@debug "We started the debuggee"
 
 wait(p)
 
