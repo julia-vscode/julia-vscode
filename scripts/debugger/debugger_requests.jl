@@ -315,13 +315,25 @@ function getvariables_request(conn, state, msg_body, msg_id)
         # TODO Figure out why #self# is here in the first place
         # For now we don't report it to the client
         if !startswith(string(v.name), "#") && string(v.name)!=""
-            push!(vars_as_string, string(v.name, ";", typeof(v.value), ";", v.value))
+            v_name = string(v.name)
+            v_value = v.value
+            v_type = string(typeof(v_value))
+
+            v_value_as_string = Base.invokelatest(string, v_value)
+            v_value_encoded = Base64.base64encode(v_value_as_string)
+
+            push!(vars_as_string, string(v_name, ";", v_type, ";", v_value_encoded))
         end
     end
 
     if JuliaInterpreter.isexpr(JuliaInterpreter.pc_expr(curr_fr), :return)
         ret_val = JuliaInterpreter.get_return(curr_fr)
-        push!(vars_as_string, string("Return Value", ";", typeof(ret_val), ";", ret_val))
+        v_type = string(typeof(ret_val))
+
+        v_value_as_string = Base.invokelatest(string, ret_val)
+        v_value_encoded = Base64.base64encode(v_value_as_string)
+
+        push!(vars_as_string, string("Return Value", ";", v_type, ";", v_value_encoded))
     end
 
     send_response(conn, msg_id, join(vars_as_string, '\n'))

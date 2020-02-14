@@ -529,7 +529,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			variables.push({
 				name: parts[0],
 				type: parts[1],
-				value: parts[2],
+				value: Buffer.from(parts[2], 'base64').toString(),
 				variablesReference: 0
 			});
 		}
