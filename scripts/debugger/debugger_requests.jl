@@ -372,7 +372,7 @@ function evaluate_request(conn, state, msg_body, msg_id)
     try
         ret_val = JuliaInterpreter.eval_code(curr_fr, expression)
 
-        send_response(conn, msg_id, string(ret_val))
+        send_response(conn, msg_id, Base.invokelatest(string,ret_val))
     catch err
         send_response(conn, msg_id, "#error")
     end
