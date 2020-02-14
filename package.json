@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "0.15.0-alpha.4",
+    "version": "0.15.0-alpha",
     "publisher": "julialang",
     "engines": {
         "vscode": "^1.42.0"
