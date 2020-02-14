@@ -209,5 +209,32 @@ async function startLanguageServer() {
             doc.getText()
             g_languageClient.sendNotification("julia/reloadText", {textDocument: {uri: uri, languageId: "julia", version: 1,text: doc.getText()}})
         })
+        g_languageClient.onNotification(g_decorate, (res) => {
+            let te = vscode.window.visibleTextEditors.find((te)=>te.document.uri.toString() === res.uri)
+            if (te) { 
+                let notyperanges :vscode.Range[] = [];
+                let mrefranges :vscode.Range[] = [];
+                res.NoType.forEach(e => {
+                    let r = new vscode.Range(new vscode.Position(e.start.line, e.start.character), new vscode.Position(e.end.line, e.end.character))
+                    notyperanges.push(r)
+                });
+                res.Mrefs.forEach(e => {
+                    let r = new vscode.Range(new vscode.Position(e.start.line, e.start.character), new vscode.Position(e.end.line, e.end.character))
+                    mrefranges.push(r)
+                });
+                te.setDecorations(NoTypeDecorationType, notyperanges);
+                te.setDecorations(MissingRefDecorationType, mrefranges);
+            };
+        })
     })
 }
+
+const NoTypeDecorationType = vscode.window.createTextEditorDecorationType({
+    backgroundColor: "#9999ff", 
+    border: "1px solid black"
+});
+
+const MissingRefDecorationType = vscode.window.createTextEditorDecorationType({
+    backgroundColor: "#ffc299",
+    border: "1px solid black"
+});
