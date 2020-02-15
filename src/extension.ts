@@ -251,7 +251,7 @@ export class JuliaDebugConfigurationProvider
                 config.program = vscode.window.activeTextEditor.document.fileName;
             }
 
-            if (!config.internalConsoleOptions && config.request != 'attach') {
+            if (!config.internalConsoleOptions) {
                 config.internalConsoleOptions = "neverOpen";
             }
 
