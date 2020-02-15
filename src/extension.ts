@@ -251,7 +251,7 @@ export class JuliaDebugConfigurationProvider
                 config.program = vscode.window.activeTextEditor.document.fileName;
             }
 
-            if (!config.internalConsoleOptions) {
+            if (!config.internalConsoleOptions && config.request != 'attach') {
                 config.internalConsoleOptions = "neverOpen";
             }
 
@@ -259,11 +259,11 @@ export class JuliaDebugConfigurationProvider
                 config.stopOnEntry = false;
             }
 
-            if (!config.cwd) {
+            if (!config.cwd && config.request != 'attach') {
                 config.cwd = '${workspaceFolder}';
             }
 
-            if (!config.juliaEnv) {                
+            if (!config.juliaEnv && config.request != 'attach') {                
                 config.juliaEnv = '${command:activeJuliaEnvironment}';
             }
 
