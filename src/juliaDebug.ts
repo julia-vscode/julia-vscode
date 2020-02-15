@@ -260,8 +260,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		let serverListeningPromise = new Subject();
 		let serverForWrapperPromise = new Subject();
 
-		const pn = generatePipeName(uuid(), 'vscode-language-julia-debugger');
-		const pnForWrapper = generatePipeName(uuid(), 'vscode-language-julia-debugger-wrapper');
+		const pn = generatePipeName(uuid(), 'vsc-jl-dbg');
+		const pnForWrapper = generatePipeName(uuid(), 'vsc-jl-dbgw');
 
 		let server = net.createServer(socket => {
 			this._debuggeeSocket = socket;
