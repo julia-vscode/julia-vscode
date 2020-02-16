@@ -371,6 +371,44 @@ function getvariables_request(conn, state::DebuggerState, msg_body, msg_id)
     send_response(conn, msg_id, join(vars_as_string, '\n'))
 end
 
+function restartframe_request(conn, state::DebuggerState, msg_body, msg_id)
+    frame_id = parse(Int, msg_body)
+
+    curr_fr = JuliaInterpreter.leaf(state.frame)
+
+    i = 1
+
+    while frame_id > i
+        curr_fr = curr_fr.caller
+        i += 1
+    end
+
+    if curr_fr.caller===nothing
+        # We are in the top level
+
+        state.current_top_level_expression = 0
+
+        state.frame = get_next_top_level_frame(state)    
+    else
+        curr_fr.pc = 1
+        curr_fr.assignment_counter = 1
+        curr_fr.callee = nothing
+
+        state.frame = curr_fr
+    end
+
+    ret = our_debug_command(:c, state)
+
+    if ret===nothing
+        send_notification(conn, "FINISHED")
+        state.debug_mode==:launch && return :break
+    else
+        send_stopped_msg(conn, ret, state)
+    end
+
+    return
+end
+
 function getexceptioninfo_request(conn, state, msg_body, msg_id)
     exception_id = string(typeof(state.last_exception))
     exception_description = sprint(Base.showerror, state.last_exception)

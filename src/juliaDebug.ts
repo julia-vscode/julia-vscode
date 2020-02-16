@@ -125,6 +125,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		response.body.supportsExceptionInfoRequest = true;
 
+		response.body.supportsRestartFrame = true;
+
 		response.body.exceptionBreakpointFilters = [
 			{ filter: 'compilemode', label: 'Enable compile mode (experimental)', default: false },
 			{ filter: 'error', label: 'Break any time an uncaught exception is thrown', default: true },
@@ -567,6 +569,12 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments): void {
 		this.sendNotificationToDebugger('STEPOUT');
+		this.sendResponse(response);
+	}
+
+	protected restartFrameRequest(response: DebugProtocol.RestartFrameResponse, args: DebugProtocol.RestartFrameArguments) {
+		this.sendNotificationToDebugger('RESTARTFRAME', args.frameId.toString());
+
 		this.sendResponse(response);
 	}
 
