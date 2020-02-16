@@ -1,3 +1,8 @@
+struct VariableReference
+    kind::Symbol
+    value
+end
+
 mutable struct DebuggerState
     last_exception
     top_level_expressions::Vector{Any}
@@ -8,9 +13,10 @@ mutable struct DebuggerState
     compile_mode
     sources::Dict{Int,String}
     next_source_id::Int
+    varrefs::Vector{VariableReference}
 
     function DebuggerState()
-        return new(nothing, [], 0, nothing, Set{String}(), :unknown, JuliaInterpreter.finish_and_return!, Dict{Int,String}(), 1)
+        return new(nothing, [], 0, nothing, Set{String}(), :unknown, JuliaInterpreter.finish_and_return!, Dict{Int,String}(), 1, VariableReference[])
     end
 end
 
@@ -51,6 +57,7 @@ function get_next_top_level_frame(state)
 end
 
 function our_debug_command(cmd, state)
+    empty!(state.varrefs)
     while true
         @debug "Running a new frame." state.frame state.compile_mode
 

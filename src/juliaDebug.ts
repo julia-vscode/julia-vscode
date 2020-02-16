@@ -5,7 +5,7 @@ import {
 	Thread, StackFrame, Scope, Source, Handles, Breakpoint
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
-import { basename, join } from 'path';
+import { basename, join, parse } from 'path';
 import { Disposable } from 'vscode-jsonrpc';
 import * as net from 'net';
 const { Subject } = require('await-notify');
@@ -46,8 +46,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
 	private static THREAD_ID = 1;
-
-	private _variableHandles = new Handles<{ scope: string, frameId: number }>();
 
 	private _configurationDone = new Subject();
 
@@ -477,27 +475,32 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		let resp = await this.sendRequestToDebugger('GETSCOPE', args.frameId.toString());
 
-		if (resp == '') {
+		let parts = resp.split(';');
+
+		let scope_name = parts[0];
+		let variablereference = parseInt(parts[1]);
+
+		if (parts.length == 2) {
 			response.body = {
 				scopes: [
-					new Scope("Local", this._variableHandles.create({ scope: "local", frameId: args.frameId }), false),
+					new Scope(scope_name, variablereference, false),
 					// new Scope("Global", this._variableHandles.create("global"), true)
 				]
 			};
 		}
-		else {
-			let parts = resp.split(';');
-
-			let filename = parts[2];
+		else {			
+			let line = parseInt(parts[2]);
+			let endLine = parseInt(parts[3]);
+			let filename = parts[4];						
 
 			response.body = {
 				scopes: [
 					{
-						name: 'Local',
-						variablesReference: this._variableHandles.create({ scope: "local", frameId: args.frameId }),
+						name: scope_name,
+						variablesReference: variablereference,
 						expensive: false,
-						line: parseInt(parts[0]),
-						endLine: parseInt(parts[1]),
+						line: line,
+						endLine: endLine,
 						source: {
 							name: basename(filename),
 							path: this.convertDebuggerPathToClient(filename)
@@ -517,20 +520,27 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		const variables: DebugProtocol.Variable[] = [];
 
-		const details = this._variableHandles.get(args.variablesReference);
-
-		const ret = await this.sendRequestToDebugger('GETVARIABLES', details.frameId.toString());
+		const ret = await this.sendRequestToDebugger('GETVARIABLES', `${args.variablesReference.toString()};${args.filter ? args.filter : ''};${args.start ? args.start : ''};${args.count ? args.count : ''}`);
 
 		const vars = ret == '' ? [] : ret.split('\n');
 
 		for (let v of vars) {
 			let parts = v.split(';')
 
+			let varref = parseInt(parts[0]);
+			let varname = parts[1];
+			let vartype = parts[2];
+			let named_count = parseInt(parts[3]);
+			let indexed_count = parseInt(parts[4]);
+			let varvalue =  Buffer.from(parts[5], 'base64').toString();
+
 			variables.push({
-				name: parts[0],
-				type: parts[1],
-				value: Buffer.from(parts[2], 'base64').toString(),
-				variablesReference: 0
+				name: varname,
+				type: vartype,
+				value: varvalue,
+				namedVariables: varref>0 ? named_count : undefined,
+				indexedVariables: varref>0 ? indexed_count : undefined,
+				variablesReference: varref
 			});
 		}
 

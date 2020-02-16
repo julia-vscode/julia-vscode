@@ -257,7 +257,7 @@ function getstacktrace_request(conn, state, msg_body, msg_id)
     send_response(conn, msg_id, join(frames_as_string, '\n'))
 end
 
-function getscope_request(conn, state, msg_body, msg_id)
+function getscope_request(conn, state::DebuggerState, msg_body, msg_id)
     @debug "getscope_request"
 
     frameId = parse(Int, msg_body)
@@ -277,10 +277,14 @@ function getscope_request(conn, state, msg_body, msg_id)
     file_name = curr_whereis[1]
     code_range = curr_scopeof isa Method ? JuliaInterpreter.compute_corrected_linerange(curr_scopeof) : nothing
 
+    push!(state.varrefs, VariableReference(:scope, curr_fr))
+
+    var_ref_id = length(state.varrefs)
+
     if isfile(file_name) && code_range!==nothing
-        send_response(conn, msg_id, "$(code_range.start);$(code_range.stop);$file_name")
+        send_response(conn, msg_id, "Local;$var_ref_id;$(code_range.start);$(code_range.stop);$file_name")
     else
-        send_response(conn, msg_id, "")
+        send_response(conn, msg_id, "Local;$var_ref_id")
     end
 end
 
@@ -292,48 +296,76 @@ function getsource_request(conn, state, msg_body, msg_id)
     send_response(conn, msg_id, state.sources[source_id])
 end
 
-function getvariables_request(conn, state, msg_body, msg_id)
+function construct_return_msg_for_var(state::DebuggerState, name, value)
+    v_type = typeof(value)
+    v_type_as_string = string(v_type)
+    v_value_as_string = Base.invokelatest(string, value)
+    v_value_encoded = Base64.base64encode(v_value_as_string)
+
+    if (isstructtype(v_type) || value isa Array) && !(value isa String || value isa Symbol)
+        push!(state.varrefs, VariableReference(:var, value))
+        new_var_id = length(state.varrefs)
+
+        named_count = fieldcount(v_type)
+        indexed_count = value isa Array ? length(value) : 0
+
+        return string(new_var_id, ";", name, ";", v_type_as_string, ";", named_count, ";", indexed_count, ";", v_value_encoded)
+    else
+        return string("0;", name, ";", v_type_as_string, ";0;0;", v_value_encoded)
+    end
+end
+
+function getvariables_request(conn, state::DebuggerState, msg_body, msg_id)
     @debug "getvariables_request"
 
-    frameId = parse(Int, msg_body)
+    parts =split(msg_body, ';')
 
-    fr = state.frame
-    curr_fr = JuliaInterpreter.leaf(fr)
+    var_ref_id = parse(Int, parts[1])
 
-    i = 1
+    filter_type = parts[2]
+    skip_count = parts[3] == "" ? 0 : parse(Int, parts[3])
+    take_count = parts[4] == "" ? typemax(Int) : parse(Int, parts[4])
 
-    while frameId > i
-        curr_fr = curr_fr.caller
-        i += 1
-    end
-
-    vars = JuliaInterpreter.locals(curr_fr)
+    var_ref = state.varrefs[var_ref_id]
 
     vars_as_string = String[]
 
-    for v in vars
-        # TODO Figure out why #self# is here in the first place
-        # For now we don't report it to the client
-        if !startswith(string(v.name), "#") && string(v.name)!=""
-            v_name = string(v.name)
-            v_value = v.value
-            v_type = string(typeof(v_value))
+    if var_ref.kind==:scope
+        curr_fr = var_ref.value
 
-            v_value_as_string = Base.invokelatest(string, v_value)
-            v_value_encoded = Base64.base64encode(v_value_as_string)
+        vars = JuliaInterpreter.locals(curr_fr)      
 
-            push!(vars_as_string, string(v_name, ";", v_type, ";", v_value_encoded))
+        for v in vars
+            # TODO Figure out why #self# is here in the first place
+            # For now we don't report it to the client
+            if !startswith(string(v.name), "#") && string(v.name)!=""
+                s = construct_return_msg_for_var(state, string(v.name), v.value)
+                push!(vars_as_string, s)
+            end
         end
-    end
 
-    if JuliaInterpreter.isexpr(JuliaInterpreter.pc_expr(curr_fr), :return)
-        ret_val = JuliaInterpreter.get_return(curr_fr)
-        v_type = string(typeof(ret_val))
+        if JuliaInterpreter.isexpr(JuliaInterpreter.pc_expr(curr_fr), :return)
+            ret_val = JuliaInterpreter.get_return(curr_fr)
+            s = construct_return_msg_for_var(state, "Return Value", ret_val)
+            
+            push!(vars_as_string, s)
+        end        
+    elseif var_ref.kind==:var
+        container_type = typeof(var_ref.value)
 
-        v_value_as_string = Base.invokelatest(string, ret_val)
-        v_value_encoded = Base64.base64encode(v_value_as_string)
+        if filter_type=="" || filter_type=="named"
+            for i=Iterators.take(Iterators.drop(1:fieldcount(container_type), skip_count), take_count)
+                s = construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) )
+                push!(vars_as_string, s)
+            end
+        end
 
-        push!(vars_as_string, string("Return Value", ";", v_type, ";", v_value_encoded))
+        if (filter_type=="" || filter_type=="indexed") && var_ref.value isa Array
+            for i in Iterators.take(Iterators.drop(CartesianIndices(var_ref.value), skip_count), take_count)
+                s = construct_return_msg_for_var(state, join(string.(i.I), ','), var_ref.value[i])
+                push!(vars_as_string, s)
+            end
+        end
     end
 
     send_response(conn, msg_id, join(vars_as_string, '\n'))
