@@ -299,7 +299,7 @@ end
 function construct_return_msg_for_var(state::DebuggerState, name, value)
     v_type = typeof(value)
     v_type_as_string = string(v_type)
-    v_value_as_string = Base.invokelatest(string, value)
+    v_value_as_string = Base.invokelatest(repr, value)
     v_value_encoded = Base64.base64encode(v_value_as_string)
 
     if (isstructtype(v_type) || value isa Array) && !(value isa String || value isa Symbol)
@@ -369,6 +369,93 @@ function getvariables_request(conn, state::DebuggerState, msg_body, msg_id)
     end
 
     send_response(conn, msg_id, join(vars_as_string, '\n'))
+end
+
+function setvariable_request(conn, state::DebuggerState, msg_body, msg_id)
+    parts = split(msg_body, ';')
+
+    varref_id = parse(Int, parts[1])
+    var_name = String(Base64.base64decode(parts[2]))
+    var_value = String(Base64.base64decode(parts[3]))
+
+    val_parsed = try
+        parsed = Meta.parse(var_value)
+
+        if parsed isa Expr && !(parsed.head==:call || parsed.head==:vect || parsed.head==:tuple)
+            send_response(conn, msg_id, "FAILED;$(Base64.base64encode("Only values or function calls are allowed."))")
+            return    
+        end
+
+        parsed
+    catch err
+        send_response(conn, msg_id, "FAILED;$(Base64.base64encode("Something went wrong in the eval."))")
+        return
+    end    
+
+    var_ref = state.varrefs[varref_id]
+
+    if var_ref.kind==:scope
+        try
+            ret = JuliaInterpreter.eval_code(var_ref.value, "$var_name = $var_value");
+
+            s = construct_return_msg_for_var(state::DebuggerState, "", ret)
+
+            send_response(conn, msg_id, "SUCCESS;$s")
+            return
+        catch err
+            send_response(conn, msg_id, "FAILED;$(Base64.base64encode("Something went wrong in the set: $err"))")
+            return
+        end
+    elseif var_ref.kind==:var
+        if isnumeric(var_name[1])
+            try
+                new_val = try
+                    Core.eval(Main, val_parsed)
+                catch err
+                    send_response(conn, msg_id, "FAILED;$(Base64.base64encode("Expression cannot be evaluated."))")
+                    return
+                end
+
+                idx = Core.eval(Main, Meta.parse("($var_name)"))
+
+                setindex!(var_ref.value, new_val, idx...)
+
+                s = construct_return_msg_for_var(state::DebuggerState, "", new_val)
+
+                send_response(conn, msg_id, "SUCCESS;$s")
+                return
+            catch err
+                send_response(conn, msg_id, "FAILED;$(Base64.base64encode("Something went wrong in the set: $err"))")
+                return
+            end
+        else
+            if Base.isimmutable(var_ref.value)
+                send_response(conn, msg_id, "FAILED;$(Base64.base64encode("Cannot change the fields of an immutable struct."))")
+                return
+            else
+                try
+                    new_val = try
+                        Core.eval(Main, val_parsed)
+                    catch err
+                        send_response(conn, msg_id, "FAILED;$(Base64.base64encode("Expression cannot be evaluated."))")
+                        return
+                    end
+
+                    setfield!(var_ref.value, Symbol(var_name), new_val)
+
+                    s = construct_return_msg_for_var(state::DebuggerState, "", new_val)
+
+                    send_response(conn, msg_id, "SUCCESS;$s")
+                    return
+                catch err
+                    send_response(conn, msg_id, "FAILED;$(Base64.base64encode("Something went wrong in the set: $err"))")
+                    return
+                end
+            end
+        end
+    else
+        error("Unknown var ref type.")
+    end    
 end
 
 function restartframe_request(conn, state::DebuggerState, msg_body, msg_id)
@@ -442,7 +529,7 @@ function evaluate_request(conn, state, msg_body, msg_id)
     try
         ret_val = JuliaInterpreter.eval_code(curr_fr, expression)
 
-        send_response(conn, msg_id, Base.invokelatest(string,ret_val))
+        send_response(conn, msg_id, Base.invokelatest(repr, ret_val))
     catch err
         send_response(conn, msg_id, "#error")
     end

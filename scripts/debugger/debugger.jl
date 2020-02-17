@@ -66,6 +66,7 @@ function startdebug(pipename)
         request_handlers["TERMINATE"] = terminate_request
         request_handlers["GETEXCEPTIONINFO"] = getexceptioninfo_request
         request_handlers["RESTARTFRAME"] = restartframe_request
+        request_handlers["SETVARIABLE"] = setvariable_request
 
         while true
             @debug "Waiting for next command from debug adapter."

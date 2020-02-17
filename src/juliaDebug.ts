@@ -127,6 +127,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		response.body.supportsRestartFrame = true;
 
+		response.body.supportsSetVariable = true;
+
 		response.body.exceptionBreakpointFilters = [
 			{ filter: 'compilemode', label: 'Enable compile mode (experimental)', default: false },
 			{ filter: 'error', label: 'Break any time an uncaught exception is thrown', default: true },
@@ -549,6 +551,42 @@ export class JuliaDebugSession extends LoggingDebugSession {
 		response.body = {
 			variables: variables
 		};
+		this.sendResponse(response);
+	}
+
+	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments) {
+		let encoded_value = Buffer.from(args.value).toString('base64');
+		let encoded_name = Buffer.from(args.name).toString('base64');
+
+		let resp = await this.sendRequestToDebugger('SETVARIABLE', `${args.variablesReference};${encoded_name};${encoded_value}`);
+
+		let parts = resp.split(';')
+
+		let status = parts[0];
+
+		if (status=='FAILED') {			
+
+			let errorMsg = Buffer.from(parts[1], 'base64').toString()
+
+			response.success = false;
+			response.message = errorMsg;
+		}
+		else if (status=='SUCCESS') {
+			let varref = parseInt(parts[1]);
+			let vartype = parts[3];
+			let named_count = parseInt(parts[4]);
+			let indexed_count = parseInt(parts[5]);
+			let varvalue =  Buffer.from(parts[6], 'base64').toString();
+			
+			response.body = {
+				value: varvalue,
+				type: vartype,
+				variablesReference: varref,
+				namedVariables: named_count,
+				indexedVariables: indexed_count
+			}
+		}
+
 		this.sendResponse(response);
 	}
 
