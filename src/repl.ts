@@ -21,7 +21,13 @@ let g_plots: Array<string> = new Array<string>();
 let g_currentPlotIndex: number = 0;
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined;
 
-let g_replVariables: string = '';
+interface WorkspaceVariable {
+    name: string,
+    type: string,
+    value: string
+}
+
+let g_replVariables: WorkspaceVariable[] = undefined;
 
 let c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus';
 
@@ -118,36 +124,38 @@ export function plotPaneDelAll() {
     }
 }
 
-export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
-    private _onDidChangeTreeData: vscode.EventEmitter<string | undefined> = new vscode.EventEmitter<string | undefined>();
-    readonly onDidChangeTreeData: vscode.Event<string | undefined> = this._onDidChangeTreeData.event;
+export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVariable> {
+    private _onDidChangeTreeData: vscode.EventEmitter<WorkspaceVariable | undefined> = new vscode.EventEmitter<WorkspaceVariable | undefined>();
+    readonly onDidChangeTreeData: vscode.Event<WorkspaceVariable | undefined> = this._onDidChangeTreeData.event;
 
     refresh(): void {
         this._onDidChangeTreeData.fire();
     }
 
-    getChildren(node?: string) {
+    getChildren(node?: WorkspaceVariable) {
         if (node) {
-            return [node]
+            return []
         }
         else {
-            if (g_terminal) {
-                return g_replVariables.split(';').slice(1)
+            if (g_replVariables) {
+                return g_replVariables
             }
             else {
-                return ['no repl attached']
+                return []
             }
         }
     }
 
-    getTreeItem(node: string): vscode.TreeItem {
-        let treeItem: vscode.TreeItem = new vscode.TreeItem(node)
+    getTreeItem(node: WorkspaceVariable): vscode.TreeItem {
+        let treeItem = new vscode.TreeItem(`${node.name}:`)
+        treeItem.description = node.value;
+        treeItem.tooltip = node.type;
+        treeItem.contextValue = 'globalvariable';
         return treeItem;
     }
 }
 
-// TODO Enable again
-// let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
+let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
 
 function startREPLCommand() {
     telemetry.traceEvent('command-startrepl');
@@ -202,6 +210,9 @@ async function startREPL(preserveFocus: boolean) {
         }
         g_terminal.show(preserveFocus);
         await juliaIsConnectedPromise;
+
+        g_replVariables = [];
+        g_REPLTreeDataProvider.refresh();
     }
     else {
     g_terminal.show(preserveFocus);
@@ -507,9 +518,29 @@ function processMsg(cmd, payload) {
         grid_panel.webview.html = grid_content;
     }
     else if (cmd == 'repl/variables') {
-        g_replVariables = payload;
-        // TODO Enable again
-        // g_REPLTreeDataProvider.refresh();
+        let vars = payload == '' ? [] : payload.split(';')
+
+        let decoded_vars = vars.map(i=> {
+            let line_decoded = Buffer.from(i, 'base64').toString();
+            let parts_encoded = line_decoded.split(';');
+
+            let parts_decoded = parts_encoded.map(j=>Buffer.from(j, 'base64').toString())
+
+            return {
+                name: parts_decoded[0],
+                type: parts_decoded[1],
+                value: parts_decoded[2]
+            }
+        });
+
+        g_replVariables = decoded_vars;
+        g_REPLTreeDataProvider.refresh();
+    }
+    else if(cmd == 'repl/starteval') {
+
+    }
+    else if(cmd == 'repl/finisheval') {
+        sendMessage('repl/getvariables', '');
     }
     else {
         throw new Error();
@@ -742,6 +773,10 @@ async function executeJuliaBlockInRepl() {
     }
 }
 
+async function showInVSCode(node: WorkspaceVariable) {
+    sendMessage('repl/showingrid', node.name);
+}
+
 async function sendMessage(cmd, msg: string) {
     await startREPL(true)
     let sock = generatePipeName(process.pid.toString(), 'vscode-language-julia-torepl')
@@ -764,9 +799,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_context = context;
     g_settings = settings;
 
-    // TODO Enable again
-    // g_REPLTreeDataProvider = new REPLTreeDataProvider();
-    // context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
+    g_REPLTreeDataProvider = new REPLTreeDataProvider();
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand));
 
@@ -794,8 +828,12 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll));
 
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.showInVSCode', showInVSCode));
+
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal == g_terminal) {
+            g_replVariables = undefined;
+            g_REPLTreeDataProvider.refresh();
             g_terminal = null;
         }
     })

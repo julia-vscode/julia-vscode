@@ -195,6 +195,11 @@
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select Code Block"
+            },
+            {
+                "command": "language-julia.showInVSCode",
+                "title": "Open in VS Code",
+                "icon": "$(open-preview)"
             }
         ],
         "menus": {
@@ -260,6 +265,13 @@
                 {
                     "when": "false",
                     "command": "language-julia.plotpane-previous"
+                }
+            ],
+            "view/item/context": [
+                {
+                  "command": "language-julia.showInVSCode",
+                  "when": "view == REPLVariables && viewItem == globalvariable",
+                  "group": "inline"
                 }
             ]
         },
@@ -538,7 +550,15 @@
                     }
                 }
             }
-        ]
+        ],
+        "views": {
+            "explorer": [
+                {
+                    "id": "REPLVariables",
+                    "name": "Julia Workspace"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",

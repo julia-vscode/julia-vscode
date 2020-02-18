@@ -80,16 +80,19 @@ function get_available_modules(m=Main, out = Module[])
 end
 
 function getVariables()
-    M = @__MODULE__
+    M = Main
     variables = []
-    msg = ""
     for n in names(M)
         !isdefined(M, n) && continue
         x = getfield(M, n)
+        x isa Module && continue
+        x==Main.vscodedisplay && continue
         t = typeof(x)
-        msg = string(msg, ";", n, "::", t)
+        value_as_string = Base.invokelatest(repr, x)
+
+        push!(variables, (name=string(n), type=string(t), value=value_as_string))
     end
-    return msg
+    return variables
 end
 
 function generate_pipe_name(name)
@@ -120,7 +123,7 @@ function ends_with_semicolon(x)
     return REPL.ends_with_semicolon(split(x,'\n',keepempty = false)[end])
 end
 
-@async begin
+@async try
     server = listen(pipename_torepl)
     global conn = connect(pipename_fromrepl)
     while true
@@ -134,8 +137,12 @@ end
             cmod = Core.eval(active_module)
             ex = Expr(:call, :include, strip(text, '\n'))
             cmod.eval(ex)
-        elseif cmd == "repl/getVariables"
-            sendMsgToVscode("repl/variables", getVariables())
+        elseif cmd == "repl/getvariables"
+            vars = getVariables()
+            vars_as_string = map(vars) do v
+                return Base64.base64encode(string(Base64.base64encode(v.name), ';', Base64.base64encode(v.type), ';', Base64.base64encode(v.value)))
+            end
+            sendMsgToVscode("repl/variables", join(vars_as_string, ';') )
         elseif cmd == "debug/info"
             @info "RECEIVED A debug/info message"
             @info "With payload_size=$payload_size"
@@ -149,23 +156,38 @@ end
             code_line, code_column = parse.(Int, split(payload_as_string[end_first_line_pos+1:end_second_line_pos-1], ':'))
             source_code = payload_as_string[end_second_line_pos+1:end]
 
-            hideprompt() do
-                # println(' '^code_column * source_code)
+            sendMsgToVscode("repl/starteval", "")
+            try
+                hideprompt() do
+                    # println(' '^code_column * source_code)
 
-                try
-                    withpath(source_filename) do
-                        res = Base.invokelatest(include_string, Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                    try
+                        withpath(source_filename) do
+                            res = Base.invokelatest(include_string, Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
 
-                        if res !== nothing && !ends_with_semicolon(source_code)
-                            Base.invokelatest(display, res)
+                            if res !== nothing && !ends_with_semicolon(source_code)
+                                Base.invokelatest(display, res)
+                            end
                         end
+                    catch err
+                        Base.display_error(stderr, err, catch_backtrace())
                     end
-                catch err
-                    Base.display_error(stderr, err, catch_backtrace())
                 end
+            finally
+                sendMsgToVscode("repl/finisheval", "")
+            end
+        elseif cmd == "repl/showingrid"
+            var = Core.eval(Main, Meta.parse(String(payload)))
+
+            try
+                Base.invokelatest(internal_vscodedisplay, var)
+            catch err
+                Base.display_error(err, catch_backtrace())
             end
         end
     end
+catch err
+    Base.display_error(err, catch_backtrace())
 end
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
@@ -256,7 +278,7 @@ Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) 
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
-function display(d::InlineDisplay, x)
+function Base.display(d::InlineDisplay, x)
     if showable("application/vnd.vegalite.v4+json", x)
         display(d,"application/vnd.vegalite.v4+json", x)
     elseif showable("application/vnd.vegalite.v3+json", x)
@@ -290,10 +312,6 @@ function _display(d::InlineDisplay, x)
     else
         display(d, x)
     end
-end
-
-if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
-    atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
 end
 
 # Load revise?
@@ -436,30 +454,93 @@ function printdataresource(io::IO, source)
     print(io, "]}")
 end
 
+function hook_repl(repl)
+    main_mode = get_main_mode()
+
+    main_mode.on_done = REPL.respond(Base.active_repl, main_mode; pass_empty = false) do line
+
+        x = Base.parse_input_line(line,filename=REPL.repl_filename(repl,main_mode.hist))
+
+        if !(x isa Expr && x.head == :toplevel)
+            error("VS Code Julia REPL got an unexpected input.")
+        end
+
+        # Replace all top level assignments with a global top level assignment
+        # so that they happen, even though the code now runs inside a
+        # try ... finally block
+        for i in 1:length(x.args)
+            if x.args[i] isa Expr && x.args[i].head==:(=)
+                x.args[i] = Expr(:global, x.args[i])
+            end
+        end
+
+        q = Expr(:toplevel,
+            Expr(:try,
+                Expr(:block,
+                    quote
+                        try
+                            $sendMsgToVscode("repl/starteval", "")
+                        catch err
+                        end
+                    end,
+                    x.args...
+                ),
+                false,
+                false,
+                quote
+                    try
+                        $sendMsgToVscode("repl/finisheval", "")
+                    catch err
+                    end                    
+                end
+            )
+        )
+
+        return q
+    end
 end
 
-function vscodedisplay(x)
+function internal_vscodedisplay(x)    
     if showable("application/vnd.dataresource+json", x)
-        _vscodeserver._display(_vscodeserver.InlineDisplay(), x)
-    elseif _vscodeserver._isiterabletable(x)===true
+        _display(InlineDisplay(), x)
+    elseif _isiterabletable(x)===true
         buffer = IOBuffer()
         io = IOContext(buffer, :compact=>true)
-        _vscodeserver.printdataresource(io, _vscodeserver._getiterator(x))
-        buffer_asstring = _vscodeserver.CachedDataResourceString(String(take!(buffer)))
-        _vscodeserver._display(_vscodeserver.InlineDisplay(), buffer_asstring)
-    elseif _vscodeserver._isiterabletable(x)===missing
+        printdataresource(io, _getiterator(x))
+        buffer_asstring = CachedDataResourceString(String(take!(buffer)))
+        _display(InlineDisplay(), buffer_asstring)
+    elseif _isiterabletable(x)===missing
         try
             buffer = IOBuffer()
             io = IOContext(buffer, :compact=>true)
-            _vscodeserver.printdataresource(io, _vscodeserver._getiterator(x))
-            buffer_asstring = _vscodeserver.CachedDataResourceString(String(take!(buffer)))
-            _vscodeserver._display(_vscodeserver.InlineDisplay(), buffer_asstring)
+            printdataresource(io, _getiterator(x))
+            buffer_asstring = CachedDataResourceString(String(take!(buffer)))
+            _display(InlineDisplay(), buffer_asstring)
         catch err
-            _vscodeserver._display(_vscodeserver.InlineDisplay(), x)
+            _display(InlineDisplay(), x)
         end
     else
-        _vscodeserver._display(_vscodeserver.InlineDisplay(), x)
+        _display(InlineDisplay(), x)
     end
+end
+
+end
+
+atreplinit() do repl
+    @async try
+        sleep(1)
+        _vscodeserver.hook_repl(repl)
+    catch err
+        Base.display_error(err, catch_backtrace())
+    end
+
+    if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
+        Base.Multimedia.pushdisplay(_vscodeserver.InlineDisplay())
+    end    
+end
+
+function vscodedisplay(x)
+    _vscodeserver.internal_vscodedisplay(x)
 end
 
 vscodedisplay() = i -> vscodedisplay(i)
