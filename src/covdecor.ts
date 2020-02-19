@@ -39,7 +39,7 @@ export async function coverage_decorations(file_ext :string) {
                     dec1.push({
                         range: new vscode.Range(new vscode.Position(i, 0), new vscode.Position(i, line.length)),
                         renderOptions: {after: {
-                            contentText: '    ' + allocs[i].toString() + ' / ' + (ralloc).toPrecision(2) + '% of total',
+                            contentText: '    ' + allocs[i].toString() + ' (' + (ralloc).toPrecision(2) + '%)',
                             backgroundColor: '#fdb777',
                             fontStyle: 'italic'
                         }}
@@ -49,7 +49,7 @@ export async function coverage_decorations(file_ext :string) {
                     dec2.push({
                         range: new vscode.Range(new vscode.Position(i, 0), new vscode.Position(i, line.length)),
                         renderOptions: {after: {
-                            contentText: '    ' + allocs[i].toString() + ' / ' + (ralloc).toPrecision(2) + '% of total',
+                            contentText: '    ' + allocs[i].toString() + ' (' + (ralloc).toPrecision(2) + '%)',
                             backgroundColor: '#fda766',
                             fontStyle: 'italic'
                         }}
@@ -59,7 +59,7 @@ export async function coverage_decorations(file_ext :string) {
                     dec3.push({
                         range: new vscode.Range(new vscode.Position(i, 0), new vscode.Position(i, line.length)),
                         renderOptions: {after: {
-                            contentText: '    ' + allocs[i].toString() + ' / ' + (ralloc).toPrecision(2) + '% of total',
+                            contentText: '    ' + allocs[i].toString() + ' (' + (ralloc).toPrecision(2) + '%)',
                             backgroundColor: '#fd9346',
                             fontStyle: 'italic'
                         }}
@@ -69,7 +69,7 @@ export async function coverage_decorations(file_ext :string) {
                     dec4.push({
                         range: new vscode.Range(new vscode.Position(i, 0), new vscode.Position(i, line.length)),
                         renderOptions: {after: {
-                            contentText: '    ' + allocs[i].toString() + ' / ' + (ralloc).toPrecision(2) + '% of total',
+                            contentText: '    ' + allocs[i].toString() + ' (' + (ralloc).toPrecision(2) + '%)',
                             backgroundColor: '#fd7f2c',
                             fontStyle: 'italic'
                         }}
@@ -79,7 +79,7 @@ export async function coverage_decorations(file_ext :string) {
                     dec5.push({
                         range: new vscode.Range(new vscode.Position(i, 0), new vscode.Position(i, line.length)),
                         renderOptions: {after: {
-                            contentText: '    ' + allocs[i].toString() + ' / ' + (ralloc).toPrecision(2) + '% of total',
+                            contentText: '    ' + allocs[i].toString() + ' (' + (ralloc).toPrecision(2) + '%)',
                             backgroundColor: '#ff6200',
                             fontStyle: 'italic'
                         }}
