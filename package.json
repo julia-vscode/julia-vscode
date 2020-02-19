@@ -195,6 +195,18 @@
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select Code Block"
+            },
+            {
+                "command": "language-julia.covDecoration",
+                "title": "Julia: Show .cov counts"
+            },
+            {
+                "command": "language-julia.memDecoration",
+                "title": "Julia: Show .mem allocations"
+            },
+            {
+                "command": "language-julia.RemoveCovDecoration",
+                "title": "Julia: Remove coverage details"
             }
         ],
         "menus": {
@@ -234,6 +246,18 @@
                 {
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete-all"
+                },
+                {
+                    "when": "editorLangId == julia && !JuliaCodeCoverageShowing",
+                    "command": "language-julia.covDecoration"
+                },
+                {
+                    "when": "editorLangId == julia && !JuliaCodeCoverageShowing",
+                    "command": "language-julia.memDecoration"
+                },
+                {
+                    "when": "editorLangId == julia && JuliaCodeCoverageShowing",
+                    "command": "language-julia.RemoveCovDecoration"
                 }
             ],
             "commandPalette": [

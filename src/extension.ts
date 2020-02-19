@@ -19,7 +19,8 @@ import * as smallcommands from './smallcommands';
 import * as packagepath from './packagepath';
 import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
-import * as jlpkgenv from './jlpkgenv';
+import * as jlpkgenv from './jlpkgenv'; 
+import * as covdecor from './covdecor';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -63,6 +64,7 @@ export async function activate(context: vscode.ExtensionContext) {
     packagepath.activate(context, g_settings);
     openpackagedirectory.activate(context, g_settings);
     jlpkgenv.activate(context, g_settings);
+    covdecor.activate(context, g_settings);
 
     // Start language server
     startLanguageServer();
