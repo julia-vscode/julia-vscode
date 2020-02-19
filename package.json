@@ -634,7 +634,8 @@
         "watch": "tsc -watch -p ./",
         "test": "node ./out/test/runTest.js",
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile",
-        "package": "git submodule init && git submodule update && npm install --no-save && npm run compile && vsce package"
+        "package": "git submodule init && git submodule update && npm install --no-save && npm run compile && vsce package",
+        "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
         "@types/vscode": "^1.42.0",
@@ -653,6 +654,7 @@
     "devDependencies": {
         "@types/mocha": "^5.2.7",
         "@types/node": "^12.12.26",
+        "download": "^7.1.0",
         "mocha": "^6.2.2",
         "typescript": "^3.7.5",
         "vscode-test": "^1.3.0"

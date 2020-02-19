@@ -194,7 +194,7 @@ async function startLanguageServer() {
                                    'julia.lint.modname',
                                    'julia.lint.pirates',
                                    'julia.lint.missingrefs',],
-            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: vscode.window.createOutputChannel('Julia Language Server trace')
