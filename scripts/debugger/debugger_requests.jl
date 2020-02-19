@@ -238,10 +238,24 @@ function getstacktrace_request(conn, state, msg_body, msg_id)
         if isfile(file_name)
             push!(frames_as_string, string(id, ";", meth_or_mod_name, ";path;", file_name, ";", lineno))
         elseif curr_scopeof isa Method
-            state.sources[state.next_source_id], loc = JuliaInterpreter.CodeTracking.definition(String, curr_fr.framecode.scope)
-            s = string(id, ";", meth_or_mod_name, ";ref;", state.next_source_id, ";", file_name, ";", lineno)
-            push!(frames_as_string, s)
-            state.next_source_id += 1
+            ret = JuliaInterpreter.CodeTracking.definition(String, curr_fr.framecode.scope)
+            if ret!==nothing
+                state.sources[state.next_source_id], loc = ret
+                s = string(id, ";", meth_or_mod_name, ";ref;", state.next_source_id, ";", file_name, ";", lineno)
+                push!(frames_as_string, s)
+                state.next_source_id += 1
+            else
+                src = curr_fr.framecode.src
+                src = JuliaInterpreter.copy_codeinfo(src)
+                JuliaInterpreter.replace_coretypes!(src; rev=true)
+                code = JuliaInterpreter.framecode_lines(src)
+
+                state.sources[state.next_source_id] = join(code, '\n')
+
+                s = string(id, ";", meth_or_mod_name, ";ref;", state.next_source_id, ";", file_name, ";", lineno)
+                push!(frames_as_string, s)
+                state.next_source_id += 1
+            end
         else
             # For now we are assuming that this can only happen
             # for code that is passed via the @enter or @run macros,
