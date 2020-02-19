@@ -2,6 +2,14 @@
 
 ## 0.14.0
 * Make Language Server indexing async
+* New linting capabilities: call checks, static `if` blocks, unused free parameters, unhandled `include` statements, clashing module names, and [pirates](https://docs.julialang.org/en/v1/manual/style-guide/index.html#Avoid-type-piracy-1).
+* Enable [Code Actions](https://code.visualstudio.com/docs/editor/refactoring): explicit re-export, replace qualified names with using statements
+* Add support for Julia 1.4/5-DEV
+* Improved robustness, e.g. handling of unicode
+* Better presentation of documentation
+* Fully implement LSP 3.14
+* StaticLint: improved path handling (file tree), extended macro handling, handle local/global variables, general refactor with speed/robustness improvements
+
 
 ## 0.13.1
 * Update CHANGELOG

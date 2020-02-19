@@ -467,9 +467,12 @@ async function selectJuliaBlock() {
         let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
 
         try {
-            let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
-            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1]))
-            vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1), vscode.window.activeTextEditor.document.positionAt(ret_val[1])))
+            let ret_val: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params);
+
+            let start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
+            let end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
+            vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
+            vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
         }
         catch (ex) {
             if (ex.message == "Language client is not ready yet") {
@@ -539,17 +542,17 @@ async function executeJuliaBlockInRepl() {
         let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
 
         try {
-            let ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockOffsetRange', params);
+            let ret_val: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params);
 
-            let start_pos = vscode.window.activeTextEditor.document.positionAt(ret_val[0] - 1)
-            let end_pos = vscode.window.activeTextEditor.document.positionAt(ret_val[1])
-
+            let start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
+            let end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
+            let next_pos = new vscode.Position(ret_val[2].line, ret_val[2].character)
+            
             let code_to_run = vscode.window.activeTextEditor.document.getText(new vscode.Range(start_pos, end_pos))
-
             executeInRepl(code_to_run, vscode.window.activeTextEditor.document.fileName, start_pos)
 
-            vscode.window.activeTextEditor.selection = new vscode.Selection(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2]))
-            vscode.window.activeTextEditor.revealRange(new vscode.Range(vscode.window.activeTextEditor.document.positionAt(ret_val[2]), vscode.window.activeTextEditor.document.positionAt(ret_val[2])))
+            vscode.window.activeTextEditor.selection = new vscode.Selection(next_pos, next_pos)
+            vscode.window.activeTextEditor.revealRange(new vscode.Range(next_pos, next_pos))
         }
         catch (ex) {
             if (ex.message == "Language client is not ready yet") {
@@ -578,7 +581,7 @@ export interface TextDocumentPositionParams {
     position: vscode.Position
 }
 
-let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockOffsetRange')
+let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockRange')
 
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
