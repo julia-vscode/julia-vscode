@@ -96,7 +96,8 @@ function send_stopped_msg(conn, ret_val, state)
             send_notification(conn, "STOPPEDBP")
         else
             state.last_exception = ret_val.err
-            send_notification(conn, "STOPPEDEXCEPTION", string(ret_val.err))
+            error_msg = Base.invokelatest(string, ret_val.err)
+            send_notification(conn, "STOPPEDEXCEPTION", error_msg)
         end
     elseif ret_val isa Number
         send_notification(conn, "STOPPEDSTEP")
