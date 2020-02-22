@@ -316,17 +316,39 @@ function construct_return_msg_for_var(state::DebuggerState, name, value)
     v_value_as_string = Base.invokelatest(repr, value)
     v_value_encoded = Base64.base64encode(v_value_as_string)
 
-    if (isstructtype(v_type) || value isa Array) && !(value isa String || value isa Symbol)
+    if (isstructtype(v_type) || value isa AbstractArray || value isa AbstractDict) && !(value isa String || value isa Symbol)
         push!(state.varrefs, VariableReference(:var, value))
         new_var_id = length(state.varrefs)
 
-        named_count = fieldcount(v_type)
-        indexed_count = value isa Array ? length(value) : 0
+        named_count = if value isa Array || value isa Tuple
+            0
+        elseif value isa AbstractArray || value isa AbstractDict
+            fieldcount(v_type) > 0 ? 1 : 0
+        else
+            fieldcount(v_type)
+        end
+
+        indexed_count = 0
+
+        if value isa AbstractArray || value isa AbstractDict || value isa Tuple
+            try
+                indexed_count = Base.invokelatest(length, value)
+            catch err
+            end
+        end
 
         return string(new_var_id, ";", name, ";", v_type_as_string, ";", named_count, ";", indexed_count, ";", v_value_encoded)
     else
         return string("0;", name, ";", v_type_as_string, ";0;0;", v_value_encoded)
     end
+end
+
+function get_keys_with_drop_take(value, skip_count, take_count)
+    collect(Iterators.take(Iterators.drop(keys(value), skip_count), take_count))
+end
+
+function get_cartesian_with_drop_take(value, skip_count, take_count)
+    collect(Iterators.take(Iterators.drop(CartesianIndices(value), skip_count), take_count))
 end
 
 function getvariables_request(conn, state::DebuggerState, msg_body, msg_id)
@@ -368,18 +390,61 @@ function getvariables_request(conn, state::DebuggerState, msg_body, msg_id)
         container_type = typeof(var_ref.value)
 
         if filter_type=="" || filter_type=="named"
+            if (var_ref.value isa AbstractArray || var_ref.value isa AbstractDict) && !(var_ref.value isa Array) &&
+                fieldcount(container_type) > 0
+                push!(state.varrefs, VariableReference(:fields, var_ref.value))
+                new_var_id = length(state.varrefs)
+                named_count = fieldcount(container_type)
+                s = string(new_var_id, ";Fields;;", named_count, ";0;", Base64.base64encode(""))
+                
+                push!(vars_as_string, s)
+            else
+                for i=Iterators.take(Iterators.drop(1:fieldcount(container_type), skip_count), take_count)
+                    s = construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) )
+                    push!(vars_as_string, s)
+                end
+            end
+        end
+
+        if (filter_type=="" || filter_type=="indexed") 
+            if var_ref.value isa Tuple
+                for i in Iterators.take(Iterators.drop(1:length(var_ref.value), skip_count), take_count)
+                    s = construct_return_msg_for_var(state, join(string.(i), ','), var_ref.value[i])
+                    push!(vars_as_string, s)
+                end
+            elseif var_ref.value isa AbstractArray
+                for i in Base.invokelatest(get_cartesian_with_drop_take, var_ref.value, skip_count, take_count)
+                    try
+                        val = Base.invokelatest(getindex, var_ref.value, i)
+                        s = construct_return_msg_for_var(state, join(string.(i.I), ','), val)
+                    catch err
+                        s = string("0;", join(string.(i.I), ','), ";;0;0;", Base64.base64encode("#error"))
+                    end                    
+                    push!(vars_as_string, s)
+                end
+            elseif var_ref.value isa AbstractDict
+                for i in Base.invokelatest(get_keys_with_drop_take, var_ref.value, skip_count, take_count)
+                    key_as_string = Base.invokelatest(repr, i)
+                    try
+                        val = Base.invokelatest(getindex, var_ref.value, i)
+                        s = construct_return_msg_for_var(state, key_as_string, val)
+                    catch err
+                        s = string("0;", join(string.(i.I), ','), ";;0;0;", Base64.base64encode("#error"))
+                    end                    
+                    push!(vars_as_string, s)
+                end
+            end
+        end
+    elseif var_ref.kind==:fields
+        container_type = typeof(var_ref.value)
+
+        if filter_type=="" || filter_type=="named"
             for i=Iterators.take(Iterators.drop(1:fieldcount(container_type), skip_count), take_count)
                 s = construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) )
                 push!(vars_as_string, s)
             end
         end
 
-        if (filter_type=="" || filter_type=="indexed") && var_ref.value isa Array
-            for i in Iterators.take(Iterators.drop(CartesianIndices(var_ref.value), skip_count), take_count)
-                s = construct_return_msg_for_var(state, join(string.(i.I), ','), var_ref.value[i])
-                push!(vars_as_string, s)
-            end
-        end
     end
 
     send_response(conn, msg_id, join(vars_as_string, '\n'))
