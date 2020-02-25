@@ -114,7 +114,12 @@ stages:
       runOnce:
         deploy:
           steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: 'current'
+              artifactName: 'insider'
+              targetPath: '$(Pipeline.Workspace)'
           - bash: |
               npm install -g vsce
-              PACKAGE_FILENAME=$(find . -type f -name "*.vsix")
+              PACKAGE_FILENAME=$(find ./$(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
