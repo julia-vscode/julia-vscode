@@ -69,7 +69,7 @@ jobs:
 - job: PackageInsider
   # condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
   pool:
-    vmImage: 'ubuntu-16.04'
+    vmImage: 'vs2017-win2016'
 
   steps:
   - task: NodeTool@0
