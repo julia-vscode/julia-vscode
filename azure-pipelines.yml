@@ -30,7 +30,6 @@ steps:
     echo ">>> Compile julia-vscode"
     npm install && npm run compile
     echo ">>> Compiled vscode-test"
-    cd sample
     echo ">>> Run sample integration test"
     npm install && npm run compile && npm run test
   displayName: Run Tests
