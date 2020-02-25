@@ -84,9 +84,7 @@ jobs:
 
   - bash: |
       echo ">>> Package julia-vscode"
-      npm install --no-save
-      npm run compile
-      vsce package
+      npm run package
     displayName: Package
 
   - task: CopyFiles@2

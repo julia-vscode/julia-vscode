@@ -546,7 +546,7 @@
         "watch": "tsc -watch -p ./",
         "test": "node ./out/test/runTest.js",
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile",
-        "package": "git submodule init && git submodule update && npm install --no-save && npm run compile && vsce package",
+        "package": "vsce package",
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
