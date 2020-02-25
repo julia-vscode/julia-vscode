@@ -1,101 +1,120 @@
 trigger:
 - master
 
-jobs:
+stages:
 
-- job: BuildAndTest
-  strategy:
-    matrix:
-      linux:
-        imageName: 'ubuntu-16.04'
-      mac:
-        imageName: 'macos-10.13'
-      windows:
-        imageName: 'vs2017-win2016'
+- stage: BuildAndTest
 
-  pool:
-    vmImage: $(imageName)
+  jobs:
 
-  steps:
+  - job: BuildAndTest
+    strategy:
+      matrix:
+        linux:
+          imageName: 'ubuntu-latest'
+        mac:
+          imageName: 'macOS-latest'
+        windows:
+          imageName: 'windows-latest'
 
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '8.x'
-    displayName: 'Install Node.js'
+    pool:
+      vmImage: $(imageName)
 
-  - bash: |
-      /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-      echo ">>> Started xvfb"
-    displayName: Start xvfb
-    condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
+    steps:
 
-  - bash: |
-      echo ">>> Compile julia-vscode"
-      npm install && npm run compile
-      echo ">>> Compiled vscode-test"
-      echo ">>> Run sample integration test"
-      npm install && npm run compile && npm run test
-    displayName: Run Tests
-    env:
-      DISPLAY: ':99.0'
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '8.x'
+      displayName: 'Install Node.js'
 
-- job: PackageRelease
-  # condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
-  pool:
-    vmImage: 'ubuntu-16.04'
+    - bash: |
+        /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        echo ">>> Started xvfb"
+      displayName: Start xvfb
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
 
-  steps:
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '8.x'
-    displayName: 'Install Node.js'
+    - bash: |
+        echo ">>> Compile julia-vscode"
+        npm install && npm run compile
+        echo ">>> Compiled vscode-test"
+        echo ">>> Run sample integration test"
+        npm install && npm run compile && npm run test
+      displayName: Run Tests
+      env:
+        DISPLAY: ':99.0'
 
-  - bash: |
-      echo ">>> Package julia-vscode"
-      npm install
-      npm run package
-    displayName: Package
+  - job: PackageRelease
+    # condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+    pool:
+      vmImage: 'ubuntu-latest'
 
-  - task: CopyFiles@2
-    inputs:
-      Contents: '*.vsix'
-      TargetFolder: '$(Build.ArtifactStagingDirectory)'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '8.x'
+      displayName: 'Install Node.js'
 
-  - task: PublishBuildArtifacts@1
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-      ArtifactName: 'release'
-      publishLocation: 'Container'
+    - bash: |
+        echo ">>> Package julia-vscode"
+        npm install
+        npm run package
+      displayName: Package
 
-- job: PackageInsider
-  # condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
-  pool:
-    vmImage: 'vs2017-win2016'
+    - task: CopyFiles@2
+      inputs:
+        Contents: '*.vsix'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
 
-  steps:
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '8.x'
-    displayName: 'Install Node.js'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'release'
+        publishLocation: 'Container'
 
-  - task: FileTransform@2
-    inputs:
-      folderPath: '$(System.DefaultWorkingDirectory)'
-      jsonTargetFiles: 'package.json'
+  - job: PackageInsider
+    # condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+    pool:
+      vmImage: 'windows-latest'
 
-  - bash: |
-      echo ">>> Package julia-vscode"
-      npm install
-      npm run package
-    displayName: Package
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '8.x'
+      displayName: 'Install Node.js'
 
-  - task: CopyFiles@2
-    inputs:
-      Contents: '*.vsix'
-      TargetFolder: '$(Build.ArtifactStagingDirectory)'
+    - task: FileTransform@2
+      inputs:
+        folderPath: '$(System.DefaultWorkingDirectory)'
+        jsonTargetFiles: 'package.json'
 
-  - task: PublishBuildArtifacts@1
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-      ArtifactName: 'insider'
-      publishLocation: 'Container'
+    - bash: |
+        echo ">>> Package julia-vscode"
+        npm install
+        npm run package
+      displayName: Package
+
+    - task: CopyFiles@2
+      inputs:
+        Contents: '*.vsix'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'insider'
+        publishLocation: 'Container'
+
+- stage: Deploy
+  jobs:
+  - deployment: DeployInsider
+    pool:
+      vmImage: 'Ubuntu-latest'
+    environment: 'Insider'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - bash: |
+              npm install -g vsce
+              PACKAGE_FILENAME=$(find . -type f -name "*.vsix")
+              vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
