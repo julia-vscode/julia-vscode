@@ -77,6 +77,11 @@ jobs:
       versionSpec: '8.x'
     displayName: 'Install Node.js'
 
+  - task: FileTransform@2
+    inputs:
+      folderPath: '$(System.DefaultWorkingDirectory)'
+      jsonTargetFiles: 'package.json'
+
   - bash: |
       echo ">>> Package julia-vscode"
       npm run package
