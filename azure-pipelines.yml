@@ -32,19 +32,25 @@ steps:
     echo ">>> Compiled vscode-test"
     echo ">>> Run sample integration test"
     npm install && npm run compile && npm run test
-    echo ">>> Package julia-vscode"
-    npm run package
   displayName: Run Tests
   env:
     DISPLAY: ':99.0'
+
+- bash: |
+    echo ">>> Package julia-vscode"
+    npm run package
+  displayName: Package
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
 
 - task: CopyFiles@2
   inputs:
     Contents: '*.vsix'
     TargetFolder: '$(Build.ArtifactStagingDirectory)'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
 
 - task: PublishBuildArtifacts@1
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
+  condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
