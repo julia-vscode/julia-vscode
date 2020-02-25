@@ -52,6 +52,7 @@ jobs:
 
   - bash: |
       echo ">>> Package julia-vscode"
+      npm install
       npm run package
     displayName: Package
 
@@ -84,6 +85,7 @@ jobs:
 
   - bash: |
       echo ">>> Package julia-vscode"
+      npm install
       npm run package
     displayName: Package
 
