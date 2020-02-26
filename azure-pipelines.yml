@@ -128,7 +128,9 @@ stages:
         ArtifactName: 'insider'
         publishLocation: 'Container'
 
-- stage: Deploy
+- stage: DeployMarketplace
+  displayName: 'Deploy to Marketplace'
+  dependsOn: [Package]
   jobs:
   - deployment: DeployInsider
     dependsOn: []
@@ -148,6 +150,11 @@ stages:
             env:
               MARKET_KEY: $(vscekey)
               
+
+- stage: DeployGithub
+  displayName: 'Deploy to GitHub'
+  dependsOn: [Package]
+  jobs:
   - deployment: DeployGithubRelease
     dependsOn: []
     pool:
