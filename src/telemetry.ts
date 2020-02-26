@@ -54,6 +54,7 @@ export async function init(context: vscode.ExtensionContext) {
     let packageJSONContent = JSON.parse(await fs.readTextFile(path.join(context.extensionPath, 'package.json')));
 
     let extversion = packageJSONContent.version;
+    let previewVersion = packageJSONContent.preview;
 
     // The Application Insights Key
     let key = '';
@@ -61,13 +62,13 @@ export async function init(context: vscode.ExtensionContext) {
         // Use the debug environment
         key = '82cf1bd4-8560-43ec-97a6-79847395d791';
     }
-    else if (extversion.includes('-')) {
-        // Use the dev environment
-        key = '94d316b7-bba0-4d03-9525-81e25c7da22f';
-    }
-    else {
+    else if (!previewVersion) {
         // Use the production environment
         key = 'ca1fb443-8d44-4a06-91fe-0235cfdf635f';
+    }
+    else {
+        // Use the dev environment
+        key = '94d316b7-bba0-4d03-9525-81e25c7da22f';
     }
 
     appInsights.setup(key)
