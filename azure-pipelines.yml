@@ -43,8 +43,11 @@ stages:
       env:
         DISPLAY: ':99.0'
 
+- stage: Package
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
+  jobs:
+
   - job: PackageRelease
-    # condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
     pool:
       vmImage: 'ubuntu-latest'
 
@@ -75,7 +78,6 @@ stages:
         publishLocation: 'Container'
 
   - job: PackageInsider
-    # condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
     pool:
       vmImage: 'windows-latest'
 
