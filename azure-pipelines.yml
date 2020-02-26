@@ -117,6 +117,10 @@ stages:
           - download: current
             artifact: insider
           - bash: |
+              echo "STARTING TO INSTALL VSCE"
               sudo npm install -g vsce
+              echo "FINISHED TO INSTALL VSCE"
               PACKAGE_FILENAME=$(find ./$(Pipeline.Workspace) -type f -name "*.vsix")
+              echo "SEARCH DID NOT FIND"
+              echo "VALUE IS $PACKAGE_FILENAME"
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
