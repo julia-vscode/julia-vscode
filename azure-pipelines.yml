@@ -114,11 +114,8 @@ stages:
       runOnce:
         deploy:
           steps:
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              buildType: 'current'
-              artifactName: 'insider'
-              targetPath: '$(Pipeline.Workspace)'
+          - download: current
+            artifact: insider
           - bash: |
               npm install -g vsce
               PACKAGE_FILENAME=$(find ./$(Pipeline.Workspace) -type f -name "*.vsix")
