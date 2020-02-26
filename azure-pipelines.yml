@@ -127,8 +127,6 @@ stages:
           - bash: |
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
-              echo "VALUE IS '$PACKAGE_FILENAME'"
-              if test -f "$PACKAGE_FILENAME"; then
-                echo "$PACKAGE_FILENAME exist"
-              fi
-              vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME 0.10.4
+              vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+            env:
+              MARKET_KEY: $(vscekey)
