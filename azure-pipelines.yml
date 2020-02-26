@@ -4,6 +4,7 @@ trigger:
 stages:
 
 - stage: BuildAndTest
+  displayName: Build and Test
 
   jobs:
 
@@ -81,7 +82,7 @@ stages:
     pool:
       vmImage: 'windows-latest'
 
-    variables: {description: 'Julia Language Support (Insider)', displayName: 'Julia Insider', name: 'language-julia-insider', version: '0.1.3', preview: true}
+    variables: {description: 'Julia Language Support (Insider)', displayName: 'Julia Insider', name: 'language-julia-insider', preview: true}
 
     steps:
     - checkout: self
@@ -132,3 +133,24 @@ stages:
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
             env:
               MARKET_KEY: $(vscekey)
+              
+  - deployment: DeployGithubRelease
+    pool:
+      vmImage: 'Ubuntu-latest'
+    environment: 'Github'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: insider
+          - task: GitHubRelease@1
+            inputs:
+              gitHubConnection: 'julia-vscode-release-deploy'
+              repositoryName: '$(Build.Repository.Name)'
+              action: 'create'
+              target: '$(Build.SourceVersion)'
+              tagSource: 'gitTag'
+              releaseNotesSource: 'inline'
+              isPreRelease: true
+              addChangeLog: false
