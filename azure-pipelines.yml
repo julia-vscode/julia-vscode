@@ -161,3 +161,4 @@ stages:
               releaseNotesSource: 'inline'
               isPreRelease: true
               addChangeLog: false
+              assets: $(Pipeline.Workspace)/*.vsix
