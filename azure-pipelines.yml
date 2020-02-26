@@ -123,6 +123,7 @@ stages:
 - stage: Deploy
   jobs:
   - deployment: DeployInsider
+    dependsOn: []
     pool:
       vmImage: 'Ubuntu-latest'
     environment: 'Insider'
@@ -140,6 +141,7 @@ stages:
               MARKET_KEY: $(vscekey)
               
   - deployment: DeployGithubRelease
+    dependsOn: []
     pool:
       vmImage: 'Ubuntu-latest'
     environment: 'Github'
