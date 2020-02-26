@@ -79,6 +79,8 @@ stages:
     pool:
       vmImage: 'windows-latest'
 
+    variables: {description: 'Julia Language Support (Insider)', displayName: 'Julia Insider', name: 'language-julia-insider', version: '0.1.2'}
+
     steps:
     - checkout: self
       submodules: true
@@ -91,7 +93,7 @@ stages:
     - task: FileTransform@2
       inputs:
         folderPath: '$(System.DefaultWorkingDirectory)'
-        jsonTargetFiles: 'package.json'
+        jsonTargetFiles: 'package.json'      
 
     - bash: |
         echo ">>> Package julia-vscode"
@@ -125,5 +127,6 @@ stages:
           - bash: |
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
+              PaCKAGE_FILENAME=lij
               echo "VALUE IS $PACKAGE_FILENAME"
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
