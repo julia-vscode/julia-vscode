@@ -153,7 +153,7 @@ stages:
             artifact: insider
           - task: GitHubRelease@1
             inputs:
-              gitHubConnection: 'julia-vscode-release-deploy'
+              gitHubConnection: 'release'
               repositoryName: '$(Build.Repository.Name)'
               action: 'create'
               target: '$(Build.SourceVersion)'
