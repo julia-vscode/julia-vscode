@@ -1,0 +1,184 @@
+trigger:
+  branches:
+    include:
+    - master
+  tags:
+    include:
+    - v*
+
+stages:
+
+- stage: BuildAndTest
+  displayName: Build and Test
+
+  jobs:
+
+  - job: BuildAndTest
+    strategy:
+      matrix:
+        linux:
+          imageName: 'ubuntu-latest'
+        mac:
+          imageName: 'macOS-latest'
+        windows:
+          imageName: 'windows-latest'
+
+    pool:
+      vmImage: $(imageName)
+
+    steps:
+
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '8.x'
+      displayName: 'Install Node.js'
+
+    - bash: |
+        /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        echo ">>> Started xvfb"
+      displayName: Start xvfb
+      condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
+
+    - bash: |
+        echo ">>> Compile julia-vscode"
+        npm install && npm run compile
+        echo ">>> Compiled vscode-test"
+        echo ">>> Run sample integration test"
+        npm install && npm run compile && npm run test
+      displayName: Run Tests
+      env:
+        DISPLAY: ':99.0'
+
+- stage: Package
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
+  jobs:
+
+  - job: PackageRelease
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+    - checkout: self
+      submodules: true
+
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '8.x'
+      displayName: 'Install Node.js'
+
+    - bash: |
+        echo ">>> Package julia-vscode"
+        npm install
+        npm run package
+      displayName: Package
+
+    - task: CopyFiles@2
+      inputs:
+        Contents: '*.vsix'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'release'
+        publishLocation: 'Container'
+
+  - job: PackageInsider
+    pool:
+      vmImage: 'windows-latest'
+
+    variables: {description: 'Julia Language Support (Insider)', displayName: 'Julia Insider', name: 'language-julia-insider', preview: 'true'}
+
+    steps:
+    - checkout: self
+      submodules: true
+
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '8.x'
+      displayName: 'Install Node.js'
+
+    - task: FileTransform@2
+      inputs:
+        folderPath: '$(System.DefaultWorkingDirectory)'
+        jsonTargetFiles: 'package.json'    
+
+    - task: DeleteFiles@1
+      inputs:
+        SourceFolder: '$(System.DefaultWorkingDirectory)'
+        Contents: 'README.md'     
+
+    - bash: |
+        mv README-insider.md README.md     
+
+    - bash: |
+        echo ">>> Package julia-vscode"
+        npm install
+        npm run package
+      displayName: Package
+
+    - task: CopyFiles@2
+      inputs:
+        Contents: '*.vsix'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'insider'
+        publishLocation: 'Container'
+
+- stage: DeployMarketplace
+  displayName: 'Deploy to Marketplace'
+  dependsOn: [Package]
+  jobs:
+  - deployment: DeployInsider
+    dependsOn: []
+    pool:
+      vmImage: 'Ubuntu-latest'
+    environment: 'Insider'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: insider
+          - bash: |
+              sudo npm install -g vsce
+              PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
+              vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+            env:
+              MARKET_KEY: $(vscekey)
+              
+
+- stage: DeployGithub
+  displayName: 'Deploy to GitHub'
+  dependsOn: [Package]
+  jobs:
+  - deployment: DeployGithubRelease
+    dependsOn: []
+    pool:
+      vmImage: 'Ubuntu-latest'
+    environment: 'Github'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: insider
+          - bash: |
+              PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
+              echo ">>>> FILENAME"
+              echo "$PACKAGE_FILENAME"
+              echo "$(Build.SourceVersion)"
+          - task: GitHubRelease@1
+            inputs:
+              gitHubConnection: 'release'
+              repositoryName: '$(Build.Repository.Name)'
+              action: 'create'
+              target: '$(Build.SourceVersion)'
+              tagSource: 'gitTag'
+              releaseNotesSource: 'inline'
+              isPreRelease: true
+              addChangeLog: false
+              assets: $(Pipeline.Workspace)/insider/*.vsix
