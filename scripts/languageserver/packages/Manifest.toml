@@ -34,10 +34,10 @@ deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[JSON]]
-deps = ["Dates", "Distributed", "Mmap", "Sockets", "Test", "Unicode"]
+deps = ["Dates", "Mmap", "Unicode"]
 path = "JSON"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
-version = "0.21.0+"
+version = "0.20.1"
 
 [[LanguageServer]]
 deps = ["CSTParser", "DocumentFormat", "JSON", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
