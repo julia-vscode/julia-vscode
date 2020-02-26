@@ -81,7 +81,7 @@ stages:
     - bash: |
         set -o xtrace
         ./julia-$(JULIA_VERSION)/bin/julia -e 'using InteractiveUtils; versioninfo()'
-        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(["CSTParser", "DocumentFormat", "StaticLint", "SymbolServer", "LanguageServer"], coverage=true)'
       displayName: 'Run the Julia tests'
 
 - stage: Package
