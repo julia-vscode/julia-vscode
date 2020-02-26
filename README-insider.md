@@ -1,0 +1,8 @@
+# Julia (Insider)
+
+This is the insider (preview) version of the [Julia VS Code extension](https://www.julia-vscode.org/). Most users should _not_ use this version, but instead install the [normal version](https://marketplace.visualstudio.com/items?itemName=julialang.language-julia) of the extension. This version of the extension may contain unstable prerelease code.
+
+
+## Data/Telemetry
+
+The julia extension for Visual Studio Code collects usage data and sends it to the development team to help improve the extension. Read our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more and how to disable any telemetry.

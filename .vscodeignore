@@ -10,3 +10,4 @@ scripts/languageserver/julia_pkgdir/**
 CONTRIBUTING.md
 *.vsix
 azure-pipelines.yml
+README-insider.md

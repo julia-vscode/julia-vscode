@@ -101,7 +101,15 @@ stages:
     - task: FileTransform@2
       inputs:
         folderPath: '$(System.DefaultWorkingDirectory)'
-        jsonTargetFiles: 'package.json'      
+        jsonTargetFiles: 'package.json'    
+
+    - task: DeleteFiles@1
+      inputs:
+        SourceFolder: '$(System.DefaultWorkingDirectory)'
+        Contents: 'README.md'     
+
+    - bash: |
+        mv README-insider.md README.md     
 
     - bash: |
         echo ">>> Package julia-vscode"
