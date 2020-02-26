@@ -151,6 +151,11 @@ stages:
           steps:
           - download: current
             artifact: insider
+          - bash: |
+              PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
+              echo ">>>> FILENAME"
+              echo "$PACKAGE_FILENAME"
+              echo "$(Build.SourceVersion)"
           - task: GitHubRelease@1
             inputs:
               gitHubConnection: 'release'
