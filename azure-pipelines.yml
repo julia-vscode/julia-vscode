@@ -87,7 +87,7 @@ stages:
     pool:
       vmImage: 'windows-latest'
 
-    variables: {description: 'Julia Language Support (Insider)', displayName: 'Julia Insider', name: 'language-julia-insider', preview: true}
+    variables: {description: 'Julia Language Support (Insider)', displayName: 'Julia Insider', name: 'language-julia-insider', preview: 'true'}
 
     steps:
     - checkout: self

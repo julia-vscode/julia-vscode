@@ -3,6 +3,7 @@
     "displayName": "Julia",
     "description": "Julia Language Support",
     "version": "0.14.5",
+    "preview": false,
     "publisher": "julialang",
     "engines": {
         "vscode": "^1.41.0"
