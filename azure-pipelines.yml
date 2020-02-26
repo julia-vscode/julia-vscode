@@ -117,6 +117,6 @@ stages:
           - download: current
             artifact: insider
           - bash: |
-              npm install -g vsce
+              sudo npm install -g vsce
               PACKAGE_FILENAME=$(find ./$(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
