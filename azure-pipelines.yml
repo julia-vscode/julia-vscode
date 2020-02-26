@@ -131,4 +131,4 @@ stages:
               if test -f "$PACKAGE_FILENAME"; then
                 echo "$PACKAGE_FILENAME exist"
               fi
-              vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+              vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME 0.10.4
