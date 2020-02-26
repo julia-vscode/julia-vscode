@@ -127,6 +127,6 @@ stages:
           - bash: |
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
-              PaCKAGE_FILENAME=lij
+              PACKAGE_FILENAME=lij
               echo "VALUE IS $PACKAGE_FILENAME"
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
