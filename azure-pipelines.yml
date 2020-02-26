@@ -264,6 +264,24 @@ stages:
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
             env:
               MARKET_KEY: $(vscekey)
+
+  - deployment: DeployProduction
+    dependsOn: []
+    pool:
+      vmImage: 'Ubuntu-latest'
+    environment: 'Production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: release
+          - bash: |
+              sudo npm install -g vsce
+              PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
+              vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+            env:
+              MARKET_KEY: $(vscekey)
               
 
 - stage: DeployGithub
