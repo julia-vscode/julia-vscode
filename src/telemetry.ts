@@ -5,6 +5,7 @@ import * as net from 'net';
 import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
+import * as fs from 'async-file';
 let appInsights = require('applicationinsights');
 import {generatePipeName} from './utils';
 
@@ -47,10 +48,12 @@ function loadConfig() {
     enableTelemetry = section.get<boolean>('enableTelemetry', false);
 }
 
-export function init() {
+export async function init(context: vscode.ExtensionContext) {
     loadConfig();
 
-    let extversion: String = vscode.extensions.getExtension('julialang.language-julia').packageJSON.version;
+    let packageJSONContent = JSON.parse(await fs.readTextFile(path.join(context.extensionPath, 'package.json')));
+
+    let extversion = packageJSONContent.version;
 
     // The Application Insights Key
     let key = '';

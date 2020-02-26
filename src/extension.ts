@@ -30,7 +30,7 @@ let g_serverFullTextNotification = new rpc.NotificationType<string, string>('jul
 let g_lscrashreportingpipename: string = null;
 
 export async function activate(context: vscode.ExtensionContext) {
-    telemetry.init();
+    await telemetry.init(context);
 
     telemetry.traceEvent('activate');
 
