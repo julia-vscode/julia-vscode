@@ -49,6 +49,9 @@ stages:
       vmImage: 'ubuntu-latest'
 
     steps:
+    - checkout: self
+      submodules: true
+
     - task: NodeTool@0
       inputs:
         versionSpec: '8.x'
@@ -77,6 +80,9 @@ stages:
       vmImage: 'windows-latest'
 
     steps:
+    - checkout: self
+      submodules: true
+
     - task: NodeTool@0
       inputs:
         versionSpec: '8.x'
