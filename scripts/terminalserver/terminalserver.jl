@@ -302,7 +302,7 @@ if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
 end
 
 # Load revise?
-load_revise = Base.ARGS[2] == "true" && (VERSION < v"1.1" ? haskey(Pkg.Types.Context().env.manifest, "Revise") : haskey(Pkg.Types.Context().env.project.deps, "Revise"))
+load_revise = Base.ARGS[2] == "true"
 
 const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
 const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
@@ -470,6 +470,9 @@ end
 vscodedisplay() = i -> vscodedisplay(i)
 
 if _vscodeserver.load_revise
-    @eval using Revise
-    Revise.async_steal_repl_backend()
+    try
+        @eval using Revise
+        Revise.async_steal_repl_backend()
+    catch err
+    end
 end
