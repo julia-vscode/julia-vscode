@@ -150,6 +150,11 @@ end
             source_code = payload_as_string[end_second_line_pos+1:end]
 
             hideprompt() do
+                if isdefined(Main, :Revise)
+                    let mode = get(ENV, "JULIA_REVISE", "auto")
+                        mode == "auto" && Main.Revise.revise()
+                    end
+                end
                 # println(' '^code_column * source_code)
 
                 try
