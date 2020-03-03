@@ -49,6 +49,121 @@ stages:
       env:
         DISPLAY: ':99.0'
 
+  - job: TestJuliaLinux
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    strategy:
+      matrix:
+        Julia 1.0:
+          JULIA_VERSION: '1.0'
+        Julia 1.1:
+          JULIA_VERSION: '1.1'
+        Julia 1.2:
+          JULIA_VERSION: '1.2'
+        Julia 1.3:
+          JULIA_VERSION: '1.3'
+        Julia 1.4:
+          JULIA_VERSION: '1.4'
+        
+    steps:
+
+    - checkout: self
+      submodules: true      
+
+    - bash: |
+        wget -nv https://julialang-s3.julialang.org/bin/linux/x64/$(JULIA_VERSION)/julia-$(JULIA_VERSION)-latest-linux-x86_64.tar.gz
+        mkdir julia-$(JULIA_VERSION)
+        tar zxf julia-$(JULIA_VERSION)-latest-linux-x86_64.tar.gz -C julia-$(JULIA_VERSION) --strip-components 1
+      displayName: 'Download and extract Julia'
+
+    - bash: |
+        ./julia-$(JULIA_VERSION)/bin/julia -e 'using InteractiveUtils; versioninfo()'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.resolve()'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("CSTParser", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("DocumentFormat", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
+      displayName: 'Run the Julia tests'
+
+  - job: TestJuliaMacOS
+    pool:
+      vmImage: 'macOS-latest'
+
+    strategy:
+      matrix:
+        Julia 1.0:
+          JULIA_VERSION: '1.0'
+        Julia 1.1:
+          JULIA_VERSION: '1.1'
+        Julia 1.2:
+          JULIA_VERSION: '1.2'
+        Julia 1.3:
+          JULIA_VERSION: '1.3'
+        Julia 1.4:
+          JULIA_VERSION: '1.4'
+        
+    steps:
+
+    - checkout: self
+      submodules: true      
+
+    - bash: |
+        wget -nv https://julialang-s3.julialang.org/bin/mac/x64/$(JULIA_VERSION)/julia-$(JULIA_VERSION)-latest-mac64.dmg
+        mkdir juliamnt
+        hdiutil mount -readonly -mountpoint juliamnt julia-$(JULIA_VERSION)-latest-mac64.dmg
+        cp -a juliamnt/*.app/Contents/Resources/julia julia-$(JULIA_VERSION)
+      displayName: 'Download and extract Julia'
+
+    - bash: |
+        ./julia-$(JULIA_VERSION)/bin/julia -e 'using InteractiveUtils; versioninfo()'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.resolve()'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("CSTParser", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("DocumentFormat", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
+      displayName: 'Run the Julia tests'
+
+  - job: TestJuliaWin
+    pool:
+      vmImage: 'windows-latest'
+
+    strategy:
+      matrix:
+        Julia 1.0:
+          JULIA_VERSION: '1.0'
+        Julia 1.1:
+          JULIA_VERSION: '1.1'
+        Julia 1.2:
+          JULIA_VERSION: '1.2'
+        Julia 1.3:
+          JULIA_VERSION: '1.3'
+        # Julia 1.4:
+        #   JULIA_VERSION: '1.4'
+        
+    steps:
+
+    - checkout: self
+      submodules: true      
+
+    - powershell: |
+        wget https://julialang-s3.julialang.org/bin/winnt/x64/$(JULIA_VERSION)/julia-$(JULIA_VERSION)-latest-win64.exe -OutFile julia-$(JULIA_VERSION)-latest-win64.exe
+        Start-Process -FilePath .\julia-$(JULIA_VERSION)-latest-win64.exe -ArgumentList "/S /D=C:\julia-$(JULIA_VERSION)" -NoNewWindow -Wait
+      displayName: 'Download and extract Julia'
+
+    - powershell: |
+        Set-PSDebug -Trace 1
+        C:\julia-$(JULIA_VERSION)\bin\julia.exe -e 'using InteractiveUtils; versioninfo()'
+        C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.resolve()'
+        C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"CSTParser\", coverage=true)'
+        # C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"DocumentFormat\", coverage=true)'
+        # C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"LanguageServer\", coverage=true)'
+        C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"StaticLint\", coverage=true)'
+        # C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"SymbolServer\", coverage=true)'
+      displayName: 'Run the tests'
+
 - stage: Package
   condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
   jobs:
@@ -128,12 +243,11 @@ stages:
         ArtifactName: 'insider'
         publishLocation: 'Container'
 
-- stage: DeployMarketplace
-  displayName: 'Deploy to Marketplace'
+- stage: DeployInsiderMarketplace
+  displayName: 'Deploy Insider to Marketplace'
   dependsOn: [Package]
   jobs:
   - deployment: DeployInsider
-    dependsOn: []
     pool:
       vmImage: 'Ubuntu-latest'
     environment: 'Insider'
@@ -143,6 +257,27 @@ stages:
           steps:
           - download: current
             artifact: insider
+          - bash: |
+              sudo npm install -g vsce
+              PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
+              vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+            env:
+              MARKET_KEY: $(vscekey)
+
+- stage: DeployProductionMarketplace
+  displayName: 'Deploy Release to Marketplace'
+  dependsOn: [Package]
+  jobs:              
+  - deployment: DeployProduction
+    pool:
+      vmImage: 'Ubuntu-latest'
+    environment: 'Production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: release
           - bash: |
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
