@@ -646,19 +646,19 @@
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
-        "uuidv4": "^6.0.2",
-        "vscode-debugadapter": "1.38.0",
+        "uuidv4": "^6.0.5",
+        "vscode-debugadapter": "^1.39.1",
         "vscode-jsonrpc": "^5.0.1",
         "vscode-languageclient": "^6.1.1",
         "which": "^1.3.1"
     },
     "devDependencies": {
         "@types/mocha": "^7.0.1",
-        "@types/node": "^12.12.28",
+        "@types/node": "^12.12.29",
         "download": "^7.1.0",
-        "mocha": "^7.0.1",
-        "typescript": "^3.7.5",
-        "vsce": "^1.73.0",
+        "mocha": "^7.1.0",
+        "typescript": "^3.8.3",
+        "vsce": "^1.74.0",
         "vscode-test": "^1.3.0"
     }
 }
