@@ -25,7 +25,7 @@ let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
 
-let g_serverFullTextNotification = new rpc.NotificationType<string, string>('julia/getFullText');
+const g_serverFullTextRequest = new rpc.RequestType<{uri:string, version: number}, string | null, void, void>('julia/getFullText');
 
 let g_lscrashreportingpipename: string = null;
 
@@ -204,10 +204,15 @@ async function startLanguageServer() {
     }
 
     g_languageClient.onReady().then(() => {
-        g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
-            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString()==uri)
-            doc.getText()
-            g_languageClient.sendNotification("julia/reloadText", {textDocument: {uri: uri, languageId: "julia", version: 1,text: doc.getText()}})
-        })
+        g_languageClient.onRequest(g_serverFullTextRequest, (params: {uri: string, version: number}) =>{
+            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString()==params.uri);
+
+            if (doc && doc.version==params.version) {
+                return doc.getText();
+            }
+            else {
+                return null;
+            }
+        });
     })
 }
