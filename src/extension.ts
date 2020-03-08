@@ -190,6 +190,15 @@ async function startLanguageServer() {
         // Create the language client and start the client.
     g_languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions);
     g_languageClient.registerProposedFeatures()
+    g_languageClient.onTelemetry((data: any) => {
+        if(data.command=='trace_event') {
+            telemetry.traceEvent(data.message);
+        }
+        else if (data.command=='symserv_crash') {
+            telemetry.traceEvent('symservererror');
+            telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace);
+        }
+    });
 
     // Push the disposable to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
