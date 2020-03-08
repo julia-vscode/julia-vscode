@@ -5,11 +5,14 @@ import * as net from 'net';
 import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
+import * as fs from 'async-file';
 let appInsights = require('applicationinsights');
 import {generatePipeName} from './utils';
 
 let enableCrashReporter: boolean = false;
 let enableTelemetry: boolean = false;
+
+let g_currentJuliaVersion: string = "";
 
 let extensionClient
 
@@ -45,10 +48,13 @@ function loadConfig() {
     enableTelemetry = section.get<boolean>('enableTelemetry', false);
 }
 
-export function init() {
+export async function init(context: vscode.ExtensionContext) {
     loadConfig();
 
-    let extversion: String = vscode.extensions.getExtension('julialang.language-julia').packageJSON.version;
+    let packageJSONContent = JSON.parse(await fs.readTextFile(path.join(context.extensionPath, 'package.json')));
+
+    let extversion = packageJSONContent.version;
+    let previewVersion = packageJSONContent.preview;
 
     // The Application Insights Key
     let key = '';
@@ -56,13 +62,13 @@ export function init() {
         // Use the debug environment
         key = '82cf1bd4-8560-43ec-97a6-79847395d791';
     }
-    else if (extversion.includes('-')) {
-        // Use the dev environment
-        key = '94d316b7-bba0-4d03-9525-81e25c7da22f';
-    }
-    else {
+    else if (!previewVersion) {
         // Use the production environment
         key = 'ca1fb443-8d44-4a06-91fe-0235cfdf635f';
+    }
+    else {
+        // Use the dev environment
+        key = '94d316b7-bba0-4d03-9525-81e25c7da22f';
     }
 
     appInsights.setup(key)
@@ -75,6 +81,10 @@ export function init() {
         .setUseDiskRetryCaching(true)
         .start();
 
+    if (vscode.env.machineId == "someValue.machineId") {
+        // Make sure we send out messages right away
+        appInsights.defaultClient.config.maxBatchSize = 0;
+    }
     
     extensionClient = appInsights.defaultClient;
     extensionClient.addTelemetryProcessor(filterTelemetry);
@@ -82,6 +92,7 @@ export function init() {
     extensionClient.commonProperties["vscodesessionid"] = vscode.env.sessionId;
     extensionClient.commonProperties["vscodeversion"] = vscode.version;
     extensionClient.commonProperties["extversion"] = extversion;
+    extensionClient.commonProperties["juliaversion"] = g_currentJuliaVersion;
     extensionClient.context.tags[extensionClient.context.keys.cloudRole] = "Extension";
     extensionClient.context.tags[extensionClient.context.keys.cloudRoleInstance] = "";
     extensionClient.context.tags[extensionClient.context.keys.sessionId] = vscode.env.sessionId;
@@ -163,5 +174,13 @@ async function showCrashReporterUIConsent() {
         finally {
             crashReporterUIVisible = false;
         }
+    }
+}
+
+export function setCurrentJuliaVersion(version: string) {
+    g_currentJuliaVersion = version;
+
+    if (extensionClient) {
+        extensionClient.commonProperties["juliaversion"] = g_currentJuliaVersion;
     }
 }

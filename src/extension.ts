@@ -25,15 +25,12 @@ let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
 
-let g_serverstatus: vscode.StatusBarItem = null;
-// let g_serverBusyNotification = new rpc.NotificationType<string, void>('window/setStatusBusy');
-// let g_serverReadyNotification = new rpc.NotificationType<string, void>('window/setStatusReady');
 let g_serverFullTextNotification = new rpc.NotificationType<string, string>('julia/getFullText');
 
 let g_lscrashreportingpipename: string = null;
 
 export async function activate(context: vscode.ExtensionContext) {
-    telemetry.init();
+    await telemetry.init(context);
 
     telemetry.traceEvent('activate');
 
@@ -44,12 +41,6 @@ export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating extension language-julia');
 
     g_settings = settings.loadSettings();
-
-    // Status bar
-    g_serverstatus = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-    g_serverstatus.show()
-    g_serverstatus.text = 'Julia';
-    context.subscriptions.push(g_serverstatus);
 
     // Config change
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(configChanged));
@@ -64,6 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Active features from other files
     juliaexepath.activate(context, g_settings);
+    await juliaexepath.getJuliaExePath(); // We run this function now and await to make sure we don't run in twice simultaneously later
     repl.activate(context, g_settings);
     weave.activate(context, g_settings);
     tasks.activate(context, g_settings);
@@ -152,6 +144,7 @@ async function startLanguageServer() {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
             JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            JULIA_LOAD_PATH: process.platform == "win32" ? ';' : ':',
             HOME: process.env.HOME ? process.env.HOME : os.homedir()
         }
     };
@@ -186,8 +179,9 @@ async function startLanguageServer() {
                                    'julia.lint.datadecl',
                                    'julia.lint.typeparam',
                                    'julia.lint.modname',
-                                   'julia.lint.pirates',],
-            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
+                                   'julia.lint.pirates',
+                                   'julia.lint.missingrefs',],
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: vscode.window.createOutputChannel('Julia Language Server trace')
@@ -219,13 +213,6 @@ async function startLanguageServer() {
     }
 
     g_languageClient.onReady().then(() => {
-    //     g_languageClient.onNotification(g_serverBusyNotification, () => {
-    //         g_serverstatus.show();
-    //     })
-
-    //     g_languageClient.onNotification(g_serverReadyNotification, () => {
-    //         g_serverstatus.hide();
-    //     })
         g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
             let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString()==uri)
             doc.getText()

@@ -150,14 +150,19 @@ end
             source_code = payload_as_string[end_second_line_pos+1:end]
 
             hideprompt() do
+                if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+                    let mode = get(ENV, "JULIA_REVISE", "auto")
+                        mode == "auto" && Main.Revise.revise()
+                    end
+                end
                 # println(' '^code_column * source_code)
 
                 try
                     withpath(source_filename) do
-                        res = include_string(Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                        res = Base.invokelatest(include_string, Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
 
                         if res !== nothing && !ends_with_semicolon(source_code)
-                            display(res)
+                            Base.invokelatest(display, res)
                         end
                     end
                 catch err
@@ -297,7 +302,7 @@ if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
 end
 
 # Load revise?
-load_revise = Base.ARGS[2] == "true" && (VERSION < v"1.1" ? haskey(Pkg.Types.Context().env.manifest, "Revise") : haskey(Pkg.Types.Context().env.project.deps, "Revise"))
+load_revise = Base.ARGS[2] == "true"
 
 const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
 const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
@@ -465,6 +470,9 @@ end
 vscodedisplay() = i -> vscodedisplay(i)
 
 if _vscodeserver.load_revise
-    @eval using Revise
-    Revise.async_steal_repl_backend()
+    try
+        @eval using Revise
+        Revise.async_steal_repl_backend()
+    catch err
+    end
 end
