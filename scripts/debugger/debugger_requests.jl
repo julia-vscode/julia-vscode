@@ -248,7 +248,7 @@ function getstacktrace_request(conn, state, msg_body, msg_id)
                 src = curr_fr.framecode.src
                 src = JuliaInterpreter.copy_codeinfo(src)
                 JuliaInterpreter.replace_coretypes!(src; rev=true)
-                code = JuliaInterpreter.framecode_lines(src)
+                code = Base.invokelatest(JuliaInterpreter.framecode_lines, src)
 
                 state.sources[state.next_source_id] = join(code, '\n')
 
