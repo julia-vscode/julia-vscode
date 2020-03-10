@@ -142,6 +142,10 @@ export function traceEvent(message) {
     extensionClient.trackEvent({name: message});
 }
 
+export function tracePackageLoadError(packagename, message) {
+    extensionClient.trackTrace({message: `Package ${packagename} crashed.\n\n${message}`})
+}
+
 export function onDidChangeConfiguration(newSettings: settings.ISettings) {
     loadConfig();
 }
