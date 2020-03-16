@@ -211,6 +211,9 @@ async function startLanguageServer() {
             telemetry.traceEvent('symservererror');
             telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace);
         }
+        else if (data.command=='symserv_pkgload_crash') {
+            telemetry.tracePackageLoadError(data.name, data.message)
+        }
     });
 
     // Push the disposable to the context's subscriptions so that the
