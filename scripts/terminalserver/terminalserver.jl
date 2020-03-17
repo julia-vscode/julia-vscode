@@ -1,6 +1,7 @@
 module _vscodeserver
 
 include("repl.jl")
+include("../debugger/debugger.jl")
 
 function remlineinfo!(x)
     if isa(x, Expr)
@@ -167,6 +168,15 @@ end
                     end
                 catch err
                     Base.display_error(stderr, err, catch_backtrace())
+                end
+            end
+        elseif cmd == "repl/startdebugger"
+            hideprompt() do
+                payload_as_string = String(payload)
+                try
+                    VSCodeDebugger.startdebug(payload_as_string)
+                catch err
+                    Base.display_error(err, catch_backtrace())
                 end
             end
         end
@@ -441,6 +451,16 @@ function printdataresource(io::IO, source)
     print(io, "]}")
 end
 
+function remove_lln!(ex::Expr)
+    for i in length(ex.args):-1:1
+        if ex.args[i] isa LineNumberNode
+            deleteat!(ex.args, i)
+        elseif ex.args[i] isa Expr
+            remove_lln!(ex.args[i])
+        end
+    end
+end
+
 end
 
 function vscodedisplay(x)
@@ -475,4 +495,14 @@ if _vscodeserver.load_revise
         Revise.async_steal_repl_backend()
     catch err
     end
+end
+
+macro enter(command)
+    _vscodeserver.remove_lln!(command)
+    :(_vscodeserver.sendMsgToVscode("debugger/enter", $(string(command))))
+end
+
+macro run(command)
+    _vscodeserver.remove_lln!(command)
+    :(_vscodeserver.sendMsgToVscode("debugger/run", $(string(command))))
 end
