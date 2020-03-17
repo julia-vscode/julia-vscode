@@ -212,7 +212,7 @@ function setfunctionbreakpoints_request(conn, state, msg_body, msg_id)
         end
     end
 
-    state.not_yet_set_function_breakpoints = Set(bps)
+    state.not_yet_set_function_breakpoints = Set{Any}(bps)
 
     attempt_to_set_f_breakpoints!(state.not_yet_set_function_breakpoints)
 end

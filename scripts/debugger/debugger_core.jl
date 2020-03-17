@@ -8,7 +8,7 @@ mutable struct DebuggerState
     top_level_expressions::Vector{Any}
     current_top_level_expression::Int
     frame
-    not_yet_set_function_breakpoints::Set{String}
+    not_yet_set_function_breakpoints::Set{Any}
     debug_mode::Symbol
     compile_mode
     sources::Dict{Int,String}
