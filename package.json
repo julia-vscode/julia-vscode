@@ -6,7 +6,7 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.42.0"
+        "vscode": "^1.43.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -639,7 +639,7 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
-        "@types/vscode": "^1.42.0",
+        "@types/vscode": "^1.43.0",
         "applicationinsights": "^1.7.3",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
@@ -654,7 +654,7 @@
     },
     "devDependencies": {
         "@types/mocha": "^7.0.2",
-        "@types/node": "^12.12.29",
+        "@types/node": "^12.12.30",
         "download": "^7.1.0",
         "mocha": "^7.1.0",
         "typescript": "^3.8.3",
