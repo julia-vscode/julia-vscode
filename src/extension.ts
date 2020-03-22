@@ -21,6 +21,7 @@ import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
 import * as jlpkgenv from './jlpkgenv';
 import { JuliaDebugSession } from './juliaDebug';
+import * as cluster from './cluster';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -88,6 +89,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             });
     }
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.sshconnect', cluster.foo));
 }
 
 // this method is called when your extension is deactivated

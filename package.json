@@ -200,6 +200,10 @@
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select Code Block"
+            },
+            {
+                "command": "language-julia.sshconnect",
+                "title": "Julia: SSH connect"
             }
         ],
         "menus": {
@@ -645,6 +649,7 @@
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
+        "node-ssh": "^8.0.0",
         "promised-temp": "^v0.1.0",
         "uuidv4": "^6.0.5",
         "vscode-debugadapter": "^1.39.1",
