@@ -204,6 +204,10 @@
             {
                 "command": "language-julia.sshconnect",
                 "title": "Julia: SSH connect"
+            },
+            {
+                "command": "language-julia.sshupload",
+                "title": "Julia: SSH upload"
             }
         ],
         "menus": {
