@@ -212,7 +212,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	protected async attachRequest(response: DebugProtocol.AttachResponse, args: AttachRequestArguments) {
 		this._launchMode = false;
-		const pn = generatePipeName(uuid(), 'vscode-language-julia-debugger');
+		const pn = generatePipeName(uuid(), 'vsc-jl-dbg');
 
 		let connectedPromise = new Subject();
 		let serverListeningPromise = new Subject();
