@@ -91,8 +91,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     cluster.init(g_context);
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.sshconnect', cluster.foo));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.sshupload', cluster.transferData));
 
 }
 
