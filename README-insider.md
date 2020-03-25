@@ -2,7 +2,7 @@
 
 This is the insider (preview) version of the [Julia VS Code extension](https://www.julia-vscode.org/). Most users should _not_ use this version, but instead install the [normal version](https://marketplace.visualstudio.com/items?itemName=julialang.language-julia) of the extension. This version of the extension may contain unstable prerelease code.
 
-Please not that you should _not_ have the regular and insider version of the extension installed at the same time.
+Please note that you should _not_ have the regular and insider version of the extension installed at the same time.
 
 ## Data/Telemetry
 
