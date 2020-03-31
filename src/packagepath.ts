@@ -20,7 +20,7 @@ export async function getPkgPath() {
         let jlexepath = await juliaexepath.getJuliaExePath();
         // TODO: there's got to be a better way to do this.
         var res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "using Pkg;println(Pkg.depots()[1])"`);
-        juliaPackagePath = join(res.stdout.trim(), 'dev');
+        juliaPackagePath = res.stdout.trim();
     }
     return juliaPackagePath;
 }
