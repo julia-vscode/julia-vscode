@@ -684,16 +684,23 @@ async function selectJuliaBlock() {
 
 async function executeJuliaCellInRepl() {
     telemetry.traceEvent('command-executejuliacellinrepl');
-
     let ed = vscode.window.activeTextEditor;
     let doc = ed.document;
     let rx = new RegExp("^##");
+    let rx_jmd_start = new RegExp("^```julia");
+    let rx_jmd_stop = new RegExp("^```");
+    let stop_type_jmd = false
+
     let curr = ed.selection.active.line;
     var start = curr;
     while (start >= 0) {
         if (rx.test(doc.lineAt(start).text)) {
             break;
-        } else {
+        }
+        else if (rx_jmd_start.test(doc.lineAt(start).text)) {                
+            break;
+        }
+        else {
             start -= 1;
         }
     }
@@ -701,19 +708,41 @@ async function executeJuliaCellInRepl() {
     var end = start;
     while (end < doc.lineCount) {
         if (rx.test(doc.lineAt(end).text)) {
+            stop_type_jmd = false
             break;
-        } else {
+        }
+        else if (rx_jmd_stop.test(doc.lineAt(end).text)) {
+            stop_type_jmd = true
+            break;
+        }
+        else {
             end += 1;
         }
     }
-    end -= 1;
+    end -= 1;        
+    var startnext = end+1;
+    if (stop_type_jmd == true) {         
+        while (startnext < doc.lineCount) {
+            if (rx_jmd_start.test(doc.lineAt(startnext).text)) {
+                break;
+            }
+            else {
+                startnext += 1;
+            }
+        }
+        if (startnext + 1 < doc.lineCount){
+            startnext += 1
+        }
+
+    }
+
     let startpos = new vscode.Position(start, 0);
     let endpos = new vscode.Position(end, doc.lineAt(end).text.length);
-    let nextpos = new vscode.Position(end + 1, 0);
+    let nextpos = new vscode.Position(startnext, 0);
     let code = doc.getText(new vscode.Range(startpos, endpos));
-    executeInRepl(code, doc.fileName, startpos)
-    vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
-    vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
+    executeInRepl(code, doc.fileName, startpos);
+    vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos);
+    vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos));
 }
 
 async function executeJuliaBlockInRepl() {
