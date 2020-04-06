@@ -27,7 +27,7 @@ version = "2.1.1-DEV"
 deps = ["Dates", "LinearAlgebra", "Printf", "Test", "UUIDs"]
 path = "FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.7.0"
+version = "0.8.0"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -109,7 +109,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [[Tokenize]]
 path = "Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.7"
+version = "0.5.8"
 
 [[URIParser]]
 deps = ["Test", "Unicode"]
