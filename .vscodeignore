@@ -1,6 +1,7 @@
 .vscode/**
 .vscode-test/**
 out/test/**
+out/scripts/**
 out/**/*.map
 src/**
 .gitignore
@@ -8,4 +9,5 @@ tsconfig.json
 scripts/languageserver/julia_pkgdir/**
 CONTRIBUTING.md
 *.vsix
-.travis.yml
+azure-pipelines.yml
+README-insider.md

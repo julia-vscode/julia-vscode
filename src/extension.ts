@@ -21,6 +21,7 @@ import * as openpackagedirectory from './openpackagedirectory';
 import * as juliaexepath from './juliaexepath';
 import * as jlpkgenv from './jlpkgenv';
 import { JuliaNotebookProvider } from './notebookProvider';
+import { JuliaDebugSession } from './juliaDebug';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -31,7 +32,7 @@ let g_serverFullTextNotification = new rpc.NotificationType<string, string>('jul
 let g_lscrashreportingpipename: string = null;
 
 export async function activate(context: vscode.ExtensionContext) {
-    telemetry.init();
+    await telemetry.init(context);
 
     telemetry.traceEvent('activate');
 
@@ -65,10 +66,22 @@ export async function activate(context: vscode.ExtensionContext) {
     openpackagedirectory.activate(context, g_settings);
     jlpkgenv.activate(context, g_settings);
 
+    // register a configuration provider for 'mock' debug type
+    const provider = new JuliaDebugConfigurationProvider();
+    context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('julia', provider));
+
+    let factory = new InlineDebugAdapterFactory();
+    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory));
+
+    vscode.commands.registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
+        let pkgenvpath = await jlpkgenv.getEnvPath();
+        return pkgenvpath;
+    });
+
     // Start language server
     startLanguageServer();
 
-    if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry')===null) {
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
         vscode.window.showInformationMessage("To help improve the julia extension, you can anonymously send usage statistics to the team. See our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) for details.", 'Yes, I want to help improve the julia extension')
             .then(telemetry_choice => {
                 if (telemetry_choice == "Yes, I want to help improve the julia extension") {
@@ -182,16 +195,29 @@ async function startLanguageServer() {
                                    'julia.lint.datadecl',
                                    'julia.lint.typeparam',
                                    'julia.lint.modname',
-                                   'julia.lint.pirates',],
-            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.jl')
+                                   'julia.lint.pirates',
+                                   'julia.lint.missingrefs',],
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: vscode.window.createOutputChannel('Julia Language Server trace')
     }
 
-        // Create the language client and start the client.
+    // Create the language client and start the client.
     g_languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions);
     g_languageClient.registerProposedFeatures()
+    g_languageClient.onTelemetry((data: any) => {
+        if(data.command=='trace_event') {
+            telemetry.traceEvent(data.message);
+        }
+        else if (data.command=='symserv_crash') {
+            telemetry.traceEvent('symservererror');
+            telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace);
+        }
+        else if (data.command=='symserv_pkgload_crash') {
+            telemetry.tracePackageLoadError(data.name, data.message)
+        }
+    });
 
     // Push the disposable to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
@@ -207,9 +233,66 @@ async function startLanguageServer() {
 
     g_languageClient.onReady().then(() => {
         g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
-            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString()==uri)
+            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString() == uri)
             doc.getText()
-            g_languageClient.sendNotification("julia/reloadText", {textDocument: {uri: uri, languageId: "julia", version: 1,text: doc.getText()}})
+            g_languageClient.sendNotification("julia/reloadText", { textDocument: { uri: uri, languageId: "julia", version: 1, text: doc.getText() } })
         })
     })
+}
+
+export class JuliaDebugConfigurationProvider
+    implements vscode.DebugConfigurationProvider {
+
+    public resolveDebugConfiguration(
+        folder: vscode.WorkspaceFolder | undefined,
+        config: vscode.DebugConfiguration,
+        token?: vscode.CancellationToken,
+    ): vscode.ProviderResult<vscode.DebugConfiguration> {
+
+        return (async () => {
+            if (!config.request) {
+                config.request = 'launch';
+            }
+
+            if (!config.type) {
+                config.type = 'julia';
+            }
+
+            if (!config.name) {
+                config.name = 'Launch Julia';
+            }
+
+            if (!config.program && config.request != 'attach') {
+                config.program = vscode.window.activeTextEditor.document.fileName;
+            }
+
+            if (!config.internalConsoleOptions) {
+                config.internalConsoleOptions = "neverOpen";
+            }
+
+            if (!config.stopOnEntry) {
+                config.stopOnEntry = false;
+            }
+
+            if (!config.cwd && config.request != 'attach') {
+                config.cwd = '${workspaceFolder}';
+            }
+
+            if (!config.juliaEnv && config.request != 'attach') {                
+                config.juliaEnv = '${command:activeJuliaEnvironment}';
+            }
+
+            return config;
+        })();
+    }
+
+}
+
+class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
+
+    createDebugAdapterDescriptor(_session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+        return (async () => {
+            return new vscode.DebugAdapterInlineImplementation(<any>new JuliaDebugSession(g_context, await juliaexepath.getJuliaExePath()));
+        })();
+    }
 }
