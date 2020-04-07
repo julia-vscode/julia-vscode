@@ -8,6 +8,7 @@
     "engines": {
         "vscode": "^1.43.0"
     },
+    "enableProposedApi": true,
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
         "url": "https://github.com/julia-vscode/julia-vscode/issues"
