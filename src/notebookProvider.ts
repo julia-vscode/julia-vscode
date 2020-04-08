@@ -111,7 +111,7 @@ export class JuliaNotebook {
 				const metadata = { editable: true, runnable: true, executionOrder: 0};
 
 				editBuilder.insert(0,
-					raw_cell.source ? raw_cell.source.join('') : '',
+					raw_cell.source ? raw_cell.source.join('\n') : '',
 					'julia',
 					raw_cell.cell_type === 'code' ? vscode.CellKind.Code :vscode.CellKind.Markdown,
 					outputs,
@@ -135,9 +135,10 @@ export class JuliaNotebook {
 			rl.on('line', line => {
 				let cmd_end = line.indexOf(":");
 				let cmd = line.slice(undefined, cmd_end);
-				let payload = line.slice(cmd_end + 1);
+				let payload_encoded = line.slice(cmd_end + 1);
+				let payload = Buffer.from(payload_encoded, 'base64').toString();
 
-				if (cmd == 'image/png') {
+				if (cmd == 'image/png' || cmd == 'image/svg+xml' || cmd == 'application/vnd.vegalite.v4+json') {
 					let parts = payload.split(';');
 
 					let requestId = parseInt(parts[0]);
@@ -146,12 +147,34 @@ export class JuliaNotebook {
 					let cell = this.request_id_to_cell.get(requestId);
 
 					if (cell) {
-						cell.outputs = cell.outputs.concat([transformOutputToCore({
+						let raw_cell = {
 							'output_type': 'execute_result',
-							'data': {
-								'image/png': [outputData]
-							}
-						})]);
+							'data': {}
+						};
+
+						// raw_cell.data[cmd] = [outputData];
+						raw_cell.data[cmd] = outputData.split('\n');
+
+						let asdf = transformOutputToCore(<any>raw_cell);
+
+						cell.outputs = cell.outputs.concat([asdf]);
+					}
+				}
+				else if(cmd == 'stdout') {
+					let parts = payload.split(';');
+
+					let requestId = parseInt(parts[0]);
+					let outputData = parts[1];
+
+					let cell = this.request_id_to_cell.get(requestId);
+
+					if (cell) {
+						let raw_cell = {
+							'output_type': 'stream',
+							'text': outputData
+						};
+
+						cell.outputs = cell.outputs.concat([transformOutputToCore(<any>raw_cell)]);
 					}
 				}
 
