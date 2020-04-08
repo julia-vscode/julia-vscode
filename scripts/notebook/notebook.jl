@@ -8,13 +8,13 @@ end
 
 const conn = Sockets.connect(ARGS[1])
 
-global current_request_id = 0
+const current_results = []
 
 struct JuliaNotebookInlineDisplay <: AbstractDisplay end
 
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/png")}, x)
     payload = Base64.stringmime(MIME("image/png"), x)
-    send_msg_to_vscode(conn, "image/png", string(current_request_id, ";", payload))
+    push!(current_results, "image/png" => payload)    
 end
 
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/png")}) = true
@@ -47,6 +47,11 @@ while true
     catch err
         Base.display_error(err, catch_backtrace())
     end
+
+    for r in current_results
+        send_msg_to_vscode(conn, r[1], string(current_request_id, ";", r[2]))
+    end
+    empty!(current_results)
 end
 
 end

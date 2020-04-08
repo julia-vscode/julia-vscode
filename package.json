@@ -48,7 +48,8 @@
         "workspaceContains:deps/build.jl",
         "workspaceContains:test/runtests.jl",
         "workspaceContains:benchmark/benchmarks.jl",
-        "workspaceContains:docs/make.jl"
+        "workspaceContains:docs/make.jl",
+        "onNotebookEditor:julianotebook"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -546,7 +547,7 @@
                 "displayName": "Julia Notebook",
                 "selector": [
                     {
-                        "filenamePattern": "*.jmd"
+                        "filenamePattern": "*.jlnb"
                     }
                 ]
             }
