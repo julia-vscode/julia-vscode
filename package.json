@@ -200,6 +200,18 @@
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select Code Block"
+            },
+            {
+                "command": "language-julia.sshconnect",
+                "title": "Julia: SSH connect"
+            },
+            {
+                "command": "language-julia.sshdisconnect",
+                "title": "Julia: SSH disconnect"
+            },
+            {
+                "command": "language-julia.sshupload",
+                "title": "Julia: SSH upload"
             }
         ],
         "menus": {
@@ -239,6 +251,18 @@
                 {
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete-all"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "language-julia.sshconnect",
+                    "when": "view == julia-clusters && viewItem == connectionclosed",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.sshdisconnect",
+                    "when": "view == julia-clusters && viewItem == connectionopen",
+                    "group": "inline"
                 }
             ],
             "commandPalette": [
@@ -518,6 +542,9 @@
                     "default": true,
                     "description": "Remove spaces around = in function keywords.",
                     "scope": "window"
+                },
+                "julia.cluster.connections": {
+                    "type": "array"
                 }
             }
         },
@@ -525,6 +552,23 @@
             "[julia]": {
                 "editor.quickSuggestions": true
             }
+        },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "julia-explorer",
+                    "title": "Julia Explorer",
+                    "icon": "images/julia-logo.svg"
+                }
+            ]
+        },
+        "views": {
+            "julia-explorer": [
+                {
+                    "id": "julia-clusters",
+                    "name": "Clusters"
+                }
+            ]
         },
         "taskDefinitions": [
             {
@@ -645,6 +689,7 @@
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
+        "node-ssh": "^8.0.0",
         "promised-temp": "^v0.1.0",
         "uuidv4": "^6.0.5",
         "vscode-debugadapter": "^1.39.1",
