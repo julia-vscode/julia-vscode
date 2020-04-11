@@ -197,7 +197,7 @@ async function startREPL(preserveFocus: boolean) {
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
                         JULIA_EDITOR: process.platform == 'darwin' ? `"${path.join(vscode.env.appRoot, 'bin', 'code')}"` : `"${process.execPath}"`,
-                        JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()
+                        JULIA_NUM_THREADS: "JULIA_NUM_THREADS" in process.env ? process.env["JULIA_NUM_THREADS"] : vscode.workspace.getConfiguration("julia").get("NumThreads").toString()
                     }});
         }
         g_terminal.show(preserveFocus);
