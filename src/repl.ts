@@ -160,7 +160,7 @@ function is_remote_env(): boolean {
 }
 
 function get_editor(): string {
-    if (is_remote_env()) {
+    if (is_remote_env() || process.platform == 'darwin') {
         let cmd = vscode.env.appName.includes("Insiders") ? "code-insiders" : "code"
         return `"${path.join(vscode.env.appRoot, "bin", cmd)}"`
     }
@@ -209,7 +209,7 @@ async function startREPL(preserveFocus: boolean) {
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
-                        JULIA_EDITOR: process.platform == 'darwin' ? `"${path.join(vscode.env.appRoot, 'bin', 'code')}"` : get_editor(),
+                        JULIA_EDITOR: get_editor(),
                         JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()
                     }});
         }
