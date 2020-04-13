@@ -160,7 +160,7 @@ function is_remote_env(): boolean {
 }
 
 function get_editor(): string {
-    if (is_remote_env()) {
+    if (is_remote_env() || process.platform == 'darwin') {
         let cmd = vscode.env.appName.includes("Insiders") ? "code-insiders" : "code"
         return `"${path.join(vscode.env.appRoot, "bin", cmd)}"`
     }
