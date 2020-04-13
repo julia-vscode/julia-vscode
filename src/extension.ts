@@ -81,9 +81,9 @@ export async function activate(context: vscode.ExtensionContext) {
     startLanguageServer();
 
     if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
-        vscode.window.showInformationMessage("To help improve the julia extension, you can anonymously send usage statistics to the team. See our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) for details.", 'Yes, I want to help improve the julia extension')
+        vscode.window.showInformationMessage("To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more how we use usage data and how to permanently hide this notification.", 'I agree to usage data collection')
             .then(telemetry_choice => {
-                if (telemetry_choice == "Yes, I want to help improve the julia extension") {
+                if (telemetry_choice == "I agree to usage data collection") {
                     vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true);
                 }
             });
