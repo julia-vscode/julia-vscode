@@ -155,6 +155,19 @@ function startREPLCommand() {
     startREPL(false);
 }
 
+function is_remote_env(): boolean {
+    return typeof vscode.env.remoteName !== 'undefined'
+}
+
+function get_editor(): string {
+    if (is_remote_env() || process.platform == 'darwin') {
+        let cmd = vscode.env.appName.includes("Insiders") ? "code-insiders" : "code"
+        return `"${path.join(vscode.env.appRoot, "bin", cmd)}"`
+    }
+    else {
+        return `"${process.execPath}"`
+    }
+}
 async function startREPL(preserveFocus: boolean) {
     if (g_terminal == null) {
         let juliaIsConnectedPromise = startREPLMsgServer()
@@ -170,7 +183,7 @@ async function startREPL(preserveFocus: boolean) {
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
-                        JULIA_EDITOR: `"${process.execPath}"`
+                        JULIA_EDITOR: get_editor()
                     }});
         }
         else {
@@ -196,7 +209,7 @@ async function startREPL(preserveFocus: boolean) {
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
-                        JULIA_EDITOR: process.platform == 'darwin' ? `"${path.join(vscode.env.appRoot, 'bin', 'code')}"` : `"${process.execPath}"`,
+                        JULIA_EDITOR: get_editor(),
                         JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()
                     }});
         }
