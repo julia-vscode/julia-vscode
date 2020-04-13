@@ -156,7 +156,6 @@ function startREPLCommand() {
 }
 
 function is_remote_env(): boolean {
-    console.log("Remore environment?: " + typeof vscode.env.remoteName !== 'undefined')
     return typeof vscode.env.remoteName !== 'undefined'
 }
 
