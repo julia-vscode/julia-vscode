@@ -30,6 +30,8 @@ function debug_request(conn, state, msg_body, msg_id)
 
     @debug "We are debugging the file $filename_to_debug."
 
+    task_local_storage()[:SOURCE_PATH] = filename_to_debug
+
     ex = _parse_julia_file(filename_to_debug)
 
     state.top_level_expressions, _ = JuliaInterpreter.split_expressions(Main, ex)
