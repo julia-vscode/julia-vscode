@@ -343,6 +343,13 @@ function construct_return_msg_for_var(state::DebuggerState, name, value)
     end
 end
 
+function construct_return_msg_for_var_with_undef_value(state::DebuggerState, name)
+    v_type_as_string = ""
+    v_value_encoded = Base64.base64encode("#undef")
+    
+    return string("0;", name, ";", v_type_as_string, ";0;0;", v_value_encoded)
+end
+
 function get_keys_with_drop_take(value, skip_count, take_count)
     collect(Iterators.take(Iterators.drop(keys(value), skip_count), take_count))
 end
@@ -400,7 +407,9 @@ function getvariables_request(conn, state::DebuggerState, msg_body, msg_id)
                 push!(vars_as_string, s)
             else
                 for i=Iterators.take(Iterators.drop(1:fieldcount(container_type), skip_count), take_count)
-                    s = construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) )
+                    s = isdefined(var_ref.value, i) ?
+                        construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) ) :
+                        construct_return_msg_for_var_with_undef_value(state, string(fieldname(container_type, i)))
                     push!(vars_as_string, s)
                 end
             end
@@ -440,7 +449,9 @@ function getvariables_request(conn, state::DebuggerState, msg_body, msg_id)
 
         if filter_type=="" || filter_type=="named"
             for i=Iterators.take(Iterators.drop(1:fieldcount(container_type), skip_count), take_count)
-                s = construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) )
+                s = isdefined(var_ref.value, i) ?
+                    construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) ) :
+                    construct_return_msg_for_var_with_undef_value(state, string(fieldname(container_type, i)))
                 push!(vars_as_string, s)
             end
         end
