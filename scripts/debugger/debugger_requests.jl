@@ -235,6 +235,11 @@ function getstacktrace_request(conn, state, msg_body, msg_id)
         lineno = curr_whereis[2]
         meth_or_mod_name = Base.nameof(curr_fr)
 
+        # Is this a file from base?
+        if !isabspath(file_name)
+            file_name = basepath(file_name)
+        end
+
         if isfile(file_name)
             push!(frames_as_string, string(id, ";", meth_or_mod_name, ";path;", file_name, ";", lineno))
         elseif curr_scopeof isa Method
