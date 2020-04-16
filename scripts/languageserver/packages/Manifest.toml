@@ -112,10 +112,10 @@ uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
 version = "0.5.8"
 
 [[URIParser]]
-deps = ["Test", "Unicode"]
+deps = ["Unicode"]
 path = "URIParser"
 uuid = "30578b45-9adc-5946-b283-645ec420af67"
-version = "0.4.0+"
+version = "0.4.1-DEV"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]
