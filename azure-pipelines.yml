@@ -153,8 +153,7 @@ stages:
         Start-Process -FilePath .\julia-$(JULIA_VERSION)-latest-win64.exe -ArgumentList "/S /D=C:\julia-$(JULIA_VERSION)" -NoNewWindow -Wait
       displayName: 'Download and extract Julia'
 
-    - powershell: |
-        Set-PSDebug -Trace 1
+    - script: |
         C:\julia-$(JULIA_VERSION)\bin\julia.exe -e 'using InteractiveUtils; versioninfo()'
         C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.resolve()'
         C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"CSTParser\", coverage=true)'
@@ -163,6 +162,7 @@ stages:
         C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"StaticLint\", coverage=true)'
         # C:\julia-$(JULIA_VERSION)\bin\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"SymbolServer\", coverage=true)'
       displayName: 'Run the tests'
+      failOnStderr: false
 
 - stage: Package
   condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
