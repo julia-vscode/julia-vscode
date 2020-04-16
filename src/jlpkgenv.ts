@@ -7,7 +7,7 @@ import * as packagepath from './packagepath'
 import * as os from 'os';
 import * as path from 'path'
 import * as juliaexepath from './juliaexepath';
-var exec = require('child-process-promise').exec;
+import {exec} from 'child-process-promise';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;

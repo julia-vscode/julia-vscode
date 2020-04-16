@@ -8,7 +8,7 @@ import * as util from 'util';
 import * as which from 'which';
 import * as child_process from 'child_process';
 import { setCurrentJuliaVersion, traceEvent } from './telemetry';
-var exec = require('child-process-promise').exec;
+import {exec} from 'child-process-promise';
 const whichAsync = util.promisify(which);
 
 let g_context: vscode.ExtensionContext = null;

@@ -639,6 +639,7 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
+        "@types/child-process-promise": "^2.2.1",
         "@types/vscode": "^1.44.0",
         "applicationinsights": "^1.7.4",
         "async-child-process": "^v1.1.1",

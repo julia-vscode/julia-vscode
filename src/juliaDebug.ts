@@ -8,7 +8,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename, join, parse } from 'path';
 import { Disposable } from 'vscode-jsonrpc';
 import * as net from 'net';
-const { Subject } = require('await-notify');
+import { Subject } from 'await-notify';
 import * as readline from 'readline';
 import { generatePipeName } from './utils';
 import { uuid } from 'uuidv4';
