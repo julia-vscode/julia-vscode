@@ -155,12 +155,12 @@ stages:
     - powershell: |
         Start-Process -FilePath .\julia-$(JULIA_VERSION)-latest-win64.exe -ArgumentList "/S /D=C:\julia-$(JULIA_VERSION)" -NoNewWindow -Wait
       displayName: 'Extract Julia'
-      condition: in(JULIA_VERSION, '1.0', '1.1', '1.2', '1.3')
+      condition: in(variables.JULIA_VERSION, '1.0', '1.1', '1.2', '1.3')
 
     - powershell: |
         Start-Process -FilePath .\julia-$(JULIA_VERSION)-latest-win64.exe -ArgumentList "/VERYSILENT /DIR=C:\julia-$(JULIA_VERSION)" -NoNewWindow -Wait
       displayName: 'Extract Julia'
-      condition: not(in(JULIA_VERSION, '1.0', '1.1', '1.2', '1.3'))
+      condition: not(in(variables.JULIA_VERSION, '1.0', '1.1', '1.2', '1.3'))
 
     - bash: |
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe -e 'using InteractiveUtils; versioninfo()'
