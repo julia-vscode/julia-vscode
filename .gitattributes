@@ -1,2 +1,3 @@
 package.json eol=lf
 package-lock.json eol=lf
+libs/** eol=lf
