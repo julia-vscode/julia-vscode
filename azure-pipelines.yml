@@ -156,11 +156,11 @@ stages:
     - bash: |
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe -e 'using InteractiveUtils; versioninfo()'
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.resolve()'
-        C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"CSTParser\", coverage=true)'
-        # C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"DocumentFormat\", coverage=true)'
-        # C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"LanguageServer\", coverage=true)'
-        C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"StaticLint\", coverage=true)'
-        # C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test(\"SymbolServer\", coverage=true)'
+        C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("CSTParser", coverage=true)'
+        # C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("DocumentFormat", coverage=true)'
+        # C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
+        C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
+        # C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/languageserver/packages -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
       displayName: 'Run the tests'
       failOnStderr: false
 
