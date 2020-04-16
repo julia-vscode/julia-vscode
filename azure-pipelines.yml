@@ -150,8 +150,17 @@ stages:
 
     - powershell: |
         wget https://julialang-s3.julialang.org/bin/winnt/x64/$(JULIA_VERSION)/julia-$(JULIA_VERSION)-latest-win64.exe -OutFile julia-$(JULIA_VERSION)-latest-win64.exe
+      displayName: 'Download Julia'
+
+    - powershell: |
         Start-Process -FilePath .\julia-$(JULIA_VERSION)-latest-win64.exe -ArgumentList "/S /D=C:\julia-$(JULIA_VERSION)" -NoNewWindow -Wait
-      displayName: 'Download and extract Julia'
+      displayName: 'Extract Julia'
+      condition: containsValue(['1.0','1.1','1.2','1.3'], JULIA_VERSION)
+
+    - powershell: |
+        Start-Process -FilePath .\julia-$(JULIA_VERSION)-latest-win64.exe -ArgumentList "/VERYSILENT /DIR=C:\julia-$(JULIA_VERSION)" -NoNewWindow -Wait
+      displayName: 'Extract Julia'
+      condition: not(containsValue(['1.0','1.1','1.2','1.3'], JULIA_VERSION))
 
     - bash: |
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe -e 'using InteractiveUtils; versioninfo()'
