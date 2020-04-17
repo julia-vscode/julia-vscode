@@ -2,8 +2,11 @@
 
 include("debugger.jl")
 
-try
-    VSCodeDebugger.startdebug(VSCodeDebugger.clean_up_ARGS_in_launch_mode())
-catch err
-    Base.display_error(err, catch_backtrace())
+let
+    local pipenames = VSCodeDebugger.clean_up_ARGS_in_launch_mode()
+    try
+        VSCodeDebugger.startdebug(pipenames[1])
+    catch err
+        VSCodeDebugger.global_err_handler(err, catch_backtrace(), pipenames[2])
+    end
 end

@@ -176,7 +176,7 @@ end
                 try
                     VSCodeDebugger.startdebug(payload_as_string)
                 catch err
-                    Base.display_error(err, catch_backtrace())
+                    VSCodeDebugger.global_err_handler(err, catch_backtrace(), ARGS[4])
                 end
             end
         end

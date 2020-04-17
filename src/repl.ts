@@ -176,7 +176,13 @@ async function startREPL(preserveFocus: boolean) {
         let pkgenvpath = await jlpkgenv.getEnvPath();
         if (pkgenvpath==null) {
             let jlarg1 = ['-i','--banner=no'].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
-            let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
+            let jlarg2 = [
+                args,
+                process.pid.toString(),
+                vscode.workspace.getConfiguration("julia").get("useRevise").toString(),
+                vscode.workspace.getConfiguration("julia").get("usePlotPane").toString(),
+                telemetry.getCrashReportingPipename()
+            ]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: "julia",
@@ -202,7 +208,13 @@ async function startREPL(preserveFocus: boolean) {
                 }
             }
             let jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
-            let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(),vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
+            let jlarg2 = [
+                args,
+                process.pid.toString(),
+                vscode.workspace.getConfiguration("julia").get("useRevise").toString(),
+                vscode.workspace.getConfiguration("julia").get("usePlotPane").toString(),
+                telemetry.getCrashReportingPipename()
+            ]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: "julia",

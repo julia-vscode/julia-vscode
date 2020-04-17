@@ -1,11 +1,9 @@
 using Sockets
 
-function global_err_handler(e, bt)
-    @info "Language Server crashed with"
-    @info e
+function global_err_handler(e, bt, vscode_pipe_name)
+    @warn "Some Julia code in the VS Code extension crashed with" e
     
     st = stacktrace(bt)
-    vscode_pipe_name = Base.ARGS[3]
     pipe_to_vscode = connect(vscode_pipe_name)
     try
         # Send error type as one line

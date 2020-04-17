@@ -6,7 +6,7 @@ end
 
 using InteractiveUtils
 
-include("error_handler.jl")
+include("../error_handler.jl")
 
 try
     if length(Base.ARGS) != 4
@@ -24,8 +24,15 @@ try
 
     using LanguageServer, Sockets, SymbolServer
 
-    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], global_err_handler)
+    server = LanguageServerInstance(
+        stdin,
+        conn,
+        ls_debug_mode,
+        Base.ARGS[1],
+        Base.ARGS[4],
+        (err, bt)-> global_err_handler(err, bt, Base.ARGS[3])
+    )
     run(server)
-catch e
-    global_err_handler(e, catch_backtrace())
+catch err
+    global_err_handler(err, catch_backtrace(), Base.ARGS[3])
 end
