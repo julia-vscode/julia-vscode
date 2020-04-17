@@ -1,4 +1,5 @@
 using Sockets
+import InteractiveUtils
 
 function global_err_handler(e, bt, vscode_pipe_name)
     @warn "Some Julia code in the VS Code extension crashed with" e
@@ -11,7 +12,7 @@ function global_err_handler(e, bt, vscode_pipe_name)
 
         # Send error message
         temp_io = IOBuffer()
-        versioninfo(temp_io, verbose=false)
+        InteractiveUtils.versioninfo(temp_io, verbose=false)
         println(temp_io)
         println(temp_io)
         showerror(temp_io, e)
