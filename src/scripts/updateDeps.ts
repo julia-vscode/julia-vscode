@@ -24,7 +24,7 @@ async function our_download(url: string, destination: string) {
     return
 }
 
-async function download_and_convert_grammar() {
+async function download_and_convert_grammar(juliaPath: string) {
     const dest_path = path.join(process.cwd(), 'syntaxes/julia.json');
 
     let grammarAsCSON = await download('https://raw.githubusercontent.com/JuliaEditorSupport/atom-language-julia/master/grammars/julia.cson');
@@ -42,9 +42,13 @@ async function download_and_convert_grammar() {
     }
 
     await fs.writeFile(dest_path, grammarAsJSON);
+
+    await cp.exec(`${juliaPath} syntaxes/update_syntax.jl`, {cwd: process.cwd()});
 }
 
 async function main() {
+    let juliaPath = path.join(homedir(), "AppData", "Local", "Julia-1.3.1", "bin", "julia.exe");
+
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@2', 'libs/vega-lite-2/vega-lite.min.js');
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@3', 'libs/vega-lite-3/vega-lite.min.js');
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@4', 'libs/vega-lite-4/vega-lite.min.js');
@@ -53,14 +57,12 @@ async function main() {
     await our_download('https://cdn.jsdelivr.net/npm/vega@5', 'libs/vega-5/vega.min.js');
     await our_download('https://cdn.jsdelivr.net/npm/vega-embed@6', 'libs/vega-embed/vega-embed.min.js');
 
-    await download_and_convert_grammar();
+    await download_and_convert_grammar(juliaPath);
 
     for(var pkg of ['CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer']) {
         await cp.exec('git checkout master', {cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`)});
         await cp.exec('git pull', {cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`)})    
     }
-
-    let juliaPath = path.join(homedir(), "AppData", "Local", "Julia-1.3.1", "bin", "julia.exe");
 
     await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, {cwd: path.join(process.cwd(), 'scripts/languageserver/packages')})
 
