@@ -49,7 +49,7 @@
         "workspaceContains:benchmark/benchmarks.jl",
         "workspaceContains:docs/make.jl"
     ],
-    "main": "./out/extension",
+    "main": "./dist/extension",
     "contributes": {
         "languages": [
             {
@@ -633,7 +633,10 @@
         ]
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile",
+        "vscode:prepublish": "webpack --mode production",
+        "webpack": "webpack --mode development",
+        "webpack-dev": "webpack --mode development --watch",
+        "test-compile": "tsc -p ./",        
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
         "test": "node ./out/test/runTest.js",
@@ -661,8 +664,11 @@
         "@types/node": "^12.12.36",
         "download": "^7.1.0",
         "mocha": "^7.1.1",
+        "ts-loader": "^7.0.0",
         "typescript": "^3.8.3",
         "vsce": "^1.75.0",
-        "vscode-test": "^1.3.0"
+        "vscode-test": "^1.3.0",
+        "webpack": "^4.42.1",
+        "webpack-cli": "^3.3.11"
     }
 }
