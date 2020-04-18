@@ -455,8 +455,9 @@
                     "scope": "application"
                 },
                 "julia.NumThreads": {
-                    "type": ["integer",
-                             "null"
+                    "type": [
+                        "integer",
+                        "null"
                     ],
                     "default": null,
                     "description": "Number of threads to use for Julia processes."
