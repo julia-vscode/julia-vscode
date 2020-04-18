@@ -4,6 +4,7 @@ import * as process from 'process';
 import {promises as fs, openSync} from 'fs';
 import * as cp from 'child-process-promise';
 import { homedir } from 'os';
+import * as cson from 'cson-parser';
 
 async function our_download(url: string, destination: string) {
     const dest_path = path.join(process.cwd(), path.dirname(destination));
@@ -23,6 +24,26 @@ async function our_download(url: string, destination: string) {
     return
 }
 
+async function download_and_convert_grammar() {
+    const dest_path = path.join(process.cwd(), 'syntaxes/julia.json');
+
+    let grammarAsCSON = await download('https://raw.githubusercontent.com/JuliaEditorSupport/atom-language-julia/master/grammars/julia.cson');
+
+    let content = cson.parse(grammarAsCSON.toString());
+
+    let grammarAsJSON = JSON.stringify(content, undefined, 4);
+
+    try {
+        await fs.access(dest_path);
+        await fs.unlink(dest_path);
+    }
+    catch (err) {
+        console.log(`Could not delete file '${dest_path}'.`)
+    }
+
+    await fs.writeFile(dest_path, grammarAsJSON);
+}
+
 async function main() {
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@2', 'libs/vega-lite-2/vega-lite.min.js');
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@3', 'libs/vega-lite-3/vega-lite.min.js');
@@ -31,6 +52,8 @@ async function main() {
     await our_download('https://cdn.jsdelivr.net/npm/vega@4', 'libs/vega-4/vega.min.js');
     await our_download('https://cdn.jsdelivr.net/npm/vega@5', 'libs/vega-5/vega.min.js');
     await our_download('https://cdn.jsdelivr.net/npm/vega-embed@6', 'libs/vega-embed/vega-embed.min.js');
+
+    await download_and_convert_grammar();
 
     for(var pkg of ['CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer']) {
         await cp.exec('git checkout master', {cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`)});
