@@ -31,7 +31,7 @@ async function download_and_convert_grammar() {
 
     let content = cson.parse(grammarAsCSON.toString());
 
-    let grammarAsJSON = JSON.stringify(content, undefined, 4);
+    let grammarAsJSON = JSON.stringify(content, undefined, 2);
 
     try {
         await fs.access(dest_path);
