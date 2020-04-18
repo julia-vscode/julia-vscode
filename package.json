@@ -655,7 +655,7 @@
     },
     "devDependencies": {
         "@types/mocha": "^7.0.2",
-        "@types/node": "^12.12.35",
+        "@types/node": "^12.12.36",
         "download": "^7.1.0",
         "mocha": "^7.1.1",
         "typescript": "^3.8.3",
