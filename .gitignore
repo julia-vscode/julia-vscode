@@ -5,3 +5,4 @@ scripts/languageserver/julia_pkgdir/lib/
 .vscode/.browse.VC.db*
 .vscode-test/
 out/scripts/**
+dist/**

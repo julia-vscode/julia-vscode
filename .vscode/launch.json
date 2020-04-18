@@ -10,7 +10,7 @@
             "args": ["--extensionDevelopmentPath=${workspaceRoot}" ],
             "stopOnEntry": false,
             "sourceMaps": true,
-            "outFiles": [ "${workspaceRoot}/out/**/*.js" ],
+            "outFiles": [ "${workspaceRoot}/dist/**/*.js" ],
             "preLaunchTask": "npm: watch"
         },
         {
@@ -23,7 +23,7 @@
 				"--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
             ],
 			"outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-			"preLaunchTask": "npm: watch"
+			"preLaunchTask": "npm: test-compile"
         }
     ]
 }
