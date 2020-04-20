@@ -7,6 +7,7 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 deps = ["Tokenize"]
 path = "CSTParser"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
+version = "2.2.2-DEV"
 
 [[Dates]]
 deps = ["Printf"]
@@ -20,25 +21,29 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 deps = ["CSTParser", "FilePathsBase", "Tokenize"]
 path = "DocumentFormat"
 uuid = "ffa9a821-9c82-50df-894e-fbcef3ed31cd"
+version = "2.1.2-DEV"
 
 [[FilePathsBase]]
 deps = ["Dates", "LinearAlgebra", "Printf", "Test", "UUIDs"]
 path = "FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
+version = "0.8.0"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[JSON]]
-deps = ["Dates", "Distributed", "Mmap", "Sockets", "Test", "Unicode"]
+deps = ["Dates", "Mmap", "Unicode"]
 path = "JSON"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+version = "0.20.1"
 
 [[LanguageServer]]
 deps = ["CSTParser", "DocumentFormat", "JSON", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
 path = "LanguageServer"
 uuid = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
+version = "2.0.2-DEV"
 
 [[LibGit2]]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
@@ -89,11 +94,13 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 deps = ["CSTParser", "Serialization", "SymbolServer"]
 path = "StaticLint"
 uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
+version = "4.0.1-DEV"
 
 [[SymbolServer]]
-deps = ["LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization"]
+deps = ["LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
+version = "4.0.1-DEV"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
@@ -102,11 +109,13 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [[Tokenize]]
 path = "Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
+version = "0.5.8"
 
 [[URIParser]]
-deps = ["Test", "Unicode"]
+deps = ["Unicode"]
 path = "URIParser"
 uuid = "30578b45-9adc-5946-b283-645ec420af67"
+version = "0.4.1"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]

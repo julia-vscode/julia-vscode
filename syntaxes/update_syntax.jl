@@ -1,17 +1,7 @@
-#! julia
-# Converts an atom-language-julia grammar into one compatible with vscode
-# Requires:
-#  - HTTP.jl to be installed;
-#  - `cson2json` to be on your path. (Install via npm.)
-import HTTP
-
-url = "https://raw.githubusercontent.com/JuliaEditorSupport/atom-language-julia/master/grammars/julia.cson"
-
-# get cson - download if filename not given
-cson = isempty(ARGS) ? String(HTTP.get(url).body) : read(ARGS[1], String)
+grammar_file_path = joinpath(@__DIR__, "../syntaxes/julia.json")
 
 # convert cson to json
-json = Ref(read(open(pipeline(`cson2json`, stdin=IOBuffer(cson))), String))
+json = Ref(read(grammar_file_path, String))
 
 # apply substitutions
 sub!(pr) = json.x = replace(json.x, pr; count=typemax(Int))
@@ -31,4 +21,6 @@ sub!(r"(\"contentName\"\s*:\s*\")source\.r(\")" => s"\1meta.embedded.inline.r\2"
 sub!(r"(\"contentName\"\s*:\s*\")source\.python(\")" => s"\1meta.embedded.inline.python\2")
 
 # print out the transformed syntax
-println(json.x)
+open(grammar_file_path, "w") do f
+    println(f, json.x)
+end

@@ -8,7 +8,7 @@ import * as util from 'util';
 import * as which from 'which';
 import * as child_process from 'child_process';
 import { setCurrentJuliaVersion, traceEvent } from './telemetry';
-var exec = require('child-process-promise').exec;
+import {exec} from 'child-process-promise';
 const whichAsync = util.promisify(which);
 
 let g_context: vscode.ExtensionContext = null;
@@ -38,8 +38,9 @@ export async function getJuliaExePath() {
             let pathsToSearch = [];
             if (process.platform == "win32") {
                 pathsToSearch = ["julia.exe",
+                    path.join(homedir, "AppData", "Local", "Programs", "Julia", "Julia-1.4.2", "bin", "julia.exe"),
+                    path.join(homedir, "AppData", "Local", "Programs", "Julia", "Julia-1.4.1", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Programs", "Julia", "Julia-1.4.0", "bin", "julia.exe"),
-                    path.join(homedir, "AppData", "Local", "Julia-1.3.2", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.3.1", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.3.0", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Julia-1.2.0", "bin", "julia.exe"),

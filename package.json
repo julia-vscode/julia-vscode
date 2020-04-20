@@ -2,10 +2,11 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "0.14.0-rc",
+    "version": "0.15.23",
+    "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.41.0"
+        "vscode": "^1.43.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -20,9 +21,12 @@
     "categories": [
         "Programming Languages",
         "Snippets",
-        "Linters"
+        "Linters",
+        "Debuggers"
     ],
     "activationEvents": [
+        "onDebugInitialConfigurations",
+        "onDebugResolve:julia",
         "onCommand:language-julia.openPackageDirectory",
         "onCommand:language-julia.changeCurrentEnvironment",
         "onCommand:language-julia.startREPL",
@@ -37,6 +41,7 @@
         "onCommand:language-julia.executeJuliaCellInREPL",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
+        "onCommand:language-julia.debug.getActiveJuliaEnvironment",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
@@ -44,7 +49,7 @@
         "workspaceContains:benchmark/benchmarks.jl",
         "workspaceContains:docs/make.jl"
     ],
-    "main": "./out/extension",
+    "main": "./dist/extension",
     "contributes": {
         "languages": [
             {
@@ -314,11 +319,6 @@
                 "when": "jlplotpaneFocus"
             },
             {
-                "command": "language-julia.executeJuliaFileInREPL",
-                "key": "F5",
-                "when": "editorTextFocus && editorLangId == julia"
-            },
-            {
                 "command": "language-julia.plotpane-previous",
                 "key": "up",
                 "when": "jlplotpaneFocus"
@@ -479,8 +479,11 @@
                     "scope": "application"
                 },
                 "julia.NumThreads": {
-                    "type": "integer",
-                    "default": 1,
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "default": null,
                     "description": "Number of threads to use for Julia processes."
                 },
                 "julia.format.indent": {
@@ -562,34 +565,137 @@
                     }
                 }
             }
+        ],
+        "breakpoints": [
+            {
+                "language": "julia"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "julia",
+                "label": "Julia",
+                "languages": [
+                    "julia"
+                ],
+                "configurationAttributes": {
+                    "launch": {
+                        "required": [
+                            "program"
+                        ],
+                        "properties": {
+                            "program": {
+                                "type": "string",
+                                "description": "Absolute path to a Julia script.",
+                                "default": "${file}"
+                            },
+                            "stopOnEntry": {
+                                "type": "boolean",
+                                "description": "Automatically stop after launch.",
+                                "default": false
+                            },
+                            "cwd": {
+                                "type": "string",
+                                "description": "Absolute path to the working directory of the program being debugged. Default is the root directory of the file (leave empty).",
+                                "default": "${workspaceFolder}"
+                            },
+                            "args": {
+                                "type": "array",
+                                "description": "Command line arguments passed to the program",
+                                "default": [],
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "juliaEnv": {
+                                "type": "string",
+                                "description": "Absolute path to the Julia environment.",
+                                "default": "${command:activeJuliaEnvironment}"
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "julia",
+                        "request": "launch",
+                        "name": "Run active Julia file",
+                        "program": "${file}",
+                        "stopOnEntry": false,
+                        "cwd": "${workspaceFolder}",
+                        "juliaEnv": "${command:activeJuliaEnvironment}"
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "Julia Debug: Launch",
+                        "description": "A new configuration for launch a Julia debug program",
+                        "body": {
+                            "type": "julia",
+                            "request": "launch",
+                            "name": "${2:Launch Program}",
+                            "program": "^\"\\${workspaceFolder}/${1:Program}\"",
+                            "stopOnEntry": false
+                        }
+                    },
+                    {
+                        "label": "Julia Debug: Launch tests",
+                        "description": "A new configuration for launch Julia tests",
+                        "body": {
+                            "type": "julia",
+                            "request": "launch",
+                            "name": "Launch Julia tests",
+                            "program": "^\"\\${workspaceFolder}/test/runtests.jl\"",
+                            "stopOnEntry": true
+                        }
+                    }
+                ],
+                "variables": {
+                    "activeJuliaEnvironment": "language-julia.debug.getActiveJuliaEnvironment"
+                }
+            }
         ]
     },
     "scripts": {
-        "vscode:prepublish": "npm run compile",
+        "vscode:prepublish": "webpack --mode production",
+        "webpack": "webpack --mode development",
+        "webpack-dev": "webpack --mode development --watch",
+        "test-compile": "tsc -p ./",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
         "test": "node ./out/test/runTest.js",
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile",
-        "package": "git submodule init && git submodule update && npm install --no-save && npm run compile && vsce package",
+        "package": "vsce package",
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
-        "@types/vscode": "^1.41.0",
-        "applicationinsights": "^1.6.0",
+        "@types/child-process-promise": "^2.2.1",
+        "@types/vscode": "^1.44.0",
+        "applicationinsights": "^1.7.4",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
+        "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
+        "uuidv4": "^6.0.7",
+        "vscode-debugadapter": "^1.40.0",
         "vscode-jsonrpc": "^5.0.1",
-        "vscode-languageclient": "^6.1.0",
+        "vscode-languageclient": "^6.1.3",
         "which": "^1.3.1"
     },
     "devDependencies": {
-        "@types/mocha": "^5.2.7",
-        "@types/node": "^12.12.25",
+        "@types/cson-parser": "^4.0.4",
+        "@types/download": "^6.2.4",
+        "@types/mocha": "^7.0.2",
+        "@types/node": "^12.12.36",
+        "cson-parser": "^4.0.4",
         "download": "^7.1.0",
-        "mocha": "^6.2.2",
-        "typescript": "^3.7.5",
-        "vscode-test": "^1.3.0"
+        "mocha": "^7.1.1",
+        "ts-loader": "^7.0.1",
+        "typescript": "^3.8.3",
+        "vsce": "^1.75.0",
+        "vscode-test": "^1.3.0",
+        "webpack": "^4.42.1",
+        "webpack-cli": "^3.3.11"
     }
 }
