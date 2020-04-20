@@ -115,7 +115,7 @@ version = "0.5.8"
 deps = ["Unicode"]
 path = "URIParser"
 uuid = "30578b45-9adc-5946-b283-645ec420af67"
-version = "0.4.1-DEV"
+version = "0.4.1"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]
