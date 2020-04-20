@@ -156,7 +156,17 @@ end
                         mode == "auto" && Main.Revise.revise()
                     end
                 end
-                # println(' '^code_column * source_code)
+                for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                    if i==1
+                        printstyled("julia> ", color=:green)
+                        print(' '^code_column)
+                    else
+                        # Indent by 7 so that it aligns with the julia> prompt
+                        print(' '^7)
+                    end
+                
+                    println(line)
+                end
 
                 try
                     withpath(source_filename) do
