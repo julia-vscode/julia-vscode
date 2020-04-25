@@ -88,6 +88,17 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             });
     }
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.foo', async ()=>{        
+        let uri = vscode.window.activeTextEditor.document.uri;
+
+        let success = await vscode.commands.executeCommand('vscode.executeDefinitionProvider', uri, new vscode.Position(10000, 10000));
+        
+        //let success = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', uri, new vscode.Position(10000, 10000));
+        
+
+        console.log(success);
+    }));
 }
 
 // this method is called when your extension is deactivated

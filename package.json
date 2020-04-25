@@ -200,6 +200,10 @@
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select Code Block"
+            },
+            {
+                "command": "language-julia.foo",
+                "title": "Julia: Foo"
             }
         ],
         "menus": {
