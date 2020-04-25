@@ -4,9 +4,17 @@ end
 
 @info "Starting the Julia Language Server"
 
-using InteractiveUtils
+using InteractiveUtils, Sockets
 
 include("error_handler.jl")
+
+struct LSPrecompileFailure <: Exception
+    msg::AbstractString
+end
+
+function Base.showerror(io::IO, ex::LSPrecompileFailure)
+    print(io, ex.msg)
+end
 
 try
     if length(Base.ARGS) != 4
@@ -22,7 +30,15 @@ try
         const global ls_debug_mode = true
     end
 
-    using LanguageServer, Sockets, SymbolServer
+    try
+        using LanguageServer, SymbolServer
+    catch err
+        if err isa ErrorException && startswith(err.msg, "Failed to precompile")
+            throw(LSPrecompileFailure(err.msg))
+        else
+            rethrow(err)
+        end
+    end
 
     server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], global_err_handler)
     run(server)
