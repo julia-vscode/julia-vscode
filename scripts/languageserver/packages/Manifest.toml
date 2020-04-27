@@ -24,10 +24,10 @@ uuid = "ffa9a821-9c82-50df-894e-fbcef3ed31cd"
 version = "2.1.2-DEV"
 
 [[FilePathsBase]]
-deps = ["Dates", "LinearAlgebra", "Printf", "Test", "UUIDs"]
+deps = ["Dates", "Printf", "Test", "UUIDs"]
 path = "FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.8.0"
+version = "0.9.0"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
