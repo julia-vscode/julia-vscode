@@ -701,7 +701,7 @@ async function executeJuliaCellInRepl() {
     let ed = vscode.window.activeTextEditor;
     let doc = ed.document;
     let rx = new RegExp("^##");
-    let curr = ed.selection.active.line;
+    let curr = doc.validatePosition(ed.selection.active).line;
     var start = curr;
     while (start >= 0) {
         if (rx.test(doc.lineAt(start).text)) {
