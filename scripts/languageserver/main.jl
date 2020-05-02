@@ -17,7 +17,7 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
 end
 
 try
-    if length(Base.ARGS) != 4
+    if length(Base.ARGS) != 5
         error("Invalid number of arguments passed to julia language server.")
     end
 
@@ -40,7 +40,15 @@ try
         end
     end
 
-    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], global_err_handler)
+    symserver_store_path = joinpath(ARGS[5], "symbolstorev1")
+
+    if !ispath(symserver_store_path)
+        mkpath(symserver_store_path)
+    end
+
+    @info "Symbol server store is at '$symserver_store_path'."
+
+    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], global_err_handler, symserver_store_path)
     run(server)
 catch e
     global_err_handler(e, catch_backtrace())
