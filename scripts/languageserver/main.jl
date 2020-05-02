@@ -46,6 +46,8 @@ try
         mkpath(symserver_store_path)
     end
 
+    @info "Symbol server store is at '$symserver_store_path'."
+
     server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], global_err_handler, symserver_store_path)
     run(server)
 catch e
