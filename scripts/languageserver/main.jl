@@ -24,10 +24,10 @@ try
     conn = stdout
     (outRead, outWrite) = redirect_stdout()
 
-    if Base.ARGS[2] == "--debug=no"
-        const global ls_debug_mode = false
-    elseif Base.ARGS[2] == "--debug=yes"
-        const global ls_debug_mode = true
+    if Base.ARGS[2] == "--debug=yes"
+        ENV["JULIA_DEBUG"] = "all"
+    elseif Base.ARGS[2] != "--debug=no"
+        error("Invalid argument passed.")
     end
 
     try
@@ -48,7 +48,7 @@ try
 
     @info "Symbol server store is at '$symserver_store_path'."
 
-    server = LanguageServerInstance(stdin, conn, ls_debug_mode, Base.ARGS[1], Base.ARGS[4], global_err_handler, symserver_store_path)
+    server = LanguageServerInstance(stdin, conn, Base.ARGS[1], Base.ARGS[4], global_err_handler, symserver_store_path)
     run(server)
 catch e
     global_err_handler(e, catch_backtrace())
