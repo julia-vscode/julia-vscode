@@ -149,8 +149,8 @@ async function startLanguageServer() {
     }
     let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
     let envForLSPath = path.join(g_context.extensionPath, "scripts", "languageserver", "packages")
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath];
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath];
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -170,28 +170,6 @@ async function startLanguageServer() {
     let clientOptions: LanguageClientOptions = {
         documentSelector: ['julia', 'juliamarkdown'],
         synchronize: {
-            configurationSection: ['julia.format.indent',
-                                   'julia.format.indents', 
-                                   'julia.format.ops',
-                                   'julia.format.tuples',
-                                   'julia.format.curly', 
-                                   'julia.format.calls', 
-                                   'julia.format.iterOps',
-                                   'julia.format.comments', 
-                                   'julia.format.docs',
-                                   'julia.format.lineends',
-                                   'julia.format.kw',
-                                   'julia.lint.run',
-                                   'julia.lint.call',
-                                   'julia.lint.iter',
-                                   'julia.lint.nothingcomp',
-                                   'julia.lint.constif',
-                                   'julia.lint.lazy',
-                                   'julia.lint.datadecl',
-                                   'julia.lint.typeparam',
-                                   'julia.lint.modname',
-                                   'julia.lint.pirates',
-                                   'julia.lint.missingrefs',],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,

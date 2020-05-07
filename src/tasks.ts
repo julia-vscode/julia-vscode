@@ -6,6 +6,7 @@ import * as settings from './settings'
 import * as juliaexepath from './juliaexepath';
 import * as jlpkgenv from './jlpkgenv';
 import * as telemetry from './telemetry';
+import { inferJuliaNumThreads } from './utils';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -48,12 +49,12 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
         let pkgenvpath = await jlpkgenv.getEnvPath();
 
         if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
-            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.test("${folder.name}")`], { env: { JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()}}), "");
+            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.test("${folder.name}")`], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads()}}), "");
             testTask.group = vscode.TaskGroup.Test;
             testTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(testTask);
 
-            let testTaskWithCoverage = new vscode.Task({ type: 'julia', command: 'testcoverage' }, folder, `Run tests with coverage`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_test.jl'), folder.name], { env: { JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()}}), "");
+            let testTaskWithCoverage = new vscode.Task({ type: 'julia', command: 'testcoverage' }, folder, `Run tests with coverage`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_test.jl'), folder.name], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() }}), "");
             testTaskWithCoverage.group = vscode.TaskGroup.Test;
             testTaskWithCoverage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(testTaskWithCoverage);
