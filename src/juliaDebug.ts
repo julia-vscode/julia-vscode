@@ -14,6 +14,7 @@ import { generatePipeName } from './utils';
 import { uuid } from 'uuidv4';
 import { sendMessage } from './repl';
 import * as vscode from 'vscode';
+import { getCrashReportingPipename } from './telemetry';
 
 function timeout(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -301,7 +302,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				pn,
 				pnForWrapper,
 				args.cwd,
-				args.juliaEnv
+				args.juliaEnv,
+				getCrashReportingPipename()
 			],
 			env: {
 				JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : ''

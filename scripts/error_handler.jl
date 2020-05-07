@@ -1,11 +1,10 @@
 using Sockets
+import InteractiveUtils
 
-function global_err_handler(e, bt)
-    @info "Language Server crashed with"
-    @info e
+function global_err_handler(e, bt, vscode_pipe_name)
+    @warn "Some Julia code in the VS Code extension crashed with" e
     
     st = stacktrace(bt)
-    vscode_pipe_name = Base.ARGS[3]
     pipe_to_vscode = connect(vscode_pipe_name)
     try
         # Send error type as one line
@@ -13,7 +12,7 @@ function global_err_handler(e, bt)
 
         # Send error message
         temp_io = IOBuffer()
-        versioninfo(temp_io, verbose=false)
+        InteractiveUtils.versioninfo(temp_io, verbose=false)
         println(temp_io)
         println(temp_io)
         showerror(temp_io, e)
