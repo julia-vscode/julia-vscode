@@ -10,8 +10,8 @@ let g_languageClient: vslc.LanguageClient = null;
 function toggleLinter() {
     telemetry.traceEvent('command-togglelinter');
 
-    let cval = vscode.workspace.getConfiguration('julia').get('runLinter', false)
-    vscode.workspace.getConfiguration('julia').update('runLinter', !cval, true)
+    let cval = vscode.workspace.getConfiguration('julia').get('lint.run', false)
+    vscode.workspace.getConfiguration('julia').update('lint.run', !cval, true)
 }
 
 function applyTextEdit(we) {

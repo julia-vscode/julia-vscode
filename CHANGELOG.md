@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.14.0
+## 0.15
+* Add an experimental debugger
+
+## 0.14
 * Make Language Server indexing async
 * New linting capabilities: call checks, static `if` blocks, unused free parameters, unhandled `include` statements, clashing module names, and [pirates](https://docs.julialang.org/en/v1/manual/style-guide/index.html#Avoid-type-piracy-1).
 * Enable [Code Actions](https://code.visualstudio.com/docs/editor/refactoring): explicit re-export, replace qualified names with using statements

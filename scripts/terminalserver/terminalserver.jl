@@ -1,6 +1,7 @@
 module _vscodeserver
 
 include("repl.jl")
+include("../debugger/debugger.jl")
 
 function remlineinfo!(x)
     if isa(x, Expr)
@@ -159,7 +160,22 @@ end
             sendMsgToVscode("repl/starteval", "")
             try
                 hideprompt() do
-                    # println(' '^code_column * source_code)
+                    if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+                        let mode = get(ENV, "JULIA_REVISE", "auto")
+                            mode == "auto" && Main.Revise.revise()
+                        end
+                    end
+                    for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                        if i==1
+                            printstyled("julia> ", color=:green)
+                            print(' '^code_column)
+                        else
+                            # Indent by 7 so that it aligns with the julia> prompt
+                            print(' '^7)
+                        end
+                    
+                        println(line)
+                    end
 
                     try
                         withpath(source_filename) do
@@ -183,6 +199,15 @@ end
                 Base.invokelatest(internal_vscodedisplay, var)
             catch err
                 Base.display_error(err, catch_backtrace())
+            end
+        elseif cmd == "repl/startdebugger"
+            hideprompt() do
+                payload_as_string = String(payload)
+                try
+                    VSCodeDebugger.startdebug(payload_as_string)
+                catch err
+                    Base.display_error(err, catch_backtrace())
+                end
             end
         end
     end
@@ -315,7 +340,7 @@ function _display(d::InlineDisplay, x)
 end
 
 # Load revise?
-load_revise = Base.ARGS[2] == "true" && (VERSION < v"1.1" ? haskey(Pkg.Types.Context().env.manifest, "Revise") : haskey(Pkg.Types.Context().env.project.deps, "Revise"))
+load_revise = Base.ARGS[2] == "true"
 
 const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
 const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
@@ -500,6 +525,16 @@ function hook_repl(repl)
     end
 end
 
+function remove_lln!(ex::Expr)
+    for i in length(ex.args):-1:1
+        if ex.args[i] isa LineNumberNode
+            deleteat!(ex.args, i)
+        elseif ex.args[i] isa Expr
+            remove_lln!(ex.args[i])
+        end
+    end
+end
+
 function internal_vscodedisplay(x)    
     if showable("application/vnd.dataresource+json", x)
         _display(InlineDisplay(), x)
@@ -546,6 +581,19 @@ end
 vscodedisplay() = i -> vscodedisplay(i)
 
 if _vscodeserver.load_revise
-    @eval using Revise
-    Revise.async_steal_repl_backend()
+    try
+        @eval using Revise
+        Revise.async_steal_repl_backend()
+    catch err
+    end
+end
+
+macro enter(command)
+    _vscodeserver.remove_lln!(command)
+    :(_vscodeserver.sendMsgToVscode("debugger/enter", $(string(command))))
+end
+
+macro run(command)
+    _vscodeserver.remove_lln!(command)
+    :(_vscodeserver.sendMsgToVscode("debugger/run", $(string(command))))
 end
