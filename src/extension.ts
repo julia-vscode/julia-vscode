@@ -29,14 +29,12 @@ let g_context: vscode.ExtensionContext = null;
 
 let g_serverFullTextNotification = new rpc.NotificationType<string, string>('julia/getFullText');
 
-let g_lscrashreportingpipename: string = null;
-
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context);
 
     telemetry.traceEvent('activate');
 
-    g_lscrashreportingpipename = telemetry.startLsCrashServer();
+    telemetry.startLsCrashServer();
 
     g_context = context;
 
@@ -82,9 +80,9 @@ export async function activate(context: vscode.ExtensionContext) {
     startLanguageServer();
 
     if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
-        vscode.window.showInformationMessage("To help improve the julia extension, you can anonymously send usage statistics to the team. See our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) for details.", 'Yes, I want to help improve the julia extension')
+        vscode.window.showInformationMessage("To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more how we use usage data and how to permanently hide this notification.", 'I agree to usage data collection')
             .then(telemetry_choice => {
-                if (telemetry_choice == "Yes, I want to help improve the julia extension") {
+                if (telemetry_choice == "I agree to usage data collection") {
                     vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true);
                 }
             });
@@ -154,8 +152,8 @@ async function startLanguageServer() {
     }
     let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
     let envForLSPath = path.join(g_context.extensionPath, "scripts", "languageserver", "packages")
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath];
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath];
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -175,28 +173,6 @@ async function startLanguageServer() {
     let clientOptions: LanguageClientOptions = {
         documentSelector: ['julia', 'juliamarkdown'],
         synchronize: {
-            configurationSection: ['julia.format.indent',
-                                   'julia.format.indents', 
-                                   'julia.format.ops',
-                                   'julia.format.tuples',
-                                   'julia.format.curly', 
-                                   'julia.format.calls', 
-                                   'julia.format.iterOps',
-                                   'julia.format.comments', 
-                                   'julia.format.docs',
-                                   'julia.format.lineends',
-                                   'julia.format.kw',
-                                   'julia.lint.run',
-                                   'julia.lint.call',
-                                   'julia.lint.iter',
-                                   'julia.lint.nothingcomp',
-                                   'julia.lint.constif',
-                                   'julia.lint.lazy',
-                                   'julia.lint.datadecl',
-                                   'julia.lint.typeparam',
-                                   'julia.lint.modname',
-                                   'julia.lint.pirates',
-                                   'julia.lint.missingrefs',],
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,

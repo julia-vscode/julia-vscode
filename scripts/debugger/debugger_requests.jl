@@ -30,6 +30,8 @@ function debug_request(conn, state, msg_body, msg_id)
 
     @debug "We are debugging the file $filename_to_debug."
 
+    task_local_storage()[:SOURCE_PATH] = filename_to_debug
+
     ex = _parse_julia_file(filename_to_debug)
 
     state.top_level_expressions, _ = JuliaInterpreter.split_expressions(Main, ex)
@@ -235,6 +237,11 @@ function getstacktrace_request(conn, state, msg_body, msg_id)
         lineno = curr_whereis[2]
         meth_or_mod_name = Base.nameof(curr_fr)
 
+        # Is this a file from base?
+        if !isabspath(file_name)
+            file_name = basepath(file_name)
+        end
+
         if isfile(file_name)
             push!(frames_as_string, string(id, ";", meth_or_mod_name, ";path;", file_name, ";", lineno))
         elseif curr_scopeof isa Method
@@ -343,6 +350,13 @@ function construct_return_msg_for_var(state::DebuggerState, name, value)
     end
 end
 
+function construct_return_msg_for_var_with_undef_value(state::DebuggerState, name)
+    v_type_as_string = ""
+    v_value_encoded = Base64.base64encode("#undef")
+    
+    return string("0;", name, ";", v_type_as_string, ";0;0;", v_value_encoded)
+end
+
 function get_keys_with_drop_take(value, skip_count, take_count)
     collect(Iterators.take(Iterators.drop(keys(value), skip_count), take_count))
 end
@@ -400,7 +414,9 @@ function getvariables_request(conn, state::DebuggerState, msg_body, msg_id)
                 push!(vars_as_string, s)
             else
                 for i=Iterators.take(Iterators.drop(1:fieldcount(container_type), skip_count), take_count)
-                    s = construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) )
+                    s = isdefined(var_ref.value, i) ?
+                        construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) ) :
+                        construct_return_msg_for_var_with_undef_value(state, string(fieldname(container_type, i)))
                     push!(vars_as_string, s)
                 end
             end
@@ -440,7 +456,9 @@ function getvariables_request(conn, state::DebuggerState, msg_body, msg_id)
 
         if filter_type=="" || filter_type=="named"
             for i=Iterators.take(Iterators.drop(1:fieldcount(container_type), skip_count), take_count)
-                s = construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) )
+                s = isdefined(var_ref.value, i) ?
+                    construct_return_msg_for_var(state, string(fieldname(container_type, i)), getfield(var_ref.value, i) ) :
+                    construct_return_msg_for_var_with_undef_value(state, string(fieldname(container_type, i)))
                 push!(vars_as_string, s)
             end
         end

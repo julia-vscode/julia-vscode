@@ -1,5 +1,7 @@
 module VSCodeDebugger
 
+include("../error_handler.jl")
+
 include("../terminalserver/repl.jl")
 
 # This patches JuliaInterpreter.jl to use our private copy of CodeTracking.jl
@@ -22,6 +24,8 @@ include("debugger_requests.jl")
 
 function clean_up_ARGS_in_launch_mode()
     pipename = ARGS[1]
+    crashreporting_pipename = ARGS[2]
+    deleteat!(ARGS, 1)
     deleteat!(ARGS, 1)
 
     if ENV["JL_ARGS"] != ""
@@ -36,7 +40,7 @@ function clean_up_ARGS_in_launch_mode()
         end
     end
 
-    return pipename
+    return pipename, crashreporting_pipename
 end
 
 function startdebug(pipename)

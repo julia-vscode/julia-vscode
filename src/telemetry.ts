@@ -19,6 +19,8 @@ let extensionClient
 let crashReporterUIVisible: boolean = false;
 let crashReporterQueue = []
 
+let g_jlcrashreportingpipename: string = null;
+
 function filterTelemetry(envelope, context) {
     if (envelope.data.baseType == "ExceptionData") {
         if (enableCrashReporter) {
@@ -112,7 +114,7 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
 
 export function startLsCrashServer() {
 
-    let pipe_path = generatePipeName(process.pid.toString(), 'vscode-language-julia-lscrashreports');
+    g_jlcrashreportingpipename = generatePipeName(process.pid.toString(), 'vsc-jl-cr');
 
     let server = net.createServer(function (connection) {
         let accumulatingBuffer = Buffer.alloc(0);
@@ -127,15 +129,17 @@ export function startLsCrashServer() {
             let errorMessage = replResponse.slice(2, 2 + errorMessageLines).join('\n');
             let stacktrace = replResponse.slice(2 + errorMessageLines,replResponse.length-1).join('\n');
 
-            traceEvent('lserror');
+            traceEvent('jlerror');
 
             handleNewCrashReport(replResponse[0], errorMessage, stacktrace);
         });
     });
 
-    server.listen(pipe_path);
+    server.listen(g_jlcrashreportingpipename);
+}
 
-    return pipe_path;
+export function getCrashReportingPipename() {
+    return g_jlcrashreportingpipename;
 }
 
 export function traceEvent(message) {
@@ -165,13 +169,13 @@ async function showCrashReporterUIConsent() {
     else {
         crashReporterUIVisible = true;
         try {
-            var choice = await vscode.window.showInformationMessage("The julia language extension crashed. Do you want to send more information about the problem to the development team?", 'Agree', 'Always Agree');
+            var choice = await vscode.window.showInformationMessage("The Julia language extension crashed. Do you want to send more information about the problem to the development team? Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more how we use crash reports, what data will be transmitted and how to permanently hide this notification.", 'Yes, send a crash report', 'Yes, always send a crash report');
 
-            if (choice=='Always Agree') {
+            if (choice=='Yes, always send a crash report') {
                 vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, true);
             }
 
-            if (choice=='Agree' || choice=='Always Agree') {
+            if (choice=='Yes, send a crash report' || choice=='Yes, always send a crash report') {
                 sendCrashReportQueue();
             }
         }

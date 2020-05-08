@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
 import * as juliaexepath from './juliaexepath';
-import {generatePipeName} from './utils';
+import {generatePipeName, inferJuliaNumThreads} from './utils';
 import * as telemetry from './telemetry';
 import * as jlpkgenv from './jlpkgenv';
 import * as fs from 'async-file';
@@ -155,6 +155,19 @@ function startREPLCommand() {
     startREPL(false);
 }
 
+function is_remote_env(): boolean {
+    return typeof vscode.env.remoteName !== 'undefined'
+}
+
+function get_editor(): string {
+    if (is_remote_env() || process.platform == 'darwin') {
+        let cmd = vscode.env.appName.includes("Insiders") ? "code-insiders" : "code"
+        return `"${path.join(vscode.env.appRoot, "bin", cmd)}"`
+    }
+    else {
+        return `"${process.execPath}"`
+    }
+}
 async function startREPL(preserveFocus: boolean) {
     if (g_terminal == null) {
         let juliaIsConnectedPromise = startREPLMsgServer()
@@ -163,14 +176,20 @@ async function startREPL(preserveFocus: boolean) {
         let pkgenvpath = await jlpkgenv.getEnvPath();
         if (pkgenvpath==null) {
             let jlarg1 = ['-i','--banner=no'].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
-            let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(), vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
+            let jlarg2 = [
+                args,
+                process.pid.toString(),
+                vscode.workspace.getConfiguration("julia").get("useRevise").toString(),
+                vscode.workspace.getConfiguration("julia").get("usePlotPane").toString(),
+                telemetry.getCrashReportingPipename()
+            ]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: "julia",
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
-                        JULIA_EDITOR: `"${process.execPath}"`
+                        JULIA_EDITOR: get_editor()
                     }});
         }
         else {
@@ -189,15 +208,21 @@ async function startREPL(preserveFocus: boolean) {
                 }
             }
             let jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
-            let jlarg2 = [args, process.pid.toString(), vscode.workspace.getConfiguration("julia").get("useRevise").toString(),vscode.workspace.getConfiguration("julia").get("usePlotPane").toString()]
+            let jlarg2 = [
+                args,
+                process.pid.toString(),
+                vscode.workspace.getConfiguration("julia").get("useRevise").toString(),
+                vscode.workspace.getConfiguration("julia").get("usePlotPane").toString(),
+                telemetry.getCrashReportingPipename()
+            ]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: "julia",
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
-                        JULIA_EDITOR: process.platform == 'darwin' ? `"${path.join(vscode.env.appRoot, 'bin', 'code')}"` : `"${process.execPath}"`,
-                        JULIA_NUM_THREADS: vscode.workspace.getConfiguration("julia").get("NumThreads").toString()
+                        JULIA_EDITOR: get_editor(),
+                        JULIA_NUM_THREADS: inferJuliaNumThreads()
                     }});
         }
         g_terminal.show(preserveFocus);
@@ -688,7 +713,7 @@ async function executeJuliaCellInRepl() {
     let ed = vscode.window.activeTextEditor;
     let doc = ed.document;
     let rx = new RegExp("^##");
-    let curr = ed.selection.active.line;
+    let curr = doc.validatePosition(ed.selection.active).line;
     var start = curr;
     while (start >= 0) {
         if (rx.test(doc.lineAt(start).text)) {
