@@ -360,10 +360,10 @@
                     "default": "all",
                     "enum": [
                         "none",
-                        "getfield missing",
+                        "symbols",
                         "all"
                     ],
-                    "description": "Highlight unknown symbols. The `getfield missing` option will not mark unknown fieldnames."
+                    "description": "Highlight unknown symbols. The `symbols` option will not mark unknown fields."
                 },
 
                 "julia.lint.call": {
