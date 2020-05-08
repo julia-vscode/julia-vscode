@@ -356,45 +356,67 @@
                     "description": "Run the linter on active files."
                 },
                 "julia.lint.missingrefs": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Report possibly missing references."
+                    "type": "string",
+                    "default": "all",
+                    "enum": [
+                        "none",
+                        "symbols",
+                        "all"
+                    ],
+                    "description": "Highlight unknown symbols. The `symbols` option will not mark unknown fields."
                 },
+
                 "julia.lint.call": {
                     "type": "boolean",
-                    "default": false,
-                    "description": "Check calls against existing methods. (experimental)"
+                    "default": true,
+                    "description": "This compares  call signatures against all known methods for the called function. Calls with too many or too few arguments, or unknown keyword parameters are highlighted."
                 },
                 "julia.lint.iter": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check iterator syntax of loops."
+                    "description": "Check iterator syntax of loops. Will identify, for example, attempts to iterate over single values."
+                },
+                "julia.lint.nothingcomp": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check for use of `==` rather than `===` when comparing against `nothing`. "
                 },
                 "julia.lint.constif": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for constant conditionals of if statements."
+                    "description": "Check for constant conditionals in if statements that result in branches never being reached.."
                 },
                 "julia.lint.lazy": {
                     "type": "boolean",
                     "default": true,
                     "description": "Check for deterministic lazy boolean operators."
                 },
+                "julia.lint.datadecl": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check variables used in type declarations are datatypes."
+                },
                 "julia.lint.typeparam": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for unused DataType parameters."
+                    "description": "Check parameters declared in `where` statements or datatype declarations are used."
                 },
                 "julia.lint.modname": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for invalid submodule names."
+                    "description": "Check submodule names do not shadow their parent's name."
                 },
                 "julia.lint.pirates": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for type piracy."
+                    "description": "Check for type piracy - the overloading of external functions with methods specified for external datatypes. 'External' here refers to imported code."
                 },
+                "julia.lint.useoffuncargs": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check that all declared arguments are used within the function body."
+                },
+
                 "julia.enableCrashReporter": {
                     "type": [
                         "boolean",
@@ -462,6 +484,8 @@
                     "default": null,
                     "description": "Number of threads to use for Julia processes."
                 },
+
+
                 "julia.format.indent": {
                     "type": "integer",
                     "default": 4,
@@ -522,6 +546,7 @@
                     "description": "Remove spaces around = in function keywords.",
                     "scope": "window"
                 }
+
             }
         },
         "configurationDefaults": {
