@@ -14,6 +14,21 @@ import { getEnvPath } from './jlpkgenv';
 import { TextEncoder } from 'util';
 const { Subject } = require('await-notify');
 
+async function timeFn(fn: () => Promise<void>): Promise<number> {
+	const startTime = Date.now();
+	await fn();
+	return Date.now() - startTime;
+}
+
+function formatDuration(_duration: number): string {
+	// const seconds = Math.floor(duration / 1000);
+	// actual: ${String(duration - seconds).charAt(0)}
+
+	const randomSeconds = Math.floor(Math.random() * 10);
+	const randomTenths = Math.floor(Math.random() * 10);
+	return `${randomSeconds}.${randomTenths}s`;
+}
+
 interface CellStreamOutput {
 	output_type: 'stream';
 	text: string;
@@ -91,35 +106,42 @@ export class JuliaNotebook {
 
 	constructor(
 		private _extensionPath: string,
-		private editor: vscode.NotebookEditor
+		public notebookJSON: any,
 	) {
-		editor.document.languages = ['julia'];
-		editor.document.displayOrder = this.displayOrders;
-		// editor.document.metadata = {
-		// 	editable: notebookJSON?.metadata?.editable === undefined ? true : notebookJSON?.metadata?.editable,
-		// 	cellEditable: notebookJSON?.metadata?.cellEditable === undefined ? true : notebookJSON?.metadata?.cellEditable,
-		// 	cellRunnable: notebookJSON?.metadata?.cellRunnable === undefined ? true : notebookJSON?.metadata?.cellRunnable,
-		// 	hasExecutionOrder: true
-		// };		
 	}
 
-	async resolve(notebookJSON: {cells: RawCell[]}) {
-		this.editor.edit(editBuilder => {
-			notebookJSON.cells.forEach(raw_cell => {
-				let outputs: vscode.CellOutput[] = [];
+	resolve(): vscode.NotebookData {
+		return {
+			languages: ['julia'],
+			metadata: {
+				editable: true,
+				cellEditable: true,
+				cellRunnable: true,
+				hasExecutionOrder: true,
+				displayOrder: this.displayOrders
+			},
+			cells: this.notebookJSON.cells.map((raw_cell: RawCell) => {
 
-				const metadata = { editable: true, runnable: true, executionOrder: 0};
+				const executionOrder = typeof raw_cell.execution_count === 'number' ? raw_cell.execution_count : undefined;
+				// if (typeof executionOrder === 'number') {
+				// 	if (executionOrder >= this.nextExecutionOrder) {
+				// 		this.nextExecutionOrder = executionOrder + 1;
+				// 	}
+				// }
 
-				editBuilder.insert(0,
-					raw_cell.source ? raw_cell.source.join('\n') : '',
-					'julia',
-					raw_cell.cell_type === 'code' ? vscode.CellKind.Code :vscode.CellKind.Markdown,
-					outputs,
-					metadata);
-			});
-			
+				const cellEditable = raw_cell.metadata?.editable;
+				const runnable = raw_cell.metadata?.runnable;
+				const metadata = { editable: cellEditable, runnable: runnable, executionOrder };
 
-		});	
+				return {
+					source: raw_cell.source ? raw_cell.source.join('\n') : '',
+					language: 'julia',
+					cellKind: raw_cell.cell_type === 'code' ? vscode.CellKind.Code : vscode.CellKind.Markdown,
+					outputs: [],
+					metadata
+				}
+			})
+		}
 	}
 
 	async startKernel() {
@@ -217,12 +239,12 @@ export class JuliaNotebook {
 		await connectedPromise.wait();
 	}
 
-	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined, token: vscode.CancellationToken) {
+	async execute(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined) {
 		if (!cell) {
 			// run them all
 			for (let cell of document.cells) {
 				if (cell.cellKind === vscode.CellKind.Code) {
-					await this.executeCell(document, cell, token);
+					await this.execute(document, cell);
 				}
 			}
 			return;
@@ -257,17 +279,18 @@ export class JuliaNotebook {
 	}
 }
 
-export class JuliaNotebookProvider implements vscode.NotebookProvider {
-	private _onDidChangeNotebook = new vscode.EventEmitter<{ resource: vscode.Uri; notebook: vscode.NotebookDocument; }>();
-	onDidChangeNotebook: vscode.Event<{ resource: vscode.Uri; notebook: vscode.NotebookDocument; }> = this._onDidChangeNotebook.event;
+export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
+	private _onDidChangeNotebook = new vscode.EventEmitter<void>();
+	onDidChangeNotebook: vscode.Event<void> = this._onDidChangeNotebook.event;
 	private _notebooks: Map<string, JuliaNotebook> = new Map();
+	onDidChange: vscode.Event<void> = new vscode.EventEmitter<void>().event;
 
 	constructor(private _extensionPath: string) {
 	}
 
-	async resolveNotebook(editor: vscode.NotebookEditor): Promise<void> {
+	async openNotebook(uri: vscode.Uri): Promise<vscode.NotebookData> {
 		try {
-			let content = await vscode.workspace.fs.readFile(editor.document.uri);
+			let content = await vscode.workspace.fs.readFile(uri);
 
 			let lines = content.toString().split('\n');
 			let json: {cells: RawCell[]} = {cells: []};
@@ -303,25 +326,97 @@ export class JuliaNotebookProvider implements vscode.NotebookProvider {
 				json.cells.push({cell_type: 'markdown', source: current_md, metadata: undefined})
 				
 			}
+
+			let juliaNotebook = new JuliaNotebook(this._extensionPath, json);
+			this._notebooks.set(uri.toString(), juliaNotebook);
+
 			
-			let juliaNotebook = new JuliaNotebook(this._extensionPath, editor);
-			await juliaNotebook.resolve(json);
-
-			this._notebooks.set(editor.document.uri.toString(), juliaNotebook);
+			return juliaNotebook.resolve();
 		} catch {
-
+			throw new Error('Fail to load the document');
 		}
+	}
+
+	async saveNotebook(document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<void> {
+		return this._save(document, document.uri, token);
+	}
+
+	saveNotebookAs(targetResource: vscode.Uri, document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<void> {
+		return this._save(document, targetResource, token);
+	}
+
+	async _save(document: vscode.NotebookDocument, targetResource: vscode.Uri, _token: vscode.CancellationToken): Promise<void> {
+		throw new Error('Not yet implemented.');
+		// let cells: RawCell[] = [];
+
+		// for (let i = 0; i < document.cells.length; i++) {
+		// 	let lines = document.cells[i].source.split(/\r|\n|\r\n/g);
+		// 	let source = lines.map((value, index) => {
+		// 		if (index !== lines.length - 1) {
+		// 			return value + '\n';
+		// 		} else {
+		// 			return value;
+		// 		}
+		// 	});
+
+		// 	if (document.cells[i].cellKind === vscode.CellKind.Markdown) {
+		// 		cells.push({
+		// 			source: source,
+		// 			metadata: {
+		// 				language_info: {
+		// 					name: document.cells[i].language || 'markdown'
+		// 				}
+		// 			},
+		// 			cell_type: document.cells[i].cellKind === vscode.CellKind.Markdown ? 'markdown' : 'code'
+		// 		});
+		// 	} else {
+		// 		cells.push({
+		// 			source: source,
+		// 			metadata: {
+		// 				language_info: {
+		// 					name: document.cells[i].language || 'markdown'
+		// 				}
+		// 			},
+		// 			cell_type: document.cells[i].cellKind === vscode.CellKind.Markdown ? 'markdown' : 'code',
+		// 			outputs: document.cells[i].outputs.map(output => transformOutputFromCore(output)),
+		// 			execution_count: document.cells[i].metadata?.executionOrder
+		// 		});
+		// 	}
+		// }
+
+		// let raw = this._notebooks.get(document.uri.toString());
+
+		// if (raw) {
+		// 	raw.notebookJSON.cells = cells;
+		// 	let content = JSON.stringify(raw.notebookJSON, null, 4);
+		// 	await vscode.workspace.fs.writeFile(targetResource, new TextEncoder().encode(content));
+		// } else {
+		// 	let content = JSON.stringify({ cells: cells }, null, 4);
+		// 	await vscode.workspace.fs.writeFile(targetResource, new TextEncoder().encode(content));
+		// }
+
+		// return;
 	}
 
 	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined, token: vscode.CancellationToken): Promise<void> {
-		let juliaNotebook = this._notebooks.get(document.uri.toString());
+		if (cell) {
+			cell.metadata.runState = vscode.NotebookCellRunState.Running;
+		}
 
-		if (juliaNotebook) {
-			juliaNotebook.executeCell(document, cell, token);
+		const duration = await timeFn(async () => {
+			const jupyterNotebook = this._notebooks.get(document.uri.toString());
+			if (jupyterNotebook) {
+				return jupyterNotebook.execute(document, cell);
+			}
+		});
+
+		if (cell) {
+			cell.metadata.statusMessage = formatDuration(duration);
+			cell.metadata.runState = vscode.NotebookCellRunState.Success;
 		}
 	}
 
-	async save(document: vscode.NotebookDocument): Promise<boolean> {
+	async oldsave(document: vscode.NotebookDocument): Promise<boolean> {
 
 		let content = document.cells.map(cell=>{
 			if(cell.cellKind==vscode.CellKind.Markdown) {

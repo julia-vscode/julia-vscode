@@ -88,7 +88,7 @@ export async function activate(context: vscode.ExtensionContext) {
             });
     }
 
-    context.subscriptions.push(vscode.notebook.registerNotebookProvider('julianotebook', new JuliaNotebookProvider(context.extensionPath)));
+    context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('julianotebook', new JuliaNotebookProvider(context.extensionPath)));
 }
 
 // this method is called when your extension is deactivated
