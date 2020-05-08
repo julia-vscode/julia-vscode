@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "0.15.29",
+    "version": "0.15.30",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -365,7 +365,6 @@
                     ],
                     "description": "Highlight unknown symbols. The `symbols` option will not mark unknown fields."
                 },
-
                 "julia.lint.call": {
                     "type": "boolean",
                     "default": true,
@@ -416,7 +415,6 @@
                     "default": true,
                     "description": "Check that all declared arguments are used within the function body."
                 },
-
                 "julia.enableCrashReporter": {
                     "type": [
                         "boolean",
@@ -484,8 +482,6 @@
                     "default": null,
                     "description": "Number of threads to use for Julia processes."
                 },
-
-
                 "julia.format.indent": {
                     "type": "integer",
                     "default": 4,
@@ -546,7 +542,6 @@
                     "description": "Remove spaces around = in function keywords.",
                     "scope": "window"
                 }
-
             }
         },
         "configurationDefaults": {
