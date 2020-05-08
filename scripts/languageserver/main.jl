@@ -53,7 +53,7 @@ try
         conn,
         Base.ARGS[1],
         Base.ARGS[4],
-        (err, bt)-> global_err_handler(err, bt, Base.ARGS[3],
+        (err, bt)-> global_err_handler(err, bt, Base.ARGS[3]),
         symserver_store_path
     )
     run(server)
