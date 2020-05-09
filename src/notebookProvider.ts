@@ -190,6 +190,29 @@ export class JuliaNotebook {
 						cell.outputs = cell.outputs.concat([asdf]);
 					}
 				}
+				else if(cmd == 'text/html') {
+					let parts = payload.split(';');
+
+					let requestId = parseInt(parts[0]);
+					let outputData = Buffer.from(parts[1], 'base64').toString();
+
+					let executionRequest = this.executionRequests.get(requestId);
+
+					if (executionRequest) {
+						let cell = executionRequest.cell;
+
+						let raw_cell = {
+							'output_type': 'execute_result',
+							'data': {}
+						};
+
+						raw_cell.data[cmd] = outputData.split('\n');
+
+						let asdf = transformOutputToCore(<any>raw_cell);
+
+						cell.outputs = cell.outputs.concat([asdf]);
+					}
+				}
 				else if(cmd == 'stdout') {
 					let parts = payload.split(';');
 

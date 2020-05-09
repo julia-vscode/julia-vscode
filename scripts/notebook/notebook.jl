@@ -61,6 +61,12 @@ function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("application/
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}) = true
 
+function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/html")}, x)
+    payload = Base64.stringmime(MIME("text/html"), x)
+    send_msg_to_vscode(conn, "text/html", string(current_request_id[], ";", Base64.base64encode(payload)))
+end
+Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/html")}) = true
+
 function Base.display(d::JuliaNotebookInlineDisplay, x)
     if showable("application/vnd.vegalite.v4+json", x) && false
         display(d,"application/vnd.vegalite.v4+json", x)
@@ -68,6 +74,8 @@ function Base.display(d::JuliaNotebookInlineDisplay, x)
         display(d,"image/svg+xml", x)
     elseif showable("image/png", x)
         display(d,"image/png", x)
+    elseif showable("text/html", x)
+        display(d,"text/html", x)
     else
         throw(MethodError(display,(d,x)))
     end
