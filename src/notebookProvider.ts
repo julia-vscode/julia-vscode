@@ -15,12 +15,6 @@ import { TextEncoder } from 'util';
 import { convertNotebookToHtml } from './notebookexport';
 const { Subject } = require('await-notify');
 
-async function timeFn(fn: () => Promise<void>): Promise<number> {
-	const startTime = Date.now();
-	await fn();
-	return Date.now() - startTime;
-}
-
 function formatDuration(_duration: number): string {
 	// const seconds = Math.floor(duration / 1000);
 	// actual: ${String(duration - seconds).charAt(0)}
