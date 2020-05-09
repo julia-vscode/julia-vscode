@@ -12,6 +12,7 @@ import * as net from 'net';
 import { uuid } from 'uuidv4';
 import { getEnvPath } from './jlpkgenv';
 import { TextEncoder } from 'util';
+import { convertNotebookToHtml } from './notebookexport';
 const { Subject } = require('await-notify');
 
 async function timeFn(fn: () => Promise<void>): Promise<number> {
@@ -423,6 +424,10 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 		}).join('\n');
 
 		await vscode.workspace.fs.writeFile(targetResource, new TextEncoder().encode(content));
+
+		const html_content = convertNotebookToHtml(document, content);
+
+		await vscode.workspace.fs.writeFile(vscode.Uri.parse(targetResource.toString() + '.html'), new TextEncoder().encode(html_content));
 
 		return;
 		// let cells: RawCell[] = [];

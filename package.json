@@ -342,85 +342,85 @@
                 "when": "jlplotpaneFocus"
             },
             {
-				"mac": "F",
-				"win": "F",
-				"linux": "F",
-				"key": "F",
-				"when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
-				"command": "notebook.find"
-			},
-			{
-				"mac": "K",
-				"win": "K",
-				"linux": "K",
-				"key": "K",
-				"when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
-				"command": "list.focusUp"
-			},
-			{
-				"mac": "J",
-				"win": "J",
-				"linux": "J",
-				"key": "J",
-				"when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
-				"command": "list.focusDown"
-			},
-			{
-				"mac": "A",
-				"win": "A",
-				"linux": "A",
-				"key": "A",
-				"when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
-				"command": "notebook.cell.insertCodeCellAbove"
-			},
-			{
-				"mac": "B",
-				"win": "B",
-				"linux": "B",
-				"key": "B",
-				"when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
-				"command": "notebook.cell.insertCodeCellBelow"
-			},
-			{
-				"mac": "D D",
-				"win": "D D",
-				"linux": "D D",
-				"key": "D D",
-				"when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
-				"command": "notebook.cell.delete"
-			},
-			{
-				"mac": "Z",
-				"win": "Z",
-				"linux": "Z",
-				"key": "Z",
-				"when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
-				"command": "notebook.undo"
-			},
-			{
-				"mac": "ctrl+m",
-				"win": "ctrl+m",
-				"linux": "ctrl+m",
-				"key": "ctrl+m",
-				"when": "notebookEditorFocused && inputFocus && notebookViewType == julianotebook",
-				"command": "notebook.cell.quitEdit"
-			},
-			{
-				"mac": "cmd+d",
-				"win": "ctrl+d",
-				"linux": "ctrl+d",
-				"key": "ctrl+d",
-				"when": "notebookEditorFocused && inputFocus && notebookViewType == julianotebook",
-				"command": "editor.action.deleteLines"
-			},
-			{
-				"mac": "cmd+shift+u",
-				"win": "ctrl+shift+u",
-				"linux": "ctrl+shift+u",
-				"key": "ctrl+shift+u",
-				"when": "notebookEditorFocused && inputFocus && notebookViewType == julianotebook",
-				"command": "cursorRedo"
-			}
+                "mac": "F",
+                "win": "F",
+                "linux": "F",
+                "key": "F",
+                "when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
+                "command": "notebook.find"
+            },
+            {
+                "mac": "K",
+                "win": "K",
+                "linux": "K",
+                "key": "K",
+                "when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
+                "command": "list.focusUp"
+            },
+            {
+                "mac": "J",
+                "win": "J",
+                "linux": "J",
+                "key": "J",
+                "when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
+                "command": "list.focusDown"
+            },
+            {
+                "mac": "A",
+                "win": "A",
+                "linux": "A",
+                "key": "A",
+                "when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
+                "command": "notebook.cell.insertCodeCellAbove"
+            },
+            {
+                "mac": "B",
+                "win": "B",
+                "linux": "B",
+                "key": "B",
+                "when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
+                "command": "notebook.cell.insertCodeCellBelow"
+            },
+            {
+                "mac": "D D",
+                "win": "D D",
+                "linux": "D D",
+                "key": "D D",
+                "when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
+                "command": "notebook.cell.delete"
+            },
+            {
+                "mac": "Z",
+                "win": "Z",
+                "linux": "Z",
+                "key": "Z",
+                "when": "notebookEditorFocused && !inputFocus && notebookViewType == julianotebook",
+                "command": "notebook.undo"
+            },
+            {
+                "mac": "ctrl+m",
+                "win": "ctrl+m",
+                "linux": "ctrl+m",
+                "key": "ctrl+m",
+                "when": "notebookEditorFocused && inputFocus && notebookViewType == julianotebook",
+                "command": "notebook.cell.quitEdit"
+            },
+            {
+                "mac": "cmd+d",
+                "win": "ctrl+d",
+                "linux": "ctrl+d",
+                "key": "ctrl+d",
+                "when": "notebookEditorFocused && inputFocus && notebookViewType == julianotebook",
+                "command": "editor.action.deleteLines"
+            },
+            {
+                "mac": "cmd+shift+u",
+                "win": "ctrl+shift+u",
+                "linux": "ctrl+shift+u",
+                "key": "ctrl+shift+u",
+                "when": "notebookEditorFocused && inputFocus && notebookViewType == julianotebook",
+                "command": "cursorRedo"
+            }
         ],
         "configuration": {
             "type": "object",
@@ -759,12 +759,14 @@
     },
     "dependencies": {
         "@types/child-process-promise": "^2.2.1",
+        "@types/markdown-it": "^10.0.1",
         "@types/vscode": "^1.44.0",
         "applicationinsights": "^1.7.5",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
+        "markdown-it": "^10.0.0",
         "promised-temp": "^v0.1.0",
         "uuidv4": "^6.0.8",
         "vscode-debugadapter": "^1.40.0",
