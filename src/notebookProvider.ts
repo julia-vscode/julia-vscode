@@ -315,6 +315,8 @@ export class JuliaNotebook {
 	}
 }
 
+enum CurrentCellType {None, Code, Markdown}
+
 export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 	private _onDidChangeNotebook = new vscode.EventEmitter<void>();
 	onDidChangeNotebook: vscode.Event<void> = this._onDidChangeNotebook.event;
@@ -333,32 +335,37 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 
 			let current_md: string[] = [];
 			let current_code: string[] = [];
-			let inCodeCell = false;
+			let current_type: CurrentCellType = CurrentCellType.None;
 
 			for (let i in lines) {
-				if (lines[i].startsWith('```julia')) {
-					inCodeCell = true
+				if (lines[i].startsWith('```{julia')) {
+					if (current_type==CurrentCellType.Markdown) {
+						json.cells.push({cell_type: 'markdown', source: current_md, metadata: undefined})
+					}
+					else if(current_type==CurrentCellType.Code) {
+						throw new Error("Invalid input file.")
+					}
 
-					json.cells.push({cell_type: 'markdown', source: current_md, metadata: undefined})
+					current_type = CurrentCellType.Code;
 					current_md = [];
 				}
-				else if (lines[i].startsWith('```')) {
-					inCodeCell = false
-
+				else if (current_type==CurrentCellType.Code && lines[i].startsWith('```')) {
 					json.cells.push({cell_type: 'code', source: current_code, outputs: [], metadata: undefined})
+					current_type = CurrentCellType.Markdown;
 					current_code = []
 				}
-				else if (inCodeCell) {
+				else if (current_type==CurrentCellType.Code) {
 					current_code.push(lines[i])
 				}
 				else {
+					current_type = CurrentCellType.Markdown;
 					current_md.push(lines[i])
 				}
 			}
-			if (inCodeCell) {
+			if (current_type==CurrentCellType.Code) {
 				json.cells.push({cell_type: 'code', source: current_code, outputs: [], metadata: undefined})
 			}
-			else {
+			else if (current_type==CurrentCellType.Markdown){
 				json.cells.push({cell_type: 'markdown', source: current_md, metadata: undefined})
 				
 			}
@@ -388,7 +395,7 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 				return cell.source;
 			}
 			else {
-				return '```julia\n' + cell.source + '\n```';
+				return '```{julia}\n' + cell.source + '\n```';
 			}
 		}).join('\n');
 
