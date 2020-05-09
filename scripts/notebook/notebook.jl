@@ -63,7 +63,7 @@ Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/svg+xml")})
 
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}, x)
     payload = Base64.stringmime(MIME("application/vnd.vegalite.v4+json"), x)
-    send_msg_to_vscode(conn, "application/vnd.vegalite.v4+json", string(current_request_id[], ";", payload))
+    send_msg_to_vscode(conn, "application/vnd.vegalite.v4+json", string(current_request_id[], ";", Base64.base64encode(payload)))
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}) = true
 

@@ -1,0 +1,37 @@
+import * as vscode from 'vscode';
+import * as path from 'path';
+import { uuid } from 'uuidv4';
+
+export class VegaRenderer implements vscode.NotebookOutputRenderer {
+	private _preloads: vscode.Uri[] = [];
+
+	get preloads(): vscode.Uri[] {
+		return this._preloads;
+	}
+
+	constructor(
+		private _extensionPath: string
+	) {
+        this._preloads.push(vscode.Uri.file(path.join(this._extensionPath, 'libs', 'vega-5', 'vega.min.js')));
+        this._preloads.push(vscode.Uri.file(path.join(this._extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')));
+		this._preloads.push(vscode.Uri.file(path.join(this._extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')));
+	}
+
+	render(document: vscode.NotebookDocument, output: vscode.CellOutput, mimeType: string): string {
+		let renderOutputs: string[] = [];
+		let data = (output as vscode.CellDisplayOutput).data;
+		let trimmedData: { [key: string]: any } = {};
+		trimmedData[mimeType] = data[mimeType];
+
+		const divId = uuid();
+
+		renderOutputs.push(`
+			<div id="vis-${divId}"></div>
+			<script type="text/javascript">
+				vegaEmbed('#vis-${divId}', ${JSON.stringify(trimmedData)});
+			</script>
+		`);
+
+		return renderOutputs.join('\n');
+	}
+}

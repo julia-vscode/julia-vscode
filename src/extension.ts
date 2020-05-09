@@ -22,6 +22,7 @@ import * as juliaexepath from './juliaexepath';
 import * as jlpkgenv from './jlpkgenv';
 import { JuliaNotebookProvider } from './notebookProvider';
 import { JuliaDebugSession } from './juliaDebug';
+import { VegaRenderer } from './notebookVegaRenderer';
 
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
@@ -89,6 +90,15 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('julianotebook', new JuliaNotebookProvider(context.extensionPath)));
+    context.subscriptions.push(vscode.notebook.registerNotebookOutputRenderer(
+        'juliavega',
+        {
+            type: 'display_data',
+            subTypes: [
+                'application/vnd.vegalite.v4+json'
+            ]
+        },
+        new VegaRenderer(context.extensionPath)));
 }
 
 // this method is called when your extension is deactivated
