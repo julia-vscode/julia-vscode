@@ -55,7 +55,7 @@ export type RawCellOutput = CellStreamOutput | CellErrorOutput | CellDisplayOutp
 export interface RawCell {
 	cell_type: 'markdown' | 'code';
 	outputs?: RawCellOutput[];
-	source: string[];
+	source: string;
 	metadata: any;
 	execution_count?: number;
 }
@@ -135,7 +135,7 @@ export class JuliaNotebook {
 				const metadata = { editable: cellEditable, runnable: runnable, executionOrder };
 
 				return {
-					source: raw_cell.source ? raw_cell.source.join('\n') : '',
+					source: raw_cell.source ? raw_cell.source : '',
 					language: 'julia',
 					cellKind: raw_cell.cell_type === 'code' ? vscode.CellKind.Code : vscode.CellKind.Markdown,
 					outputs: [],
@@ -346,9 +346,11 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 
 	async openNotebook(uri: vscode.Uri): Promise<vscode.NotebookData> {
 		try {
-			let content = await vscode.workspace.fs.readFile(uri);
+			let content_raw = await vscode.workspace.fs.readFile(uri);
 
-			let lines = content.toString().split('\n');
+			let content = content_raw.toString().replace(`\r\n`, '\n');
+
+			let lines = content.split('\n');
 			let json: {cells: RawCell[]} = {cells: []};
 
 			let current_md: string[] = [];
@@ -358,7 +360,7 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 			for (let i in lines) {
 				if (lines[i].startsWith('```{julia')) {
 					if (current_type==CurrentCellType.Markdown) {
-						json.cells.push({cell_type: 'markdown', source: current_md, metadata: undefined})
+						json.cells.push({cell_type: 'markdown', source: current_md.join('\n'), metadata: undefined})
 					}
 					else if(current_type==CurrentCellType.Code) {
 						throw new Error("Invalid input file.")
@@ -368,7 +370,7 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 					current_md = [];
 				}
 				else if (current_type==CurrentCellType.Code && lines[i].startsWith('```')) {
-					json.cells.push({cell_type: 'code', source: current_code, outputs: [], metadata: undefined})
+					json.cells.push({cell_type: 'code', source: current_code.join('\n'), outputs: [], metadata: undefined})
 					current_type = CurrentCellType.Markdown;
 					current_code = []
 				}
@@ -381,10 +383,10 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 				}
 			}
 			if (current_type==CurrentCellType.Code) {
-				json.cells.push({cell_type: 'code', source: current_code, outputs: [], metadata: undefined})
+				json.cells.push({cell_type: 'code', source: current_code.join('\n'), outputs: [], metadata: undefined})
 			}
 			else if (current_type==CurrentCellType.Markdown){
-				json.cells.push({cell_type: 'markdown', source: current_md, metadata: undefined})
+				json.cells.push({cell_type: 'markdown', source: current_md.join('\n'), metadata: undefined})
 				
 			}
 
