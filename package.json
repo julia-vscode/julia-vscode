@@ -274,17 +274,17 @@
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.executeJuliaCellInREPL",
                 "key": "shift+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
                 "key": "alt+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
