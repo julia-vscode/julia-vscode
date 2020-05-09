@@ -359,7 +359,7 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 
 			for (let i in lines) {
 				if (lines[i].startsWith('```{julia')) {
-					if (current_type==CurrentCellType.Markdown) {
+					if (current_type==CurrentCellType.Markdown && current_md.length>0) {
 						json.cells.push({cell_type: 'markdown', source: current_md.join('\n'), metadata: undefined})
 					}
 					else if(current_type==CurrentCellType.Code) {
@@ -385,7 +385,7 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 			if (current_type==CurrentCellType.Code) {
 				json.cells.push({cell_type: 'code', source: current_code.join('\n'), outputs: [], metadata: undefined})
 			}
-			else if (current_type==CurrentCellType.Markdown){
+			else if (current_type==CurrentCellType.Markdown && current_md.length>0){
 				json.cells.push({cell_type: 'markdown', source: current_md.join('\n'), metadata: undefined})
 				
 			}
