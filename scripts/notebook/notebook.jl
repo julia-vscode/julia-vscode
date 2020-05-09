@@ -92,8 +92,11 @@ while true
         if result!==nothing
             Base.display(result)
         end
+
+        send_msg_to_vscode(conn, "status/finished", string(current_request_id[]))
     catch err
         Base.display_error(err, catch_backtrace())
+        send_msg_to_vscode(conn, "status/errored", string(current_request_id[]))
     end
 
     flush_all()

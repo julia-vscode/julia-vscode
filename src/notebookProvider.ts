@@ -86,8 +86,14 @@ function transformOutputToCore(rawOutput: RawCellOutput): vscode.CellOutput {
 	}
 }
 
+interface ExecutionRequest {
+	id: number,
+	cell: vscode.NotebookCell,
+	startTime: number
+}
+
 export class JuliaNotebook {
-	private request_id_to_cell: Map<number, vscode.NotebookCell> = new Map<number, vscode.NotebookCell>();
+	private executionRequests: Map<number, ExecutionRequest> = new Map<number, ExecutionRequest>();
 	private _terminal: vscode.Terminal;
 	private _socket: net.Socket;
 	private _current_request_id: number = 0;
@@ -166,9 +172,11 @@ export class JuliaNotebook {
 					let requestId = parseInt(parts[0]);
 					let outputData = parts[1];
 
-					let cell = this.request_id_to_cell.get(requestId);
+					let executionRequest = this.executionRequests.get(requestId);
 
-					if (cell) {
+					if (executionRequest) {
+						let cell = executionRequest.cell;
+
 						let raw_cell = {
 							'output_type': 'execute_result',
 							'data': {}
@@ -188,9 +196,10 @@ export class JuliaNotebook {
 					let requestId = parseInt(parts[0]);
 					let outputData = parts[1];
 
-					let cell = this.request_id_to_cell.get(requestId);
+					let executionRequest = this.executionRequests.get(requestId);
 
-					if (cell) {
+					if (executionRequest) {
+						let cell = executionRequest.cell;
 						let raw_cell = {
 							'output_type': 'stream',
 							'text': outputData
@@ -198,6 +207,30 @@ export class JuliaNotebook {
 
 						cell.outputs = cell.outputs.concat([transformOutputToCore(<any>raw_cell)]);
 					}
+				}
+				else if(cmd == 'status/finished') {
+					const requestId = parseInt(payload);
+
+					let executionRequest = this.executionRequests.get(requestId);
+
+					if (executionRequest) {
+						let cell = executionRequest.cell;
+
+						cell.metadata.statusMessage = formatDuration(Date.now() - executionRequest.startTime);
+						cell.metadata.runState = vscode.NotebookCellRunState.Success;
+					}					
+				}
+				else if(cmd == 'status/errored') {
+					const requestId = parseInt(payload);
+
+					let executionRequest = this.executionRequests.get(requestId);
+
+					if (executionRequest) {
+						let cell = executionRequest.cell;
+
+						cell.metadata.statusMessage = formatDuration(Date.now() - executionRequest.startTime);
+						cell.metadata.runState = vscode.NotebookCellRunState.Error;
+					}					
 				}
 
 			});
@@ -255,9 +288,12 @@ export class JuliaNotebook {
 		}		
 
 		if (cell) {
+			cell.metadata.statusMessage = '*';
+			cell.metadata.runState = vscode.NotebookCellRunState.Running;
+
 			let encoded_code = Buffer.from(cell.source).toString('base64');
 			this._socket.write(`${this._current_request_id}:${encoded_code}\n`);
-			this.request_id_to_cell.set(this._current_request_id, cell);
+			this.executionRequests.set(this._current_request_id, {id: this._current_request_id, cell: cell, startTime: Date.now()});
 			cell.metadata.executionOrder = this._current_request_id;
 			this._current_request_id += 1;
 
@@ -346,7 +382,19 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 	}
 
 	async _save(document: vscode.NotebookDocument, targetResource: vscode.Uri, _token: vscode.CancellationToken): Promise<void> {
-		throw new Error('Not yet implemented.');
+
+		let content = document.cells.map(cell=>{
+			if(cell.cellKind==vscode.CellKind.Markdown) {
+				return cell.source;
+			}
+			else {
+				return '```julia\n' + cell.source + '\n```';
+			}
+		}).join('\n');
+
+		await vscode.workspace.fs.writeFile(targetResource, new TextEncoder().encode(content));
+
+		return;
 		// let cells: RawCell[] = [];
 
 		// for (let i = 0; i < document.cells.length; i++) {
@@ -399,36 +447,10 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 	}
 
 	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined, token: vscode.CancellationToken): Promise<void> {
-		if (cell) {
-			cell.metadata.runState = vscode.NotebookCellRunState.Running;
-		}
-
-		const duration = await timeFn(async () => {
-			const jupyterNotebook = this._notebooks.get(document.uri.toString());
-			if (jupyterNotebook) {
-				return jupyterNotebook.execute(document, cell);
-			}
-		});
-
-		if (cell) {
-			cell.metadata.statusMessage = formatDuration(duration);
-			cell.metadata.runState = vscode.NotebookCellRunState.Success;
+		const jupyterNotebook = this._notebooks.get(document.uri.toString());
+		if (jupyterNotebook) {
+			return jupyterNotebook.execute(document, cell);
 		}
 	}
-
-	async oldsave(document: vscode.NotebookDocument): Promise<boolean> {
-
-		let content = document.cells.map(cell=>{
-			if(cell.cellKind==vscode.CellKind.Markdown) {
-				return cell.source;
-			}
-			else {
-				return '```julia\n' + cell.source + '\n```';
-			}
-		}).join('\n');
-
-		await vscode.workspace.fs.writeFile(document.uri, new TextEncoder().encode(content));
-		
-		return true
-	}
+	
 }
