@@ -161,7 +161,7 @@ export class JuliaNotebook {
 				let payload_encoded = line.slice(cmd_end + 1);
 				let payload = Buffer.from(payload_encoded, 'base64').toString();
 
-				if (cmd == 'image/png' || cmd == 'image/svg+xml' || cmd == 'application/vnd.vegalite.v4+json') {
+				if (cmd == 'image/png' || cmd == 'image/jpeg') {
 					let parts = payload.split(';');
 
 					let requestId = parseInt(parts[0]);
@@ -185,7 +185,7 @@ export class JuliaNotebook {
 						cell.outputs = cell.outputs.concat([asdf]);
 					}
 				}
-				else if(cmd == 'text/html') {
+				else if (cmd == 'image/svg+xml' || cmd == 'text/html' || cmd == 'text/plain' || cmd == 'text/markdown'|| cmd == 'application/vnd.vegalite.v4+json') {
 					let parts = payload.split(';');
 
 					let requestId = parseInt(parts[0]);

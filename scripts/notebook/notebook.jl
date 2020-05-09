@@ -49,9 +49,15 @@ function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/png")}
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/png")}) = true
 
+function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/jpeg")}, x)
+    payload = Base64.stringmime(MIME("image/jpeg"), x)
+    send_msg_to_vscode(conn, "image/jpeg", string(current_request_id[], ";", payload))
+end
+Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/jpeg")}) = true
+
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
     payload = Base64.stringmime(MIME("image/svg+xml"), x)
-    send_msg_to_vscode(conn, "image/svg+xml", string(current_request_id[], ";", payload))
+    send_msg_to_vscode(conn, "image/svg+xml", string(current_request_id[], ";", Base64.base64encode(payload)))
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
 
@@ -67,15 +73,33 @@ function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/html")}
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/html")}) = true
 
+function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/plain")}, x)
+    payload = Base64.stringmime(MIME("text/plain"), x)
+    send_msg_to_vscode(conn, "text/plain", string(current_request_id[], ";", Base64.base64encode(payload)))
+end
+Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/plain")}) = true
+
+function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/markdown")}, x)
+    payload = Base64.stringmime(MIME("text/markdown"), x)
+    send_msg_to_vscode(conn, "text/markdown", string(current_request_id[], ";", Base64.base64encode(payload)))
+end
+Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/markdown")}) = true
+
 function Base.display(d::JuliaNotebookInlineDisplay, x)
     if showable("application/vnd.vegalite.v4+json", x) && false
         display(d,"application/vnd.vegalite.v4+json", x)
-    elseif showable("image/svg+xml", x) && false
+    elseif showable("image/svg+xml", x)
         display(d,"image/svg+xml", x)
     elseif showable("image/png", x)
         display(d,"image/png", x)
+    elseif showable("image/jpeg", x)
+        display(d,"image/jpeg", x)
     elseif showable("text/html", x)
         display(d,"text/html", x)
+    elseif showable("text/markdown", x)
+        display(d,"text/markdown", x)
+    elseif showable("text/plain", x)
+        display(d,"text/plain", x)
     else
         throw(MethodError(display,(d,x)))
     end
