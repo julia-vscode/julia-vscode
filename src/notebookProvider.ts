@@ -333,8 +333,6 @@ export class JuliaNotebook {
 	}
 }
 
-enum CurrentCellType {None, Code, Markdown}
-
 export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 	private _onDidChangeNotebook = new vscode.EventEmitter<void>();
 	onDidChangeNotebook: vscode.Event<void> = this._onDidChangeNotebook.event;
@@ -353,46 +351,55 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 			let lines = content.split('\n');
 			let json: {cells: RawCell[]} = {cells: []};
 
-			let current_md: string[] = [];
-			let current_code: string[] = [];
-			let current_type: CurrentCellType = CurrentCellType.None;
+			const codeBlockAtBeginning = '```{julia}\n';
+			const codeBlock = '\n```{julia}\n';
+			const codeBlockEnd = '\n```\n';
+			const codeBlockEndAtEndOfFile = '\n```';
 
-			for (let i in lines) {
-				if (lines[i].startsWith('```{julia')) {
-					if (current_type==CurrentCellType.Markdown && current_md.length>0) {
-						json.cells.push({cell_type: 'markdown', source: current_md.join('\n'), metadata: undefined})
-					}
-					else if(current_type==CurrentCellType.Code) {
-						throw new Error("Invalid input file.")
-					}
+			let currentPos = 0;
+			let processedUpTo = 0;
+			while (currentPos < content.length) {
+				if((currentPos==0 && content.startsWith(codeBlockAtBeginning)) || content.startsWith(codeBlock, currentPos) ) {
 
-					current_type = CurrentCellType.Code;
-					current_md = [];
-				}
-				else if (current_type==CurrentCellType.Code && lines[i].startsWith('```')) {
-					json.cells.push({cell_type: 'code', source: current_code.join('\n'), outputs: [], metadata: undefined})
-					current_type = CurrentCellType.Markdown;
-					current_code = []
-				}
-				else if (current_type==CurrentCellType.Code) {
-					current_code.push(lines[i])
+					if(currentPos>processedUpTo) {
+						const newMDCell = content.substring(processedUpTo, currentPos);
+
+						json.cells.push({cell_type: 'markdown', source: newMDCell, metadata: undefined})
+					}
+					const codeStartPos = currentPos==0 ? codeBlockAtBeginning.length : currentPos + codeBlock.length;
+
+					currentPos = codeStartPos;
+
+					while (currentPos < content.length) {
+						if (content.startsWith(codeBlockEnd, currentPos) || (currentPos + codeBlockEndAtEndOfFile.length == content.length && content.startsWith(codeBlockEndAtEndOfFile, currentPos))) {
+							const codeEndPos = currentPos;
+
+							const newCodeCell = content.substring(codeStartPos, codeEndPos);
+
+							json.cells.push({cell_type: 'code', source: newCodeCell, outputs: [], metadata: undefined})
+
+							currentPos = codeEndPos + codeBlockEnd.length - 1;
+							break;
+						}
+						else {
+							currentPos++;
+						}						
+					}
+					processedUpTo = currentPos + 1;
 				}
 				else {
-					current_type = CurrentCellType.Markdown;
-					current_md.push(lines[i])
-				}
+					currentPos++;
+				}				
 			}
-			if (current_type==CurrentCellType.Code) {
-				json.cells.push({cell_type: 'code', source: current_code.join('\n'), outputs: [], metadata: undefined})
-			}
-			else if (current_type==CurrentCellType.Markdown && current_md.length>0){
-				json.cells.push({cell_type: 'markdown', source: current_md.join('\n'), metadata: undefined})
-				
+
+			if(processedUpTo<content.length) {
+				const newMDCell = content.substring(processedUpTo);
+
+				json.cells.push({cell_type: 'markdown', source: newMDCell, metadata: undefined})
 			}
 
 			let juliaNotebook = new JuliaNotebook(this._extensionPath, json);
 			this._notebooks.set(uri.toString(), juliaNotebook);
-
 			
 			return juliaNotebook.resolve();
 		} catch {
