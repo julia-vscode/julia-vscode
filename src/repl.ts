@@ -123,7 +123,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
     readonly onDidChangeTreeData: vscode.Event<string | undefined> = this._onDidChangeTreeData.event;
 
     refresh(): void {
-        this._onDidChangeTreeData.fire();
+        this._onDidChangeTreeData.fire(undefined);
     }
 
     getChildren(node?: string) {
