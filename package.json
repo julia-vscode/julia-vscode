@@ -355,6 +355,11 @@
                     "default": true,
                     "description": "Run the linter on active files."
                 },
+                "julia.lint.nonwsfiles": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Run the linter on out-of-workspace files."
+                },
                 "julia.lint.missingrefs": {
                     "type": "string",
                     "default": "all",
