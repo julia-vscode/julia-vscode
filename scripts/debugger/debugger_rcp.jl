@@ -1,6 +1,6 @@
 function decode_msg(line::AbstractString)
-    pos = findfirst(':', line)
-    pos2 = findnext(':', line, pos+1)
+    pos = findfirst(":", line)
+    pos2 = findnext(":", line, pos+1)
 
     msg_id = line[1:pos-1]        
     msg_cmd = line[pos+1:pos2-1]
