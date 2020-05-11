@@ -34,6 +34,12 @@ function debug_request(conn, state, msg_body, msg_id)
 
     ex = _parse_julia_file(filename_to_debug)
 
+    # Empty file case
+    if ex===nothing
+        send_notification(conn, "FINISHED")
+        return :break
+    end
+
     state.top_level_expressions, _ = JuliaInterpreter.split_expressions(Main, ex)
     state.current_top_level_expression = 0
 
