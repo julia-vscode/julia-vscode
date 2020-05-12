@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
 import * as fs from 'async-file';
-let appInsights = require('applicationinsights');
+import * as appInsights from 'applicationinsights';
 import {generatePipeName} from './utils';
 
 let enableCrashReporter: boolean = false;
@@ -14,7 +14,7 @@ let enableTelemetry: boolean = false;
 
 let g_currentJuliaVersion: string = "";
 
-let extensionClient
+let extensionClient: appInsights.TelemetryClient = undefined;
 
 let crashReporterUIVisible: boolean = false;
 let crashReporterQueue = []

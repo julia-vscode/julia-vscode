@@ -665,6 +665,7 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
+        "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
         "@types/vscode": "^1.45.0",
         "applicationinsights": "^1.7.5",
