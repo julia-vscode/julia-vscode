@@ -470,7 +470,7 @@
                 },
                 "julia.useCustomSysimage": {
                     "type": "boolean",
-                    "default": "false",
+                    "default": false,
                     "description": "Use an existing custom sysimage when starting the REPL",
                     "scope": "application"
                 },
