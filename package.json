@@ -552,7 +552,7 @@
                 },
                 "julia.useCustomSysimage": {
                     "type": "boolean",
-                    "default": "false",
+                    "default": false,
                     "description": "Use an existing custom sysimage when starting the REPL",
                     "scope": "application"
                 },
@@ -767,6 +767,7 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
+        "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
         "@types/markdown-it": "^10.0.1",
         "@types/vscode": "^1.45.0",
