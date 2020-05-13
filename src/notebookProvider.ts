@@ -13,6 +13,7 @@ import { uuid } from 'uuidv4';
 import { getEnvPath } from './jlpkgenv';
 import { TextEncoder } from 'util';
 import { convertNotebookToHtml } from './notebookexport';
+import { NotebookDocumentEditEvent } from 'vscode';
 const { Subject } = require('await-notify');
 
 function formatDuration(_duration: number): string {
@@ -334,10 +335,10 @@ export class JuliaNotebook {
 }
 
 export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
-	private _onDidChangeNotebook = new vscode.EventEmitter<void>();
-	onDidChangeNotebook: vscode.Event<void> = this._onDidChangeNotebook.event;
+	private _onDidChangeNotebook = new vscode.EventEmitter<NotebookDocumentEditEvent>();
+	onDidChangeNotebook: vscode.Event<NotebookDocumentEditEvent> = this._onDidChangeNotebook.event;
 	private _notebooks: Map<string, JuliaNotebook> = new Map();
-	onDidChange: vscode.Event<void> = new vscode.EventEmitter<void>().event;
+	onDidChange: vscode.Event<NotebookDocumentEditEvent> = new vscode.EventEmitter<NotebookDocumentEditEvent>().event;
 
 	constructor(private _extensionPath: string) {
 	}
