@@ -62,7 +62,10 @@ export async function activate(context: vscode.ExtensionContext) {
     packagepath.activate(context, g_settings);
     openpackagedirectory.activate(context, g_settings);
     jlpkgenv.activate(context, g_settings);
-
+    
+    vscode.window.onDidChangeTextEditorSelection(e=>{
+        repl.decorateSelection()
+    })
     // register a configuration provider for 'mock' debug type
     const provider = new JuliaDebugConfigurationProvider();
     context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('julia', provider));

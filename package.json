@@ -482,6 +482,11 @@
                     "default": null,
                     "description": "Number of threads to use for Julia processes."
                 },
+                "julia.highlightCurrentBlock": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Highlight code that will be evaluated."
+                },
                 "julia.format.indent": {
                     "type": "integer",
                     "default": 4,
