@@ -20,7 +20,7 @@ function debug_request(conn, state, msg_body, msg_id)
     @debug "debug_request"
 
     state.debug_mode = :launch
-    index_of_sep = findfirst(";", msg_body)
+    index_of_sep = findfirst(';', msg_body)
 
     stop_on_entry_as_string = msg_body[1:index_of_sep-1]
 
@@ -62,7 +62,7 @@ function exec_request(conn, state, msg_body, msg_id)
 
     state.debug_mode = :attach
 
-    index_of_sep = findfirst(";", msg_body)
+    index_of_sep = findfirst(';', msg_body)
 
     stop_on_entry_as_string = msg_body[1:index_of_sep-1]
 
@@ -605,7 +605,7 @@ end
 function evaluate_request(conn, state, msg_body, msg_id)
     @debug "evaluate_request"
 
-    index_of_sep = findfirst(":", msg_body)
+    index_of_sep = findfirst(':', msg_body)
 
     stack_id = parse(Int, msg_body[1:index_of_sep-1])
 
