@@ -1,5 +1,8 @@
 module VSCodeDebugger
 
+our_findfirst(ch::AbstractChar, string::AbstractString) = findfirst(==(ch), string)
+our_findnext(ch::AbstractChar, string::AbstractString, ind::Integer) = findnext(==(ch), string, ind)
+
 include("../error_handler.jl")
 
 include("../terminalserver/repl.jl")
