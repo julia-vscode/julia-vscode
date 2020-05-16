@@ -268,9 +268,10 @@ function processMsg(cmd, payload) {
         showPlotPane();
     }
     else if (cmd == 'application/vnd.vegalite.v2+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        showPlotPane();
+        let uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')));
+        let uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js')));
+        let uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')));
         let plotPaneContent = `
             <html>
                 <head>
@@ -302,9 +303,10 @@ function processMsg(cmd, payload) {
         showPlotPane();
     }
     else if (cmd == 'application/vnd.vegalite.v3+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        showPlotPane();
+        let uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')));
+        let uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')));
+        let uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')));
         let plotPaneContent = `
             <html>
                 <head>
@@ -336,9 +338,10 @@ function processMsg(cmd, payload) {
         showPlotPane();
     }
     else if (cmd == 'application/vnd.vegalite.v4+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVegaLite = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        showPlotPane();
+        let uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')));
+        let uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')));
+        let uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')));
         let plotPaneContent = `
             <html>
                 <head>
@@ -370,8 +373,9 @@ function processMsg(cmd, payload) {
         showPlotPane();
     }
     else if (cmd == 'application/vnd.vega.v3+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        showPlotPane();
+        let uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')));
+        let uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')));
         let plotPaneContent = `
             <html>
                 <head>
@@ -402,8 +406,9 @@ function processMsg(cmd, payload) {
         showPlotPane();
     }
     else if (cmd == 'application/vnd.vega.v4+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        showPlotPane();
+        let uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')));
+        let uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js')));
         let plotPaneContent = `
             <html>
                 <head>
@@ -434,8 +439,9 @@ function processMsg(cmd, payload) {
         showPlotPane();
     }
     else if (cmd == 'application/vnd.vega.v5+json') {
-        let uriVegaEmbed = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')).with({ scheme: 'vscode-resource' });
-        let uriVega = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')).with({ scheme: 'vscode-resource' });
+        showPlotPane();
+        let uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')));
+        let uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')));
         let plotPaneContent = `
             <html>
                 <head>
@@ -466,7 +472,8 @@ function processMsg(cmd, payload) {
         showPlotPane();
     }
     else if (cmd == 'application/vnd.plotly.v1+json') {
-        let uriPlotly = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')).with({ scheme: 'vscode-resource' });
+        showPlotPane();
+        let uriPlotly = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')));
         let plotPaneContent = `
         <html>
         <head>
@@ -500,9 +507,11 @@ function processMsg(cmd, payload) {
         showPlotPane();
     }
     else if (cmd == 'application/vnd.dataresource+json') {
-        let uriAgGrid = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid-community.min.noStyle.js')).with({ scheme: 'vscode-resource' });
-        let uriAgGridCSS = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css')).with({ scheme: 'vscode-resource' });
-        let uriAgGridTheme = vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-theme-balham.css')).with({ scheme: 'vscode-resource' });
+        let grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true, retainContextWhenHidden: true});
+
+        let uriAgGrid = grid_panel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid-community.min.noStyle.js')));
+        let uriAgGridCSS = grid_panel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css')));
+        let uriAgGridTheme = grid_panel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-theme-balham.css')));
         let grid_content = `
             <html>
                 <head>
@@ -547,8 +556,7 @@ function processMsg(cmd, payload) {
             </script>
         </html>
         `;
-
-        let grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true, retainContextWhenHidden: true});
+        
         grid_panel.webview.html = grid_content;
     }
     else if (cmd == 'repl/variables') {
