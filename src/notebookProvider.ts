@@ -347,54 +347,62 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 		try {
 			let content_raw = await vscode.workspace.fs.readFile(uri);
 
-			let content = content_raw.toString().replace(`\r\n`, '\n');
+			let content = content_raw.toString();
 
-			let lines = content.split('\n');
+			let lines = content.split(/\r?\n/);
+
 			let json: {cells: RawCell[]} = {cells: []};
 
-			const codeBlockAtBeginning = '```{julia}\n';
-			const codeBlock = '\n```{julia}\n';
-			const codeBlockEnd = '\n```\n';
-			const codeBlockEndAtEndOfFile = '\n```';
-
-			let currentPos = 0;
+			let currentLineIndex = 0;
 			let processedUpTo = 0;
-			while (currentPos < content.length) {
-				if((currentPos==0 && content.startsWith(codeBlockAtBeginning)) || content.startsWith(codeBlock, currentPos) ) {
+			while (currentLineIndex < lines.length) {
+				let currentLine = lines[currentLineIndex];
 
-					if(currentPos>processedUpTo) {
-						const newMDCell = content.substring(processedUpTo, currentPos);
+				if(currentLine.trimRight()=='```{julia}') {
+					if(currentLineIndex>processedUpTo) {
+						const newMDCell = lines.slice(processedUpTo,currentLineIndex).join('\n');
 
 						json.cells.push({cell_type: 'markdown', source: newMDCell, metadata: undefined})
 					}
-					const codeStartPos = currentPos==0 ? codeBlockAtBeginning.length : currentPos + codeBlock.length;
 
-					currentPos = codeStartPos;
+					currentLineIndex++;
 
-					while (currentPos < content.length) {
-						if (content.startsWith(codeBlockEnd, currentPos) || (currentPos + codeBlockEndAtEndOfFile.length == content.length && content.startsWith(codeBlockEndAtEndOfFile, currentPos))) {
-							const codeEndPos = currentPos;
+					const codeStartLineIndex = currentLineIndex;
 
-							const newCodeCell = content.substring(codeStartPos, codeEndPos);
+					while(currentLineIndex<lines.length) {
+						let currentLine = lines[currentLineIndex];
+
+						if (currentLine.trimRight()=='```') {
+							const codeEndLineIndex = currentLineIndex;
+
+							const newCodeCell = lines.slice(codeStartLineIndex, codeEndLineIndex).join('\n');
 
 							json.cells.push({cell_type: 'code', source: newCodeCell, outputs: [], metadata: undefined})
 
-							currentPos = codeEndPos + codeBlockEnd.length - 1;
+							currentLineIndex++
 							break;
 						}
 						else {
-							currentPos++;
-						}						
+							currentLineIndex++;
+
+							// This amounts to a final code cell that is not closed
+							if(currentLineIndex==lines.length) {
+								const codeEndLineIndex = currentLineIndex;
+								const newCodeCell = lines.slice(codeStartLineIndex, codeEndLineIndex).join('\n');
+								json.cells.push({cell_type: 'code', source: newCodeCell, outputs: [], metadata: undefined})
+							}
+						}
 					}
-					processedUpTo = currentPos + 1;
+
+					processedUpTo = currentLineIndex;
 				}
 				else {
-					currentPos++;
+					currentLineIndex++;
 				}				
 			}
 
-			if(processedUpTo<content.length) {
-				const newMDCell = content.substring(processedUpTo);
+			if(processedUpTo<lines.length) {
+				const newMDCell = lines.slice(processedUpTo).join('\n');
 
 				json.cells.push({cell_type: 'markdown', source: newMDCell, metadata: undefined})
 			}
