@@ -87,8 +87,6 @@ run(conn_endpoint)
                 try
                     VSCodeDebugger.startdebug(debug_pipename)
                 catch err
-                    Base.display_error(err, catch_backtrace())
-                    sleep(10)
                     VSCodeDebugger.global_err_handler(err, catch_backtrace(), ARGS[4])
                 end
             end
