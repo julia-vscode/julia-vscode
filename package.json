@@ -37,7 +37,6 @@
         "onCommand:language-julia.weave-open-preview-side",
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
-        "onCommand:language-julia.toggle-file-lint",
         "onCommand:language-julia.executeJuliaCellInREPL",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
@@ -182,10 +181,6 @@
                 "title": "Julia: Delete All Plots"
             },
             {
-                "command": "language-julia.toggle-file-lint",
-                "title": "Julia: Toggle File Linting"
-            },
-            {
                 "command": "language-julia.toggle-log",
                 "title": "Julia: Toggle Server Logs"
             },
@@ -207,16 +202,6 @@
                 {
                     "when": "resourceLangId == julia",
                     "command": "language-julia.executeJuliaFileInREPL",
-                    "group": "julia"
-                },
-                {
-                    "when": "resourceLangId == julia",
-                    "command": "language-julia.toggle-file-lint",
-                    "group": "julia"
-                },
-                {
-                    "when": "explorerResourceIsFolder",
-                    "command": "language-julia.toggle-file-lint",
                     "group": "julia"
                 }
             ],
