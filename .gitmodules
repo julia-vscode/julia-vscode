@@ -34,3 +34,6 @@
 [submodule "scripts/tasks/sysimageenv/PackageCompiler"]
 	path = scripts/tasks/sysimageenv/PackageCompiler
 	url = https://github.com/JuliaLang/PackageCompiler.jl.git
+[submodule "scripts/packages/JSONRPC"]
+	path = scripts/packages/JSONRPC
+	url = https://github.com/julia-vscode/JSONRPC.jl.git
