@@ -195,7 +195,8 @@ async function startREPL(preserveFocus: boolean) {
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
-                        JULIA_EDITOR: get_editor()
+                        JULIA_EDITOR: get_editor(),
+                        JULIA_NUM_THREADS: inferJuliaNumThreads()
                     }});
         }
         else {
