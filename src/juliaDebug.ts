@@ -12,7 +12,7 @@ import { Subject } from 'await-notify';
 import * as readline from 'readline';
 import { generatePipeName } from './utils';
 import { uuid } from 'uuidv4';
-import { sendMessage } from './repl';
+import { replStartDebugger } from './repl';
 import * as vscode from 'vscode';
 import { getCrashReportingPipename } from './telemetry';
 
@@ -233,7 +233,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		await serverListeningPromise.wait();
 
-		sendMessage('repl/startdebugger', pn);
+		replStartDebugger(pn);
 
 		await connectedPromise.wait();
 
