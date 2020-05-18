@@ -37,7 +37,6 @@
         "onCommand:language-julia.weave-open-preview-side",
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
-        "onCommand:language-julia.toggle-file-lint",
         "onCommand:language-julia.executeJuliaCellInREPL",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
@@ -182,10 +181,6 @@
                 "title": "Julia: Delete All Plots"
             },
             {
-                "command": "language-julia.toggle-file-lint",
-                "title": "Julia: Toggle File Linting"
-            },
-            {
                 "command": "language-julia.toggle-log",
                 "title": "Julia: Toggle Server Logs"
             },
@@ -207,16 +202,6 @@
                 {
                     "when": "resourceLangId == julia",
                     "command": "language-julia.executeJuliaFileInREPL",
-                    "group": "julia"
-                },
-                {
-                    "when": "resourceLangId == julia",
-                    "command": "language-julia.toggle-file-lint",
-                    "group": "julia"
-                },
-                {
-                    "when": "explorerResourceIsFolder",
-                    "command": "language-julia.toggle-file-lint",
                     "group": "julia"
                 }
             ],
@@ -672,7 +657,7 @@
     "dependencies": {
         "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
-        "@types/vscode": "^1.45.0",
+        "@types/vscode": "^1.45.1",
         "applicationinsights": "^1.7.5",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
@@ -689,12 +674,12 @@
         "@types/cson-parser": "^4.0.4",
         "@types/download": "^6.2.4",
         "@types/mocha": "^7.0.2",
-        "@types/node": "^12.12.38",
+        "@types/node": "^12.12.39",
         "cson-parser": "^4.0.4",
         "download": "^7.1.0",
         "mocha": "^7.1.2",
-        "ts-loader": "^7.0.3",
-        "typescript": "^3.8.3",
+        "ts-loader": "^7.0.4",
+        "typescript": "^3.9.2",
         "vsce": "^1.75.0",
         "vscode-test": "^1.3.0",
         "webpack": "^4.43.0",
