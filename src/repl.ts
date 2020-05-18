@@ -809,9 +809,8 @@ export async function decorateSelection() {
 }
 
 const CurrentBlockDecor = vscode.window.createTextEditorDecorationType({
-    backgroundColor: "#d8ffc2", 
-    isWholeLine: true,
-    fontWeight: "bold"
+    backgroundColor: new vscode.ThemeColor("editor.inactiveSelectionBackground"), 
+    isWholeLine: true
 });
 
 
