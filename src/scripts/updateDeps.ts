@@ -64,6 +64,11 @@ async function main() {
         await cp.exec('git pull', {cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`)})    
     }
 
+    for(var pkg of ['JSONRPC']) {
+        await cp.exec('git checkout master', {cwd: path.join(process.cwd(), `scripts/packages/${pkg}`)});
+        await cp.exec('git pull', {cwd: path.join(process.cwd(), `scripts/packages/${pkg}`)})    
+    }
+
     await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, {cwd: path.join(process.cwd(), 'scripts/languageserver/packages')})
 
     await cp.exec('npm update', {cwd: process.cwd()})
