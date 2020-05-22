@@ -275,6 +275,11 @@
         },
         "keybindings": [
             {
+                "command": "language-julia.executeJuliaFileInREPL",
+                "key": "ctrl+shift+Enter",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "key": "ctrl+Enter",
                 "when": "editorTextFocus && editorLangId == julia"

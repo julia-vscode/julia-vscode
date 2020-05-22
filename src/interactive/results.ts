@@ -8,7 +8,7 @@ export interface ResultContent {
 }
 
 export class Result {
-    editor: vscode.TextEditor
+    document: vscode.TextDocument
     text: string
     range: vscode.Range
     content: ResultContent
@@ -16,8 +16,8 @@ export class Result {
     destroyed: boolean
 
     constructor (editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
-        this.editor = editor
         this.range = range
+        this.document = editor.document
         this.text = editor.document.getText(this.range)
         this.destroyed = false
 
@@ -56,19 +56,21 @@ export class Result {
 
         this.decoration = vscode.window.createTextEditorDecorationType(decoration)
 
-        const hoverMessage = new vscode.MarkdownString('', true)
+        for (const ed of vscode.window.visibleTextEditors) {
+            ed.setDecorations(this.decoration, [{
+                hoverMessage: this.content.hoverContent,
+                range: this.range
+            }])
+        }
 
-        hoverMessage.appendCodeblock(content.hoverContent.toString(), 'plain')
-        // hoverMessage.appendMarkdown('\n----\n[$(list-tree)](https://www.google.com)')
+    }
 
-        this.editor.setDecorations(this.decoration, [{
-            hoverMessage: hoverMessage,
-            range: this.range
-        }])
+    draw () {
+        this.setContent(this.content)
     }
 
     validate (e: vscode.TextDocumentChangeEvent) {
-        if (this.editor.document !== e.document) {
+        if (this.document !== e.document) {
             return  
         }
 
@@ -103,14 +105,17 @@ export class Result {
 
     remove (destroy: boolean = false) {
         this.destroyed = destroy
-        this.editor.setDecorations(this.decoration, [])
+        for (const ed of vscode.window.visibleTextEditors) {
+            ed.setDecorations(this.decoration, [])
+        }
     }
 }
 
-const results = []
+const results: Result[] = []
 
 export function activate(context) {
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)))
+    context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors((editors) => refreshResults(editors)))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.removeAllInlineResults', removeAll));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.removeAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)));
@@ -130,6 +135,17 @@ export function addResult (editor: vscode.TextEditor, range: vscode.Range, conte
     results.push(result)
 
     return result
+}
+
+export function refreshResults(editors: vscode.TextEditor[]) {
+    for (const result of results) {
+        for (const editor of editors) {
+            
+            if (result.document === editor.document) {
+                result.draw()
+            }
+        }
+    }
 }
 
 export function validateResults (e: vscode.TextDocumentChangeEvent) {
@@ -152,7 +168,7 @@ export function removeResult (result: Result) {
 
 export function removeAll (editor: vscode.TextEditor | null = null) {
     for (const result of results.reverse()) {
-        if (editor === null || result.editor === editor) {
+        if (editor === null || result.document === editor.document) {
             removeResult(result)
         }
     }
@@ -162,7 +178,7 @@ export function removeCurrent (editor: vscode.TextEditor) {
     for (const selection of editor.selections) {
         for (const result of results.reverse()) {
             const intersect = selection.intersection(result.range)
-            if (result.editor === editor && intersect !== undefined) {
+            if (result.document === editor.document && intersect !== undefined) {
                 result.remove()
             }
         }
