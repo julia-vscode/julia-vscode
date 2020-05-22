@@ -34,6 +34,83 @@ function sendDisplayMsg(kind, data)
     JSONRPC.send_notification(conn_endpoint, "display", Dict{String,String}("kind"=>kind, "data"=>data))
 end
 
+function strlimit(str::AbstractString, limit::Int = 30, ellipsis::AbstractString = "…")
+    will_append = length(str) > limit
+
+    io = IOBuffer()
+    i = 1
+    for c in str
+        will_append && i > limit - length(ellipsis) && break
+        isvalid(c) || continue
+
+        print(io, c)
+        i += 1
+    end
+    will_append && print(io, ellipsis)
+
+    return String(take!(io))
+end
+
+
+function render(x)
+    str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000))
+    
+    return Dict(
+        "inline" => strlimit(first(split(str, "\n")), 100),
+        "all" => str,
+        "iserr" => false
+    )
+end
+
+function render(::Nothing)
+    return Dict(
+        "inline" => "✓",
+        "all" => "nothing",
+        "iserr" => false
+    )
+end
+
+struct EvalError
+    err
+    bt
+end
+
+function render(err::EvalError)
+    str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(Base.display_error, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), err.err, err.bt)), 10_000))
+
+    return Dict(
+        "inline" => strlimit(first(split(str, "\n")), 100),
+        "all" => str,
+        "iserr" => true
+    )
+end
+
+function module_from_string(mod)
+    ms = split(mod, '.')
+
+    out = Main
+
+    loaded_module = findfirst(==(first(ms)), string.(Base.loaded_modules_array()))
+
+    if loaded_module !== nothing
+        out = Base.loaded_modules_array()[loaded_module]
+        popfirst!(ms)
+    end
+
+    for m in Symbol.(ms)
+        if isdefined(out, m)
+            resolved = getfield(out, m)
+
+            if resolved isa Module
+                out = resolved
+            else
+                return out
+            end
+        end
+    end
+
+    return out
+end
 
 function is_module_loaded(mod)
     if mod == "Main"
@@ -100,6 +177,17 @@ run(conn_endpoint)
             code_line = params["line"]
             code_column = params["column"]
             source_code = params["code"]
+            mod = params["module"]
+
+            resolved_mod = try
+                module_from_string(mod)
+            catch err
+                @error err
+                Main
+            end
+
+            show_code = params["showCodeInREPL"]
+            show_result = params["showResultInREPL"]
 
             hideprompt() do
                 if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
@@ -107,28 +195,36 @@ run(conn_endpoint)
                         mode == "auto" && Main.Revise.revise()
                     end
                 end
-                for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                    if i==1
-                        printstyled("julia> ", color=:green)
-                        print(' '^code_column)
-                    else
-                        # Indent by 7 so that it aligns with the julia> prompt
-                        print(' '^7)
+                if show_code
+                    for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                        if i==1
+                            printstyled("julia> ", color=:green)
+                            print(' '^code_column)
+                        else
+                            # Indent by 7 so that it aligns with the julia> prompt
+                            print(' '^7)
+                        end
+                    
+                        println(line)
                     end
-                
-                    println(line)
                 end
 
-                try
-                    withpath(source_filename) do
-                        res = Base.invokelatest(include_string, Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                withpath(source_filename) do
+                    res = try
+                        Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                    catch err
+                        EvalError(err, catch_backtrace())
+                    end
 
-                        if res !== nothing && !ends_with_semicolon(source_code)
+                    if show_result
+                        if res isa EvalError
+                            Base.display_error(stderr, res.err, res.bt)
+                        elseif res !== nothing && !ends_with_semicolon(source_code)
                             Base.invokelatest(display, res)
                         end
                     end
-                catch err
-                    Base.display_error(stderr, err, catch_backtrace())
+
+                    JSONRPC.send_success_response(conn_endpoint, msg, render(res))
                 end
             end
         elseif msg["method"] == "repl/loadedModules"

@@ -119,6 +119,10 @@
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "title": "Julia: Execute Code"
+            },            
+            {
+                "command": "language-julia.executeJuliaCodeInREPLAndMove",
+                "title": "Julia: Execute Code And Move"
             },
             {
                 "command": "language-julia.executeJuliaFileInREPL",
@@ -189,12 +193,28 @@
                 "title": "Julia: Execute Code Cell"
             },
             {
+                "command": "language-julia.executeJuliaCellInREPLAndMove",
+                "title": "Julia: Execute Code Cell And Move"
+            },
+            {
                 "command": "language-julia.executeJuliaBlockInREPL",
                 "title": "Julia: Execute Code Block"
             },
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select Code Block"
+            },
+            {
+                "command": "language-julia.removeAllInlineResults",
+                "title": "Julia: Remove All Inline Results"
+            },
+            {
+                "command": "language-julia.removeAllInlineResultsInEditor",
+                "title": "Julia: Remove Inline Results In Editor"
+            },
+            {
+                "command": "language-julia.removeCurrentInlineResult",
+                "title": "Julia: Remove Current Inline Result"
             }
         ],
         "menus": {
@@ -260,13 +280,28 @@
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
-                "command": "language-julia.executeJuliaCellInREPL",
+                "command": "language-julia.executeJuliaCodeInREPLAndMove",
                 "key": "shift+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
-                "command": "language-julia.executeJuliaBlockInREPL",
+                "command": "language-julia.removeCurrentInlineResult",
+                "key": "Escape",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.removeAllInlineResultsInEditor",
+                "key": "ctrl+I ctrl+C",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.executeJuliaCellInREPL",
                 "key": "alt+Enter",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.executeJuliaCellInREPLAndMove",
+                "key": "alt+shift+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
