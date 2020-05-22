@@ -14,6 +14,7 @@ import { Subject } from 'await-notify';
 
 import * as plots from './plots'
 import * as workspace from './workspace'
+import * as modules from './modules'
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -390,6 +391,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     plots.activate(context);
     workspace.activate(context);
+    modules.activate(context);
 }
 
 export function onDidChangeConfiguration(newSettings: settings.ISettings) {
@@ -398,4 +400,5 @@ export function onDidChangeConfiguration(newSettings: settings.ISettings) {
 
 export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
     g_languageClient = newLanguageClient;
+    modules.setLanguageClient(g_languageClient)
 }
