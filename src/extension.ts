@@ -11,7 +11,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo, RevealOutputChannelOn } from 'vscode-languageclient';
 import * as vslc from 'vscode-languageclient';
 import * as rpc from 'vscode-jsonrpc';
-import * as repl from './repl';
+import * as repl from './interactive/repl';
 import * as weave from './weave';
 import * as tasks from './tasks';
 import * as settings from './settings';
