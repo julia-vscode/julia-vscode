@@ -89,7 +89,7 @@ function watch_stream(rd::IO, name::AbstractString)
                 if stdio_bytes[] >= max_output_per_request[]
                     read(rd, nb) # read from libuv/os buffer and discard
                     if stdio_bytes[] - nb < max_output_per_request[]
-                        send_msg_to_vscode(conn, "stderr", string(current_request_id[], ";", "Excessive output truncated after $(stdio_bytes[]) bytes."))
+                        JSONRPC.send_notification(conn_endpoint, "streamoutput", Dict{String,Any}("name"=>"stderr", "current_request_id"=>current_request_id[], "data"=>"Excessive output truncated after $(stdio_bytes[]) bytes."))
                     end
                 else
                     write(buf, read(rd, nb))
@@ -161,7 +161,7 @@ function send_stream(name::AbstractString)
             print(sbuf, '\n')
             s = String(take!(sbuf))
         end
-        send_msg_to_vscode(conn, name, string(current_request_id[], ";", s))
+        JSONRPC.send_notification(conn_endpoint, "streamoutput", Dict{String,Any}("name"=>name, "current_request_id"=>current_request_id[], "data"=>s))
     end
 end
 

@@ -1,6 +1,15 @@
 module VSCodeJuliaNotebook
 
-import Sockets, Base64
+import Sockets, Base64, UUIDs
+
+include("../languageserver/packages/JSON/src/JSON.jl")
+
+module JSONRPC
+    import ..JSON
+    import ..UUIDs
+
+    include("../packages/JSONRPC/src/core.jl")
+end
 
 const stdio_bytes = Ref(0)
 
@@ -18,10 +27,9 @@ const capture_stderr = false
 
 const conn = Sockets.connect(ARGS[1])
 
-function send_msg_to_vscode(connection, cmd, payload)
-    encoded_payload = Base64.base64encode(payload)
-    println(connection, cmd, ":", encoded_payload)
-end
+const conn_endpoint = JSONRPC.JSONRPCEndpoint(conn, conn)
+
+run(conn_endpoint)
 
 try
 
@@ -45,43 +53,43 @@ struct JuliaNotebookInlineDisplay <: AbstractDisplay end
 
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/png")}, x)
     payload = Base64.stringmime(MIME("image/png"), x)
-    send_msg_to_vscode(conn, "image/png", string(current_request_id[], ";", payload))
+    JSONRPC.send_notification(conn_endpoint, "display", Dict{String,Any}("mimetype"=>"image/png", "current_request_id"=>current_request_id[], "data"=>payload))
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/png")}) = true
 
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/jpeg")}, x)
     payload = Base64.stringmime(MIME("image/jpeg"), x)
-    send_msg_to_vscode(conn, "image/jpeg", string(current_request_id[], ";", payload))
+    JSONRPC.send_notification(conn_endpoint, "display", Dict{String,Any}("mimetype"=>"image/jpeg", "current_request_id"=>current_request_id[], "data"=>payload))
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/jpeg")}) = true
 
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
     payload = Base64.stringmime(MIME("image/svg+xml"), x)
-    send_msg_to_vscode(conn, "image/svg+xml", string(current_request_id[], ";", Base64.base64encode(payload)))
+    JSONRPC.send_notification(conn_endpoint, "display", Dict{String,Any}("mimetype"=>"image/svg+xml", "current_request_id"=>current_request_id[], "data"=>payload))
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
 
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}, x)
     payload = Base64.stringmime(MIME("application/vnd.vegalite.v4+json"), x)
-    send_msg_to_vscode(conn, "application/vnd.vegalite.v4+json", string(current_request_id[], ";", Base64.base64encode(payload)))
+    JSONRPC.send_notification(conn_endpoint, "display", Dict{String,Any}("mimetype"=>"application/vnd.vegalite.v4+json", "current_request_id"=>current_request_id[], "data"=>payload))
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}) = true
 
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/html")}, x)
     payload = Base64.stringmime(MIME("text/html"), x)
-    send_msg_to_vscode(conn, "text/html", string(current_request_id[], ";", Base64.base64encode(payload)))
+    JSONRPC.send_notification(conn_endpoint, "display", Dict{String,Any}("mimetype"=>"text/html", "current_request_id"=>current_request_id[], "data"=>payload))
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/html")}) = true
 
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/plain")}, x)
     payload = Base64.stringmime(MIME("text/plain"), x)
-    send_msg_to_vscode(conn, "text/plain", string(current_request_id[], ";", Base64.base64encode(payload)))
+    JSONRPC.send_notification(conn_endpoint, "display", Dict{String,Any}("mimetype"=>"text/plain", "current_request_id"=>current_request_id[], "data"=>payload))
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/plain")}) = true
 
 function Base.display(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/markdown")}, x)
     payload = Base64.stringmime(MIME("text/markdown"), x)
-    send_msg_to_vscode(conn, "text/markdown", string(current_request_id[], ";", Base64.base64encode(payload)))
+    JSONRPC.send_notification(conn_endpoint, "display", Dict{String,Any}("mimetype"=>"text/markdown", "current_request_id"=>current_request_id[], "data"=>payload))
 end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/markdown")}) = true
 
@@ -110,28 +118,31 @@ Base.Multimedia.pushdisplay(JuliaNotebookInlineDisplay())
 watch_stdio()
 
 while true
-    l = readline(conn)
+    msg = JSONRPC.get_next_message(conn_endpoint)
 
-    parts = split(l, ':')
+    if msg["method"] == "runcell"
+        params = msg["params"]
 
-    current_request_id[] = parse(Int, parts[1])
+        current_request_id[] = params["current_request_id"]
+        decoded_msg = params["code"]
 
-    decoded_msg = String(Base64.base64decode(parts[2]))
+        try
+            result = include_string(Main, decoded_msg, "FOO")
 
-    try
-        result = include_string(Main, decoded_msg, "FOO")
+            if result!==nothing
+                Base.display(result)
+            end
 
-        if result!==nothing
-            Base.display(result)
+            JSONRPC.send_notification(conn_endpoint, "status/finished", current_request_id[])
+        catch err
+            Base.display_error(err, catch_backtrace())
+            JSONRPC.send_notification(conn_endpoint, "status/errored", current_request_id[])
         end
 
-        send_msg_to_vscode(conn, "status/finished", string(current_request_id[]))
-    catch err
-        Base.display_error(err, catch_backtrace())
-        send_msg_to_vscode(conn, "status/errored", string(current_request_id[]))
+        flush_all()
+    else
+        error("Unknown message")
     end
-
-    flush_all()
 end
 
 catch err

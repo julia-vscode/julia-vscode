@@ -14,6 +14,7 @@ import { getEnvPath } from './jlpkgenv';
 import { TextEncoder } from 'util';
 import { convertNotebookToHtml } from './notebookexport';
 import { NotebookDocumentEditEvent } from 'vscode';
+import { createMessageConnection, StreamMessageReader, StreamMessageWriter, MessageConnection, NotificationType } from 'vscode-jsonrpc';
 const { Subject } = require('await-notify');
 
 function formatDuration(_duration: number): string {
@@ -88,10 +89,17 @@ interface ExecutionRequest {
 	startTime: number
 }
 
+const notifyTypeDisplay = new NotificationType<{mimetype: string, current_request_id: number, data: string}, void>('display');
+const notifyTypeStreamoutput = new NotificationType<{name: string, current_request_id: number, data: string}, void>('streamoutput');
+const notifyTypeStatusFinished = new NotificationType<number, void>('status/finished');
+const notifyTypeStatusErrored = new NotificationType<number, void>('status/errored');
+const notifyTypeRunCell = new NotificationType<{current_request_id: number, code: string}, void>('runcell');
+
 export class JuliaNotebook {
 	private executionRequests: Map<number, ExecutionRequest> = new Map<number, ExecutionRequest>();
 	private _terminal: vscode.Terminal;
 	private _socket: net.Socket;
+	private _msgConnection: MessageConnection;
 	private _current_request_id: number = 0;
 	private displayOrders = [
 		'application/vnd.*',
@@ -154,21 +162,14 @@ export class JuliaNotebook {
 
 		let server = net.createServer(socket => {
 			this._socket = socket;
-			const rl = readline.createInterface(socket);
+			this._msgConnection = createMessageConnection(
+				new StreamMessageReader(socket),
+				new StreamMessageWriter(socket)
+			);
 
-			rl.on('line', line => {
-				let cmd_end = line.indexOf(":");
-				let cmd = line.slice(undefined, cmd_end);
-				let payload_encoded = line.slice(cmd_end + 1);
-				let payload = Buffer.from(payload_encoded, 'base64').toString();
-
-				if (cmd == 'image/png' || cmd == 'image/jpeg') {
-					let parts = payload.split(';');
-
-					let requestId = parseInt(parts[0]);
-					let outputData = parts[1];
-
-					let executionRequest = this.executionRequests.get(requestId);
+			this._msgConnection.onNotification(notifyTypeDisplay, ({mimetype, current_request_id, data})=>{
+				if (mimetype == 'image/png' || mimetype == 'image/jpeg') {
+					let executionRequest = this.executionRequests.get(current_request_id);
 
 					if (executionRequest) {
 						let cell = executionRequest.cell;
@@ -178,21 +179,13 @@ export class JuliaNotebook {
 							'data': {}
 						};
 
-						// raw_cell.data[cmd] = [outputData];
-						raw_cell.data[cmd] = outputData.split('\n');
+						raw_cell.data[mimetype] = data.split('\n');
 
-						let asdf = transformOutputToCore(<any>raw_cell);
-
-						cell.outputs = cell.outputs.concat([asdf]);
+						cell.outputs = cell.outputs.concat([transformOutputToCore(<any>raw_cell)]);
 					}
 				}
-				else if (cmd == 'image/svg+xml' || cmd == 'text/html' || cmd == 'text/plain' || cmd == 'text/markdown'|| cmd == 'application/vnd.vegalite.v4+json') {
-					let parts = payload.split(';');
-
-					let requestId = parseInt(parts[0]);
-					let outputData = Buffer.from(parts[1], 'base64').toString();
-
-					let executionRequest = this.executionRequests.get(requestId);
+				else if (mimetype == 'image/svg+xml' || mimetype == 'text/html' || mimetype == 'text/plain' || mimetype == 'text/markdown'|| mimetype == 'application/vnd.vegalite.v4+json') {
+					let executionRequest = this.executionRequests.get(current_request_id);
 
 					if (executionRequest) {
 						let cell = executionRequest.cell;
@@ -202,57 +195,56 @@ export class JuliaNotebook {
 							'data': {}
 						};
 
-						raw_cell.data[cmd] = outputData.split('\n');
+						raw_cell.data[mimetype] = data.split('\n');
 
-						let asdf = transformOutputToCore(<any>raw_cell);
-
-						cell.outputs = cell.outputs.concat([asdf]);
+						cell.outputs = cell.outputs.concat([transformOutputToCore(<any>raw_cell)]);
 					}
 				}
-				else if(cmd == 'stdout') {
-					let parts = payload.split(';');
+			});
 
-					let requestId = parseInt(parts[0]);
-					let outputData = parts[1];
-
-					let executionRequest = this.executionRequests.get(requestId);
+			this._msgConnection.onNotification(notifyTypeStreamoutput, ({name, current_request_id, data})=>{
+				if(name=='stdout') {
+					let executionRequest = this.executionRequests.get(current_request_id);
 
 					if (executionRequest) {
 						let cell = executionRequest.cell;
 						let raw_cell = {
 							'output_type': 'stream',
-							'text': outputData
+							'text': data
 						};
 
 						cell.outputs = cell.outputs.concat([transformOutputToCore(<any>raw_cell)]);
 					}
 				}
-				else if(cmd == 'status/finished') {
-					const requestId = parseInt(payload);
-
-					let executionRequest = this.executionRequests.get(requestId);
-
-					if (executionRequest) {
-						let cell = executionRequest.cell;
-
-						cell.metadata.statusMessage = formatDuration(Date.now() - executionRequest.startTime);
-						cell.metadata.runState = vscode.NotebookCellRunState.Success;
-					}					
+				else {
+					throw (new Error('Unknown stream type.'))
 				}
-				else if(cmd == 'status/errored') {
-					const requestId = parseInt(payload);
-
-					let executionRequest = this.executionRequests.get(requestId);
-
-					if (executionRequest) {
-						let cell = executionRequest.cell;
-
-						cell.metadata.statusMessage = formatDuration(Date.now() - executionRequest.startTime);
-						cell.metadata.runState = vscode.NotebookCellRunState.Error;
-					}					
-				}
-
 			});
+
+			this._msgConnection.onNotification(notifyTypeStatusFinished, requestId=>{
+
+				let executionRequest = this.executionRequests.get(requestId);
+
+				if (executionRequest) {
+					let cell = executionRequest.cell;
+
+					cell.metadata.statusMessage = formatDuration(Date.now() - executionRequest.startTime);
+					cell.metadata.runState = vscode.NotebookCellRunState.Success;
+				}
+			});
+
+			this._msgConnection.onNotification(notifyTypeStatusErrored, requestId=>{
+				let executionRequest = this.executionRequests.get(requestId);
+
+				if (executionRequest) {
+					let cell = executionRequest.cell;
+
+					cell.metadata.statusMessage = formatDuration(Date.now() - executionRequest.startTime);
+					cell.metadata.runState = vscode.NotebookCellRunState.Error;
+				}		
+			});
+
+			this._msgConnection.listen();
 
 			connectedPromise.notify();
 		});
@@ -310,8 +302,8 @@ export class JuliaNotebook {
 			cell.metadata.statusMessage = '*';
 			cell.metadata.runState = vscode.NotebookCellRunState.Running;
 
-			let encoded_code = Buffer.from(cell.source).toString('base64');
-			this._socket.write(`${this._current_request_id}:${encoded_code}\n`);
+			this._msgConnection.sendNotification(notifyTypeRunCell, {current_request_id: this._current_request_id, code: cell.source});
+
 			this.executionRequests.set(this._current_request_id, {id: this._current_request_id, cell: cell, startTime: Date.now()});
 			cell.metadata.executionOrder = this._current_request_id;
 			this._current_request_id += 1;
