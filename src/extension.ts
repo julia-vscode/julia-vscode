@@ -89,7 +89,9 @@ export async function activate(context: vscode.ExtensionContext) {
             });
     }
 
-    context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('julianotebook', new JuliaNotebookProvider(context.extensionPath)));
+    let nb_provider = new JuliaNotebookProvider(context.extensionPath);
+    context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('julianotebook', nb_provider));
+    context.subscriptions.push(vscode.notebook.registerNotebookKernel('julia-kernel', ['*'], nb_provider))
     context.subscriptions.push(vscode.notebook.registerNotebookOutputRenderer(
         'juliavega',
         {

@@ -119,7 +119,7 @@ export class JuliaNotebook {
 				editable: true,
 				cellEditable: true,
 				cellRunnable: true,
-				hasExecutionOrder: true,
+				cellHasExecutionOrder: true,
 				displayOrder: this.displayOrders
 			},
 			cells: this.notebookJSON.cells.map((raw_cell: RawCell) => {
@@ -334,7 +334,8 @@ export class JuliaNotebook {
 	}
 }
 
-export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
+export class JuliaNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernel {
+	label: string = 'Julia Kernel';
 	private _onDidChangeNotebook = new vscode.EventEmitter<NotebookDocumentEditEvent>();
 	onDidChangeNotebook: vscode.Event<NotebookDocumentEditEvent> = this._onDidChangeNotebook.event;
 	private _notebooks: Map<string, JuliaNotebook> = new Map();
@@ -493,11 +494,18 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider {
 		// return;
 	}
 
-	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined, token: vscode.CancellationToken): Promise<void> {
+	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell, token: vscode.CancellationToken): Promise<void> {
 		const jupyterNotebook = this._notebooks.get(document.uri.toString());
 		if (jupyterNotebook) {
 			return jupyterNotebook.execute(document, cell);
 		}
-	}
+    }
+
+    executeAllCells(document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<void> {
+        const jupyterNotebook = this._notebooks.get(document.uri.toString());
+		if (jupyterNotebook) {
+			return jupyterNotebook.execute(document, undefined);
+		}
+	}	
 	
 }
