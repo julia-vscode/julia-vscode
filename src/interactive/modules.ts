@@ -3,7 +3,7 @@ import * as vslc from 'vscode-languageclient';
 import * as rpc from 'vscode-jsonrpc';
 
 let statusBarItem: vscode.StatusBarItem = null
-let g_connection: rpc.MessageConnection = undefined;
+let g_connection: rpc.MessageConnection = null
 let g_languageClient: vslc.LanguageClient = null
 
 interface TextDocumentPositionParams {
@@ -60,7 +60,7 @@ export function deactivate() {
 }
 
 async function updateStatusBarItem(editor: vscode.TextEditor) {
-    if (editor.document.languageId === 'julia') {
+    if (editor && editor.document && editor.document.languageId === 'julia') {
         statusBarItem.show()
         
         await updateModuleForEditor(editor)
@@ -78,7 +78,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
     const mod = await getModuleForEditor(editor)
 
     let loaded = false
-    if (g_connection !== undefined) {
+    if (g_connection !== null) {
         loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, {
             module: mod
         })
@@ -88,7 +88,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
 }
 
 async function chooseModule() {
-    if (g_connection === undefined) {
+    if (g_connection === null) {
         vscode.window.showInformationMessage('Setting a module requires an active REPL.')
         return
     }
@@ -103,8 +103,6 @@ async function chooseModule() {
         canPickMany: false
     }
     const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
-
-    console.log(mod);
 
     const ed = vscode.window.activeTextEditor;
     if (mod === automaticallyChooseOption) {
