@@ -58,7 +58,7 @@ function is_module_loaded(mod)
             if resolved isa Module
                 out = resolved
             else
-                return out
+                return out !== Main
             end
         end
     end
