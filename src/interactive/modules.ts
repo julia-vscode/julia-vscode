@@ -89,7 +89,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
 
 async function chooseModule() {
     if (g_connection === undefined) {
-        console.error('need a running repl session');
+        vscode.window.showInformationMessage('Setting a module requires an active REPL.')
         return
     }
 
@@ -98,7 +98,11 @@ async function chooseModule() {
     possibleModules.sort()
     possibleModules.splice(0, 0, automaticallyChooseOption)
 
-    const mod = await vscode.window.showQuickPick(possibleModules, {canPickMany: false})
+    const qpOptions: vscode.QuickPickOptions = {
+        placeHolder: 'Select module',
+        canPickMany: false
+    }
+    const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
 
     console.log(mod);
 
