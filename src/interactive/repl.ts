@@ -160,6 +160,8 @@ function startREPLMsgServer(pipename: string) {
         g_connection.listen();
 
         connected.notify();
+
+        modules.setREPLConnection(g_connection)
     });
 
     server.listen(pipename);
