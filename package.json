@@ -181,10 +181,6 @@
                 "title": "Julia: Delete All Plots"
             },
             {
-                "command": "language-julia.toggle-log",
-                "title": "Julia: Toggle Server Logs"
-            },
-            {
                 "command": "language-julia.executeJuliaCellInREPL",
                 "title": "Julia: Execute Code Cell"
             },
