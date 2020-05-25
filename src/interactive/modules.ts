@@ -36,6 +36,25 @@ export function setLanguageClient(languageClient) {
     g_languageClient = languageClient
 }
 
+export async function getModuleForEditor(editor: vscode.TextEditor) {
+    let mod = manuallySetDocuments[editor.document.fileName]
+
+    if (mod === undefined) {
+        const params: TextDocumentPositionParams = { 
+            textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), 
+            position: editor.selection.start
+        }
+    
+        mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
+    }
+
+    return mod
+}
+
+export function setREPLConnection(conn) {
+    g_connection = conn
+}
+
 export function deactivate() {
     statusBarItem.dispose()
 }
@@ -56,17 +75,7 @@ async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionCh
 }
 
 async function updateModuleForEditor(editor: vscode.TextEditor) {
-    let mod: string = null
-    if (manuallySetDocuments[editor.document.fileName]) {
-        mod = manuallySetDocuments[editor.document.fileName]
-    } else {
-        const params: TextDocumentPositionParams = { 
-            textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), 
-            position: editor.selection.start
-        }
-    
-        mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
-    }
+    const mod = await getModuleForEditor(editor)
 
     let loaded = false
     if (g_connection !== undefined) {
@@ -91,6 +100,8 @@ async function chooseModule() {
 
     const mod = await vscode.window.showQuickPick(possibleModules, {canPickMany: false})
 
+    console.log(mod);
+
     const ed = vscode.window.activeTextEditor;
     if (mod === automaticallyChooseOption) {
         delete manuallySetDocuments[ed.document.fileName]
@@ -99,9 +110,4 @@ async function chooseModule() {
     }
 
     updateStatusBarItem(ed)
-}
-
-
-export function setREPLConnection(conn) {
-    g_connection = conn
 }

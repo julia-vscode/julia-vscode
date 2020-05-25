@@ -134,7 +134,7 @@ run(conn_endpoint)
         elseif msg["method"] == "repl/loadedModules"
             JSONRPC.send_success_response(conn_endpoint, msg, string.(collect(get_modules())))
         elseif msg["method"] == "repl/isModuleLoaded"
-            mod = msg["params"]
+            mod = msg["params"]["module"]
             
             is_loaded = is_module_loaded(mod)
             
