@@ -39,8 +39,14 @@ path = "JSON"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.1"
 
+[[JSONRPC]]
+deps = ["JSON", "UUIDs"]
+path = "../../packages/JSONRPC"
+uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
+version = "1.0.1-DEV"
+
 [[LanguageServer]]
-deps = ["CSTParser", "DocumentFormat", "JSON", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
+deps = ["CSTParser", "DocumentFormat", "JSON", "JSONRPC", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
 path = "LanguageServer"
 uuid = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
 version = "3.0.1-DEV"
@@ -50,10 +56,6 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
-
-[[LinearAlgebra]]
-deps = ["Libdl"]
-uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
