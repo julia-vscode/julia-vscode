@@ -26,8 +26,6 @@ let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
 
-let g_serverFullTextNotification = new rpc.NotificationType<string, string>('julia/getFullText');
-
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context);
 
@@ -203,14 +201,6 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         g_languageClient = null;
     }
-
-    g_languageClient.onReady().then(() => {
-        g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
-            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString() == uri)
-            doc.getText()
-            g_languageClient.sendNotification("julia/reloadText", { textDocument: { uri: uri, languageId: "julia", version: 1, text: doc.getText() } })
-        })
-    })
 }
 
 export class JuliaDebugConfigurationProvider
