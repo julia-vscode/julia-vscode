@@ -57,10 +57,12 @@ export class Result {
         this.decoration = vscode.window.createTextEditorDecorationType(decoration)
 
         for (const ed of vscode.window.visibleTextEditors) {
-            ed.setDecorations(this.decoration, [{
-                hoverMessage: this.content.hoverContent,
-                range: this.range
-            }])
+            if (ed.document == this.document) {
+                ed.setDecorations(this.decoration, [{
+                    hoverMessage: this.content.hoverContent,
+                    range: this.range
+                }])
+            }
         }
 
     }
@@ -71,7 +73,7 @@ export class Result {
 
     validate (e: vscode.TextDocumentChangeEvent) {
         if (this.document !== e.document) {
-            return  
+            return true
         }
 
         for (const change of e.contentChanges) {
@@ -125,8 +127,9 @@ export function activate(context) {
 export function deactivate() {}
 
 export function addResult (editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
-    for (const result of results.reverse()) {
-        if (result.range.intersection(range) !== undefined) {
+    for (let i = results.length - 1; i > -1; i--) {
+        const result = results[i]
+        if (result.document == editor.document && result.range.intersection(range) !== undefined) {
             removeResult(result)
         }
     }
@@ -140,7 +143,6 @@ export function addResult (editor: vscode.TextEditor, range: vscode.Range, conte
 export function refreshResults(editors: vscode.TextEditor[]) {
     for (const result of results) {
         for (const editor of editors) {
-            
             if (result.document === editor.document) {
                 result.draw()
             }
@@ -158,7 +160,7 @@ export function validateResults (e: vscode.TextDocumentChangeEvent) {
 }
 
 export function removeResult (result: Result) {
-    const index = results.indexOf(result)
+    let index = results.indexOf(result)
 
     if (index > -1) {
         result.remove(true)
@@ -167,7 +169,8 @@ export function removeResult (result: Result) {
 }
 
 export function removeAll (editor: vscode.TextEditor | null = null) {
-    for (const result of results.reverse()) {
+    for (let i = results.length - 1; i > -1; i--) {
+        const result = results[i]
         if (editor === null || result.document === editor.document) {
             removeResult(result)
         }
@@ -176,7 +179,8 @@ export function removeAll (editor: vscode.TextEditor | null = null) {
 
 export function removeCurrent (editor: vscode.TextEditor) {
     for (const selection of editor.selections) {
-        for (const result of results.reverse()) {
+        for (let i = results.length - 1; i > -1; i--) {
+            const result = results[i]
             const intersect = selection.intersection(result.range)
             if (result.document === editor.document && intersect !== undefined) {
                 result.remove()
