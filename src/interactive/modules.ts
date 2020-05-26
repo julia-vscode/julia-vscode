@@ -44,8 +44,12 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
             textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), 
             position: position
         }
-    
-        mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
+        
+        if (g_languageClient) {
+            mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
+        } else {
+            mod = 'Main'
+        }
     }
 
     return mod

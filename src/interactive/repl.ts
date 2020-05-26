@@ -319,12 +319,20 @@ async function evaluateBlockOrSelection (shouldMove: boolean = false) {
 async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string) {
     await startREPL(true);
 
-    let r = results.addResult(editor, range, {
-        content: ' ⟳ ', 
-        isIcon: false, 
-        hoverContent: '',
-        isError: false
-    })
+    const section = vscode.workspace.getConfiguration('julia')
+    const inlineResults: boolean = section.get('execution.inlineResults')
+    const resultInREPL: boolean = section.get('execution.resultInREPL')
+    const codeInREPL: boolean = section.get('execution.codeInREPL')
+    
+    let r: results.Result = null
+    if (inlineResults) {
+        r = results.addResult(editor, range, {
+            content: ' ⟳ ', 
+            isIcon: false, 
+            hoverContent: '',
+            isError: false
+        })
+    }
 
     let result: any = await g_connection.sendRequest(
         requestTypeReplRunCode,
@@ -334,19 +342,21 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             column: range.start.character,
             code: text,
             module: module,
-            showCodeInREPL: false,
-            showResultInREPL: false
+            showCodeInREPL: codeInREPL,
+            showResultInREPL: resultInREPL
         }
-    );
+    )
 
-    const hoverString =  '```\n' + result.all.toString() + '\n```'
-
-    r.setContent({
-        content: ' ' + result.inline.toString() + ' ',
-        isIcon: false,
-        hoverContent: hoverString,
-        isError: result.iserr
-    })
+    if (inlineResults) {
+        const hoverString =  '```\n' + result.all.toString() + '\n```'
+    
+        r.setContent({
+            content: ' ' + result.inline.toString() + ' ',
+            isIcon: false,
+            hoverContent: hoverString,
+            isError: result.iserr
+        })
+    }
 }
 
 // code execution end
@@ -400,7 +410,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 }
 
 export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-
+    g_settings = newSettings
 }
 
 export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {

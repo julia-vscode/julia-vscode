@@ -566,6 +566,24 @@
                     "default": true,
                     "description": "Remove spaces around = in function keywords.",
                     "scope": "window"
+                },
+                "julia.execution.inlineResults": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Show inline result bubbles.",
+                    "scope": "window"
+                },
+                "julia.execution.resultInREPL": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show inline execution results in REPL.",
+                    "scope": "window"
+                },
+                "julia.execution.codeInREPL": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Print executed code in REPL.",
+                    "scope": "window"
                 }
             }
         },
