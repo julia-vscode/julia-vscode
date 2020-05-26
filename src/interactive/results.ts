@@ -117,9 +117,9 @@ export function activate(context) {
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)))
     context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors((editors) => refreshResults(editors)))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.removeAllInlineResults', removeAll));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.removeAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.removeCurrentInlineResult', () => removeCurrent(vscode.window.activeTextEditor)));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.clearAllInlineResults', removeAll));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.clearCurrentInlineResult', () => removeCurrent(vscode.window.activeTextEditor)));
 }
 
 export function deactivate() {}

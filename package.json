@@ -205,16 +205,16 @@
                 "title": "Julia: Select Code Block"
             },
             {
-                "command": "language-julia.removeAllInlineResults",
-                "title": "Julia: Remove All Inline Results"
+                "command": "language-julia.clearAllInlineResults",
+                "title": "Julia: Clear All Inline Results"
             },
             {
-                "command": "language-julia.removeAllInlineResultsInEditor",
-                "title": "Julia: Remove Inline Results In Editor"
+                "command": "language-julia.clearAllInlineResultsInEditor",
+                "title": "Julia: Clear Inline Results In Editor"
             },
             {
-                "command": "language-julia.removeCurrentInlineResult",
-                "title": "Julia: Remove Current Inline Result"
+                "command": "language-julia.clearCurrentInlineResult",
+                "title": "Julia: Clear Current Inline Result"
             }
         ],
         "menus": {
@@ -290,12 +290,12 @@
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
-                "command": "language-julia.removeCurrentInlineResult",
+                "command": "language-julia.clearCurrentInlineResult",
                 "key": "Escape",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
-                "command": "language-julia.removeAllInlineResultsInEditor",
+                "command": "language-julia.clearAllInlineResultsInEditor",
                 "key": "ctrl+I ctrl+C",
                 "when": "editorTextFocus && editorLangId == julia"
             },
