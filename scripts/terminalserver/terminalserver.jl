@@ -112,36 +112,7 @@ function module_from_string(mod)
     return out
 end
 
-function is_module_loaded(mod)
-    if mod == "Main"
-        return true
-    end
-
-    ms = split(mod, '.')
-
-    out = Main
-
-    loaded_module = findfirst(==(first(ms)), string.(Base.loaded_modules_array()))
-
-    if loaded_module !== nothing
-        out = Base.loaded_modules_array()[loaded_module]
-        popfirst!(ms)
-    end
-
-    for m in Symbol.(ms)
-        if isdefined(out, m)
-            resolved = getfield(out, m)
-
-            if resolved isa Module
-                out = resolved
-            else
-                return out !== Main
-            end
-        end
-    end
-
-    return out !== Main
-end
+is_module_loaded(mod) = mod == "Main" || module_from_string(mod) !== Main
 
 function get_modules(toplevel = nothing, mods = Set(Module[]))
     top_mods = toplevel === nothing ? Base.loaded_modules_array() : [toplevel]
