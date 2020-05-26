@@ -36,13 +36,13 @@ export function setLanguageClient(languageClient) {
     g_languageClient = languageClient
 }
 
-export async function getModuleForEditor(editor: vscode.TextEditor) {
+export async function getModuleForEditor(editor: vscode.TextEditor, position: vscode.Position =  editor.selection.start) {
     let mod = manuallySetDocuments[editor.document.fileName]
 
     if (mod === undefined) {
         const params: TextDocumentPositionParams = { 
             textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), 
-            position: editor.selection.start
+            position: position
         }
     
         mod = await g_languageClient.sendRequest('julia/getModuleAt', params)

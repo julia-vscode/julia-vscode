@@ -199,13 +199,8 @@ async function executeFile(uri?: vscode.Uri) {
         }
         path = editor.document.fileName;
         code = editor.document.getText();
-
-        const params: TextDocumentPositionParams = { 
-            textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), 
-            position: new vscode.Position(0, 0)
-        }
     
-        module = await g_languageClient.sendRequest('julia/getModuleAt', params);
+        module = await modules.getModuleForEditor(editor, new vscode.Position(0, 0))
     }
 
     await g_connection.sendRequest(
@@ -279,12 +274,7 @@ async function executeJuliaCellInRepl(shouldMove: boolean = false) {
     let nextpos = new vscode.Position(end + 1, 0);
     let code = doc.getText(new vscode.Range(startpos, endpos));
 
-    const params: TextDocumentPositionParams = { 
-        textDocument: vslc.TextDocumentIdentifier.create(ed.document.uri.toString()), 
-        position: startpos
-    }
-
-    const module: string = await g_languageClient.sendRequest('julia/getModuleAt', params);
+    const module: string = await modules.getModuleForEditor(ed, startpos)
 
     await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
 
@@ -299,12 +289,13 @@ async function evaluateBlockOrSelection (shouldMove: boolean = false) {
     for (const selection of editor.selections) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
+        const startpos: vscode.Position = new vscode.Position(selection.start.line, selection.start.character)
         const params: TextDocumentPositionParams = { 
             textDocument: editorId, 
-            position: new vscode.Position(selection.start.line, selection.start.character) 
+            position: startpos
         }
 
-        const module: string = await g_languageClient.sendRequest('julia/getModuleAt', params);
+        const module: string = await modules.getModuleForEditor(editor, startpos)
 
         if (selection.isEmpty) {
             const currentBlock: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params); 
