@@ -193,6 +193,14 @@ run(conn_endpoint)
                         elseif res !== nothing && !ends_with_semicolon(source_code)
                             Base.invokelatest(display, res)
                         end
+                    else
+                        try
+                            Base.invokelatest(display, InlineDisplay(), res)
+                        catch err
+                            if !(err isa MethodError)
+                                @error("Display Error", ex=(err, catch_backtrace()))
+                            end
+                        end
                     end
 
                     JSONRPC.send_success_response(conn_endpoint, msg, render(res))
