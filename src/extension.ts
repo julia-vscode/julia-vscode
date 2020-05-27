@@ -25,11 +25,16 @@ import { JuliaDebugSession } from './juliaDebug';
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
+let g_lsStartup: vscode.StatusBarItem = null;
 
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context);
 
     telemetry.traceEvent('activate');
+
+    g_lsStartup = vscode.window.createStatusBarItem();
+    g_lsStartup.text = "Starting Julia Language Server..."
+    g_lsStartup.show();
 
     telemetry.startLsCrashServer();
 
@@ -188,6 +193,9 @@ async function startLanguageServer() {
         else if (data.command=='symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
         }
+    });
+    g_languageClient.onReady().then(()=>{
+        g_lsStartup.hide();
     });
 
     // Push the disposable to the context's subscriptions so that the
