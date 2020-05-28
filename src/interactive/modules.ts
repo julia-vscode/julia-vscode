@@ -41,6 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     })
     onExit(hadError => {
+        g_connection = null
         statusBarItem.hide()
     })
 }
