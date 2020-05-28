@@ -655,7 +655,7 @@
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
-        "uuidv4": "^6.0.9",
+        "uuidv4": "^6.1.0",
         "vscode-debugadapter": "^1.40.0",
         "vscode-jsonrpc": "^5.0.1",
         "vscode-languageclient": "^6.1.3",
