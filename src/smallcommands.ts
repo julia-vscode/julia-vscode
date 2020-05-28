@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as settings from './settings'
 import * as vslc from 'vscode-languageclient';
 import * as telemetry from './telemetry';
+import { onSetLanguageClient, onDidChangeConfig } from './extension';
+import { ContextTagKeys } from 'applicationinsights/out/Declarations/Contracts';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -49,14 +51,11 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_context = context;
     g_settings = settings;
 
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+    context.subscriptions.push(onDidChangeConfig(newSettings => {}))
+
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter));
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-
-}
-
-export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
-    g_languageClient = newLanguageClient;
 }

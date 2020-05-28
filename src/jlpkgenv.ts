@@ -8,6 +8,7 @@ import * as os from 'os';
 import * as path from 'path'
 import * as juliaexepath from './juliaexepath';
 import {exec} from 'child-process-promise';
+import { onSetLanguageClient, onDidChangeConfig } from './extension';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -192,6 +193,12 @@ export async function getEnvName() {
 export async function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
     g_settings = settings;
+
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+    context.subscriptions.push(onDidChangeConfig(newSettings => {}))
+
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment));
     // Environment status bar
     g_current_environment = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -200,11 +207,4 @@ export async function activate(context: vscode.ExtensionContext, settings: setti
     g_current_environment.command = "language-julia.changeCurrentEnvironment";
     context.subscriptions.push(g_current_environment);
     await switchEnvToPath(await getEnvPath(), false); // We don't need to notify the LS here because it will start with that env already
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-}
-
-export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
-    g_languageClient = newLanguageClient;
 }

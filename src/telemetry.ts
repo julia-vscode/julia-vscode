@@ -8,6 +8,7 @@ import * as settings from './settings';
 import * as fs from 'async-file';
 import * as appInsights from 'applicationinsights';
 import {generatePipeName} from './utils';
+import { onDidChangeConfig } from './extension';
 
 let enableCrashReporter: boolean = false;
 let enableTelemetry: boolean = false;
@@ -53,6 +54,10 @@ function loadConfig() {
 export async function init(context: vscode.ExtensionContext) {
     loadConfig();
 
+    context.subscriptions.push(onDidChangeConfig(newSettings => {
+        loadConfig()
+    }))
+
     let packageJSONContent = JSON.parse(await fs.readTextFile(path.join(context.extensionPath, 'package.json')));
 
     let extversion = packageJSONContent.version;
@@ -87,7 +92,7 @@ export async function init(context: vscode.ExtensionContext) {
         // Make sure we send out messages right away
         appInsights.defaultClient.config.maxBatchSize = 0;
     }
-    
+
     extensionClient = appInsights.defaultClient;
     extensionClient.addTelemetryProcessor(filterTelemetry);
     extensionClient.commonProperties["vscodemachineid"] = vscode.env.machineId;
@@ -102,7 +107,7 @@ export async function init(context: vscode.ExtensionContext) {
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string) {
-    crashReporterQueue.push({exception: {name: name, message: message, stack: stacktrace}});  
+    crashReporterQueue.push({exception: {name: name, message: message, stack: stacktrace}});
 
     if (enableCrashReporter) {
         sendCrashReportQueue();
@@ -148,10 +153,6 @@ export function traceEvent(message) {
 
 export function tracePackageLoadError(packagename, message) {
     extensionClient.trackTrace({message: `Package ${packagename} crashed.\n\n${message}`})
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-    loadConfig();
 }
 
 function sendCrashReportQueue() {
