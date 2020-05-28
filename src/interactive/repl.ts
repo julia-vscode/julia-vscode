@@ -16,7 +16,6 @@ import * as results from './results'
 import * as plots from './plots'
 import * as workspace from './workspace'
 import * as modules from './modules'
-import { DocumentColorRequest } from 'vscode-languageclient';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
