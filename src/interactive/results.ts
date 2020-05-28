@@ -79,8 +79,6 @@ export class Result {
         for (const change of e.contentChanges) {
             const intersect = change.range.intersection(this.range)
             if (intersect !== undefined && !(intersect.isEmpty && change.text === '\n')) {
-                console.log(intersect);
-                
                 this.remove()
                 return false
             }
@@ -92,7 +90,7 @@ export class Result {
                 const lines = change.text.split('\n')
 
                 const lineOffset = lines.length - 1 - (change.range.end.line - change.range.start.line)
-                const charOffset = change.range.end.line == this.range.start.line ? 
+                const charOffset = change.range.end.line == this.range.start.line ?
                                    lines[lines.length - 1].length : 0
 
                 this.range = new vscode.Range(
@@ -101,7 +99,12 @@ export class Result {
                 )
             }
         }
-        
+
+        if (this.document.getText(this.range) !== this.text) {
+            this.remove()
+            return false
+        }
+
         return true
     }
 
@@ -151,7 +154,8 @@ export function refreshResults(editors: vscode.TextEditor[]) {
 }
 
 export function validateResults (e: vscode.TextDocumentChangeEvent) {
-    for (const result of results) {
+    for (let i = results.length - 1; i > -1; i--) {
+        const result = results[i]
         const isvalid = result.validate(e)
         if (!isvalid) {
             removeResult(result)
