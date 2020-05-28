@@ -138,9 +138,9 @@ function debuggerEnter(code: string) {
 }
 
 const requestTypeReplRunCode = new rpc.RequestType<{
-    filename: string, 
-    line: number, 
-    column: number, 
+    filename: string,
+    line: number,
+    column: number,
     code: string,
     module: string,
     showCodeInREPL: boolean,
@@ -152,6 +152,10 @@ const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger
 const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run');
 const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger');
 
+const _onInit = new vscode.EventEmitter<rpc.MessageConnection>()
+export const onInit = _onInit.event
+const _onExit = new vscode.EventEmitter<Boolean>()
+export const onExit = _onExit.event
 
 // code execution start
 
@@ -159,7 +163,10 @@ function startREPLMsgServer(pipename: string) {
     let connected = new Subject();
 
     let server = net.createServer((socket: net.Socket) => {
-        socket.on('close', hadError => {server.close()});
+        socket.on('close', hadError => {
+            _onExit.fire(hadError)
+            server.close()
+        });
 
         g_connection = rpc.createMessageConnection(
             new rpc.StreamMessageReader(socket),
@@ -172,9 +179,9 @@ function startREPLMsgServer(pipename: string) {
 
         g_connection.listen();
 
-        connected.notify();
+        _onInit.fire(g_connection)
 
-        modules.setREPLConnection(g_connection)
+        connected.notify();
     });
 
     server.listen(pipename);
@@ -199,7 +206,7 @@ async function executeFile(uri?: vscode.Uri) {
         }
         path = editor.document.fileName;
         code = editor.document.getText();
-    
+
         module = await modules.getModuleForEditor(editor, new vscode.Position(0, 0))
     }
 
@@ -290,15 +297,15 @@ async function evaluateBlockOrSelection (shouldMove: boolean = false) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
         const startpos: vscode.Position = new vscode.Position(selection.start.line, selection.start.character)
-        const params: TextDocumentPositionParams = { 
-            textDocument: editorId, 
+        const params: TextDocumentPositionParams = {
+            textDocument: editorId,
             position: startpos
         }
 
         const module: string = await modules.getModuleForEditor(editor, startpos)
 
         if (selection.isEmpty) {
-            const currentBlock: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params); 
+            const currentBlock: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params);
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
             nextBlock = new vscode.Position(currentBlock[2].line, currentBlock[2].character)
         } else {
@@ -323,12 +330,12 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     const inlineResults: boolean = section.get('execution.inlineResults')
     const resultInREPL: boolean = section.get('execution.resultInREPL')
     const codeInREPL: boolean = section.get('execution.codeInREPL')
-    
+
     let r: results.Result = null
     if (inlineResults) {
         r = results.addResult(editor, range, {
-            content: ' ⟳ ', 
-            isIcon: false, 
+            content: ' ⟳ ',
+            isIcon: false,
             hoverContent: '',
             isError: false
         })
@@ -349,7 +356,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
 
     if (inlineResults) {
         const hoverString =  '```\n' + result.all.toString() + '\n```'
-    
+
         r.setContent({
             content: ' ' + result.inline.toString() + ' ',
             isIcon: false,

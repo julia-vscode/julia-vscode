@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as vslc from 'vscode-languageclient';
 import * as rpc from 'vscode-jsonrpc';
+import { onInit, onExit } from './repl'
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
@@ -30,6 +31,19 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.command = 'language-julia.chooseModule'
     statusBarItem.text = 'Main'
     statusBarItem.tooltip = 'Choose Current Module'
+
+    onInit(conn => {
+        g_connection = conn
+        const editor = vscode.window.activeTextEditor
+        if (isJuliaEditor(editor)) {
+            statusBarItem.show()
+            updateModuleForEditor(editor)
+        }
+    })
+    onExit(hadError => {
+        g_connection = null
+        statusBarItem.hide()
+    })
 }
 
 export function setLanguageClient(languageClient) {
@@ -40,11 +54,11 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
     let mod = manuallySetDocuments[editor.document.fileName]
 
     if (mod === undefined) {
-        const params: TextDocumentPositionParams = { 
-            textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), 
+        const params: TextDocumentPositionParams = {
+            textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
             position: position
         }
-        
+
         if (g_languageClient) {
             mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
         } else {
@@ -55,18 +69,16 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
     return mod
 }
 
-export function setREPLConnection(conn) {
-    g_connection = conn
-}
-
 export function deactivate() {
     statusBarItem.dispose()
 }
 
+function isJuliaEditor(editor: vscode.TextEditor) {
+    return editor && editor.document && editor.document.languageId === 'julia'
+}
+
 async function updateStatusBarItem(editor: vscode.TextEditor) {
-    if (editor && editor.document && editor.document.languageId === 'julia') {
-        statusBarItem.show()
-        
+    if (isJuliaEditor(editor)) {
         await updateModuleForEditor(editor)
     } else {
         statusBarItem.hide()
