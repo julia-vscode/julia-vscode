@@ -119,7 +119,7 @@
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "title": "Julia: Execute Code"
-            },            
+            },
             {
                 "command": "language-julia.executeJuliaCodeInREPLAndMove",
                 "title": "Julia: Execute Code And Move"
@@ -567,17 +567,16 @@
                     "description": "Remove spaces around = in function keywords.",
                     "scope": "window"
                 },
-                "julia.execution.inlineResults": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Show inline result bubbles.",
-                    "scope": "window"
-                },
-                "julia.execution.resultInREPL": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Show inline execution results in REPL.",
-                    "scope": "window"
+                "julia.execution.resultType": {
+                    "type": "string",
+                    "default": "REPL",
+                    "description": "Specifies how to show inline execution results",
+                    "enum": ["REPL", "inline", "both"],
+                    "enumDescriptions": [
+                        "Shows inline execution results in REPL",
+                        "Shows inline execution results as inline bubbles",
+                        "Shows inline execution results in REPL and inline bubbles"
+                    ]
                 },
                 "julia.execution.codeInREPL": {
                     "type": "boolean",
