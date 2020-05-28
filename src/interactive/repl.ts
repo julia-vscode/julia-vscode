@@ -327,12 +327,11 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     await startREPL(true);
 
     const section = vscode.workspace.getConfiguration('julia')
-    const inlineResults: boolean = section.get('execution.inlineResults')
-    const resultInREPL: boolean = section.get('execution.resultInREPL')
+    const resultType: string = section.get('execution.resultType')
     const codeInREPL: boolean = section.get('execution.codeInREPL')
 
     let r: results.Result = null
-    if (inlineResults) {
+    if (resultType !== "REPL") {
         r = results.addResult(editor, range, {
             content: ' ⟳ ',
             isIcon: false,
@@ -350,11 +349,11 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             code: text,
             module: module,
             showCodeInREPL: codeInREPL,
-            showResultInREPL: resultInREPL
+            showResultInREPL: resultType !== "inline"
         }
     )
 
-    if (inlineResults) {
+    if (resultType !== "REPL") {
         const hoverString =  '```\n' + result.all.toString() + '\n```'
 
         r.setContent({
