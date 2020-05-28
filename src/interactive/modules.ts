@@ -38,11 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     onInit(conn => {
         g_connection = conn
-        const editor = vscode.window.activeTextEditor
-        if (isJuliaEditor(editor)) {
-            statusBarItem.show()
-            updateModuleForEditor(editor)
-        }
+        updateStatusBarItem(vscode.window.activeTextEditor)
     })
     onExit(hadError => {
         g_connection = null
@@ -82,7 +78,8 @@ function isJuliaEditor(editor: vscode.TextEditor) {
 }
 
 async function updateStatusBarItem(editor: vscode.TextEditor) {
-    if (isJuliaEditor(editor)) {
+    if (g_connection !== null && isJuliaEditor(editor)) {
+        statusBarItem.show()
         await updateModuleForEditor(editor)
     } else {
         statusBarItem.hide()
