@@ -27,7 +27,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(changeEvent => updateModuleForSelectionEvent(changeEvent)))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.chooseModule', chooseModule))
 
-    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right)
+    // NOTE:
+    // set module status bar item just right of language mode selector
+    // ref: language selector has priority `100`:
+    // https://github.com/microsoft/vscode/blob/1d268b701376470bc638100fbe17d283404ac559/src/vs/workbench/browser/parts/editor/editorStatus.ts#L534
+    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99)
     statusBarItem.command = 'language-julia.chooseModule'
     statusBarItem.text = 'Main'
     statusBarItem.tooltip = 'Choose Current Module'
