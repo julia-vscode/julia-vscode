@@ -291,7 +291,7 @@
             },
             {
                 "command": "language-julia.clearCurrentInlineResult",
-                "key": "Escape",
+                "key": "Ctrl+I Ctrl+D",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
