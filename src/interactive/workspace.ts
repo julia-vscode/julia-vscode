@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as repl from './repl';
 
 let g_terminal: vscode.Terminal = null
 
@@ -49,11 +50,11 @@ export function replVariables(params: {name: string, type: string, value: any}[]
 }
 
 export function replFinishEval() {
-    sendMessage('repl/getvariables', '');
+    repl.g_connection.sendNotification(repl.notifyTypeReplGetVariables);
 }
 
 async function showInVSCode(node: WorkspaceVariable) {
-    sendMessage('repl/showingrid', node.name);
+    repl.g_connection.sendNotification(repl.notifyTypeReplShowInGrid, node.name);
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -61,6 +62,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.showInVSCode', showInVSCode));
+}
+
+export function clearVariables() {
+    g_replVariables = [];
+    g_REPLTreeDataProvider.refresh();
 }
 
 export function setTerminal(terminal: vscode.Terminal) {

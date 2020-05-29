@@ -21,7 +21,7 @@ let g_languageClient: vslc.LanguageClient = null;
 
 let g_terminal: vscode.Terminal = null
 
-let g_connection: rpc.MessageConnection = undefined;
+export let g_connection: rpc.MessageConnection = undefined;
 
 function startREPLCommand() {
     telemetry.traceEvent('command-startrepl');
@@ -107,8 +107,7 @@ async function startREPL(preserveFocus: boolean) {
         g_terminal.show(preserveFocus);
         await juliaIsConnectedPromise.wait();
 
-        g_replVariables = [];
-        g_REPLTreeDataProvider.refresh();
+        workspace.clearVariables();
     }
     else {
         g_terminal.show(preserveFocus);
@@ -146,6 +145,8 @@ const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl
 const notifyTypeReplVariables = new rpc.NotificationType<{name: string, type: string, value: any}[], void>('repl/variables');
 const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval');
 const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval');
+export const notifyTypeReplGetVariables = new rpc.NotificationType<void, void>('repl/getvariables');
+export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('repl/showingrid');
 
 function startREPLMsgServer(pipename: string) {
     let connected = new Subject();
@@ -161,9 +162,9 @@ function startREPLMsgServer(pipename: string) {
         g_connection.onNotification(notifyTypeDisplay, plots.displayPlot);
         g_connection.onNotification(notifyTypeDebuggerRun, debuggerRun);
         g_connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter);
-        g_connection.onNotification(notifyTypeReplVariables, replVariables);
+        g_connection.onNotification(notifyTypeReplVariables, workspace.replVariables);
         g_connection.onNotification(notifyTypeReplStartEval, ()=>{});
-        g_connection.onNotification(notifyTypeReplFinishEval, replFinishEval)
+        g_connection.onNotification(notifyTypeReplFinishEval, workspace.replFinishEval)
 
         g_connection.listen();
 
