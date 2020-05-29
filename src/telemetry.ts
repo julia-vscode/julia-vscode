@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
 import * as fs from 'async-file';
-let appInsights = require('applicationinsights');
+import * as appInsights from 'applicationinsights';
 import {generatePipeName} from './utils';
 
 let enableCrashReporter: boolean = false;
@@ -14,10 +14,12 @@ let enableTelemetry: boolean = false;
 
 let g_currentJuliaVersion: string = "";
 
-let extensionClient
+let extensionClient: appInsights.TelemetryClient = undefined;
 
 let crashReporterUIVisible: boolean = false;
 let crashReporterQueue = []
+
+let g_jlcrashreportingpipename: string = null;
 
 function filterTelemetry(envelope, context) {
     if (envelope.data.baseType == "ExceptionData") {
@@ -112,7 +114,7 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
 
 export function startLsCrashServer() {
 
-    let pipe_path = generatePipeName(process.pid.toString(), 'vscode-language-julia-lscrashreports');
+    g_jlcrashreportingpipename = generatePipeName(process.pid.toString(), 'vsc-jl-cr');
 
     let server = net.createServer(function (connection) {
         let accumulatingBuffer = Buffer.alloc(0);
@@ -127,15 +129,17 @@ export function startLsCrashServer() {
             let errorMessage = replResponse.slice(2, 2 + errorMessageLines).join('\n');
             let stacktrace = replResponse.slice(2 + errorMessageLines,replResponse.length-1).join('\n');
 
-            traceEvent('lserror');
+            traceEvent('jlerror');
 
             handleNewCrashReport(replResponse[0], errorMessage, stacktrace);
         });
     });
 
-    server.listen(pipe_path);
+    server.listen(g_jlcrashreportingpipename);
+}
 
-    return pipe_path;
+export function getCrashReportingPipename() {
+    return g_jlcrashreportingpipename;
 }
 
 export function traceEvent(message) {

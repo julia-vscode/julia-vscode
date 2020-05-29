@@ -1,84 +1,20 @@
 module _vscodeserver
 
-include("repl.jl")
-include("../debugger/debugger.jl")
-
-function remlineinfo!(x)
-    if isa(x, Expr)
-        if x.head == :macrocall && x.args[2] != nothing
-            id = findall(map(x -> (isa(x, Expr) && x.head == :line) || (isdefined(:LineNumberNode) && x isa LineNumberNode), x.args))
-            deleteat!(x.args, id)
-            for j in x.args
-                remlineinfo!(j)
-            end
-            insert!(x.args, 2, nothing)
-        else
-            id = findall(map(x -> (isa(x, Expr) && x.head == :line) || (isdefined(:LineNumberNode) && x isa LineNumberNode), x.args))
-            deleteat!(x.args, id)
-            for j in x.args
-                remlineinfo!(j)
-            end
-        end
-    end
-    x
-end
-
 using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
 import Dates
-global active_module = :Main
 
-struct InlineDisplay <: AbstractDisplay end
+include("../languageserver/packages/JSON/src/JSON.jl")
 
-pid = Base.ARGS[1]
+module JSONRPC
+    import ..JSON
+    import ..UUIDs
 
-function change_module(newmodule::String, print_change = true)
-    global active_module
-    smods = Symbol.(split(newmodule, "."))
-
-    val = Main
-    for i = 1:length(smods)
-        if isdefined(val, smods[i])
-            val = getfield(val, smods[i])
-        else
-            println("Could not find module $newmodule")
-            return
-        end
-    end
-    expr = Meta.parse(newmodule)
-    active_module = expr
-    repl = Base.active_repl
-    main_mode = repl.interface.modes[1]
-    main_mode.prompt = string(newmodule,"> ")
-    main_mode.on_done = REPL.respond(repl,main_mode; pass_empty = false) do line
-        if !isempty(line)
-            ex = Meta.parse(line)
-            if ex isa Expr && ex.head == :module
-                ret = :( Base.eval($expr, Expr(:(=), :ans, Expr(:toplevel, Meta.parse($line)))) )
-            else
-                ret = :( Core.eval($expr, Expr(:(=), :ans, Meta.parse($line))) )
-            end
-        else
-            ret = :(  )
-        end
-        sendMsgToVscode("repl/variables", getVariables())
-        return ret
-    end
-    print(" \r ")
-    print_change && println("Changed root module to $expr")
-    printstyled(string(newmodule,"> "), bold = true, color = :green)
+    include("../packages/JSONRPC/src/core.jl")
 end
 
-function get_available_modules(m=Main, out = Module[])
-    for n in names(m, all = true, imported = true)
-        if isdefined(m, n) && getfield(m, n) isa Module  && !(getfield(m, n) in out)
-            M = getfield(m, n)
-            push!(out, M)
-            get_available_modules(M, out)
-        end
-    end
-    out
-end
+include("repl.jl")
+include("../debugger/debugger.jl")
 
 function getVariables()
     M = Main
@@ -96,66 +32,46 @@ function getVariables()
     return variables
 end
 
-function generate_pipe_name(name)
-    if Sys.iswindows()
-        "\\\\.\\pipe\\vscode-language-julia-$name-$pid"
-    elseif Sys.isunix()
-        joinpath(tempdir(), "vscode-language-julia-$name-$pid")
-    end
-end
+struct InlineDisplay <: AbstractDisplay end
+
+repl_pipename = Base.ARGS[1]
 
 !(Sys.isunix() || Sys.iswindows()) && error("Unknown operating system.")
-
-pipename_fromrepl = generate_pipe_name("fromrepl")
-pipename_torepl = generate_pipe_name("torepl")
-
-if issocket(pipename_torepl)
-    rm(pipename_torepl)
-end
-
-
-
-function sendMsgToVscode(cmd, payload)
-    println(conn, cmd, ":", sizeof(payload))
-    print(conn, payload)
-end
 
 function ends_with_semicolon(x)
     return REPL.ends_with_semicolon(split(x,'\n',keepempty = false)[end])
 end
 
-@async try
-    server = listen(pipename_torepl)
-    global conn = connect(pipename_fromrepl)
+repl_conn = connect(repl_pipename)
+
+conn_endpoint = JSONRPC.JSONRPCEndpoint(repl_conn, repl_conn)
+
+function sendDisplayMsg(kind, data)
+    JSONRPC.send_notification(conn_endpoint, "display", Dict{String,String}("kind"=>kind, "data"=>data))
+end
+
+
+run(conn_endpoint)
+
+@async begin
+   
     while true
-        sock = accept(server)
-        header = readline(sock)
-        cmd, payload_size_asstring = split(header, ':')
-        payload_size = parse(Int, payload_size_asstring)
-        payload = read(sock, payload_size)
-        if cmd == "repl/include"
-            text = String(payload)
-            cmod = Core.eval(active_module)
-            ex = Expr(:call, :include, strip(text, '\n'))
-            cmod.eval(ex)
-        elseif cmd == "repl/getvariables"
+        msg = JSONRPC.get_next_message(conn_endpoint)
+
+        if msg["method"] == "repl/getvariables"
             vars = getVariables()
             vars_as_string = map(vars) do v
                 return Base64.base64encode(string(Base64.base64encode(v.name), ';', Base64.base64encode(v.type), ';', Base64.base64encode(v.value)))
             end
             sendMsgToVscode("repl/variables", join(vars_as_string, ';') )
-        elseif cmd == "debug/info"
-            @info "RECEIVED A debug/info message"
-            @info "With payload_size=$payload_size"
-            @info String(payload)
-        elseif cmd == "repl/runcode"
-            payload_as_string = String(payload)
-            end_first_line_pos = findfirst("\n", payload_as_string)[1]
-            end_second_line_pos = findnext("\n", payload_as_string, end_first_line_pos+1)[1]
+        elseif msg["method"] == "repl/runcode"
+            params = msg["params"]
 
-            source_filename = payload_as_string[1:end_first_line_pos-1]
-            code_line, code_column = parse.(Int, split(payload_as_string[end_first_line_pos+1:end_second_line_pos-1], ':'))
-            source_code = payload_as_string[end_second_line_pos+1:end]
+
+            source_filename = params["filename"]
+            code_line = params["line"]
+            code_column = params["column"]
+            source_code = params["code"]
 
             sendMsgToVscode("repl/starteval", "")
             try
@@ -192,7 +108,7 @@ end
             finally
                 sendMsgToVscode("repl/finisheval", "")
             end
-        elseif cmd == "repl/showingrid"
+        elseif msg["method"] == "repl/showingrid"
             var = Core.eval(Main, Meta.parse(String(payload)))
 
             try
@@ -200,13 +116,13 @@ end
             catch err
                 Base.display_error(err, catch_backtrace())
             end
-        elseif cmd == "repl/startdebugger"
+        elseif msg["method"] == "repl/startdebugger"
             hideprompt() do
-                payload_as_string = String(payload)
+                debug_pipename = msg["params"]
                 try
-                    VSCodeDebugger.startdebug(payload_as_string)
+                    VSCodeDebugger.startdebug(debug_pipename)
                 catch err
-                    Base.display_error(err, catch_backtrace())
+                    VSCodeDebugger.global_err_handler(err, catch_backtrace(), ARGS[4])
                 end
             end
         end
@@ -217,28 +133,28 @@ end
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
     payload = stringmime(MIME("image/png"), x)
-    sendMsgToVscode("image/png", payload)
+    sendDisplayMsg("image/png", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
     payload = stringmime(MIME("image/svg+xml"), x)
-    sendMsgToVscode("image/svg+xml", payload)
+    sendDisplayMsg("image/svg+xml", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("text/html")}, x)
     payload = stringmime(MIME("text/html"), x)
-    sendMsgToVscode("text/html", payload)
+    sendDisplayMsg("text/html", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("text/html")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}, x)
     payload = stringmime(MIME("juliavscode/html"), x)
-    sendMsgToVscode("juliavscode/html", payload)
+    sendDisplayMsg("juliavscode/html", payload)
 end
 
 Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
@@ -247,56 +163,56 @@ displayable(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}, x)
     payload = stringmime(MIME("application/vnd.vegalite.v2+json"), x)
-    sendMsgToVscode("application/vnd.vegalite.v2+json", payload)
+    sendDisplayMsg("application/vnd.vegalite.v2+json", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v3+json")}, x)
     payload = stringmime(MIME("application/vnd.vegalite.v3+json"), x)
-    sendMsgToVscode("application/vnd.vegalite.v3+json", payload)
+    sendDisplayMsg("application/vnd.vegalite.v3+json", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v3+json")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}, x)
     payload = stringmime(MIME("application/vnd.vegalite.v4+json"), x)
-    sendMsgToVscode("application/vnd.vegalite.v4+json", payload)
+    sendDisplayMsg("application/vnd.vegalite.v4+json", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v3+json")}, x)
     payload = stringmime(MIME("application/vnd.vega.v3+json"), x)
-    sendMsgToVscode("application/vnd.vega.v3+json", payload)
+    sendDisplayMsg("application/vnd.vega.v3+json", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v3+json")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v4+json")}, x)
     payload = stringmime(MIME("application/vnd.vega.v4+json"), x)
-    sendMsgToVscode("application/vnd.vega.v4+json", payload)
+    sendDisplayMsg("application/vnd.vega.v4+json", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v4+json")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v5+json")}, x)
     payload = stringmime(MIME("application/vnd.vega.v5+json"), x)
-    sendMsgToVscode("application/vnd.vega.v5+json", payload)
+    sendDisplayMsg("application/vnd.vega.v5+json", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v5+json")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}, x)
     payload = stringmime(MIME("application/vnd.plotly.v1+json"), x)
-    sendMsgToVscode("application/vnd.plotly.v1+json", payload)
+    sendDisplayMsg("application/vnd.plotly.v1+json", payload)
 end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
 function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}, x)
     payload = stringmime(MIME("application/vnd.dataresource+json"), x)
-    sendMsgToVscode("application/vnd.dataresource+json", payload)
+    sendDisplayMsg("application/vnd.dataresource+json", payload)
 end
 
 Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) = true
@@ -590,10 +506,10 @@ end
 
 macro enter(command)
     _vscodeserver.remove_lln!(command)
-    :(_vscodeserver.sendMsgToVscode("debugger/enter", $(string(command))))
+    :(_vscodeserver.JSONRPC.send_notification(_vscodeserver.conn_endpoint, "debugger/enter", $(string(command))))
 end
 
 macro run(command)
     _vscodeserver.remove_lln!(command)
-    :(_vscodeserver.sendMsgToVscode("debugger/run", $(string(command))))
+    :(_vscodeserver.JSONRPC.send_notification(_vscodeserver.conn_endpoint, "debugger/run", $(string(command))))
 end

@@ -45,58 +45,12 @@ function applyTextEdit(we) {
 //     }
 // }
 
-
-function toggleServerLogs() {
-    telemetry.traceEvent('command-juliatogglelog');
-
-    if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: Lanuage server is not yet running.');
-    }
-    else {
-        try {
-            g_languageClient.sendRequest("julia/toggle-log");
-        }
-        catch (ex) {
-            if (ex.message == "Language client is not ready yet") {
-                vscode.window.showErrorMessage('Error: server is not running.');
-            }
-            else {
-                throw ex;
-            }
-        }
-    }
-}
-
-function toggleFileLint(arg) {
-    telemetry.traceEvent('command-juliatogglefilelint');
-
-    if (g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: Lanuage server is not yet running.');
-    }
-    else {
-        try {
-            g_languageClient.sendRequest("julia/toggleFileLint", arg);
-        }
-        catch (ex) {
-            5
-            if (ex.message == "Language client is not ready yet") {
-                vscode.window.showErrorMessage('Error: server is not running.');
-            }
-            else {
-                throw ex;
-            }
-        }
-    }
-}
-
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
     g_settings = settings;
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-log', toggleServerLogs));
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggle-file-lint', toggleFileLint));
 }
 
 export function onDidChangeConfiguration(newSettings: settings.ISettings) {

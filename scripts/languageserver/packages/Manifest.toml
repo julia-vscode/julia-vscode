@@ -7,7 +7,7 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 deps = ["Tokenize"]
 path = "CSTParser"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "2.2.2-DEV"
+version = "2.3.1-DEV"
 
 [[Dates]]
 deps = ["Printf"]
@@ -21,13 +21,13 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 deps = ["CSTParser", "FilePathsBase", "Tokenize"]
 path = "DocumentFormat"
 uuid = "ffa9a821-9c82-50df-894e-fbcef3ed31cd"
-version = "2.1.2-DEV"
+version = "2.2.1-DEV"
 
 [[FilePathsBase]]
 deps = ["Dates", "Printf", "Test", "UUIDs"]
 path = "FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.0"
+version = "0.9.2"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -39,21 +39,23 @@ path = "JSON"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.1"
 
+[[JSONRPC]]
+deps = ["JSON", "UUIDs"]
+path = "../../packages/JSONRPC"
+uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
+version = "1.0.1-DEV"
+
 [[LanguageServer]]
-deps = ["CSTParser", "DocumentFormat", "JSON", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
+deps = ["CSTParser", "DocumentFormat", "JSON", "JSONRPC", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
 path = "LanguageServer"
 uuid = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
-version = "2.0.2-DEV"
+version = "3.0.1-DEV"
 
 [[LibGit2]]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
-
-[[LinearAlgebra]]
-deps = ["Libdl"]
-uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -94,13 +96,13 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 deps = ["CSTParser", "Serialization", "SymbolServer"]
 path = "StaticLint"
 uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
-version = "4.0.1-DEV"
+version = "4.3.1-DEV"
 
 [[SymbolServer]]
 deps = ["LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
-version = "4.3.1-DEV"
+version = "4.4.1-DEV"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]

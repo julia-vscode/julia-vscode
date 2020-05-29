@@ -12,8 +12,9 @@ import { Subject } from 'await-notify';
 import * as readline from 'readline';
 import { generatePipeName } from './utils';
 import { uuid } from 'uuidv4';
-import { sendMessage } from './repl';
+import { replStartDebugger } from './interactive/repl';
 import * as vscode from 'vscode';
+import { getCrashReportingPipename } from './telemetry';
 
 function timeout(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -232,7 +233,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		await serverListeningPromise.wait();
 
-		sendMessage('repl/startdebugger', pn);
+		replStartDebugger(pn);
 
 		await connectedPromise.wait();
 
@@ -301,7 +302,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				pn,
 				pnForWrapper,
 				args.cwd,
-				args.juliaEnv
+				args.juliaEnv,
+				getCrashReportingPipename()
 			],
 			env: {
 				JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : ''

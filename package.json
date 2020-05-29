@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "0.15.29",
+    "version": "0.15.36",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -37,7 +37,6 @@
         "onCommand:language-julia.weave-open-preview-side",
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
-        "onCommand:language-julia.toggle-file-lint",
         "onCommand:language-julia.executeJuliaCellInREPL",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
@@ -182,14 +181,6 @@
                 "title": "Julia: Delete All Plots"
             },
             {
-                "command": "language-julia.toggle-file-lint",
-                "title": "Julia: Toggle File Linting"
-            },
-            {
-                "command": "language-julia.toggle-log",
-                "title": "Julia: Toggle Server Logs"
-            },
-            {
                 "command": "language-julia.executeJuliaCellInREPL",
                 "title": "Julia: Execute Code Cell"
             },
@@ -212,16 +203,6 @@
                 {
                     "when": "resourceLangId == julia",
                     "command": "language-julia.executeJuliaFileInREPL",
-                    "group": "julia"
-                },
-                {
-                    "when": "resourceLangId == julia",
-                    "command": "language-julia.toggle-file-lint",
-                    "group": "julia"
-                },
-                {
-                    "when": "explorerResourceIsFolder",
-                    "command": "language-julia.toggle-file-lint",
                     "group": "julia"
                 }
             ],
@@ -368,44 +349,64 @@
                     "description": "Run the linter on active files."
                 },
                 "julia.lint.missingrefs": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Report possibly missing references."
+                    "type": "string",
+                    "default": "all",
+                    "enum": [
+                        "none",
+                        "symbols",
+                        "all"
+                    ],
+                    "description": "Highlight unknown symbols. The `symbols` option will not mark unknown fields."
                 },
                 "julia.lint.call": {
                     "type": "boolean",
-                    "default": false,
-                    "description": "Check calls against existing methods. (experimental)"
+                    "default": true,
+                    "description": "This compares  call signatures against all known methods for the called function. Calls with too many or too few arguments, or unknown keyword parameters are highlighted."
                 },
                 "julia.lint.iter": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check iterator syntax of loops."
+                    "description": "Check iterator syntax of loops. Will identify, for example, attempts to iterate over single values."
+                },
+                "julia.lint.nothingcomp": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check for use of `==` rather than `===` when comparing against `nothing`. "
                 },
                 "julia.lint.constif": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for constant conditionals of if statements."
+                    "description": "Check for constant conditionals in if statements that result in branches never being reached.."
                 },
                 "julia.lint.lazy": {
                     "type": "boolean",
                     "default": true,
                     "description": "Check for deterministic lazy boolean operators."
                 },
+                "julia.lint.datadecl": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check variables used in type declarations are datatypes."
+                },
                 "julia.lint.typeparam": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for unused DataType parameters."
+                    "description": "Check parameters declared in `where` statements or datatype declarations are used."
                 },
                 "julia.lint.modname": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for invalid submodule names."
+                    "description": "Check submodule names do not shadow their parent's name."
                 },
                 "julia.lint.pirates": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for type piracy."
+                    "description": "Check for type piracy - the overloading of external functions with methods specified for external datatypes. 'External' here refers to imported code."
+                },
+                "julia.lint.useoffuncargs": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check that all declared arguments are used within the function body."
                 },
                 "julia.enableCrashReporter": {
                     "type": [
@@ -462,7 +463,7 @@
                 },
                 "julia.useCustomSysimage": {
                     "type": "boolean",
-                    "default": "false",
+                    "default": false,
                     "description": "Use an existing custom sysimage when starting the REPL",
                     "scope": "application"
                 },
@@ -665,15 +666,16 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
+        "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
-        "@types/vscode": "^1.44.0",
+        "@types/vscode": "^1.45.1",
         "applicationinsights": "^1.7.5",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
-        "uuidv4": "^6.0.8",
+        "uuidv4": "^6.1.0",
         "vscode-debugadapter": "^1.40.0",
         "vscode-jsonrpc": "^5.0.1",
         "vscode-languageclient": "^6.1.3",
@@ -683,14 +685,14 @@
         "@types/cson-parser": "^4.0.4",
         "@types/download": "^6.2.4",
         "@types/mocha": "^7.0.2",
-        "@types/node": "^12.12.37",
+        "@types/node": "^12.12.42",
         "cson-parser": "^4.0.4",
         "download": "^7.1.0",
-        "mocha": "^7.1.2",
-        "ts-loader": "^7.0.2",
-        "typescript": "^3.8.3",
+        "mocha": "^7.2.0",
+        "ts-loader": "^7.0.5",
+        "typescript": "^3.9.3",
         "vsce": "^1.75.0",
-        "vscode-test": "^1.3.0",
+        "vscode-test": "^1.4.0",
         "webpack": "^4.43.0",
         "webpack-cli": "^3.3.11"
     }

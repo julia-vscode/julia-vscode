@@ -6,7 +6,7 @@ end
 
 using InteractiveUtils, Sockets
 
-include("error_handler.jl")
+include("../error_handler.jl")
 
 struct LSPrecompileFailure <: Exception
     msg::AbstractString
@@ -40,7 +40,7 @@ try
         end
     end
 
-    symserver_store_path = joinpath(ARGS[5], "symbolstorev1")
+    symserver_store_path = joinpath(ARGS[5], "symbolstorev2")
 
     if !ispath(symserver_store_path)
         mkpath(symserver_store_path)
@@ -48,8 +48,15 @@ try
 
     @info "Symbol server store is at '$symserver_store_path'."
 
-    server = LanguageServerInstance(stdin, conn, Base.ARGS[1], Base.ARGS[4], global_err_handler, symserver_store_path)
+    server = LanguageServerInstance(
+        stdin,
+        conn,
+        Base.ARGS[1],
+        Base.ARGS[4],
+        (err, bt)-> global_err_handler(err, bt, Base.ARGS[3]),
+        symserver_store_path
+    )
     run(server)
-catch e
-    global_err_handler(e, catch_backtrace())
+catch err
+    global_err_handler(err, catch_backtrace(), Base.ARGS[3])
 end

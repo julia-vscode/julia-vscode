@@ -11,7 +11,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, StreamInfo, RevealOutputChannelOn } from 'vscode-languageclient';
 import * as vslc from 'vscode-languageclient';
 import * as rpc from 'vscode-jsonrpc';
-import * as repl from './repl';
+import * as repl from './interactive/repl';
 import * as weave from './weave';
 import * as tasks from './tasks';
 import * as settings from './settings';
@@ -25,17 +25,18 @@ import { JuliaDebugSession } from './juliaDebug';
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
-
-let g_serverFullTextNotification = new rpc.NotificationType<string, string>('julia/getFullText');
-
-let g_lscrashreportingpipename: string = null;
+let g_lsStartup: vscode.StatusBarItem = null;
 
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context);
 
     telemetry.traceEvent('activate');
 
-    g_lscrashreportingpipename = telemetry.startLsCrashServer();
+    g_lsStartup = vscode.window.createStatusBarItem();
+    g_lsStartup.text = "Starting Julia Language Server..."
+    g_lsStartup.show();
+
+    telemetry.startLsCrashServer();
 
     g_context = context;
 
@@ -151,8 +152,8 @@ async function startLanguageServer() {
     }
     let oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : "";
     let envForLSPath = path.join(g_context.extensionPath, "scripts", "languageserver", "packages")
-    let serverArgsRun = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', g_lscrashreportingpipename, oldDepotPath, g_context.globalStoragePath];
-    let serverArgsDebug = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', g_lscrashreportingpipename, oldDepotPath, g_context.globalStoragePath];
+    let serverArgsRun = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath];
+    let serverArgsDebug = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath];
     let spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -193,6 +194,9 @@ async function startLanguageServer() {
             telemetry.tracePackageLoadError(data.name, data.message)
         }
     });
+    g_languageClient.onReady().then(()=>{
+        g_lsStartup.hide();
+    });
 
     // Push the disposable to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
@@ -205,14 +209,6 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         g_languageClient = null;
     }
-
-    g_languageClient.onReady().then(() => {
-        g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
-            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString() == uri)
-            doc.getText()
-            g_languageClient.sendNotification("julia/reloadText", { textDocument: { uri: uri, languageId: "julia", version: 1, text: doc.getText() } })
-        })
-    })
 }
 
 export class JuliaDebugConfigurationProvider
