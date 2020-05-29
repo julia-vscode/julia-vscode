@@ -7,6 +7,9 @@ let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
 let g_languageClient: vslc.LanguageClient = null
 
+const isConnectionActive = () => g_connection !== null
+const isLanguageClientActive = () => g_languageClient !== null
+
 interface TextDocumentPositionParams {
     textDocument: vslc.TextDocumentIdentifier
     position: vscode.Position
@@ -59,7 +62,7 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
             position: position
         }
 
-        if (g_languageClient) {
+        if (isLanguageClientActive()) {
             mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
         } else {
             mod = 'Main'
@@ -73,12 +76,12 @@ export function deactivate() {
     statusBarItem.dispose()
 }
 
-function isJuliaEditor(editor: vscode.TextEditor) {
-    return editor && editor.document && editor.document.languageId === 'julia'
+function isJuliaEditor (editor: vscode.TextEditor = vscode.window.activeTextEditor) {
+    return editor && editor.document.languageId === 'julia'
 }
 
 async function updateStatusBarItem(editor: vscode.TextEditor) {
-    if (g_connection !== null && isJuliaEditor(editor)) {
+    if (isConnectionActive() && isJuliaEditor(editor)) {
         statusBarItem.show()
         await updateModuleForEditor(editor)
     } else {
@@ -95,7 +98,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
     const mod = await getModuleForEditor(editor)
 
     let loaded = false
-    if (g_connection !== null) {
+    if (isConnectionActive()) {
         loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, {
             module: mod
         })
@@ -105,7 +108,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
 }
 
 async function chooseModule() {
-    if (g_connection === null) {
+    if (!isConnectionActive()) {
         vscode.window.showInformationMessage('Setting a module requires an active REPL.')
         return
     }
