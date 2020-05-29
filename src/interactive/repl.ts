@@ -14,7 +14,6 @@ import { Subject } from 'await-notify';
 
 import * as plots from './plots'
 import * as workspace from './workspace'
-import { DocumentColorRequest } from 'vscode-languageclient';
 import { onSetLanguageClient, onDidChangeConfig } from '../extension';
 
 let g_context: vscode.ExtensionContext = null;

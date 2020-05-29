@@ -3,7 +3,6 @@ import * as settings from './settings'
 import * as vslc from 'vscode-languageclient';
 import * as telemetry from './telemetry';
 import { onSetLanguageClient, onDidChangeConfig } from './extension';
-import { ContextTagKeys } from 'applicationinsights/out/Declarations/Contracts';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
