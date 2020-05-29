@@ -94,18 +94,18 @@ export async function activate(context: vscode.ExtensionContext) {
 // this method is called when your extension is deactivated
 export function deactivate() {}
 
-const _onSetLanguageClient = new vscode.EventEmitter<vslc.LanguageClient>()
-export const onSetLanguageClient = _onSetLanguageClient.event
+const g_onSetLanguageClient = new vscode.EventEmitter<vslc.LanguageClient>()
+export const onSetLanguageClient = g_onSetLanguageClient.event
 function setLanguageClient(languageClient: vslc.LanguageClient) {
-    _onSetLanguageClient.fire(languageClient)
+    g_onSetLanguageClient.fire(languageClient)
     g_languageClient = languageClient;
 }
 
-const _onDidChangeConfig = new vscode.EventEmitter<settings.ISettings>()
-export const onDidChangeConfig = _onDidChangeConfig.event
+const g_onDidChangeConfig = new vscode.EventEmitter<settings.ISettings>()
+export const onDidChangeConfig = g_onDidChangeConfig.event
 function changeConfig(params: vscode.ConfigurationChangeEvent) {
     const newSettings = settings.loadSettings()
-    _onDidChangeConfig.fire(newSettings)
+    g_onDidChangeConfig.fire(newSettings)
 
     const need_to_restart_server = g_settings.juliaExePath != newSettings.juliaExePath ? true : false
     if (need_to_restart_server) {
