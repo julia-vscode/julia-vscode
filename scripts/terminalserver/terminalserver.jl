@@ -38,7 +38,7 @@ end
 run(conn_endpoint)
 
 @async begin
-   
+
     while true
         msg = JSONRPC.get_next_message(conn_endpoint)
 
@@ -65,7 +65,7 @@ run(conn_endpoint)
                         # Indent by 7 so that it aligns with the julia> prompt
                         print(' '^7)
                     end
-                
+
                     println(line)
                 end
 

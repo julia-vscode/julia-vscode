@@ -4,7 +4,7 @@ grammar_file_path = joinpath(@__DIR__, "../syntaxes/julia.json")
 json = Ref(read(grammar_file_path, String))
 
 # apply substitutions
-sub!(pr) = json.x = replace(json.x, pr; count=typemax(Int))
+sub!(pr) = json.x = replace(json.x, pr; count = typemax(Int))
 
 sub!(r"(\"include\"\s*:\s*\")source\.gfm(\")" => s"\1text.html.markdown.julia\2")
 
