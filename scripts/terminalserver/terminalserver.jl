@@ -60,10 +60,7 @@ run(conn_endpoint)
 
         if msg["method"] == "repl/getvariables"
             vars = getVariables()
-            vars_as_string = map(vars) do v
-                return Base64.base64encode(string(Base64.base64encode(v.name), ';', Base64.base64encode(v.type), ';', Base64.base64encode(v.value)))
-            end
-            sendMsgToVscode("repl/variables", join(vars_as_string, ';') )
+            JSONRPC.send_notification(conn_endpoint, "repl/variables", [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
         elseif msg["method"] == "repl/runcode"
             params = msg["params"]
 
@@ -73,7 +70,7 @@ run(conn_endpoint)
             code_column = params["column"]
             source_code = params["code"]
 
-            sendMsgToVscode("repl/starteval", "")
+            JSONRPC.send_notification(conn_endpoint, "repl/starteval", nothing)
             try
                 hideprompt() do
                     if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
@@ -106,7 +103,7 @@ run(conn_endpoint)
                     end
                 end
             finally
-                sendMsgToVscode("repl/finisheval", "")
+                JSONRPC.send_notification(conn_endpoint, "repl/finisheval", nothing)
             end
         elseif msg["method"] == "repl/showingrid"
             var = Core.eval(Main, Meta.parse(String(payload)))
@@ -420,7 +417,7 @@ function hook_repl(repl)
                 Expr(:block,
                     quote
                         try
-                            $sendMsgToVscode("repl/starteval", "")
+                            $(JSONRPC.send_notification)($conn_endpoint, "repl/starteval", nothing)
                         catch err
                         end
                     end,
@@ -430,7 +427,7 @@ function hook_repl(repl)
                 false,
                 quote
                     try
-                        $sendMsgToVscode("repl/finisheval", "")
+                        $(JSONRPC.send_notification)($conn_endpoint, "repl/finisheval", nothing)
                     catch err
                     end                    
                 end
