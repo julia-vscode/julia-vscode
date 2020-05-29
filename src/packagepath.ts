@@ -6,6 +6,7 @@ import { FILE } from 'dns';
 import { join } from 'path';
 import * as fs from 'async-file';
 import {exec} from 'child-process-promise';
+import { onSetLanguageClient, onDidChangeConfig } from './extension';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -34,17 +35,16 @@ export async function getPkgDepotPath() {
     return juliaDepotPath;
 }
 
-export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {    
+export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
     g_settings = settings;
-}   
 
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-    if (g_settings.juliaExePath != newSettings.juliaExePath) {
-        juliaPackagePath = null;        
-    }
-}
-
-export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
-    g_languageClient = newLanguageClient;
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+    context.subscriptions.push(onDidChangeConfig(newSettings => {
+        if (g_settings.juliaExePath != newSettings.juliaExePath) {
+            juliaPackagePath = null;
+        }
+    }))
 }

@@ -6,6 +6,7 @@ import * as fs from 'async-file';
 import * as settings from './settings'
 import * as juliaexepath from './juliaexepath';
 import * as telemetry from './telemetry';
+import { onSetLanguageClient, onDidChangeConfig } from './extension';
 
 var tempfs = require('promised-temp').track();
 var kill = require('async-child-process').kill;
@@ -167,17 +168,12 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_context = context;
     g_settings = settings;
 
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+    context.subscriptions.push(onDidChangeConfig(newSettings => {}))
+
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview', open_preview));
-
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview-side', open_preview_side));
-
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-save', save));
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-
-}
-
-export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
-    g_languageClient = newLanguageClient;
 }

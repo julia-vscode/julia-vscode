@@ -14,6 +14,7 @@ import { Subject } from 'await-notify';
 
 import * as plots from './plots'
 import * as workspace from './workspace'
+import { onSetLanguageClient, onDidChangeConfig } from '../extension';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -334,7 +335,7 @@ async function executeJuliaBlockInRepl() {
             let start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
             let end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
             let next_pos = new vscode.Position(ret_val[2].line, ret_val[2].character)
-            
+
             let code_to_run = vscode.window.activeTextEditor.document.getText(new vscode.Range(start_pos, end_pos))
             executeInRepl(code_to_run, vscode.window.activeTextEditor.document.fileName, start_pos)
 
@@ -369,6 +370,13 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_context = context;
     g_settings = settings;
 
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+    context.subscriptions.push(onDidChangeConfig(newSettings => {
+        g_settings = newSettings
+    }))
+
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
@@ -390,12 +398,4 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     plots.activate(context);
     workspace.activate(context);
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-
-}
-
-export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
-    g_languageClient = newLanguageClient;
 }

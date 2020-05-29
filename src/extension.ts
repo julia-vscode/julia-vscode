@@ -45,7 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
     g_settings = settings.loadSettings();
 
     // Config change
-    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(configChanged));
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(changeConfig));
 
     // Language settings
     vscode.languages.setLanguageConfiguration('julia', {
@@ -92,47 +92,27 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {
-}
+export function deactivate() {}
 
+const g_onSetLanguageClient = new vscode.EventEmitter<vslc.LanguageClient>()
+export const onSetLanguageClient = g_onSetLanguageClient.event
 function setLanguageClient(languageClient: vslc.LanguageClient) {
+    g_onSetLanguageClient.fire(languageClient)
     g_languageClient = languageClient;
-
-    juliaexepath.onNewLanguageClient(g_languageClient);
-    repl.onNewLanguageClient(g_languageClient);
-    weave.onNewLanguageClient(g_languageClient);
-    tasks.onNewLanguageClient(g_languageClient);
-    smallcommands.onNewLanguageClient(g_languageClient);
-    packagepath.onNewLanguageClient(g_languageClient);
-    openpackagedirectory.onNewLanguageClient(g_languageClient);
-    jlpkgenv.onNewLanguageClient(g_languageClient);
 }
 
-function configChanged(params) {
-    let newSettings = settings.loadSettings();
+const g_onDidChangeConfig = new vscode.EventEmitter<settings.ISettings>()
+export const onDidChangeConfig = g_onDidChangeConfig.event
+function changeConfig(params: vscode.ConfigurationChangeEvent) {
+    const newSettings = settings.loadSettings()
+    g_onDidChangeConfig.fire(newSettings)
 
-    telemetry.onDidChangeConfiguration(newSettings);
-    juliaexepath.onDidChangeConfiguration(newSettings);
-    repl.onDidChangeConfiguration(newSettings);
-    weave.onDidChangeConfiguration(newSettings);
-    tasks.onDidChangeConfiguration(newSettings);
-    smallcommands.onDidChangeConfiguration(newSettings);
-    packagepath.onDidChangeConfiguration(newSettings);
-    openpackagedirectory.onDidChangeConfiguration(newSettings);
-    jlpkgenv.onDidChangeConfiguration(newSettings);
-
-    let need_to_restart_server = false;
-
-    if (g_settings.juliaExePath != newSettings.juliaExePath) {
-        need_to_restart_server = true;
-    }
-
+    const need_to_restart_server = g_settings.juliaExePath != newSettings.juliaExePath ? true : false
     if (need_to_restart_server) {
         if (g_languageClient != null) {
             g_languageClient.stop();
             setLanguageClient(null);
         }
-
         startLanguageServer();
     }
 }
@@ -249,7 +229,7 @@ export class JuliaDebugConfigurationProvider
                 config.cwd = '${workspaceFolder}';
             }
 
-            if (!config.juliaEnv && config.request != 'attach') {                
+            if (!config.juliaEnv && config.request != 'attach') {
                 config.juliaEnv = '${command:activeJuliaEnvironment}';
             }
 
