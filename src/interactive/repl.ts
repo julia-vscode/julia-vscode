@@ -285,8 +285,10 @@ async function executeJuliaCellInRepl(shouldMove: boolean = false) {
 
     await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
 
-    vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
-    vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
+    if (shouldMove) {
+        vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
+        vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
+    }
 }
 
 async function evaluateBlockOrSelection (shouldMove: boolean = false) {
