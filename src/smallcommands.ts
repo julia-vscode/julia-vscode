@@ -53,7 +53,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     context.subscriptions.push(onSetLanguageClient(languageClient => {
         g_languageClient = languageClient
     }))
-    context.subscriptions.push(onDidChangeConfig(newSettings => {}))
+    context.subscriptions.push(onDidChangeConfig(newSettings => { }))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit));
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter));

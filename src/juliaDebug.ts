@@ -494,10 +494,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 				]
 			};
 		}
-		else {			
+		else {
 			let line = parseInt(parts[2]);
 			let endLine = parseInt(parts[3]);
-			let filename = parts[4];						
+			let filename = parts[4];
 
 			response.body = {
 				scopes: [
@@ -538,14 +538,14 @@ export class JuliaDebugSession extends LoggingDebugSession {
 			let vartype = parts[2];
 			let named_count = parseInt(parts[3]);
 			let indexed_count = parseInt(parts[4]);
-			let varvalue =  Buffer.from(parts[5], 'base64').toString();
+			let varvalue = Buffer.from(parts[5], 'base64').toString();
 
 			variables.push({
 				name: varname,
 				type: vartype,
 				value: varvalue,
-				namedVariables: varref>0 ? named_count : undefined,
-				indexedVariables: varref>0 ? indexed_count : undefined,
+				namedVariables: varref > 0 ? named_count : undefined,
+				indexedVariables: varref > 0 ? indexed_count : undefined,
 				variablesReference: varref
 			});
 		}
@@ -566,20 +566,20 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 		let status = parts[0];
 
-		if (status=='FAILED') {			
+		if (status == 'FAILED') {
 
 			let errorMsg = Buffer.from(parts[1], 'base64').toString()
 
 			response.success = false;
 			response.message = errorMsg;
 		}
-		else if (status=='SUCCESS') {
+		else if (status == 'SUCCESS') {
 			let varref = parseInt(parts[1]);
 			let vartype = parts[3];
 			let named_count = parseInt(parts[4]);
 			let indexed_count = parseInt(parts[5]);
-			let varvalue =  Buffer.from(parts[6], 'base64').toString();
-			
+			let varvalue = Buffer.from(parts[6], 'base64').toString();
+
 			response.body = {
 				value: varvalue,
 				type: vartype,
@@ -700,7 +700,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	protected async exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {
 		let resp = await this.sendRequestToDebugger('GETEXCEPTIONINFO');
 
-		let decoded_parts = resp.split(';').map(i=>Buffer.from(i, 'base64').toString());
+		let decoded_parts = resp.split(';').map(i => Buffer.from(i, 'base64').toString());
 
 		let exception_id = decoded_parts[0];
 		let exception_description = decoded_parts[1];

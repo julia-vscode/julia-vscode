@@ -9,11 +9,11 @@ export function loadSettings(): ISettings {
 
     let jlpath = section ? section.get<string>('executablePath', null) : null
 
-    if (jlpath==="") {
+    if (jlpath === "") {
         jlpath = null
     }
 
-    return {        
+    return {
         juliaExePath: jlpath
     };
 }

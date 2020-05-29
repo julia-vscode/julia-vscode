@@ -12,18 +12,18 @@ export function generatePipeName(pid: string, name: string) {
 }
 
 /**
- * Decides the final value to set the `JULIA_NUM_THREADS` environment variable to 
+ * Decides the final value to set the `JULIA_NUM_THREADS` environment variable to
  * given the `julia.NumThreads` configuration
- * 
+ *
  * @remarks
  * The logic is:
- * 
+ *
  * - if `julia.NumThreads` has a value, we return that, no matter what.
- * 
+ *
  * - otherwise, if an env var `JULIA_NUM_THREADS` exists, we return that.
- * 
+ *
  * - otherwise, we return an empty string as the value
- * 
+ *
  * @returns A string to set the value of `JULIA_NUM_THREADS`
  */
 export function inferJuliaNumThreads(): string {
