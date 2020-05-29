@@ -256,30 +256,33 @@ async function executeJuliaCellInRepl(shouldMove: boolean = false) {
 
     let ed = vscode.window.activeTextEditor;
     let doc = ed.document;
-    let rx = new RegExp("^##");
-    let curr = doc.validatePosition(ed.selection.active).line;
-    var start = curr;
+    const section = vscode.workspace.getConfiguration('julia')
+    const _regexes: Array<string> = section.get('execution.cellDelimiters')
+    const regexes = _regexes.map(s => new RegExp(s))
+    let start = doc.validatePosition(ed.selection.active).line;
     while (start >= 0) {
-        if (rx.test(doc.lineAt(start).text)) {
+        const text = doc.lineAt(start).text
+        if (regexes.some(regex => regex.test(text))) {
             break;
         } else {
             start -= 1;
         }
     }
     start += 1;
-    var end = start;
+    let end = start;
     while (end < doc.lineCount) {
-        if (rx.test(doc.lineAt(end).text)) {
+        const text = doc.lineAt(end).text
+        if (regexes.some(regex => regex.test(text))) {
             break;
         } else {
             end += 1;
         }
     }
     end -= 1;
-    let startpos = new vscode.Position(start, 0);
-    let endpos = new vscode.Position(end, doc.lineAt(end).text.length);
-    let nextpos = new vscode.Position(end + 1, 0);
-    let code = doc.getText(new vscode.Range(startpos, endpos));
+    const startpos = new vscode.Position(start, 0);
+    const endpos = new vscode.Position(end, doc.lineAt(end).text.length);
+    const nextpos = new vscode.Position(end + 1, 0);
+    const code = doc.getText(new vscode.Range(startpos, endpos));
 
     const module: string = await modules.getModuleForEditor(ed, startpos)
 
