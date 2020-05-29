@@ -92,7 +92,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
 
 const g_onSetLanguageClient = new vscode.EventEmitter<vslc.LanguageClient>()
 export const onSetLanguageClient = g_onSetLanguageClient.event
@@ -163,18 +163,18 @@ async function startLanguageServer() {
     g_languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions);
     g_languageClient.registerProposedFeatures()
     g_languageClient.onTelemetry((data: any) => {
-        if(data.command=='trace_event') {
+        if (data.command == 'trace_event') {
             telemetry.traceEvent(data.message);
         }
-        else if (data.command=='symserv_crash') {
+        else if (data.command == 'symserv_crash') {
             telemetry.traceEvent('symservererror');
             telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace);
         }
-        else if (data.command=='symserv_pkgload_crash') {
+        else if (data.command == 'symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
         }
     });
-    g_languageClient.onReady().then(()=>{
+    g_languageClient.onReady().then(() => {
         g_lsStartup.hide();
     });
 

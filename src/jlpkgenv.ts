@@ -7,7 +7,7 @@ import * as packagepath from './packagepath'
 import * as os from 'os';
 import * as path from 'path'
 import * as juliaexepath from './juliaexepath';
-import {exec} from 'child-process-promise';
+import { exec } from 'child-process-promise';
 import { onSetLanguageClient, onDidChangeConfig } from './extension';
 
 let g_context: vscode.ExtensionContext = null;
@@ -20,7 +20,7 @@ let g_path_of_current_environment: string = null;
 let g_path_of_default_environment: string = null;
 
 export async function getProjectFilePaths(envpath: string) {
-    let dlext = process.platform == 'darwin' ? 'dylib' : process.platform == 'win32' ? 'dll': 'so';
+    let dlext = process.platform == 'darwin' ? 'dylib' : process.platform == 'win32' ? 'dll' : 'so';
     return {
         project_toml_path: (await fs.exists(path.join(envpath, 'JuliaProject.toml'))) ?
             path.join(envpath, 'JuliaProject.toml') :
@@ -39,21 +39,21 @@ async function switchEnvToPath(envpath: string, notifyLS: boolean) {
 
     let currentConfigValue = section.get<string>('environmentPath')
 
-    if (g_path_of_current_environment!=await getDefaultEnvPath()) {
-        if (currentConfigValue!=g_path_of_current_environment) {
+    if (g_path_of_current_environment != await getDefaultEnvPath()) {
+        if (currentConfigValue != g_path_of_current_environment) {
             section.update('environmentPath', g_path_of_current_environment, vscode.ConfigurationTarget.Workspace);
         }
     }
     else {
-        if (currentConfigValue!=null) {
+        if (currentConfigValue != null) {
             section.update('environmentPath', undefined, vscode.ConfigurationTarget.Workspace);
         }
     }
 
     g_current_environment.text = "Julia env: " + await getEnvName();
 
-    if (vscode.workspace.workspaceFolders!==undefined &&
-        vscode.workspace.workspaceFolders.length==1 &&
+    if (vscode.workspace.workspaceFolders !== undefined &&
+        vscode.workspace.workspaceFolders.length == 1 &&
         vscode.workspace.workspaceFolders[0].uri.fsPath != g_path_of_current_environment &&
         (await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Project.toml')) || await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaProject.toml')))) {
 
@@ -64,11 +64,11 @@ async function switchEnvToPath(envpath: string, notifyLS: boolean) {
         let jlexepath = await juliaexepath.getJuliaExePath();
         var res = await exec(`"${jlexepath}" --project=${g_path_of_current_environment} --startup-file=no --history-file=no -e "using Pkg; println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ? realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) : realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))" "${case_adjusted}"`);
 
-        if (res.stdout.trim()=="false") {
+        if (res.stdout.trim() == "false") {
             vscode.window.showInformationMessage("You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?", 'Change Julia environment')
                 .then(env_choice => {
                     if (env_choice == "Change Julia environment") {
-                            changeJuliaEnvironment();
+                        changeJuliaEnvironment();
                     }
                 });
         }
@@ -175,7 +175,7 @@ export async function getEnvPath() {
     if (g_path_of_current_environment == null) {
         let section = vscode.workspace.getConfiguration('julia');
         let envPathConfig = section.get<string>("environmentPath");
-        if (envPathConfig!==null){
+        if (envPathConfig !== null) {
             g_path_of_current_environment = envPathConfig;
         }
         else {
@@ -197,7 +197,7 @@ export async function activate(context: vscode.ExtensionContext, settings: setti
     context.subscriptions.push(onSetLanguageClient(languageClient => {
         g_languageClient = languageClient
     }))
-    context.subscriptions.push(onDidChangeConfig(newSettings => {}))
+    context.subscriptions.push(onDidChangeConfig(newSettings => { }))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment));
     // Environment status bar

@@ -5,7 +5,7 @@ import * as juliaexepath from './juliaexepath';
 import { FILE } from 'dns';
 import { join } from 'path';
 import * as fs from 'async-file';
-import {exec} from 'child-process-promise';
+import { exec } from 'child-process-promise';
 import { onSetLanguageClient, onDidChangeConfig } from './extension';
 
 let g_context: vscode.ExtensionContext = null;

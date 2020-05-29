@@ -8,7 +8,7 @@ import * as util from 'util';
 import * as which from 'which';
 import * as child_process from 'child_process';
 import { setCurrentJuliaVersion, traceEvent } from './telemetry';
-import {exec} from 'child-process-promise';
+import { exec } from 'child-process-promise';
 import { onSetLanguageClient, onDidChangeConfig } from './extension';
 const whichAsync = util.promisify(which);
 
