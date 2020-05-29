@@ -53,8 +53,7 @@ end
 
 run(conn_endpoint)
 
-@async begin
-   
+@async try   
     while true
         msg = JSONRPC.get_next_message(conn_endpoint)
 
@@ -106,7 +105,7 @@ run(conn_endpoint)
                 JSONRPC.send_notification(conn_endpoint, "repl/finisheval", nothing)
             end
         elseif msg["method"] == "repl/showingrid"
-            var = Core.eval(Main, Meta.parse(String(payload)))
+            var = Core.eval(Main, Meta.parse(msg["params"]))
 
             try
                 Base.invokelatest(internal_vscodedisplay, var)
