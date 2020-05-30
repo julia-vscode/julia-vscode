@@ -155,10 +155,10 @@ const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger
 const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run');
 const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger');
 
-const _onInit = new vscode.EventEmitter<rpc.MessageConnection>()
-export const onInit = _onInit.event
-const _onExit = new vscode.EventEmitter<Boolean>()
-export const onExit = _onExit.event
+const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
+export const onInit = g_onInit.event
+const g_onExit = new vscode.EventEmitter<Boolean>()
+export const onExit = g_onExit.event
 
 // code execution start
 
@@ -167,7 +167,7 @@ function startREPLMsgServer(pipename: string) {
 
     let server = net.createServer((socket: net.Socket) => {
         socket.on('close', hadError => {
-            _onExit.fire(hadError)
+            g_onExit.fire(hadError)
             server.close()
         });
 
@@ -182,7 +182,7 @@ function startREPLMsgServer(pipename: string) {
 
         g_connection.listen();
 
-        _onInit.fire(g_connection)
+        g_onInit.fire(g_connection)
 
         connected.notify();
     });
@@ -294,7 +294,7 @@ async function executeJuliaCellInRepl(shouldMove: boolean = false) {
     }
 }
 
-async function evaluateBlockOrSelection (shouldMove: boolean = false) {
+async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     const editor = vscode.window.activeTextEditor
     const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString());
 
@@ -359,7 +359,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     )
 
     if (resultType !== "REPL") {
-        const hoverString =  '```\n' + result.all.toString() + '\n```'
+        const hoverString = '```\n' + result.all.toString() + '\n```'
 
         r.setContent({
             content: ' ' + result.inline.toString() + ' ',
