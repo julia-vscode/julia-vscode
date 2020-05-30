@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.16
+## 0.15.39
 * Improve cell delimiter regex so that it won't recognize YAS-style section headers as cell separator anymore (#1256, #1259)
 
 ## 0.15
