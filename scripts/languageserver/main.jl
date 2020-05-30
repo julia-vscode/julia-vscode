@@ -40,7 +40,7 @@ try
         end
     end
 
-    symserver_store_path = joinpath(ARGS[5], "symbolstorev1")
+    symserver_store_path = joinpath(ARGS[5], "symbolstorev2")
 
     if !ispath(symserver_store_path)
         mkpath(symserver_store_path)
@@ -53,7 +53,7 @@ try
         conn,
         Base.ARGS[1],
         Base.ARGS[4],
-        (err, bt)-> global_err_handler(err, bt, Base.ARGS[3]),
+        (err, bt)->global_err_handler(err, bt, Base.ARGS[3]),
         symserver_store_path
     )
     run(server)

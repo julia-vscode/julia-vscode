@@ -1,6 +1,6 @@
 using Pkg
 
-Pkg.test(ARGS[1], coverage=true)
+Pkg.test(ARGS[1], coverage = true)
 
 try
     import Coverage

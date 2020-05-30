@@ -7,6 +7,7 @@ import * as juliaexepath from './juliaexepath';
 import * as jlpkgenv from './jlpkgenv';
 import * as telemetry from './telemetry';
 import { inferJuliaNumThreads } from './utils';
+import { onSetLanguageClient, onDidChangeConfig } from './extension';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -15,27 +16,27 @@ let g_languageClient: vslc.LanguageClient = null;
 let taskProvider: vscode.Disposable | undefined;
 
 async function provideJuliaTasks(): Promise<vscode.Task[]> {
-	let emptyTasks: vscode.Task[] = [];
-	let allTasks: vscode.Task[] = [];
-	let folders = vscode.workspace.workspaceFolders;
+    let emptyTasks: vscode.Task[] = [];
+    let allTasks: vscode.Task[] = [];
+    let folders = vscode.workspace.workspaceFolders;
 
-	if (!folders) {
-		return emptyTasks;
-	}
-	try {
-		for (let i = 0; i < folders.length; i++) {
+    if (!folders) {
+        return emptyTasks;
+    }
+    try {
+        for (let i = 0; i < folders.length; i++) {
             let tasks = await provideJuliaTasksForFolder(folders[i]);
-			allTasks.push(...tasks);
-		}
-		return Promise.resolve(allTasks);
-	} catch (error) {
-		return Promise.reject(error);
-	}
+            allTasks.push(...tasks);
+        }
+        return Promise.resolve(allTasks);
+    } catch (error) {
+        return Promise.reject(error);
+    }
 }
 
 async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promise<vscode.Task[]> {
     telemetry.traceEvent('task-provide');
-	let emptyTasks: vscode.Task[] = [];
+    let emptyTasks: vscode.Task[] = [];
 
     if (folder.uri.scheme !== 'file') {
         return emptyTasks;
@@ -49,12 +50,12 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
         let pkgenvpath = await jlpkgenv.getEnvPath();
 
         if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
-            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.test("${folder.name}")`], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads()}}), "");
+            let testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.test("${folder.name}")`], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }), "");
             testTask.group = vscode.TaskGroup.Test;
             testTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(testTask);
 
-            let testTaskWithCoverage = new vscode.Task({ type: 'julia', command: 'testcoverage' }, folder, `Run tests with coverage`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_test.jl'), folder.name], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() }}), "");
+            let testTaskWithCoverage = new vscode.Task({ type: 'julia', command: 'testcoverage' }, folder, `Run tests with coverage`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(g_context.extensionPath, 'scripts', 'tasks', 'task_test.jl'), folder.name], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }), "");
             testTaskWithCoverage.group = vscode.TaskGroup.Test;
             testTaskWithCoverage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true };
             result.push(testTaskWithCoverage);
@@ -93,7 +94,7 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
                         path.join(rootPath, 'docs', 'make.jl'),
                         path.join(rootPath, 'docs', 'build', 'index.html')
                     ],
-                    {cwd: rootPath}
+                    { cwd: rootPath }
                 ),
                 ""
             );
@@ -112,6 +113,11 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_context = context;
     g_settings = settings;
 
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+    context.subscriptions.push(onDidChangeConfig(newSettings => { }))
+
     taskProvider = vscode.workspace.registerTaskProvider('julia', {
         provideTasks: () => {
             return provideJuliaTasks();
@@ -120,12 +126,4 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
             return undefined;
         }
     });
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-
-}
-
-export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
-    g_languageClient = newLanguageClient;
 }

@@ -1,7 +1,7 @@
 import * as download from 'download';
 import * as path from 'path';
 import * as process from 'process';
-import {promises as fs, openSync} from 'fs';
+import { promises as fs, openSync } from 'fs';
 import * as cp from 'child-process-promise';
 import { homedir } from 'os';
 import * as cson from 'cson-parser';
@@ -19,7 +19,7 @@ async function our_download(url: string, destination: string) {
 
     await download(url, dest_path);
 
-    await fs.rename(path.join(dest_path, path.basename(url)), path.join(dest_path, path.basename(destination))); 
+    await fs.rename(path.join(dest_path, path.basename(url)), path.join(dest_path, path.basename(destination)));
 
     return
 }
@@ -43,7 +43,7 @@ async function download_and_convert_grammar(juliaPath: string) {
 
     await fs.writeFile(dest_path, grammarAsJSON);
 
-    await cp.exec(`${juliaPath} syntaxes/update_syntax.jl`, {cwd: process.cwd()});
+    await cp.exec(`${juliaPath} syntaxes/update_syntax.jl`, { cwd: process.cwd() });
 }
 
 async function main() {
@@ -59,19 +59,19 @@ async function main() {
 
     await download_and_convert_grammar(juliaPath);
 
-    for(var pkg of ['CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer']) {
-        await cp.exec('git checkout master', {cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`)});
-        await cp.exec('git pull', {cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`)})    
+    for (var pkg of ['CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer']) {
+        await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`) });
+        await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`) })
     }
 
-    for(var pkg of ['JSONRPC']) {
-        await cp.exec('git checkout master', {cwd: path.join(process.cwd(), `scripts/packages/${pkg}`)});
-        await cp.exec('git pull', {cwd: path.join(process.cwd(), `scripts/packages/${pkg}`)})    
+    for (var pkg of ['JSONRPC']) {
+        await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) });
+        await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
-    await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, {cwd: path.join(process.cwd(), 'scripts/languageserver/packages')})
+    await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/languageserver/packages') })
 
-    await cp.exec('npm update', {cwd: process.cwd()})
+    await cp.exec('npm update', { cwd: process.cwd() })
 }
 
 main();

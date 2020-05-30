@@ -28,12 +28,12 @@ function attempt_to_set_f_breakpoints!(bps)
         try
             f = Core.eval(bp.mod, bp.name)
 
-            signat = if bp.signature!==nothing
+            signat = if bp.signature !== nothing
                 Tuple{(Core.eval(Main, i) for i in bp.signature)...}
             else
                 nothing
             end
-            
+
             JuliaInterpreter.breakpoint(f, signat, bp.condition)
             delete!(bps, bp)
 
@@ -46,7 +46,7 @@ end
 
 function get_next_top_level_frame(state)
     state.current_top_level_expression += 1
-    
+
     if state.current_top_level_expression > length(state.top_level_expressions)
         return nothing
     else
@@ -67,24 +67,24 @@ function our_debug_command(cmd, state)
 
         @debug "Finished running frame." ret
 
-        if ret!==nothing && is_toplevel_return(ret[1])
+        if ret !== nothing && is_toplevel_return(ret[1])
             ret = nothing
         end
 
-        if ret!==nothing
+        if ret !== nothing
             state.frame = ret[1]
             return ret[2]
         end
 
         state.frame = get_next_top_level_frame(state)
 
-        if state.frame===nothing
+        if state.frame === nothing
             return nothing
         end
 
-        ret!==nothing && error("Invalid state.")
+        ret !== nothing && error("Invalid state.")
 
-        if ret===nothing && (cmd==:n ||cmd==:s || cmd==:finish || JuliaInterpreter.shouldbreak(state.frame, state.frame.pc))
+        if ret === nothing && (cmd == :n || cmd == :s || cmd == :finish || JuliaInterpreter.shouldbreak(state.frame, state.frame.pc))
             return state.frame.pc
         end
     end
@@ -92,7 +92,7 @@ end
 
 function send_stopped_msg(conn, ret_val, state)
     if ret_val isa JuliaInterpreter.BreakpointRef
-        if ret_val.err===nothing
+        if ret_val.err === nothing
             send_notification(conn, "STOPPEDBP")
         else
             state.last_exception = ret_val.err
@@ -101,7 +101,7 @@ function send_stopped_msg(conn, ret_val, state)
         end
     elseif ret_val isa Number
         send_notification(conn, "STOPPEDSTEP")
-    elseif ret_val===nothing
+    elseif ret_val === nothing
         send_notification(conn, "STOPPEDSTEP")
     end
 end

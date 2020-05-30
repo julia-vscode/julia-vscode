@@ -7,7 +7,8 @@ import * as vslc from 'vscode-languageclient';
 import * as settings from './settings';
 import * as fs from 'async-file';
 import * as appInsights from 'applicationinsights';
-import {generatePipeName} from './utils';
+import { generatePipeName } from './utils';
+import { onDidChangeConfig } from './extension';
 
 let enableCrashReporter: boolean = false;
 let enableTelemetry: boolean = false;
@@ -53,6 +54,10 @@ function loadConfig() {
 export async function init(context: vscode.ExtensionContext) {
     loadConfig();
 
+    context.subscriptions.push(onDidChangeConfig(newSettings => {
+        loadConfig()
+    }))
+
     let packageJSONContent = JSON.parse(await fs.readTextFile(path.join(context.extensionPath, 'package.json')));
 
     let extversion = packageJSONContent.version;
@@ -87,7 +92,7 @@ export async function init(context: vscode.ExtensionContext) {
         // Make sure we send out messages right away
         appInsights.defaultClient.config.maxBatchSize = 0;
     }
-    
+
     extensionClient = appInsights.defaultClient;
     extensionClient.addTelemetryProcessor(filterTelemetry);
     extensionClient.commonProperties["vscodemachineid"] = vscode.env.machineId;
@@ -102,7 +107,7 @@ export async function init(context: vscode.ExtensionContext) {
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string) {
-    crashReporterQueue.push({exception: {name: name, message: message, stack: stacktrace}});  
+    crashReporterQueue.push({ exception: { name: name, message: message, stack: stacktrace } });
 
     if (enableCrashReporter) {
         sendCrashReportQueue();
@@ -127,7 +132,7 @@ export function startLsCrashServer() {
             let replResponse = accumulatingBuffer.toString().split("\n")
             let errorMessageLines = parseInt(replResponse[1])
             let errorMessage = replResponse.slice(2, 2 + errorMessageLines).join('\n');
-            let stacktrace = replResponse.slice(2 + errorMessageLines,replResponse.length-1).join('\n');
+            let stacktrace = replResponse.slice(2 + errorMessageLines, replResponse.length - 1).join('\n');
 
             traceEvent('jlerror');
 
@@ -143,15 +148,11 @@ export function getCrashReportingPipename() {
 }
 
 export function traceEvent(message) {
-    extensionClient.trackEvent({name: message});
+    extensionClient.trackEvent({ name: message });
 }
 
 export function tracePackageLoadError(packagename, message) {
-    extensionClient.trackTrace({message: `Package ${packagename} crashed.\n\n${message}`})
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-    loadConfig();
+    extensionClient.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
 }
 
 function sendCrashReportQueue() {
@@ -163,7 +164,7 @@ function sendCrashReportQueue() {
 }
 
 async function showCrashReporterUIConsent() {
-    if (crashReporterUIVisible || vscode.workspace.getConfiguration('julia').get<boolean>('enableCrashReporter')===false) {
+    if (crashReporterUIVisible || vscode.workspace.getConfiguration('julia').get<boolean>('enableCrashReporter') === false) {
         return;
     }
     else {
@@ -171,11 +172,11 @@ async function showCrashReporterUIConsent() {
         try {
             var choice = await vscode.window.showInformationMessage("The Julia language extension crashed. Do you want to send more information about the problem to the development team? Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more how we use crash reports, what data will be transmitted and how to permanently hide this notification.", 'Yes, send a crash report', 'Yes, always send a crash report');
 
-            if (choice=='Yes, always send a crash report') {
+            if (choice == 'Yes, always send a crash report') {
                 vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, true);
             }
 
-            if (choice=='Yes, send a crash report' || choice=='Yes, always send a crash report') {
+            if (choice == 'Yes, send a crash report' || choice == 'Yes, always send a crash report') {
                 sendCrashReportQueue();
             }
         }

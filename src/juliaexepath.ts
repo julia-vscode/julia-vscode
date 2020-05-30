@@ -8,7 +8,8 @@ import * as util from 'util';
 import * as which from 'which';
 import * as child_process from 'child_process';
 import { setCurrentJuliaVersion, traceEvent } from './telemetry';
-import {exec} from 'child-process-promise';
+import { exec } from 'child-process-promise';
+import { onSetLanguageClient, onDidChangeConfig } from './extension';
 const whichAsync = util.promisify(which);
 
 let g_context: vscode.ExtensionContext = null;
@@ -38,6 +39,7 @@ export async function getJuliaExePath() {
             let pathsToSearch = [];
             if (process.platform == "win32") {
                 pathsToSearch = ["julia.exe",
+                    path.join(homedir, "AppData", "Local", "Programs", "Julia", "Julia-1.4.3", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Programs", "Julia", "Julia-1.4.2", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Programs", "Julia", "Julia-1.4.1", "bin", "julia.exe"),
                     path.join(homedir, "AppData", "Local", "Programs", "Julia", "Julia-1.4.0", "bin", "julia.exe"),
@@ -106,14 +108,12 @@ export async function getJuliaExePath() {
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context;
     g_settings = settings;
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-    if (g_settings.juliaExePath != newSettings.juliaExePath) {
-        actualJuliaExePath = null;
-    }
-}
-
-export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
-    g_languageClient = newLanguageClient;
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+    context.subscriptions.push(onDidChangeConfig(newSettings => {
+        if (g_settings.juliaExePath != newSettings.juliaExePath) {
+            actualJuliaExePath = null;
+        }
+    }))
 }

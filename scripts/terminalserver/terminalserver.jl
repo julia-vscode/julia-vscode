@@ -54,7 +54,7 @@ end
 
 function render(x)
     str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000))
-    
+
     return Dict(
         "inline" => strlimit(first(split(str, "\n")), 100),
         "all" => str,
@@ -116,7 +116,7 @@ is_module_loaded(mod) = mod == "Main" || module_from_string(mod) !== Main
 
 function get_modules(toplevel = nothing, mods = Set(Module[]))
     top_mods = toplevel === nothing ? Base.loaded_modules_array() : [toplevel]
-    
+
     for mod in top_mods
         push!(mods, mod)
 
@@ -136,7 +136,7 @@ end
 run(conn_endpoint)
 
 @async begin
-   
+
     while true
         msg = JSONRPC.get_next_message(conn_endpoint)
 
@@ -175,7 +175,7 @@ run(conn_endpoint)
                             # Indent by 7 so that it aligns with the julia> prompt
                             print(' '^7)
                         end
-                    
+
                         println(line)
                     end
                 end
@@ -210,9 +210,9 @@ run(conn_endpoint)
             JSONRPC.send_success_response(conn_endpoint, msg, string.(collect(get_modules())))
         elseif msg["method"] == "repl/isModuleLoaded"
             mod = msg["params"]["module"]
-            
+
             is_loaded = is_module_loaded(mod)
-            
+
             JSONRPC.send_success_response(conn_endpoint, msg, is_loaded)
         elseif msg["method"] == "repl/startdebugger"
             hideprompt() do

@@ -25,13 +25,16 @@ import { JuliaDebugSession } from './juliaDebug';
 let g_settings: settings.ISettings = null;
 let g_languageClient: LanguageClient = null;
 let g_context: vscode.ExtensionContext = null;
-
-let g_serverFullTextNotification = new rpc.NotificationType<string, string>('julia/getFullText');
+let g_lsStartup: vscode.StatusBarItem = null;
 
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context);
 
     telemetry.traceEvent('activate');
+
+    g_lsStartup = vscode.window.createStatusBarItem();
+    g_lsStartup.text = "Starting Julia Language Server..."
+    g_lsStartup.show();
 
     telemetry.startLsCrashServer();
 
@@ -42,7 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
     g_settings = settings.loadSettings();
 
     // Config change
-    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(configChanged));
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(changeConfig));
 
     // Language settings
     vscode.languages.setLanguageConfiguration('julia', {
@@ -89,47 +92,27 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {
-}
+export function deactivate() { }
 
+const g_onSetLanguageClient = new vscode.EventEmitter<vslc.LanguageClient>()
+export const onSetLanguageClient = g_onSetLanguageClient.event
 function setLanguageClient(languageClient: vslc.LanguageClient) {
+    g_onSetLanguageClient.fire(languageClient)
     g_languageClient = languageClient;
-
-    juliaexepath.onNewLanguageClient(g_languageClient);
-    repl.onNewLanguageClient(g_languageClient);
-    weave.onNewLanguageClient(g_languageClient);
-    tasks.onNewLanguageClient(g_languageClient);
-    smallcommands.onNewLanguageClient(g_languageClient);
-    packagepath.onNewLanguageClient(g_languageClient);
-    openpackagedirectory.onNewLanguageClient(g_languageClient);
-    jlpkgenv.onNewLanguageClient(g_languageClient);
 }
 
-function configChanged(params) {
-    let newSettings = settings.loadSettings();
+const g_onDidChangeConfig = new vscode.EventEmitter<settings.ISettings>()
+export const onDidChangeConfig = g_onDidChangeConfig.event
+function changeConfig(params: vscode.ConfigurationChangeEvent) {
+    const newSettings = settings.loadSettings()
+    g_onDidChangeConfig.fire(newSettings)
 
-    telemetry.onDidChangeConfiguration(newSettings);
-    juliaexepath.onDidChangeConfiguration(newSettings);
-    repl.onDidChangeConfiguration(newSettings);
-    weave.onDidChangeConfiguration(newSettings);
-    tasks.onDidChangeConfiguration(newSettings);
-    smallcommands.onDidChangeConfiguration(newSettings);
-    packagepath.onDidChangeConfiguration(newSettings);
-    openpackagedirectory.onDidChangeConfiguration(newSettings);
-    jlpkgenv.onDidChangeConfiguration(newSettings);
-
-    let need_to_restart_server = false;
-
-    if (g_settings.juliaExePath != newSettings.juliaExePath) {
-        need_to_restart_server = true;
-    }
-
+    const need_to_restart_server = g_settings.juliaExePath != newSettings.juliaExePath ? true : false
     if (need_to_restart_server) {
         if (g_languageClient != null) {
             g_languageClient.stop();
             setLanguageClient(null);
         }
-
         startLanguageServer();
     }
 }
@@ -180,16 +163,19 @@ async function startLanguageServer() {
     g_languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions);
     g_languageClient.registerProposedFeatures()
     g_languageClient.onTelemetry((data: any) => {
-        if(data.command=='trace_event') {
+        if (data.command == 'trace_event') {
             telemetry.traceEvent(data.message);
         }
-        else if (data.command=='symserv_crash') {
+        else if (data.command == 'symserv_crash') {
             telemetry.traceEvent('symservererror');
             telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace);
         }
-        else if (data.command=='symserv_pkgload_crash') {
+        else if (data.command == 'symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
         }
+    });
+    g_languageClient.onReady().then(() => {
+        g_lsStartup.hide();
     });
 
     // Push the disposable to the context's subscriptions so that the
@@ -203,14 +189,6 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.');
         g_languageClient = null;
     }
-
-    g_languageClient.onReady().then(() => {
-        g_languageClient.onNotification(g_serverFullTextNotification, (uri) => {
-            let doc = vscode.workspace.textDocuments.find((value: vscode.TextDocument) => value.uri.toString() == uri)
-            doc.getText()
-            g_languageClient.sendNotification("julia/reloadText", { textDocument: { uri: uri, languageId: "julia", version: 1, text: doc.getText() } })
-        })
-    })
 }
 
 export class JuliaDebugConfigurationProvider
@@ -251,7 +229,7 @@ export class JuliaDebugConfigurationProvider
                 config.cwd = '${workspaceFolder}';
             }
 
-            if (!config.juliaEnv && config.request != 'attach') {                
+            if (!config.juliaEnv && config.request != 'attach') {
                 config.juliaEnv = '${command:activeJuliaEnvironment}';
             }
 

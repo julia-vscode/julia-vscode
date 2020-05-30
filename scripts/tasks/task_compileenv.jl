@@ -12,4 +12,4 @@ used_packages = Symbol.(collect(keys(project.deps)))
 
 @info "Now building a custom sysimage for the environment '$env_to_precompile'."
 
-PackageCompiler.create_sysimage(used_packages, sysimage_path=sysimage_path, project=env_to_precompile)
+PackageCompiler.create_sysimage(used_packages, sysimage_path = sysimage_path, project = env_to_precompile)

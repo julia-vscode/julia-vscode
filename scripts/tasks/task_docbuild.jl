@@ -5,7 +5,7 @@ mktempdir() do p
 
     Pkg.activate(p)
 
-    Pkg.develop(PackageSpec(path=pwd()))
+    Pkg.develop(PackageSpec(path = pwd()))
     Pkg.instantiate()
 
     include(Base.ARGS[1])
