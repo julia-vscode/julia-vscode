@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as vslc from 'vscode-languageclient';
 import * as rpc from 'vscode-jsonrpc';
 import { onInit, onExit } from './repl'
+import { onSetLanguageClient } from '../extension';
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
@@ -30,6 +31,10 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(changeEvent => updateModuleForSelectionEvent(changeEvent)))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.chooseModule', chooseModule))
 
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+
     // NOTE:
     // set module status bar item just right of language mode selector
     // ref: language selector has priority `100`:
@@ -49,11 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
     })
 }
 
-export function setLanguageClient(languageClient) {
-    g_languageClient = languageClient
-}
-
-export async function getModuleForEditor(editor: vscode.TextEditor, position: vscode.Position =  editor.selection.start) {
+export async function getModuleForEditor(editor: vscode.TextEditor, position: vscode.Position = editor.selection.start) {
     let mod = manuallySetDocuments[editor.document.fileName]
 
     if (mod === undefined) {
@@ -76,7 +77,7 @@ export function deactivate() {
     statusBarItem.dispose()
 }
 
-function isJuliaEditor (editor: vscode.TextEditor = vscode.window.activeTextEditor) {
+function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
     return editor && editor.document.languageId === 'julia'
 }
 
