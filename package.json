@@ -560,7 +560,7 @@
                 {
                     "id": "julia-explorer",
                     "title": "Julia Explorer",
-                    "icon": "images/julia-logo.svg"
+                    "icon": "images/julia-dots.svg"
                 }
             ]
         },
