@@ -26,8 +26,10 @@ function getVariables()
         x = getfield(M, n)
         x isa Module && continue
         x==Main.vscodedisplay && continue
-        n==Symbol("@run") && continue
-        n==Symbol("@enter") && continue
+        n_as_string = string(n)
+        n_as_string=="@run" && continue
+        n_as_string=="@enter" && continue
+        startswith(n_as_string, "#") && continue
         t = typeof(x)
         value_as_string = Base.invokelatest(repr, x)
 
