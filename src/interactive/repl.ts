@@ -275,16 +275,17 @@ async function selectJuliaBlock() {
     }
 }
 
+const g_cellDelimiter = new RegExp("^##(?!#)")
+
 async function executeJuliaCellInRepl() {
     telemetry.traceEvent('command-executejuliacellinrepl');
 
     let ed = vscode.window.activeTextEditor;
     let doc = ed.document;
-    let rx = new RegExp("^##");
     let curr = doc.validatePosition(ed.selection.active).line;
     var start = curr;
     while (start >= 0) {
-        if (rx.test(doc.lineAt(start).text)) {
+        if (g_cellDelimiter.test(doc.lineAt(start).text)) {
             break;
         } else {
             start -= 1;
@@ -293,7 +294,7 @@ async function executeJuliaCellInRepl() {
     start += 1;
     var end = start;
     while (end < doc.lineCount) {
-        if (rx.test(doc.lineAt(end).text)) {
+        if (g_cellDelimiter.test(doc.lineAt(end).text)) {
             break;
         } else {
             end += 1;
