@@ -38,10 +38,10 @@ function getPlotPaneContent() {
 
 export function showPlotPane() {
     telemetry.traceEvent('command-showplotpane');
-    let plotTitle = g_plots.length > 0 ? `Julia Plots (${g_currentPlotIndex+1}/${g_plots.length})` : "Julia Plots (0/0)";
+    let plotTitle = g_plots.length > 0 ? `Julia Plots (${g_currentPlotIndex + 1}/${g_plots.length})` : "Julia Plots (0/0)";
     if (!g_plotPanel) {
         // Otherwise, create a new panel
-        g_plotPanel = vscode.window.createWebviewPanel('jlplotpane', plotTitle, {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true});
+        g_plotPanel = vscode.window.createWebviewPanel('jlplotpane', plotTitle, { preserveFocus: true, viewColumn: vscode.ViewColumn.Active }, { enableScripts: true });
         g_plotPanel.webview.html = getPlotPaneContent();
         vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true);
 
@@ -120,7 +120,7 @@ export function plotPaneDelAll() {
     }
 }
 
-export function displayPlot(params: {kind: string, data: string}) {
+export function displayPlot(params: { kind: string, data: string }) {
     const kind = params.kind;
     const payload = params.data;
 
@@ -377,7 +377,7 @@ export function displayPlot(params: {kind: string, data: string}) {
         showPlotPane();
     }
     else if (kind == 'application/vnd.dataresource+json') {
-        let grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', {preserveFocus: true, viewColumn: vscode.ViewColumn.Active}, {enableScripts: true, retainContextWhenHidden: true});
+        let grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', { preserveFocus: true, viewColumn: vscode.ViewColumn.Active }, { enableScripts: true, retainContextWhenHidden: true });
 
         let uriAgGrid = grid_panel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid-community.min.noStyle.js')));
         let uriAgGridCSS = grid_panel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css')));
@@ -426,7 +426,7 @@ export function displayPlot(params: {kind: string, data: string}) {
             </script>
         </html>
         `;
-        
+
         grid_panel.webview.html = grid_content;
     }
     else {

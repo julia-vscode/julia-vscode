@@ -6,6 +6,8 @@ import Dates
 
 include("../languageserver/packages/JSON/src/JSON.jl")
 
+include("gridviewer.jl")
+
 module JSONRPC
     import ..JSON
     import ..UUIDs
@@ -53,7 +55,7 @@ end
 
 run(conn_endpoint)
 
-@async try   
+@async try
     while true
         msg = JSONRPC.get_next_message(conn_endpoint)
 
@@ -85,7 +87,7 @@ run(conn_endpoint)
                             # Indent by 7 so that it aligns with the julia> prompt
                             print(' '^7)
                         end
-                    
+
                         println(line)
                     end
 
@@ -239,7 +241,7 @@ function Base.display(d::InlineDisplay, x)
     elseif showable("image/png", x)
         display(d,"image/png", x)
     else
-        throw(MethodError(display,(d,x)))
+        @warn "VS Code cannot display this type."
     end
 end
 
@@ -281,116 +283,6 @@ end
 
 push!(Base.package_callbacks, pkgload)
 
-struct CachedDataResourceString
-    content::String
-end
-Base.show(io::IO, ::MIME"application/vnd.dataresource+json", source::CachedDataResourceString) = print(io, source.content)
-Base.showable(::MIME"application/vnd.dataresource+json", dt::CachedDataResourceString) = true
-
-function JSON_print_escaped(io, val::AbstractString)
-    print(io, '"')
-    for c in val
-        if c=='"' || c=='\\'
-            print(io, '\\')
-            print(io, c)
-        elseif c=='\b'
-            print(io, '\\')
-            print(io, 'b')
-        elseif c=='\f'
-            print(io, '\\')
-            print(io, 'f')
-        elseif c=='\n'
-            print(io, '\\')
-            print(io, 'n')
-        elseif c=='\r'
-            print(io, '\\')
-            print(io, 'r')
-        elseif c=='\t'
-            print(io, '\\')
-            print(io, 't')
-        else
-            print(io, c)
-        end
-    end
-    print(io, '"')
-end
-
-function JSON_print_escaped(io, val)
-    print(io, '"')
-    print(io, val)
-    print(io, '"')
-end
-
-function JSON_print_escaped(io, val::Missing)
-    print(io, "null")
-end
-
-julia_type_to_schema_type(::Type{T}) where {T} = "string"
-julia_type_to_schema_type(::Type{T}) where {T<:AbstractFloat} = "number"
-julia_type_to_schema_type(::Type{T}) where {T<:Integer} = "integer"
-julia_type_to_schema_type(::Type{T}) where {T<:Bool} = "boolean"
-julia_type_to_schema_type(::Type{T}) where {T<:Dates.Time} = "time"
-julia_type_to_schema_type(::Type{T}) where {T<:Dates.Date} = "date"
-julia_type_to_schema_type(::Type{T}) where {T<:Dates.DateTime} = "datetime"
-julia_type_to_schema_type(::Type{T}) where {T<:AbstractString} = "string"
-
-function printdataresource(io::IO, source)
-    if Base.IteratorEltype(source) isa Base.EltypeUnknown
-        first_el = first(source)
-        col_names = String.(propertynames(first_el))
-        col_types = [fieldtype(typeof(first_el), i) for i=1:length(col_names)]
-    else
-        col_names = String.(fieldnames(eltype(source)))
-        col_types = [fieldtype(eltype(source), i) for i=1:length(col_names)]
-    end
-
-    print(io, "{")
-
-    JSON_print_escaped(io, "schema")
-    print(io, ": {")
-    JSON_print_escaped(io, "fields")
-    print(io, ":[")
-    for i=1:length(col_names)
-        if i>1
-            print(io, ",")
-        end
-
-        print(io, "{")
-        JSON_print_escaped(io, "name")
-        print(io, ":")
-        JSON_print_escaped(io, col_names[i])
-        print(io, ",")
-        JSON_print_escaped(io, "type")
-        print(io, ":")
-        JSON_print_escaped(io, julia_type_to_schema_type(col_types[i]))
-        print(io, "}")
-    end
-    print(io, "]},")
-
-    JSON_print_escaped(io, "data")
-    print(io, ":[")
-
-    for (row_i, row) in enumerate(source)
-        if row_i>1
-            print(io, ",")
-        end
-
-        print(io, "{")
-        for col in 1:length(col_names)
-            if col>1
-                print(io, ",")
-            end
-            JSON_print_escaped(io, col_names[col])
-            print(io, ":")
-            # TODO This is not type stable, should really unroll the loop in a generated function
-            JSON_print_escaped(io, row[col])
-        end
-        print(io, "}")
-    end
-
-    print(io, "]}")
-end
-
 function hook_repl(repl)
     main_mode = get_main_mode()
 
@@ -428,7 +320,7 @@ function hook_repl(repl)
                     try
                         $(JSONRPC.send_notification)($conn_endpoint, "repl/finisheval", nothing)
                     catch err
-                    end                    
+                    end
                 end
             )
         )
@@ -447,7 +339,7 @@ function remove_lln!(ex::Expr)
     end
 end
 
-function internal_vscodedisplay(x)    
+function internal_vscodedisplay(x)
     if showable("application/vnd.dataresource+json", x)
         _display(InlineDisplay(), x)
     elseif _isiterabletable(x)===true
@@ -466,6 +358,12 @@ function internal_vscodedisplay(x)
         catch err
             _display(InlineDisplay(), x)
         end
+    elseif x isa AbstractVector || x isa AbstractMatrix
+        buffer = IOBuffer()
+        io = IOContext(buffer, :compact=>true)
+        _vscodeserver.print_array_as_dataresource(io, _vscodeserver._getiterator(x))
+        buffer_asstring = _vscodeserver.CachedDataResourceString(String(take!(buffer)))
+        _vscodeserver._display(_vscodeserver.InlineDisplay(), buffer_asstring)
     else
         _display(InlineDisplay(), x)
     end
@@ -483,7 +381,7 @@ atreplinit() do repl
 
     if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
         Base.Multimedia.pushdisplay(_vscodeserver.InlineDisplay())
-    end    
+    end
 end
 
 function vscodedisplay(x)

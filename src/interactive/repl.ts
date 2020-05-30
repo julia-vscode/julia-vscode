@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as vslc from 'vscode-languageclient';
 import * as settings from '../settings';
 import * as juliaexepath from '../juliaexepath';
-import {generatePipeName, inferJuliaNumThreads} from '../utils';
+import { generatePipeName, inferJuliaNumThreads } from '../utils';
 import * as telemetry from '../telemetry';
 import * as jlpkgenv from '../jlpkgenv';
 import * as fs from 'async-file';
@@ -14,6 +14,7 @@ import { Subject } from 'await-notify';
 
 import * as plots from './plots'
 import * as workspace from './workspace'
+import { onSetLanguageClient, onDidChangeConfig } from '../extension';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -52,8 +53,8 @@ async function startREPL(preserveFocus: boolean) {
         let args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         let exepath = await juliaexepath.getJuliaExePath();
         let pkgenvpath = await jlpkgenv.getEnvPath();
-        if (pkgenvpath==null) {
-            let jlarg1 = ['-i','--banner=no'].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
+        if (pkgenvpath == null) {
+            let jlarg1 = ['-i', '--banner=no'].concat(vscode.workspace.getConfiguration("julia").get("additionalArgs"))
             let jlarg2 = [
                 args,
                 pipename,
@@ -69,7 +70,8 @@ async function startREPL(preserveFocus: boolean) {
                     env: {
                         JULIA_EDITOR: get_editor(),
                         JULIA_NUM_THREADS: inferJuliaNumThreads()
-                    }});
+                    }
+                });
         }
         else {
             let env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath);
@@ -102,7 +104,8 @@ async function startREPL(preserveFocus: boolean) {
                     env: {
                         JULIA_EDITOR: get_editor(),
                         JULIA_NUM_THREADS: inferJuliaNumThreads()
-                    }});
+                    }
+                });
         }
         g_terminal.show(preserveFocus);
         await juliaIsConnectedPromise.wait();
@@ -117,7 +120,7 @@ async function startREPL(preserveFocus: boolean) {
 
 function debuggerRun(code: string) {
     let x = {
-        type:'julia',
+        type: 'julia',
         request: 'attach',
         name: 'Julia REPL',
         code: code,
@@ -128,7 +131,7 @@ function debuggerRun(code: string) {
 
 function debuggerEnter(code: string) {
     let x = {
-        type:'julia',
+        type: 'julia',
         request: 'attach',
         name: 'Julia REPL',
         code: code,
@@ -137,10 +140,10 @@ function debuggerEnter(code: string) {
     vscode.debug.startDebugging(undefined, x);
 }
 
-const notifyTypeDisplay = new rpc.NotificationType<{kind: string, data: any}, void>('display');
+const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display');
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter');
 const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run');
-const notifyTypeReplRunCode = new rpc.NotificationType<{filename: string, line: number, column: number, code: string}, void>('repl/runcode');
+const notifyTypeReplRunCode = new rpc.NotificationType<{ filename: string, line: number, column: number, code: string }, void>('repl/runcode');
 const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger');
 const notifyTypeReplVariables = new rpc.NotificationType<{name: string, type: string, value: any}[], void>('repl/variables');
 const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval');
@@ -152,12 +155,12 @@ function startREPLMsgServer(pipename: string) {
     let connected = new Subject();
 
     let server = net.createServer((socket: net.Socket) => {
-        socket.on('close', hadError => {server.close()});
+        socket.on('close', hadError => { server.close() });
 
         g_connection = rpc.createMessageConnection(
             new rpc.StreamMessageReader(socket),
             new rpc.StreamMessageWriter(socket)
-            );
+        );
 
         g_connection.onNotification(notifyTypeDisplay, plots.displayPlot);
         g_connection.onNotification(notifyTypeDebuggerRun, debuggerRun);
@@ -344,7 +347,7 @@ async function executeJuliaBlockInRepl() {
             let start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
             let end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
             let next_pos = new vscode.Position(ret_val[2].line, ret_val[2].character)
-            
+
             let code_to_run = vscode.window.activeTextEditor.document.getText(new vscode.Range(start_pos, end_pos))
             executeInRepl(code_to_run, vscode.window.activeTextEditor.document.fileName, start_pos)
 
@@ -379,6 +382,13 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_context = context;
     g_settings = settings;
 
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+    context.subscriptions.push(onDidChangeConfig(newSettings => {
+        g_settings = newSettings
+    }))
+
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
@@ -400,12 +410,4 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     plots.activate(context);
     workspace.activate(context);
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-
-}
-
-export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
-    g_languageClient = newLanguageClient;
 }

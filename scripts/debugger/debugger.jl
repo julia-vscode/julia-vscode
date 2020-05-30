@@ -51,7 +51,7 @@ function startdebug(pipename)
     conn = Sockets.connect(pipename)
     @debug "Connected to debug adapter."
     try
-        state = DebuggerState()     
+        state = DebuggerState()
 
         request_handlers = Dict{String,Function}()
         request_handlers["DISCONNECT"] = disconnect_request
@@ -78,7 +78,7 @@ function startdebug(pipename)
         while true
             @debug "Waiting for next command from debug adapter."
             le = readline(conn)
-            
+
             msg_id, msg_cmd, msg_body = decode_msg(le)
 
             @debug "Received command '$msg_cmd' from debug adapter."

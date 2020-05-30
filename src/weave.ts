@@ -6,6 +6,7 @@ import * as fs from 'async-file';
 import * as settings from './settings'
 import * as juliaexepath from './juliaexepath';
 import * as telemetry from './telemetry';
+import { onSetLanguageClient, onDidChangeConfig } from './extension';
 
 var tempfs = require('promised-temp').track();
 var kill = require('async-child-process').kill;
@@ -89,7 +90,7 @@ async function weave_core(column, selected_format: string = undefined) {
             if (selected_format === undefined) {
                 g_lastWeaveContent = await fs.readFile(output_filename, "utf8")
 
-                let weaveWebViewPanel = vscode.window.createWebviewPanel('jlweavepane', "Julia Weave Preview", {preserveFocus: true, viewColumn: column});
+                let weaveWebViewPanel = vscode.window.createWebviewPanel('jlweavepane', "Julia Weave Preview", { preserveFocus: true, viewColumn: column });
 
                 weaveWebViewPanel.webview.html = g_lastWeaveContent;
             }
@@ -167,17 +168,12 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     g_context = context;
     g_settings = settings;
 
+    context.subscriptions.push(onSetLanguageClient(languageClient => {
+        g_languageClient = languageClient
+    }))
+    context.subscriptions.push(onDidChangeConfig(newSettings => { }))
+
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview', open_preview));
-
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview-side', open_preview_side));
-
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-save', save));
-}
-
-export function onDidChangeConfiguration(newSettings: settings.ISettings) {
-
-}
-
-export function onNewLanguageClient(newLanguageClient: vslc.LanguageClient) {
-    g_languageClient = newLanguageClient;
 }

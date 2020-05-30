@@ -39,16 +39,16 @@ function hideprompt(f)
 
     # TODO Fix this
     # pos = @rpc cursorpos()
-    pos = 1,1
+    pos = 1, 1
     pos[1] != 0 && println()
 
     # restore prompt
     if applicable(LineEdit.write_prompt, stdout, mode)
-      LineEdit.write_prompt(stdout, mode)
+        LineEdit.write_prompt(stdout, mode)
     elseif mode isa LineEdit.PrefixHistoryPrompt || :parent_prompt in fieldnames(typeof(mode))
-      LineEdit.write_prompt(stdout, mode.parent_prompt)
+        LineEdit.write_prompt(stdout, mode.parent_prompt)
     else
-      printstyled(stdout, current_prompt, color=:green)
+        printstyled(stdout, current_prompt, color = :green)
     end
 
     truncate(LineEdit.buffer(mistate), 0)
