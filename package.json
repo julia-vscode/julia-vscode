@@ -255,9 +255,9 @@
             ],
             "view/item/context": [
                 {
-                  "command": "language-julia.showInVSCode",
-                  "when": "view == REPLVariables && viewItem == globalvariable",
-                  "group": "inline"
+                    "command": "language-julia.showInVSCode",
+                    "when": "view == REPLVariables && viewItem == globalvariable",
+                    "group": "inline"
                 }
             ]
         },
@@ -555,8 +555,17 @@
                 }
             }
         ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "julia-explorer",
+                    "title": "Julia Explorer",
+                    "icon": "images/julia-logo.svg"
+                }
+            ]
+        },
         "views": {
-            "explorer": [
+            "julia-explorer": [
                 {
                     "id": "REPLVariables",
                     "name": "Julia Workspace"
