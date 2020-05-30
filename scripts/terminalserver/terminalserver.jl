@@ -243,7 +243,7 @@ function Base.display(d::InlineDisplay, x)
     elseif showable("image/png", x)
         display(d,"image/png", x)
     else
-        @warn "VS Code cannot display this type."
+        throw(MethodError(display,(d,x)))
     end
 end
 
@@ -251,7 +251,15 @@ function _display(d::InlineDisplay, x)
     if showable("application/vnd.dataresource+json", x)
         display(d, "application/vnd.dataresource+json", x)
     else
-        display(d, x)
+        try
+            display(d, x)
+        catch err
+            if err isa MethodError
+                @warn "Cannot display values of type $(typeof(x)) in VS Code."
+            else
+                rethrow(err)
+            end
+        end
     end
 end
 
