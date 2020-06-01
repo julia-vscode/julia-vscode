@@ -1,12 +1,14 @@
 using Sockets
 import InteractiveUtils
 
-function global_err_handler(e, bt, vscode_pipe_name)
+function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
     @warn "Some Julia code in the VS Code extension crashed with" e
 
     st = stacktrace(bt)
     pipe_to_vscode = connect(vscode_pipe_name)
     try
+        # Send cloudRole as one line
+        println(pipe_to_vscode, cloudRole)
         # Send error type as one line
         println(pipe_to_vscode, typeof(e))
 

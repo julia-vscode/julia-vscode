@@ -168,7 +168,7 @@ async function startLanguageServer() {
         }
         else if (data.command == 'symserv_crash') {
             telemetry.traceEvent('symservererror');
-            telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace);
+            telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace, 'Symbol Server');
         }
         else if (data.command == 'symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
