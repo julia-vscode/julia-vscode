@@ -47,7 +47,8 @@ async function download_and_convert_grammar(juliaPath: string) {
 }
 
 async function main() {
-    let juliaPath = path.join(homedir(), "AppData", "Local", "Julia-1.3.1", "bin", "julia.exe");
+    var which = require('which');
+    let juliaPath = which.sync('julia');
 
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@2', 'libs/vega-lite-2/vega-lite.min.js');
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@3', 'libs/vega-lite-3/vega-lite.min.js');
