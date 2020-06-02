@@ -30,14 +30,14 @@
         "onCommand:language-julia.openPackageDirectory",
         "onCommand:language-julia.changeCurrentEnvironment",
         "onCommand:language-julia.startREPL",
-        "onCommand:language-julia.executeJuliaCodeInREPL",
-        "onCommand:language-julia.executeJuliaFileInREPL",
+        "onCommand:language-julia.executeCodeBlockOrSelection",
+        "onCommand:language-julia.executeFile",
         "onCommand:language-julia.toggleLinter",
         "onCommand:language-julia.weave-open-preview",
         "onCommand:language-julia.weave-open-preview-side",
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
-        "onCommand:language-julia.executeJuliaCellInREPL",
+        "onCommand:language-julia.executeCell",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
         "onCommand:language-julia.debug.getActiveJuliaEnvironment",
@@ -117,11 +117,19 @@
                 "title": "Julia: Start REPL"
             },
             {
-                "command": "language-julia.executeJuliaCodeInREPL",
+                "command": "language-julia.executeCodeBlockOrSelection",
                 "title": "Julia: Execute Code"
             },
             {
-                "command": "language-julia.executeJuliaFileInREPL",
+                "command": "language-julia.executeJuliaCodeInREPL",
+                "title": "Julia: Execute Selection"
+            },
+            {
+                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
+                "title": "Julia: Execute Code And Move"
+            },
+            {
+                "command": "language-julia.executeFile",
                 "title": "Julia: Execute File"
             },
             {
@@ -181,8 +189,12 @@
                 "title": "Julia: Delete All Plots"
             },
             {
-                "command": "language-julia.executeJuliaCellInREPL",
+                "command": "language-julia.executeCell",
                 "title": "Julia: Execute Code Cell"
+            },
+            {
+                "command": "language-julia.executeCellAndMove",
+                "title": "Julia: Execute Code Cell And Move"
             },
             {
                 "command": "language-julia.executeJuliaBlockInREPL",
@@ -191,13 +203,25 @@
             {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select Code Block"
+            },
+            {
+                "command": "language-julia.clearAllInlineResults",
+                "title": "Julia: Clear All Inline Results"
+            },
+            {
+                "command": "language-julia.clearAllInlineResultsInEditor",
+                "title": "Julia: Clear Inline Results In Editor"
+            },
+            {
+                "command": "language-julia.clearCurrentInlineResult",
+                "title": "Julia: Clear Current Inline Result"
             }
         ],
         "menus": {
             "explorer/context": [
                 {
                     "when": "resourceLangId == julia",
-                    "command": "language-julia.executeJuliaFileInREPL",
+                    "command": "language-julia.executeFile",
                     "group": "julia"
                 }
             ],
@@ -256,13 +280,23 @@
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
-                "command": "language-julia.executeJuliaCellInREPL",
+                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
+                "key": "alt+Enter",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.executeCellAndMove",
                 "key": "shift+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
-                "command": "language-julia.executeJuliaBlockInREPL",
-                "key": "alt+Enter",
+                "command": "language-julia.clearCurrentInlineResult",
+                "key": "Ctrl+I Ctrl+D",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.clearAllInlineResultsInEditor",
+                "key": "ctrl+I ctrl+C",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
@@ -521,6 +555,27 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Remove spaces around = in function keywords.",
+                    "scope": "window"
+                },
+                "julia.execution.resultType": {
+                    "type": "string",
+                    "default": "REPL",
+                    "description": "Specifies how to show inline execution results",
+                    "enum": [
+                        "REPL",
+                        "inline",
+                        "both"
+                    ],
+                    "enumDescriptions": [
+                        "Shows inline execution results in REPL",
+                        "Shows inline execution results as inline bubbles",
+                        "Shows inline execution results in REPL and inline bubbles"
+                    ]
+                },
+                "julia.execution.codeInREPL": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Print executed code in REPL.",
                     "scope": "window"
                 }
             }

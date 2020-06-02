@@ -36,6 +36,126 @@ function sendDisplayMsg(kind, data)
     JSONRPC.send_notification(conn_endpoint, "display", Dict{String,String}("kind"=>kind, "data"=>data))
 end
 
+function strlimit(str::AbstractString, limit::Int = 30, ellipsis::AbstractString = "…")
+    will_append = length(str) > limit
+
+    io = IOBuffer()
+    i = 1
+    for c in str
+        will_append && i > limit - length(ellipsis) && break
+        isvalid(c) || continue
+
+        print(io, c)
+        i += 1
+    end
+    will_append && print(io, ellipsis)
+
+    return String(take!(io))
+end
+
+"""
+    render(x)
+
+Produce a representation of `x` that can be displayed by a UI. Must return a dictionary with
+the following fields:
+- `inline`: Short one-line plain text representation of `x`. Typically limited to 100 characters.
+- `all`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
+- `iserr`: Boolean. The frontend may style the UI differently depending on this value.
+"""
+function render(x)
+    str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000))
+
+    return Dict(
+        "inline" => strlimit(first(split(str, "\n")), 100),
+        "all" => str,
+        "iserr" => false
+    )
+end
+
+function render(::Nothing)
+    return Dict(
+        "inline" => "✓",
+        "all" => "nothing",
+        "iserr" => false
+    )
+end
+
+struct EvalError
+    err
+    bt
+end
+
+function render(err::EvalError)
+    str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(Base.display_error, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), err.err, err.bt)), 10_000))
+
+    return Dict(
+        "inline" => strlimit(first(split(str, "\n")), 100),
+        "all" => str,
+        "iserr" => true
+    )
+end
+"""
+    safe_render(x)
+
+Calls `render`, but catches errors in the display system.
+"""
+function safe_render(x)
+    try
+        render(x)
+    catch err
+        out = render(EvalError(err, catch_backtrace()))
+        out["inline"] = string("Display Error: ", out["inline"])
+        out["all"] = string("Display Error: ", out["all"])
+    end
+end
+
+function module_from_string(mod)
+    ms = split(mod, '.')
+
+    out = Main
+
+    loaded_module = findfirst(==(first(ms)), string.(Base.loaded_modules_array()))
+
+    if loaded_module !== nothing
+        out = Base.loaded_modules_array()[loaded_module]
+        popfirst!(ms)
+    end
+
+    for m in Symbol.(ms)
+        if isdefined(out, m)
+            resolved = getfield(out, m)
+
+            if resolved isa Module
+                out = resolved
+            else
+                return out
+            end
+        end
+    end
+
+    return out
+end
+
+is_module_loaded(mod) = mod == "Main" || module_from_string(mod) !== Main
+
+function get_modules(toplevel = nothing, mods = Set(Module[]))
+    top_mods = toplevel === nothing ? Base.loaded_modules_array() : [toplevel]
+
+    for mod in top_mods
+        push!(mods, mod)
+
+        for name in names(mod, all=true)
+            if !Base.isdeprecated(mod, name) && isdefined(mod, name)
+                thismod = getfield(mod, name)
+                if thismod isa Module && thismod !== mod && !(thismod in mods)
+                    push!(mods, thismod)
+                    get_modules(thismod, mods)
+                end
+            end
+        end
+    end
+    mods
+end
 
 run(conn_endpoint)
 
@@ -52,6 +172,17 @@ run(conn_endpoint)
             code_line = params["line"]
             code_column = params["column"]
             source_code = params["code"]
+            mod = params["module"]
+
+            resolved_mod = try
+                module_from_string(mod)
+            catch err
+                # maybe trigger error reporting here
+                Main
+            end
+
+            show_code = params["showCodeInREPL"]
+            show_result = params["showResultInREPL"]
 
             hideprompt() do
                 if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
@@ -59,30 +190,55 @@ run(conn_endpoint)
                         mode == "auto" && Main.Revise.revise()
                     end
                 end
-                for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                    if i==1
-                        printstyled("julia> ", color=:green)
-                        print(' '^code_column)
-                    else
-                        # Indent by 7 so that it aligns with the julia> prompt
-                        print(' '^7)
-                    end
+                if show_code
+                    for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                        if i==1
+                            printstyled("julia> ", color=:green)
+                            print(' '^code_column)
+                        else
+                            # Indent by 7 so that it aligns with the julia> prompt
+                            print(' '^7)
+                        end
 
-                    println(line)
+                        println(line)
+                    end
                 end
 
-                try
-                    withpath(source_filename) do
-                        res = Base.invokelatest(include_string, Main, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                withpath(source_filename) do
+                    res = try
+                        Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                    catch err
+                        EvalError(err, catch_backtrace())
+                    end
 
-                        if res !== nothing && !ends_with_semicolon(source_code)
+                    if show_result
+                        if res isa EvalError
+                            Base.display_error(stderr, res.err, res.bt)
+                        elseif res !== nothing && !ends_with_semicolon(source_code)
                             Base.invokelatest(display, res)
                         end
+                    else
+                        try
+                            Base.invokelatest(display, InlineDisplay(), res)
+                        catch err
+                            if !(err isa MethodError)
+                                printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                                Base.display_error(stderr, err, catch_backtrace())
+                            end
+                        end
                     end
-                catch err
-                    Base.display_error(stderr, err, catch_backtrace())
+
+                    JSONRPC.send_success_response(conn_endpoint, msg, safe_render(res))
                 end
             end
+        elseif msg["method"] == "repl/loadedModules"
+            JSONRPC.send_success_response(conn_endpoint, msg, string.(collect(get_modules())))
+        elseif msg["method"] == "repl/isModuleLoaded"
+            mod = msg["params"]
+
+            is_loaded = is_module_loaded(mod)
+
+            JSONRPC.send_success_response(conn_endpoint, msg, is_loaded)
         elseif msg["method"] == "repl/startdebugger"
             hideprompt() do
                 debug_pipename = msg["params"]
