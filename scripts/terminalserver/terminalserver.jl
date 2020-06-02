@@ -183,12 +183,7 @@ run(conn_endpoint)
     while true
         msg = JSONRPC.get_next_message(conn_endpoint)
 
-        if msg["method"] == "repl/getvariables"
-            vars = getVariables()
-            JSONRPC.send_notification(conn_endpoint, "repl/variables", [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
-
-            JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
-        elseif msg["method"] == "repl/runcode"
+        if msg["method"] == "repl/runcode"
             params = msg["params"]
 
 
@@ -256,6 +251,11 @@ run(conn_endpoint)
                     JSONRPC.send_success_response(conn_endpoint, msg, safe_render(res))
                 end
             end
+        elseif msg["method"] == "repl/getvariables"
+            vars = getVariables()
+            JSONRPC.send_notification(conn_endpoint, "repl/variables", [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
+
+            JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
         elseif msg["method"] == "repl/showingrid"
             var = Core.eval(Main, Meta.parse(msg["params"]))
 
