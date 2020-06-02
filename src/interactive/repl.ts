@@ -12,9 +12,12 @@ import * as jlpkgenv from '../jlpkgenv';
 import * as fs from 'async-file';
 import { Subject } from 'await-notify';
 
+import { TextDocumentPositionParams } from './misc'
+import * as results from './results'
 import * as plots from './plots'
 import * as workspace from './workspace'
-import { onSetLanguageClient, onDidChangeConfig } from '../extension';
+import * as modules from './modules'
+import { onSetLanguageClient, onDidChangeConfig } from '../extension'
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -140,10 +143,19 @@ function debuggerEnter(code: string) {
     vscode.debug.startDebugging(undefined, x);
 }
 
+const requestTypeReplRunCode = new rpc.RequestType<{
+    filename: string,
+    line: number,
+    column: number,
+    code: string,
+    module: string,
+    showCodeInREPL: boolean,
+    showResultInREPL: boolean
+}, void, void, void>('repl/runcode');
+
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display');
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter');
 const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run');
-const notifyTypeReplRunCode = new rpc.NotificationType<{ filename: string, line: number, column: number, code: string }, void>('repl/runcode');
 const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger');
 const notifyTypeReplVariables = new rpc.NotificationType<{name: string, type: string, value: any}[], void>('repl/variables');
 const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval');
@@ -151,11 +163,21 @@ const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/fini
 export const notifyTypeReplGetVariables = new rpc.NotificationType<void, void>('repl/getvariables');
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('repl/showingrid');
 
+const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
+export const onInit = g_onInit.event
+const g_onExit = new vscode.EventEmitter<Boolean>()
+export const onExit = g_onExit.event
+
+// code execution start
+
 function startREPLMsgServer(pipename: string) {
     let connected = new Subject();
 
     let server = net.createServer((socket: net.Socket) => {
-        socket.on('close', hadError => { server.close() });
+        socket.on('close', hadError => {
+            g_onExit.fire(hadError)
+            server.close()
+        });
 
         g_connection = rpc.createMessageConnection(
             new rpc.StreamMessageReader(socket),
@@ -171,6 +193,8 @@ function startREPLMsgServer(pipename: string) {
 
         g_connection.listen();
 
+        g_onInit.fire(g_connection)
+
         connected.notify();
     });
 
@@ -179,67 +203,13 @@ function startREPLMsgServer(pipename: string) {
     return connected;
 }
 
-async function executeCode(text, individualLine) {
-    if (!text.endsWith("\n")) {
-        text = text + '\n';
-    }
-
-    await startREPL(true);
-    g_terminal.show(true);
-    var lines = text.split(/\r?\n/);
-    lines = lines.filter(line => line != '');
-    text = lines.join('\n');
-    if (individualLine || process.platform == "win32") {
-        g_terminal.sendText(text + '\n', false);
-    }
-    else {
-        g_terminal.sendText('\u001B[200~' + text + '\n' + '\u001B[201~', false);
-    }
-}
-
-function executeSelection() {
-    telemetry.traceEvent('command-executejuliacodeinrepl');
-
-    var editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        return;
-    }
-
-    var selection = editor.selection;
-
-    var text = selection.isEmpty ? editor.document.lineAt(selection.start.line).text : editor.document.getText(selection);
-
-    // If no text was selected, try to move the cursor to the end of the next line
-    if (selection.isEmpty) {
-        for (var line = selection.start.line + 1; line < editor.document.lineCount; line++) {
-            if (!editor.document.lineAt(line).isEmptyOrWhitespace) {
-                var newPos = selection.active.with(line, editor.document.lineAt(line).range.end.character);
-                var newSel = new vscode.Selection(newPos, newPos);
-                editor.selection = newSel;
-                break;
-            }
-        }
-    }
-    executeCode(text, selection.isEmpty)
-}
-
-async function executeInRepl(code: string, filename: string, start: vscode.Position) {
-    await startREPL(true);
-
-    g_connection.sendNotification(
-        notifyTypeReplRunCode,
-        {
-            filename: filename,
-            line: start.line,
-            column: start.character,
-            code: code
-        }
-    );
-}
-
 async function executeFile(uri?: vscode.Uri) {
-    telemetry.traceEvent('command-executejuliafileinrepl');
+    telemetry.traceEvent('command-executeFile')
 
+    await startREPL(true)
+    g_terminal.show(true)
+
+    let module = 'Main'
     let path = "";
     let code = "";
     if (uri) {
@@ -254,11 +224,26 @@ async function executeFile(uri?: vscode.Uri) {
         }
         path = editor.document.fileName;
         code = editor.document.getText();
+
+        module = await modules.getModuleForEditor(editor, new vscode.Position(0, 0))
     }
-    executeInRepl(code, path, new vscode.Position(0, 0));
+
+    await g_connection.sendRequest(
+        requestTypeReplRunCode,
+        {
+            filename: path,
+            line: 0,
+            column: 0,
+            module: module,
+            code: code,
+            showCodeInREPL: false,
+            showResultInREPL: false
+        }
+    )
 }
 
 async function selectJuliaBlock() {
+    telemetry.traceEvent('command-selectCodeBlock')
     if (g_languageClient == null) {
         vscode.window.showErrorMessage('Error: Language server is not running.');
     }
@@ -287,8 +272,11 @@ async function selectJuliaBlock() {
 
 const g_cellDelimiter = new RegExp("^##(?!#)")
 
-async function executeJuliaCellInRepl() {
-    telemetry.traceEvent('command-executejuliacellinrepl');
+async function executeCell(shouldMove: boolean = false) {
+    telemetry.traceEvent('command-executeCell');
+
+    await startREPL(true)
+    g_terminal.show(true)
 
     let ed = vscode.window.activeTextEditor;
     let doc = ed.document;
@@ -315,66 +303,149 @@ async function executeJuliaCellInRepl() {
     let endpos = new vscode.Position(end, doc.lineAt(end).text.length);
     let nextpos = new vscode.Position(end + 1, 0);
     let code = doc.getText(new vscode.Range(startpos, endpos));
-    executeInRepl(code, doc.fileName, startpos)
-    vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
-    vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
+
+    const module: string = await modules.getModuleForEditor(ed, startpos)
+
+    await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
+
+    if (shouldMove) {
+        vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
+        vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
+    }
 }
 
-async function executeJuliaBlockInRepl() {
-    telemetry.traceEvent('command-executejuliablockinrepl');
+async function evaluateBlockOrSelection(shouldMove: boolean = false) {
+    telemetry.traceEvent('command-executeCodeBlockOrSelection')
 
-    var editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        return;
+    await startREPL(true)
+    g_terminal.show(true)
+
+    const editor = vscode.window.activeTextEditor
+    const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString());
+
+    for (const selection of editor.selections) {
+        let range: vscode.Range = null
+        let nextBlock: vscode.Position = null
+        const startpos: vscode.Position = new vscode.Position(selection.start.line, selection.start.character)
+        const params: TextDocumentPositionParams = {
+            textDocument: editorId,
+            position: startpos
+        }
+
+        const module: string = await modules.getModuleForEditor(editor, startpos)
+
+        if (selection.isEmpty) {
+            const currentBlock: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params);
+            range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
+            nextBlock = new vscode.Position(currentBlock[2].line, currentBlock[2].character)
+        } else {
+            range = new vscode.Range(selection.start, selection.end)
+        }
+
+        const text = editor.document.getText(range)
+
+        if (shouldMove && nextBlock && selection.isEmpty && editor.selections.length == 1) {
+            editor.selection = new vscode.Selection(nextBlock, nextBlock)
+            editor.revealRange(new vscode.Range(nextBlock, nextBlock))
+        }
+
+        await evaluate(editor, range, text, module)
+    }
+}
+
+async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string) {
+    telemetry.traceEvent('command-evaluate')
+
+    const section = vscode.workspace.getConfiguration('julia')
+    const resultType: string = section.get('execution.resultType')
+    const codeInREPL: boolean = section.get('execution.codeInREPL')
+
+    let r: results.Result = null
+    if (resultType !== "REPL") {
+        r = results.addResult(editor, range, {
+            content: ' ⟳ ',
+            isIcon: false,
+            hoverContent: '',
+            isError: false
+        })
     }
 
-    var selection = editor.selection;
+    let result: any = await g_connection.sendRequest(
+        requestTypeReplRunCode,
+        {
+            filename: editor.document.fileName,
+            line: range.start.line,
+            column: range.start.character,
+            code: text,
+            module: module,
+            showCodeInREPL: codeInREPL,
+            showResultInREPL: resultType !== "inline"
+        }
+    )
 
-    if (selection.isEmpty && g_languageClient == null) {
-        vscode.window.showErrorMessage('Error: Language server is not running.');
+    if (resultType !== "REPL") {
+        const hoverString = '```\n' + result.all.toString() + '\n```'
+
+        r.setContent({
+            content: ' ' + result.inline.toString() + ' ',
+            isIcon: false,
+            hoverContent: hoverString,
+            isError: result.iserr
+        })
     }
-    else if (!selection.isEmpty) {
-        let code_to_run = editor.document.getText(selection);
+}
 
-        executeInRepl(code_to_run, editor.document.fileName, selection.start);
+async function executeCodeCopyPaste(text, individualLine) {
+    if (!text.endsWith("\n")) {
+        text = text + '\n'
+    }
+
+    await startREPL(true)
+    g_terminal.show(true)
+
+    var lines = text.split(/\r?\n/)
+    lines = lines.filter(line => line != '')
+    text = lines.join('\n')
+    if (individualLine || process.platform == "win32") {
+        g_terminal.sendText(text + '\n', false)
     }
     else {
-        var editor = vscode.window.activeTextEditor;
-        let params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
+        g_terminal.sendText('\u001B[200~' + text + '\n' + '\u001B[201~', false)
+    }
+}
 
-        try {
-            let ret_val: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params);
+function executeSelectionCopyPaste() {
+    telemetry.traceEvent('command-executeSelectionCopyPaste')
 
-            let start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
-            let end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
-            let next_pos = new vscode.Position(ret_val[2].line, ret_val[2].character)
+    var editor = vscode.window.activeTextEditor
+    if (!editor) {
+        return
+    }
 
-            let code_to_run = vscode.window.activeTextEditor.document.getText(new vscode.Range(start_pos, end_pos))
-            executeInRepl(code_to_run, vscode.window.activeTextEditor.document.fileName, start_pos)
+    var selection = editor.selection
 
-            vscode.window.activeTextEditor.selection = new vscode.Selection(next_pos, next_pos)
-            vscode.window.activeTextEditor.revealRange(new vscode.Range(next_pos, next_pos))
-        }
-        catch (ex) {
-            if (ex.message == "Language client is not ready yet") {
-                vscode.window.showErrorMessage('Execute code block only works once the Julia Language Server is ready.');
-            }
-            else {
-                throw ex;
+    var text = selection.isEmpty ? editor.document.lineAt(selection.start.line).text : editor.document.getText(selection)
+
+    // If no text was selected, try to move the cursor to the end of the next line
+    if (selection.isEmpty) {
+        for (var line = selection.start.line + 1; line < editor.document.lineCount; line++) {
+            if (!editor.document.lineAt(line).isEmptyOrWhitespace) {
+                var newPos = selection.active.with(line, editor.document.lineAt(line).range.end.character)
+                var newSel = new vscode.Selection(newPos, newPos)
+                editor.selection = newSel
+                break
             }
         }
     }
+    executeCodeCopyPaste(text, selection.isEmpty)
 }
+
+// code execution end
 
 export async function replStartDebugger(pipename: string) {
     await startREPL(true)
 
     g_connection.sendNotification(notifyTypeReplStartDebugger, pipename);
-}
-
-export interface TextDocumentPositionParams {
-    textDocument: vslc.TextDocumentIdentifier
-    position: vscode.Position
 }
 
 let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockRange')
@@ -392,15 +463,19 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand));
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelection));
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaFileInREPL', executeFile));
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCellInREPL', executeJuliaCellInRepl));
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaBlockInREPL', executeJuliaBlockInRepl));
-
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCell', executeCell));
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeFile', executeFile));
+
+    // copy-paste selection into REPL. doesn't require LS to be started
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste));
+
 
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal == g_terminal) {
@@ -409,6 +484,8 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
         }
     })
 
+    results.activate(context);
     plots.activate(context);
     workspace.activate(context);
+    modules.activate(context);
 }

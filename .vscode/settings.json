@@ -1,10 +1,15 @@
 // Place your settings in this file to overwrite default and user settings.
 {
+    // tweak these settings to include/exclude folders in explorer or search results
     "files.exclude": {
-        "out": false // set this to true to hide the "out" folder with the compiled JS files
+        "dist": true,
+        "out": true,
+        "libs": true,
     },
     "search.exclude": {
-        "out": true // set this to false to include "out" folder in search results
+        "dist": true,
+        "out": true,
+        "libs": true,
     },
     // we want to use the TS server from our node_modules folder to control its version
     "typescript.tsdk": "./node_modules/typescript/lib",

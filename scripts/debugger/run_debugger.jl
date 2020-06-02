@@ -7,6 +7,6 @@ let
     try
         VSCodeDebugger.startdebug(pipenames[1])
     catch err
-        VSCodeDebugger.global_err_handler(err, catch_backtrace(), pipenames[2])
+        VSCodeDebugger.global_err_handler(err, catch_backtrace(), pipenames[2], "Debugger")
     end
 end
