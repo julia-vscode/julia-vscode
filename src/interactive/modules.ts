@@ -50,6 +50,8 @@ export function activate(context: vscode.ExtensionContext) {
         g_connection = null
         statusBarItem.hide()
     })
+
+    context.subscriptions.push(statusBarItem)
 }
 
 export async function getModuleForEditor(editor: vscode.TextEditor, position: vscode.Position = editor.selection.start) {
@@ -69,10 +71,6 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
     }
 
     return mod
-}
-
-export function deactivate() {
-    statusBarItem.dispose()
 }
 
 function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
