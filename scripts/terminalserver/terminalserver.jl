@@ -186,6 +186,8 @@ run(conn_endpoint)
         if msg["method"] == "repl/getvariables"
             vars = getVariables()
             JSONRPC.send_notification(conn_endpoint, "repl/variables", [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
+
+            JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
         elseif msg["method"] == "repl/runcode"
             params = msg["params"]
 
@@ -206,57 +208,53 @@ run(conn_endpoint)
             show_code = params["showCodeInREPL"]
             show_result = params["showResultInREPL"]
 
-            JSONRPC.send_notification(conn_endpoint, "repl/starteval", nothing)
-            try
-                hideprompt() do
-                    if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-                        let mode = get(ENV, "JULIA_REVISE", "auto")
-                            mode == "auto" && Main.Revise.revise()
-                        end
-                    end
-                    if show_code
-                        for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                            if i==1
-                                printstyled("julia> ", color=:green)
-                                print(' '^code_column)
-                            else
-                                # Indent by 7 so that it aligns with the julia> prompt
-                                print(' '^7)
-                            end
-
-                            println(line)
-                        end
-                    end
-
-                    withpath(source_filename) do
-                        res = try
-                            Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
-                        catch err
-                            EvalError(err, catch_backtrace())
-                        end
-
-                        if show_result
-                            if res isa EvalError
-                                Base.display_error(stderr, res.err, res.bt)
-                            elseif res !== nothing && !ends_with_semicolon(source_code)
-                                Base.invokelatest(display, res)
-                            end
-                        else
-                            try
-                                Base.invokelatest(display, InlineDisplay(), res)
-                            catch err
-                                if !(err isa MethodError)
-                                    printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                                    Base.display_error(stderr, err, catch_backtrace())
-                                end
-                            end
-                        end
-
-                        JSONRPC.send_success_response(conn_endpoint, msg, safe_render(res))
+            hideprompt() do
+                if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+                    let mode = get(ENV, "JULIA_REVISE", "auto")
+                        mode == "auto" && Main.Revise.revise()
                     end
                 end
-            finally
-                JSONRPC.send_notification(conn_endpoint, "repl/finisheval", nothing)
+
+                if show_code
+                    for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                        if i==1
+                            printstyled("julia> ", color=:green)
+                            print(' '^code_column)
+                        else
+                            # Indent by 7 so that it aligns with the julia> prompt
+                            print(' '^7)
+                        end
+
+                        println(line)
+                    end
+                end
+
+                withpath(source_filename) do
+                    res = try
+                        Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                    catch err
+                        EvalError(err, catch_backtrace())
+                    end
+
+                    if show_result
+                        if res isa EvalError
+                            Base.display_error(stderr, res.err, res.bt)
+                        elseif res !== nothing && !ends_with_semicolon(source_code)
+                            Base.invokelatest(display, res)
+                        end
+                    else
+                        try
+                            Base.invokelatest(display, InlineDisplay(), res)
+                        catch err
+                            if !(err isa MethodError)
+                                printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                                Base.display_error(stderr, err, catch_backtrace())
+                            end
+                        end
+                    end
+
+                    JSONRPC.send_success_response(conn_endpoint, msg, safe_render(res))
+                end
             end
         elseif msg["method"] == "repl/showingrid"
             var = Core.eval(Main, Meta.parse(msg["params"]))

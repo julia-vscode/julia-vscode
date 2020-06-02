@@ -44,13 +44,14 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
 
 let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
 
-export function replVariables(params: {name: string, type: string, value: any}[]) {
-    g_replVariables = params;
+export async function updateReplVariables() {
+    g_replVariables = await repl.g_connection.sendRequest(repl.requestTypeGetVariables, undefined);
+
     g_REPLTreeDataProvider.refresh();
 }
 
-export function replFinishEval() {
-    repl.g_connection.sendNotification(repl.notifyTypeReplGetVariables);
+export async function replFinishEval() {
+    await updateReplVariables();
 }
 
 async function showInVSCode(node: WorkspaceVariable) {
@@ -71,6 +72,6 @@ export function clearVariables() {
 
 export function setTerminal(terminal: vscode.Terminal) {
     g_replVariables = undefined;
-    g_REPLTreeDataProvider.refresh();    
+    g_REPLTreeDataProvider.refresh();
     g_terminal = terminal
 }
