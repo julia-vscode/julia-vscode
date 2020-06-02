@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.15.39
+* Improve cell delimiter regex so that it won't recognize YAS-style section headers as cell separator anymore (#1256, #1259)
+
 ## 0.15
 * Add an experimental debugger
 
@@ -12,7 +15,6 @@
 * Better presentation of documentation
 * Fully implement LSP 3.14
 * StaticLint: improved path handling (file tree), extended macro handling, handle local/global variables, general refactor with speed/robustness improvements
-
 
 ## 0.13.1
 * Update CHANGELOG
@@ -34,7 +36,7 @@
 * Various bug fixes
 
 ## 0.12.0
-* Add vscodedisplay() function for a grid view of tables
+* Add `vscodedisplay()` function for a grid view of tables
 * Add a command to delete all plots from the plot pane
 * Store Julia environment choice in settings
 * Auto detect Julia environments
