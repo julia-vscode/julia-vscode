@@ -12,12 +12,12 @@ import * as jlpkgenv from '../jlpkgenv';
 import * as fs from 'async-file';
 import { Subject } from 'await-notify';
 
-import { TextDocumentPositionParams } from './misc'
 import * as results from './results'
 import * as plots from './plots'
 import * as workspace from './workspace'
 import * as modules from './modules'
 import { onSetLanguageClient, onDidChangeConfig } from '../extension'
+import { TextDocumentPositionParams } from 'vscode-languageclient';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;

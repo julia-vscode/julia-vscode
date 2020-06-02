@@ -3,7 +3,7 @@ import * as vslc from 'vscode-languageclient';
 import * as rpc from 'vscode-jsonrpc';
 import { onInit, onExit } from './repl'
 import { onSetLanguageClient } from '../extension';
-import { TextDocumentPositionParams } from './misc'
+import { TextDocumentPositionParams } from 'vscode-languageclient';
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
