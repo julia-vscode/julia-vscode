@@ -12,6 +12,7 @@ import * as jlpkgenv from '../jlpkgenv';
 import * as fs from 'async-file';
 import { Subject } from 'await-notify';
 
+import { TextDocumentPositionParams } from './misc'
 import * as results from './results'
 import * as plots from './plots'
 import * as workspace from './workspace'
@@ -424,11 +425,6 @@ export async function replStartDebugger(pipename: string) {
     await startREPL(true)
 
     g_connection.sendNotification(notifyTypeReplStartDebugger, pipename);
-}
-
-export interface TextDocumentPositionParams {
-    textDocument: vslc.TextDocumentIdentifier
-    position: vscode.Position
 }
 
 let getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockRange')

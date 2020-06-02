@@ -3,6 +3,7 @@ import * as vslc from 'vscode-languageclient';
 import * as rpc from 'vscode-jsonrpc';
 import { onInit, onExit } from './repl'
 import { onSetLanguageClient } from '../extension';
+import { TextDocumentPositionParams } from './misc'
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
@@ -10,11 +11,6 @@ let g_languageClient: vslc.LanguageClient = null
 
 const isConnectionActive = () => g_connection !== null
 const isLanguageClientActive = () => g_languageClient !== null
-
-interface TextDocumentPositionParams {
-    textDocument: vslc.TextDocumentIdentifier
-    position: vscode.Position
-}
 
 const manuallySetDocuments = []
 
