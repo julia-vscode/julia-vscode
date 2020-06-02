@@ -53,10 +53,10 @@ try
         conn,
         Base.ARGS[1],
         Base.ARGS[4],
-        (err, bt)->global_err_handler(err, bt, Base.ARGS[3]),
+        (err, bt)->global_err_handler(err, bt, Base.ARGS[3], "Language Server"),
         symserver_store_path
     )
     run(server)
 catch err
-    global_err_handler(err, catch_backtrace(), Base.ARGS[3])
+    global_err_handler(err, catch_backtrace(), Base.ARGS[3], "Language Server")
 end

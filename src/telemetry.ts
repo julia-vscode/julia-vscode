@@ -106,8 +106,17 @@ export async function init(context: vscode.ExtensionContext) {
     extensionClient.context.tags[extensionClient.context.keys.userId] = vscode.env.machineId;
 }
 
-export function handleNewCrashReport(name: string, message: string, stacktrace: string) {
-    crashReporterQueue.push({ exception: { name: name, message: message, stack: stacktrace } });
+export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
+    crashReporterQueue.push({
+        exception: {
+            name: name,
+            message: message,
+            stack: stacktrace
+        },
+        tagOverrides: {
+            [extensionClient.context.keys.cloudRole]: cloudRole
+        }
+    });
 
     if (enableCrashReporter) {
         sendCrashReportQueue();
@@ -130,13 +139,13 @@ export function startLsCrashServer() {
 
         connection.on('close', async function (had_err) {
             let replResponse = accumulatingBuffer.toString().split("\n")
-            let errorMessageLines = parseInt(replResponse[1])
-            let errorMessage = replResponse.slice(2, 2 + errorMessageLines).join('\n');
-            let stacktrace = replResponse.slice(2 + errorMessageLines, replResponse.length - 1).join('\n');
+            let errorMessageLines = parseInt(replResponse[2])
+            let errorMessage = replResponse.slice(3, 3 + errorMessageLines).join('\n');
+            let stacktrace = replResponse.slice(3 + errorMessageLines, replResponse.length - 1).join('\n');
 
             traceEvent('jlerror');
 
-            handleNewCrashReport(replResponse[0], errorMessage, stacktrace);
+            handleNewCrashReport(replResponse[1], errorMessage, stacktrace, replResponse[0]);
         });
     });
 
@@ -161,6 +170,7 @@ function sendCrashReportQueue() {
     for (var i of own_copy) {
         extensionClient.track(i, appInsights.Contracts.TelemetryType.Exception)
     }
+    extensionClient.flush();
 }
 
 async function showCrashReporterUIConsent() {
