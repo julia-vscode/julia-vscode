@@ -92,6 +92,20 @@ function render(err::EvalError)
         "iserr" => true
     )
 end
+"""
+    safe_render(x)
+
+Calls `render`, but catches errors in the display system.
+"""
+function safe_render(x)
+    try
+        render(x)
+    catch err
+        out = render(EvalError(err, catch_backtrace()))
+        out["inline"] = string("Display Error: ", out["inline"])
+        out["all"] = string("Display Error: ", out["all"])
+    end
+end
 
 function module_from_string(mod)
     ms = split(mod, '.')
@@ -161,7 +175,7 @@ run(conn_endpoint)
             resolved_mod = try
                 module_from_string(mod)
             catch err
-                @error err
+                # maybe trigger error reporting here
                 Main
             end
 
@@ -206,12 +220,13 @@ run(conn_endpoint)
                             Base.invokelatest(display, InlineDisplay(), res)
                         catch err
                             if !(err isa MethodError)
-                                @error("Display Error", ex=(err, catch_backtrace()))
+                                printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                                Base.display_error(stderr, err, catch_backtrace())
                             end
                         end
                     end
 
-                    JSONRPC.send_success_response(conn_endpoint, msg, render(res))
+                    JSONRPC.send_success_response(conn_endpoint, msg, safe_render(res))
                 end
             end
         elseif msg["method"] == "repl/loadedModules"
