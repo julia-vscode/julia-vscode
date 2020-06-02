@@ -209,7 +209,6 @@ run(conn_endpoint)
                         mode == "auto" && Main.Revise.revise()
                     end
                 end
-
                 if show_code
                     for (i,line) in enumerate(eachline(IOBuffer(source_code)))
                         if i==1
@@ -253,7 +252,6 @@ run(conn_endpoint)
             end
         elseif msg["method"] == "repl/getvariables"
             vars = getVariables()
-            JSONRPC.send_notification(conn_endpoint, "repl/variables", [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
 
             JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
         elseif msg["method"] == "repl/showingrid"
