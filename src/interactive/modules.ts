@@ -18,10 +18,8 @@ interface TextDocumentPositionParams {
 
 const manuallySetDocuments = []
 
-const requestTypeGetModules = new rpc.RequestType<{}, string[], void, void>('repl/loadedModules');
-const requestTypeIsModuleLoaded = new rpc.RequestType<{
-    module: string
-}, boolean, void, void>('repl/isModuleLoaded');
+const requestTypeGetModules = new rpc.RequestType<void, string[], void, void>('repl/loadedModules');
+const requestTypeIsModuleLoaded = new rpc.RequestType<string, boolean, void, void>('repl/isModuleLoaded');
 
 const automaticallyChooseOption = 'Choose Automatically'
 
@@ -100,9 +98,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
 
     let loaded = false
     if (isConnectionActive()) {
-        loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, {
-            module: mod
-        })
+        loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
     }
 
     statusBarItem.text = loaded ? mod : '(' + mod + ')'
@@ -114,7 +110,7 @@ async function chooseModule() {
         return
     }
 
-    const possibleModules = await g_connection.sendRequest(requestTypeGetModules, {})
+    const possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
 
     possibleModules.sort()
     possibleModules.splice(0, 0, automaticallyChooseOption)
