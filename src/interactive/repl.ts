@@ -194,7 +194,11 @@ function startREPLMsgServer(pipename: string) {
 }
 
 async function executeFile(uri?: vscode.Uri) {
-    telemetry.traceEvent('command-executeFile');
+    telemetry.traceEvent('command-executeFile')
+
+    await startREPL(true)
+    g_terminal.show(true)
+
     let module = 'Main'
     let path = "";
     let code = "";
@@ -259,6 +263,9 @@ async function selectJuliaBlock() {
 async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell');
 
+    await startREPL(true)
+    g_terminal.show(true)
+
     let ed = vscode.window.activeTextEditor;
     let doc = ed.document;
     let rx = new RegExp("^##");
@@ -299,6 +306,9 @@ async function executeCell(shouldMove: boolean = false) {
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCodeBlockOrSelection')
 
+    await startREPL(true)
+    g_terminal.show(true)
+
     const editor = vscode.window.activeTextEditor
     const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString());
 
@@ -334,7 +344,6 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
 async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string) {
     telemetry.traceEvent('command-evaluate')
-    await startREPL(true);
 
     const section = vscode.workspace.getConfiguration('julia')
     const resultType: string = section.get('execution.resultType')
@@ -377,42 +386,43 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
 
 async function executeCodeCopyPaste(text, individualLine) {
     if (!text.endsWith("\n")) {
-        text = text + '\n';
+        text = text + '\n'
     }
 
-    await startREPL(true);
-    g_terminal.show(true);
-    var lines = text.split(/\r?\n/);
-    lines = lines.filter(line => line != '');
-    text = lines.join('\n');
+    await startREPL(true)
+    g_terminal.show(true)
+
+    var lines = text.split(/\r?\n/)
+    lines = lines.filter(line => line != '')
+    text = lines.join('\n')
     if (individualLine || process.platform == "win32") {
-        g_terminal.sendText(text + '\n', false);
+        g_terminal.sendText(text + '\n', false)
     }
     else {
-        g_terminal.sendText('\u001B[200~' + text + '\n' + '\u001B[201~', false);
+        g_terminal.sendText('\u001B[200~' + text + '\n' + '\u001B[201~', false)
     }
 }
 
 function executeSelectionCopyPaste() {
-    telemetry.traceEvent('command-executeSelectionCopyPaste');
+    telemetry.traceEvent('command-executeSelectionCopyPaste')
 
-    var editor = vscode.window.activeTextEditor;
+    var editor = vscode.window.activeTextEditor
     if (!editor) {
-        return;
+        return
     }
 
-    var selection = editor.selection;
+    var selection = editor.selection
 
-    var text = selection.isEmpty ? editor.document.lineAt(selection.start.line).text : editor.document.getText(selection);
+    var text = selection.isEmpty ? editor.document.lineAt(selection.start.line).text : editor.document.getText(selection)
 
     // If no text was selected, try to move the cursor to the end of the next line
     if (selection.isEmpty) {
         for (var line = selection.start.line + 1; line < editor.document.lineCount; line++) {
             if (!editor.document.lineAt(line).isEmptyOrWhitespace) {
-                var newPos = selection.active.with(line, editor.document.lineAt(line).range.end.character);
-                var newSel = new vscode.Selection(newPos, newPos);
-                editor.selection = newSel;
-                break;
+                var newPos = selection.active.with(line, editor.document.lineAt(line).range.end.character)
+                var newSel = new vscode.Selection(newPos, newPos)
+                editor.selection = newSel
+                break
             }
         }
     }
