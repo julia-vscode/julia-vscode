@@ -51,7 +51,15 @@ function strlimit(str::AbstractString, limit::Int = 30, ellipsis::AbstractString
     return String(take!(io))
 end
 
+"""
+    render(x)
 
+Produce a representation of `x` that can be displayed by a UI. Must return a dictionary with
+the following fields:
+- `inline`: Short one-line plain text representation of `x`. Typically limited to 100 characters.
+- `all`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
+- `iserr`: Boolean. The frontend may style the UI differently depending on this value.
+"""
 function render(x)
     str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000))
 
