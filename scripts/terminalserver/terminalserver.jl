@@ -31,7 +31,7 @@ function getVariables()
         n_as_string=="@enter" && continue
         startswith(n_as_string, "#") && continue
         t = typeof(x)
-        value_as_string = Base.invokelatest(repr, x)
+        value_as_string = show_with_strlimit(x)
 
         push!(variables, (name=string(n), type=string(t), value=value_as_string))
     end
@@ -73,6 +73,13 @@ function strlimit(str::AbstractString, limit::Int = 30, ellipsis::AbstractString
     return String(take!(io))
 end
 
+# TODO Rewrite this so that we don't allocate any string beyond the result string at all
+function show_with_strlimit(x)
+    str = strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000)
+
+    return str
+end
+
 """
     render(x)
 
@@ -83,7 +90,7 @@ the following fields:
 - `iserr`: Boolean. The frontend may style the UI differently depending on this value.
 """
 function render(x)
-    str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000))
+    str = show_with_strlimit(x)
 
     return Dict(
         "inline" => strlimit(first(split(str, "\n")), 100),
@@ -255,9 +262,9 @@ run(conn_endpoint)
 
             JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
         elseif msg["method"] == "repl/showingrid"
-            var = Core.eval(Main, Meta.parse(msg["params"]))
-
             try
+                var = Core.eval(Main, Meta.parse(msg["params"]))
+
                 Base.invokelatest(internal_vscodedisplay, var)
             catch err
                 Base.display_error(err, catch_backtrace())
@@ -537,7 +544,6 @@ end
 
 atreplinit() do repl
     @async try
-        sleep(1)
         _vscodeserver.hook_repl(repl)
     catch err
         Base.display_error(err, catch_backtrace())

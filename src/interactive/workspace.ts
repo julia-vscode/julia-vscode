@@ -1,15 +1,13 @@
 import * as vscode from 'vscode';
 import * as repl from './repl';
 
-let g_terminal: vscode.Terminal = null
-
 interface WorkspaceVariable {
     name: string,
     type: string,
     value: string
 }
 
-let g_replVariables: WorkspaceVariable[] = undefined;
+let g_replVariables: WorkspaceVariable[] = [];
 
 export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVariable> {
     private _onDidChangeTreeData: vscode.EventEmitter<WorkspaceVariable | undefined> = new vscode.EventEmitter<WorkspaceVariable | undefined>();
@@ -24,12 +22,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
             return []
         }
         else {
-            if (g_replVariables) {
-                return g_replVariables
-            }
-            else {
-                return []
-            }
+            return g_replVariables
         }
     }
 
@@ -71,7 +64,6 @@ export function clearVariables() {
 }
 
 export function setTerminal(terminal: vscode.Terminal) {
-    g_replVariables = undefined;
+    g_replVariables = [];
     g_REPLTreeDataProvider.refresh();
-    g_terminal = terminal
 }
