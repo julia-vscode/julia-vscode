@@ -4,7 +4,7 @@ using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
 import Dates
 
-include("../languageserver/packages/JSON/src/JSON.jl")
+include("../packages/JSON/src/JSON.jl")
 
 include("gridviewer.jl")
 

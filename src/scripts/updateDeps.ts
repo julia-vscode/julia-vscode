@@ -59,17 +59,13 @@ async function main() {
 
     await download_and_convert_grammar(juliaPath);
 
-    for (var pkg of ['CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer']) {
-        await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`) });
-        await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/languageserver/packages/${pkg}`) })
-    }
-
-    for (var pkg of ['JSONRPC']) {
+    for (var pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer']) {
         await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) });
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
-    await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/languageserver/packages') })
+    await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver') })
+    await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile') })
 
     await cp.exec('npm update', { cwd: process.cwd() })
 }
