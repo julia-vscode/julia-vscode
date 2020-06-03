@@ -415,9 +415,6 @@ function _display(d::InlineDisplay, x)
     end
 end
 
-# Load revise?
-load_revise = Base.ARGS[2] == "true"
-
 const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
 const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
 
@@ -566,20 +563,12 @@ end
 
 vscodedisplay() = i -> vscodedisplay(i)
 
-if _vscodeserver.load_revise
+# Load revise?
+if Base.ARGS[2] == "true"
     try
         @eval using Revise
         Revise.async_steal_repl_backend()
     catch err
+        @warn "failed to load Revise: $err"
     end
-end
-
-macro enter(command)
-    _vscodeserver.remove_lln!(command)
-    :(_vscodeserver.JSONRPC.send_notification(_vscodeserver.conn_endpoint, "debugger/enter", $(string(command))))
-end
-
-macro run(command)
-    _vscodeserver.remove_lln!(command)
-    :(_vscodeserver.JSONRPC.send_notification(_vscodeserver.conn_endpoint, "debugger/run", $(string(command))))
 end
