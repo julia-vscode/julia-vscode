@@ -197,10 +197,6 @@
                 "title": "Julia: Execute Code Cell And Move"
             },
             {
-                "command": "language-julia.executeJuliaBlockInREPL",
-                "title": "Julia: Execute Code Block"
-            },
-            {
                 "command": "language-julia.selectBlock",
                 "title": "Julia: Select Code Block"
             },
