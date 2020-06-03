@@ -15,7 +15,7 @@ export class Result {
     decoration: vscode.TextEditorDecorationType
     destroyed: boolean
 
-    constructor (editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
+    constructor(editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
         this.range = range
         this.document = editor.document
         this.text = editor.document.getText(this.range)
@@ -24,7 +24,7 @@ export class Result {
         this.setContent(content)
     }
 
-    setContent (content: ResultContent) {
+    setContent(content: ResultContent) {
         if (this.destroyed) {
             return
         }
@@ -38,7 +38,7 @@ export class Result {
         const color = new vscode.ThemeColor(content.isError ? 'editorError.foreground' : 'editor.foreground')
 
         let decoration = {
-            after: {
+            before: {
                 contentIconPath: undefined,
                 contentText: undefined,
                 backgroundColor: new vscode.ThemeColor('editorWidget.background'),
@@ -49,9 +49,9 @@ export class Result {
         }
 
         if (content.isIcon) {
-            decoration.after.contentIconPath = content.content
+            decoration.before.contentIconPath = content.content
         } else {
-            decoration.after.contentText = content.content
+            decoration.before.contentText = content.content
         }
 
         this.decoration = vscode.window.createTextEditorDecorationType(decoration)
@@ -60,18 +60,21 @@ export class Result {
             if (ed.document == this.document) {
                 ed.setDecorations(this.decoration, [{
                     hoverMessage: this.content.hoverContent,
-                    range: this.range
+                    range: this.decorationRange
                 }])
             }
         }
-
     }
 
-    draw () {
+    get decorationRange(): vscode.Range {
+        return new vscode.Range(this.range.end.translate(0, 9999), this.range.end.translate(0, 9999))
+    }
+
+    draw() {
         this.setContent(this.content)
     }
 
-    validate (e: vscode.TextDocumentChangeEvent) {
+    validate(e: vscode.TextDocumentChangeEvent) {
         if (this.document !== e.document) {
             return true
         }
@@ -86,12 +89,12 @@ export class Result {
 
             if (change.range.end.line < this.range.start.line ||
                 (change.range.end.line === this.range.start.line &&
-                change.range.end.character <= this.range.start.character)) {
+                    change.range.end.character <= this.range.start.character)) {
                 const lines = change.text.split('\n')
 
                 const lineOffset = lines.length - 1 - (change.range.end.line - change.range.start.line)
                 const charOffset = change.range.end.line == this.range.start.line ?
-                                   lines[lines.length - 1].length : 0
+                    lines[lines.length - 1].length : 0
 
                 this.range = new vscode.Range(
                     this.range.start.translate(lineOffset, charOffset),
@@ -108,7 +111,7 @@ export class Result {
         return true
     }
 
-    remove (destroy: boolean = false) {
+    remove(destroy: boolean = false) {
         this.destroyed = destroy
         for (const ed of vscode.window.visibleTextEditors) {
             ed.setDecorations(this.decoration, [])
@@ -127,9 +130,9 @@ export function activate(context) {
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.clearCurrentInlineResult', () => removeCurrent(vscode.window.activeTextEditor)));
 }
 
-export function deactivate() {}
+export function deactivate() { }
 
-export function addResult (editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
+export function addResult(editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
     for (let i = results.length - 1; i > -1; i--) {
         const result = results[i]
         if (result.document == editor.document && result.range.intersection(range) !== undefined) {
@@ -153,7 +156,7 @@ export function refreshResults(editors: vscode.TextEditor[]) {
     }
 }
 
-export function validateResults (e: vscode.TextDocumentChangeEvent) {
+export function validateResults(e: vscode.TextDocumentChangeEvent) {
     for (let i = results.length - 1; i > -1; i--) {
         const result = results[i]
         const isvalid = result.validate(e)
@@ -163,7 +166,7 @@ export function validateResults (e: vscode.TextDocumentChangeEvent) {
     }
 }
 
-export function removeResult (result: Result) {
+export function removeResult(result: Result) {
     let index = results.indexOf(result)
 
     if (index > -1) {
@@ -172,7 +175,7 @@ export function removeResult (result: Result) {
     }
 }
 
-export function removeAll (editor: vscode.TextEditor | null = null) {
+export function removeAll(editor: vscode.TextEditor | null = null) {
     for (let i = results.length - 1; i > -1; i--) {
         const result = results[i]
         if (editor === null || result.document === editor.document) {
@@ -181,7 +184,7 @@ export function removeAll (editor: vscode.TextEditor | null = null) {
     }
 }
 
-export function removeCurrent (editor: vscode.TextEditor) {
+export function removeCurrent(editor: vscode.TextEditor) {
     for (const selection of editor.selections) {
         for (let i = results.length - 1; i > -1; i--) {
             const result = results[i]
