@@ -215,6 +215,10 @@
             {
                 "command": "language-julia.clearCurrentInlineResult",
                 "title": "Julia: Clear Current Inline Result"
+            },
+            {
+                "command": "language-julia.chooseModule",
+                "title": "Julia: Select Current Module"
             }
         ],
         "menus": {
@@ -297,6 +301,11 @@
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
                 "key": "ctrl+I ctrl+C",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.chooseModule",
+                "key": "Ctrl-J Ctrl+M",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
