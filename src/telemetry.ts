@@ -126,6 +126,22 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
     }
 }
 
+export function handleNewCrashReportFromError(exception: Error, cloudRole: string) {
+    crashReporterQueue.push({
+        exception: exception,
+        tagOverrides: {
+            [extensionClient.context.keys.cloudRole]: cloudRole
+        }
+    });
+
+    if (enableCrashReporter) {
+        sendCrashReportQueue();
+    }
+    else {
+        showCrashReporterUIConsent();
+    }
+}
+
 export function startLsCrashServer() {
 
     g_jlcrashreportingpipename = generatePipeName(process.pid.toString(), 'vsc-jl-cr');
@@ -201,5 +217,31 @@ export function setCurrentJuliaVersion(version: string) {
 
     if (extensionClient) {
         extensionClient.commonProperties["juliaversion"] = g_currentJuliaVersion;
+    }
+}
+
+export function wrapFuncWithCrashReporting<F extends (...args: any[]) => any>(fn: F): F {
+    return <F>function (...args: any[]) {
+        try {
+            const result = fn(...args);
+            return result;
+        }
+        catch (e) {
+            handleNewCrashReportFromError(e, 'Extension');
+            throw (e);
+        }
+    }
+}
+
+export function wrapAsyncFuncWithCrashReporting<F extends (...args: any[]) => any>(fn: F): F {
+    return <F>async function (...args: any[]) {
+        try {
+            const result = await fn(...args);
+            return result;
+        }
+        catch (e) {
+            handleNewCrashReportFromError(e, 'Extension');
+            throw (e);
+        }
     }
 }
