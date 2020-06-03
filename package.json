@@ -122,7 +122,7 @@
             },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
-                "title": "Julia: Execute Selection"
+                "title": "Julia: Send Current Line or Selection to REPL"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
