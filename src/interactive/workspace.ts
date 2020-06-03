@@ -1,45 +1,69 @@
 import * as vscode from 'vscode';
+import * as repl from './repl';
 
-let g_terminal: vscode.Terminal = null
-let g_replVariables: string = '';
+interface WorkspaceVariable {
+    name: string,
+    type: string,
+    value: string
+}
 
-export class REPLTreeDataProvider implements vscode.TreeDataProvider<string> {
-    private _onDidChangeTreeData: vscode.EventEmitter<string | undefined> = new vscode.EventEmitter<string | undefined>();
-    readonly onDidChangeTreeData: vscode.Event<string | undefined> = this._onDidChangeTreeData.event;
+let g_replVariables: WorkspaceVariable[] = [];
+
+export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVariable> {
+    private _onDidChangeTreeData: vscode.EventEmitter<WorkspaceVariable | undefined> = new vscode.EventEmitter<WorkspaceVariable | undefined>();
+    readonly onDidChangeTreeData: vscode.Event<WorkspaceVariable | undefined> = this._onDidChangeTreeData.event;
 
     refresh(): void {
         this._onDidChangeTreeData.fire(undefined);
     }
 
-    getChildren(node?: string) {
+    getChildren(node?: WorkspaceVariable) {
         if (node) {
-            return [node]
+            return []
         }
         else {
-            if (g_terminal) {
-                return g_replVariables.split(';').slice(1)
-            }
-            else {
-                return ['no repl attached']
-            }
+            return g_replVariables
         }
     }
 
-    getTreeItem(node: string): vscode.TreeItem {
-        let treeItem: vscode.TreeItem = new vscode.TreeItem(node)
+    getTreeItem(node: WorkspaceVariable): vscode.TreeItem {
+        let treeItem = new vscode.TreeItem(`${node.name}:`)
+        treeItem.description = node.value;
+        treeItem.tooltip = node.type;
+        treeItem.contextValue = 'globalvariable';
         return treeItem;
     }
 }
 
-// TODO Enable again
-// let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
+let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
+
+export async function updateReplVariables() {
+    g_replVariables = await repl.g_connection.sendRequest(repl.requestTypeGetVariables, undefined);
+
+    g_REPLTreeDataProvider.refresh();
+}
+
+export async function replFinishEval() {
+    await updateReplVariables();
+}
+
+async function showInVSCode(node: WorkspaceVariable) {
+    repl.g_connection.sendNotification(repl.notifyTypeReplShowInGrid, node.name);
+}
 
 export function activate(context: vscode.ExtensionContext) {
-    // TODO Enable again
-    // g_REPLTreeDataProvider = new REPLTreeDataProvider();
-    // context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
+    g_REPLTreeDataProvider = new REPLTreeDataProvider();
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.showInVSCode', showInVSCode));
+}
+
+export function clearVariables() {
+    g_replVariables = [];
+    g_REPLTreeDataProvider.refresh();
 }
 
 export function setTerminal(terminal: vscode.Terminal) {
-    g_terminal = terminal
+    g_replVariables = [];
+    g_REPLTreeDataProvider.refresh();
 }

@@ -25,7 +25,7 @@ let g_languageClient: vslc.LanguageClient = null;
 
 let g_terminal: vscode.Terminal = null
 
-let g_connection: rpc.MessageConnection = undefined;
+export let g_connection: rpc.MessageConnection = undefined;
 
 function startREPLCommand() {
     telemetry.traceEvent('command-startrepl');
@@ -112,6 +112,8 @@ async function startREPL(preserveFocus: boolean) {
         }
         g_terminal.show(preserveFocus);
         await juliaIsConnectedPromise.wait();
+
+        workspace.clearVariables();
     }
     else {
         g_terminal.show(preserveFocus);
@@ -151,10 +153,18 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     showResultInREPL: boolean
 }, void, void, void>('repl/runcode');
 
+export const requestTypeGetVariables = new rpc.RequestType<
+    void,
+    { name: string, type: string, value: any }[],
+    void, void>('repl/getvariables');
+
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display');
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter');
 const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run');
 const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger');
+const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval');
+const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval');
+export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('repl/showingrid');
 
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
@@ -180,6 +190,8 @@ function startREPLMsgServer(pipename: string) {
         g_connection.onNotification(notifyTypeDisplay, plots.displayPlot);
         g_connection.onNotification(notifyTypeDebuggerRun, debuggerRun);
         g_connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter);
+        g_connection.onNotification(notifyTypeReplStartEval, () => { });
+        g_connection.onNotification(notifyTypeReplFinishEval, workspace.replFinishEval)
 
         g_connection.listen();
 
@@ -229,6 +241,8 @@ async function executeFile(uri?: vscode.Uri) {
             showResultInREPL: false
         }
     )
+
+    await workspace.updateReplVariables();
 }
 
 async function selectJuliaBlock() {
@@ -391,6 +405,8 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             isError: result.iserr
         })
     }
+
+    await workspace.updateReplVariables();
 }
 
 async function executeCodeCopyPaste(text, individualLine) {

@@ -18,6 +18,26 @@ end
 include("repl.jl")
 include("../debugger/debugger.jl")
 
+function getVariables()
+    M = Main
+    variables = []
+    for n in names(M)
+        !isdefined(M, n) && continue
+        x = getfield(M, n)
+        x isa Module && continue
+        x==Main.vscodedisplay && continue
+        n_as_string = string(n)
+        n_as_string=="@run" && continue
+        n_as_string=="@enter" && continue
+        startswith(n_as_string, "#") && continue
+        t = typeof(x)
+        value_as_string = show_with_strlimit(x)
+
+        push!(variables, (name=string(n), type=string(t), value=value_as_string))
+    end
+    return variables
+end
+
 struct InlineDisplay <: AbstractDisplay end
 
 repl_pipename = Base.ARGS[1]
@@ -53,6 +73,13 @@ function strlimit(str::AbstractString, limit::Int = 30, ellipsis::AbstractString
     return String(take!(io))
 end
 
+# TODO Rewrite this so that we don't allocate any string beyond the result string at all
+function show_with_strlimit(x)
+    str = strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000)
+
+    return str
+end
+
 """
     render(x)
 
@@ -63,7 +90,7 @@ the following fields:
 - `iserr`: Boolean. The frontend may style the UI differently depending on this value.
 """
 function render(x)
-    str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000))
+    str = show_with_strlimit(x)
 
     return Dict(
         "inline" => strlimit(first(split(str, "\n")), 100),
@@ -159,8 +186,7 @@ end
 
 run(conn_endpoint)
 
-@async begin
-
+@async try
     while true
         msg = JSONRPC.get_next_message(conn_endpoint)
 
@@ -231,6 +257,18 @@ run(conn_endpoint)
                     JSONRPC.send_success_response(conn_endpoint, msg, safe_render(res))
                 end
             end
+        elseif msg["method"] == "repl/getvariables"
+            vars = getVariables()
+
+            JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
+        elseif msg["method"] == "repl/showingrid"
+            try
+                var = Core.eval(Main, Meta.parse(msg["params"]))
+
+                Base.invokelatest(internal_vscodedisplay, var)
+            catch err
+                Base.display_error(err, catch_backtrace())
+            end
         elseif msg["method"] == "repl/loadedModules"
             JSONRPC.send_success_response(conn_endpoint, msg, string.(collect(get_modules())))
         elseif msg["method"] == "repl/isModuleLoaded"
@@ -250,6 +288,8 @@ run(conn_endpoint)
             end
         end
     end
+catch err
+    Base.display_error(err, catch_backtrace())
 end
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
@@ -340,7 +380,7 @@ Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) 
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
-function display(d::InlineDisplay, x)
+function Base.display(d::InlineDisplay, x)
     if showable("application/vnd.vegalite.v4+json", x)
         display(d,"application/vnd.vegalite.v4+json", x)
     elseif showable("application/vnd.vegalite.v3+json", x)
@@ -384,10 +424,6 @@ function _display(d::InlineDisplay, x)
     end
 end
 
-if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
-    atreplinit(i->Base.Multimedia.pushdisplay(InlineDisplay()))
-end
-
 # Load revise?
 load_revise = Base.ARGS[2] == "true"
 
@@ -418,6 +454,52 @@ end
 
 push!(Base.package_callbacks, pkgload)
 
+function hook_repl(repl)
+    main_mode = get_main_mode()
+
+    main_mode.on_done = REPL.respond(Base.active_repl, main_mode; pass_empty = false) do line
+
+        x = Base.parse_input_line(line,filename=REPL.repl_filename(repl,main_mode.hist))
+
+        if !(x isa Expr && x.head == :toplevel)
+            error("VS Code Julia REPL got an unexpected input.")
+        end
+
+        # Replace all top level assignments with a global top level assignment
+        # so that they happen, even though the code now runs inside a
+        # try ... finally block
+        for i in 1:length(x.args)
+            if x.args[i] isa Expr && x.args[i].head==:(=)
+                x.args[i] = Expr(:global, x.args[i])
+            end
+        end
+
+        q = Expr(:toplevel,
+            Expr(:try,
+                Expr(:block,
+                    quote
+                        try
+                            $(JSONRPC.send_notification)($conn_endpoint, "repl/starteval", nothing)
+                        catch err
+                        end
+                    end,
+                    x.args...
+                ),
+                false,
+                false,
+                quote
+                    try
+                        $(JSONRPC.send_notification)($conn_endpoint, "repl/finisheval", nothing)
+                    catch err
+                    end
+                end
+            )
+        )
+
+        return q
+    end
+end
+
 function remove_lln!(ex::Expr)
     for i in length(ex.args):-1:1
         if ex.args[i] isa LineNumberNode
@@ -428,26 +510,24 @@ function remove_lln!(ex::Expr)
     end
 end
 
-end
-
-function vscodedisplay(x)
+function internal_vscodedisplay(x)
     if showable("application/vnd.dataresource+json", x)
-        _vscodeserver._display(_vscodeserver.InlineDisplay(), x)
-    elseif _vscodeserver._isiterabletable(x)===true
+        _display(InlineDisplay(), x)
+    elseif _isiterabletable(x)===true
         buffer = IOBuffer()
         io = IOContext(buffer, :compact=>true)
-        _vscodeserver.printdataresource(io, _vscodeserver._getiterator(x))
-        buffer_asstring = _vscodeserver.CachedDataResourceString(String(take!(buffer)))
-        _vscodeserver._display(_vscodeserver.InlineDisplay(), buffer_asstring)
-    elseif _vscodeserver._isiterabletable(x)===missing
+        printdataresource(io, _getiterator(x))
+        buffer_asstring = CachedDataResourceString(String(take!(buffer)))
+        _display(InlineDisplay(), buffer_asstring)
+    elseif _isiterabletable(x)===missing
         try
             buffer = IOBuffer()
             io = IOContext(buffer, :compact=>true)
-            _vscodeserver.printdataresource(io, _vscodeserver._getiterator(x))
-            buffer_asstring = _vscodeserver.CachedDataResourceString(String(take!(buffer)))
-            _vscodeserver._display(_vscodeserver.InlineDisplay(), buffer_asstring)
+            printdataresource(io, _getiterator(x))
+            buffer_asstring = CachedDataResourceString(String(take!(buffer)))
+            _display(InlineDisplay(), buffer_asstring)
         catch err
-            _vscodeserver._display(_vscodeserver.InlineDisplay(), x)
+            _display(InlineDisplay(), x)
         end
     elseif x isa AbstractVector || x isa AbstractMatrix
         buffer = IOBuffer()
@@ -456,8 +536,26 @@ function vscodedisplay(x)
         buffer_asstring = _vscodeserver.CachedDataResourceString(String(take!(buffer)))
         _vscodeserver._display(_vscodeserver.InlineDisplay(), buffer_asstring)
     else
-        _vscodeserver._display(_vscodeserver.InlineDisplay(), x)
+        _display(InlineDisplay(), x)
     end
+end
+
+end
+
+atreplinit() do repl
+    @async try
+        _vscodeserver.hook_repl(repl)
+    catch err
+        Base.display_error(err, catch_backtrace())
+    end
+
+    if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
+        Base.Multimedia.pushdisplay(_vscodeserver.InlineDisplay())
+    end
+end
+
+function vscodedisplay(x)
+    _vscodeserver.internal_vscodedisplay(x)
 end
 
 vscodedisplay() = i -> vscodedisplay(i)
