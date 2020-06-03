@@ -197,7 +197,6 @@ async function executeFile(uri?: vscode.Uri) {
     telemetry.traceEvent('command-executeFile')
 
     await startREPL(true)
-    g_terminal.show(true)
 
     let module = 'Main'
     let path = "";
@@ -266,7 +265,6 @@ async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell');
 
     await startREPL(true)
-    g_terminal.show(true)
 
     let ed = vscode.window.activeTextEditor;
     let doc = ed.document;
@@ -308,7 +306,6 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCodeBlockOrSelection')
 
     await startREPL(true)
-    g_terminal.show(true)
 
     const editor = vscode.window.activeTextEditor
     const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString());
@@ -391,7 +388,6 @@ async function executeCodeCopyPaste(text, individualLine) {
     }
 
     await startREPL(true)
-    g_terminal.show(true)
 
     var lines = text.split(/\r?\n/)
     lines = lines.filter(line => line != '')
