@@ -157,98 +157,122 @@ function get_modules(toplevel = nothing, mods = Set(Module[]))
     mods
 end
 
-run(conn_endpoint)
+"""
+    handle_rpc(f::Function, meth::AbstractString)
 
-@async begin
+Sets `f` as handler for `meth`, whose return value will be sent to the frontend over JSON endpoint.
+"""
+handle_rpc(f::Function, meth::AbstractString) = rpc_handlers[meth] = f
+const rpc_handlers = Dict{String,Function}()
 
-    while true
-        msg = JSONRPC.get_next_message(conn_endpoint)
+"""
+    handle_rpc(f::Function, meth::AbstractString)
+Sets `f` as handler for `meth`, whose return value will _**NOT**_ be sent to the frontend.
+"""
+handle_msg(f::Function, meth::AbstractString) = msg_handlers[meth] = f
+const msg_handlers = Dict{String,Function}()
 
-        if msg["method"] == "repl/runcode"
-            params = msg["params"]
+function handle_message(msg)
+    kind, meth = split(msg["method"], '/')
+    params = msg["params"]
+    # TODO: add some error handling here
+    if kind == "rpc" && haskey(rpc_handlers, meth)
+        res = rpc_handlers[meth](params)
+        JSONRPC.send_success_response(conn_endpoint, msg, res)
+    elseif kind == "msg" && haskey(msg_handlers, meth)
+        msg_handlers[meth](params)
+    end
+end
 
+handle_rpc("runcode") do params
+    source_filename = params["filename"]
+    code_line = params["line"]
+    code_column = params["column"]
+    source_code = params["code"]
+    mod = params["module"]
+    show_code = params["showCodeInREPL"]
+    show_result = params["showResultInREPL"]
 
-            source_filename = params["filename"]
-            code_line = params["line"]
-            code_column = params["column"]
-            source_code = params["code"]
-            mod = params["module"]
+    resolved_mod = try
+        module_from_string(mod)
+    catch err
+        # maybe trigger error reporting here
+        Main
+    end
 
-            resolved_mod = try
-                module_from_string(mod)
-            catch err
-                # maybe trigger error reporting here
-                Main
-            end
-
-            show_code = params["showCodeInREPL"]
-            show_result = params["showResultInREPL"]
-
-            hideprompt() do
-                if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-                    let mode = get(ENV, "JULIA_REVISE", "auto")
-                        mode == "auto" && Main.Revise.revise()
-                    end
-                end
-                if show_code
-                    for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                        if i==1
-                            printstyled("julia> ", color=:green)
-                            print(' '^code_column)
-                        else
-                            # Indent by 7 so that it aligns with the julia> prompt
-                            print(' '^7)
-                        end
-
-                        println(line)
-                    end
-                end
-
-                withpath(source_filename) do
-                    res = try
-                        Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
-                    catch err
-                        EvalError(err, catch_backtrace())
-                    end
-
-                    if show_result
-                        if res isa EvalError
-                            Base.display_error(stderr, res.err, res.bt)
-                        elseif res !== nothing && !ends_with_semicolon(source_code)
-                            Base.invokelatest(display, res)
-                        end
-                    else
-                        try
-                            Base.invokelatest(display, InlineDisplay(), res)
-                        catch err
-                            if !(err isa MethodError)
-                                printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                                Base.display_error(stderr, err, catch_backtrace())
-                            end
-                        end
-                    end
-
-                    JSONRPC.send_success_response(conn_endpoint, msg, safe_render(res))
-                end
-            end
-        elseif msg["method"] == "repl/loadedModules"
-            JSONRPC.send_success_response(conn_endpoint, msg, string.(collect(get_modules())))
-        elseif msg["method"] == "repl/isModuleLoaded"
-            mod = msg["params"]
-
-            is_loaded = is_module_loaded(mod)
-
-            JSONRPC.send_success_response(conn_endpoint, msg, is_loaded)
-        elseif msg["method"] == "repl/startdebugger"
-            hideprompt() do
-                debug_pipename = msg["params"]
-                try
-                    VSCodeDebugger.startdebug(debug_pipename)
-                catch err
-                    VSCodeDebugger.global_err_handler(err, catch_backtrace(), ARGS[4], "Debugger")
-                end
+    hideprompt() do
+        if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+            let mode = get(ENV, "JULIA_REVISE", "auto")
+                mode == "auto" && Main.Revise.revise()
             end
         end
+        if show_code
+            for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                if i==1
+                    printstyled("julia> ", color=:green)
+                    print(' '^code_column)
+                else
+                    # Indent by 7 so that it aligns with the julia> prompt
+                    print(' '^7)
+                end
+
+                println(line)
+            end
+        end
+
+        withpath(source_filename) do
+            res = try
+                Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+            catch err
+                EvalError(err, catch_backtrace())
+            end
+
+            if show_result
+                if res isa EvalError
+                    Base.display_error(stderr, res.err, res.bt)
+                elseif res !== nothing && !ends_with_semicolon(source_code)
+                    Base.invokelatest(display, res)
+                end
+            else
+                try
+                    Base.invokelatest(display, InlineDisplay(), res)
+                catch err
+                    if !(err isa MethodError)
+                        printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                        Base.display_error(stderr, err, catch_backtrace())
+                    end
+                end
+            end
+
+            safe_render(res)
+        end
+    end
+end
+
+handle_rpc("loadedModules") do params
+    string.(collect(get_modules()))
+end
+
+handle_rpc("isModuleLoaded") do mod
+    is_module_loaded(mod)
+end
+
+handle_msg("startdebugger") do debug_pipename
+    hideprompt() do
+        try
+            VSCodeDebugger.startdebug(debug_pipename)
+        catch err
+            VSCodeDebugger.global_err_handler(err, catch_backtrace(), ARGS[4], "Debugger")
+        end
+    end
+end
+
+# TODO: wrap this in function and write some unit tests
+run(conn_endpoint)
+@async begin
+    while true
+        msg = JSONRPC.get_next_message(conn_endpoint)
+        handle_message(msg)
     end
 end
 

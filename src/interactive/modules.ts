@@ -14,8 +14,8 @@ const isLanguageClientActive = () => g_languageClient !== null
 
 const manuallySetDocuments = []
 
-const requestTypeGetModules = new rpc.RequestType<void, string[], void, void>('repl/loadedModules');
-const requestTypeIsModuleLoaded = new rpc.RequestType<string, boolean, void, void>('repl/isModuleLoaded');
+const requestTypeGetModules = new rpc.RequestType<void, string[], void, void>('rpc/loadedModules');
+const requestTypeIsModuleLoaded = new rpc.RequestType<string, boolean, void, void>('rpc/isModuleLoaded');
 
 const automaticallyChooseOption = 'Choose Automatically'
 

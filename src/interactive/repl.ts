@@ -149,12 +149,12 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     module: string,
     showCodeInREPL: boolean,
     showResultInREPL: boolean
-}, void, void, void>('repl/runcode');
+}, void, void, void>('rpc/runcode');
 
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display');
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter');
 const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run');
-const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger');
+const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('msg/startdebugger');
 
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
