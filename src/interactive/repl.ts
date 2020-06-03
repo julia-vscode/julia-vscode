@@ -12,12 +12,12 @@ import * as jlpkgenv from '../jlpkgenv';
 import * as fs from 'async-file';
 import { Subject } from 'await-notify';
 
-import { TextDocumentPositionParams } from './misc'
 import * as results from './results'
 import * as plots from './plots'
 import * as workspace from './workspace'
 import * as modules from './modules'
 import { onSetLanguageClient, onDidChangeConfig } from '../extension'
+import { TextDocumentPositionParams } from 'vscode-languageclient';
 
 let g_context: vscode.ExtensionContext = null;
 let g_settings: settings.ISettings = null;
@@ -209,7 +209,6 @@ async function executeFile(uri?: vscode.Uri) {
     telemetry.traceEvent('command-executeFile')
 
     await startREPL(true)
-    g_terminal.show(true)
 
     let module = 'Main'
     let path = "";
@@ -280,7 +279,6 @@ async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell');
 
     await startREPL(true)
-    g_terminal.show(true)
 
     let ed = vscode.window.activeTextEditor;
     let doc = ed.document;
@@ -322,7 +320,6 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCodeBlockOrSelection')
 
     await startREPL(true)
-    g_terminal.show(true)
 
     const editor = vscode.window.activeTextEditor
     const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString());
@@ -352,6 +349,17 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.selection = new vscode.Selection(nextBlock, nextBlock)
             editor.revealRange(new vscode.Range(nextBlock, nextBlock))
         }
+
+
+        const tempDecoration = vscode.window.createTextEditorDecorationType({
+            backgroundColor: new vscode.ThemeColor("editor.hoverHighlightBackground"),
+            isWholeLine: true
+        })
+        editor.setDecorations(tempDecoration, [range])
+
+        setTimeout(() => {
+            editor.setDecorations(tempDecoration, [])
+        }, 200)
 
         await evaluate(editor, range, text, module)
     }
@@ -407,7 +415,6 @@ async function executeCodeCopyPaste(text, individualLine) {
     }
 
     await startREPL(true)
-    g_terminal.show(true)
 
     var lines = text.split(/\r?\n/)
     lines = lines.filter(line => line != '')
