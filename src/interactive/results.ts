@@ -11,7 +11,6 @@ export class Result {
     document: vscode.TextDocument
     text: string
     range: vscode.Range
-    decorationRange: vscode.Range
     content: ResultContent
     decoration: vscode.TextEditorDecorationType
     destroyed: boolean
@@ -21,8 +20,6 @@ export class Result {
         this.document = editor.document
         this.text = editor.document.getText(this.range)
         this.destroyed = false
-
-        this.updateDecorationRange()
 
         this.setContent(content)
     }
@@ -69,8 +66,8 @@ export class Result {
         }
     }
 
-    updateDecorationRange() {
-        this.decorationRange = new vscode.Range(this.range.end.translate(0, 9999), this.range.end.translate(0, 9999))
+    get decorationRange(): vscode.Range {
+        return new vscode.Range(this.range.end.translate(0, 9999), this.range.end.translate(0, 9999))
     }
 
     draw() {
@@ -110,8 +107,6 @@ export class Result {
             this.remove()
             return false
         }
-
-        this.updateDecorationRange()
 
         return true
     }
