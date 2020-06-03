@@ -27,8 +27,6 @@ function getVariables()
         x isa Module && continue
         x==Main.vscodedisplay && continue
         n_as_string = string(n)
-        n_as_string=="@run" && continue
-        n_as_string=="@enter" && continue
         startswith(n_as_string, "#") && continue
         t = typeof(x)
         value_as_string = Base.invokelatest(repr, x)
@@ -533,7 +531,21 @@ function internal_vscodedisplay(x)
     end
 end
 
+macro enter(command)
+    remove_lln!(command)
+    :(JSONRPC.send_notification(conn_endpoint, "debugger/enter", $(string(command))))
 end
+
+macro run(command)
+    remove_lln!(command)
+    :(JSONRPC.send_notification(conn_endpoint, "debugger/run", $(string(command))))
+end
+
+export @enter, @run
+
+end
+
+using ._vscodeserver
 
 atreplinit() do repl
     @async try
