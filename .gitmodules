@@ -1,38 +1,38 @@
 [submodule "scripts/languageserver/packages/JSON"]
-	path = scripts/languageserver/packages/JSON
+	path = scripts/packages/JSON
 	url = https://github.com/JuliaIO/JSON.jl.git
 [submodule "scripts/languageserver/packages/LanguageServer"]
-	path = scripts/languageserver/packages/LanguageServer
+	path = scripts/packages/LanguageServer
 	url = https://github.com/julia-vscode/LanguageServer.jl.git
 [submodule "scripts/languageserver/packages/URIParser"]
-	path = scripts/languageserver/packages/URIParser
+	path = scripts/packages/URIParser
 	url = https://github.com/JuliaWeb/URIParser.jl.git
 [submodule "scripts/languageserver/packages/CSTParser"]
-	path = scripts/languageserver/packages/CSTParser
+	path = scripts/packages/CSTParser
 	url = https://github.com/julia-vscode/CSTParser.jl.git
 [submodule "scripts/languageserver/packages/Tokenize"]
-	path = scripts/languageserver/packages/Tokenize
+	path = scripts/packages/Tokenize
 	url = https://github.com/JuliaLang/Tokenize.jl.git
 [submodule "scripts/languageserver/packages/DocumentFormat"]
-	path = scripts/languageserver/packages/DocumentFormat
+	path = scripts/packages/DocumentFormat
 	url = https://github.com/julia-vscode/DocumentFormat.jl
 [submodule "scripts/languageserver/packages/StaticLint"]
-	path = scripts/languageserver/packages/StaticLint
+	path = scripts/packages/StaticLint
 	url = https://github.com/julia-vscode/StaticLint.jl
 [submodule "scripts/languageserver/packages/SymbolServer"]
-	path = scripts/languageserver/packages/SymbolServer
+	path = scripts/packages/SymbolServer
 	url = https://github.com/julia-vscode/SymbolServer.jl.git
 [submodule "scripts/languageserver/packages/FilePathsBase"]
-	path = scripts/languageserver/packages/FilePathsBase
+	path = scripts/packages/FilePathsBase
 	url = https://github.com/rofinn/FilePathsBase.jl.git
 [submodule "scripts/debugger/packages/JuliaInterpreter"]
-	path = scripts/debugger/packages/JuliaInterpreter
+	path = scripts/packages/JuliaInterpreter
 	url = https://github.com/JuliaDebug/JuliaInterpreter.jl.git
 [submodule "scripts/debugger/packages/CodeTracking"]
-	path = scripts/debugger/packages/CodeTracking
+	path = scripts/packages/CodeTracking
 	url = https://github.com/timholy/CodeTracking.jl.git
 [submodule "scripts/tasks/sysimageenv/PackageCompiler"]
-	path = scripts/tasks/sysimageenv/PackageCompiler
+	path = scripts/packages/PackageCompiler
 	url = https://github.com/JuliaLang/PackageCompiler.jl.git
 [submodule "scripts/packages/JSONRPC"]
 	path = scripts/packages/JSONRPC
