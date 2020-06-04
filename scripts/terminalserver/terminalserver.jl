@@ -19,6 +19,9 @@ include("misc.jl")
 include("repl.jl")
 include("../debugger/debugger.jl")
 
+const INLINE_RESULT_LENGTH = 100
+const MAX_RESULT_LENGTH = 10_000
+
 function getVariables()
     M = Main
     variables = []
@@ -62,15 +65,15 @@ end
 
 Produce a representation of `x` that can be displayed by a UI. Must return a dictionary with
 the following fields:
-- `inline`: Short one-line plain text representation of `x`. Typically limited to 100 characters.
+- `inline`: Short one-line plain text representation of `x`. Typically limited to `INLINE_RESULT_LENGTH` characters.
 - `all`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
 - `iserr`: Boolean. The frontend may style the UI differently depending on this value.
 """
 function render(x)
-    str = sprintlimited(MIME"text/plain"(), x, limit = 10_000)
+    str = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
 
     return Dict(
-        "inline" => strlimit(first(split(str, "\n")), limit = 100),
+        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
         "all" => str,
         "iserr" => false
     )
@@ -90,10 +93,10 @@ struct EvalError
 end
 
 function render(err::EvalError)
-    str = sprintlimited(err.err, err.bt, func = Base.display_error, limit = 10_000)
+    str = sprintlimited(err.err, err.bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
 
     return Dict(
-        "inline" => strlimit(first(split(str, "\n")), limit = 100),
+        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
         "all" => str,
         "iserr" => true
     )
