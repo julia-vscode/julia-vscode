@@ -18,22 +18,22 @@ end
 include("repl.jl")
 include("../debugger/debugger.jl")
 
-function getVariables()
-    M = Main
-    variables = []
-    for n in names(M)
-        !isdefined(M, n) && continue
-        x = getfield(M, n)
-        x isa Module && continue
-        x==Main.vscodedisplay && continue
-        n_as_string = string(n)
-        n_as_string=="@run" && continue
-        n_as_string=="@enter" && continue
-        startswith(n_as_string, "#") && continue
-        t = typeof(x)
-        value_as_string = show_with_strlimit(x)
+const WorkspaceVriable = NamedTuple{(:name,:type,:value),Tuple{String,String,String}}
 
-        push!(variables, (name=string(n), type=string(t), value=value_as_string))
+function get_workspace(m = Main)
+    variables = WorkspaceVriable[]
+    for n in names(m; all = true)
+        x = getfield(m, n)
+        s = string(n)
+
+        # fitlering logic
+        x == Main._vscodeserver && continue
+        x == Main.vscodedisplay && continue
+        startswith(s, '#') && continue
+        s == "@run" && continue
+        s == "@enter" && continue
+
+        push!(variables, WorkspaceVriable((name = s, type = string(typeof(x)), value = show_with_strlimit(x))))
     end
     return variables
 end
@@ -136,7 +136,16 @@ function safe_render(x)
     end
 end
 
-function module_from_string(mod)
+function get_module(mod::AbstractString)
+    return try
+        module_from_string(mod)
+    catch err
+        # maybe trigger error reporting here
+        Main
+    end
+end
+
+function module_from_string(mod::AbstractString)
     ms = split(mod, '.')
 
     out = Main
@@ -200,12 +209,7 @@ run(conn_endpoint)
             source_code = params["code"]
             mod = params["module"]
 
-            resolved_mod = try
-                module_from_string(mod)
-            catch err
-                # maybe trigger error reporting here
-                Main
-            end
+            resolved_mod = get_module(mod)
 
             show_code = params["showCodeInREPL"]
             show_result = params["showResultInREPL"]
@@ -258,9 +262,10 @@ run(conn_endpoint)
                 end
             end
         elseif msg["method"] == "repl/getvariables"
-            vars = getVariables()
-
-            JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
+            mod = msg["params"]
+            resolved_mod = get_module(mod)
+            vars = [Dict("name" => var.name, "type" => var.type, "value" => var.value) for var in get_workspace(resolved_mod)]
+            JSONRPC.send_success_response(conn_endpoint, msg, vars)
         elseif msg["method"] == "repl/showingrid"
             try
                 var = Core.eval(Main, Meta.parse(msg["params"]))

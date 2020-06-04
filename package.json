@@ -220,6 +220,10 @@
             {
                 "command": "language-julia.chooseModule",
                 "title": "Julia: Select Current Module"
+            },
+            {
+                "command": "language-julia.chooseWorkspaceModule",
+                "title": "Julia: Select Workspace Module"
             }
         ],
         "menus": {
@@ -280,7 +284,7 @@
             "view/item/context": [
                 {
                     "command": "language-julia.showInVSCode",
-                    "when": "view == REPLVariables && viewItem == globalvariable",
+                    "when": "view == julia-workspace && viewItem == globalvariable",
                     "group": "inline"
                 }
             ]
@@ -618,16 +622,16 @@
         "viewsContainers": {
             "activitybar": [
                 {
-                    "id": "julia-explorer",
-                    "title": "Julia Explorer",
+                    "id": "julia-workspace",
+                    "title": "Julia Workspace",
                     "icon": "images/julia-dots.svg"
                 }
             ]
         },
         "views": {
-            "julia-explorer": [
+            "julia-workspace": [
                 {
-                    "id": "REPLVariables",
+                    "id": "julia-workspace",
                     "name": "Julia Workspace"
                 }
             ]

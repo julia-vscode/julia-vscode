@@ -50,7 +50,14 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(statusBarItem)
 }
 
-export async function getModuleForEditor(editor: vscode.TextEditor, position: vscode.Position = editor.selection.start) {
+export async function getModuleForEditor(
+    editor: vscode.TextEditor = vscode.window.activeTextEditor,
+    position: vscode.Position = editor.selection.start
+) {
+    if (!editor) {
+        return 'Main'
+    }
+
     let mod = manuallySetDocuments[editor.document.fileName]
 
     if (mod === undefined) {
@@ -98,22 +105,24 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
     statusBarItem.text = loaded ? mod : '(' + mod + ')'
 }
 
+export async function selectModule(special = automaticallyChooseOption) {
+    const possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
+    possibleModules.sort()
+    possibleModules.splice(0, 0, special)
+    const qpOptions: vscode.QuickPickOptions = {
+        placeHolder: 'Select module',
+        canPickMany: false
+    }
+    return vscode.window.showQuickPick(possibleModules, qpOptions)
+}
+
 async function chooseModule() {
     if (!isConnectionActive()) {
         vscode.window.showInformationMessage('Setting a module requires an active REPL.')
         return
     }
 
-    const possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
-
-    possibleModules.sort()
-    possibleModules.splice(0, 0, automaticallyChooseOption)
-
-    const qpOptions: vscode.QuickPickOptions = {
-        placeHolder: 'Select module',
-        canPickMany: false
-    }
-    const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
+    const mod = await selectModule()
 
     const ed = vscode.window.activeTextEditor;
     if (mod === automaticallyChooseOption) {

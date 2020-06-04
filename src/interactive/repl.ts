@@ -118,7 +118,6 @@ async function startREPL(preserveFocus: boolean) {
     else {
         g_terminal.show(preserveFocus);
     }
-    workspace.setTerminal(g_terminal)
 }
 
 function debuggerRun(code: string) {
@@ -152,11 +151,6 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     showCodeInREPL: boolean,
     showResultInREPL: boolean
 }, void, void, void>('repl/runcode');
-
-export const requestTypeGetVariables = new rpc.RequestType<
-    void,
-    { name: string, type: string, value: any }[],
-    void, void>('repl/getvariables');
 
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display');
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter');
@@ -242,7 +236,7 @@ async function executeFile(uri?: vscode.Uri) {
         }
     )
 
-    await workspace.updateReplVariables();
+    await workspace.updateWorkspace();
 }
 
 async function selectJuliaBlock() {
@@ -406,7 +400,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         })
     }
 
-    await workspace.updateReplVariables();
+    await workspace.updateWorkspace();
 }
 
 async function executeCodeCopyPaste(text, individualLine) {
@@ -492,8 +486,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal == g_terminal) {
-            g_terminal = null;
-            workspace.setTerminal(null)
+            g_terminal = null
         }
     })
 
