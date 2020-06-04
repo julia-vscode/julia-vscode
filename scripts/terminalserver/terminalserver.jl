@@ -15,8 +15,12 @@ module JSONRPC
     include("../packages/JSONRPC/src/core.jl")
 end
 
+include("misc.jl")
 include("repl.jl")
 include("../debugger/debugger.jl")
+
+const INLINE_RESULT_LENGTH = 100
+const MAX_RESULT_LENGTH = 10_000
 
 function getVariables()
     M = Main
@@ -29,7 +33,7 @@ function getVariables()
         n_as_string = string(n)
         startswith(n_as_string, "#") && continue
         t = typeof(x)
-        value_as_string = show_with_strlimit(x)
+        value_as_string = sprintlimited(MIME"text/plain"(), x, limit = 100)
 
         push!(variables, (name=string(n), type=string(t), value=value_as_string))
     end
@@ -54,44 +58,20 @@ function sendDisplayMsg(kind, data)
     JSONRPC.send_notification(conn_endpoint, "display", Dict{String,String}("kind"=>kind, "data"=>data))
 end
 
-function strlimit(str::AbstractString, limit::Int = 30, ellipsis::AbstractString = "…")
-    will_append = length(str) > limit
-
-    io = IOBuffer()
-    i = 1
-    for c in str
-        will_append && i > limit - length(ellipsis) && break
-        isvalid(c) || continue
-
-        print(io, c)
-        i += 1
-    end
-    will_append && print(io, ellipsis)
-
-    return String(take!(io))
-end
-
-# TODO Rewrite this so that we don't allocate any string beyond the result string at all
-function show_with_strlimit(x)
-    str = strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000)
-
-    return str
-end
-
 """
     render(x)
 
 Produce a representation of `x` that can be displayed by a UI. Must return a dictionary with
 the following fields:
-- `inline`: Short one-line plain text representation of `x`. Typically limited to 100 characters.
+- `inline`: Short one-line plain text representation of `x`. Typically limited to `INLINE_RESULT_LENGTH` characters.
 - `all`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
 - `iserr`: Boolean. The frontend may style the UI differently depending on this value.
 """
 function render(x)
-    str = show_with_strlimit(x)
+    str = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
 
     return Dict(
-        "inline" => strlimit(first(split(str, "\n")), 100),
+        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
         "all" => str,
         "iserr" => false
     )
@@ -111,10 +91,10 @@ struct EvalError
 end
 
 function render(err::EvalError)
-    str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(Base.display_error, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), err.err, err.bt)), 10_000))
+    str = sprintlimited(err.err, err.bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
 
     return Dict(
-        "inline" => strlimit(first(split(str, "\n")), 100),
+        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
         "all" => str,
         "iserr" => true
     )
