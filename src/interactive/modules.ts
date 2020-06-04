@@ -106,6 +106,11 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
 }
 
 export async function selectModule(special = automaticallyChooseOption) {
+    if (!isConnectionActive()) {
+        vscode.window.showInformationMessage('Setting a module requires an active REPL.')
+        return new Promise<string>(resolve => resolve('Main'))
+    }
+
     const possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     possibleModules.sort()
     possibleModules.splice(0, 0, special)

@@ -223,7 +223,8 @@
             },
             {
                 "command": "language-julia.chooseWorkspaceModule",
-                "title": "Julia: Select Workspace Module"
+                "title": "Julia: Select Workspace Module",
+                "icon": "$(package)"
             }
         ],
         "menus": {
@@ -279,6 +280,13 @@
                 {
                     "when": "false",
                     "command": "language-julia.plotpane-previous"
+                }
+            ],
+            "view/title": [
+                {
+                    "command": "language-julia.chooseWorkspaceModule",
+                    "when": "view == julia-workspace",
+                    "group": "navigation@1"
                 }
             ],
             "view/item/context": [
