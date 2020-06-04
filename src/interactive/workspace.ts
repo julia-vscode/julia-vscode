@@ -19,7 +19,12 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
 
     getChildren(node?: WorkspaceVariable) {
         if (node) {
-            return []
+            const children: WorkspaceVariable[] = [{
+                name: 'foo',
+                type: 'vas',
+                value: 'asd'
+            }]
+            return children
         }
         else {
             return g_replVariables

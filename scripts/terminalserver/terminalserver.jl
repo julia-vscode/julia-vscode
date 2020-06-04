@@ -33,7 +33,8 @@ function getVariables()
         t = typeof(x)
         value_as_string = show_with_strlimit(x)
 
-        push!(variables, (name=string(n), type=string(t), value=value_as_string))
+        # push!(variables, (type=string(t), value=treerender(x)))
+        push!(variables, (type=string(t), value=value_as_string, name=n_as_string))
     end
     return variables
 end
@@ -261,6 +262,8 @@ run(conn_endpoint)
             vars = getVariables()
 
             JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
+        elseif msg["method"] == "repl/getlazy"
+            JSONRPC.send_success_response(conn_endpoint, msg, get_lazy(msg["params"]))
         elseif msg["method"] == "repl/showingrid"
             try
                 var = Core.eval(Main, Meta.parse(msg["params"]))
