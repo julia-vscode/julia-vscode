@@ -104,17 +104,17 @@ function treerender(x::AbstractArray)
     end))
 end
 
-treerender(x::Number) = treerender(Leaf(strlimit(repr(x), 100)))
-treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), 100)))
-treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), 100)))
-treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), 100)))
-treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), 100)))
-treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), 100)))
+treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit=100)))
+treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), limit=100)))
+treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), limit=100)))
+treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), limit=100)))
+treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), limit=100)))
+treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), limit=100)))
 treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base=16, pad=Sys.WORD_SIZE>>2))))
 treerender(x::Text) = treerender(Leaf(x.content))
 treerender(x::Function) = treerender(Leaf(string(x)))
 
-function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 200)
+function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
     partitions = Iterators.partition(_keys, max(sz, length(_keys) ÷ maxparts))
     out = []
     for part in partitions

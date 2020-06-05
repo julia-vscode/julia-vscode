@@ -15,15 +15,15 @@ module JSONRPC
     include("../packages/JSONRPC/src/core.jl")
 end
 
-include("trees.jl")
 include("misc.jl")
+include("trees.jl")
 include("repl.jl")
 include("../debugger/debugger.jl")
 
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
 
-function getVariables()
+function get_variables()
     M = Main
     variables = []
     clear_lazy()
