@@ -18,6 +18,8 @@ end
 const TREES = Dict{Int, LazyTree}()
 const ID = Ref(0)
 
+const MAX_PARTITION_LENGTH = 20
+
 treeid() = (ID[] += 1)
 
 function treerender(x::LazyTree)
@@ -69,10 +71,10 @@ function treerender(x)
     end
 end
 
-function treerender(x::AbstractDict)
-    treerender(LazyTree(string(nameof(typeof(x)), "{$(eltype(x).parameters[1]), $(eltype(x).parameters[2])}"), function ()
-        if length(keys(x)) > 25
-            partition_by_keys(x)
+function treerender(x::AbstractDict{K, V}) where {K, V}
+    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)}"), function ()
+        if length(keys(x)) > MAX_PARTITION_LENGTH
+            partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
         else
             [SubTree(repr(k), x[k]) for k in keys(x)]
         end
@@ -100,8 +102,8 @@ end
 
 function treerender(x::AbstractArray)
     treerender(LazyTree(string(typeof(x)), function ()
-        if length(x) > 50
-            partition_by_keys(x)
+        if length(x) > MAX_PARTITION_LENGTH
+            partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
         else
             vec(x)
         end

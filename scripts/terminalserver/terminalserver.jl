@@ -30,9 +30,12 @@ function get_variables()
 
     for n in names(M)
         !isdefined(M, n) && continue
+        Base.isdeprecated(M, n) && continue
         x = getfield(M, n)
-        # x isa Module && continue
         x === Main.vscodedisplay && continue
+        x === Main._vscodeserver && continue
+        x === Main && continue
+
         n_as_string = string(n)
         startswith(n_as_string, "#") && continue
         t = typeof(x)
