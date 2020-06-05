@@ -95,8 +95,8 @@ function treerender(x::Module)
 end
 
 function treerender(x::AbstractArray)
-    treerender(LazyTree(string(nameof(typeof(x))), function ()
-        if length(x) > 25
+    treerender(LazyTree(string(typeof(x)), function ()
+        if length(x) > 50
             partition_by_keys(x)
         else
             vec(x)
@@ -112,15 +112,21 @@ treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), 100)))
 treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), 100)))
 treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base=16, pad=Sys.WORD_SIZE>>2))))
 treerender(x::Text) = treerender(Leaf(x.content))
+treerender(x::Function) = treerender(Leaf(string(x)))
 
-function partition_by_keys(x; sz = 20)
-    _keys = keys(x)
-    partitions = Iterators.partition(_keys, sz)
+function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 200)
+    partitions = Iterators.partition(_keys, max(sz, length(_keys) ÷ maxparts))
     out = []
     for part in partitions
-        push!(out, LazyTree(string(first(part), " ... ", last(part)), function ()
-            [SubTree(repr(k), x[k]) for k in part]
-        end))
+        if length(part) > sz
+            push!(out, LazyTree(string(first(part), " ... ", last(part)), function ()
+                partition_by_keys(x, part, sz = sz, maxparts = maxparts)
+            end))
+        else
+            push!(out, LazyTree(string(first(part), " ... ", last(part)), function ()
+                [SubTree(repr(k), x[k]) for k in part]
+            end))
+        end
     end
     return out
 end
