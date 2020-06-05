@@ -153,11 +153,6 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     showResultInREPL: boolean
 }, void, void, void>('repl/runcode');
 
-export const requestTypeGetVariables = new rpc.RequestType<
-    void,
-    { name: string, type: string, value: any }[],
-    void, void>('repl/getvariables');
-
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display');
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter');
 const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run');

@@ -1,11 +1,28 @@
 import * as vscode from 'vscode';
+import * as rpc from 'vscode-jsonrpc';
 import * as repl from './repl';
 
 interface WorkspaceVariable {
     name: string,
     type: string,
-    value: string
+    value: string,
+    id: any,
+    lazy: boolean
 }
+
+const requestTypeGetVariables = new rpc.RequestType<
+    void,
+    WorkspaceVariable[],
+    void, void>('repl/getvariables')
+
+const requestTypeGetLazy = new rpc.RequestType<
+    void,
+    {
+        lazy: boolean,
+        id: number,
+        head: string
+    }[],
+    void, void>('repl/getlazy');
 
 let g_replVariables: WorkspaceVariable[] = [];
 
@@ -17,25 +34,36 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
         this._onDidChangeTreeData.fire(undefined);
     }
 
-    getChildren(node?: WorkspaceVariable) {
+    getChildren(node?: WorkspaceVariable): Thenable<WorkspaceVariable[]> {
         if (node) {
-            const children: WorkspaceVariable[] = [{
-                name: 'foo',
-                type: 'vas',
-                value: 'asd'
-            }]
-            return children
+            return new Promise(resolve => {
+                const pr = repl.g_connection.sendRequest(requestTypeGetLazy, node.id)
+                pr.then(children => {
+                    const out: WorkspaceVariable[] = []
+                    for (const c of children) {
+                        out.push({
+                            name: c.head,
+                            type: '',
+                            value: '',
+                            id: c.id,
+                            lazy: c.lazy
+                        })
+                    }
+                    resolve(out)
+                })
+            })
         }
         else {
-            return g_replVariables
+            return Promise.resolve(g_replVariables)
         }
     }
 
     getTreeItem(node: WorkspaceVariable): vscode.TreeItem {
-        let treeItem = new vscode.TreeItem(`${node.name}:`)
+        let treeItem = new vscode.TreeItem(node.name)
         treeItem.description = node.value;
         treeItem.tooltip = node.type;
         treeItem.contextValue = 'globalvariable';
+        treeItem.collapsibleState = node.lazy ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
         return treeItem;
     }
 }
@@ -43,7 +71,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
 let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
 
 export async function updateReplVariables() {
-    g_replVariables = await repl.g_connection.sendRequest(repl.requestTypeGetVariables, undefined);
+    g_replVariables = await repl.g_connection.sendRequest(requestTypeGetVariables, undefined);
 
     g_REPLTreeDataProvider.refresh();
 }

@@ -15,26 +15,29 @@ module JSONRPC
     include("../packages/JSONRPC/src/core.jl")
 end
 
+include("trees.jl")
 include("repl.jl")
 include("../debugger/debugger.jl")
 
-function getVariables()
+function get_variables()
     M = Main
     variables = []
+    clear_lazy()
+
     for n in names(M)
         !isdefined(M, n) && continue
         x = getfield(M, n)
-        x isa Module && continue
-        x==Main.vscodedisplay && continue
+        # x isa Module && continue
+        x === Main.vscodedisplay && continue
         n_as_string = string(n)
-        n_as_string=="@run" && continue
-        n_as_string=="@enter" && continue
+        n_as_string == "@run" && continue
+        n_as_string == "@enter" && continue
         startswith(n_as_string, "#") && continue
         t = typeof(x)
-        value_as_string = show_with_strlimit(x)
 
-        # push!(variables, (type=string(t), value=treerender(x)))
-        push!(variables, (type=string(t), value=value_as_string, name=n_as_string))
+        rendered = treerender(x)
+
+        push!(variables, Dict("type"=>string(t), "value"=>get(rendered, :head, "???"), "name"=>n_as_string, "id"=>get(rendered, :id, false), "lazy"=> get(rendered, :lazy, false)))
     end
     return variables
 end
@@ -259,9 +262,9 @@ run(conn_endpoint)
                 end
             end
         elseif msg["method"] == "repl/getvariables"
-            vars = getVariables()
+            vars = get_variables()
 
-            JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
+            JSONRPC.send_success_response(conn_endpoint, msg, vars)
         elseif msg["method"] == "repl/getlazy"
             JSONRPC.send_success_response(conn_endpoint, msg, get_lazy(msg["params"]))
         elseif msg["method"] == "repl/showingrid"
