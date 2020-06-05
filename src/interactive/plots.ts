@@ -1,6 +1,7 @@
+import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
-import * as path from 'path'
+
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
 const g_plots: Array<string> = new Array<string>()

@@ -1,5 +1,5 @@
-import * as path from 'path'
 import * as os from 'os'
+import * as path from 'path'
 import * as vscode from 'vscode'
 
 export function generatePipeName(pid: string, name: string) {
