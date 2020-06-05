@@ -87,7 +87,11 @@ function treerender(x::Module)
             isdefined(x, n) || continue
             Base.isdeprecated(x, n) && continue
             startswith(string(n), '#') && continue
-            push!(out, SubTree(string(n), getfield(x, n)))
+
+            v = getfield(x, n)
+            v === x && continue
+
+            push!(out, SubTree(string(n), v))
         end
 
         out
