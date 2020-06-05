@@ -1,10 +1,10 @@
+import * as cp from 'child-process-promise'
+import * as cson from 'cson-parser'
 import * as download from 'download'
+import { promises as fs } from 'fs'
+import { homedir } from 'os'
 import * as path from 'path'
 import * as process from 'process'
-import { promises as fs, openSync } from 'fs'
-import * as cp from 'child-process-promise'
-import { homedir } from 'os'
-import * as cson from 'cson-parser'
 
 async function our_download(url: string, destination: string) {
     const dest_path = path.join(process.cwd(), path.dirname(destination))

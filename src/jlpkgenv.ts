@@ -1,17 +1,15 @@
-import * as vscode from 'vscode'
-import * as settings from './settings'
-import * as vslc from 'vscode-languageclient'
-import * as telemetry from './telemetry'
 import * as fs from 'async-file'
-import * as packagepath from './packagepath'
+import { exec } from 'child-process-promise'
 import * as os from 'os'
 import * as path from 'path'
+import * as vscode from 'vscode'
+import * as vslc from 'vscode-languageclient'
+import { onDidChangeConfig, onSetLanguageClient } from './extension'
 import * as juliaexepath from './juliaexepath'
-import { exec } from 'child-process-promise'
-import { onSetLanguageClient, onDidChangeConfig } from './extension'
+import * as packagepath from './packagepath'
+import * as settings from './settings'
+import * as telemetry from './telemetry'
 
-let g_context: vscode.ExtensionContext = null
-let g_settings: settings.ISettings = null
 let g_languageClient: vslc.LanguageClient = null
 
 let g_current_environment: vscode.StatusBarItem = null
@@ -191,9 +189,6 @@ export async function getEnvName() {
 }
 
 export async function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
-    g_context = context
-    g_settings = settings
-
     context.subscriptions.push(onSetLanguageClient(languageClient => {
         g_languageClient = languageClient
     }))

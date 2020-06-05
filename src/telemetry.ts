@@ -1,14 +1,10 @@
-import * as vscode from 'vscode'
-import * as rpc from 'vscode-jsonrpc'
-import * as path from 'path'
-import * as net from 'net'
-import * as os from 'os'
-import * as vslc from 'vscode-languageclient'
-import * as settings from './settings'
-import * as fs from 'async-file'
 import * as appInsights from 'applicationinsights'
-import { generatePipeName } from './utils'
+import * as fs from 'async-file'
+import * as net from 'net'
+import * as path from 'path'
+import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
+import { generatePipeName } from './utils'
 
 let enableCrashReporter: boolean = false
 let enableTelemetry: boolean = false

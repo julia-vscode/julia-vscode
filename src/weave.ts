@@ -1,19 +1,15 @@
-import * as vscode from 'vscode'
-import * as vslc from 'vscode-languageclient'
-import { spawn, ChildProcess } from 'child_process'
-import * as path from 'path'
 import * as fs from 'async-file'
-import * as settings from './settings'
+import { ChildProcess, spawn } from 'child_process'
+import * as path from 'path'
+import * as vscode from 'vscode'
 import * as juliaexepath from './juliaexepath'
+import * as settings from './settings'
 import * as telemetry from './telemetry'
-import { onSetLanguageClient, onDidChangeConfig } from './extension'
 
 const tempfs = require('promised-temp').track()
 const kill = require('async-child-process').kill
 
 let g_context: vscode.ExtensionContext = null
-let g_settings: settings.ISettings = null
-let g_languageClient: vslc.LanguageClient = null
 
 let g_lastWeaveContent: string = null
 let g_weaveOutputChannel: vscode.OutputChannel = null
@@ -21,8 +17,6 @@ let g_weaveChildProcess: ChildProcess = null
 let g_weaveNextChildProcess: ChildProcess = null
 
 async function weave_core(column, selected_format: string = undefined) {
-    const parsed_filename = path.parse(vscode.window.activeTextEditor.document.fileName)
-
     let source_filename: string
     let output_filename: string
     if (selected_format === undefined) {
@@ -166,12 +160,6 @@ async function save() {
 
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context
-    g_settings = settings
-
-    context.subscriptions.push(onSetLanguageClient(languageClient => {
-        g_languageClient = languageClient
-    }))
-    context.subscriptions.push(onDidChangeConfig(newSettings => { }))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview', open_preview))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview-side', open_preview_side))

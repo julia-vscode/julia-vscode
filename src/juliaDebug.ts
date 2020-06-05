@@ -1,24 +1,16 @@
-import {
-    Logger, logger,
-    LoggingDebugSession,
-    InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent,
-    Thread, StackFrame, Scope, Source, Handles, Breakpoint
-} from 'vscode-debugadapter'
-import { DebugProtocol } from 'vscode-debugprotocol'
-import { basename, join, parse } from 'path'
-import { Disposable } from 'vscode-jsonrpc'
-import * as net from 'net'
 import { Subject } from 'await-notify'
+import * as net from 'net'
+import { basename, join } from 'path'
 import * as readline from 'readline'
-import { generatePipeName } from './utils'
 import { uuid } from 'uuidv4'
-import { replStartDebugger } from './interactive/repl'
 import * as vscode from 'vscode'
+import { Breakpoint, InitializedEvent, Logger, logger, LoggingDebugSession, Scope, Source, StackFrame, StoppedEvent, TerminatedEvent, Thread } from 'vscode-debugadapter'
+import { DebugProtocol } from 'vscode-debugprotocol'
+import { Disposable } from 'vscode-jsonrpc'
+import { replStartDebugger } from './interactive/repl'
 import { getCrashReportingPipename } from './telemetry'
+import { generatePipeName } from './utils'
 
-function timeout(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms))
-}
 
 /**
  * This interface describes the Julia specific launch attributes
@@ -51,7 +43,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	private _configurationDone = new Subject();
 
 	private _cancelationTokens = new Map<number, boolean>();
-	private _isLongrunning = new Map<number, boolean>();
 
 	private _juliaPath: string;
 	private _context: vscode.ExtensionContext;

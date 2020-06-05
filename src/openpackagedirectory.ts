@@ -1,15 +1,10 @@
-import * as vscode from 'vscode'
 import * as fs from 'async-file'
 import * as path from 'path'
-import * as settings from './settings'
+import * as vscode from 'vscode'
+import { onDidChangeConfig } from './extension'
 import * as packagepath from './packagepath'
-import * as vslc from 'vscode-languageclient'
+import * as settings from './settings'
 import * as telemetry from './telemetry'
-import { onSetLanguageClient, onDidChangeConfig } from './extension'
-
-let g_context: vscode.ExtensionContext = null
-let g_settings: settings.ISettings = null
-let g_languageClient: vslc.LanguageClient = null
 
 // This method implements the language-julia.openPackageDirectory command
 async function openPackageDirectoryCommand() {
@@ -50,12 +45,6 @@ async function openPackageDirectoryCommand() {
 }
 
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
-    g_context = context
-    g_settings = settings
-
-    context.subscriptions.push(onSetLanguageClient(languageClient => {
-        g_languageClient = languageClient
-    }))
     context.subscriptions.push(onDidChangeConfig(newSettings => { }))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand))
 }

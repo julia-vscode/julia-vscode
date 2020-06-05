@@ -1,26 +1,24 @@
-import * as vscode from 'vscode'
-import * as rpc from 'vscode-jsonrpc'
-import * as path from 'path'
-import * as net from 'net'
-import * as os from 'os'
-import * as vslc from 'vscode-languageclient'
-import * as settings from '../settings'
-import * as juliaexepath from '../juliaexepath'
-import { generatePipeName, inferJuliaNumThreads } from '../utils'
-import * as telemetry from '../telemetry'
-import * as jlpkgenv from '../jlpkgenv'
 import * as fs from 'async-file'
 import { Subject } from 'await-notify'
-
-import * as results from './results'
-import * as plots from './plots'
-import * as workspace from './workspace'
-import * as modules from './modules'
-import { onSetLanguageClient, onDidChangeConfig } from '../extension'
+import * as net from 'net'
+import * as path from 'path'
+import * as vscode from 'vscode'
+import * as rpc from 'vscode-jsonrpc'
+import * as vslc from 'vscode-languageclient'
 import { TextDocumentPositionParams } from 'vscode-languageclient'
+import { onSetLanguageClient } from '../extension'
+import * as jlpkgenv from '../jlpkgenv'
+import * as juliaexepath from '../juliaexepath'
+import * as settings from '../settings'
+import * as telemetry from '../telemetry'
+import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import * as modules from './modules'
+import * as plots from './plots'
+import * as results from './results'
+import * as workspace from './workspace'
+
 
 let g_context: vscode.ExtensionContext = null
-let g_settings: settings.ISettings = null
 let g_languageClient: vslc.LanguageClient = null
 
 let g_terminal: vscode.Terminal = null
@@ -461,17 +459,11 @@ export async function replStartDebugger(pipename: string) {
     g_connection.sendNotification(notifyTypeReplStartDebugger, pipename)
 }
 
-const getBlockText = new rpc.RequestType<TextDocumentPositionParams, void, void, void>('julia/getCurrentBlockRange')
-
 export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
     g_context = context
-    g_settings = settings
 
     context.subscriptions.push(onSetLanguageClient(languageClient => {
         g_languageClient = languageClient
-    }))
-    context.subscriptions.push(onDidChangeConfig(newSettings => {
-        g_settings = newSettings
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand))
