@@ -1,13 +1,13 @@
-import * as path from 'path';
-import * as os from 'os';
-import * as vscode from 'vscode';
+import * as path from 'path'
+import * as os from 'os'
+import * as vscode from 'vscode'
 
 export function generatePipeName(pid: string, name: string) {
     if (process.platform === 'win32') {
-        return '\\\\.\\pipe\\' + name + '-' + pid;
+        return '\\\\.\\pipe\\' + name + '-' + pid
     }
     else {
-        return path.join(os.tmpdir(), name + '-' + pid);
+        return path.join(os.tmpdir(), name + '-' + pid)
     }
 }
 
@@ -27,8 +27,8 @@ export function generatePipeName(pid: string, name: string) {
  * @returns A string to set the value of `JULIA_NUM_THREADS`
  */
 export function inferJuliaNumThreads(): string {
-    let config: number | null = vscode.workspace.getConfiguration("julia").get("NumThreads")
-    let env: string | undefined = process.env["JULIA_NUM_THREADS"]
+    const config: number | null = vscode.workspace.getConfiguration('julia').get('NumThreads')
+    const env: string | undefined = process.env['JULIA_NUM_THREADS']
 
     if (config !== null) {
         return config.toString()
@@ -37,6 +37,6 @@ export function inferJuliaNumThreads(): string {
         return env
     }
     else {
-        return ""
+        return ''
     }
 }
