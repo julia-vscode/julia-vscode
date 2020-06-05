@@ -1,6 +1,6 @@
 struct LazyTree
     head::String
-    type::String
+    isempty::Bool
     children
 end
 
@@ -9,7 +9,7 @@ struct SubTree
     child
 end
 
-LazyTree(head, children) = LazyTree(head, "", children)
+LazyTree(head, children) = LazyTree(head, false, children)
 
 struct Leaf
     val
@@ -22,6 +22,9 @@ const MAX_PARTITION_LENGTH = 20
 
 treeid() = (ID[] += 1)
 
+pluralize(n::Int, one, more=one) = string(n, " ", n == 1 ? one : more)
+pluralize(n, one, more=one) = string(length(n) > 1 ? join(n, '×') : first(n), " ", prod(n) == 1 ? one : more)
+
 function treerender(x::LazyTree)
     id = treeid()
     TREES[id] = x
@@ -29,7 +32,7 @@ function treerender(x::LazyTree)
     return Dict(
         :head => x.head,
         :id => id,
-        :haschildren => true,
+        :haschildren => !(x.isempty),
         :lazy => true,
         :value => "",
         :canshow => false
@@ -75,11 +78,11 @@ function treerender(x)
 end
 
 function treerender(x::AbstractDict{K, V}) where {K, V}
-    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)}"), function ()
+    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), length(keys(x)) == 0, function ()
         if length(keys(x)) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
         else
-            [SubTree(repr(k), x[k]) for k in keys(x)]
+            [SubTree(repr(k), v) for (k, v) in x]
         end
     end))
 end
@@ -103,12 +106,12 @@ function treerender(x::Module)
     end))
 end
 
-function treerender(x::AbstractArray)
-    treerender(LazyTree(string(typeof(x)), function ()
+function treerender(x::AbstractArray{T, N}) where {T, N}
+    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), length(x) == 0, function ()
         if length(x) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
         else
-            vec(x)
+            [SubTree(repr(k), v) for (k, v) in zip(keys(x), vec(x))]
         end
     end))
 end
@@ -143,7 +146,7 @@ end
 function get_lazy(id::Int)
     try
         if haskey(TREES, id)
-            x = [treerender(x) for x in pop!(TREES, id).children()]
+            x = [Base.invokelatest(treerender, x) for x in Base.invokelatest(pop!(TREES, id).children)]
             return x
         else
             return ["[out of date result]"]
