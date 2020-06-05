@@ -112,13 +112,10 @@ async function startREPL(preserveFocus: boolean) {
         }
         g_terminal.show(preserveFocus);
         await juliaIsConnectedPromise.wait();
-
-        workspace.clearVariables();
     }
     else {
         g_terminal.show(preserveFocus);
     }
-    workspace.setTerminal(g_terminal)
 }
 
 function debuggerRun(code: string) {
@@ -158,7 +155,7 @@ const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger
 const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run');
 const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger');
 const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval');
-const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval');
+export const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval');
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('repl/showingrid');
 
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
@@ -186,7 +183,6 @@ function startREPLMsgServer(pipename: string) {
         g_connection.onNotification(notifyTypeDebuggerRun, debuggerRun);
         g_connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter);
         g_connection.onNotification(notifyTypeReplStartEval, () => { });
-        g_connection.onNotification(notifyTypeReplFinishEval, workspace.replFinishEval)
 
         g_connection.listen();
 
@@ -236,8 +232,6 @@ async function executeFile(uri?: vscode.Uri) {
             showResultInREPL: false
         }
     )
-
-    await workspace.updateReplVariables();
 }
 
 async function selectJuliaBlock() {
@@ -400,8 +394,6 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             isError: result.iserr
         })
     }
-
-    await workspace.updateReplVariables();
 }
 
 async function executeCodeCopyPaste(text, individualLine) {
@@ -487,8 +479,7 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
 
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal == g_terminal) {
-            g_terminal = null;
-            workspace.setTerminal(null)
+            g_terminal = null
         }
     })
 

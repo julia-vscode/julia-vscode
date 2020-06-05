@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as rpc from 'vscode-jsonrpc';
-import * as repl from './repl';
+import { onInit, onExit, notifyTypeReplShowInGrid, notifyTypeReplFinishEval } from './repl';
+
+let g_connection: rpc.MessageConnection = null
 
 interface WorkspaceVariable {
     name: string,
@@ -40,7 +42,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
     getChildren(node?: WorkspaceVariable): Thenable<WorkspaceVariable[]> {
         if (node) {
             return new Promise(resolve => {
-                const pr = repl.g_connection.sendRequest(requestTypeGetLazy, node.id)
+                const pr = g_connection.sendRequest(requestTypeGetLazy, node.id)
                 pr.then(children => {
                     const out: WorkspaceVariable[] = []
                     for (const c of children) {
@@ -75,7 +77,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
 let g_REPLTreeDataProvider: REPLTreeDataProvider = null;
 
 export async function updateReplVariables() {
-    g_replVariables = await repl.g_connection.sendRequest(requestTypeGetVariables, undefined);
+    g_replVariables = await g_connection.sendRequest(requestTypeGetVariables, undefined);
 
     g_REPLTreeDataProvider.refresh();
 }
@@ -85,7 +87,7 @@ export async function replFinishEval() {
 }
 
 async function showInVSCode(node: WorkspaceVariable) {
-    repl.g_connection.sendNotification(repl.notifyTypeReplShowInGrid, node.name);
+    g_connection.sendNotification(notifyTypeReplShowInGrid, node.name);
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -93,14 +95,17 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.showInVSCode', showInVSCode));
+    context.subscriptions.push(onInit(connection => {
+        g_connection = connection
+        connection.onNotification(notifyTypeReplFinishEval, replFinishEval)
+        updateReplVariables()
+    }))
+    context.subscriptions.push(onExit(hasError => {
+        clearVariables()
+    }))
 }
 
 export function clearVariables() {
-    g_replVariables = [];
-    g_REPLTreeDataProvider.refresh();
-}
-
-export function setTerminal(terminal: vscode.Terminal) {
     g_replVariables = [];
     g_REPLTreeDataProvider.refresh();
 }
