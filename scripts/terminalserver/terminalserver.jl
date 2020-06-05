@@ -4,7 +4,7 @@ using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
 import Dates
 
-include("../languageserver/packages/JSON/src/JSON.jl")
+include("../packages/JSON/src/JSON.jl")
 
 include("gridviewer.jl")
 
@@ -16,10 +16,14 @@ module JSONRPC
 end
 
 include("trees.jl")
+include("misc.jl")
 include("repl.jl")
 include("../debugger/debugger.jl")
 
-function get_variables()
+const INLINE_RESULT_LENGTH = 100
+const MAX_RESULT_LENGTH = 10_000
+
+function getVariables()
     M = Main
     variables = []
     clear_lazy()
@@ -30,8 +34,6 @@ function get_variables()
         # x isa Module && continue
         x === Main.vscodedisplay && continue
         n_as_string = string(n)
-        n_as_string == "@run" && continue
-        n_as_string == "@enter" && continue
         startswith(n_as_string, "#") && continue
         t = typeof(x)
 
@@ -67,44 +69,20 @@ function sendDisplayMsg(kind, data)
     JSONRPC.send_notification(conn_endpoint, "display", Dict{String,String}("kind"=>kind, "data"=>data))
 end
 
-function strlimit(str::AbstractString, limit::Int = 30, ellipsis::AbstractString = "…")
-    will_append = length(str) > limit
-
-    io = IOBuffer()
-    i = 1
-    for c in str
-        will_append && i > limit - length(ellipsis) && break
-        isvalid(c) || continue
-
-        print(io, c)
-        i += 1
-    end
-    will_append && print(io, ellipsis)
-
-    return String(take!(io))
-end
-
-# TODO Rewrite this so that we don't allocate any string beyond the result string at all
-function show_with_strlimit(x)
-    str = strlimit(sprint(io -> Base.invokelatest(show, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), MIME"text/plain"(), x)), 10_000)
-
-    return str
-end
-
 """
     render(x)
 
 Produce a representation of `x` that can be displayed by a UI. Must return a dictionary with
 the following fields:
-- `inline`: Short one-line plain text representation of `x`. Typically limited to 100 characters.
+- `inline`: Short one-line plain text representation of `x`. Typically limited to `INLINE_RESULT_LENGTH` characters.
 - `all`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
 - `iserr`: Boolean. The frontend may style the UI differently depending on this value.
 """
 function render(x)
-    str = show_with_strlimit(x)
+    str = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
 
     return Dict(
-        "inline" => strlimit(first(split(str, "\n")), 100),
+        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
         "all" => str,
         "iserr" => false
     )
@@ -124,10 +102,10 @@ struct EvalError
 end
 
 function render(err::EvalError)
-    str = filter(isvalid, strlimit(sprint(io -> Base.invokelatest(Base.display_error, IOContext(io, :limit => true, :color => false, :displaysize => (100, 64)), err.err, err.bt)), 10_000))
+    str = sprintlimited(err.err, err.bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
 
     return Dict(
-        "inline" => strlimit(first(split(str, "\n")), 100),
+        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
         "all" => str,
         "iserr" => true
     )
@@ -437,9 +415,6 @@ function _display(d::InlineDisplay, x)
     end
 end
 
-# Load revise?
-load_revise = Base.ARGS[2] == "true"
-
 const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
 const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
 
@@ -553,7 +528,21 @@ function internal_vscodedisplay(x)
     end
 end
 
+macro enter(command)
+    remove_lln!(command)
+    :(JSONRPC.send_notification(conn_endpoint, "debugger/enter", $(string(command))))
 end
+
+macro run(command)
+    remove_lln!(command)
+    :(JSONRPC.send_notification(conn_endpoint, "debugger/run", $(string(command))))
+end
+
+export @enter, @run
+
+end
+
+using ._vscodeserver
 
 atreplinit() do repl
     @async try
@@ -573,20 +562,12 @@ end
 
 vscodedisplay() = i -> vscodedisplay(i)
 
-if _vscodeserver.load_revise
+# Load revise?
+if Base.ARGS[2] == "true"
     try
         @eval using Revise
         Revise.async_steal_repl_backend()
     catch err
+        @warn "failed to load Revise: $err"
     end
-end
-
-macro enter(command)
-    _vscodeserver.remove_lln!(command)
-    :(_vscodeserver.JSONRPC.send_notification(_vscodeserver.conn_endpoint, "debugger/enter", $(string(command))))
-end
-
-macro run(command)
-    _vscodeserver.remove_lln!(command)
-    :(_vscodeserver.JSONRPC.send_notification(_vscodeserver.conn_endpoint, "debugger/run", $(string(command))))
 end

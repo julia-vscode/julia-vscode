@@ -67,7 +67,7 @@ async function startREPL(preserveFocus: boolean) {
             ]
             g_terminal = vscode.window.createTerminal(
                 {
-                    name: "julia",
+                    name: "Julia REPL",
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
@@ -101,7 +101,7 @@ async function startREPL(preserveFocus: boolean) {
             ]
             g_terminal = vscode.window.createTerminal(
                 {
-                    name: "julia",
+                    name: "Julia REPL",
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(jlarg2),
                     env: {
