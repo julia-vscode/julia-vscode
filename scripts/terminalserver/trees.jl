@@ -4,6 +4,11 @@ struct LazyTree
     children
 end
 
+struct SubTree
+    head::String
+    child
+end
+
 LazyTree(head, children) = LazyTree(head, "", children)
 
 struct Leaf
@@ -22,13 +27,30 @@ function treerender(x::LazyTree)
     return Dict(
         :head => x.head,
         :id => id,
-        :lazy => true
+        :haschildren => true,
+        :lazy => true,
+        :value => ""
+    )
+end
+
+function treerender(x::SubTree)
+    child = treerender(x.child)
+
+    return Dict(
+        :head => x.head,
+        :value => get(child, :head, ""),
+        :haschildren => get(child, :haschildren, true),
+        :id => get(child, :id, -1),
+        :lazy => get(child, :lazy, true)
     )
 end
 
 function treerender(x::Leaf)
     return Dict(
         :head => x.val,
+        :id => -1,
+        :value => "",
+        :haschildren => false,
         :lazy => false
     )
 end
@@ -38,9 +60,13 @@ getfield_safe(x, f, default = "#undef") = isdefined(x, f) ? getfield(x, f) : def
 function treerender(x)
     fields = fieldnames(typeof(x))
 
-    treerender(LazyTree(string(typeof(x)), function ()
-        [LazyTree(string(f), () -> [getfield_safe(x, f)]) for f in fields]
-    end))
+    if isempty(fields)
+        treerender(Text(string(typeof(x), "()")))
+    else
+        treerender(LazyTree(string(typeof(x)), function ()
+            [SubTree(string(f), getfield_safe(x, f)) for f in fields]
+        end))
+    end
 end
 
 function treerender(x::AbstractDict)
@@ -48,7 +74,7 @@ function treerender(x::AbstractDict)
         if length(keys(x)) > 25
             partition_by_keys(x)
         else
-            [LazyTree(repr(k), () -> [x[k]]) for k in keys(x)]
+            [SubTree(repr(k), x[k]) for k in keys(x)]
         end
     end))
 end
@@ -61,7 +87,7 @@ function treerender(x::Module)
             isdefined(x, n) || continue
             Base.isdeprecated(x, n) && continue
             startswith(string(n), '#') && continue
-            push!(out, LazyTree(string(n), () -> [getfield(x, n)]))
+            push!(out, SubTree(string(n), getfield(x, n)))
         end
 
         out
@@ -78,33 +104,22 @@ function treerender(x::AbstractArray)
     end))
 end
 
-treerender(x::Number) = treerender(Leaf(strlimit(repr(x))))
-treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x))))
-treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x))))
-treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x))))
-treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x))))
-treerender(x::Missing) = treerender(Leaf(strlimit(repr(x))))
-treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(p), base=16, pad=Sys.WORD_SIZE>>2))))
+treerender(x::Number) = treerender(Leaf(strlimit(repr(x), 100)))
+treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), 100)))
+treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), 100)))
+treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), 100)))
+treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), 100)))
+treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), 100)))
+treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base=16, pad=Sys.WORD_SIZE>>2))))
+treerender(x::Text) = treerender(Leaf(x.content))
 
-function partition_by_keys(x::AbstractDict; sz = 20)
+function partition_by_keys(x; sz = 20)
     _keys = keys(x)
     partitions = Iterators.partition(_keys, sz)
     out = []
     for part in partitions
         push!(out, LazyTree(string(first(part), " ... ", last(part)), function ()
-            [LazyTree(repr(k), () -> [x[k]]) for k in part]
-        end))
-    end
-    return out
-end
-
-function partition_by_keys(x::AbstractArray; sz = 20)
-    _keys = keys(x)
-    partitions = Iterators.partition(_keys, sz)
-    out = []
-    for part in partitions
-        push!(out, LazyTree(string(first(part), " ... ", last(part)), function ()
-            [x[k] for k in part]
+            [SubTree(repr(k), x[k]) for k in part]
         end))
     end
     return out
@@ -120,7 +135,7 @@ function get_lazy(id::Int)
         end
     catch err
         @error exception=(err, catch_backtrace())
-        return ["nap"]
+        return ["nope"]
     end
 end
 

@@ -37,7 +37,14 @@ function get_variables()
 
         rendered = treerender(x)
 
-        push!(variables, Dict("type"=>string(t), "value"=>get(rendered, :head, "???"), "name"=>n_as_string, "id"=>get(rendered, :id, false), "lazy"=> get(rendered, :lazy, false)))
+        push!(variables, Dict(
+            "type"=>string(t),
+            "value"=>get(rendered, :head, "???"),
+            "name"=>n_as_string,
+            "id"=>get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
+            "haschildren"=>get(rendered, :haschildren, false),
+            "lazy"=> get(rendered, :lazy, false))
+        )
     end
     return variables
 end

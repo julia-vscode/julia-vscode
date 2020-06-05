@@ -7,7 +7,8 @@ interface WorkspaceVariable {
     type: string,
     value: string,
     id: any,
-    lazy: boolean
+    lazy: boolean,
+    haschildren: boolean
 }
 
 const requestTypeGetVariables = new rpc.RequestType<
@@ -20,7 +21,9 @@ const requestTypeGetLazy = new rpc.RequestType<
     {
         lazy: boolean,
         id: number,
-        head: string
+        head: string,
+        haschildren: boolean,
+        value: string
     }[],
     void, void>('repl/getlazy');
 
@@ -44,9 +47,10 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
                         out.push({
                             name: c.head,
                             type: '',
-                            value: '',
+                            value: c.value,
                             id: c.id,
-                            lazy: c.lazy
+                            lazy: c.lazy,
+                            haschildren: c.haschildren
                         })
                     }
                     resolve(out)
@@ -63,7 +67,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
         treeItem.description = node.value;
         treeItem.tooltip = node.type;
         treeItem.contextValue = 'globalvariable';
-        treeItem.collapsibleState = node.lazy ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
+        treeItem.collapsibleState = node.haschildren ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
         return treeItem;
     }
 }
