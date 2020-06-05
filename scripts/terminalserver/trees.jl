@@ -31,7 +31,8 @@ function treerender(x::LazyTree)
         :id => id,
         :haschildren => true,
         :lazy => true,
-        :value => ""
+        :value => "",
+        :canshow => false
     )
 end
 
@@ -43,7 +44,8 @@ function treerender(x::SubTree)
         :value => get(child, :head, ""),
         :haschildren => get(child, :haschildren, true),
         :id => get(child, :id, -1),
-        :lazy => get(child, :lazy, true)
+        :lazy => get(child, :lazy, true),
+        :canshow => false
     )
 end
 
@@ -53,7 +55,8 @@ function treerender(x::Leaf)
         :id => -1,
         :value => "",
         :haschildren => false,
-        :lazy => false
+        :lazy => false,
+        :canshow => false
     )
 end
 

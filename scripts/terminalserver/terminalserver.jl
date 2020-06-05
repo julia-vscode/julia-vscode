@@ -31,6 +31,7 @@ function get_variables()
     for n in names(M)
         !isdefined(M, n) && continue
         Base.isdeprecated(M, n) && continue
+
         x = getfield(M, n)
         x === Main.vscodedisplay && continue
         x === Main._vscodeserver && continue
@@ -43,14 +44,16 @@ function get_variables()
         rendered = treerender(x)
 
         push!(variables, Dict(
-            "type"=>string(t),
-            "value"=>get(rendered, :head, "???"),
-            "name"=>n_as_string,
-            "id"=>get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
-            "haschildren"=>get(rendered, :haschildren, false),
-            "lazy"=> get(rendered, :lazy, false))
-        )
+            "type" => string(t),
+            "value" => get(rendered, :head, "???"),
+            "name" => n_as_string,
+            "id" => get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
+            "haschildren" => get(rendered, :haschildren, false),
+            "lazy" => get(rendered, :lazy, false),
+            "canshow" => can_display(x)
+        ))
     end
+
     return variables
 end
 
@@ -374,32 +377,46 @@ Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) 
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
-function Base.display(d::InlineDisplay, x)
-    if showable("application/vnd.vegalite.v4+json", x)
-        display(d,"application/vnd.vegalite.v4+json", x)
-    elseif showable("application/vnd.vegalite.v3+json", x)
-        display(d,"application/vnd.vegalite.v3+json", x)
-    elseif showable("application/vnd.vegalite.v2+json", x)
-        display(d,"application/vnd.vegalite.v2+json", x)
-    elseif showable("application/vnd.vega.v5+json", x)
-        display(d,"application/vnd.vega.v5+json", x)
-    elseif showable("application/vnd.vega.v4+json", x)
-        display(d,"application/vnd.vega.v4+json", x)
-    elseif showable("application/vnd.vega.v3+json", x)
-        display(d,"application/vnd.vega.v3+json", x)
-    elseif showable("application/vnd.plotly.v1+json", x)
-        display(d,"application/vnd.plotly.v1+json", x)
-    elseif showable("juliavscode/html", x)
-        display(d,"juliavscode/html", x)
-    # elseif showable("text/html", x)
-    #     display(d,"text/html", x)
-    elseif showable("image/svg+xml", x)
-        display(d,"image/svg+xml", x)
-    elseif showable("image/png", x)
-        display(d,"image/png", x)
-    else
-        throw(MethodError(display,(d,x)))
+const DISPLAYABLE_MIMES = [
+    "application/vnd.vegalite.v4+json",
+    "application/vnd.vegalite.v3+json",
+    "application/vnd.vegalite.v2+json",
+    "application/vnd.vega.v5+json",
+    "application/vnd.vega.v4+json",
+    "application/vnd.vega.v3+json",
+    "application/vnd.plotly.v1+json",
+    "juliavscode/html",
+    # "text/html",
+    "image/svg+xml",
+    "image/png"
+]
+
+function can_display(x)
+    for mime in DISPLAYABLE_MIMES
+        if showable(mime, x)
+            return true
+        end
     end
+
+    if showable("application/vnd.dataresource+json", x)
+        return true
+    end
+
+    if _isiterabletable(x) === missing || _isiterabletable(x) === true || x isa AbstractVector || x isa AbstractMatrix
+        return true
+    end
+
+    return false
+end
+
+function Base.display(d::InlineDisplay, x)
+    for mime in DISPLAYABLE_MIMES
+        if showable(mime, x)
+            return display(d, mime, x)
+        end
+    end
+
+    throw(MethodError(display,(d,x)))
 end
 
 function _display(d::InlineDisplay, x)
