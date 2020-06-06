@@ -149,8 +149,12 @@
                 "title": "Julia Weave: Save to File..."
             },
             {
-                "command": "language-julia.show-plotpane",
-                "title": "Julia: Show Plot"
+                "command": "language-julia.show-documentation-pane",
+                "title": "Julia: Show Documentation Pane"
+            },
+            {
+                "command": "language-julia.show-documentation",
+                "title": "Julia: Show Documentation"
             },
             {
                 "command": "language-julia.plotpane-next",

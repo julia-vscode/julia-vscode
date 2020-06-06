@@ -12,6 +12,7 @@ import * as juliaexepath from '../juliaexepath'
 import * as settings from '../settings'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import * as documentation from './documentation'
 import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
@@ -493,4 +494,5 @@ export function activate(context: vscode.ExtensionContext, settings: settings.IS
     plots.activate(context)
     workspace.activate(context)
     modules.activate(context)
+    documentation.activate(context)
 }

@@ -239,6 +239,8 @@ run(conn_endpoint)
             vars = getVariables()
 
             JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
+        elseif msg["method"] == "repl/getdoc"
+            JSONRPC.send_success_response(conn_endpoint, msg, Base.invokelatest(get_doc, msg["params"]))
         elseif msg["method"] == "repl/showingrid"
             try
                 var = Core.eval(Main, Meta.parse(msg["params"]))
@@ -268,6 +270,13 @@ run(conn_endpoint)
     end
 catch err
     Base.display_error(err, catch_backtrace())
+end
+
+using Markdown
+
+function get_doc(s)
+    md = include_string(_vscodeserver, "@doc $s")
+    Markdown.html(md)
 end
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
