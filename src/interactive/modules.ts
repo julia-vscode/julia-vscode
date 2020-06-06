@@ -1,9 +1,9 @@
-import * as vscode from 'vscode';
-import * as vslc from 'vscode-languageclient';
-import * as rpc from 'vscode-jsonrpc';
+import * as vscode from 'vscode'
+import * as vslc from 'vscode-languageclient'
+import * as rpc from 'vscode-jsonrpc'
 import { onInit, onExit } from './repl'
-import { onSetLanguageClient } from '../extension';
-import { TextDocumentPositionParams } from 'vscode-languageclient';
+import { onSetLanguageClient } from '../extension'
+import { TextDocumentPositionParams } from 'vscode-languageclient'
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
@@ -14,8 +14,8 @@ const isLanguageClientActive = () => g_languageClient !== null
 
 const manuallySetDocuments = []
 
-const requestTypeGetModules = new rpc.RequestType<void, string[], void, void>('repl/loadedModules');
-const requestTypeIsModuleLoaded = new rpc.RequestType<string, boolean, void, void>('repl/isModuleLoaded');
+const requestTypeGetModules = new rpc.RequestType<void, string[], void, void>('repl/loadedModules')
+const requestTypeIsModuleLoaded = new rpc.RequestType<string, boolean, void, void>('repl/isModuleLoaded')
 
 const automaticallyChooseOption = 'Choose Automatically'
 
@@ -83,7 +83,7 @@ async function updateStatusBarItem(editor: vscode.TextEditor) {
 }
 
 async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionChangeEvent) {
-    let editor = event.textEditor
+    const editor = event.textEditor
     await updateStatusBarItem(editor)
 }
 
@@ -115,7 +115,7 @@ async function chooseModule() {
     }
     const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
 
-    const ed = vscode.window.activeTextEditor;
+    const ed = vscode.window.activeTextEditor
     if (mod === automaticallyChooseOption) {
         delete manuallySetDocuments[ed.document.fileName]
     } else {
