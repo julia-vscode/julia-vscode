@@ -157,6 +157,10 @@
                 "title": "Julia: Show Documentation"
             },
             {
+                "command": "language-julia.show-plotpane",
+                "title": "Julia: Show Plot"
+            },
+            {
                 "command": "language-julia.plotpane-next",
                 "title": "Julia: Show Next Plot",
                 "icon": {
