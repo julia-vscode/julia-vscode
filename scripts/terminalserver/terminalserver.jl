@@ -16,6 +16,7 @@ module JSONRPC
 end
 
 include("misc.jl")
+include("docs.jl")
 include("repl.jl")
 include("../debugger/debugger.jl")
 
@@ -164,8 +165,8 @@ end
 
 run(conn_endpoint)
 
-@async try
-    while true
+@async while true
+    try
         msg = JSONRPC.get_next_message(conn_endpoint)
 
         if msg["method"] == "repl/runcode"
@@ -240,7 +241,7 @@ run(conn_endpoint)
 
             JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
         elseif msg["method"] == "repl/getdoc"
-            JSONRPC.send_success_response(conn_endpoint, msg, Base.invokelatest(get_doc, msg["params"]))
+            JSONRPC.send_success_response(conn_endpoint, msg, Base.invokelatest(get_doc_html, msg["params"]))
         elseif msg["method"] == "repl/showingrid"
             try
                 var = Core.eval(Main, Meta.parse(msg["params"]))
@@ -267,16 +268,9 @@ run(conn_endpoint)
                 end
             end
         end
+    catch err
+        Base.display_error(err, catch_backtrace())
     end
-catch err
-    Base.display_error(err, catch_backtrace())
-end
-
-using Markdown
-
-function get_doc(s)
-    md = include_string(_vscodeserver, "@doc $s")
-    Markdown.html(md)
 end
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)

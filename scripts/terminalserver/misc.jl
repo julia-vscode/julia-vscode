@@ -55,3 +55,6 @@ end
 function remove_ansi_control_chars(str::String)
     replace(str, r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]" => "")
 end
+
+iskeyword(word::Symbol) = word in keys(Docs.keywords)
+iskeyword(word::AbstractString) = iskeyword(Symbol(word))
