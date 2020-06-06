@@ -165,8 +165,8 @@ end
 
 run(conn_endpoint)
 
-@async while true
-    try
+@async try
+    while true
         msg = JSONRPC.get_next_message(conn_endpoint)
 
         if msg["method"] == "repl/runcode"
@@ -268,9 +268,9 @@ run(conn_endpoint)
                 end
             end
         end
-    catch err
-        Base.display_error(err, catch_backtrace())
     end
+catch err
+    Base.display_error(err, catch_backtrace())
 end
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
