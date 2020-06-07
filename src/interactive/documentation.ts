@@ -71,47 +71,51 @@ async function setHTML(word: string, module: string) {
     const html = `
 <!DOCTYPE html>
 <html lang="en" class=${darkMode ? 'theme--documenter-dark' : ''}>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Julia Documentation Pane</title>
-<link href=${googleFonts} rel="stylesheet" type="text/css" />
-<link href=${fontawesome} rel="stylesheet" type="text/css" />
-<link href=${solid} rel="stylesheet" type="text/css" />
-<link href=${brands} rel="stylesheet" type="text/css" />
-<link href=${katex} rel="stylesheet" type="text/css" />
-<script>documenterBaseURL = ""</script>
-<script src=${require} data-main=${documenterScript}></script>
-<link href=${documenterStylesheet} rel="stylesheet" type="text/css">
 
-<script type="text/javascript">
-window.onload = () => {
-    const vscode = acquireVsCodeApi()
-    const els = document.getElementsByTagName('a')
-    for (const el of els) {
-        const href = el.getAttribute('href')
-        if (href.includes('julia-vscode/')) {
-            const module = href.split('/')[1]
-            el.onclick = () => {
-                vscode.postMessage({
-                    word: el.text,
-                    module
-                })
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Julia Documentation Pane</title>
+    <link href=${googleFonts} rel="stylesheet" type="text/css" />
+    <link href=${fontawesome} rel="stylesheet" type="text/css" />
+    <link href=${solid} rel="stylesheet" type="text/css" />
+    <link href=${brands} rel="stylesheet" type="text/css" />
+    <link href=${katex} rel="stylesheet" type="text/css" />
+    <script>documenterBaseURL = ""</script>
+    <script src=${require} data-main=${documenterScript}></script>
+    <link href=${documenterStylesheet} rel="stylesheet" type="text/css">
+
+    <script type="text/javascript">
+        window.onload = () => {
+            const vscode = acquireVsCodeApi()
+            const els = document.getElementsByTagName('a')
+            for (const el of els) {
+                const href = el.getAttribute('href')
+                if (href.includes('julia-vscode/')) {
+                    const module = href.split('/').pop()
+                    el.onclick = () => {
+                        vscode.postMessage({
+                            word: el.text,
+                            module
+                        })
+                    }
+                }
             }
         }
-    }
-}
-</script>
+    </script>
 
 </head>
+
 <body>
-<div class="docs-main" style="padding: 1em">
-<article class="content">
-${inner}
-</article>
-</div>
+    <div class="docs-main" style="padding: 1em">
+        <article class="content">
+            ${inner}
+        </article>
+    </div>
 </body>
-</html>`
+
+</html>
+`
 
     g_panel.webview.html = html
     // link handling
