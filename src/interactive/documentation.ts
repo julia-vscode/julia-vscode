@@ -81,6 +81,8 @@ function setPanelContext(state: boolean = false) {
 
 const requestTypeGetDoc = new rpc.RequestType<{ word: string, module: string }, string, void, void>('repl/getdoc')
 
+const wordRegex = /[\u00A0-\uFFFF\w_!´\.]*@?[\u00A0-\uFFFF\w_!´]+/
+
 async function showDocumentation() {
     // telemetry.traceEvent('command-showdocumentation')
 
@@ -88,7 +90,9 @@ async function showDocumentation() {
     const selection = editor.selection
     const positiion = new vscode.Position(selection.start.line, selection.start.character)
     const module: string = await getModuleForEditor(editor, positiion)
-    const range = editor.document.getWordRangeAtPosition(positiion)
+    const range = selection.isEmpty ?
+        editor.document.getWordRangeAtPosition(positiion, wordRegex) :
+        new vscode.Range(selection.start, selection.end)
     const word = editor.document.getText(range)
 
     showDocumentationPane()
