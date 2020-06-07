@@ -1,12 +1,18 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
+import { setContext } from '../utils'
 import { getModuleForEditor } from './modules'
 import { onInit } from './repl'
 
-let g_connection: rpc.MessageConnection = null
-let extensionPath: string
+const panelActiveContextKey = 'juliaDocumentationPaneActive'
+let connection: rpc.MessageConnection = null
+let extensionPath: string = null
 let panel: vscode.WebviewPanel = null
+let messageSubscription: vscode.Disposable = null
+
+const backStack: string[] = [] // also keep current page
+let forwardStack: string[] = []
 
 export function activate(context: vscode.ExtensionContext) {
     // assets path
@@ -14,29 +20,51 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('language-julia.show-documentation-pane', showDocumentationPane),
         vscode.commands.registerCommand('language-julia.show-documentation', showDocumentation),
+        vscode.commands.registerCommand('language-julia.browse-back-documentation', browseBack),
+        vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward),
         onInit(conn => {
-            g_connection = conn
+            connection = conn
         })
     )
+    setPanelContext()
 }
 
 function showDocumentationPane() {
     if (!panel) {
-        panel = vscode.window.createWebviewPanel('DocumentationPane', 'Julia Documentation Pane',
-            {
-                preserveFocus: true,
-                viewColumn: vscode.ViewColumn.Beside,
-            },
-            {
-                enableFindWidget: true,
-                // retainContextWhenHidden: true, // comment in if loading is slow, while there would be high memory overhead
-                enableScripts: true,
-            }
-        )
+        createDocumentationPanel()
     }
     if (!panel.visible) {
         panel.reveal()
     }
+}
+
+function createDocumentationPanel() {
+    panel = vscode.window.createWebviewPanel('DocumentationPane', 'Julia Documentation Pane',
+        {
+            preserveFocus: true,
+            viewColumn: vscode.ViewColumn.Beside,
+        },
+        {
+            enableFindWidget: true,
+            // retainContextWhenHidden: true, // comment in if loading is slow, while there would be high memory overhead
+            enableScripts: true,
+        }
+    )
+    panel.onDidChangeViewState(({ webviewPanel }) => {
+        setPanelContext(webviewPanel.active)
+    })
+    panel.onDidDispose(() => {
+        setPanelContext(false)
+        if (messageSubscription) {
+            messageSubscription.dispose()
+        }
+        panel = null
+    })
+    setPanelContext(true)
+}
+
+function setPanelContext(state: boolean = false) {
+    setContext(panelActiveContextKey, state)
 }
 
 const requestTypeGetDoc = new rpc.RequestType<{ word: string, module: string }, string, void, void>('repl/getdoc')
@@ -52,13 +80,14 @@ async function showDocumentation() {
     const word = editor.document.getText(range)
 
     showDocumentationPane()
+    forwardStack = [] // initialize forward page stack for manual search
     setHTML(word, module)
 }
 
 async function setHTML(word: string, module: string) {
     const darkMode: boolean = vscode.workspace.getConfiguration('julia.documentation').darkMode
 
-    const inner = await g_connection.sendRequest(requestTypeGetDoc, { word, module })
+    const inner = await connection.sendRequest(requestTypeGetDoc, { word, module })
 
     const assetsDir = path.join(extensionPath, 'assets')
     const googleFonts = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'google_fonts')))
@@ -121,9 +150,18 @@ async function setHTML(word: string, module: string) {
 
 </html>
 `
+    _setHTML(html)
+}
+
+function _setHTML(html: string) {
+    // set current stack
+    backStack.push(html)
 
     // link handling
-    const messageSubscription = panel.webview.onDidReceiveMessage(
+    if (messageSubscription) {
+        messageSubscription.dispose() // dispose previouse
+    }
+    messageSubscription = panel.webview.onDidReceiveMessage(
         message => {
             if (message.method === 'search') {
                 const { word, module } = message.params
@@ -131,6 +169,30 @@ async function setHTML(word: string, module: string) {
             }
         }
     )
-    panel.onDidDispose(() => messageSubscription.dispose())
+
+    // set content
     panel.webview.html = html
+}
+
+function isBrowseBackAvailable() {
+    return backStack.length > 1
+}
+
+function isBrowseForwardAvailable() {
+    return forwardStack.length > 0
+}
+
+function browseBack() {
+    if (!isBrowseBackAvailable()) { return }
+
+    const current = backStack.pop()
+    forwardStack.push(current)
+
+    _setHTML(backStack.pop())
+}
+
+function browseForward() {
+    if (!isBrowseForwardAvailable()) { return }
+
+    _setHTML(forwardStack.pop())
 }
