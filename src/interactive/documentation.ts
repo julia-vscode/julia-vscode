@@ -5,6 +5,7 @@ import { setContext } from '../utils'
 import { getModuleForEditor } from './modules'
 import { onInit } from './repl'
 
+const viewType = 'JuliaDocumentationBrowser'
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
 let connection: rpc.MessageConnection = null
 let extensionPath: string = null
@@ -27,6 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
         })
     )
     setPanelContext()
+    vscode.window.registerWebviewPanelSerializer(viewType, new DocumentationPaneSerializer())
 }
 
 function showDocumentationPane() {
@@ -39,7 +41,7 @@ function showDocumentationPane() {
 }
 
 function createDocumentationPanel() {
-    panel = vscode.window.createWebviewPanel('DocumentationPane', 'Julia Documentation Pane',
+    panel = vscode.window.createWebviewPanel(viewType, 'Julia Documentation Pane',
         {
             preserveFocus: true,
             viewColumn: vscode.ViewColumn.Beside,
@@ -50,6 +52,20 @@ function createDocumentationPanel() {
             enableScripts: true,
         }
     )
+    setPanelSubscription(panel)
+}
+
+class DocumentationPaneSerializer implements vscode.WebviewPanelSerializer {
+    async deserializeWebviewPanel(deserializedPanel: vscode.WebviewPanel, state: any) {
+        panel = deserializedPanel
+        const { inner } = state
+        const html = createWebviewHTML(inner)
+        _setHTML(html)
+        setPanelSubscription(panel)
+    }
+}
+
+function setPanelSubscription(panel: vscode.WebviewPanel) {
     panel.onDidChangeViewState(({ webviewPanel }) => {
         setPanelContext(webviewPanel.active)
     })
@@ -85,9 +101,13 @@ async function showDocumentation() {
 }
 
 async function setHTML(word: string, module: string) {
-    const darkMode: boolean = vscode.workspace.getConfiguration('julia.documentation').darkMode
-
     const inner = await connection.sendRequest(requestTypeGetDoc, { word, module })
+    const html = createWebviewHTML(inner)
+    _setHTML(html)
+}
+
+function createWebviewHTML(inner: string) {
+    const darkMode: boolean = vscode.workspace.getConfiguration('julia.documentation').darkMode
 
     const assetsDir = path.join(extensionPath, 'assets')
     const googleFonts = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'google_fonts')))
@@ -99,7 +119,7 @@ async function setHTML(word: string, module: string) {
     const documenterScript = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'documenter.js')))
     const documenterStylesheet = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
 
-    const html = `
+    return `
 <!DOCTYPE html>
 <html lang="en" class=${darkMode ? 'theme--documenter-dark' : ''}>
 
@@ -117,8 +137,8 @@ async function setHTML(word: string, module: string) {
     <link href=${documenterStylesheet} rel="stylesheet" type="text/css">
 
     <script type="text/javascript">
+        const vscode = acquireVsCodeApi()
         window.onload = () => {
-            const vscode = acquireVsCodeApi()
             const els = document.getElementsByTagName('a')
             for (const el of els) {
                 const href = el.getAttribute('href')
@@ -136,6 +156,7 @@ async function setHTML(word: string, module: string) {
                 }
             }
         }
+        vscode.setState({ inner: \`${inner}\` })
     </script>
 
 </head>
@@ -150,7 +171,6 @@ async function setHTML(word: string, module: string) {
 
 </html>
 `
-    _setHTML(html)
 }
 
 function _setHTML(html: string) {
