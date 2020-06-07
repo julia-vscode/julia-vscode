@@ -317,38 +317,43 @@
         "keybindings": [
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+Enter",
+                "key": "ctrl+enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
-                "key": "alt+Enter",
+                "key": "alt+enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.executeCellAndMove",
-                "key": "shift+Enter",
+                "key": "shift+enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.clearCurrentInlineResult",
-                "key": "Ctrl+I Ctrl+D",
+                "key": "ctrl+i ctrl+d",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
-                "key": "ctrl+I ctrl+C",
+                "key": "ctrl+i ctrl+c",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.chooseModule",
-                "key": "Ctrl-J Ctrl+M",
+                "key": "ctrl+j ctrl+m",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+Enter",
+                "key": "ctrl+enter",
                 "when": "editorTextFocus && editorLangId == juliamarkdown"
+            },
+            {
+                "command": "language-julia.show-documentation",
+                "key": "ctrl+j ctrl+d",
+                "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.browse-back-documentation",
