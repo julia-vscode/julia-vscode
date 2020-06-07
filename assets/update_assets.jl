@@ -1,5 +1,6 @@
 # TODO: move this into the future packaged `terminalserver.jl`'s build step
 
+using Documenter
 using Documenter.Writers.HTMLWriter.RD
 
 download_uri(uri) = download(uri, basename(uri))

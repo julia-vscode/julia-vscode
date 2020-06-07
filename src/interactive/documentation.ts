@@ -130,7 +130,6 @@ function createWebviewHTML(inner: string) {
     <link href=${solid} rel="stylesheet" type="text/css" />
     <link href=${brands} rel="stylesheet" type="text/css" />
     <link href=${katex} rel="stylesheet" type="text/css" />
-    <script>documenterBaseURL = ""</script>
     <script src=${require} data-main=${documenterScript}></script>
     <link href=${documenterStylesheet} rel="stylesheet" type="text/css">
 
