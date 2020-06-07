@@ -7,12 +7,28 @@ function get_doc_html(params)
     return to_webview_html.(docs.content) |> join
 end
 
+const CODE_LANG_REGEX = r"\<code class\=\"language-(?<lang>(?!\>).+)\"\>"
+
 to_webview_html(x) = html(x)
 function to_webview_html(md::MD)
-    haskey(md.meta, :module) || return html(md)
-    mod = md.meta[:module]
-    newhref = string("julia-vscode", '/', mod)
-    return replace(html(md), "<a href=\"@ref\"" => "<a href=\"$newhref\"") # HACK ...
+    # HACK goes on ...
+    s = html(md)
+    if haskey(md.meta, :module)
+        mod = md.meta[:module]
+        newhref = string("julia-vscode", '/', mod)
+        s = replace(s, "<a href=\"@ref\"" => "<a href=\"$newhref\"")
+    end
+    s = replace(s, CODE_LANG_REGEX => annotate_highlight_js)
+    return s
+end
+
+function annotate_highlight_js(s)
+    m::RegexMatch = match(CODE_LANG_REGEX, s)
+    lang = m[:lang]
+    if lang == "jldoctest"
+        lang = "julia-repl"
+    end
+    return "<code class=\"language-$(lang) hljs\">"
 end
 
 """
