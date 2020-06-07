@@ -29,7 +29,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 function showDocumentationPane() {
     if (!panel) {
-        createDocumentationPanel()
+        panel = createDocumentationPanel()
+        setPanelSubscription(panel)
     }
     if (!panel.visible) {
         panel.reveal()
@@ -37,7 +38,7 @@ function showDocumentationPane() {
 }
 
 function createDocumentationPanel() {
-    panel = vscode.window.createWebviewPanel(viewType, 'Julia Documentation Pane',
+    return vscode.window.createWebviewPanel(viewType, 'Julia Documentation Pane',
         {
             preserveFocus: true,
             viewColumn: vscode.ViewColumn.Beside,
@@ -48,7 +49,6 @@ function createDocumentationPanel() {
             enableScripts: true,
         }
     )
-    setPanelSubscription(panel)
 }
 
 class DocumentationPaneSerializer implements vscode.WebviewPanelSerializer {
