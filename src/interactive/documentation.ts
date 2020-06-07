@@ -3,11 +3,10 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { setContext } from '../utils'
 import { getModuleForEditor } from './modules'
-import { onInit } from './repl'
+import { withConnection } from './repl'
 
 const viewType = 'JuliaDocumentationBrowser'
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
-let connection: rpc.MessageConnection = null
 let extensionPath: string = null
 let panel: vscode.WebviewPanel = null
 let messageSubscription: vscode.Disposable = null
@@ -22,10 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.show-documentation-pane', showDocumentationPane),
         vscode.commands.registerCommand('language-julia.show-documentation', showDocumentation),
         vscode.commands.registerCommand('language-julia.browse-back-documentation', browseBack),
-        vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward),
-        onInit(conn => {
-            connection = conn
-        })
+        vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward)
     )
     setPanelContext()
     vscode.window.registerWebviewPanelSerializer(viewType, new DocumentationPaneSerializer())
@@ -97,13 +93,15 @@ async function showDocumentation() {
 
     showDocumentationPane()
     forwardStack = [] // initialize forward page stack for manual search
-    setHTML(word, module)
+    getDocumentationAndSetHTML(word, module)
 }
 
-async function setHTML(word: string, module: string) {
-    const inner = await connection.sendRequest(requestTypeGetDoc, { word, module })
-    const html = createWebviewHTML(inner)
-    _setHTML(html)
+async function getDocumentationAndSetHTML(word: string, module: string) {
+    withConnection('Getting a documentation', async connection => {
+        const inner = await connection.sendRequest(requestTypeGetDoc, { word, module })
+        const html = createWebviewHTML(inner)
+        _setHTML(html)
+    })
 }
 
 function createWebviewHTML(inner: string) {
@@ -185,7 +183,7 @@ function _setHTML(html: string) {
         message => {
             if (message.method === 'search') {
                 const { word, module } = message.params
-                setHTML(word, module)
+                getDocumentationAndSetHTML(word, module)
             }
         }
     )

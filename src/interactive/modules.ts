@@ -1,9 +1,9 @@
 import * as vscode from 'vscode'
-import * as vslc from 'vscode-languageclient'
 import * as rpc from 'vscode-jsonrpc'
-import { onInit, onExit } from './repl'
-import { onSetLanguageClient } from '../extension'
+import * as vslc from 'vscode-languageclient'
 import { TextDocumentPositionParams } from 'vscode-languageclient'
+import { onSetLanguageClient } from '../extension'
+import { onExit, onInit, withConnection } from './repl'
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
@@ -99,28 +99,25 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
 }
 
 async function chooseModule() {
-    if (!isConnectionActive()) {
-        vscode.window.showInformationMessage('Setting a module requires an active REPL.')
-        return
-    }
+    withConnection('Setting a module', async connection => {
+        const possibleModules = await connection.sendRequest(requestTypeGetModules, null)
 
-    const possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
+        possibleModules.sort()
+        possibleModules.splice(0, 0, automaticallyChooseOption)
 
-    possibleModules.sort()
-    possibleModules.splice(0, 0, automaticallyChooseOption)
+        const qpOptions: vscode.QuickPickOptions = {
+            placeHolder: 'Select module',
+            canPickMany: false
+        }
+        const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
 
-    const qpOptions: vscode.QuickPickOptions = {
-        placeHolder: 'Select module',
-        canPickMany: false
-    }
-    const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
+        const ed = vscode.window.activeTextEditor
+        if (mod === automaticallyChooseOption) {
+            delete manuallySetDocuments[ed.document.fileName]
+        } else {
+            manuallySetDocuments[ed.document.fileName] = mod
+        }
 
-    const ed = vscode.window.activeTextEditor
-    if (mod === automaticallyChooseOption) {
-        delete manuallySetDocuments[ed.document.fileName]
-    } else {
-        manuallySetDocuments[ed.document.fileName] = mod
-    }
-
-    updateStatusBarItem(ed)
+        updateStatusBarItem(ed)
+    })
 }
