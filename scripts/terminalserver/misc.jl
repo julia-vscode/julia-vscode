@@ -1,3 +1,6 @@
+# string utilities
+# ----------------
+
 # https://github.com/JuliaDebug/Debugger.jl/blob/4cf99c662ab89da0fe7380c1e81461e2428e8b00/src/limitio.jl
 
 mutable struct LimitIO{IO_t <: IO} <: IO
@@ -56,5 +59,13 @@ function remove_ansi_control_chars(str::String)
     replace(str, r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]" => "")
 end
 
+# is utilities
+# ------------
+
 iskeyword(word::Symbol) = word in keys(Docs.keywords)
 iskeyword(word::AbstractString) = iskeyword(Symbol(word))
+
+# miscellaneous
+# -------------
+
+@inbounds interpose(xs, y) = map(i -> iseven(i) ? xs[i÷2] : y, 2:2length(xs))

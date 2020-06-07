@@ -51,13 +51,7 @@ function add_hlines!(md)
     if !isa(md, MD) || !haskey(md.meta, :results) || isempty(md.meta[:results])
         return md
     end
-    v = []
-    n = length(md.content)
-    for (i, m) in enumerate(md.content)
-        push!(v, m)
-        i === n || push!(v, HorizontalRule())
-    end
-    return MD(v)
+    return MD(interpose(md.content, HorizontalRule()))
 end
 
 """
