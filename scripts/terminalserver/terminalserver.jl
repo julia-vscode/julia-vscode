@@ -28,7 +28,7 @@ function get_variables()
     variables = []
     clear_lazy()
 
-    for n in names(M)
+    for n in names(M, all=true, imported=true)
         !isdefined(M, n) && continue
         Base.isdeprecated(M, n) && continue
 
@@ -402,7 +402,9 @@ function can_display(x)
         return true
     end
 
-    if _isiterabletable(x) === missing || _isiterabletable(x) === true || x isa AbstractVector || x isa AbstractMatrix
+    istable = Base.invokelatest(_isiterabletable, x)
+
+    if istable === missing || istable === true || x isa AbstractVector || x isa AbstractMatrix
         return true
     end
 

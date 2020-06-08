@@ -41,29 +41,28 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
         this._onDidChangeTreeData.fire(undefined)
     }
 
-    getChildren(node?: WorkspaceVariable): Thenable<WorkspaceVariable[]> {
+    async getChildren(node?: WorkspaceVariable) {
         if (node) {
-            return new Promise(resolve => {
-                const pr = g_connection.sendRequest(requestTypeGetLazy, node.id)
-                pr.then(children => {
-                    const out: WorkspaceVariable[] = []
-                    for (const c of children) {
-                        out.push({
-                            name: c.head,
-                            type: '',
-                            value: c.value,
-                            id: c.id,
-                            lazy: c.lazy,
-                            haschildren: c.haschildren,
-                            canshow: c.canshow
-                        })
-                    }
-                    resolve(out)
+            const children = await g_connection.sendRequest(requestTypeGetLazy, node.id)
+
+            const out: WorkspaceVariable[] = []
+
+            for (const c of children) {
+                out.push({
+                    name: c.head,
+                    type: '',
+                    value: c.value,
+                    id: c.id,
+                    lazy: c.lazy,
+                    haschildren: c.haschildren,
+                    canshow: c.canshow
                 })
-            })
+            }
+
+            return out
         }
         else {
-            return Promise.resolve(g_replVariables)
+            return g_replVariables
         }
     }
 
