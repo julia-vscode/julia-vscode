@@ -17,27 +17,45 @@ end
 
 include("misc.jl")
 include("docs.jl")
+include("trees.jl")
 include("repl.jl")
 include("../debugger/debugger.jl")
 
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
 
-function getVariables()
+function get_variables()
     M = Main
     variables = []
-    for n in names(M)
+    clear_lazy()
+
+    for n in names(M, all=true, imported=true)
         !isdefined(M, n) && continue
+        Base.isdeprecated(M, n) && continue
+
         x = getfield(M, n)
-        x isa Module && continue
-        x==Main.vscodedisplay && continue
+        x === Main.vscodedisplay && continue
+        x === Main._vscodeserver && continue
+        x === Main && continue
+
         n_as_string = string(n)
         startswith(n_as_string, "#") && continue
         t = typeof(x)
-        value_as_string = sprintlimited(MIME"text/plain"(), x, limit = 100)
 
-        push!(variables, (name=string(n), type=string(t), value=value_as_string))
+        rendered = treerender(x)
+
+        push!(variables, Dict(
+            "type" => string(t),
+            "value" => get(rendered, :head, "???"),
+            "name" => n_as_string,
+            "id" => get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
+            "haschildren" => get(rendered, :haschildren, false),
+            "lazy" => get(rendered, :lazy, false),
+            "icon" => get(rendered, :icon, ""),
+            "canshow" => can_display(x)
+        ))
     end
+
     return variables
 end
 
@@ -237,9 +255,10 @@ run(conn_endpoint)
                 end
             end
         elseif msg["method"] == "repl/getvariables"
-            vars = getVariables()
-
-            JSONRPC.send_success_response(conn_endpoint, msg, [Dict{String,String}("name"=>i.name, "type"=>i.type, "value"=>i.value) for i in vars])
+            vars = get_variables()
+            JSONRPC.send_success_response(conn_endpoint, msg, vars)
+        elseif msg["method"] == "repl/getlazy"
+            JSONRPC.send_success_response(conn_endpoint, msg, get_lazy(msg["params"]))
         elseif msg["method"] == "repl/getdoc"
             JSONRPC.send_success_response(conn_endpoint, msg, Base.invokelatest(get_doc_html, msg["params"]))
         elseif msg["method"] == "repl/showingrid"
@@ -361,32 +380,48 @@ Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) 
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
-function Base.display(d::InlineDisplay, x)
-    if showable("application/vnd.vegalite.v4+json", x)
-        display(d,"application/vnd.vegalite.v4+json", x)
-    elseif showable("application/vnd.vegalite.v3+json", x)
-        display(d,"application/vnd.vegalite.v3+json", x)
-    elseif showable("application/vnd.vegalite.v2+json", x)
-        display(d,"application/vnd.vegalite.v2+json", x)
-    elseif showable("application/vnd.vega.v5+json", x)
-        display(d,"application/vnd.vega.v5+json", x)
-    elseif showable("application/vnd.vega.v4+json", x)
-        display(d,"application/vnd.vega.v4+json", x)
-    elseif showable("application/vnd.vega.v3+json", x)
-        display(d,"application/vnd.vega.v3+json", x)
-    elseif showable("application/vnd.plotly.v1+json", x)
-        display(d,"application/vnd.plotly.v1+json", x)
-    elseif showable("juliavscode/html", x)
-        display(d,"juliavscode/html", x)
-    # elseif showable("text/html", x)
-    #     display(d,"text/html", x)
-    elseif showable("image/svg+xml", x)
-        display(d,"image/svg+xml", x)
-    elseif showable("image/png", x)
-        display(d,"image/png", x)
-    else
-        throw(MethodError(display,(d,x)))
+const DISPLAYABLE_MIMES = [
+    "application/vnd.vegalite.v4+json",
+    "application/vnd.vegalite.v3+json",
+    "application/vnd.vegalite.v2+json",
+    "application/vnd.vega.v5+json",
+    "application/vnd.vega.v4+json",
+    "application/vnd.vega.v3+json",
+    "application/vnd.plotly.v1+json",
+    "juliavscode/html",
+    # "text/html",
+    "image/svg+xml",
+    "image/png"
+]
+
+function can_display(x)
+    for mime in DISPLAYABLE_MIMES
+        if showable(mime, x)
+            return true
+        end
     end
+
+    if showable("application/vnd.dataresource+json", x)
+        return true
+    end
+
+    istable = Base.invokelatest(_isiterabletable, x)
+
+    if istable === missing || istable === true || x isa AbstractVector || x isa AbstractMatrix
+        return true
+    end
+
+    return false
+end
+
+function Base.display(d::InlineDisplay, x)
+    for mime in DISPLAYABLE_MIMES
+        if showable(mime, x)
+            return display(d, mime, x)
+        end
+    end
+
+    throw(MethodError(display,(d,x)))
 end
 
 function _display(d::InlineDisplay, x)
@@ -452,27 +487,20 @@ function hook_repl(repl)
             end
         end
 
-        q = Expr(:toplevel,
-            Expr(:try,
-                Expr(:block,
-                    quote
-                        try
-                            $(JSONRPC.send_notification)($conn_endpoint, "repl/starteval", nothing)
-                        catch err
-                        end
-                    end,
-                    x.args...
-                ),
-                false,
-                false,
-                quote
-                    try
-                        $(JSONRPC.send_notification)($conn_endpoint, "repl/finisheval", nothing)
-                    catch err
-                    end
+        q = quote
+            try
+                try
+                    $(JSONRPC.send_notification)($conn_endpoint, "repl/starteval", nothing)
+                catch err
                 end
-            )
-        )
+                $(Expr(:toplevel, x.args...))
+            finally
+                try
+                    $(JSONRPC.send_notification)($conn_endpoint, "repl/finisheval", nothing)
+                catch err
+                end
+            end
+        end
 
         return q
     end

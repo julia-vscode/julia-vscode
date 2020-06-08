@@ -1,11 +1,37 @@
 import * as vscode from 'vscode'
-import * as repl from './repl'
+import * as rpc from 'vscode-jsonrpc'
+import { notifyTypeReplFinishEval, notifyTypeReplShowInGrid, onExit, onInit } from './repl'
+
+let g_connection: rpc.MessageConnection = null
 
 interface WorkspaceVariable {
     name: string,
     type: string,
-    value: string
+    value: string,
+    id: any,
+    lazy: boolean,
+    haschildren: boolean,
+    canshow: boolean,
+    icon: string
 }
+
+const requestTypeGetVariables = new rpc.RequestType<
+    void,
+    WorkspaceVariable[],
+    void, void>('repl/getvariables')
+
+const requestTypeGetLazy = new rpc.RequestType<
+    void,
+    {
+        lazy: boolean,
+        id: number,
+        head: string,
+        haschildren: boolean,
+        value: string,
+        canshow: boolean,
+        icon: string
+    }[],
+    void, void>('repl/getlazy')
 
 let g_replVariables: WorkspaceVariable[] = []
 
@@ -17,9 +43,26 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
         this._onDidChangeTreeData.fire(undefined)
     }
 
-    getChildren(node?: WorkspaceVariable) {
+    async getChildren(node?: WorkspaceVariable) {
         if (node) {
-            return []
+            const children = await g_connection.sendRequest(requestTypeGetLazy, node.id)
+
+            const out: WorkspaceVariable[] = []
+
+            for (const c of children) {
+                out.push({
+                    name: c.head,
+                    type: '',
+                    value: c.value,
+                    id: c.id,
+                    lazy: c.lazy,
+                    haschildren: c.haschildren,
+                    canshow: c.canshow,
+                    icon: c.icon
+                })
+            }
+
+            return out
         }
         else {
             return g_replVariables
@@ -27,10 +70,12 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
     }
 
     getTreeItem(node: WorkspaceVariable): vscode.TreeItem {
-        const treeItem = new vscode.TreeItem(`${node.name}:`)
+        const treeItem = new vscode.TreeItem(node.name)
         treeItem.description = node.value
         treeItem.tooltip = node.type
-        treeItem.contextValue = 'globalvariable'
+        treeItem.contextValue = node.canshow ? 'globalvariable' : ''
+        treeItem.collapsibleState = node.haschildren ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
+        treeItem.iconPath = new vscode.ThemeIcon(node.icon)
         return treeItem
     }
 }
@@ -38,7 +83,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
 let g_REPLTreeDataProvider: REPLTreeDataProvider = null
 
 export async function updateReplVariables() {
-    g_replVariables = await repl.g_connection.sendRequest(repl.requestTypeGetVariables, undefined)
+    g_replVariables = await g_connection.sendRequest(requestTypeGetVariables, undefined)
 
     g_REPLTreeDataProvider.refresh()
 }
@@ -48,7 +93,7 @@ export async function replFinishEval() {
 }
 
 async function showInVSCode(node: WorkspaceVariable) {
-    repl.g_connection.sendNotification(repl.notifyTypeReplShowInGrid, node.name)
+    g_connection.sendNotification(notifyTypeReplShowInGrid, node.name)
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -56,14 +101,17 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.showInVSCode', showInVSCode))
+    context.subscriptions.push(onInit(connection => {
+        g_connection = connection
+        connection.onNotification(notifyTypeReplFinishEval, replFinishEval)
+        updateReplVariables()
+    }))
+    context.subscriptions.push(onExit(hasError => {
+        clearVariables()
+    }))
 }
 
 export function clearVariables() {
-    g_replVariables = []
-    g_REPLTreeDataProvider.refresh()
-}
-
-export function setTerminal(terminal: vscode.Terminal) {
     g_replVariables = []
     g_REPLTreeDataProvider.refresh()
 }
