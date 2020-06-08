@@ -50,6 +50,7 @@ function get_variables()
             "id" => get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
             "haschildren" => get(rendered, :haschildren, false),
             "lazy" => get(rendered, :lazy, false),
+            "icon" => get(rendered, :icon, ""),
             "canshow" => can_display(x)
         ))
     end

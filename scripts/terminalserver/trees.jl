@@ -1,19 +1,27 @@
 struct LazyTree
     head::String
+    icon::String
     isempty::Bool
     children
 end
 
+LazyTree(head, children) = LazyTree(head, "", false, children)
+LazyTree(head, icon::String, children) = LazyTree(head, icon, false, children)
+
 struct SubTree
     head::String
+    icon::String
     child
 end
 
-LazyTree(head, children) = LazyTree(head, false, children)
+SubTree(head, child) = LazyTree(head, "", child)
 
 struct Leaf
     val
+    icon::String
 end
+
+Leaf(val) = Leaf(val, "")
 
 const TREES = Dict{Int, LazyTree}()
 const ID = Ref(0)
@@ -34,6 +42,7 @@ function treerender(x::LazyTree)
         :id => id,
         :haschildren => !(x.isempty),
         :lazy => true,
+        :icon => x.icon,
         :value => "",
         :canshow => false
     )
@@ -48,6 +57,7 @@ function treerender(x::SubTree)
         :haschildren => get(child, :haschildren, true),
         :id => get(child, :id, -1),
         :lazy => get(child, :lazy, true),
+        :icon => get(child, :icon, ""),
         :canshow => false
     )
 end
@@ -59,6 +69,7 @@ function treerender(x::Leaf)
         :value => "",
         :haschildren => false,
         :lazy => false,
+        :icon => x.icon,
         :canshow => false
     )
 end
@@ -71,24 +82,24 @@ function treerender(x)
     if isempty(fields)
         treerender(Text(string(typeof(x), "()")))
     else
-        treerender(LazyTree(string(typeof(x)), function ()
-            [SubTree(string(f), getfield_safe(x, f)) for f in fields]
+        treerender(LazyTree(string(typeof(x)), wsicon(x), function ()
+            [SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields]
         end))
     end
 end
 
 function treerender(x::AbstractDict{K, V}) where {K, V}
-    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), length(keys(x)) == 0, function ()
+    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), wsicon(x), length(keys(x)) == 0, function ()
         if length(keys(x)) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
         else
-            [SubTree(repr(k), v) for (k, v) in x]
+            [SubTree(repr(k), wsicon(v), v) for (k, v) in x]
         end
     end))
 end
 
 function treerender(x::Module)
-    treerender(LazyTree(string(x), function ()
+    treerender(LazyTree(string(x), wsicon(x), function ()
         ns = names(x, all = true)
         out = []
         for n in ns
@@ -99,7 +110,7 @@ function treerender(x::Module)
             v = getfield(x, n)
             v === x && continue
 
-            push!(out, SubTree(string(n), v))
+            push!(out, SubTree(string(n), wsicon(v), v))
         end
 
         out
@@ -107,25 +118,25 @@ function treerender(x::Module)
 end
 
 function treerender(x::AbstractArray{T, N}) where {T, N}
-    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), length(x) == 0, function ()
+    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0, function ()
         if length(x) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
         else
-            [SubTree(repr(k), v) for (k, v) in zip(keys(x), vec(x))]
+            [SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(x))]
         end
     end))
 end
 
-treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit=100)))
-treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), limit=100)))
-treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), limit=100)))
-treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), limit=100)))
-treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), limit=100)))
-treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), limit=100)))
-treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base=16, pad=Sys.WORD_SIZE>>2))))
-treerender(x::Text) = treerender(Leaf(x.content))
-treerender(x::Function) = treerender(Leaf(strlimit(string(x), limit=100)))
-treerender(x::Type) = treerender(Leaf(strlimit(string(x), limit=100)))
+treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base=16, pad=Sys.WORD_SIZE>>2)), wsicon(x)))
+treerender(x::Text) = treerender(Leaf(x.content, wsicon(x)))
+treerender(x::Function) = treerender(Leaf(strlimit(string(x), limit=100), wsicon(x)))
+treerender(x::Type) = treerender(Leaf(strlimit(string(x), limit=100), wsicon(x)))
 
 function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
     partitions = Iterators.partition(_keys, max(sz, length(_keys) ÷ maxparts))
@@ -167,3 +178,13 @@ function clear_lazy(ids = [])
         end
     end
 end
+
+wsicon(::Any) = "symbol-variable"
+wsicon(::Module) = "symbol-namespace"
+wsicon(f::Function) = "symbol-method"
+wsicon(::Number) = "symbol-numeric"
+wsicon(::AbstractString) = "symbol-string"
+wsicon(::AbstractArray) = "symbol-array"
+wsicon(::Type) = "symbol-structure"
+wsicon(::AbstractDict) = "symbol-enum"
+wsicon(::Exception) = "warning"
