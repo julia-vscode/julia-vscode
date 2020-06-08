@@ -485,27 +485,20 @@ function hook_repl(repl)
             end
         end
 
-        q = Expr(:toplevel,
-            Expr(:try,
-                Expr(:block,
-                    quote
-                        try
-                            $(JSONRPC.send_notification)($conn_endpoint, "repl/starteval", nothing)
-                        catch err
-                        end
-                    end,
-                    x.args...
-                ),
-                false,
-                false,
-                quote
-                    try
-                        $(JSONRPC.send_notification)($conn_endpoint, "repl/finisheval", nothing)
-                    catch err
-                    end
+        q = quote
+            try
+                try
+                    $(JSONRPC.send_notification)($conn_endpoint, "repl/starteval", nothing)
+                catch err
                 end
-            )
-        )
+                $(Expr(:toplevel, x.args...))
+            finally
+                try
+                    $(JSONRPC.send_notification)($conn_endpoint, "repl/finisheval", nothing)
+                catch err
+                end
+            end
+        end
 
         return q
     end
