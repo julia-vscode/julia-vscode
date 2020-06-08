@@ -758,7 +758,7 @@
         "@types/download": "^6.2.4",
         "@types/mocha": "^7.0.2",
         "@types/node": "^12.12.44",
-        "@typescript-eslint/parser": "^3.1.0",
+        "@typescript-eslint/parser": "^3.2.0",
         "cson-parser": "^4.0.4",
         "download": "^7.1.0",
         "eslint": "^7.2.0",
