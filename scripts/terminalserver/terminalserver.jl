@@ -466,9 +466,12 @@ end
 push!(Base.package_callbacks, pkgload)
 
 function hook_repl(repl)
-    main_mode = get_main_mode()
+    if !isdefined(repl, :interface)
+        repl.interface = REPL.setup_interface(repl)
+    end
+    main_mode = get_main_mode(repl)
 
-    main_mode.on_done = REPL.respond(Base.active_repl, main_mode; pass_empty = false) do line
+    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty = false) do line
 
         x = Base.parse_input_line(line,filename=REPL.repl_filename(repl,main_mode.hist))
 
