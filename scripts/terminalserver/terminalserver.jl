@@ -455,37 +455,29 @@ function pkgload(pkg)
     elseif pkg.uuid==datavalues_uuid
         x = Base.require(pkg)
 
-        eval(quote
-            function JSON_print_escaped(io, val::$(x.DataValue))
-                $(x.isna)(val) ? print(io, "null") : JSON_print_escaped(io, val[])
-            end
+        eval(
+            quote
+                function JSON_print_escaped(io, val::$(x.DataValue))
+                    $(x.isna)(val) ? print(io, "null") : JSON_print_escaped(io, val[])
+                end
 
-            julia_type_to_schema_type(::Type{T}) where {S, T<:$(x.DataValue){S}} = julia_type_to_schema_type(S)
-        end)
+                julia_type_to_schema_type(::Type{T}) where {S, T<:$(x.DataValue){S}} = julia_type_to_schema_type(S)
+            end
+        )
     end
 end
 
 push!(Base.package_callbacks, pkgload)
 
 function hook_repl(repl)
-    main_mode = get_main_mode()
+    if !isdefined(repl, :interface)
+        repl.interface = REPL.setup_interface(repl)
+    end
+    main_mode = get_main_mode(repl)
 
-    main_mode.on_done = REPL.respond(Base.active_repl, main_mode; pass_empty = false) do line
+    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty = false) do line
 
-        x = Base.parse_input_line(line,filename=REPL.repl_filename(repl,main_mode.hist))
-
-        if !(x isa Expr && x.head == :toplevel)
-            error("VS Code Julia REPL got an unexpected input.")
-        end
-
-        # Replace all top level assignments with a global top level assignment
-        # so that they happen, even though the code now runs inside a
-        # try ... finally block
-        for i in 1:length(x.args)
-            if x.args[i] isa Expr && x.args[i].head==:(=)
-                x.args[i] = Expr(:global, x.args[i])
-            end
-        end
+        x = Base.parse_input_line(line,filename=REPL.repl_filename(repl, main_mode.hist))
 
         q = quote
             try
@@ -493,7 +485,7 @@ function hook_repl(repl)
                     $(JSONRPC.send_notification)($conn_endpoint, "repl/starteval", nothing)
                 catch err
                 end
-                $(Expr(:toplevel, x.args...))
+                $(Main.eval(x))
             finally
                 try
                     $(JSONRPC.send_notification)($conn_endpoint, "repl/finisheval", nothing)

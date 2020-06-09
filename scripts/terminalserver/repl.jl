@@ -11,8 +11,8 @@ juliaprompt = "julia> "
 
 current_prompt = juliaprompt
 
-function get_main_mode()
-    mode = Base.active_repl.interface.modes[1]
+function get_main_mode(repl = Base.active_repl)
+    mode = repl.interface.modes[1]
     mode isa LineEdit.Prompt || error("no julia repl mode found")
     mode
 end
