@@ -1,24 +1,34 @@
-module _vscodeserver
+module vscodeserver
 
 using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
 import Dates
 
-include("../packages/JSON/src/JSON.jl")
 
-include("gridviewer.jl")
+function __init__()
+    atreplinit() do repl
+        @async try
+            hook_repl(repl)
+        catch err
+            Base.display_error(err, catch_backtrace())
+        end
+    end
+end
+
+include("../../packages/JSON/src/JSON.jl")
 
 module JSONRPC
     import ..JSON
     import ..UUIDs
 
-    include("../packages/JSONRPC/src/core.jl")
+    include("../../packages/JSONRPC/src/core.jl")
 end
 
 include("misc.jl")
 include("trees.jl")
 include("repl.jl")
-include("../debugger/debugger.jl")
+include("../../debugger/debugger.jl")
+include("gridviewer.jl")
 
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
@@ -33,8 +43,8 @@ function get_variables()
         Base.isdeprecated(M, n) && continue
 
         x = getfield(M, n)
-        x === Main.vscodedisplay && continue
-        x === Main._vscodeserver && continue
+        x === vscodedisplay && continue
+        x === vscodeserver && continue
         x === Main && continue
 
         n_as_string = string(n)
@@ -60,20 +70,12 @@ end
 
 struct InlineDisplay <: AbstractDisplay end
 
-repl_pipename = Base.ARGS[1]
-
-!(Sys.isunix() || Sys.iswindows()) && error("Unknown operating system.")
-
 function ends_with_semicolon(x)
     return REPL.ends_with_semicolon(split(x,'\n',keepempty = false)[end])
 end
 
-repl_conn = connect(repl_pipename)
-
-conn_endpoint = JSONRPC.JSONRPCEndpoint(repl_conn, repl_conn)
-
 function sendDisplayMsg(kind, data)
-    JSONRPC.send_notification(conn_endpoint, "display", Dict{String,String}("kind"=>kind, "data"=>data))
+    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,String}("kind"=>kind, "data"=>data))
 end
 
 """
@@ -180,114 +182,134 @@ function get_modules(toplevel = nothing, mods = Set(Module[]))
     mods
 end
 
-run(conn_endpoint)
+const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 
-@async try
-    while true
-        msg = JSONRPC.get_next_message(conn_endpoint)
+isactive() = conn_endpoint[] !== nothing
 
-        if msg["method"] == "repl/runcode"
-            params = msg["params"]
+function serve(args...; is_dev = false)
+    conn = connect(args...)
+    conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
+    run(conn_endpoint[])
 
-
-            source_filename = params["filename"]
-            code_line = params["line"]
-            code_column = params["column"]
-            source_code = params["code"]
-            mod = params["module"]
-
-            resolved_mod = try
-                module_from_string(mod)
-            catch err
-                # maybe trigger error reporting here
-                Main
-            end
-
-            show_code = params["showCodeInREPL"]
-            show_result = params["showResultInREPL"]
-
-            hideprompt() do
-                if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-                    let mode = get(ENV, "JULIA_REVISE", "auto")
-                        mode == "auto" && Main.Revise.revise()
-                    end
-                end
-                if show_code
-                    for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                        if i==1
-                            printstyled("julia> ", color=:green)
-                            print(' '^code_column)
-                        else
-                            # Indent by 7 so that it aligns with the julia> prompt
-                            print(' '^7)
-                        end
-
-                        println(line)
-                    end
-                end
-
-                withpath(source_filename) do
-                    res = try
-                        Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
-                    catch err
-                        EvalError(err, catch_backtrace())
-                    end
-
-                    if show_result
-                        if res isa EvalError
-                            Base.display_error(stderr, res.err, res.bt)
-                        elseif res !== nothing && !ends_with_semicolon(source_code)
-                            Base.invokelatest(display, res)
-                        end
-                    else
-                        try
-                            Base.invokelatest(display, InlineDisplay(), res)
-                        catch err
-                            if !(err isa MethodError)
-                                printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                                Base.display_error(stderr, err, catch_backtrace())
-                            end
-                        end
-                    end
-
-                    JSONRPC.send_success_response(conn_endpoint, msg, safe_render(res))
-                end
-            end
-        elseif msg["method"] == "repl/getvariables"
-            vars = get_variables()
-
-            JSONRPC.send_success_response(conn_endpoint, msg, vars)
-        elseif msg["method"] == "repl/getlazy"
-            JSONRPC.send_success_response(conn_endpoint, msg, get_lazy(msg["params"]))
-        elseif msg["method"] == "repl/showingrid"
+    if is_dev
+        @async while true
             try
-                var = Core.eval(Main, Meta.parse(msg["params"]))
-
-                Base.invokelatest(internal_vscodedisplay, var)
+                Base.invokelatest(handle_message)
             catch err
                 Base.display_error(err, catch_backtrace())
             end
-        elseif msg["method"] == "repl/loadedModules"
-            JSONRPC.send_success_response(conn_endpoint, msg, string.(collect(get_modules())))
-        elseif msg["method"] == "repl/isModuleLoaded"
-            mod = msg["params"]
+        end
+    else
+        @async try
+            while true
+                handle_message()
+            end
+        catch err
+            Base.display_error(err, catch_backtrace())
+        end
+    end
+end
 
-            is_loaded = is_module_loaded(mod)
+function handle_message()
+    msg = JSONRPC.get_next_message(conn_endpoint[])
+    if msg["method"] == "repl/runcode"
+        params = msg["params"]
 
-            JSONRPC.send_success_response(conn_endpoint, msg, is_loaded)
-        elseif msg["method"] == "repl/startdebugger"
-            hideprompt() do
-                debug_pipename = msg["params"]
-                try
-                    VSCodeDebugger.startdebug(debug_pipename)
-                catch err
-                    VSCodeDebugger.global_err_handler(err, catch_backtrace(), ARGS[4], "Debugger")
+        source_filename = params["filename"]
+        code_line = params["line"]
+        code_column = params["column"]
+        source_code = params["code"]
+        mod = params["module"]
+
+        resolved_mod = try
+            module_from_string(mod)
+        catch err
+            # maybe trigger error reporting here
+            Main
+        end
+
+        show_code = params["showCodeInREPL"]
+        show_result = params["showResultInREPL"]
+
+        hideprompt() do
+            if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+                let mode = get(ENV, "JULIA_REVISE", "auto")
+                    mode == "auto" && Main.Revise.revise()
                 end
+            end
+            if show_code
+                for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                    if i==1
+                        printstyled("julia> ", color=:green)
+                        print(' '^code_column)
+                    else
+                        # Indent by 7 so that it aligns with the julia> prompt
+                        print(' '^7)
+                    end
+
+                    println(line)
+                end
+            end
+
+            withpath(source_filename) do
+                res = try
+                    Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                catch err
+                    EvalError(err, catch_backtrace())
+                end
+
+                if show_result
+                    if res isa EvalError
+                        Base.display_error(stderr, res.err, res.bt)
+                    elseif res !== nothing && !ends_with_semicolon(source_code)
+                        Base.invokelatest(display, res)
+                    end
+                else
+                    try
+                        Base.invokelatest(display, InlineDisplay(), res)
+                    catch err
+                        if !(err isa MethodError)
+                            printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                            Base.display_error(stderr, err, catch_backtrace())
+                        end
+                    end
+                end
+
+                JSONRPC.send_success_response(conn_endpoint[], msg, safe_render(res))
+            end
+        end
+    elseif msg["method"] == "repl/getvariables"
+        vars = get_variables()
+
+        JSONRPC.send_success_response(conn_endpoint[], msg, vars)
+    elseif msg["method"] == "repl/getlazy"
+        JSONRPC.send_success_response(conn_endpoint[], msg, get_lazy(msg["params"]))
+    elseif msg["method"] == "repl/showingrid"
+        try
+            var = Core.eval(Main, Meta.parse(msg["params"]))
+
+            Base.invokelatest(internal_vscodedisplay, var)
+        catch err
+            Base.display_error(err, catch_backtrace())
+        end
+    elseif msg["method"] == "repl/loadedModules"
+        JSONRPC.send_success_response(conn_endpoint[], msg, string.(collect(get_modules())))
+    elseif msg["method"] == "repl/isModuleLoaded"
+        mod = msg["params"]
+
+        is_loaded = is_module_loaded(mod)
+
+        JSONRPC.send_success_response(conn_endpoint[], msg, is_loaded)
+    elseif msg["method"] == "repl/startdebugger"
+        hideprompt() do
+            debug_pipename = msg["params"]
+            try
+                VSCodeDebugger.startdebug(debug_pipename)
+            catch err
+                VSCodeDebugger.global_err_handler(err, catch_backtrace(), ARGS[4], "Debugger")
             end
         end
     end
-catch err
-    Base.display_error(err, catch_backtrace())
 end
 
 function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
@@ -480,13 +502,13 @@ function hook_repl(repl)
         q = quote
             try
                 try
-                    $(JSONRPC.send_notification)($conn_endpoint, "repl/starteval", nothing)
+                    $(JSONRPC.send_notification)($conn_endpoint[], "repl/starteval", nothing)
                 catch err
                 end
                 $(Main.eval(x))
             finally
                 try
-                    $(JSONRPC.send_notification)($conn_endpoint, "repl/finisheval", nothing)
+                    $(JSONRPC.send_notification)($conn_endpoint[], "repl/finisheval", nothing)
                 catch err
                 end
             end
@@ -528,54 +550,27 @@ function internal_vscodedisplay(x)
     elseif x isa AbstractVector || x isa AbstractMatrix
         buffer = IOBuffer()
         io = IOContext(buffer, :compact=>true)
-        _vscodeserver.print_array_as_dataresource(io, _vscodeserver._getiterator(x))
-        buffer_asstring = _vscodeserver.CachedDataResourceString(String(take!(buffer)))
-        _vscodeserver._display(_vscodeserver.InlineDisplay(), buffer_asstring)
+        print_array_as_dataresource(io, _getiterator(x))
+        buffer_asstring = CachedDataResourceString(String(take!(buffer)))
+        _display(InlineDisplay(), buffer_asstring)
     else
         _display(InlineDisplay(), x)
     end
 end
 
+vscodedisplay(x) = internal_vscodedisplay(x)
+vscodedisplay() = i -> vscodedisplay(i)
+
 macro enter(command)
     remove_lln!(command)
-    :(JSONRPC.send_notification(conn_endpoint, "debugger/enter", $(string(command))))
+    :(JSONRPC.send_notification(conn_endpoint[], "debugger/enter", $(string(command))))
 end
 
 macro run(command)
     remove_lln!(command)
-    :(JSONRPC.send_notification(conn_endpoint, "debugger/run", $(string(command))))
+    :(JSONRPC.send_notification(conn_endpoint[], "debugger/run", $(string(command))))
 end
 
-export @enter, @run
+export vscodedisplay, @enter, @run
 
-end
-
-using ._vscodeserver
-
-atreplinit() do repl
-    @async try
-        _vscodeserver.hook_repl(repl)
-    catch err
-        Base.display_error(err, catch_backtrace())
-    end
-
-    if length(Base.ARGS) >= 3 && Base.ARGS[3] == "true"
-        Base.Multimedia.pushdisplay(_vscodeserver.InlineDisplay())
-    end
-end
-
-function vscodedisplay(x)
-    _vscodeserver.internal_vscodedisplay(x)
-end
-
-vscodedisplay() = i -> vscodedisplay(i)
-
-# Load revise?
-if Base.ARGS[2] == "true"
-    try
-        @eval using Revise
-        Revise.async_steal_repl_backend()
-    catch err
-        @warn "failed to load Revise: $err"
-    end
-end
+end  # module
