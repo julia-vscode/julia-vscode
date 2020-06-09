@@ -1,15 +1,13 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
-import * as rpc from 'vscode-jsonrpc'
-import { setContext } from '../utils'
-import { getModuleForEditor } from './modules'
-import { withConnection } from './repl'
+import { withLanguageClient } from '../extension'
+import { getParamsAtPosition, setContext } from '../utils'
 
 const viewType = 'JuliaDocumentationBrowser'
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
 let extensionPath: string = null
 let panel: vscode.WebviewPanel = null
-let messageSubscription: vscode.Disposable = null
+const messageSubscription: vscode.Disposable = null
 
 const backStack: string[] = [] // also keep current page
 let forwardStack: string[] = []
@@ -79,9 +77,9 @@ function setPanelContext(state: boolean = false) {
     setContext(panelActiveContextKey, state)
 }
 
-const requestTypeGetDoc = new rpc.RequestType<{ word: string, module: string }, string, void, void>('repl/getdoc')
+// const requestTypeGetDoc = new rpc.RequestType<{ word: string, module: string }, string, void, void>('repl/getdoc')
 
-const wordRegex = /[\u00A0-\uFFFF\w_!´\.]*@?[\u00A0-\uFFFF\w_!´]+/
+// const wordRegex = /[\u00A0-\uFFFF\w_!´\.]*@?[\u00A0-\uFFFF\w_!´]+/
 
 async function showDocumentation() {
     // telemetry.traceEvent('command-showdocumentation')
@@ -89,20 +87,16 @@ async function showDocumentation() {
     const editor = vscode.window.activeTextEditor
     const selection = editor.selection
     const positiion = new vscode.Position(selection.start.line, selection.start.character)
-    const module: string = await getModuleForEditor(editor, positiion)
-    const range = selection.isEmpty ?
-        editor.document.getWordRangeAtPosition(positiion, wordRegex) :
-        new vscode.Range(selection.start, selection.end)
-    const word = editor.document.getText(range)
 
+    // TODO?
+    // - documentation on selection
+    // - module-aware documentation
+
+    const params = getParamsAtPosition(editor, positiion)
     showDocumentationPane()
     forwardStack = [] // initialize forward page stack for manual search
-    getDocumentationAndSetHTML(word, module)
-}
-
-async function getDocumentationAndSetHTML(word: string, module: string) {
-    withConnection('Getting a documentation', async connection => {
-        const inner = await connection.sendRequest(requestTypeGetDoc, { word, module })
+    withLanguageClient('Getting a documentatin', async languageClient => {
+        const inner: string = await languageClient.sendRequest('julia/getDocAt', params)
         const html = createWebviewHTML(inner)
         _setHTML(html)
     })
@@ -178,18 +172,18 @@ function _setHTML(html: string) {
     // set current stack
     backStack.push(html)
 
-    // link handling
-    if (messageSubscription) {
-        messageSubscription.dispose() // dispose previouse
-    }
-    messageSubscription = panel.webview.onDidReceiveMessage(
-        message => {
-            if (message.method === 'search') {
-                const { word, module } = message.params
-                getDocumentationAndSetHTML(word, module)
-            }
-        }
-    )
+    // TODO: link handling
+    // if (messageSubscription) {
+    //     messageSubscription.dispose() // dispose previouse
+    // }
+    // messageSubscription = panel.webview.onDidReceiveMessage(
+    //     message => {
+    //         if (message.method === 'search') {
+    //             const { word, module } = message.params
+    //             getDocumentationAndSetHTML(word, module)
+    //         }
+    //     }
+    // )
 
     // set content
     panel.webview.html = html

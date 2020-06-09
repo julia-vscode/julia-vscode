@@ -27,10 +27,14 @@ let g_terminal: vscode.Terminal = null
 export let g_connection: rpc.MessageConnection = undefined
 
 export function withConnection(what: string, callback: (connection: rpc.MessageConnection) => void) {
-    if (isConnectionActive()) {
-        callback(g_connection)
-    } else {
-        vscode.window.showInformationMessage(`${what} requires an active REPL.`)
+    try {
+        if (isConnectionActive()) {
+            callback(g_connection)
+        } else {
+            vscode.window.showInformationMessage(`${what} requires an active REPL.`)
+        }
+    } catch (err) {
+        vscode.window.showWarningMessage(`REPL connection has been closed while ${what.toLocaleLowerCase()}.`)
     }
 }
 

@@ -97,6 +97,20 @@ function setLanguageClient(languageClient: vslc.LanguageClient) {
     g_languageClient = languageClient
 }
 
+export function withLanguageClient(what: string, callback: (languageClient: vslc.LanguageClient) => void) {
+    try {
+        if (isLanguageClientActive()) {
+            callback(g_languageClient)
+        } else {
+            vscode.window.showInformationMessage(`${what} requires the language client to be ready.`)
+        }
+    } catch (err) {
+        vscode.window.showWarningMessage(`The langauge server has been closed while ${what.toLocaleLowerCase()}.`)
+    }
+}
+
+const isLanguageClientActive = () => g_languageClient !== null
+
 const g_onDidChangeConfig = new vscode.EventEmitter<settings.ISettings>()
 export const onDidChangeConfig = g_onDidChangeConfig.event
 function changeConfig(params: vscode.ConfigurationChangeEvent) {

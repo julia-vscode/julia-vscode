@@ -1,8 +1,8 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
-import { TextDocumentPositionParams } from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
+import { getParamsAtPosition } from '../utils'
 import { onExit, onInit, withConnection } from './repl'
 
 let statusBarItem: vscode.StatusBarItem = null
@@ -54,11 +54,7 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
     let mod = manuallySetDocuments[editor.document.fileName]
 
     if (mod === undefined) {
-        const params: TextDocumentPositionParams = {
-            textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
-            position: position
-        }
-
+        const params = getParamsAtPosition(editor, position)
         if (isLanguageClientActive()) {
             mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
         } else {

@@ -1,9 +1,18 @@
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
+import * as vslc from 'vscode-languageclient'
+import { TextDocumentPositionParams } from 'vscode-languageclient'
 
 export function setContext(contextKey: string, state: boolean) {
     vscode.commands.executeCommand('setContext', contextKey, state)
+}
+
+export function getParamsAtPosition(editor: vscode.TextEditor, position: vscode.Position): TextDocumentPositionParams {
+    return {
+        textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
+        position: position
+    }
 }
 
 export function generatePipeName(pid: string, name: string) {
