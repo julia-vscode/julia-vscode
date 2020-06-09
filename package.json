@@ -733,7 +733,7 @@
         "watch": "tsc -watch -p ./",
         "test": "node ./out/test/runTest.js",
         "initialsetup": "npm i && git submodule init && git submodule update",
-        "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile",
+        "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run webpack",
         "package": "vsce package",
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
