@@ -13,6 +13,8 @@ function __init__()
             Base.display_error(err, catch_backtrace())
         end
     end
+
+    push!(Base.package_callbacks, pkgload)
 end
 
 include("../../JSON/src/JSON.jl")
@@ -486,8 +488,6 @@ function pkgload(pkg)
         )
     end
 end
-
-push!(Base.package_callbacks, pkgload)
 
 function hook_repl(repl)
     if !isdefined(repl, :interface)
