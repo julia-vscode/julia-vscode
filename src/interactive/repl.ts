@@ -48,26 +48,31 @@ function get_editor(): string {
 async function startREPL(preserveFocus: boolean) {
     if (g_terminal === null) {
         const pipename = generatePipeName(process.pid.toString(), 'vsc-julia-repl')
+        const args = path.join(g_context.extensionPath, 'scripts', 'VSCodeServer', 'boot_repl.jl')
+        function getArgs() {
+            const jlarg2 = [args, pipename, telemetry.getCrashReportingPipename()]
+            if (vscode.workspace.getConfiguration('julia').get('useRevise')) {
+                jlarg2.push('USE_REVISE')
+            }
+            if (vscode.workspace.getConfiguration('julia').get('usePlotPane')) {
+                jlarg2.push('USE_PLOTPANE')
+            }
+            if (process.env.DEBUG_MODE === 'true') {
+                jlarg2.push('DEBUG_MODE')
+            }
+            return jlarg2
+        }
 
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
-
-        const args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         const exepath = await juliaexepath.getJuliaExePath()
         const pkgenvpath = await jlpkgenv.getEnvPath()
         if (pkgenvpath === null) {
             const jlarg1 = ['-i', '--banner=no'].concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
-            const jlarg2 = [
-                args,
-                pipename,
-                vscode.workspace.getConfiguration('julia').get('useRevise').toString(),
-                vscode.workspace.getConfiguration('julia').get('usePlotPane').toString(),
-                telemetry.getCrashReportingPipename()
-            ]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: 'Julia REPL',
                     shellPath: exepath,
-                    shellArgs: jlarg1.concat(jlarg2),
+                    shellArgs: jlarg1.concat(getArgs()),
                     env: {
                         JULIA_EDITOR: get_editor(),
                         JULIA_NUM_THREADS: inferJuliaNumThreads()
@@ -90,18 +95,11 @@ async function startREPL(preserveFocus: boolean) {
                 }
             }
             const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
-            const jlarg2 = [
-                args,
-                pipename,
-                vscode.workspace.getConfiguration('julia').get('useRevise').toString(),
-                vscode.workspace.getConfiguration('julia').get('usePlotPane').toString(),
-                telemetry.getCrashReportingPipename()
-            ]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: 'Julia REPL',
                     shellPath: exepath,
-                    shellArgs: jlarg1.concat(jlarg2),
+                    shellArgs: jlarg1.concat(getArgs()),
                     env: {
                         JULIA_EDITOR: get_editor(),
                         JULIA_NUM_THREADS: inferJuliaNumThreads()
