@@ -1,4 +1,4 @@
-module vscodeserver
+module VSCodeServer
 
 using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
@@ -44,7 +44,7 @@ function get_variables()
 
         x = getfield(M, n)
         x === vscodedisplay && continue
-        x === vscodeserver && continue
+        x === VSCodeServer && continue
         x === Main && continue
 
         n_as_string = string(n)

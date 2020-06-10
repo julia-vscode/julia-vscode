@@ -5,7 +5,7 @@ our_findnext(ch::AbstractChar, string::AbstractString, ind::Integer) = findnext(
 
 include("../error_handler.jl")
 
-include("../vscodeserver/src/repl.jl")
+include("../VSCodeServer/src/repl.jl")
 
 # This patches JuliaInterpreter.jl to use our private copy of CodeTracking.jl
 filename_of_juliainterpreter = joinpath(@__DIR__, "..", "packages", "JuliaInterpreter", "src", "JuliaInterpreter.jl")

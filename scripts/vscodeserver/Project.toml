@@ -1,6 +1,5 @@
-name = "vscodeserver"
+name = "VSCodeServer"
 uuid = "9f5989ce-84fe-42d4-91ec-6a7a8d53ed0f"
-authors = ["julia-vscode extension contributors"]
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
