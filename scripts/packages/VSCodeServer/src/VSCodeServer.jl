@@ -255,7 +255,8 @@ function handle_message(; crashreporting_pipename::Union{AbstractString,Nothing}
 
             withpath(source_filename) do
                 res = try
-                    Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                    ans = Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                    @eval Main ans = $ans
                 catch err
                     EvalError(err, catch_backtrace())
                 end
