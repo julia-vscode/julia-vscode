@@ -48,7 +48,7 @@ function get_editor(): string {
 async function startREPL(preserveFocus: boolean) {
     if (g_terminal === null) {
         const pipename = generatePipeName(process.pid.toString(), 'vsc-julia-repl')
-        const args = path.join(g_context.extensionPath, 'scripts', 'VSCodeServer', 'boot_repl.jl')
+        const args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         function getArgs() {
             const jlarg2 = [args, pipename, telemetry.getCrashReportingPipename()]
             if (vscode.workspace.getConfiguration('julia').get('useRevise')) {

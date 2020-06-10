@@ -1,6 +1,6 @@
 # this script basially only handles `Base.ARGS`
 
-Base.push!(LOAD_PATH, @__DIR__)
+Base.push!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
 using VSCodeServer
 pop!(LOAD_PATH)
 
@@ -17,7 +17,6 @@ end
 "USE_PLOTPANE" in Base.ARGS && Base.Multimedia.pushdisplay(VSCodeServer.InlineDisplay())
 
 let
-    # TODO: enable telemetry here again
     conn_pipeline, telemetry_pipeline = Base.ARGS[1:2]
-    VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE" in Base.ARGS)
+    VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE" in Base.ARGS, crashreporting_pipename = telemetry_pipeline)
 end
