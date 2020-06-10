@@ -14,7 +14,9 @@ if "USE_REVISE" in Base.ARGS
     end
 end
 
-"USE_PLOTPANE" in Base.ARGS && Base.Multimedia.pushdisplay(VSCodeServer.InlineDisplay())
+atreplinit() do repl
+    "USE_PLOTPANE" in Base.ARGS && Base.Multimedia.pushdisplay(VSCodeServer.InlineDisplay())
+end
 
 let
     conn_pipeline, telemetry_pipeline = Base.ARGS[1:2]
