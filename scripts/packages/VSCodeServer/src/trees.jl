@@ -23,15 +23,15 @@ end
 
 Leaf(val) = Leaf(val, "")
 
-const TREES = Dict{Int, LazyTree}()
+const TREES = Dict{Int,LazyTree}()
 const ID = Ref(0)
 
 const MAX_PARTITION_LENGTH = 20
 
 treeid() = (ID[] += 1)
 
-pluralize(n::Int, one, more=one) = string(n, " ", n == 1 ? one : more)
-pluralize(n, one, more=one) = string(length(n) > 1 ? join(n, '×') : first(n), " ", prod(n) == 1 ? one : more)
+pluralize(n::Int, one, more = one) = string(n, " ", n == 1 ? one : more)
+pluralize(n, one, more = one) = string(length(n) > 1 ? join(n, '×') : first(n), " ", prod(n) == 1 ? one : more)
 
 function treerender(x::LazyTree)
     id = treeid()
@@ -88,7 +88,7 @@ function treerender(x)
     end
 end
 
-function treerender(x::AbstractDict{K, V}) where {K, V}
+function treerender(x::AbstractDict{K,V}) where {K,V}
     treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), wsicon(x), length(keys(x)) == 0, function ()
         if length(keys(x)) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
@@ -117,7 +117,7 @@ function treerender(x::Module)
     end))
 end
 
-function treerender(x::AbstractArray{T, N}) where {T, N}
+function treerender(x::AbstractArray{T,N}) where {T,N}
     treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0, function ()
         if length(x) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
@@ -127,28 +127,29 @@ function treerender(x::AbstractArray{T, N}) where {T, N}
     end))
 end
 
-treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
-treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
-treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
-treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
-treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
-treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
-treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base=16, pad=Sys.WORD_SIZE>>2)), wsicon(x)))
+treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
+treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
+treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
+treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
+treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
+treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
+treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base = 16, pad = Sys.WORD_SIZE >> 2)), wsicon(x)))
 treerender(x::Text) = treerender(Leaf(x.content, wsicon(x)))
-treerender(x::Function) = treerender(Leaf(strlimit(string(x), limit=100), wsicon(x)))
-treerender(x::Type) = treerender(Leaf(strlimit(string(x), limit=100), wsicon(x)))
+treerender(x::Function) = treerender(Leaf(strlimit(string(x), limit = 100), wsicon(x)))
+treerender(x::Type) = treerender(Leaf(strlimit(string(x), limit = 100), wsicon(x)))
 
 function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
     partitions = Iterators.partition(_keys, max(sz, length(_keys) ÷ maxparts))
     out = []
     for part in partitions
+        head = string(repr(first(part)), " ... ", repr(last(part)))
         if length(part) > sz
-            push!(out, LazyTree(string(first(part), " ... ", last(part)), function ()
-                partition_by_keys(x, part, sz = sz, maxparts = maxparts)
+            push!(out, LazyTree(head, function ()
+                partition_by_keys(x, collect(part), sz = sz, maxparts = maxparts)
             end))
         else
-            push!(out, LazyTree(string(first(part), " ... ", last(part)), function ()
-                [SubTree(repr(k), x[k]) for k in part]
+            push!(out, LazyTree(head, function ()
+                [SubTree(repr(k), wsicon(v), v) for (k, v) in zip(part, getindex.(Ref(x), part))]
             end))
         end
     end
@@ -164,7 +165,7 @@ function get_lazy(id::Int)
             return ["[out of date result]"]
         end
     catch err
-        @error exception=(err, catch_backtrace())
+        @error exception = (err, catch_backtrace())
         return ["nope"]
     end
 end
