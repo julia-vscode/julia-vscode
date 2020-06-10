@@ -17,7 +17,6 @@ end
 "USE_PLOTPANE" in Base.ARGS && Base.Multimedia.pushdisplay(VSCodeServer.InlineDisplay())
 
 let
-    # TODO: enable telemetry here again
     conn_pipeline, telemetry_pipeline = Base.ARGS[1:2]
-    VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE" in Base.ARGS)
+    VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE" in Base.ARGS, telemetry_pipeline)
 end

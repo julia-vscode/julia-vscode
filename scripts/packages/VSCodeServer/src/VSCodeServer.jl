@@ -186,7 +186,7 @@ const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 
 isactive() = conn_endpoint[] !== nothing
 
-function serve(args...; is_dev = false)
+function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     conn = connect(args...)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
     run(conn_endpoint[])
@@ -194,7 +194,7 @@ function serve(args...; is_dev = false)
     if is_dev
         @async while true
             try
-                Base.invokelatest(handle_message)
+                Base.invokelatest(handle_message, crashreporting_pipename=crashreporting_pipename)
             catch err
                 Base.display_error(err, catch_backtrace())
             end
@@ -202,7 +202,7 @@ function serve(args...; is_dev = false)
     else
         @async try
             while true
-                handle_message()
+                handle_message(crashreporting_pipename=crashreporting_pipename)
             end
         catch err
             Base.display_error(err, catch_backtrace())
@@ -210,7 +210,7 @@ function serve(args...; is_dev = false)
     end
 end
 
-function handle_message()
+function handle_message(; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     msg = JSONRPC.get_next_message(conn_endpoint[])
     if msg["method"] == "repl/runcode"
         params = msg["params"]
@@ -306,7 +306,7 @@ function handle_message()
             try
                 VSCodeDebugger.startdebug(debug_pipename)
             catch err
-                VSCodeDebugger.global_err_handler(err, catch_backtrace(), ARGS[4], "Debugger")
+                VSCodeDebugger.global_err_handler(err, catch_backtrace(), crashreporting_pipename, "Debugger")
             end
         end
     end
