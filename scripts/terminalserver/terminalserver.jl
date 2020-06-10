@@ -18,5 +18,5 @@ end
 
 let
     conn_pipeline, telemetry_pipeline = Base.ARGS[1:2]
-    VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE" in Base.ARGS, telemetry_pipeline)
+    VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE" in Base.ARGS, crashreporting_pipename = telemetry_pipeline)
 end
