@@ -86,7 +86,6 @@ stages:
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
-        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/vscodeserver -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
       displayName: 'Run the Julia tests'
 
   - job: TestJuliaMacOS
@@ -127,7 +126,6 @@ stages:
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
-        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/vscodeserver -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
       displayName: 'Run the Julia tests'
 
   - job: TestJuliaWin
@@ -175,7 +173,6 @@ stages:
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
-        C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/vscodeserver -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
       displayName: 'Run the tests'
       failOnStderr: false
 
