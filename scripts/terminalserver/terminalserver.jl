@@ -1,6 +1,6 @@
 # this script basially only handles `Base.ARGS`
 
-Base.push!(LOAD_PATH, @__DIR__)
+Base.push!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
 using VSCodeServer
 pop!(LOAD_PATH)
 

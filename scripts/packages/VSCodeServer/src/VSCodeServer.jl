@@ -15,19 +15,19 @@ function __init__()
     end
 end
 
-include("../../packages/JSON/src/JSON.jl")
+include("../../JSON/src/JSON.jl")
 
 module JSONRPC
     import ..JSON
     import ..UUIDs
 
-    include("../../packages/JSONRPC/src/core.jl")
+    include("../../JSONRPC/src/core.jl")
 end
 
 include("misc.jl")
 include("trees.jl")
 include("repl.jl")
-include("../../debugger/debugger.jl")
+include("../../../debugger/debugger.jl")
 include("gridviewer.jl")
 
 const INLINE_RESULT_LENGTH = 100
