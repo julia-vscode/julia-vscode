@@ -91,12 +91,6 @@ function evalrepl(m, line, repl, main_mode)
     end
 end
 
-function display_parse_error(io, err::Meta.ParseError)
-    printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
-    printstyled(io, "syntax: ", err.msg; color = Base.error_color())
-    println(io)
-end
-
 # don't inline this so we can find it in the stacktrace
 @noinline repleval(m, code, file) = include_string(m, code, file)
 
