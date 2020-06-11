@@ -21,7 +21,7 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 deps = ["CSTParser", "FilePathsBase", "Tokenize"]
 path = "../../packages/DocumentFormat"
 uuid = "ffa9a821-9c82-50df-894e-fbcef3ed31cd"
-version = "2.2.1-DEV"
+version = "3.0.1-DEV"
 
 [[FilePathsBase]]
 deps = ["Dates", "Printf", "Test", "UUIDs"]

@@ -740,7 +740,7 @@
     "dependencies": {
         "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
-        "@types/vscode": "^1.45.1",
+        "@types/vscode": "^1.46.0",
         "applicationinsights": "^1.7.6",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
