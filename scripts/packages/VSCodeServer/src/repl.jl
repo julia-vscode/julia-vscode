@@ -92,9 +92,9 @@ function evalrepl(m, line, repl, main_mode)
 end
 
 function display_parse_error(io, err::Meta.ParseError)
-  printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
-  printstyled(io, "syntax: ", err.msg; color = Base.error_color())
-  println(io)
+    printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
+    printstyled(io, "syntax: ", err.msg; color = Base.error_color())
+    println(io)
 end
 
 # don't inline this so we can find it in the stacktrace
@@ -102,12 +102,13 @@ end
 
 # basically the same as Base's `display_error`, with internal frames removed
 function display_repl_error(io, err, st)
-    ind = findfirst(frame -> frame.file == Symbol(@__FILE__) && frame.func == :repleval, st)
-    st = st[1:(ind == nothing ? end : ind - 2)]
-    printstyled(io, "ERROR: "; bold=true, color = Base.error_color())
+    ind = findfirst(frame->frame.file == Symbol(@__FILE__) && frame.func == :repleval, st)
+    st = st[1:(ind === nothing ? end : ind - 2)]
+    printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
     showerror(IOContext(io, :limit => true), err, st)
     println(io)
 end
+display_repl_error(io, err::LoadError, st) = display_repl_error(io, err.error, st)
 
 function withpath(f, path)
     tls = task_local_storage()
