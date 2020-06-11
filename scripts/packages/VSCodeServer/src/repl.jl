@@ -59,6 +59,56 @@ function hideprompt(f)
     r
 end
 
+function hook_repl(repl)
+    if !isdefined(repl, :interface)
+        repl.interface = REPL.setup_interface(repl)
+    end
+    main_mode = get_main_mode(repl)
+
+    # TODO: set up REPL module ?
+    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty = false) do line
+        quote
+            $(evalrepl)(Main, $line, $repl, $main_mode)
+        end
+    end
+end
+
+function evalrepl(m, line, repl, main_mode)
+    return try
+        JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+        try
+            repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
+        catch err
+            display_repl_error(stderr, err, stacktrace(catch_backtrace()))
+            nothing
+        end
+    catch err
+        # This is for internal errors only.
+        Base.display_error(stderr, err, catch_backtrace())
+        nothing
+    finally
+        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+    end
+end
+
+function display_parse_error(io, err::Meta.ParseError)
+  printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
+  printstyled(io, "syntax: ", err.msg; color = Base.error_color())
+  println(io)
+end
+
+# don't inline this so we can find it in the stacktrace
+@noinline repleval(m, code, file) = include_string(m, code, file)
+
+# basically the same as Base's `display_error`, with internal frames removed
+function display_repl_error(io, err, st)
+    ind = findfirst(frame -> frame.file == Symbol(@__FILE__) && frame.func == :repleval, st)
+    st = st[1:(ind == nothing ? end : ind - 2)]
+    printstyled(io, "ERROR: "; bold=true, color = Base.error_color())
+    showerror(IOContext(io, :limit => true), err, st)
+    println(io)
+end
+
 function withpath(f, path)
     tls = task_local_storage()
     hassource = haskey(tls, :SOURCE_PATH)
