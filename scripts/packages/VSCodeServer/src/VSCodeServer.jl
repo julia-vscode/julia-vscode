@@ -256,7 +256,7 @@ function handle_message(; crashreporting_pipename::Union{AbstractString,Nothing}
             withpath(source_filename) do
                 res = try
                     ans = Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
-                    @eval Main ans = $ans
+                    @eval Main ans = $(QuoteNode(ans))
                 catch err
                     EvalError(err, catch_backtrace())
                 end
