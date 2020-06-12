@@ -569,20 +569,20 @@
                     "scope": "window"
                 },
                 "julia.format.keywords": {
+                    "type": "bool",
+                    "default": true,
+                    "description": "Ensure single spacing following keywords.",
+                    "scope": "window"
+                },
+                "julia.format.kwarg": {
                     "type": "string",
                     "default": "none",
-                    "description": "Ensure single spacing following keywords.",
+                    "description": "Format whitespace around function keyword arguments.",
                     "enum": [
                         "none",
                         "single",
                         "off"
                     ],
-                    "scope": "window"
-                },
-                "julia.format.kwarg": {
-                    "type": "string",
-                    "default": true,
-                    "description": "Format whitespace around function keyword arguments.",
                     "scope": "window"
                 },
                 "julia.execution.resultType": {
