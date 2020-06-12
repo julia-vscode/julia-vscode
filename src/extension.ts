@@ -21,16 +21,11 @@ import * as weave from './weave'
 let g_settings: settings.ISettings = null
 let g_languageClient: LanguageClient = null
 let g_context: vscode.ExtensionContext = null
-let g_lsStartup: vscode.StatusBarItem = null
 
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context)
 
     telemetry.traceEvent('activate')
-
-    g_lsStartup = vscode.window.createStatusBarItem()
-    g_lsStartup.text = 'Starting Julia Language Server...'
-    g_lsStartup.show()
 
     telemetry.startLsCrashServer()
 
@@ -92,7 +87,7 @@ export function deactivate() { }
 
 const g_onSetLanguageClient = new vscode.EventEmitter<vslc.LanguageClient>()
 export const onSetLanguageClient = g_onSetLanguageClient.event
-function setLanguageClient(languageClient: vslc.LanguageClient) {
+function setLanguageClient(languageClient: vslc.LanguageClient = null) {
     g_onSetLanguageClient.fire(languageClient)
     g_languageClient = languageClient
 }
@@ -107,13 +102,17 @@ function changeConfig(params: vscode.ConfigurationChangeEvent) {
     if (need_to_restart_server) {
         if (g_languageClient !== null) {
             g_languageClient.stop()
-            setLanguageClient(null)
+            setLanguageClient()
         }
         startLanguageServer()
     }
 }
 
 async function startLanguageServer() {
+    const startupNotification = vscode.window.createStatusBarItem()
+    startupNotification.text = 'Starting Julia Language Server...'
+    startupNotification.show()
+
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
     let jlEnvPath = ''
@@ -156,9 +155,9 @@ async function startLanguageServer() {
     }
 
     // Create the language client and start the client.
-    g_languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
-    g_languageClient.registerProposedFeatures()
-    g_languageClient.onTelemetry((data: any) => {
+    const languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
+    languageClient.registerProposedFeatures()
+    languageClient.onTelemetry((data: any) => {
         if (data.command === 'trace_event') {
             telemetry.traceEvent(data.message)
         }
@@ -170,20 +169,19 @@ async function startLanguageServer() {
             telemetry.tracePackageLoadError(data.name, data.message)
         }
     })
-    g_languageClient.onReady().then(() => {
-        g_lsStartup.hide()
-    })
 
     // Push the disposable to the context's subscriptions so that the
     // client can be deactivated on extension deactivation
     try {
-        g_context.subscriptions.push(g_languageClient.start())
-        setLanguageClient(g_languageClient)
+        g_context.subscriptions.push(languageClient.start())
+        languageClient.onReady().then(() => {
+            setLanguageClient(languageClient)
+            startupNotification.dispose()
+        })
     }
     catch (e) {
-
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.')
-        g_languageClient = null
+        setLanguageClient()
     }
 }
 
