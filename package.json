@@ -568,10 +568,21 @@
                     "description": "Format inline documentation.",
                     "scope": "window"
                 },
-                "julia.format.kw": {
-                    "type": "boolean",
+                "julia.format.keywords": {
+                    "type": "bool",
                     "default": true,
-                    "description": "Remove spaces around = in function keywords.",
+                    "description": "Ensure single spacing following keywords.",
+                    "scope": "window"
+                },
+                "julia.format.kwarg": {
+                    "type": "string",
+                    "default": "none",
+                    "description": "Format whitespace around function keyword arguments.",
+                    "enum": [
+                        "none",
+                        "single",
+                        "off"
+                    ],
                     "scope": "window"
                 },
                 "julia.execution.resultType": {
