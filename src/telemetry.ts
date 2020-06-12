@@ -160,6 +160,10 @@ export function tracePackageLoadError(packagename, message) {
     extensionClient.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
 }
 
+export function traceTrace(msg) {
+    extensionClient.trackTrace(msg)
+}
+
 function sendCrashReportQueue() {
     const own_copy = crashReporterQueue
     crashReporterQueue = []
