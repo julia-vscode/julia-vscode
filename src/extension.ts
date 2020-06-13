@@ -159,7 +159,8 @@ async function startLanguageServer() {
                 const validatedPosition = document.validatePosition(position)
 
                 if (validatedPosition !== position) {
-                    telemetry.traceTrace({ message: `Middleware found a change in position in . Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}`})
+                    telemetry.traceTrace({ message: `Middleware found a change in position in provideCompletionItem. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}`})
+
                 }
 
                 return await next(document, position, context, token)
