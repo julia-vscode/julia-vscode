@@ -151,7 +151,30 @@ async function startLanguageServer() {
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
-        traceOutputChannel: vscode.window.createOutputChannel('Julia Language Server trace')
+        traceOutputChannel: vscode.window.createOutputChannel('Julia Language Server trace'),
+        middleware: {
+            provideCompletionItem: async (document, position, context, token, next) => {
+
+                const validatedPosition = document.validatePosition(position)
+
+                if (validatedPosition !== position) {
+                    telemetry.traceTrace({ message: `Middleware found a change in position in provideCompletionItem. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}`})
+
+                }
+
+                return await next(document, position, context, token)
+            },
+            provideDefinition: async (document, position, token, next) => {
+
+                const validatedPosition = document.validatePosition(position)
+
+                if (validatedPosition !== position) {
+                    telemetry.traceTrace({ message: `Middleware found a change in position in provideDefinition. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}` })
+                }
+
+                return await next(document, position, token)
+            }
+        }
     }
 
     // Create the language client and start the client.
