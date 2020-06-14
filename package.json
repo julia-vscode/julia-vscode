@@ -380,7 +380,7 @@
                     "type": "string",
                     "default": "",
                     "description": "Points to the julia executable.",
-                    "scope": "window"
+                    "scope": "machine-overridable"
                 },
                 "julia.lint.run": {
                     "type": "boolean",
