@@ -574,7 +574,7 @@
                     "description": "Ensure single spacing following keywords.",
                     "scope": "window"
                 },
-                "julia.format.kwarg": {
+                "julia.format.kwspacing": {
                     "type": "string",
                     "default": "none",
                     "description": "Format whitespace around function keyword arguments.",
