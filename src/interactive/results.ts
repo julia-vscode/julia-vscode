@@ -1,6 +1,8 @@
 import * as vscode from 'vscode'
 
-export interface ResultContent {
+const LINE_INF = 9999
+
+interface ResultContent {
     isIcon: boolean,
     content: string,
     hoverContent: string | vscode.MarkdownString,
@@ -35,18 +37,7 @@ export class Result {
             this.remove()
         }
 
-        const color = new vscode.ThemeColor(content.isError ? 'editorError.foreground' : 'editor.foreground')
-
-        const decoration = {
-            before: {
-                contentIconPath: undefined,
-                contentText: undefined,
-                backgroundColor: new vscode.ThemeColor('editorWidget.background'),
-                margin: '0 0 0 10px',
-                color: color
-            },
-            rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed
-        }
+        const decoration = this.createDecoration()
 
         if (content.isIcon) {
             decoration.before.contentIconPath = content.content
@@ -66,8 +57,48 @@ export class Result {
         }
     }
 
+    createDecoration(): vscode.DecorationRenderOptions {
+        if (this.content.isError) {
+            return this.createErrorDecoration()
+        } else {
+            return this.createResultDecoration()
+        }
+    }
+
+    createResultDecoration(): vscode.DecorationRenderOptions {
+        return {
+            before: {
+                contentIconPath: undefined,
+                contentText: undefined,
+                backgroundColor: new vscode.ThemeColor('editorWidget.background'),
+                margin: '0 0 0 10px',
+                color: new vscode.ThemeColor('editor.foreground'),
+            },
+            rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed,
+        }
+    }
+
+    createErrorDecoration(): vscode.DecorationRenderOptions {
+        return {
+            after: {
+                contentIconPath: undefined,
+                contentText: undefined,
+            },
+            before: {
+                contentIconPath: undefined,
+                contentText: undefined,
+            },
+            // there doesn't seem to be a color that looks nicely on any color themes ...
+            backgroundColor: new vscode.ThemeColor('inputValidation.errorBackground'),
+            borderColor: new vscode.ThemeColor('inputValidation.errorBorder'),
+            isWholeLine: true,
+            rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed,
+        }
+    }
+
     get decorationRange(): vscode.Range {
-        return new vscode.Range(this.range.end.translate(0, 9999), this.range.end.translate(0, 9999))
+        return this.content.isError ? this.range :
+            new vscode.Range(this.range.end.translate(0, LINE_INF), this.range.end.translate(0, LINE_INF))
     }
 
     draw() {
@@ -85,7 +116,6 @@ export class Result {
                 this.remove()
                 return false
             }
-
 
             if (change.range.end.line < this.range.start.line ||
                 (change.range.end.line === this.range.start.line &&
@@ -113,9 +143,7 @@ export class Result {
 
     remove(destroy: boolean = false) {
         this.destroyed = destroy
-        for (const ed of vscode.window.visibleTextEditors) {
-            ed.setDecorations(this.decoration, [])
-        }
+        this.decoration.dispose()
     }
 }
 
@@ -146,14 +174,57 @@ export function addResult(editor: vscode.TextEditor, range: vscode.Range, conten
     return result
 }
 
+interface _Frame {
+    path: string,
+    line: number
+}
+interface Frame extends _Frame {
+    err: string | vscode.MarkdownString,
+}
+
+let stackFrame: Frame[] = []
+export function setStackTrace(err: string, stackframe: Array<_Frame>) {
+    stackFrame = stackframe.map(frame => {
+        return {
+            path: frame.path,
+            line: frame.line,
+            err
+        }
+    })
+    refreshStackTrace()
+}
+
+function refreshStackTrace(editors: vscode.TextEditor[] = vscode.window.visibleTextEditors) {
+    editors.forEach(editor => {
+        const path = editor.document.fileName
+        stackFrame.forEach(frame => {
+            if (frame.path === path) {
+                addError(editor, frame)
+            }
+        })
+    })
+}
+
+function addError(editor: vscode.TextEditor, frame: Frame) {
+    const resultContent = {
+        content: '',
+        isIcon: false,
+        hoverContent: frame.err,
+        isError: true
+    }
+    const range = new vscode.Range(new vscode.Position(frame.line - 1, 0), new vscode.Position(frame.line - 1, LINE_INF))
+    addResult(editor, range, resultContent)
+}
+
 export function refreshResults(editors: vscode.TextEditor[]) {
-    for (const result of results) {
-        for (const editor of editors) {
+    results.forEach(result => {
+        editors.forEach(editor => {
             if (result.document === editor.document) {
                 result.draw()
             }
-        }
-    }
+        })
+    })
+    refreshStackTrace(editors)
 }
 
 export function validateResults(e: vscode.TextDocumentChangeEvent) {

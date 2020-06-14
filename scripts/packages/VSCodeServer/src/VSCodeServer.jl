@@ -94,16 +94,14 @@ function render(x)
 
     return Dict(
         "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
-        "all" => str,
-        "iserr" => false
+        "all" => str
     )
 end
 
 function render(::Nothing)
     return Dict(
         "inline" => "✓",
-        "all" => "nothing",
-        "iserr" => false
+        "all" => "nothing"
     )
 end
 
@@ -113,14 +111,23 @@ struct EvalError
 end
 
 function render(err::EvalError)
-    str = sprintlimited(err.err, err.bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
-
+    bt = err.bt
+    st = stacktrace(bt)
+    bti = find_frame_index(bt, @__FILE__, inlineeval)
+    sti = find_frame_index(st, @__FILE__, inlineeval)
+    bt = bt[1:(bti === nothing ? end : bti - 4)]
+    st = st[1:(sti === nothing ? end : sti - 4)]
+    str = sprintlimited(err.err, bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
+    sf = frame.(st)
     return Dict(
         "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
         "all" => str,
-        "iserr" => true
+        "stackframe" => sf
     )
 end
+
+frame(s) = (path = fullpath(string(s.file)), line = s.line)
+
 """
     safe_render(x)
 
@@ -212,6 +219,12 @@ function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractS
     end
 end
 
+# don't inline this so we can find it in the stacktrace
+@noinline function inlineeval(m, code, code_line, code_column, file)
+    code = string('\n' ^ code_line, ' ' ^ code_column, code)
+    return Base.invokelatest(include_string, m, code, file)
+end
+
 function handle_message(; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     msg = JSONRPC.get_next_message(conn_endpoint[])
     if msg["method"] == "repl/runcode"
@@ -255,7 +268,7 @@ function handle_message(; crashreporting_pipename::Union{AbstractString,Nothing}
 
             withpath(source_filename) do
                 res = try
-                    ans = Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                    ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename)
                     @eval Main ans = $(QuoteNode(ans))
                 catch err
                     EvalError(err, catch_backtrace())

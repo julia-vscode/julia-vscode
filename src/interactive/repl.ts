@@ -382,13 +382,17 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
 
     if (resultType !== 'REPL') {
         const hoverString = '```\n' + result.all.toString() + '\n```'
-
-        r.setContent({
-            content: ' ' + result.inline.toString() + ' ',
-            isIcon: false,
-            hoverContent: hoverString,
-            isError: result.iserr
-        })
+        if (result.stackframe) {
+            results.setStackTrace(hoverString, result.stackframe)
+        } else {
+            const resultContent = {
+                content: ' ' + result.inline.toString() + ' ',
+                isIcon: false,
+                hoverContent: hoverString,
+                isError: false,
+            }
+            r.setContent(resultContent)
+        }
     }
 }
 
