@@ -204,7 +204,7 @@ function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractS
     else
         @async try
             while true
-                handle_message(crashreporting_pipename=crashreporting_pipename)
+                Base.invokelatest(handle_message; crashreporting_pipename = crashreporting_pipename)
             end
         catch err
             Base.display_error(err, catch_backtrace())
