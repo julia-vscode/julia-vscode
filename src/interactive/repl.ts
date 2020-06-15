@@ -293,12 +293,12 @@ async function executeCell(shouldMove: boolean = false) {
 
     const module: string = await modules.getModuleForEditor(ed, startpos)
 
-    await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
-
     if (shouldMove) {
         vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
         vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
     }
+
+    await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
 }
 
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
