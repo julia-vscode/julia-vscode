@@ -233,6 +233,7 @@ function handle_message(; crashreporting_pipename::Union{AbstractString,Nothing}
         show_code = params["showCodeInREPL"]
         show_result = params["showResultInREPL"]
 
+        JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
         hideprompt() do
             if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
                 let mode = get(ENV, "JULIA_REVISE", "auto")
@@ -281,6 +282,7 @@ function handle_message(; crashreporting_pipename::Union{AbstractString,Nothing}
                 JSONRPC.send_success_response(conn_endpoint[], msg, safe_render(res))
             end
         end
+        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
     elseif msg["method"] == "repl/getvariables"
         vars = get_variables()
 
