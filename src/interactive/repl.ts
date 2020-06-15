@@ -384,15 +384,14 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         const hoverString = '```\n' + result.all.toString() + '\n```'
         if (result.stackframe) {
             results.setStackTrace(hoverString, result.stackframe)
-        } else {
-            const resultContent = {
-                content: ' ' + result.inline.toString() + ' ',
-                isIcon: false,
-                hoverContent: hoverString,
-                isError: false,
-            }
-            r.setContent(resultContent)
         }
+        const resultContent = {
+            content: ' ' + result.inline.toString() + ' ',
+            isIcon: false,
+            hoverContent: hoverString,
+            isError: false,
+        }
+        r.setContent(resultContent)
     }
 }
 

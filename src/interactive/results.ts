@@ -182,19 +182,24 @@ interface Frame extends _Frame {
     err: string | vscode.MarkdownString,
 }
 
-let stackFrame: Frame[] = []
+let stackFrame: Result[] = []
 export function setStackTrace(err: string, stackframe: Array<_Frame>) {
-    stackFrame = stackframe.map(frame => {
+    stackFrame.forEach(r => {
+        r.remove()
+    })
+
+    stackFrame = []
+
+    drawStackFrame(stackframe.map(frame => {
         return {
             path: frame.path,
             line: frame.line,
             err
         }
-    })
-    refreshStackTrace()
+    }))
 }
 
-function refreshStackTrace(editors: vscode.TextEditor[] = vscode.window.visibleTextEditors) {
+function drawStackFrame(stackFrame: Frame[], editors: vscode.TextEditor[] = vscode.window.visibleTextEditors) {
     editors.forEach(editor => {
         const path = editor.document.fileName
         stackFrame.forEach(frame => {
@@ -213,7 +218,11 @@ function addError(editor: vscode.TextEditor, frame: Frame) {
         isError: true
     }
     const range = new vscode.Range(new vscode.Position(frame.line - 1, 0), new vscode.Position(frame.line - 1, LINE_INF))
-    addResult(editor, range, resultContent)
+
+    const result = new Result(editor, range, resultContent)
+    stackFrame.push(result)
+
+    return result
 }
 
 export function refreshResults(editors: vscode.TextEditor[]) {
@@ -224,7 +233,13 @@ export function refreshResults(editors: vscode.TextEditor[]) {
             }
         })
     })
-    refreshStackTrace(editors)
+    stackFrame.forEach(result => {
+        editors.forEach(editor => {
+            if (result.document === editor.document) {
+                result.draw()
+            }
+        })
+    })
 }
 
 export function validateResults(e: vscode.TextDocumentChangeEvent) {
