@@ -21,7 +21,7 @@ const requestTypeGetVariables = new rpc.RequestType<
     void, void>('repl/getvariables')
 
 const requestTypeGetLazy = new rpc.RequestType<
-    void,
+    number,
     {
         lazy: boolean,
         id: number,
