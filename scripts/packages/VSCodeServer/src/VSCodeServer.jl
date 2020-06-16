@@ -34,6 +34,7 @@ include("repl.jl")
 include("../../../debugger/debugger.jl")
 include("gridviewer.jl")
 include("repl_protocol.jl")
+include("../../../error_handler.jl")
 
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
@@ -225,8 +226,7 @@ function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractS
             end
         end
     catch err
-        # Add crash reporting
-        Base.display_error(err, catch_backtrace())
+        global_err_handler(err, catch_backtrace(), crashreporting_pipename, "REPL")
     end
 end
 
