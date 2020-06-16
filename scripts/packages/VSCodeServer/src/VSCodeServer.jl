@@ -24,6 +24,8 @@ module JSONRPC
     import ..UUIDs
 
     include("../../JSONRPC/src/core.jl")
+    include("../../JSONRPC/src/typed.jl")
+    include("../../JSONRPC/src/interface_def.jl")
 end
 
 include("misc.jl")
@@ -31,6 +33,7 @@ include("trees.jl")
 include("repl.jl")
 include("../../../debugger/debugger.jl")
 include("gridviewer.jl")
+include("repl_protocol.jl")
 
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
@@ -55,15 +58,15 @@ function get_variables()
 
         rendered = treerender(x)
 
-        push!(variables, Dict(
-            "type" => string(t),
-            "value" => get(rendered, :head, "???"),
-            "name" => n_as_string,
-            "id" => get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
-            "haschildren" => get(rendered, :haschildren, false),
-            "lazy" => get(rendered, :lazy, false),
-            "icon" => get(rendered, :icon, ""),
-            "canshow" => can_display(x)
+        push!(variables, ReplGetVariablesRequestReturn(
+            string(t),
+            get(rendered, :head, "???"),
+            n_as_string,
+            get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
+            get(rendered, :haschildren, false),
+            get(rendered, :lazy, false),
+            get(rendered, :icon, ""),
+            can_display(x)
         ))
     end
 
@@ -135,7 +138,7 @@ function safe_render(x)
         return ReplRunCodeRequestReturn(
             string("Display Error: ", out.inline),
             string("Display Error: ", out.all),
-            out.iserr = out.iserr
+            out.iserr
         )
     end
 end
@@ -227,24 +230,6 @@ function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractS
     end
 end
 
-JSONRPC.@dict_readable struct ReplRunCodeRequestParams <: JSONRPC.Outbound
-    filename::String
-    line::Int
-    column::Int
-    code::String
-    mod::String # TODO Change in typescript part from module
-    showCodeInREPL::Bool
-    showResultInREPL::Bool
-end
-
-JSONRPC.@dict_readable struct ReplRunCodeRequestReturn <: JSONRPC.Outbound
-    inline::String
-    all::String
-    iserr::Bool
-end
-
-const repl_runcode_request_type = JSONRPC.RequestType("repl/runcode", ReplRunCodeRequestParams, ReplRunCodeRequestReturn)
-
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     source_filename = params.filename
     code_line = params.line
@@ -264,7 +249,6 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
 
     rendered_result = nothing
 
-    # TODO JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
     hideprompt() do
         if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
             let mode = get(ENV, "JULIA_REVISE", "auto")
@@ -314,11 +298,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
         end
     end
     return rendered_result
-    # TODO JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
 end
-
-# TODO Return type
-const repl_getvariables_request_type = JSONRPC.RequestType("repl/getvariables", Nothing, Vector{Command})
 
 function repl_getvariables_request(conn, params::Nothing)
     vars = get_variables()
@@ -326,16 +306,11 @@ function repl_getvariables_request(conn, params::Nothing)
     return vars
 end
 
-# TODO Return type
-const repl_getlazy_request_type = JSONRPC.RequestType("repl/getlazy", String, Vector{Command})
-
-function repl_getlazy_request(conn, params::String)
+function repl_getlazy_request(conn, params::Int)
     res = get_lazy(params)
 
     return res
 end
-
-const repl_showingrid_notification_type = JSONRPC.NotificationType("repl/showingrid", String)
 
 function repl_showingrid_notification(conn, params::String)
     try
@@ -347,23 +322,17 @@ function repl_showingrid_notification(conn, params::String)
     end
 end
 
-const repl_loadedModules_request_type = JSONRPC.RequestType("repl/loadedModules", Nothing, Vector{String})
-
 function repl_loadedModules_request(conn, params::Nothing)
     res = string.(collect(get_modules()))
 
     return res
 end
 
-const repl_isModuleLoaded_request_type = JSONRPC.RequestType("repl/isModuleLoaded", String, Bool)
-
 function repl_isModuleLoaded_request(conn, params::String)
     is_loaded = is_module_loaded(params)
 
     return is_loaded
 end
-
-const repl_startdebugger_notification_type = JSONRPC.NotificationType("repl/startdebugger", String)
 
 function repl_startdebugger_request(conn, params::String, crashreporting_pipename)
     hideprompt() do
