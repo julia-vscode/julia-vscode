@@ -141,7 +141,7 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     line: number,
     column: number,
     code: string,
-    module: string,
+    mod: string,
     showCodeInREPL: boolean,
     showResultInREPL: boolean
 }, void, void, void>('repl/runcode')
@@ -222,7 +222,7 @@ async function executeFile(uri?: vscode.Uri) {
             filename: path,
             line: 0,
             column: 0,
-            module: module,
+            mod: module,
             code: code,
             showCodeInREPL: false,
             showResultInREPL: false
@@ -374,7 +374,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             line: range.start.line,
             column: range.start.character,
             code: text,
-            module: module,
+            mod: module,
             showCodeInREPL: codeInREPL,
             showResultInREPL: resultType !== 'inline'
         }
