@@ -228,6 +228,7 @@ async function executeFile(uri?: vscode.Uri) {
             showResultInREPL: false
         }
     )
+    await workspace.replFinishEval()
 }
 
 async function selectJuliaBlock() {
@@ -379,6 +380,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             showResultInREPL: resultType !== 'inline'
         }
     )
+    await workspace.replFinishEval()
 
     if (resultType !== 'REPL') {
         const hoverString = '```\n' + result.all.toString() + '\n```'
