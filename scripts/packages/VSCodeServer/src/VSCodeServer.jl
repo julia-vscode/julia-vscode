@@ -53,18 +53,23 @@ function get_variables()
         startswith(n_as_string, "#") && continue
         t = typeof(x)
 
-        rendered = treerender(x)
+        try
+            rendered = treerender(x)
 
-        push!(variables, Dict(
-            "type" => string(t),
-            "value" => get(rendered, :head, "???"),
-            "name" => n_as_string,
-            "id" => get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
-            "haschildren" => get(rendered, :haschildren, false),
-            "lazy" => get(rendered, :lazy, false),
-            "icon" => get(rendered, :icon, ""),
-            "canshow" => can_display(x)
-        ))
+            push!(variables, Dict(
+                "type" => string(t),
+                "value" => get(rendered, :head, "???"),
+                "name" => n_as_string,
+                "id" => get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
+                "haschildren" => get(rendered, :haschildren, false),
+                "lazy" => get(rendered, :lazy, false),
+                "icon" => get(rendered, :icon, ""),
+                "canshow" => can_display(x)
+            ))
+        catch err
+            printstyled("Internal Error: ", bold = true, color = Base.error_color())
+            Base.display_error(err, catch_backtrace())
+        end
     end
 
     return variables
