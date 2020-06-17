@@ -112,11 +112,9 @@ end
 
 function render(err::EvalError)
     bt = err.bt
-    st = stacktrace(bt)
     bti = find_frame_index(bt, @__FILE__, inlineeval)
-    sti = find_frame_index(st, @__FILE__, inlineeval)
     bt = bt[1:(bti === nothing ? end : bti - 4)]
-    st = st[1:(sti === nothing ? end : sti - 4)]
+    st = stacktrace(bt)
     str = sprintlimited(err.err, bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
     sf = frame.(st)
     return Dict(
