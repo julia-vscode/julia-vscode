@@ -31,6 +31,7 @@ const MAX_PARTITION_LENGTH = 20
 treeid() = (ID[] += 1)
 
 pluralize(n::Int, one, more = one) = string(n, " ", n == 1 ? one : more)
+pluralize(n::Tuple{}, one, more = one) = ""
 pluralize(n, one, more = one) = string(length(n) > 1 ? join(n, '×') : first(n), " ", prod(n) == 1 ? one : more)
 
 function treerender(x::LazyTree)
