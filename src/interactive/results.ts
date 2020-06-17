@@ -174,55 +174,65 @@ export function addResult(editor: vscode.TextEditor, range: vscode.Range, conten
     return result
 }
 
-interface _Frame {
+interface Frame {
     path: string,
     line: number
 }
-interface Frame extends _Frame {
-    err: string | vscode.MarkdownString,
+interface Highlight {
+    frame: Frame,
+    result: null | Result
 }
 
-let stackFrame: Result[] = []
-export function setStackTrace(err: string, stackframe: Array<_Frame>) {
-    stackFrame.forEach(r => {
-        r.remove()
-    })
+interface StackFrameHighlights {
+    highlights: Highlight[]
+    err: string
+}
 
-    stackFrame = []
+const stackFrameHighlights: StackFrameHighlights = { highlights: [], err: '' }
 
-    drawStackFrame(stackframe.map(frame => {
-        return {
-            path: frame.path,
-            line: frame.line,
-            err
+export function setStackTrace(err: string, frames: Frame[]) {
+    clearStackFrame()
+    setStackFrameHighlight(err, frames)
+}
+
+function clearStackFrame() {
+    stackFrameHighlights.highlights.forEach(highlight => {
+        if (highlight.result) {
+            highlight.result.remove()
         }
-    }))
+    })
+    stackFrameHighlights.highlights = []
+    stackFrameHighlights.err = ''
 }
 
-function drawStackFrame(stackFrame: Frame[], editors: vscode.TextEditor[] = vscode.window.visibleTextEditors) {
-    editors.forEach(editor => {
-        const path = editor.document.fileName
-        stackFrame.forEach(frame => {
-            if (frame.path === path) {
-                addError(editor, frame)
-            }
-        })
+function setStackFrameHighlight(
+    err: string,
+    frames: Frame[],
+    editors: vscode.TextEditor[] = vscode.window.visibleTextEditors
+) {
+    stackFrameHighlights.err = err
+    frames.forEach(frame => {
+        const targetEditors = editors.filter(editor => frame.path === editor.document.fileName)
+        if (targetEditors.length === 0) {
+            stackFrameHighlights.highlights.push({ frame, result: null })
+        } else {
+            targetEditors.forEach(targetEditor => {
+                const result = addErrorResult(err, frame, targetEditor)
+                stackFrameHighlights.highlights.push({ frame, result })
+            })
+        }
     })
 }
 
-function addError(editor: vscode.TextEditor, frame: Frame) {
+function addErrorResult(err: string, frame: Frame, editor: vscode.TextEditor) {
     const resultContent = {
         content: '',
         isIcon: false,
-        hoverContent: frame.err,
+        hoverContent: err,
         isError: true
     }
     const range = new vscode.Range(new vscode.Position(frame.line - 1, 0), new vscode.Position(frame.line - 1, LINE_INF))
-
-    const result = new Result(editor, range, resultContent)
-    stackFrame.push(result)
-
-    return result
+    return new Result(editor, range, resultContent)
 }
 
 export function refreshResults(editors: vscode.TextEditor[]) {
@@ -233,10 +243,15 @@ export function refreshResults(editors: vscode.TextEditor[]) {
             }
         })
     })
-    stackFrame.forEach(result => {
+    stackFrameHighlights.highlights.forEach(highlgiht => {
+        const frame = highlgiht.frame
         editors.forEach(editor => {
-            if (result.document === editor.document) {
-                result.draw()
+            if (frame.path === editor.document.fileName) {
+                if (highlgiht.result) {
+                    highlgiht.result.draw()
+                } else {
+                    highlgiht.result = addErrorResult(stackFrameHighlights.err, frame, editor)
+                }
             }
         })
     })
