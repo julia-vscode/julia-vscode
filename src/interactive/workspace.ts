@@ -8,7 +8,7 @@ interface WorkspaceVariable {
     name: string,
     type: string,
     value: string,
-    id: any,
+    id: number,
     lazy: boolean,
     haschildren: boolean,
     canshow: boolean,
