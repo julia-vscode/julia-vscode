@@ -113,7 +113,6 @@ export class Result {
         for (const change of e.contentChanges) {
             const intersect = change.range.intersection(this.range)
             if (intersect !== undefined && !(intersect.isEmpty && change.text === '\n')) {
-                this.remove()
                 return false
             }
 
@@ -134,7 +133,6 @@ export class Result {
         }
 
         if (this.document.getText(this.range) !== this.text) {
-            this.remove()
             return false
         }
 
