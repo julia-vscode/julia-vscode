@@ -3,7 +3,6 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
 import * as packagepath from './packagepath'
-import * as settings from './settings'
 import * as telemetry from './telemetry'
 
 // This method implements the language-julia.openPackageDirectory command
@@ -44,7 +43,7 @@ async function openPackageDirectoryCommand() {
     }
 }
 
-export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
-    context.subscriptions.push(onDidChangeConfig(newSettings => { }))
+export function activate(context: vscode.ExtensionContext) {
+    context.subscriptions.push(onDidChangeConfig(event => { }))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand))
 }
