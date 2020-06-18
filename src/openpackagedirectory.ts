@@ -1,7 +1,6 @@
 import * as fs from 'async-file'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { onDidChangeConfig } from './extension'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
 
@@ -44,6 +43,5 @@ async function openPackageDirectoryCommand() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(onDidChangeConfig(event => { }))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand))
 }

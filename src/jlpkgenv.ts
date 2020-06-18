@@ -4,7 +4,7 @@ import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
-import { onDidChangeConfig, onSetLanguageClient } from './extension'
+import { onSetLanguageClient } from './extension'
 import * as juliaexepath from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
@@ -191,7 +191,6 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(onSetLanguageClient(languageClient => {
         g_languageClient = languageClient
     }))
-    context.subscriptions.push(onDidChangeConfig(event => { }))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
     // Environment status bar
