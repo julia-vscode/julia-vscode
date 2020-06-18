@@ -261,17 +261,27 @@ export function removeResult(target: Result) {
     return results.splice(results.indexOf(target), 1)
 }
 
+export function removeErrorResult(target: Result) {
+    target.remove()
+    const targetIndex = getErrorResults().indexOf(target)
+    return stackFrameHighlights.highlights.splice(targetIndex, 1)
+}
+
+const getErrorResults = () => stackFrameHighlights.highlights.map(highlight => highlight.result).filter(result => result !== null)
+
 export function removeAll(editor: vscode.TextEditor | null = null) {
-    results.filter(result => editor === null || result.document === editor.document).forEach(removeResult)
+    const filter = (result: Result) => editor === null || result.document === editor.document
+    results.filter(filter).forEach(removeResult)
+    getErrorResults().filter(filter).forEach(removeErrorResult)
 }
 
 export function removeCurrent(editor: vscode.TextEditor) {
     editor.selections.forEach(selection => {
-        results
-            .filter(result => {
-                const intersect = selection.intersection(result.range)
-                return result.document === editor.document && intersect !== undefined
-            })
-            .forEach(removeResult)
+        const filter = (result: Result) => {
+            const intersect = selection.intersection(result.range)
+            return result.document === editor.document && intersect !== undefined
+        }
+        results.filter(filter).forEach(removeResult)
+        getErrorResults().filter(filter).forEach(removeErrorResult)
     })
 }
