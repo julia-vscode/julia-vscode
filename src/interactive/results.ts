@@ -16,12 +16,16 @@ export class Result {
     content: ResultContent
     decoration: vscode.TextEditorDecorationType
     destroyed: boolean
+    removeEmitter: vscode.EventEmitter<null>
+    onDidRemove: vscode.Event<null>
 
     constructor(editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
         this.range = range
         this.document = editor.document
         this.text = editor.document.getText(this.range)
         this.destroyed = false
+        this.removeEmitter = new vscode.EventEmitter()
+        this.onDidRemove = this.removeEmitter.event
 
         this.setContent(content)
     }
@@ -41,7 +45,7 @@ export class Result {
 
         if (content.isIcon) {
             decoration.before.contentIconPath = content.content
-        } else {
+        } else if (decoration.before) {
             decoration.before.contentText = content.content
         }
 
@@ -80,14 +84,6 @@ export class Result {
 
     createErrorDecoration(): vscode.DecorationRenderOptions {
         return {
-            after: {
-                contentIconPath: undefined,
-                contentText: undefined,
-            },
-            before: {
-                contentIconPath: undefined,
-                contentText: undefined,
-            },
             // there doesn't seem to be a color that looks nicely on any color themes ...
             backgroundColor: new vscode.ThemeColor('inputValidation.errorBackground'),
             borderColor: new vscode.ThemeColor('inputValidation.errorBorder'),
@@ -142,6 +138,10 @@ export class Result {
     remove(destroy: boolean = false) {
         this.destroyed = destroy
         this.decoration.dispose()
+        if (destroy) {
+            this.removeEmitter.fire(null)
+            this.removeEmitter.dispose()
+        }
     }
 }
 
@@ -183,12 +183,14 @@ interface StackFrameHighlights {
 
 const stackFrameHighlights: StackFrameHighlights = { highlights: [], err: '' }
 
-export function setStackTrace(err: string, frames: Frame[]) {
-    clearStackFrame()
+export function setStackTrace(result: Result, err: string, frames: Frame[]) {
+    clearStackTrace()
     setStackFrameHighlight(err, frames)
+
+    result.onDidRemove(() => clearStackTrace())
 }
 
-function clearStackFrame() {
+export function clearStackTrace() {
     stackFrameHighlights.highlights.forEach(highlight => {
         if (highlight.result) {
             highlight.result.remove()
@@ -236,14 +238,14 @@ export function refreshResults(editors: vscode.TextEditor[]) {
             }
         })
     })
-    stackFrameHighlights.highlights.forEach(highlgiht => {
-        const frame = highlgiht.frame
+    stackFrameHighlights.highlights.forEach(highlight => {
+        const frame = highlight.frame
         editors.forEach(editor => {
             if (frame.path === editor.document.fileName) {
-                if (highlgiht.result) {
-                    highlgiht.result.draw()
+                if (highlight.result) {
+                    highlight.result.draw()
                 } else {
-                    highlgiht.result = addErrorResult(stackFrameHighlights.err, frame, editor)
+                    highlight.result = addErrorResult(stackFrameHighlights.err, frame, editor)
                 }
             }
         })
@@ -255,31 +257,21 @@ export function validateResults(e: vscode.TextDocumentChangeEvent) {
 }
 
 export function removeResult(target: Result) {
-    target.remove()
+    target.remove(true)
     return results.splice(results.indexOf(target), 1)
 }
 
-export function removeErrorResult(target: Result) {
-    target.remove()
-    const targetIndex = getErrorResults().indexOf(target)
-    return stackFrameHighlights.highlights.splice(targetIndex, 1)
-}
-
-const getErrorResults = () => stackFrameHighlights.highlights.map(highlight => highlight.result).filter(result => result !== null)
-
 export function removeAll(editor: vscode.TextEditor | null = null) {
-    const filter = (result: Result) => editor === null || result.document === editor.document
-    results.filter(filter).forEach(removeResult)
-    getErrorResults().filter(filter).forEach(removeErrorResult)
+    const isvalid = (result: Result) => editor === null || result.document === editor.document
+    results.filter(isvalid).forEach(removeResult)
 }
 
 export function removeCurrent(editor: vscode.TextEditor) {
     editor.selections.forEach(selection => {
-        const filter = (result: Result) => {
+        const isvalid = (result: Result) => {
             const intersect = selection.intersection(result.range)
             return result.document === editor.document && intersect !== undefined
         }
-        results.filter(filter).forEach(removeResult)
-        getErrorResults().filter(filter).forEach(removeErrorResult)
+        results.filter(isvalid).forEach(removeResult)
     })
 }
