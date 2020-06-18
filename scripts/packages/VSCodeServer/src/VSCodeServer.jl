@@ -18,6 +18,7 @@ function __init__()
 end
 
 include("../../JSON/src/JSON.jl")
+include("../../CodeTracking/src/CodeTracking.jl")
 
 module JSONRPC
     import ..JSON
@@ -28,10 +29,21 @@ module JSONRPC
     include("../../JSONRPC/src/interface_def.jl")
 end
 
+module JuliaInterpreter
+    using ..CodeTracking
+
+    include("../../JuliaInterpreter/src/packagedef.jl")
+end
+
+module DebugAdapter
+    import ..JuliaInterpreter
+
+    include("../../DebugAdapter/src/packagedef.jl")
+end
+
 include("misc.jl")
 include("trees.jl")
 include("repl.jl")
-include("../../../debugger/debugger.jl")
 include("gridviewer.jl")
 include("repl_protocol.jl")
 include("../../../error_handler.jl")
@@ -338,9 +350,9 @@ function repl_startdebugger_request(conn, params::String, crashreporting_pipenam
     hideprompt() do
         debug_pipename = params
         try
-            VSCodeDebugger.startdebug(debug_pipename)
+            DebugAdapter.startdebug(debug_pipename)
         catch err
-            VSCodeDebugger.global_err_handler(err, catch_backtrace(), crashreporting_pipename, "Debugger")
+            DebugAdapter.global_err_handler(err, catch_backtrace(), crashreporting_pipename, "Debugger")
         end
     end
 end
