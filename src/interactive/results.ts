@@ -161,12 +161,7 @@ export function activate(context) {
 export function deactivate() { }
 
 export function addResult(editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
-    for (let i = results.length - 1; i > -1; i--) {
-        const result = results[i]
-        if (result.document === editor.document && result.range.intersection(range) !== undefined) {
-            removeResult(result)
-        }
-    }
+    results.filter(result => result.document === editor.document && result.range.intersection(range) !== undefined).forEach(removeResult)
 
     const result = new Result(editor, range, content)
     results.push(result)
@@ -258,41 +253,25 @@ export function refreshResults(editors: vscode.TextEditor[]) {
 }
 
 export function validateResults(e: vscode.TextDocumentChangeEvent) {
-    for (let i = results.length - 1; i > -1; i--) {
-        const result = results[i]
-        const isvalid = result.validate(e)
-        if (!isvalid) {
-            removeResult(result)
-        }
-    }
+    results.filter(result => !result.validate(e)).forEach(removeResult)
 }
 
-export function removeResult(result: Result) {
-    const index = results.indexOf(result)
-
-    if (index > -1) {
-        result.remove(true)
-        results.splice(index, 1)
-    }
+export function removeResult(target: Result) {
+    target.remove()
+    return results.splice(results.indexOf(target), 1)
 }
 
 export function removeAll(editor: vscode.TextEditor | null = null) {
-    for (let i = results.length - 1; i > -1; i--) {
-        const result = results[i]
-        if (editor === null || result.document === editor.document) {
-            removeResult(result)
-        }
-    }
+    results.filter(result => editor === null || result.document === editor.document).forEach(removeResult)
 }
 
 export function removeCurrent(editor: vscode.TextEditor) {
-    for (const selection of editor.selections) {
-        for (let i = results.length - 1; i > -1; i--) {
-            const result = results[i]
-            const intersect = selection.intersection(result.range)
-            if (result.document === editor.document && intersect !== undefined) {
-                result.remove()
-            }
-        }
-    }
+    editor.selections.forEach(selection => {
+        results
+            .filter(result => {
+                const intersect = selection.intersection(result.range)
+                return result.document === editor.document && intersect !== undefined
+            })
+            .forEach(removeResult)
+    })
 }
