@@ -743,7 +743,7 @@
         "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
         "@types/vscode": "^1.46.0",
-        "applicationinsights": "^1.7.6",
+        "applicationinsights": "^1.8.0",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
@@ -770,6 +770,6 @@
         "vsce": "^1.77.0",
         "vscode-test": "^1.4.0",
         "webpack": "^4.43.0",
-        "webpack-cli": "^3.3.11"
+        "webpack-cli": "^3.3.12"
     }
 }
