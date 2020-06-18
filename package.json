@@ -155,18 +155,12 @@
             {
                 "command": "language-julia.plotpane-next",
                 "title": "Julia: Show Next Plot",
-                "icon": {
-                    "light": "./media/next.svg",
-                    "dark": "./media/next-inverse.svg"
-                }
+                "icon": "$(arrow-right)"
             },
             {
                 "command": "language-julia.plotpane-previous",
                 "title": "Julia: Show Previous Plot",
-                "icon": {
-                    "light": "./media/previous.svg",
-                    "dark": "./media/previous-inverse.svg"
-                }
+                "icon": "$(arrow-left)"
             },
             {
                 "command": "language-julia.plotpane-first",
@@ -179,10 +173,7 @@
             {
                 "command": "language-julia.plotpane-delete",
                 "title": "Julia: Delete plot",
-                "icon": {
-                    "light": "./media/delete.svg",
-                    "dark": "./media/delete-inverse.svg"
-                }
+                "icon": "$(trash)"
             },
             {
                 "command": "language-julia.plotpane-delete-all",
