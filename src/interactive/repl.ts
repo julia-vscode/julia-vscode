@@ -335,6 +335,9 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.revealRange(new vscode.Range(nextBlock, nextBlock))
         }
 
+        if (range.isEmpty) {
+            return
+        }
 
         const tempDecoration = vscode.window.createTextEditorDecorationType({
             backgroundColor: new vscode.ThemeColor('editor.hoverHighlightBackground'),
