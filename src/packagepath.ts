@@ -3,7 +3,6 @@ import { join } from 'path'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
 import * as juliaexepath from './juliaexepath'
-import * as settings from './settings'
 
 let juliaPackagePath: string = null
 
@@ -28,10 +27,12 @@ export async function getPkgDepotPath() {
     return juliaDepotPath
 }
 
-export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
-    context.subscriptions.push(onDidChangeConfig(newSettings => {
-        if (settings.juliaExePath !== newSettings.juliaExePath) {
-            juliaPackagePath = null
-        }
-    }))
+export function activate(context: vscode.ExtensionContext) {
+    context.subscriptions.push(
+        onDidChangeConfig(event => {
+            if (event.affectsConfiguration('julia.executablePath')) {
+                juliaPackagePath = null
+            }
+        })
+    )
 }

@@ -3,7 +3,6 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
-import * as settings from './settings'
 import * as telemetry from './telemetry'
 import { inferJuliaNumThreads } from './utils'
 
@@ -103,7 +102,7 @@ async function provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder): Promi
     }
 }
 
-export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
+export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
     vscode.workspace.registerTaskProvider('julia', {

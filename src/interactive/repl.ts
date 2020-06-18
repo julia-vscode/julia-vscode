@@ -9,7 +9,6 @@ import { TextDocumentPositionParams } from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
-import * as settings from '../settings'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import * as modules from './modules'
@@ -449,7 +448,7 @@ export async function replStartDebugger(pipename: string) {
     g_connection.sendNotification(notifyTypeReplStartDebugger, pipename)
 }
 
-export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
+export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
     context.subscriptions.push(onSetLanguageClient(languageClient => {
