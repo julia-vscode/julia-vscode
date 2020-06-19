@@ -55,7 +55,7 @@ function Base.write(io::LimitIO, v::UInt8)
     io.n += write(io.io, v)
 end
 
-function sprintlimited(args...; func = show, limit::Int = 30, ellipsis::AbstractString = "…", color = false)
+function sprintlimited(args...; func=show, limit::Int=30, ellipsis::AbstractString="…", color=false)
     io = IOBuffer()
     ioctx = IOContext(LimitIO(io, limit - length(ellipsis)), :limit => true, :color => color, :displaysize => (30, 64))
 
@@ -74,7 +74,7 @@ function sprintlimited(args...; func = show, limit::Int = 30, ellipsis::Abstract
     return color ? str : remove_ansi_control_chars(str)
 end
 
-function strlimit(str; limit::Int = 30, ellipsis::AbstractString = "…")
+function strlimit(str; limit::Int=30, ellipsis::AbstractString="…")
     will_append = length(str) > limit
 
     io = IOBuffer()
@@ -95,4 +95,8 @@ end
 
 function remove_ansi_control_chars(str::String)
     replace(str, r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]" => "")
+end
+
+function ends_with_semicolon(x)
+    return REPL.ends_with_semicolon(split(x, '\n', keepempty=false)[end])
 end

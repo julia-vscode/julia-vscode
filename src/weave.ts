@@ -3,7 +3,6 @@ import { ChildProcess, spawn } from 'child_process'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as juliaexepath from './juliaexepath'
-import * as settings from './settings'
 import * as telemetry from './telemetry'
 
 const tempfs = require('promised-temp').track()
@@ -158,7 +157,7 @@ async function save() {
     }
 }
 
-export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
+export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview', open_preview))

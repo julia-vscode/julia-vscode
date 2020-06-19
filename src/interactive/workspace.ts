@@ -8,7 +8,7 @@ interface WorkspaceVariable {
     name: string,
     type: string,
     value: string,
-    id: any,
+    id: number,
     lazy: boolean,
     haschildren: boolean,
     canshow: boolean,
@@ -21,7 +21,7 @@ const requestTypeGetVariables = new rpc.RequestType<
     void, void>('repl/getvariables')
 
 const requestTypeGetLazy = new rpc.RequestType<
-    void,
+    number,
     {
         lazy: boolean,
         id: number,
