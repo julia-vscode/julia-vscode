@@ -202,6 +202,7 @@ async function startLanguageServer() {
         startupNotification.command = 'language-julia.showLanguageServerOutput'
         languageClient.onReady().then(() => {
             setLanguageClient(languageClient)
+        }).finally(() => {
             disposable.dispose()
             startupNotification.dispose()
         })
