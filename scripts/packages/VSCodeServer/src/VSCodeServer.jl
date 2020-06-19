@@ -71,15 +71,15 @@ function get_variables()
 
         rendered = treerender(x)
 
-        push!(variables, ReplGetVariablesRequestReturn(
-            string(t),
+        push!(variables, ReplWorkspaceItem(
             get(rendered, :head, "???"),
-            n_as_string,
             get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
             get(rendered, :haschildren, false),
             get(rendered, :lazy, false),
             get(rendered, :icon, ""),
+            n_as_string,
             can_display(x)
+            string(t),
         ))
     end
 
