@@ -50,7 +50,7 @@ function loadConfig() {
 export async function init(context: vscode.ExtensionContext) {
     loadConfig()
 
-    context.subscriptions.push(onDidChangeConfig(newSettings => {
+    context.subscriptions.push(onDidChangeConfig(event => {
         loadConfig()
     }))
 

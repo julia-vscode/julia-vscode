@@ -18,19 +18,35 @@ function __init__()
 end
 
 include("../../JSON/src/JSON.jl")
+include("../../CodeTracking/src/CodeTracking.jl")
 
 module JSONRPC
     import ..JSON
     import ..UUIDs
 
     include("../../JSONRPC/src/core.jl")
+    include("../../JSONRPC/src/typed.jl")
+    include("../../JSONRPC/src/interface_def.jl")
+end
+
+module JuliaInterpreter
+    using ..CodeTracking
+
+    include("../../JuliaInterpreter/src/packagedef.jl")
+end
+
+module DebugAdapter
+    import ..JuliaInterpreter
+
+    include("../../DebugAdapter/src/packagedef.jl")
 end
 
 include("misc.jl")
 include("trees.jl")
 include("repl.jl")
-include("../../../debugger/debugger.jl")
 include("gridviewer.jl")
+include("repl_protocol.jl")
+include("../../../error_handler.jl")
 
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
@@ -56,15 +72,15 @@ function get_variables()
         try
             rendered = treerender(x)
 
-            push!(variables, Dict(
-                "type" => string(t),
-                "value" => get(rendered, :head, "???"),
-                "name" => n_as_string,
-                "id" => get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
-                "haschildren" => get(rendered, :haschildren, false),
-                "lazy" => get(rendered, :lazy, false),
-                "icon" => get(rendered, :icon, ""),
-                "canshow" => can_display(x)
+            push!(variables, ReplGetVariablesRequestReturn(
+                string(t),
+                get(rendered, :head, "???"),
+                n_as_string,
+                get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
+                get(rendered, :haschildren, false),
+                get(rendered, :lazy, false),
+                get(rendered, :icon, ""),
+                can_display(x)
             ))
         catch err
             printstyled("Internal Error: ", bold = true, color = Base.error_color())
@@ -97,18 +113,18 @@ the following fields:
 function render(x)
     str = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
 
-    return Dict(
-        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
-        "all" => str,
-        "iserr" => false
+    return ReplRunCodeRequestReturn(
+        strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
+        str,
+        false
     )
 end
 
 function render(::Nothing)
-    return Dict(
-        "inline" => "✓",
-        "all" => "nothing",
-        "iserr" => false
+    return ReplRunCodeRequestReturn(
+        "✓",
+        "nothing",
+        false
     )
 end
 
@@ -120,10 +136,10 @@ end
 function render(err::EvalError)
     str = sprintlimited(err.err, err.bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
 
-    return Dict(
-        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
-        "all" => str,
-        "iserr" => true
+    return ReplRunCodeRequestReturn(
+        strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
+        str,
+        true
     )
 end
 """
@@ -133,11 +149,15 @@ Calls `render`, but catches errors in the display system.
 """
 function safe_render(x)
     try
-        render(x)
+        return render(x)
     catch err
         out = render(EvalError(err, catch_backtrace()))
-        out["inline"] = string("Display Error: ", out["inline"])
-        out["all"] = string("Display Error: ", out["all"])
+
+        return ReplRunCodeRequestReturn(
+            string("Display Error: ", out.inline),
+            string("Display Error: ", out.all),
+            out.iserr
+        )
     end
 end
 
@@ -198,126 +218,146 @@ function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractS
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
     run(conn_endpoint[])
 
-    if is_dev
-        @async while true
-            try
-                Base.invokelatest(handle_message)
-            catch err
-                Base.display_error(err, catch_backtrace())
+    @async try
+        msg_dispatcher = JSONRPC.MsgDispatcher()
+
+        msg_dispatcher[repl_runcode_request_type] = repl_runcode_request
+        msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
+        msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
+        msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
+        msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request
+        msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
+        msg_dispatcher[repl_startdebugger_notification_type] = (conn, params)->repl_startdebugger_request(conn, params, crashreporting_pipename)
+
+        while true
+            msg = JSONRPC.get_next_message(conn_endpoint[])
+
+            if is_dev
+                try
+                    JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
+                catch err
+                    Base.display_error(err, catch_backtrace())
+                end
+            else
+                JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
             end
         end
-    else
-        @async try
-            while true
-                Base.invokelatest(handle_message; crashreporting_pipename = crashreporting_pipename)
-            end
-        catch err
-            Base.display_error(err, catch_backtrace())
-        end
+    catch err
+        global_err_handler(err, catch_backtrace(), crashreporting_pipename, "REPL")
     end
 end
 
-function handle_message(; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
-    msg = JSONRPC.get_next_message(conn_endpoint[])
-    if msg["method"] == "repl/runcode"
-        params = msg["params"]
+function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
+    source_filename = params.filename
+    code_line = params.line
+    code_column = params.column
+    source_code = params.code
+    mod = params.mod
 
-        source_filename = params["filename"]
-        code_line = params["line"]
-        code_column = params["column"]
-        source_code = params["code"]
-        mod = params["module"]
+    resolved_mod = try
+        module_from_string(mod)
+    catch err
+        # maybe trigger error reporting here
+        Main
+    end
 
-        resolved_mod = try
-            module_from_string(mod)
-        catch err
-            # maybe trigger error reporting here
-            Main
+    show_code = params.showCodeInREPL
+    show_result = params.showResultInREPL
+
+    rendered_result = nothing
+
+    hideprompt() do
+        if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+            let mode = get(ENV, "JULIA_REVISE", "auto")
+                mode == "auto" && Main.Revise.revise()
+            end
         end
-
-        show_code = params["showCodeInREPL"]
-        show_result = params["showResultInREPL"]
-
-        JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
-        hideprompt() do
-            if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-                let mode = get(ENV, "JULIA_REVISE", "auto")
-                    mode == "auto" && Main.Revise.revise()
-                end
-            end
-            if show_code
-                for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                    if i==1
-                        printstyled("julia> ", color=:green)
-                        print(' '^code_column)
-                    else
-                        # Indent by 7 so that it aligns with the julia> prompt
-                        print(' '^7)
-                    end
-
-                    println(line)
-                end
-            end
-
-            withpath(source_filename) do
-                res = try
-                    ans = Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
-                    @eval Main ans = $(QuoteNode(ans))
-                catch err
-                    EvalError(err, catch_backtrace())
-                end
-
-                if show_result
-                    if res isa EvalError
-                        Base.display_error(stderr, res.err, res.bt)
-                    elseif res !== nothing && !ends_with_semicolon(source_code)
-                        Base.invokelatest(display, res)
-                    end
+        if show_code
+            for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                if i==1
+                    printstyled("julia> ", color=:green)
+                    print(' '^code_column)
                 else
-                    try
-                        Base.invokelatest(display, InlineDisplay(), res)
-                    catch err
-                        if !(err isa MethodError)
-                            printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                            Base.display_error(stderr, err, catch_backtrace())
-                        end
-                    end
+                    # Indent by 7 so that it aligns with the julia> prompt
+                    print(' '^7)
                 end
 
-                JSONRPC.send_success_response(conn_endpoint[], msg, safe_render(res))
+                println(line)
             end
         end
-        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
-    elseif msg["method"] == "repl/getvariables"
-        vars = get_variables()
 
-        JSONRPC.send_success_response(conn_endpoint[], msg, vars)
-    elseif msg["method"] == "repl/getlazy"
-        JSONRPC.send_success_response(conn_endpoint[], msg, get_lazy(msg["params"]))
-    elseif msg["method"] == "repl/showingrid"
-        try
-            var = Core.eval(Main, Meta.parse(msg["params"]))
-
-            Base.invokelatest(internal_vscodedisplay, var)
-        catch err
-            Base.display_error(err, catch_backtrace())
-        end
-    elseif msg["method"] == "repl/loadedModules"
-        JSONRPC.send_success_response(conn_endpoint[], msg, string.(collect(get_modules())))
-    elseif msg["method"] == "repl/isModuleLoaded"
-        mod = msg["params"]
-
-        is_loaded = is_module_loaded(mod)
-
-        JSONRPC.send_success_response(conn_endpoint[], msg, is_loaded)
-    elseif msg["method"] == "repl/startdebugger"
-        hideprompt() do
-            debug_pipename = msg["params"]
-            try
-                VSCodeDebugger.startdebug(debug_pipename)
+        withpath(source_filename) do
+            res = try
+                ans = Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                @eval Main ans = $(QuoteNode(ans))
             catch err
-                VSCodeDebugger.global_err_handler(err, catch_backtrace(), crashreporting_pipename, "Debugger")
+                EvalError(err, catch_backtrace())
             end
+
+            if show_result
+                if res isa EvalError
+                    Base.display_error(stderr, res.err, res.bt)
+                elseif res !== nothing && !ends_with_semicolon(source_code)
+                    Base.invokelatest(display, res)
+                end
+            else
+                try
+                    Base.invokelatest(display, InlineDisplay(), res)
+                catch err
+                    if !(err isa MethodError)
+                        printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                        Base.display_error(stderr, err, catch_backtrace())
+                    end
+                end
+            end
+
+            rendered_result = safe_render(res)
+        end
+    end
+    return rendered_result
+end
+
+function repl_getvariables_request(conn, params::Nothing)
+    vars = get_variables()
+
+    return vars
+end
+
+function repl_getlazy_request(conn, params::Int)
+    res = get_lazy(params)
+
+    return res
+end
+
+function repl_showingrid_notification(conn, params::String)
+    try
+        var = Core.eval(Main, Meta.parse(params))
+
+        Base.invokelatest(internal_vscodedisplay, var)
+    catch err
+        Base.display_error(err, catch_backtrace())
+    end
+end
+
+function repl_loadedModules_request(conn, params::Nothing)
+    res = string.(collect(get_modules()))
+
+    return res
+end
+
+function repl_isModuleLoaded_request(conn, params::String)
+    is_loaded = is_module_loaded(params)
+
+    return is_loaded
+end
+
+function repl_startdebugger_request(conn, params::String, crashreporting_pipename)
+    hideprompt() do
+        debug_pipename = params
+        try
+            DebugAdapter.startdebug(debug_pipename)
+        catch err
+            DebugAdapter.global_err_handler(err, catch_backtrace(), crashreporting_pipename, "Debugger")
         end
     end
 end
