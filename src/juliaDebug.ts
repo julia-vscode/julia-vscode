@@ -6,7 +6,6 @@ import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { Breakpoint, InitializedEvent, Logger, logger, LoggingDebugSession, Scope, Source, StackFrame, StoppedEvent, TerminatedEvent, Thread } from 'vscode-debugadapter'
 import { DebugProtocol } from 'vscode-debugprotocol'
-import { Disposable } from 'vscode-jsonrpc'
 import { replStartDebugger } from './interactive/repl'
 import { getCrashReportingPipename } from './telemetry'
 import { generatePipeName } from './utils'
@@ -47,9 +46,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	private _juliaPath: string;
 	private _context: vscode.ExtensionContext;
 
-	private _debuggeeTerminal: vscode.Terminal;
 	private _debuggeeSocket: net.Socket;
-	private _debuggeeWrapperSocket: net.Socket;
 
 	private _launchMode: boolean;
 	private _launchedWithoutDebug: boolean;
@@ -252,10 +249,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	    const connectedPromise = new Subject()
 	    const serverListeningPromise = new Subject()
-	    const serverForWrapperPromise = new Subject()
 
 	    const pn = generatePipeName(uuid(), 'vsc-jl-dbg')
-	    const pnForWrapper = generatePipeName(uuid(), 'vsc-jl-dbgw')
 
 	    const server = net.createServer(socket => {
 	        this._debuggeeSocket = socket
@@ -266,48 +261,35 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	        connectedPromise.notify()
 	    })
 
-	    const serverForWrapper = net.createServer(socket => {
-	        this._debuggeeWrapperSocket = socket
-	    })
-
-	    serverForWrapper.listen(pnForWrapper, () => {
-	        serverForWrapperPromise.notify()
-	    })
-
-	    await serverForWrapperPromise.wait()
-
 	    server.listen(pn, () => {
 	        serverListeningPromise.notify()
 	    })
 
 	    await serverListeningPromise.wait()
 
-	    this._debuggeeTerminal = vscode.window.createTerminal({
-	        name: 'Julia Debugger',
-	        shellPath: this._juliaPath,
-	        shellArgs: [
-	            '--color=yes',
-	            '--startup-file=no',
-	            '--history-file=no',
-	            join(this._context.extensionPath, 'scripts', 'debugger', 'launch_wrapper.jl'),
-	            pn,
-	            pnForWrapper,
-	            args.cwd,
-	            args.juliaEnv,
-	            getCrashReportingPipename()
-	        ],
-	        env: {
-	            JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : ''
-	        }
-	    })
-	    this._debuggeeTerminal.show(false)
-	    const asdf: Array<Disposable> = []
-	    vscode.window.onDidCloseTerminal((terminal) => {
-	        if (terminal === this._debuggeeTerminal) {
-	            this.sendEvent(new TerminatedEvent())
-	            asdf[0].dispose()
-	        }
-	    }, this, asdf)
+	    const foo = args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : ''
+
+	    this.runInTerminalRequest(
+	        {
+	            kind: 'integrated',
+	            // kind: 'external',
+	            title: 'Julia Debugger',
+	            cwd: args.cwd,
+	            args: [
+	                this._juliaPath,
+	                '--color=yes',
+	                '--history-file=no',
+	                '--startup-file=no',
+	                `--project=${args.juliaEnv}`,
+	                join(this._context.extensionPath, 'scripts', 'debugger', 'run_debugger.jl'),
+	                pn,
+	                getCrashReportingPipename()
+	            ],
+	            env: {
+	                JL_ARGS: foo
+	            }
+	        },
+	        0, ()=>{return})
 
 	    await connectedPromise.wait()
 
@@ -611,7 +593,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments): void {
 	    if (this._launchedWithoutDebug) {
-	        this._debuggeeWrapperSocket.write('TERMINATE\n')
+	        // TODO this._debuggeeWrapperSocket.write('TERMINATE\n')
 	        this.sendEvent(new TerminatedEvent())
 	    }
 	    else {
@@ -623,7 +605,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
 	    if (this._launchMode) {
 	        if (!this._no_need_for_force_kill) {
-	            this._debuggeeWrapperSocket.write('TERMINATE\n')
+	            // TODO this._debuggeeWrapperSocket.write('TERMINATE\n')
 	        }
 	    }
 	    else {

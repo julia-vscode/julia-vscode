@@ -19,7 +19,7 @@ function clean_up_ARGS_in_launch_mode()
     deleteat!(ARGS, 1)
     deleteat!(ARGS, 1)
 
-    if ENV["JL_ARGS"] != ""
+    if get(ENV, "JL_ARGS", "") != ""
         cmd_ln_args_encoded = split(ENV["JL_ARGS"], ';')
 
         delete!(ENV, "JL_ARGS")
