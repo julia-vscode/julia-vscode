@@ -31,6 +31,7 @@ const MAX_PARTITION_LENGTH = 20
 treeid() = (ID[] += 1)
 
 pluralize(n::Int, one, more = one) = string(n, " ", n == 1 ? one : more)
+pluralize(::Tuple{}, one, more = one) = string(0, " ", more)
 pluralize(n, one, more = one) = string(length(n) > 1 ? join(n, '×') : first(n), " ", prod(n) == 1 ? one : more)
 
 function treerender(x::LazyTree)
@@ -168,8 +169,9 @@ function get_lazy(id::Int)
             return ["[out of date result]"]
         end
     catch err
-        @error exception = (err, catch_backtrace())
-        return ["nope"]
+        printstyled("Internal Error: ", bold = true, color = Base.error_color())
+        Base.display_error(err, catch_backtrace())
+        return []
     end
 end
 

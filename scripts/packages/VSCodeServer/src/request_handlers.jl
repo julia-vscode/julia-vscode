@@ -86,7 +86,12 @@ function repl_getvariables_request(conn, params::Nothing)
         startswith(n_as_string, "#") && continue
         t = typeof(x)
 
-        push!(variables, treerender(x))
+        try
+            push!(variables, treerender(x))
+        catch err
+            printstyled("Internal Error: ", bold = true, color = Base.error_color())
+            Base.display_error(err, catch_backtrace())
+        end
     end
 
     return variables
