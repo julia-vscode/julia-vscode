@@ -86,18 +86,7 @@ function repl_getvariables_request(conn, params::Nothing)
         startswith(n_as_string, "#") && continue
         t = typeof(x)
 
-        rendered = treerender(x)
-
-        push!(variables, ReplGetVariablesRequestReturn(
-            string(t),
-            get(rendered, :head, "???"),
-            n_as_string,
-            get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
-            get(rendered, :haschildren, false),
-            get(rendered, :lazy, false),
-            get(rendered, :icon, ""),
-            can_display(x)
-        ))
+        push!(variables, treerender(x))
     end
 
     return variables
