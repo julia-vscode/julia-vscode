@@ -82,12 +82,10 @@ function repl_getvariables_request(conn, params::Nothing)
         x === VSCodeServer && continue
         x === Main && continue
 
-        n_as_string = string(n)
-        startswith(n_as_string, "#") && continue
-        t = typeof(x)
-
+        s = string(n)
+        startswith(s, "#") && continue
         try
-            push!(variables, treerender(x))
+            push!(variables, treerender(SubTree(s, wsicon(x), x)))
         catch err
             printstyled("Internal Error: ", bold = true, color = Base.error_color())
             Base.display_error(err, catch_backtrace())
