@@ -396,12 +396,12 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     }
 }
 
-async function executeCodeCopyPaste(text, individualLine) {
+async function executeCodeCopyPaste(text: string, individualLine: boolean) {
     if (!text.endsWith('\n')) {
         text = text + '\n'
     }
 
-    await startREPL(true, false)
+    await startREPL(true, true)
 
     let lines = text.split(/\r?\n/)
     lines = lines.filter(line => line !== '')
