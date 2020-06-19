@@ -1,0 +1,12 @@
+name = "VSCodeDebugger"
+uuid = "a80fdaa1-3292-45d6-85e6-157a63518481"
+version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+julia = "1"
+
+[targets]
+test = ["Test"]
