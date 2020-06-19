@@ -87,18 +87,7 @@ function repl_getvariables_request(conn, params::Nothing)
         t = typeof(x)
 
         try
-            rendered = treerender(x)
-
-            push!(variables, ReplGetVariablesRequestReturn(
-                string(t),
-                get(rendered, :head, "???"),
-                n_as_string,
-                get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
-                get(rendered, :haschildren, false),
-                get(rendered, :lazy, false),
-                get(rendered, :icon, ""),
-                can_display(x)
-            ))
+            push!(variables, treerender(x))
         catch err
             printstyled("Internal Error: ", bold = true, color = Base.error_color())
             Base.display_error(err, catch_backtrace())

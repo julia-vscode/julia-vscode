@@ -38,40 +38,43 @@ function treerender(x::LazyTree)
     id = treeid()
     TREES[id] = x
 
-    return Dict(
-        :head => x.head,
-        :id => id,
-        :haschildren => !(x.isempty),
-        :lazy => true,
-        :icon => x.icon,
-        :value => "",
-        :canshow => false
+    return ReplWorkspaceItem(
+        x.head,
+        id,
+        !(x.isempty),
+        true,
+        x.icon,
+        "",
+        false,
+        ""
     )
 end
 
 function treerender(x::SubTree)
     child = treerender(x.child)
 
-    return Dict(
-        :head => x.head,
-        :value => get(child, :head, ""),
-        :haschildren => get(child, :haschildren, true),
-        :id => get(child, :id, -1),
-        :lazy => get(child, :lazy, true),
-        :icon => get(child, :icon, ""),
-        :canshow => false
+    return ReplWorkspaceItem(
+        x.head,
+        child.id,
+        child.haschildren,
+        child.lazy,
+        child.icon,
+        child.head,
+        false,
+        ""
     )
 end
 
 function treerender(x::Leaf)
-    return Dict(
-        :head => x.val,
-        :id => -1,
-        :value => "",
-        :haschildren => false,
-        :lazy => false,
-        :icon => x.icon,
-        :canshow => false
+    return ReplWorkspaceItem(
+        x.val,
+        -1,
+        false,
+        false,
+        x.icon,
+        "",
+        false,
+        ""
     )
 end
 

@@ -56,7 +56,7 @@ include("request_handlers.jl")
 include("display.jl")
 include("debug_cmds.jl")
 
-function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractString,Nothing} = nothing)
     conn = connect(args...)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
     run(conn_endpoint[])
