@@ -37,3 +37,6 @@
 [submodule "scripts/packages/JSONRPC"]
 	path = scripts/packages/JSONRPC
 	url = https://github.com/julia-vscode/JSONRPC.jl.git
+[submodule "scripts/packages/ChromeProfileFormat"]
+	path = scripts/packages/ChromeProfileFormat
+	url = https://github.com/julia-vscode/ChromeProfileFormat.jl.git

@@ -9,6 +9,7 @@ import { TextDocumentPositionParams } from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
+import { showProfileResult } from '../profiler'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import * as modules from './modules'
@@ -152,6 +153,7 @@ const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl
 const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('repl/showingrid')
+const notifyTypeShowProfilerResult = new rpc.NotificationType<string, void>('repl/showprofileresult')
 
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
@@ -178,6 +180,7 @@ function startREPLMsgServer(pipename: string) {
         g_connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
         g_connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
         g_connection.onNotification(notifyTypeReplStartEval, () => { })
+        g_connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
 
         g_connection.listen()
 

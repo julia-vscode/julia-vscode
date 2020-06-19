@@ -12,6 +12,7 @@ import { JuliaDebugSession } from './juliaDebug'
 import * as juliaexepath from './juliaexepath'
 import * as openpackagedirectory from './openpackagedirectory'
 import * as packagepath from './packagepath'
+import { ProfilerResultsProvider } from './profiler'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
@@ -76,6 +77,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             })
     }
+
+    vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider())
 }
 
 // this method is called when your extension is deactivated
