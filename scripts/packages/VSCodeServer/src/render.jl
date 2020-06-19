@@ -36,14 +36,21 @@ struct EvalError
 end
 
 function render(err::EvalError)
-    str = sprintlimited(err.err, err.bt, func=Base.display_error, limit=MAX_RESULT_LENGTH)
-
-    return ReplRunCodeRequestReturn(
-        strlimit(first(split(str, "\n")), limit=INLINE_RESULT_LENGTH),
-        str,
-        true
+    bt = err.bt
+    bti = find_frame_index(bt, @__FILE__, inlineeval)
+    bt = bt[1:(bti === nothing ? end : bti - 4)]
+    st = stacktrace(bt)
+    str = sprintlimited(err.err, bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
+    sf = frame.(st)
+    return Dict(
+        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
+        "all" => str,
+        "stackframe" => sf
     )
 end
+
+frame(s) = (path = fullpath(string(s.file)), line = s.line)
+
 """
     safe_render(x)
 

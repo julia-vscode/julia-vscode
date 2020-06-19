@@ -1,3 +1,9 @@
+# don't inline this so we can find it in the stacktrace
+@noinline function inlineeval(m, code, code_line, code_column, file)
+    code = string('\n' ^ code_line, ' ' ^ code_column, code)
+    return Base.invokelatest(include_string, m, code, file)
+end
+
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     source_filename = params.filename
     code_line = params.line
@@ -39,7 +45,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
 
         withpath(source_filename) do
             res = try
-                ans = Base.invokelatest(include_string, resolved_mod, '\n'^code_line * ' '^code_column *  source_code, source_filename)
+                ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename)
                 @eval Main ans = $(QuoteNode(ans))
             catch err
                 EvalError(err, catch_backtrace())
