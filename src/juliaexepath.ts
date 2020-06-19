@@ -1,38 +1,43 @@
 import { exec } from 'child-process-promise'
-import * as child_process from 'child_process'
 import * as os from 'os'
 import * as path from 'path'
 import * as process from 'process'
-import * as util from 'util'
 import * as vscode from 'vscode'
-import * as which from 'which'
 import { onDidChangeConfig } from './extension'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
-const whichAsync = util.promisify(which)
 
-let actualJuliaExePath: string = null
+let g_actualJuliaExePath: string | undefined = undefined
 
-async function setNewJuliaExePath(newPath: string) {
-    actualJuliaExePath = newPath
+async function trySetNewJuliaExePath(newPath: string) {
+    if (newPath !== g_actualJuliaExePath) {
+        try {
+            const queriedVersion = (await exec(`"${newPath}" --version`)).stdout.trim()
 
-    child_process.exec(`"${newPath}" --version`, (error, stdout, stderr) => {
-        if (error) {
-            return
+            g_actualJuliaExePath = newPath
+            setCurrentJuliaVersion(queriedVersion)
+            traceEvent('configured-new-julia-binary')
+
+            return true
         }
-        const version = stdout.trim()
-        setCurrentJuliaVersion(version)
+        catch (err) {
+            g_actualJuliaExePath = undefined
 
-        traceEvent('configured-new-julia-binary')
-    })
+            return false
+        }
+    }
 }
 
 export async function getJuliaExePath() {
-    if (actualJuliaExePath === null) {
-        if (getExecutablePath() === null) {
-            const homedir = os.homedir()
+    const homedir = os.homedir()
+
+    if (!g_actualJuliaExePath) {
+        const configuredPath = getExecutablePath()
+
+        if (configuredPath==='') {
+
             let pathsToSearch = []
             if (process.platform === 'win32') {
-                pathsToSearch = ['julia.exe',
+                pathsToSearch = ['julia',
                     path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.3', 'bin', 'julia.exe'),
                     path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.2', 'bin', 'julia.exe'),
                     path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.1', 'bin', 'julia.exe'),
@@ -67,49 +72,32 @@ export async function getJuliaExePath() {
             else {
                 pathsToSearch = ['julia']
             }
-            let foundJulia = false
+
             for (const p of pathsToSearch) {
-                try {
-                    const res = await exec(`"${p}" --startup-file=no --history-file=no -e "println(Sys.BINDIR)"`)
-                    if (p === 'julia' || p === 'julia.exe') {
-                        // use full path
-                        setNewJuliaExePath(path.join(res.stdout.trim(), p))
-                    } else {
-                        setNewJuliaExePath(p)
-                    }
-                    foundJulia = true
+                const foundJulia = await trySetNewJuliaExePath(p)
+
+                if (foundJulia) {
                     break
                 }
-                catch (e) {
-                }
-            }
-            if (!foundJulia) {
-                setNewJuliaExePath(getExecutablePath())
             }
         }
         else {
-            if (getExecutablePath().includes(path.sep)) {
-                setNewJuliaExePath(getExecutablePath().replace(/^~/, os.homedir()))
-            } else {
-                // resolve full path
-                setNewJuliaExePath(await whichAsync(getExecutablePath()))
-            }
+            await trySetNewJuliaExePath(configuredPath.replace('~', homedir))
         }
     }
-    return actualJuliaExePath
+
+    return g_actualJuliaExePath
 }
 
 function getExecutablePath() {
-    const section = vscode.workspace.getConfiguration('julia')
-    const jlpath = section ? section.get('executablePath', null) : null
-    return jlpath === '' ? null : jlpath
+    return vscode.workspace.getConfiguration('julia')?.get<string>('executablePath', '')?.trim() ?? ''
 }
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         onDidChangeConfig(event => {
             if (event.affectsConfiguration('julia.executablePath')) {
-                actualJuliaExePath = null
+                g_actualJuliaExePath = undefined
             }
         })
     )
