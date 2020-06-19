@@ -9,7 +9,6 @@ import { TextDocumentPositionParams } from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
-import * as settings from '../settings'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import * as modules from './modules'
@@ -141,7 +140,7 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     line: number,
     column: number,
     code: string,
-    module: string,
+    mod: string,
     showCodeInREPL: boolean,
     showResultInREPL: boolean
 }, void, void, void>('repl/runcode')
@@ -222,12 +221,13 @@ async function executeFile(uri?: vscode.Uri) {
             filename: path,
             line: 0,
             column: 0,
-            module: module,
+            mod: module,
             code: code,
             showCodeInREPL: false,
             showResultInREPL: false
         }
     )
+    await workspace.replFinishEval()
 }
 
 async function selectJuliaBlock() {
@@ -335,6 +335,9 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.revealRange(new vscode.Range(nextBlock, nextBlock))
         }
 
+        if (range.isEmpty) {
+            return
+        }
 
         const tempDecoration = vscode.window.createTextEditorDecorationType({
             backgroundColor: new vscode.ThemeColor('editor.hoverHighlightBackground'),
@@ -374,11 +377,12 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             line: range.start.line,
             column: range.start.character,
             code: text,
-            module: module,
+            mod: module,
             showCodeInREPL: codeInREPL,
             showResultInREPL: resultType !== 'inline'
         }
     )
+    await workspace.replFinishEval()
 
     if (resultType !== 'REPL') {
         const hoverString = '```\n' + result.all.toString() + '\n```'
@@ -444,7 +448,7 @@ export async function replStartDebugger(pipename: string) {
     g_connection.sendNotification(notifyTypeReplStartDebugger, pipename)
 }
 
-export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
+export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
     context.subscriptions.push(onSetLanguageClient(languageClient => {
