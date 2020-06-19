@@ -27,6 +27,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;
 	args?: string[];
+	console: 'integratedTerminal' | 'externalTerminal';
 }
 
 interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
@@ -271,8 +272,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	    this.runInTerminalRequest(
 	        {
-	            kind: 'integrated',
-	            // kind: 'external',
+	            kind: args.console === 'integratedTerminal' ? 'integrated' : (args.console === 'externalTerminal' ? 'external' : undefined),
 	            title: 'Julia Debugger',
 	            cwd: args.cwd,
 	            args: [

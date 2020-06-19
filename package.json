@@ -679,6 +679,14 @@
                                 "type": "string",
                                 "description": "Absolute path to the Julia environment.",
                                 "default": "${command:activeJuliaEnvironment}"
+                            },
+                            "console": {
+                                "enum": [
+                                    "integratedTerminal",
+                                    "externalTerminal"
+                                ],
+                                "description": "Where to launch the debug target: integrated terminal, or external terminal.",
+                                "default": "integratedTerminal"
                             }
                         }
                     }
@@ -691,7 +699,8 @@
                         "program": "${file}",
                         "stopOnEntry": false,
                         "cwd": "${workspaceFolder}",
-                        "juliaEnv": "${command:activeJuliaEnvironment}"
+                        "juliaEnv": "${command:activeJuliaEnvironment}",
+                        "console": "integratedTerminal"
                     }
                 ],
                 "configurationSnippets": [
@@ -703,7 +712,8 @@
                             "request": "launch",
                             "name": "${2:Launch Program}",
                             "program": "^\"\\${workspaceFolder}/${1:Program}\"",
-                            "stopOnEntry": false
+                            "stopOnEntry": false,
+                            "console": "integratedTerminal"
                         }
                     },
                     {
@@ -714,7 +724,8 @@
                             "request": "launch",
                             "name": "Launch Julia tests",
                             "program": "^\"\\${workspaceFolder}/test/runtests.jl\"",
-                            "stopOnEntry": true
+                            "stopOnEntry": true,
+                            "console": "integratedTerminal"
                         }
                     }
                 ],
