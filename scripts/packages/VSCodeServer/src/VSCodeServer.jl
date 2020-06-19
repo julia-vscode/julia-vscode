@@ -69,18 +69,7 @@ function get_variables()
         startswith(n_as_string, "#") && continue
         t = typeof(x)
 
-        rendered = treerender(x)
-
-        push!(variables, ReplWorkspaceItem(
-            get(rendered, :head, "???"),
-            get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
-            get(rendered, :haschildren, false),
-            get(rendered, :lazy, false),
-            get(rendered, :icon, ""),
-            n_as_string,
-            can_display(x)
-            string(t),
-        ))
+        push!(variables, treerender(x))
     end
 
     return variables

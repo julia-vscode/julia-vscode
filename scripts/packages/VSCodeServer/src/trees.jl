@@ -54,11 +54,11 @@ function treerender(x::SubTree)
 
     return ReplWorkspaceItem(
         x.head,
-        get(child, :head, ""),
-        get(child, :haschildren, true),
-        get(child, :id, -1),
-        get(child, :lazy, true),
-        get(child, :icon, ""),
+        child.id,
+        child.haschildren,
+        child.lazy,
+        child.icon,
+        child.head,
         false,
         ""
     )
@@ -68,10 +68,10 @@ function treerender(x::Leaf)
     return ReplWorkspaceItem(
         x.val,
         -1,
-        "",
         false,
         false,
         x.icon,
+        "",
         false,
         ""
     )
