@@ -509,61 +509,61 @@
                     "type": "integer",
                     "default": 4,
                     "description": "Indent size for formatting.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.indents": {
                     "type": "boolean",
                     "default": true,
                     "description": "Format file indents.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.ops": {
                     "type": "boolean",
                     "default": true,
                     "description": "Format whitespace around operators.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.tuples": {
                     "type": "boolean",
                     "default": true,
                     "description": "Format tuples.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.curly": {
                     "type": "boolean",
                     "default": true,
                     "description": "Format braces.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.calls": {
                     "type": "boolean",
                     "default": true,
                     "description": "Format function calls.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.iterOps": {
                     "type": "boolean",
                     "default": true,
                     "description": "Format loop iterators.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.comments": {
                     "type": "boolean",
                     "default": true,
                     "description": "Format comments.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.docs": {
                     "type": "boolean",
                     "default": true,
                     "description": "Format inline documentation.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.keywords": {
                     "type": "bool",
                     "default": true,
                     "description": "Ensure single spacing following keywords.",
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.format.kwarg": {
                     "type": "string",
@@ -574,7 +574,7 @@
                         "single",
                         "off"
                     ],
-                    "scope": "window"
+                    "scope": "resource"
                 },
                 "julia.execution.resultType": {
                     "type": "string",
