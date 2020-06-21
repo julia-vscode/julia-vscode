@@ -185,18 +185,25 @@ async function startLanguageServer() {
         }
     })
 
-    // Push the disposable to the context's subscriptions so that the
-    // client can be deactivated on extension deactivation
+    const disposable = vscode.commands.registerCommand('language-julia.showLanguageServerOutput', () => {
+        languageClient.outputChannel.show(true)
+    })
     try {
+        // Push the disposable to the context's subscriptions so that the  client can be deactivated on extension deactivation
         g_context.subscriptions.push(languageClient.start())
+        startupNotification.command = 'language-julia.showLanguageServerOutput'
         languageClient.onReady().then(() => {
             setLanguageClient(languageClient)
+        }).finally(() => {
+            disposable.dispose()
             startupNotification.dispose()
         })
     }
     catch (e) {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.')
         setLanguageClient()
+        disposable.dispose()
+        startupNotification.dispose()
     }
 }
 
