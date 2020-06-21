@@ -31,46 +31,50 @@ const MAX_PARTITION_LENGTH = 20
 treeid() = (ID[] += 1)
 
 pluralize(n::Int, one, more = one) = string(n, " ", n == 1 ? one : more)
+pluralize(::Tuple{}, one, more = one) = string(0, " ", more)
 pluralize(n, one, more = one) = string(length(n) > 1 ? join(n, '×') : first(n), " ", prod(n) == 1 ? one : more)
 
 function treerender(x::LazyTree)
     id = treeid()
     TREES[id] = x
 
-    return Dict(
-        :head => x.head,
-        :id => id,
-        :haschildren => !(x.isempty),
-        :lazy => true,
-        :icon => x.icon,
-        :value => "",
-        :canshow => false
+    return ReplWorkspaceItem(
+        x.head,
+        id,
+        !(x.isempty),
+        true,
+        x.icon,
+        "",
+        false,
+        ""
     )
 end
 
 function treerender(x::SubTree)
     child = treerender(x.child)
 
-    return Dict(
-        :head => x.head,
-        :value => get(child, :head, ""),
-        :haschildren => get(child, :haschildren, true),
-        :id => get(child, :id, -1),
-        :lazy => get(child, :lazy, true),
-        :icon => get(child, :icon, ""),
-        :canshow => false
+    return ReplWorkspaceItem(
+        x.head,
+        child.id,
+        child.haschildren,
+        child.lazy,
+        child.icon,
+        child.head,
+        false,
+        ""
     )
 end
 
 function treerender(x::Leaf)
-    return Dict(
-        :head => x.val,
-        :id => -1,
-        :value => "",
-        :haschildren => false,
-        :lazy => false,
-        :icon => x.icon,
-        :canshow => false
+    return ReplWorkspaceItem(
+        x.val,
+        -1,
+        false,
+        false,
+        x.icon,
+        "",
+        false,
+        ""
     )
 end
 
@@ -165,8 +169,9 @@ function get_lazy(id::Int)
             return ["[out of date result]"]
         end
     catch err
-        @error exception = (err, catch_backtrace())
-        return ["nope"]
+        printstyled("Internal Error: ", bold = true, color = Base.error_color())
+        Base.display_error(err, catch_backtrace())
+        return []
     end
 end
 
