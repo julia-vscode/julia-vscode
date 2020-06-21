@@ -5,7 +5,7 @@ import { notifyTypeReplFinishEval, notifyTypeReplShowInGrid, onExit, onInit } fr
 let g_connection: rpc.MessageConnection = null
 
 interface WorkspaceVariable {
-    name: string,
+    head: string,
     type: string,
     value: string,
     id: number,
@@ -22,15 +22,7 @@ const requestTypeGetVariables = new rpc.RequestType<
 
 const requestTypeGetLazy = new rpc.RequestType<
     number,
-    {
-        lazy: boolean,
-        id: number,
-        head: string,
-        haschildren: boolean,
-        value: string,
-        canshow: boolean,
-        icon: string
-    }[],
+    WorkspaceVariable[],
     void, void>('repl/getlazy')
 
 let g_replVariables: WorkspaceVariable[] = []
@@ -50,16 +42,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
             const out: WorkspaceVariable[] = []
 
             for (const c of children) {
-                out.push({
-                    name: c.head,
-                    type: '',
-                    value: c.value,
-                    id: c.id,
-                    lazy: c.lazy,
-                    haschildren: c.haschildren,
-                    canshow: c.canshow,
-                    icon: c.icon
-                })
+                out.push(c)
             }
 
             return out
@@ -70,7 +53,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
     }
 
     getTreeItem(node: WorkspaceVariable): vscode.TreeItem {
-        const treeItem = new vscode.TreeItem(node.name)
+        const treeItem = new vscode.TreeItem(node.head)
         treeItem.description = node.value
         treeItem.tooltip = node.type
         treeItem.contextValue = node.canshow ? 'globalvariable' : ''
@@ -93,7 +76,7 @@ export async function replFinishEval() {
 }
 
 async function showInVSCode(node: WorkspaceVariable) {
-    g_connection.sendNotification(notifyTypeReplShowInGrid, node.name)
+    g_connection.sendNotification(notifyTypeReplShowInGrid, node.head)
 }
 
 export function activate(context: vscode.ExtensionContext) {

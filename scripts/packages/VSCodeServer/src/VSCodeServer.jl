@@ -25,9 +25,7 @@ module JSONRPC
     import ..JSON
     import ..UUIDs
 
-    include("../../JSONRPC/src/core.jl")
-    include("../../JSONRPC/src/typed.jl")
-    include("../../JSONRPC/src/interface_def.jl")
+    include("../../JSONRPC/src/packagedef.jl")
 end
 
 module JuliaInterpreter

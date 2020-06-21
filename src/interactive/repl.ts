@@ -44,7 +44,7 @@ function get_editor(): string {
     }
 }
 
-async function startREPL(preserveFocus: boolean) {
+async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (g_terminal === null) {
         const pipename = generatePipeName(process.pid.toString(), 'vsc-julia-repl')
         const args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
@@ -108,7 +108,7 @@ async function startREPL(preserveFocus: boolean) {
         g_terminal.show(preserveFocus)
         await juliaIsConnectedPromise.wait()
     }
-    else {
+    else if (showTerminal) {
         g_terminal.show(preserveFocus)
     }
 }
@@ -194,7 +194,7 @@ function startREPLMsgServer(pipename: string) {
 async function executeFile(uri?: vscode.Uri) {
     telemetry.traceEvent('command-executeFile')
 
-    await startREPL(true)
+    await startREPL(true, false)
 
     let module = 'Main'
     let path = ''
@@ -263,7 +263,7 @@ const g_cellDelimiter = new RegExp('^##(?!#)')
 async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell')
 
-    await startREPL(true)
+    await startREPL(true, false)
 
     const ed = vscode.window.activeTextEditor
     const doc = ed.document
@@ -304,7 +304,7 @@ async function executeCell(shouldMove: boolean = false) {
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCodeBlockOrSelection')
 
-    await startREPL(true)
+    await startREPL(true, false)
 
     const editor = vscode.window.activeTextEditor
     const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString())
@@ -401,12 +401,12 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     }
 }
 
-async function executeCodeCopyPaste(text, individualLine) {
+async function executeCodeCopyPaste(text: string, individualLine: boolean) {
     if (!text.endsWith('\n')) {
         text = text + '\n'
     }
 
-    await startREPL(true)
+    await startREPL(true, true)
 
     let lines = text.split(/\r?\n/)
     lines = lines.filter(line => line !== '')

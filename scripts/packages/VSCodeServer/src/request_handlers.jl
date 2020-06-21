@@ -88,22 +88,14 @@ function repl_getvariables_request(conn, params::Nothing)
         x === VSCodeServer && continue
         x === Main && continue
 
-        n_as_string = string(n)
-        startswith(n_as_string, "#") && continue
-        t = typeof(x)
-
-        rendered = treerender(x)
-
-        push!(variables, ReplGetVariablesRequestReturn(
-            string(t),
-            get(rendered, :head, "???"),
-            n_as_string,
-            get(rendered, :id, get(get(rendered, :child, Dict()), :id, false)),
-            get(rendered, :haschildren, false),
-            get(rendered, :lazy, false),
-            get(rendered, :icon, ""),
-            can_display(x)
-        ))
+        s = string(n)
+        startswith(s, "#") && continue
+        try
+            push!(variables, treerender(SubTree(s, wsicon(x), x)))
+        catch err
+            printstyled("Internal Error: ", bold = true, color = Base.error_color())
+            Base.display_error(err, catch_backtrace())
+        end
     end
 
     return variables
