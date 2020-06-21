@@ -180,7 +180,15 @@ function pkgload(pkg)
     end
 end
 
+function repl_showingrid_notification(conn, params::String)
+    try
+        var = Core.eval(Main, Meta.parse(params))
 
+        Base.invokelatest(internal_vscodedisplay, var)
+    catch err
+        Base.display_error(err, catch_backtrace())
+    end
+end
 
 function internal_vscodedisplay(x)
     if showable("application/vnd.dataresource+json", x)
