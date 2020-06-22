@@ -23,7 +23,7 @@ include("../../CodeTracking/src/CodeTracking.jl")
 
 module JSONRPC
     import ..JSON
-    import ..UUIDs
+    import UUIDs
 
     include("../../JSONRPC/src/packagedef.jl")
 end
@@ -36,8 +36,11 @@ end
 
 module DebugAdapter
     import ..JuliaInterpreter
+    import ..JSON
+    import ..JSONRPC
+    import ..JSONRPC: @dict_readable, Outbound
 
-    include("../../DebugAdapter/src/packagedef.jl")
+    include("../../DebugAdapter2/src/packagedef.jl")
 end
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
