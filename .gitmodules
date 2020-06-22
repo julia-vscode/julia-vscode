@@ -38,5 +38,5 @@
 	path = scripts/packages/JSONRPC
 	url = https://github.com/julia-vscode/JSONRPC.jl.git
 [submodule "scripts/packages/DebugAdapter"]
-	path = scripts/packages/DebugAdapter
+	path = scripts/packages/DebugAdapter2
 	url = https://github.com/julia-vscode/DebugAdapter.jl.git
