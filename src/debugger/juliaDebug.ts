@@ -9,7 +9,7 @@ import { createMessageConnection, Disposable, MessageConnection, StreamMessageRe
 import { replStartDebugger } from '../interactive/repl'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
-import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinised, notifyTypeOurStopped, notifyTypeRun, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepOut, requestTypeTerminate, requestTypeVariables } from './debugProtocol'
+import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinised, notifyTypeRun, notifyTypeStopped, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepOut, requestTypeTerminate, requestTypeVariables } from './debugProtocol'
 
 /**
  * This interface describes the Julia specific launch attributes
@@ -129,15 +129,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	    this._configurationDone.notify()
 	}
 
-	protected ourStoppedEvent(params: { reason: string, payload?: string }) {
-	    if (params.reason === 'exception') {
-	        this.sendEvent(new StoppedEvent('exception', JuliaDebugSession.THREAD_ID, params.payload))
-	    }
-	    else {
-	        this.sendEvent(new StoppedEvent(params.reason, JuliaDebugSession.THREAD_ID))
-	    }
-	}
-
 	protected ourFinishedEvent() {
 	    this._no_need_for_force_kill = true
 	    this.sendEvent(new TerminatedEvent())
@@ -156,7 +147,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	            new StreamMessageWriter(socket)
 	        )
 
-	        this._connection.onNotification(notifyTypeOurStopped, this.ourStoppedEvent)
+	        this._connection.onNotification(notifyTypeStopped, (params) => this.sendEvent(new StoppedEvent(params.reason, params.threadId, params.text)))
 	        this._connection.onNotification(notifyTypeOurFinised, this.ourFinishedEvent)
 
 	        this._connection.listen()
@@ -209,7 +200,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	            new StreamMessageWriter(socket)
 	        )
 
-	        this._connection.onNotification(notifyTypeOurStopped, this.ourStoppedEvent)
+	        this._connection.onNotification(notifyTypeStopped, (params) => this.sendEvent(new StoppedEvent(params.reason, params.threadId, params.text)))
 	        this._connection.onNotification(notifyTypeOurFinised, this.ourFinishedEvent)
 
 	        this._connection.listen()
@@ -330,7 +321,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	    this.sendResponse(response)
 	}
 
-	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request) {
+	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments) {
 	    response.body = await this._connection.sendRequest(requestTypeVariables, args)
 	    this.sendResponse(response)
 	}

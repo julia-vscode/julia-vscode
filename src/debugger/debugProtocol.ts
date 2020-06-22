@@ -145,7 +145,7 @@ interface SetVariableResponseArguments {
     indexedVariables?: number;
 }
 
-interface StoppedArguments {
+export interface StoppedArguments {
     /** The reason for the event.
         For backward compatibility this string is shown in the UI if the 'description' attribute is missing (but it must not be translated).
         Values: 'step', 'breakpoint', 'exception', 'pause', 'entry', 'goto', 'function breakpoint', 'data breakpoint', 'instruction breakpoint', etc.
@@ -175,7 +175,7 @@ export const requestTypeScopes = new RequestType<DebugProtocol.ScopesArguments, 
 export const requestTypeSource = new RequestType<DebugProtocol.SourceArguments, SourceResponseArguments, void, void>('source')
 export const requestTypeVariables = new RequestType<DebugProtocol.VariablesArguments, VariablesResponseArguments, void, void>('variables')
 export const requestTypeContinue = new RequestType<DebugProtocol.ContinueArguments,ContinueResponseArguments,void,void>('continue')
-export const requestTypeNext = new RequestType<DebugProtocol.NextArguments,NextResponseArguments,void,void>('Next')
+export const requestTypeNext = new RequestType<DebugProtocol.NextArguments,NextResponseArguments,void,void>('next')
 export const requestTypeStepIn = new RequestType<DebugProtocol.StepInArguments,StepInResponseArguments,void,void>('stepIn')
 export const requestTypeStepOut = new RequestType<DebugProtocol.StepOutArguments,StepOutResponseArguments,void,void>('stepOut')
 export const requestTypeEvaluate = new RequestType<DebugProtocol.EvaluateArguments, EvaluateResponseArguments, void, void>('evaluate')
@@ -186,6 +186,5 @@ export const requestTypeSetVariable = new RequestType<DebugProtocol.SetVariableA
 export const notifyTypeRun = new NotificationType<string, void>('run')
 export const notifyTypeDebug = new NotificationType<{ stopOnEntry: boolean, program: string }, void>('debug')
 export const notifyTypeExec = new NotificationType<{ stopOnEntry: boolean, code: string }, void>('exec')
-export const notifyTypeOurStopped = new NotificationType<{ reason: string, payload?: string }, void>('ourStopped')
 export const notifyTypeOurFinised = new NotificationType<void, void>('ourFinished')
 export const notifyTypeStopped = new NotificationType<StoppedArguments, void>('stopped')
