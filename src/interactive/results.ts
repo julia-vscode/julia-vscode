@@ -2,6 +2,14 @@ import * as vscode from 'vscode'
 
 const LINE_INF = 9999
 
+export enum GlyphChars {
+    MuchLessThan = '\u226A',
+    LessThan = '\u003C',
+    GreaterThan = '\u003E',
+    MuchGreaterThan = '\u226B',
+    BallotX = '\u2717'
+}
+
 interface ResultContent {
     isIcon: boolean,
     content: string,
@@ -148,12 +156,27 @@ export class Result {
 const results: Result[] = []
 
 export function activate(context) {
-    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)))
-    context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors((editors) => refreshResults(editors)))
+    context.subscriptions.push(
+        // subscriptions
+        vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)),
+        vscode.window.onDidChangeVisibleTextEditors((editors) => refreshResults(editors)),
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.clearAllInlineResults', removeAll))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.clearCurrentInlineResult', () => removeCurrent(vscode.window.activeTextEditor)))
+        // public commands
+        vscode.commands.registerCommand('language-julia.clearAllInlineResults', removeAll),
+        vscode.commands.registerCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
+        vscode.commands.registerCommand('language-julia.clearCurrentInlineResult', () => removeCurrent(vscode.window.activeTextEditor)),
+
+        // internal commands
+        vscode.commands.registerCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
+        vscode.commands.registerCommand('language-julia.gotoPreviousFrame', (frameArg: { frame: Frame }) => {
+            gotoPreviousFrame(frameArg.frame)
+        }),
+        vscode.commands.registerCommand('language-julia.gotoNextFrame', (frameArg: { frame: Frame }) => {
+            gotoNextFrame(frameArg.frame)
+        }),
+        vscode.commands.registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
+        vscode.commands.registerCommand('language-julia.clearStackTrace', clearStackTrace)
+    )
 }
 
 export function deactivate() { }
@@ -223,11 +246,31 @@ function addErrorResult(err: string, frame: Frame, editor: vscode.TextEditor) {
     const resultContent = {
         content: '',
         isIcon: false,
-        hoverContent: err,
+        hoverContent: commandString(err, frame),
         isError: true
     }
     const range = new vscode.Range(new vscode.Position(frame.line - 1, 0), new vscode.Position(frame.line - 1, LINE_INF))
     return new Result(editor, range, resultContent)
+}
+
+function commandString(err: string, frame: Frame) {
+    const frameArg = encodeURIComponent(JSON.stringify({ frame }))
+    const gotoFirstFrameCommand = vscode.Uri.parse(`command:language-julia.gotoFirstFrame`)
+    const gotoPreviousFrameCommand = vscode.Uri.parse(`command:language-julia.gotoPreviousFrame?${frameArg}`)
+    const gotoNextFrameCommand = vscode.Uri.parse(`command:language-julia.gotoNextFrame?${frameArg}`)
+    const gotoLastFrameCommand = vscode.Uri.parse(`command:language-julia.gotoLastFrame`)
+    const clearStackTraceCommand = vscode.Uri.parse(`command:language-julia.clearStackTrace`)
+    const content = [
+        `[\`${GlyphChars.MuchLessThan}\`](${gotoFirstFrameCommand} "Goto First Frame")`,
+        `[\`${GlyphChars.LessThan}\`](${gotoPreviousFrameCommand} "Goto Previous Frame")`,
+        `[\`${GlyphChars.GreaterThan}\`](${gotoNextFrameCommand} "Goto Next Frame")`,
+        `[\`${GlyphChars.MuchGreaterThan}\`](${gotoLastFrameCommand} "Goto Last Frame")`,
+        `[\`${GlyphChars.BallotX}\`](${clearStackTraceCommand} "Clear Stack Traces")`,
+        `\n${err}`
+    ].join(' ')
+    const hoverContent = new vscode.MarkdownString(content)
+    hoverContent.isTrusted = true // for inline commands
+    return hoverContent
 }
 
 export function refreshResults(editors: vscode.TextEditor[]) {
@@ -273,5 +316,45 @@ export function removeCurrent(editor: vscode.TextEditor) {
             return result.document === editor.document && intersect !== undefined
         }
         results.filter(isvalid).forEach(removeResult)
+    })
+}
+
+// goto frame utilties
+
+function gotoFirstFrame() {
+    gotoFrame(stackFrameHighlights.highlights[0].frame)
+}
+
+function gotoPreviousFrame(frame: Frame) {
+    const i = findFrameIndex(frame)
+    if (i < 1) {return}
+    gotoFrame(stackFrameHighlights.highlights[i-1].frame)
+}
+
+function gotoNextFrame(frame: Frame) {
+    const i = findFrameIndex(frame)
+    if (i === -1 || i >= stackFrameHighlights.highlights.length - 1) {return}
+    gotoFrame(stackFrameHighlights.highlights[i + 1].frame)
+}
+
+function gotoLastFrame() {
+    gotoFrame(stackFrameHighlights.highlights[stackFrameHighlights.highlights.length-1].frame)
+}
+
+function findFrameIndex(frame: Frame) {
+    return stackFrameHighlights.highlights.findIndex(highlight => {
+        return highlight.frame.path === frame.path && highlight.frame.line === frame.line
+    })
+}
+
+async function gotoFrame(frame: Frame) {
+    const start = new vscode.Position(frame.line - 1, 0)
+    const end = new vscode.Position(frame.line - 1, 0)
+    const range = new vscode.Range(start, end)
+    const uri = vscode.Uri.file(frame.path)
+    const document = await vscode.workspace.openTextDocument(uri)
+    return vscode.window.showTextDocument(document, {
+        preview: true,
+        selection: range,
     })
 }
