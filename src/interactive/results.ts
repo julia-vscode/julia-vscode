@@ -190,7 +190,7 @@ export function addResult(editor: vscode.TextEditor, range: vscode.Range, conten
     return result
 }
 
-interface Frame {
+export interface Frame {
     path: string,
     line: number
 }

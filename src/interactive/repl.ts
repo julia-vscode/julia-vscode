@@ -14,6 +14,7 @@ import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
+import { Frame } from './results'
 import * as workspace from './workspace'
 
 
@@ -135,6 +136,12 @@ function debuggerEnter(code: string) {
     vscode.debug.startDebugging(undefined, x)
 }
 
+interface ReturnResult {
+    inline: string,
+    all: string,
+    stackframe: null | Array<Frame>
+}
+
 const requestTypeReplRunCode = new rpc.RequestType<{
     filename: string,
     line: number,
@@ -143,7 +150,7 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     mod: string,
     showCodeInREPL: boolean,
     showResultInREPL: boolean
-}, void, void, void>('repl/runcode')
+}, ReturnResult, void, void>('repl/runcode')
 
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display')
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter')
@@ -370,7 +377,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         })
     }
 
-    const result: any = await g_connection.sendRequest(
+    const result: ReturnResult = await g_connection.sendRequest(
         requestTypeReplRunCode,
         {
             filename: editor.document.fileName,
@@ -385,19 +392,17 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     await workspace.replFinishEval()
 
     if (resultType !== 'REPL') {
-        const hoverString = '```\n' + result.all.toString() + '\n```'
         if (result.stackframe) {
-            results.setStackTrace(r, hoverString, result.stackframe)
+            results.setStackTrace(r, result.all, result.stackframe)
         } else {
             results.clearStackTrace()
         }
-        const resultContent = {
-            content: ' ' + result.inline.toString() + ' ',
+        r.setContent({
+            content: ' ' + result.inline + ' ',
             isIcon: false,
-            hoverContent: hoverString,
+            hoverContent: result.all,
             isError: false
-        }
-        r.setContent(resultContent)
+        })
     }
 }
 

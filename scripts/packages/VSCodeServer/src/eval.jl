@@ -99,24 +99,22 @@ end
 """
     render(x)
 
-Produce a representation of `x` that can be displayed by a UI. Must return a dictionary with
-the following fields:
-- `inline`: Short one-line plain text representation of `x`. Typically limited to `INLINE_RESULT_LENGTH` characters.
-- `all`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
-- `iserr`: Boolean. The frontend may style the UI differently depending on this value.
+Produce a representation of `x` that can be displayed by a UI.
+Must return a `ReplRunCodeRequestReturn` with the following fields:
+- `inline::String`: Short one-line plain text representation of `x`. Typically limited to `INLINE_RESULT_LENGTH` characters.
+- `all::String`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
+- `stackframe::Vector{Frame}`: Optional, should only be given on an error
 """
 function render(x)
     str = sprintlimited(MIME"text/plain"(), x, limit=MAX_RESULT_LENGTH)
-
-    return ReplRunCodeRequestReturn(
-        strlimit(first(split(str, "\n")), limit=INLINE_RESULT_LENGTH),
-        str
-    )
+    inline = strlimit(first(split(str, "\n")), limit=INLINE_RESULT_LENGTH)
+    all = codeblock(str)
+    return ReplRunCodeRequestReturn(inline, all)
 end
 
-function render(::Nothing)
-    return ReplRunCodeRequestReturn("✓", "nothing")
-end
+render(::Nothing) = ReplRunCodeRequestReturn("✓", codeblock("nothing"))
+
+codeblock(s) = string("```julia", '\n', s, '\n', "```")
 
 struct EvalError
     err
@@ -129,9 +127,8 @@ function render(err::EvalError)
     bt = bt[1:(i === nothing ? end : i - 4)]
     st = stacktrace(bt)
     str = sprintlimited(err.err, bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
-    return ReplRunCodeRequestReturn(
-        strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
-        str,
-        Frame.(st)
-    )
+    inline = strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH)
+    all = codeblock(str) # TODO: do markdown stuff here
+    stackframe = Frame.(st)
+    return ReplRunCodeRequestReturn(inline, all, stackframe)
 end
