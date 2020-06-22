@@ -1,3 +1,14 @@
+function repl_startdebugger_request(conn, params::String, crashreporting_pipename)
+    hideprompt() do
+        debug_pipename = params
+        try
+            DebugAdapter.startdebug(debug_pipename)
+        catch err
+            DebugAdapter.global_err_handler(err, catch_backtrace(), crashreporting_pipename, "Debugger")
+        end
+    end
+end
+
 function remove_lln!(ex::Expr)
     for i in length(ex.args):-1:1
         if ex.args[i] isa LineNumberNode
