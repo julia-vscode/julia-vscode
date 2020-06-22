@@ -1,0 +1,16 @@
+name = "DebugAdapter"
+uuid = "b9dc54e9-555d-4545-8d72-fb33852127ad"
+version = "0.1.0"
+
+[deps]
+JuliaInterpreter = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+julia = "1"
+JuliaInterpreter = "0.7.22"
+
+[targets]
+test = ["Test"]
