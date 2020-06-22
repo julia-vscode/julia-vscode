@@ -160,19 +160,33 @@ function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
     return out
 end
 
-function get_lazy(id::Int)
-    try
-        if haskey(TREES, id)
-            x = [Base.invokelatest(treerender, x) for x in Base.invokelatest(pop!(TREES, id).children)]
-            return x
-        else
-            return ["[out of date result]"]
+# workspace
+
+function repl_getvariables_request(conn, params::Nothing)
+    M = Main
+    variables = []
+    clear_lazy()
+
+    for n in names(M, all=true, imported=true)
+        !isdefined(M, n) && continue
+        Base.isdeprecated(M, n) && continue
+
+        x = getfield(M, n)
+        x === vscodedisplay && continue
+        x === VSCodeServer && continue
+        x === Main && continue
+
+        s = string(n)
+        startswith(s, "#") && continue
+        try
+            push!(variables, treerender(SubTree(s, wsicon(x), x)))
+        catch err
+            printstyled("Internal Error: ", bold = true, color = Base.error_color())
+            Base.display_error(err, catch_backtrace())
         end
-    catch err
-        printstyled("Internal Error: ", bold = true, color = Base.error_color())
-        Base.display_error(err, catch_backtrace())
-        return []
     end
+
+    return variables
 end
 
 function clear_lazy(ids = [])
@@ -194,3 +208,22 @@ wsicon(::AbstractArray) = "symbol-array"
 wsicon(::Type) = "symbol-structure"
 wsicon(::AbstractDict) = "symbol-enum"
 wsicon(::Exception) = "warning"
+
+# handle lazy clicks
+
+repl_getlazy_request(conn, params::Int) = get_lazy(params)
+
+function get_lazy(id::Int)
+    try
+        if haskey(TREES, id)
+            x = [Base.invokelatest(treerender, x) for x in Base.invokelatest(pop!(TREES, id).children)]
+            return x
+        else
+            return ["[out of date result]"]
+        end
+    catch err
+        printstyled("Internal Error: ", bold = true, color = Base.error_color())
+        Base.display_error(err, catch_backtrace())
+        return []
+    end
+end

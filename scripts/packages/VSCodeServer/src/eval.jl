@@ -1,8 +1,5 @@
-# don't inline this so we can find it in the stacktrace
-@noinline function inlineeval(m, code, code_line, code_column, file)
-    code = string('\n' ^ code_line, ' ' ^ code_column, code)
-    return Base.invokelatest(include_string, m, code, file)
-end
+const INLINE_RESULT_LENGTH = 100
+const MAX_RESULT_LENGTH = 10_000
 
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     source_filename = params.filename
@@ -74,68 +71,75 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     return rendered_result
 end
 
-function repl_getvariables_request(conn, params::Nothing)
-    M = Main
-    variables = []
-    clear_lazy()
-
-    for n in names(M, all=true, imported=true)
-        !isdefined(M, n) && continue
-        Base.isdeprecated(M, n) && continue
-
-        x = getfield(M, n)
-        x === vscodedisplay && continue
-        x === VSCodeServer && continue
-        x === Main && continue
-
-        s = string(n)
-        startswith(s, "#") && continue
-        try
-            push!(variables, treerender(SubTree(s, wsicon(x), x)))
-        catch err
-            printstyled("Internal Error: ", bold = true, color = Base.error_color())
-            Base.display_error(err, catch_backtrace())
-        end
-    end
-
-    return variables
+# don't inline this so we can find it in the stacktrace
+@noinline function inlineeval(m, code, code_line, code_column, file)
+    code = string('\n' ^ code_line, ' ' ^ code_column, code)
+    return Base.invokelatest(include_string, m, code, file)
 end
 
-function repl_getlazy_request(conn, params::Int)
-    res = get_lazy(params)
+"""
+    safe_render(x)
 
-    return res
-end
-
-function repl_showingrid_notification(conn, params::String)
+Calls `render`, but catches errors in the display system.
+"""
+function safe_render(x)
     try
-        var = Core.eval(Main, Meta.parse(params))
-
-        Base.invokelatest(internal_vscodedisplay, var)
+        return render(x)
     catch err
-        Base.display_error(err, catch_backtrace())
+        out = render(EvalError(err, catch_backtrace()))
+
+        return ReplRunCodeRequestReturn(
+            string("Display Error: ", out.inline),
+            string("Display Error: ", out.all),
+            out.iserr
+        )
     end
 end
 
-function repl_loadedModules_request(conn, params::Nothing)
-    res = string.(collect(get_modules()))
+"""
+    render(x)
 
-    return res
+Produce a representation of `x` that can be displayed by a UI. Must return a dictionary with
+the following fields:
+- `inline`: Short one-line plain text representation of `x`. Typically limited to `INLINE_RESULT_LENGTH` characters.
+- `all`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
+- `iserr`: Boolean. The frontend may style the UI differently depending on this value.
+"""
+function render(x)
+    str = sprintlimited(MIME"text/plain"(), x, limit=MAX_RESULT_LENGTH)
+
+    return ReplRunCodeRequestReturn(
+        strlimit(first(split(str, "\n")), limit=INLINE_RESULT_LENGTH),
+        str,
+        false
+    )
 end
 
-function repl_isModuleLoaded_request(conn, params::String)
-    is_loaded = is_module_loaded(params)
-
-    return is_loaded
+function render(::Nothing)
+    return ReplRunCodeRequestReturn(
+        "✓",
+        "nothing",
+        false
+    )
 end
 
-function repl_startdebugger_request(conn, params::String, crashreporting_pipename)
-    hideprompt() do
-        debug_pipename = params
-        try
-            DebugAdapter.startdebug(debug_pipename)
-        catch err
-            DebugAdapter.global_err_handler(err, catch_backtrace(), crashreporting_pipename, "Debugger")
-        end
-    end
+struct EvalError
+    err
+    bt
 end
+
+function render(err::EvalError)
+    bt = err.bt
+    bti = find_frame_index(bt, @__FILE__, inlineeval)
+    bt = bt[1:(bti === nothing ? end : bti - 4)]
+    st = stacktrace(bt)
+    str = sprintlimited(err.err, bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
+    sf = frame.(st)
+    return Dict(
+        "inline" => strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH),
+        "all" => str,
+        "stackframe" => sf
+    )
+end
+
+frame(s) = (path = fullpath(string(s.file)), line = s.line)
