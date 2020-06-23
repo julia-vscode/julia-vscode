@@ -389,10 +389,12 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     if (resultType !== 'REPL') {
         if (result.stackframe) {
             results.setStackTrace(r, result.all, result.stackframe)
+            // no need to show details here because the inline error display adds them anyways:
+            r.setContent(results.resultContent(' ' + result.inline + ' ', ''))
         } else {
             results.clearStackTrace()
+            r.setContent(results.resultContent(' ' + result.inline + ' ', result.all))
         }
-        r.setContent(results.resultContent(' ' + result.inline + ' ', result.all))
     }
 }
 
