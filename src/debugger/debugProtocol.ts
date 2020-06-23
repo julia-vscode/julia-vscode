@@ -1,5 +1,5 @@
 import { DebugProtocol } from 'vscode-debugprotocol'
-import { NotificationType, RequestType } from 'vscode-jsonrpc'
+import { NotificationType, RequestType, RequestType0 } from 'vscode-jsonrpc'
 
 /** Arguments for 'disconnect' response. */
 interface DisconnectResponseArguments {
@@ -166,6 +166,16 @@ export interface StoppedArguments {
     allThreadsStopped?: boolean;
 }
 
+interface ThreadsResponseArguments {
+    /** All threads. */
+    threads: DebugProtocol.Thread[];
+}
+
+interface BreakpointLocationsResponseArguments {
+    /** Sorted set of possible breakpoint locations. */
+    breakpoints: DebugProtocol.BreakpointLocation[];
+}
+
 export const requestTypeDisconnect = new RequestType<DebugProtocol.DisconnectArguments, DisconnectResponseArguments, void, void>('disconnect')
 export const requestTypeSetBreakpoints = new RequestType<DebugProtocol.SetBreakpointsArguments, SetBreakpointsResponseArguments, void, void>('setBreakpoints')
 export const requestTypeSetExceptionBreakpoints = new RequestType<DebugProtocol.SetExceptionBreakpointsArguments, SetExceptionBreakpointsResponseArguments, void, void>('setExceptionBreakpoints')
@@ -183,6 +193,8 @@ export const requestTypeTerminate = new RequestType<DebugProtocol.TerminateArgum
 export const requestTypeExceptionInfo = new RequestType<DebugProtocol.ExceptionInfoArguments, ExceptionInfoResponseArguments, void, void>('exceptionInfo')
 export const requestTypeRestartFrame = new RequestType<DebugProtocol.RestartFrameArguments,RestartFrameResponseArguments,void,void>('restartFrame')
 export const requestTypeSetVariable = new RequestType<DebugProtocol.SetVariableArguments, SetVariableResponseArguments, void, void>('setVariable')
+export const requestTypeThreads = new RequestType0<ThreadsResponseArguments, void, void>('threads')
+export const requestTypeBreakpointLocations = new RequestType<DebugProtocol.BreakpointLocationsArguments, BreakpointLocationsResponseArguments, void, void>('breakpointLocations')
 export const notifyTypeRun = new NotificationType<string, void>('run')
 export const notifyTypeDebug = new NotificationType<{ stopOnEntry: boolean, program: string }, void>('debug')
 export const notifyTypeExec = new NotificationType<{ stopOnEntry: boolean, code: string }, void>('exec')

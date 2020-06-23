@@ -3,13 +3,13 @@ import * as net from 'net'
 import { join } from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
-import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, TerminatedEvent, Thread } from 'vscode-debugadapter'
+import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, TerminatedEvent } from 'vscode-debugadapter'
 import { DebugProtocol } from 'vscode-debugprotocol'
 import { createMessageConnection, Disposable, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc'
 import { replStartDebugger } from '../interactive/repl'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
-import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinised, notifyTypeRun, notifyTypeStopped, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepOut, requestTypeTerminate, requestTypeVariables } from './debugProtocol'
+import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinised, notifyTypeRun, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables } from './debugProtocol'
 
 /**
  * This interface describes the Julia specific launch attributes
@@ -35,10 +35,6 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 }
 
 export class JuliaDebugSession extends LoggingDebugSession {
-
-	// we don't support multiple threads, so we can use a hardcoded ID for the default thread
-	private static THREAD_ID = 1;
-
 	private _configurationDone = new Subject();
 
 	private _debuggeeTerminal: vscode.Terminal;
@@ -274,6 +270,53 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	    this.sendResponse(response)
 	}
 
+	protected async terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments) {
+	    if (this._launchedWithoutDebug) {
+	        this._debuggeeWrapperSocket.write('TERMINATE\n')
+	        this.sendEvent(new TerminatedEvent())
+	    }
+	    else {
+	        response.body = await this._connection.sendRequest(requestTypeTerminate, args)
+	    }
+	    this.sendResponse(response)
+	}
+
+	protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments) {
+	    if (this._launchMode) {
+	        if (!this._no_need_for_force_kill) {
+	            this._debuggeeWrapperSocket.write('TERMINATE\n')
+	        }
+	    }
+	    else {
+	        response.body = await this._connection.sendRequest(requestTypeDisconnect, args)
+	    }
+
+	    this.sendResponse(response)
+	}
+
+	// Pure relay below
+
+	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments) {
+	    try {
+	        response.body = await this._connection.sendRequest(requestTypeSetVariable, args)
+	    }
+	    catch (err) {
+	        response.success = false
+	        response.message = err.message
+	    }
+	    this.sendResponse(response)
+	}
+
+	protected async breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments) {
+	    response.body = await this._connection.sendRequest(requestTypeBreakpointLocations, args)
+	    this.sendResponse(response)
+	}
+
+	protected async threadsRequest(response: DebugProtocol.ThreadsResponse) {
+	    response.body = await this._connection.sendRequest(requestTypeThreads)
+	    this.sendResponse(response)
+	}
+
 	protected async setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments) {
 	    response.body = await this._connection.sendRequest(requestTypeSetBreakpoints, args)
 	    this.sendResponse(response)
@@ -285,55 +328,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	}
 
 	protected async setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments) {
-	    await this._connection.sendRequest(requestTypeSetExceptionBreakpoints, args)
-	    this.sendResponse(response)
-	}
-
-	protected breakpointLocationsRequest(response: DebugProtocol.BreakpointLocationsResponse, args: DebugProtocol.BreakpointLocationsArguments, request?: DebugProtocol.Request): void {
-	    response.body = {
-	        breakpoints: []
-	    }
-
-	    this.sendResponse(response)
-	}
-
-	protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
-	    response.body = {
-	        threads: [
-	            new Thread(JuliaDebugSession.THREAD_ID, 'thread 1')
-	        ]
-	    }
-	    this.sendResponse(response)
-	}
-
-	protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
-	    response.body = await this._connection.sendRequest(requestTypeStackTrace, args)
-	    this.sendResponse(response)
-	}
-
-	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments) {
-	    response.body = await this._connection.sendRequest(requestTypeSource, args)
-	    this.sendResponse(response)
-	}
-
-	protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments) {
-	    response.body = await this._connection.sendRequest(requestTypeScopes, args)
-	    this.sendResponse(response)
-	}
-
-	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments) {
-	    response.body = await this._connection.sendRequest(requestTypeVariables, args)
-	    this.sendResponse(response)
-	}
-
-	protected async setVariableRequest(response: DebugProtocol.SetVariableResponse, args: DebugProtocol.SetVariableArguments) {
-	    try {
-	        response.body = await this._connection.sendRequest(requestTypeSetVariable, args)
-	    }
-	    catch (err) {
-	        response.success = false
-	        response.message = err.message
-	    }
+	    response.body =  await this._connection.sendRequest(requestTypeSetExceptionBreakpoints, args)
 	    this.sendResponse(response)
 	}
 
@@ -362,38 +357,33 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	    this.sendResponse(response)
 	}
 
-	protected async terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments) {
-	    if (this._launchedWithoutDebug) {
-	        this._debuggeeWrapperSocket.write('TERMINATE\n')
-	        this.sendEvent(new TerminatedEvent())
-	    }
-	    else {
-	        response.body = await this._connection.sendRequest(requestTypeTerminate, args)
-	    }
-	    this.sendResponse(response)
-	}
-
-	protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments) {
-	    if (this._launchMode) {
-	        if (!this._no_need_for_force_kill) {
-	            this._debuggeeWrapperSocket.write('TERMINATE\n')
-	        }
-	    }
-	    else {
-	        response.body = await this._connection.sendRequest(requestTypeDisconnect, args)
-	    }
-
-	    this.sendResponse(response)
-	}
-
 	protected async evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments) {
 	    response.body = await this._connection.sendRequest(requestTypeEvaluate, args)
-
 	    this.sendResponse(response)
 	}
 
 	protected async exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {
 	    response.body = await this._connection.sendRequest(requestTypeExceptionInfo, args)
+	    this.sendResponse(response)
+	}
+
+	protected async stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
+	    response.body = await this._connection.sendRequest(requestTypeStackTrace, args)
+	    this.sendResponse(response)
+	}
+
+	protected async sourceRequest(response: DebugProtocol.SourceResponse, args: DebugProtocol.SourceArguments) {
+	    response.body = await this._connection.sendRequest(requestTypeSource, args)
+	    this.sendResponse(response)
+	}
+
+	protected async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments) {
+	    response.body = await this._connection.sendRequest(requestTypeScopes, args)
+	    this.sendResponse(response)
+	}
+
+	protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments) {
+	    response.body = await this._connection.sendRequest(requestTypeVariables, args)
 	    this.sendResponse(response)
 	}
 }
