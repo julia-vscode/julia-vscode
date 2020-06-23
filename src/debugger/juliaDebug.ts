@@ -144,7 +144,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	        )
 
 	        this._connection.onNotification(notifyTypeStopped, (params) => this.sendEvent(new StoppedEvent(params.reason, params.threadId, params.text)))
-	        this._connection.onNotification(notifyTypeOurFinised, this.ourFinishedEvent)
+	        this._connection.onNotification(notifyTypeOurFinised, () => this.ourFinishedEvent())
 
 	        this._connection.listen()
 
@@ -197,7 +197,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	        )
 
 	        this._connection.onNotification(notifyTypeStopped, (params) => this.sendEvent(new StoppedEvent(params.reason, params.threadId, params.text)))
-	        this._connection.onNotification(notifyTypeOurFinised, this.ourFinishedEvent)
+	        this._connection.onNotification(notifyTypeOurFinised, () => this.ourFinishedEvent())
 
 	        this._connection.listen()
 

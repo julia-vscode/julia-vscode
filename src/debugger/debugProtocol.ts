@@ -198,5 +198,5 @@ export const requestTypeBreakpointLocations = new RequestType<DebugProtocol.Brea
 export const notifyTypeRun = new NotificationType<string, void>('run')
 export const notifyTypeDebug = new NotificationType<{ stopOnEntry: boolean, program: string }, void>('debug')
 export const notifyTypeExec = new NotificationType<{ stopOnEntry: boolean, code: string }, void>('exec')
-export const notifyTypeOurFinised = new NotificationType<void, void>('ourFinished')
+export const notifyTypeOurFinised = new NotificationType<void, void>('finished')
 export const notifyTypeStopped = new NotificationType<StoppedArguments, void>('stopped')
