@@ -82,9 +82,19 @@ export class Result {
             before: {
                 contentIconPath: undefined,
                 contentText: undefined,
-                backgroundColor: new vscode.ThemeColor('editorWidget.background'),
-                margin: '0 0 0 10px',
                 color: new vscode.ThemeColor('editor.foreground'),
+                backgroundColor: '#ffffff22',
+                margin: '0 0 0 10px'
+            },
+            dark: {
+                before: {
+                    backgroundColor: '#ffffff22'
+                }
+            },
+            light: {
+                before: {
+                    backgroundColor: '#00000011'
+                }
             },
             rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed,
         }

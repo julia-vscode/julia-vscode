@@ -1,0 +1,20 @@
+name = "VSCodeDebugger"
+uuid = "a80fdaa1-3292-45d6-85e6-157a63518481"
+version = "0.1.0"
+
+[deps]
+InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
+Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+julia = "1"
+
+[targets]
+test = ["Test"]
