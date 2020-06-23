@@ -2,7 +2,13 @@ function repl_startdebugger_request(conn, params::String, crashreporting_pipenam
     hideprompt() do
         debug_pipename = params
         try
-            DebugAdapter.startdebug(debug_pipename)
+            @debug "Trying to connect to debug adapter."
+            socket = Sockets.connect(debug_pipename)
+            try
+                DebugAdapter.startdebug(socket)
+            finally
+                close(socket)
+            end
         catch err
             DebugAdapter.global_err_handler(err, catch_backtrace(), crashreporting_pipename, "Debugger")
         end
