@@ -126,9 +126,38 @@ function render(err::EvalError)
     i = find_frame_index(bt, @__FILE__, inlineeval)
     bt = bt[1:(i === nothing ? end : i - 4)]
     st = stacktrace(bt)
-    str = sprintlimited(err.err, bt, func = Base.display_error, limit = MAX_RESULT_LENGTH)
-    inline = strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH)
-    all = codeblock(str) # TODO: do markdown stuff here
+
+    errstr = sprintlimited(err.err, nothing, func = Base.display_error, limit = MAX_RESULT_LENGTH)
+    inline = strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
+    all = string(codeblock(errstr), '\n', backtrace_string(bt))
     stackframe = Frame.(st)
     return ReplRunCodeRequestReturn(inline, all, stackframe)
+end
+
+# more cleaner way ?
+const LOCATION_REGEX = r"\[\d+\]\s(?<body>.+)\sat\s(?<path>.+)\:(?<line>\d+)"
+
+function backtrace_string(bt)
+    s = sprintlimited(bt, func = Base.show_backtrace, limit = MAX_RESULT_LENGTH)
+    lines = strip.(split(s, '\n'))
+
+    return map(enumerate(lines)) do (i, line)
+        i === 1 && return line # "Stacktrace:"
+        m = match(LOCATION_REGEX, line)
+        m === nothing && return line
+        linktext = string(m[:path], ':', m[:line])
+        args = JSON.json((path = fullpath(m[:path]), line = m[:line]))
+        linkbody = vscode_cmd_string("language-julia.openFile", args)
+        linktitle = string("Go to ", linktext)
+        return "$(i-1). `$(m[:body])` at [$(linktext)]($(linkbody) \"$(linktitle)\")"
+    end |> joinlines
+end
+
+# HACK: very ugly, this is ...
+function vscode_cmd_string(cmd, args = nothing)
+    ret = string("vscode-command:", cmd)
+    if args !== nothing
+        ret = string(ret, '?', "argstart", args, "argend")
+    end
+    return ret
 end

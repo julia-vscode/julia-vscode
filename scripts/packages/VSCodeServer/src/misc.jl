@@ -100,3 +100,5 @@ end
 function ends_with_semicolon(x)
     return REPL.ends_with_semicolon(split(x, '\n', keepempty=false)[end])
 end
+
+const joinlines = Base.Fix2(join, '\n')

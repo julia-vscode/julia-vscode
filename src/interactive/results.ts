@@ -177,6 +177,9 @@ export function activate(context) {
         vscode.commands.registerCommand('language-julia.clearCurrentInlineResult', () => removeCurrent(vscode.window.activeTextEditor)),
 
         // internal commands
+        vscode.commands.registerCommand('language-julia.openFile', (locationArg: { path: string, line: number }) => {
+            openFile(locationArg.path, locationArg.line)
+        }),
         vscode.commands.registerCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
         vscode.commands.registerCommand('language-julia.gotoPreviousFrame', (frameArg: { frame: Frame }) => {
             gotoPreviousFrame(frameArg.frame)
@@ -191,13 +194,48 @@ export function activate(context) {
 
 export function deactivate() { }
 
-export function addResult(editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
+export function addResult(
+    editor: vscode.TextEditor,
+    range: vscode.Range,
+    content: string,
+    hoverContent: string
+) {
     results.filter(result => result.document === editor.document && result.range.intersection(range) !== undefined).forEach(removeResult)
-
-    const result = new Result(editor, range, content)
+    const result = new Result(editor, range, resultContent(content, hoverContent))
     results.push(result)
-
     return result
+}
+
+export function resultContent(content: string, hoverContent: string): ResultContent {
+    const transformed = transformVSCodeCommmandLinks(hoverContent)
+    return {
+        isIcon: false,
+        content,
+        hoverContent: toMarkdownString(transformed),
+        isError: false
+    }
+}
+
+const VSCODE_COMMAND_LINK_REGEX = /vscode-command\:(.+)\?argstart(.*)argend/g
+
+function transformVSCodeCommmandLinks(str: string) {
+    return str.replace(VSCODE_COMMAND_LINK_REGEX, (s, cmd, args) => {
+        return commandString(cmd, args)
+    })
+}
+
+function commandString(cmd: string, args: string = '') {
+    let ret = `command:${cmd}`
+    if (args) {
+        ret += `?${encodeURIComponent(args)}`
+    }
+    return ret
+}
+
+function toMarkdownString(str: string) {
+    const markdownString = new vscode.MarkdownString(str)
+    markdownString.isTrusted = true
+    return markdownString
 }
 
 export interface Frame {
@@ -253,34 +291,31 @@ function setStackFrameHighlight(
 }
 
 function addErrorResult(err: string, frame: Frame, editor: vscode.TextEditor) {
-    const resultContent = {
-        content: '',
-        isIcon: false,
-        hoverContent: commandString(err, frame),
-        isError: true
-    }
     const range = new vscode.Range(new vscode.Position(frame.line - 1, 0), new vscode.Position(frame.line - 1, LINE_INF))
-    return new Result(editor, range, resultContent)
+    return new Result(editor, range, errorResultContent(err, frame))
 }
 
-function commandString(err: string, frame: Frame) {
-    const frameArg = encodeURIComponent(JSON.stringify({ frame }))
-    const gotoFirstFrameCommand = vscode.Uri.parse(`command:language-julia.gotoFirstFrame`)
-    const gotoPreviousFrameCommand = vscode.Uri.parse(`command:language-julia.gotoPreviousFrame?${frameArg}`)
-    const gotoNextFrameCommand = vscode.Uri.parse(`command:language-julia.gotoNextFrame?${frameArg}`)
-    const gotoLastFrameCommand = vscode.Uri.parse(`command:language-julia.gotoLastFrame`)
-    const clearStackTraceCommand = vscode.Uri.parse(`command:language-julia.clearStackTrace`)
-    const content = [
-        `[\`${GlyphChars.MuchLessThan}\`](${gotoFirstFrameCommand} "Goto First Frame")`,
-        `[\`${GlyphChars.LessThan}\`](${gotoPreviousFrameCommand} "Goto Previous Frame")`,
-        `[\`${GlyphChars.GreaterThan}\`](${gotoNextFrameCommand} "Goto Next Frame")`,
-        `[\`${GlyphChars.MuchGreaterThan}\`](${gotoLastFrameCommand} "Goto Last Frame")`,
-        `[\`${GlyphChars.BallotX}\`](${clearStackTraceCommand} "Clear Stack Traces")`,
-        `\n${err}`
+function errorResultContent(err: string, frame: Frame): ResultContent {
+    const _transformed = transformVSCodeCommmandLinks(err)
+    const transformed = attachGotoFrameCommands(_transformed, frame)
+    return {
+        content: '',
+        isIcon: false,
+        hoverContent: toMarkdownString(transformed),
+        isError: true
+    }
+}
+
+function attachGotoFrameCommands(transformed: string, frame: Frame) {
+    const args = encodeURIComponent(JSON.stringify({ frame }))
+    return [
+        `[\`${GlyphChars.MuchLessThan}\`](${commandString('language-julia.gotoFirstFrame')} "Goto First Frame")`,
+        `[\`${GlyphChars.LessThan}\`](${commandString('language-julia.gotoPreviousFrame', args)} "Goto Previous Frame")`,
+        `[\`${GlyphChars.GreaterThan}\`](${commandString('language-julia.gotoNextFrame', args)} "Goto Next Frame")`,
+        `[\`${GlyphChars.MuchGreaterThan}\`](${commandString('language-julia.gotoLastFrame')} "Goto Last Frame")`,
+        `[\`${GlyphChars.BallotX}\`](${commandString('language-julia.clearStackTrace')} "Clear Stack Traces")`,
+        `\n${transformed}`
     ].join(' ')
-    const hoverContent = new vscode.MarkdownString(content)
-    hoverContent.isTrusted = true // for inline commands
-    return hoverContent
 }
 
 export function refreshResults(editors: vscode.TextEditor[]) {
@@ -331,24 +366,37 @@ export function removeCurrent(editor: vscode.TextEditor) {
 
 // goto frame utilties
 
+async function openFile(path: string, line: number = null) {
+    line = line ? line : 1
+    const start = new vscode.Position(line - 1, 0)
+    const end = new vscode.Position(line - 1, 0)
+    const range = new vscode.Range(start, end)
+    const uri = vscode.Uri.file(path)
+    const document = await vscode.workspace.openTextDocument(uri)
+    return vscode.window.showTextDocument(document, {
+        preview: true,
+        selection: range
+    })
+}
+
 function gotoFirstFrame() {
-    gotoFrame(stackFrameHighlights.highlights[0].frame)
+    return gotoFrame(stackFrameHighlights.highlights[0].frame)
 }
 
 function gotoPreviousFrame(frame: Frame) {
     const i = findFrameIndex(frame)
     if (i < 1) {return}
-    gotoFrame(stackFrameHighlights.highlights[i-1].frame)
+    return gotoFrame(stackFrameHighlights.highlights[i-1].frame)
 }
 
 function gotoNextFrame(frame: Frame) {
     const i = findFrameIndex(frame)
     if (i === -1 || i >= stackFrameHighlights.highlights.length - 1) {return}
-    gotoFrame(stackFrameHighlights.highlights[i + 1].frame)
+    return gotoFrame(stackFrameHighlights.highlights[i + 1].frame)
 }
 
 function gotoLastFrame() {
-    gotoFrame(stackFrameHighlights.highlights[stackFrameHighlights.highlights.length-1].frame)
+    return gotoFrame(stackFrameHighlights.highlights[stackFrameHighlights.highlights.length-1].frame)
 }
 
 function findFrameIndex(frame: Frame) {
@@ -357,14 +405,4 @@ function findFrameIndex(frame: Frame) {
     })
 }
 
-async function gotoFrame(frame: Frame) {
-    const start = new vscode.Position(frame.line - 1, 0)
-    const end = new vscode.Position(frame.line - 1, 0)
-    const range = new vscode.Range(start, end)
-    const uri = vscode.Uri.file(frame.path)
-    const document = await vscode.workspace.openTextDocument(uri)
-    return vscode.window.showTextDocument(document, {
-        preview: true,
-        selection: range,
-    })
-}
+const gotoFrame = (frame: Frame) => openFile(frame.path, frame.line)

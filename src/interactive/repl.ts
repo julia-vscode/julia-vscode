@@ -369,12 +369,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
 
     let r: results.Result = null
     if (resultType !== 'REPL') {
-        r = results.addResult(editor, range, {
-            content: ' ⟳ ',
-            isIcon: false,
-            hoverContent: '',
-            isError: false
-        })
+        r = results.addResult(editor, range, ' ⟳ ', '')
     }
 
     const result: ReturnResult = await g_connection.sendRequest(
@@ -397,12 +392,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         } else {
             results.clearStackTrace()
         }
-        r.setContent({
-            content: ' ' + result.inline + ' ',
-            isIcon: false,
-            hoverContent: result.all,
-            isError: false
-        })
+        r.setContent(results.resultContent(' ' + result.inline + ' ', result.all))
     }
 }
 
