@@ -152,18 +152,11 @@ function backtrace_string(bt)
         m = match(LOCATION_REGEX, line)
         m === nothing && return line
         linktext = string(m[:path], ':', m[:line])
-        args = JSON.json((path = fullpath(m[:path]), line = m[:line]))
-        linkbody = vscode_cmd_string("language-julia.openFile", args)
+        linkbody = vscode_cmd_string("language-julia.openFile"; path = fullpath(m[:path]), line = m[:line])
         linktitle = string("Go to ", linktext)
         return "$(i-1). `$(m[:body])` at [$(linktext)]($(linkbody) \"$(linktitle)\")"
     end |> joinlines
 end
 
-# HACK: very ugly, this is ...
-function vscode_cmd_string(cmd, args = nothing)
-    ret = string("vscode-command:", cmd)
-    if args !== nothing
-        ret = string(ret, '?', "argstart", args, "argend")
-    end
-    return ret
-end
+# HACK: very ugly, this protocol is ...
+vscode_cmd_string(cmd; cmdargs...) = string("vscode-command:", cmd, '?', "argstart", JSON.json(cmdargs), "argend")

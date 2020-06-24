@@ -224,13 +224,7 @@ function transformVSCodeCommmandLinks(str: string) {
     })
 }
 
-function commandString(cmd: string, args: string = '') {
-    let ret = `command:${cmd}`
-    if (args) {
-        ret += `?${encodeURIComponent(args)}`
-    }
-    return ret
-}
+const commandString = (cmd: string, args: string = '') => `command:${cmd}?${encodeURIComponent(args)}`
 
 function toMarkdownString(str: string) {
     const markdownString = new vscode.MarkdownString(str)
@@ -297,7 +291,7 @@ function addErrorResult(err: string, frame: Frame, editor: vscode.TextEditor) {
 
 function errorResultContent(err: string, frame: Frame): ResultContent {
     const _transformed = transformVSCodeCommmandLinks(err)
-    const transformed = attachGotoFrameCommands(_transformed, frame)
+    const transformed = attachGotoFrameCommandLinks(_transformed, frame)
     return {
         content: '',
         isIcon: false,
@@ -306,7 +300,7 @@ function errorResultContent(err: string, frame: Frame): ResultContent {
     }
 }
 
-function attachGotoFrameCommands(transformed: string, frame: Frame) {
+function attachGotoFrameCommandLinks(transformed: string, frame: Frame) {
     const args = encodeURIComponent(JSON.stringify({ frame }))
     return [
         `[\`${GlyphChars.MuchLessThan}\`](${commandString('language-julia.gotoFirstFrame')} "Goto First Frame")`,
