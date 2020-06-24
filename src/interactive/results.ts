@@ -214,22 +214,13 @@ export function addResult(
 }
 
 export function resultContent(content: string, hoverContent: string, isError: boolean = false): ResultContent {
-    const transformed = transformVSCodeCommmandLinks(hoverContent)
     return {
         isIcon: false,
         content,
-        hoverContent: toMarkdownString(transformed),
+        hoverContent: toMarkdownString(hoverContent),
         type: ResultType.Result,
         isError
     }
-}
-
-const VSCODE_COMMAND_LINK_REGEX = /vscode-command\:(.+)\?argstart(.*)argend/g
-
-function transformVSCodeCommmandLinks(str: string) {
-    return str.replace(VSCODE_COMMAND_LINK_REGEX, (s, cmd, args) => {
-        return commandString(cmd, args)
-    })
 }
 
 const commandString = (cmd: string, args: string = '') => `command:${cmd}?${encodeURIComponent(args)}`
@@ -298,8 +289,7 @@ function addErrorResult(err: string, frame: Frame, editor: vscode.TextEditor) {
 }
 
 function errorResultContent(err: string, frame: Frame): ResultContent {
-    const _transformed = transformVSCodeCommmandLinks(err)
-    const transformed = attachGotoFrameCommandLinks(_transformed, frame)
+    const transformed = attachGotoFrameCommandLinks(err, frame)
     return {
         content: '',
         isIcon: false,
