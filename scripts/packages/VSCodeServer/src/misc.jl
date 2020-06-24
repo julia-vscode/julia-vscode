@@ -126,4 +126,4 @@ function encode_uri_component(uri)
     return String(take!(io))
 end
 
-vscode_cmd_string(cmd; cmdargs...) = string("command:", cmd, '?', encode_uri_component(JSON.json(cmdargs)))
+vscode_cmd_uri(cmd; cmdargs...) = string("command:", cmd, '?', encode_uri_component(JSON.json(cmdargs)))

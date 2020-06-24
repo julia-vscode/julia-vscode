@@ -160,7 +160,7 @@ function backtrace_string(bt)
         m = match(LOCATION_REGEX, line)
         m === nothing && return line
         linktext = string(m[:path], ':', m[:line])
-        linkbody = vscode_cmd_string("language-julia.openFile"; path = fullpath(m[:path]), line = m[:line])
+        linkbody = vscode_cmd_uri("language-julia.openFile"; path = fullpath(m[:path]), line = m[:line])
         linktitle = string("Go to ", linktext)
         return "$(i-1). `$(m[:body])` at [$(linktext)]($(linkbody) \"$(linktitle)\")"
     end |> joinlines
