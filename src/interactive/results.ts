@@ -10,11 +10,17 @@ export enum GlyphChars {
     BallotX = '\u2717'
 }
 
+export enum ResultType {
+    Error,
+    Result
+}
+
 interface ResultContent {
     isIcon: boolean,
     content: string,
     hoverContent: string | vscode.MarkdownString,
-    isError: boolean
+    isError: boolean,
+    type: ResultType
 }
 
 export class Result {
@@ -70,7 +76,7 @@ export class Result {
     }
 
     createDecoration(): vscode.DecorationRenderOptions {
-        if (this.content.isError) {
+        if (this.content.type == ResultType.Error) {
             return this.createErrorDecoration()
         } else {
             return this.createResultDecoration()
@@ -78,13 +84,16 @@ export class Result {
     }
 
     createResultDecoration(): vscode.DecorationRenderOptions {
+
+        const border = this.content.isError ? '1px solid #ff000044' : undefined
         return {
             before: {
                 contentIconPath: undefined,
                 contentText: undefined,
                 color: new vscode.ThemeColor('editor.foreground'),
                 backgroundColor: '#ffffff22',
-                margin: '0 0 0 10px'
+                margin: '0 0 0 10px',
+                border
             },
             dark: {
                 before: {
@@ -102,16 +111,14 @@ export class Result {
 
     createErrorDecoration(): vscode.DecorationRenderOptions {
         return {
-            // there doesn't seem to be a color that looks nicely on any color themes ...
-            backgroundColor: new vscode.ThemeColor('inputValidation.errorBackground'),
-            borderColor: new vscode.ThemeColor('inputValidation.errorBorder'),
+            backgroundColor: new vscode.ThemeColor('diffEditor.removedTextBackground'),
             isWholeLine: true,
-            rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed,
+            rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
         }
     }
 
     get decorationRange(): vscode.Range {
-        return this.content.isError ? this.range :
+        return this.content.type == ResultType.Error ? this.range :
             new vscode.Range(this.range.end.translate(0, LINE_INF), this.range.end.translate(0, LINE_INF))
     }
 
@@ -206,13 +213,14 @@ export function addResult(
     return result
 }
 
-export function resultContent(content: string, hoverContent: string): ResultContent {
+export function resultContent(content: string, hoverContent: string, isError: boolean = false): ResultContent {
     const transformed = transformVSCodeCommmandLinks(hoverContent)
     return {
         isIcon: false,
         content,
         hoverContent: toMarkdownString(transformed),
-        isError: false
+        type: ResultType.Result,
+        isError
     }
 }
 
@@ -296,6 +304,7 @@ function errorResultContent(err: string, frame: Frame): ResultContent {
         content: '',
         isIcon: false,
         hoverContent: toMarkdownString(transformed),
+        type: ResultType.Error,
         isError: true
     }
 }
@@ -379,18 +388,18 @@ function gotoFirstFrame() {
 
 function gotoPreviousFrame(frame: Frame) {
     const i = findFrameIndex(frame)
-    if (i < 1) {return}
-    return gotoFrame(stackFrameHighlights.highlights[i-1].frame)
+    if (i < 1) { return }
+    return gotoFrame(stackFrameHighlights.highlights[i - 1].frame)
 }
 
 function gotoNextFrame(frame: Frame) {
     const i = findFrameIndex(frame)
-    if (i === -1 || i >= stackFrameHighlights.highlights.length - 1) {return}
+    if (i === -1 || i >= stackFrameHighlights.highlights.length - 1) { return }
     return gotoFrame(stackFrameHighlights.highlights[i + 1].frame)
 }
 
 function gotoLastFrame() {
-    return gotoFrame(stackFrameHighlights.highlights[stackFrameHighlights.highlights.length-1].frame)
+    return gotoFrame(stackFrameHighlights.highlights[stackFrameHighlights.highlights.length - 1].frame)
 }
 
 function findFrameIndex(frame: Frame) {
