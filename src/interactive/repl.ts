@@ -388,9 +388,8 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
 
     if (resultType !== 'REPL') {
         if (result.stackframe) {
-            results.setStackTrace(r, result.all, result.stackframe)
-        } else {
             results.clearStackTrace()
+            results.setStackTrace(r, result.all, result.stackframe)
         }
         r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, Boolean(result.stackframe)))
     }
