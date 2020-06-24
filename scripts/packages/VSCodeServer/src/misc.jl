@@ -102,3 +102,28 @@ function ends_with_semicolon(x)
 end
 
 const joinlines = Base.Fix2(join, '\n')
+
+
+# VSCode specific
+# ---------------
+
+using Printf
+
+const UNESCAPED = Set(codeunits("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_.!~*'()"))
+
+function encode_uri_component(uri)
+    isvalid(uri) || throw(ArgumentError("`encode_uri_component` can only handle valid UTF8 strings."))
+
+    io = IOBuffer()
+    for cp in codeunits(uri)
+        if cp in UNESCAPED
+            print(io, Char(cp))
+        else
+            print(io, '%')
+            @printf(io, "%2X", cp)
+        end
+    end
+    return String(take!(io))
+end
+
+vscode_cmd_string(cmd; cmdargs...) = string("command:", cmd, '?', encode_uri_component(JSON.json(cmdargs)))
