@@ -131,11 +131,16 @@ function render(err::EvalError)
     bt = err.bt
     i = find_frame_index(bt, @__FILE__, inlineeval)
     bt = bt[1:(i === nothing ? end : i - 4)]
-    st = stacktrace(bt)
 
     errstr = sprint_error(err.err)
     inline = strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
     all = string(codeblock(errstr), '\n', backtrace_string(bt))
+
+    # handle duplicates e.g. from recursion
+    st = unique!(stacktrace(bt))
+    # limit number of potential hovers shown in VSCode, just in case
+    st = st[1:min(end, 1000)]
+
     stackframe = Frame.(st)
     return ReplRunCodeRequestReturn(inline, all, stackframe)
 end
