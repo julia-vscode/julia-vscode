@@ -239,13 +239,13 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	        }
 	    })
 	    this._debuggeeTerminal.show(false)
-	    const asdf: Array<Disposable> = []
+	    const disposables: Array<Disposable> = []
 	    vscode.window.onDidCloseTerminal((terminal) => {
 	        if (terminal === this._debuggeeTerminal) {
 	            this.sendEvent(new TerminatedEvent())
-	            asdf[0].dispose()
+	            disposables.forEach(d => d.dispose())
 	        }
-	    }, this, asdf)
+	    }, this, disposables)
 
 	    await connectedPromise.wait()
 
