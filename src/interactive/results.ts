@@ -76,7 +76,7 @@ export class Result {
     }
 
     createDecoration(): vscode.DecorationRenderOptions {
-        if (this.content.type == ResultType.Error) {
+        if (this.content.type === ResultType.Error) {
             return this.createErrorDecoration()
         } else {
             return this.createResultDecoration()
@@ -118,7 +118,7 @@ export class Result {
     }
 
     get decorationRange(): vscode.Range {
-        return this.content.type == ResultType.Error ? this.range :
+        return this.content.type === ResultType.Error ? this.range :
             new vscode.Range(this.range.end.translate(0, LINE_INF), this.range.end.translate(0, LINE_INF))
     }
 
