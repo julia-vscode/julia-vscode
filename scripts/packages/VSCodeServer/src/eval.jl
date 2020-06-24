@@ -130,6 +130,9 @@ end
 function render(err::EvalError)
     bt = err.bt
     i = find_frame_index(bt, @__FILE__, inlineeval)
+    # NOTE:
+    # `4` corresponds to the number of function calls between `inlineeval` to the user code (, which was invoked by `include_string`),
+    # i.e. `inlineeval`, `Base.invokelatest`, `Base.invokelatest` (the method instance with keyword args handled), and `include_string`
     bt = bt[1:(i === nothing ? end : i - 4)]
 
     errstr = sprint_error(err.err)
