@@ -222,8 +222,10 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	    this._debuggeeTerminal = vscode.window.createTerminal({
 	        name: 'Julia Debugger',
-	        shellPath: this.juliaPath,
+	        shellPath: process.execPath,
 	        shellArgs: [
+	            //join(this.context.extensionPath, 'src', 'debugger', 'wrapper.js'),
+	            'C:\\Users\\david\\source\\julia-vscode\\src\\debugger\\wrapper.js',
 	            '--color=yes',
 	            '--startup-file=no',
 	            '--history-file=no',
@@ -232,10 +234,12 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	            pnForWrapper,
 	            args.cwd,
 	            args.juliaEnv,
-	            getCrashReportingPipename()
+	            getCrashReportingPipename(),
+	            this.juliaPath
 	        ],
 	        env: {
-	            JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : ''
+	            JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : '',
+	            ELECTRON_RUN_AS_NODE: '1'
 	        }
 	    })
 	    this._debuggeeTerminal.show(false)
