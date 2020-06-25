@@ -237,32 +237,44 @@ async function executeFile(uri?: vscode.Uri) {
     await workspace.replFinishEval()
 }
 
+async function getBlockRange(params): Promise<vscode.Position[]> {
+    const zeroPos = new vscode.Position(0, 0)
+    const zeroReturn = [zeroPos, zeroPos, params.position]
+
+    const err = 'Error: Julia Language server is not running.\n\nPlease wait a few seconds and try again once the `Starting Julia Language Server...` message in the status bar is gone.'
+
+    if (g_languageClient === null) {
+        vscode.window.showErrorMessage(err)
+        return zeroReturn
+    }
+    let ret_val: vscode.Position[]
+    try {
+        ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+    } catch (ex) {
+        if (ex.message === 'Language client is not ready yet') {
+            vscode.window.showErrorMessage(err)
+            return zeroReturn
+        }
+        else {
+            throw ex
+        }
+    }
+
+    return ret_val
+}
+
 async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
-    if (g_languageClient === null) {
-        vscode.window.showErrorMessage('Error: Language server is not running.')
-    }
-    else {
-        const editor = vscode.window.activeTextEditor
-        const params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
 
-        try {
-            const ret_val: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+    const editor = vscode.window.activeTextEditor
+    const params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
 
-            const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
-            const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
-            vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
-            vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
-        }
-        catch (ex) {
-            if (ex.message === 'Language client is not ready yet') {
-                vscode.window.showErrorMessage('Select code block only works once the Julia Language Server is ready.')
-            }
-            else {
-                throw ex
-            }
-        }
-    }
+    const ret_val: vscode.Position[] = await getBlockRange(params)
+
+    const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
+    const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
+    vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
+    vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
 }
 
 const g_cellDelimiter = new RegExp('^##(?!#)')
@@ -328,7 +340,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         const module: string = await modules.getModuleForEditor(editor, startpos)
 
         if (selection.isEmpty) {
-            const currentBlock: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+            const currentBlock = await getBlockRange(params)
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
             nextBlock = new vscode.Position(currentBlock[2].line, currentBlock[2].character)
         } else {
