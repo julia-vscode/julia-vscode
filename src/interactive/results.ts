@@ -271,7 +271,7 @@ function setStackFrameHighlight(
 ) {
     stackFrameHighlights.err = err
     frames.forEach(frame => {
-        const targetEditors = editors.filter(editor => frame.path === editor.document.fileName)
+        const targetEditors = editors.filter(editor => vscode.Uri.file(frame.path).toString() === editor.document.uri.toString())
         if (targetEditors.length === 0) {
             stackFrameHighlights.highlights.push({ frame, result: null })
         } else {
@@ -322,7 +322,7 @@ export function refreshResults(editors: vscode.TextEditor[]) {
     stackFrameHighlights.highlights.forEach(highlight => {
         const frame = highlight.frame
         editors.forEach(editor => {
-            if (frame.path === editor.document.fileName) {
+            if (vscode.Uri.file(frame.path).toString() === editor.document.uri.toString()) {
                 if (highlight.result) {
                     highlight.result.draw()
                 } else {
@@ -360,13 +360,19 @@ export function removeCurrent(editor: vscode.TextEditor) {
 // goto frame utilties
 
 async function openFile(path: string, line: number = null) {
-    line = line ? line : 1
+    line = line || 1
     const start = new vscode.Position(line - 1, 0)
     const end = new vscode.Position(line - 1, 0)
     const range = new vscode.Range(start, end)
-    const uri = vscode.Uri.file(path)
-    const document = await vscode.workspace.openTextDocument(uri)
-    return vscode.window.showTextDocument(document, {
+
+    let uri: vscode.Uri
+    if (path.indexOf('Untitled') === 0) {
+        // can't open an untitled file like this:
+        // uri = vscode.Uri.parse('untitled:' + path)
+    } else {
+        uri = vscode.Uri.file(path)
+    }
+    return vscode.window.showTextDocument(uri, {
         preview: true,
         selection: range
     })
