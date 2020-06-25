@@ -12,9 +12,9 @@ jl_cmd = joinpath(Sys.BINDIR, Base.julia_exename())
 
 debugger_script = joinpath(@__DIR__, "run_debugger.jl")
 
-cmd = Cmd(`$jl_cmd --color=yes --history-file=no --startup-file=no --project=$julia_env $debugger_script $pipename_for_debugger $pipename_for_crashreporting`, dir = cwd)
+cmd = Cmd(`$jl_cmd --color=yes --history-file=no --startup-file=no --project=$julia_env $debugger_script $pipename_for_debugger $pipename_for_crashreporting`, dir=cwd)
 
-p = run(pipeline(cmd, stdin = stdin, stdout = stdout, stderr = stderr), wait = false)
+p = run(pipeline(cmd, stdin=stdin, stdout=stdout, stderr=stderr), wait=false)
 
 @async begin
     l = readline(conn)
@@ -30,6 +30,6 @@ end
 wait(p)
 
 println()
-printstyled("Julia debuggee finished. Press ENTER to close this terminal.\n", bold = true)
+printstyled("Julia debuggee finished. Press ENTER to close this terminal.\n", bold=true)
 
 readline()
