@@ -271,7 +271,9 @@ function setStackFrameHighlight(
 ) {
     stackFrameHighlights.err = err
     frames.forEach(frame => {
-        const targetEditors = editors.filter(editor => vscode.Uri.file(frame.path).toString() === editor.document.uri.toString())
+        const targetEditors = editors.filter(editor => {
+            return frame.path === editor.document.fileName || vscode.Uri.file(frame.path).toString() === editor.document.uri.toString()
+        })
         if (targetEditors.length === 0) {
             stackFrameHighlights.highlights.push({ frame, result: null })
         } else {
@@ -322,7 +324,7 @@ export function refreshResults(editors: vscode.TextEditor[]) {
     stackFrameHighlights.highlights.forEach(highlight => {
         const frame = highlight.frame
         editors.forEach(editor => {
-            if (vscode.Uri.file(frame.path).toString() === editor.document.uri.toString()) {
+            if (frame.path === editor.document.fileName || vscode.Uri.file(frame.path).toString() === editor.document.uri.toString()) {
                 if (highlight.result) {
                     highlight.result.draw()
                 } else {
