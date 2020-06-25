@@ -1,11 +1,12 @@
 import { Subject } from 'await-notify'
+import { spawn } from 'child_process'
 import * as net from 'net'
 import { join } from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, TerminatedEvent } from 'vscode-debugadapter'
 import { DebugProtocol } from 'vscode-debugprotocol'
-import { createMessageConnection, Disposable, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc'
+import { createMessageConnection, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc'
 import { replStartDebugger } from '../interactive/repl'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
@@ -185,10 +186,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
 	    const connectedPromise = new Subject()
 	    const serverListeningPromise = new Subject()
-	    const serverForWrapperPromise = new Subject()
 
 	    const pn = generatePipeName(uuid(), 'vsc-jl-dbg')
-	    const pnForWrapper = generatePipeName(uuid(), 'vsc-jl-dbgw')
 
 	    const server = net.createServer(socket => {
 	        this._connection = createMessageConnection(
@@ -204,46 +203,57 @@ export class JuliaDebugSession extends LoggingDebugSession {
 	        connectedPromise.notify()
 	    })
 
-	    const serverForWrapper = net.createServer(socket => {
-	        this._debuggeeWrapperSocket = socket
-	    })
-
-	    serverForWrapper.listen(pnForWrapper, () => {
-	        serverForWrapperPromise.notify()
-	    })
-
-	    await serverForWrapperPromise.wait()
-
 	    server.listen(pn, () => {
 	        serverListeningPromise.notify()
 	    })
 
 	    await serverListeningPromise.wait()
 
-	    this._debuggeeTerminal = vscode.window.createTerminal({
-	        name: 'Julia Debugger',
-	        shellPath: process.execPath,
-	        shellArgs: [
-	            //join(this.context.extensionPath, 'src', 'debugger', 'wrapper.js'),
-	            'C:\\Users\\david\\source\\julia-vscode\\src\\debugger\\wrapper.js',
+	    const writeEmitter = new vscode.EventEmitter<string>()
+
+	    const foo = spawn(
+	        this.juliaPath,
+	        [
 	            '--color=yes',
 	            '--startup-file=no',
 	            '--history-file=no',
-	            join(this.context.extensionPath, 'scripts', 'debugger', 'launch_wrapper.jl'),
+	            `--project=${args.juliaEnv}`,
+	            join(this.context.extensionPath, 'scripts', 'debugger', 'run_debugger.jl'),
 	            pn,
-	            pnForWrapper,
-	            args.cwd,
-	            args.juliaEnv,
-	            getCrashReportingPipename(),
-	            this.juliaPath
+	            getCrashReportingPipename()
 	        ],
-	        env: {
-	            JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : '',
-	            ELECTRON_RUN_AS_NODE: '1'
+	        {
+	            env: {
+	                JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : '',
+	            },
+	            cwd: args.cwd
+	        }
+	    )
+
+	    this._debuggeeTerminal = vscode.window.createTerminal({
+	        name: 'Julia Debugger',
+	        pty: {
+	            onDidWrite: writeEmitter.event,
+	            open: () => { },
+	            close: () => { },
+	            handleInput: (data) => foo.stdin.write(data)
 	        }
 	    })
+
+
+
+	    foo.stdout.on('data', data => {
+	        const dataAsString = `${data}`.replace('\n', '\n\r')
+	        writeEmitter.fire(dataAsString)
+	    })
+
+	    foo.stderr.on('data', data => {
+	        const dataAsString = `${data}`.replace('\n', '\n\r')
+	        writeEmitter.fire(dataAsString)
+	    })
+
 	    this._debuggeeTerminal.show(false)
-	    const disposables: Array<Disposable> = []
+	    const disposables: Array<vscode.Disposable> = []
 	    vscode.window.onDidCloseTerminal((terminal) => {
 	        if (terminal === this._debuggeeTerminal) {
 	            this.sendEvent(new TerminatedEvent())
