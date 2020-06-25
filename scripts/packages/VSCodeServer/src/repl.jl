@@ -96,7 +96,7 @@ end
 
 # basically the same as Base's `display_error`, with internal frames removed
 function display_repl_error(io, err, st)
-    ind = findfirst(frame->frame.file == Symbol(@__FILE__) && frame.func == :repleval, st)
+    ind = find_frame_index(st, @__FILE__, repleval)
     st = st[1:(ind === nothing ? end : ind - 2)]
     printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
     showerror(IOContext(io, :limit => true), err, st)

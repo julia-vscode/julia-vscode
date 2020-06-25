@@ -14,6 +14,7 @@ import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
+import { Frame } from './results'
 import * as workspace from './workspace'
 
 
@@ -135,6 +136,12 @@ function debuggerEnter(code: string) {
     vscode.debug.startDebugging(undefined, x)
 }
 
+interface ReturnResult {
+    inline: string,
+    all: string,
+    stackframe: null | Array<Frame>
+}
+
 const requestTypeReplRunCode = new rpc.RequestType<{
     filename: string,
     line: number,
@@ -143,7 +150,7 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     mod: string,
     showCodeInREPL: boolean,
     showResultInREPL: boolean
-}, void, void, void>('repl/runcode')
+}, ReturnResult, void, void>('repl/runcode')
 
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display')
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter')
@@ -362,15 +369,10 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
 
     let r: results.Result = null
     if (resultType !== 'REPL') {
-        r = results.addResult(editor, range, {
-            content: ' ⟳ ',
-            isIcon: false,
-            hoverContent: '',
-            isError: false
-        })
+        r = results.addResult(editor, range, ' ⟳ ', '')
     }
 
-    const result: any = await g_connection.sendRequest(
+    const result: ReturnResult = await g_connection.sendRequest(
         requestTypeReplRunCode,
         {
             filename: editor.document.fileName,
@@ -385,14 +387,11 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     await workspace.replFinishEval()
 
     if (resultType !== 'REPL') {
-        const hoverString = '```\n' + result.all.toString() + '\n```'
-
-        r.setContent({
-            content: ' ' + result.inline.toString() + ' ',
-            isIcon: false,
-            hoverContent: hoverString,
-            isError: result.iserr
-        })
+        if (result.stackframe) {
+            results.clearStackTrace()
+            results.setStackTrace(r, result.all, result.stackframe)
+        }
+        r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, Boolean(result.stackframe)))
     }
 }
 

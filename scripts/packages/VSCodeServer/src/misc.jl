@@ -1,3 +1,44 @@
+# error handling
+# --------------
+
+find_frame_index(st::Vector{Base.StackTraces.StackFrame}, file, func) =
+    return findfirst(frame -> frame.file === Symbol(file) && frame.func === Symbol(func), st)
+function find_frame_index(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}}, file, func)
+    for (i, ip) in enumerate(bt)
+        st = Base.StackTraces.lookup(ip)
+        ind = find_frame_index(st, file, func)
+        isnothing(ind) || return i
+    end
+    return
+end
+
+
+# path utilitiles
+# ---------------
+
+function fullpath(path)
+    return if isuntitled(path) || isabspath(path)
+        path
+    else
+        basepath(path)
+    end |> realpath′
+end
+
+isuntitled(path) = occursin(r"Untitled-\d+$", path)
+basepath(path) = normpath(joinpath(Sys.BINDIR, Base.DATAROOTDIR, "julia", "base", path))
+
+function realpath′(p)
+  try
+    ispath(p) ? realpath(p) : p
+  catch e
+    p
+  end |> normpath
+end
+
+
+# string utilitiles
+# -----------------
+
 # https://github.com/JuliaDebug/Debugger.jl/blob/4cf99c662ab89da0fe7380c1e81461e2428e8b00/src/limitio.jl
 
 mutable struct LimitIO{IO_t <: IO} <: IO
@@ -59,3 +100,30 @@ end
 function ends_with_semicolon(x)
     return REPL.ends_with_semicolon(split(x, '\n', keepempty=false)[end])
 end
+
+const joinlines = Base.Fix2(join, '\n')
+
+
+# VSCode specific
+# ---------------
+
+using Printf
+
+const UNESCAPED = Set(codeunits("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_.!~*'()"))
+
+function encode_uri_component(uri)
+    isvalid(uri) || throw(ArgumentError("`encode_uri_component` can only handle valid UTF8 strings."))
+
+    io = IOBuffer()
+    for cp in codeunits(uri)
+        if cp in UNESCAPED
+            print(io, Char(cp))
+        else
+            print(io, '%')
+            @printf(io, "%2X", cp)
+        end
+    end
+    return String(take!(io))
+end
+
+vscode_cmd_uri(cmd; cmdargs...) = string("command:", cmd, '?', encode_uri_component(JSON.json(cmdargs)))
