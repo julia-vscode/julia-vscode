@@ -15,6 +15,7 @@ import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
+import { Frame } from './results'
 import * as workspace from './workspace'
 
 
@@ -136,6 +137,12 @@ function debuggerEnter(code: string) {
     vscode.debug.startDebugging(undefined, x)
 }
 
+interface ReturnResult {
+    inline: string,
+    all: string,
+    stackframe: null | Array<Frame>
+}
+
 const requestTypeReplRunCode = new rpc.RequestType<{
     filename: string,
     line: number,
@@ -144,7 +151,7 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     mod: string,
     showCodeInREPL: boolean,
     showResultInREPL: boolean
-}, void, void, void>('repl/runcode')
+}, ReturnResult, void, void>('repl/runcode')
 
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display')
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter')
@@ -227,38 +234,50 @@ async function executeFile(uri?: vscode.Uri) {
             mod: module,
             code: code,
             showCodeInREPL: false,
-            showResultInREPL: false
+            showResultInREPL: true
         }
     )
     await workspace.replFinishEval()
 }
 
+async function getBlockRange(params): Promise<vscode.Position[]> {
+    const zeroPos = new vscode.Position(0, 0)
+    const zeroReturn = [zeroPos, zeroPos, params.position]
+
+    const err = 'Error: Julia Language server is not running.\n\nPlease wait a few seconds and try again once the `Starting Julia Language Server...` message in the status bar is gone.'
+
+    if (g_languageClient === null) {
+        vscode.window.showErrorMessage(err)
+        return zeroReturn
+    }
+    let ret_val: vscode.Position[]
+    try {
+        ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+    } catch (ex) {
+        if (ex.message === 'Language client is not ready yet') {
+            vscode.window.showErrorMessage(err)
+            return zeroReturn
+        }
+        else {
+            throw ex
+        }
+    }
+
+    return ret_val
+}
+
 async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
-    if (g_languageClient === null) {
-        vscode.window.showErrorMessage('Error: Language server is not running.')
-    }
-    else {
-        const editor = vscode.window.activeTextEditor
-        const params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
 
-        try {
-            const ret_val: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+    const editor = vscode.window.activeTextEditor
+    const params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
 
-            const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
-            const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
-            vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
-            vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
-        }
-        catch (ex) {
-            if (ex.message === 'Language client is not ready yet') {
-                vscode.window.showErrorMessage('Select code block only works once the Julia Language Server is ready.')
-            }
-            else {
-                throw ex
-            }
-        }
-    }
+    const ret_val: vscode.Position[] = await getBlockRange(params)
+
+    const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
+    const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
+    vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
+    vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
 }
 
 const g_cellDelimiter = new RegExp('^##(?!#)')
@@ -324,7 +343,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         const module: string = await modules.getModuleForEditor(editor, startpos)
 
         if (selection.isEmpty) {
-            const currentBlock: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+            const currentBlock = await getBlockRange(params)
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
             nextBlock = new vscode.Position(currentBlock[2].line, currentBlock[2].character)
         } else {
@@ -365,15 +384,10 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
 
     let r: results.Result = null
     if (resultType !== 'REPL') {
-        r = results.addResult(editor, range, {
-            content: ' ⟳ ',
-            isIcon: false,
-            hoverContent: '',
-            isError: false
-        })
+        r = results.addResult(editor, range, ' ⟳ ', '')
     }
 
-    const result: any = await g_connection.sendRequest(
+    const result: ReturnResult = await g_connection.sendRequest(
         requestTypeReplRunCode,
         {
             filename: editor.document.fileName,
@@ -388,14 +402,11 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     await workspace.replFinishEval()
 
     if (resultType !== 'REPL') {
-        const hoverString = '```\n' + result.all.toString() + '\n```'
-
-        r.setContent({
-            content: ' ' + result.inline.toString() + ' ',
-            isIcon: false,
-            hoverContent: hoverString,
-            isError: result.iserr
-        })
+        if (result.stackframe) {
+            results.clearStackTrace()
+            results.setStackTrace(r, result.all, result.stackframe)
+        }
+        r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, Boolean(result.stackframe)))
     }
 }
 

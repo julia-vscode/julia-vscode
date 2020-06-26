@@ -8,13 +8,20 @@ JSONRPC.@dict_readable struct ReplRunCodeRequestParams <: JSONRPC.Outbound
     showResultInREPL::Bool
 end
 
+struct Frame
+    path::String
+    line::Int
+end
+Frame(st::Base.StackFrame) = Frame(fullpath(string(st.file)), st.line)
+
 JSONRPC.@dict_readable struct ReplRunCodeRequestReturn <: JSONRPC.Outbound
     inline::String
     all::String
-    iserr::Bool
+    stackframe::Union{Nothing,Vector{Frame}}
 end
+ReplRunCodeRequestReturn(inline, all) = ReplRunCodeRequestReturn(inline, all, nothing)
 
-JSONRPC.@dict_readable struct ReplWorkspaceItem <: JSONRPC.Outbound
+JSONRPC.@dict_readable mutable struct ReplWorkspaceItem <: JSONRPC.Outbound
     head::String
     id::Int
     haschildren::Bool

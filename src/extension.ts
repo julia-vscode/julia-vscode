@@ -6,9 +6,9 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient'
+import { JuliaDebugSession } from './debugger/juliaDebug'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
-import { JuliaDebugSession } from './juliaDebug'
 import * as juliaexepath from './juliaexepath'
 import * as openpackagedirectory from './openpackagedirectory'
 import * as packagepath from './packagepath'
@@ -188,18 +188,25 @@ async function startLanguageServer() {
         }
     })
 
-    // Push the disposable to the context's subscriptions so that the
-    // client can be deactivated on extension deactivation
+    const disposable = vscode.commands.registerCommand('language-julia.showLanguageServerOutput', () => {
+        languageClient.outputChannel.show(true)
+    })
     try {
+        // Push the disposable to the context's subscriptions so that the  client can be deactivated on extension deactivation
         g_context.subscriptions.push(languageClient.start())
+        startupNotification.command = 'language-julia.showLanguageServerOutput'
         languageClient.onReady().then(() => {
             setLanguageClient(languageClient)
+        }).finally(() => {
+            disposable.dispose()
             startupNotification.dispose()
         })
     }
     catch (e) {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.')
         setLanguageClient()
+        disposable.dispose()
+        startupNotification.dispose()
     }
 }
 

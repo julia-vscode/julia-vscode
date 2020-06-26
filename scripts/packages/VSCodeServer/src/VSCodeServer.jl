@@ -26,7 +26,7 @@ include("../../CodeTracking/src/CodeTracking.jl")
 
 module JSONRPC
     import ..JSON
-    import ..UUIDs
+    import UUIDs
 
     include("../../JSONRPC/src/packagedef.jl")
 end
@@ -39,6 +39,9 @@ end
 
 module DebugAdapter
     import ..JuliaInterpreter
+    import ..JSON
+    import ..JSONRPC
+    import ..JSONRPC: @dict_readable, Outbound
 
     include("../../DebugAdapter/src/packagedef.jl")
 end
@@ -53,17 +56,16 @@ end
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 
 include("../../../error_handler.jl")
+include("repl_protocol.jl")
 include("misc.jl")
 include("trees.jl")
 include("repl.jl")
 include("gridviewer.jl")
-include("repl_protocol.jl")
 include("module.jl")
-include("render.jl")
-include("request_handlers.jl")
+include("eval.jl")
 include("display.jl")
-include("debug_cmds.jl")
 include("profiler.jl")
+include("debugger.jl")
 
 function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     conn = connect(args...)

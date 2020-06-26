@@ -1,3 +1,7 @@
+repl_loadedModules_request(conn, params::Nothing) = string.(collect(get_modules()))
+
+repl_isModuleLoaded_request(conn, params::String) = is_module_loaded(params)
+
 function module_from_string(mod)
     ms = split(mod, '.')
 
