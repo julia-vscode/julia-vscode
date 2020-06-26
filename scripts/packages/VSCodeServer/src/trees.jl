@@ -87,7 +87,7 @@ function treerender(x)
         treerender(Text(string(typeof(x), "()")))
     else
         treerender(LazyTree(string(typeof(x)), wsicon(x), function ()
-            [SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields]
+            collect([SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields])
         end))
     end
 end
@@ -97,7 +97,7 @@ function treerender(x::AbstractDict{K,V}) where {K,V}
         if length(keys(x)) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
         else
-            [SubTree(repr(k), wsicon(v), v) for (k, v) in x]
+            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in x])
         end
     end))
 end
@@ -126,7 +126,7 @@ function treerender(x::AbstractArray{T,N}) where {T,N}
         if length(x) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
         else
-            [SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(x))]
+            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(x))])
         end
     end))
 end
@@ -153,7 +153,7 @@ function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
             end))
         else
             push!(out, LazyTree(head, function ()
-                [SubTree(repr(k), wsicon(v), v) for (k, v) in zip(part, getindex.(Ref(x), part))]
+                collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(part, getindex.(Ref(x), part))])
             end))
         end
     end
@@ -162,7 +162,9 @@ end
 
 # workspace
 
-function repl_getvariables_request(conn, params::Nothing)
+repl_getvariables_request(conn, params::Nothing) = Base.invokelatest(getvariables)
+
+function getvariables()
     M = Main
     variables = []
     clear_lazy()
@@ -213,15 +215,15 @@ wsicon(::Exception) = "warning"
 
 # handle lazy clicks
 
-repl_getlazy_request(conn, params::Int) = get_lazy(params)
+repl_getlazy_request(conn, id::Int) = Base.invokelatest(get_lazy, id)
 
 function get_lazy(id::Int)
     try
         if haskey(TREES, id)
-            x = [Base.invokelatest(treerender, x) for x in Base.invokelatest(pop!(TREES, id).children)]
+            x = [treerender(x) for x in pop!(TREES, id).children()]
             return x
         else
-            return ["[out of date result]"]
+            return [treerender(Text("[out of date result]"))]
         end
     catch err
         printstyled("Internal Error: ", bold = true, color = Base.error_color())
