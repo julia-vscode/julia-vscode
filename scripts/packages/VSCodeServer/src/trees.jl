@@ -167,7 +167,7 @@ function repl_getvariables_request(conn, params::Nothing)
     variables = []
     clear_lazy()
 
-    for n in names(M, all=true, imported=true)
+    for n in names(M, all = true, imported = true)
         !isdefined(M, n) && continue
         Base.isdeprecated(M, n) && continue
 
@@ -179,7 +179,9 @@ function repl_getvariables_request(conn, params::Nothing)
         s = string(n)
         startswith(s, "#") && continue
         try
-            push!(variables, treerender(SubTree(s, wsicon(x), x)))
+            tree = treerender(SubTree(s, wsicon(x), x))
+            tree.canshow = can_display(x)
+            push!(variables, tree)
         catch err
             printstyled("Internal Error: ", bold = true, color = Base.error_color())
             Base.display_error(err, catch_backtrace())
