@@ -50,7 +50,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
 
             if show_result
                 if res isa EvalError
-                    Base.display_error(stderr, res.err, res.bt)
+                    Base.display_error(stderr, res)
+
                 elseif res !== nothing && !ends_with_semicolon(source_code)
                     Base.invokelatest(display, res)
                 end
@@ -128,12 +129,7 @@ function sprint_error(err)
 end
 
 function render(err::EvalError)
-    bt = err.bt
-    i = find_frame_index(bt, @__FILE__, inlineeval)
-    # NOTE:
-    # `4` corresponds to the number of function calls between `inlineeval` to the user code (, which was invoked by `include_string`),
-    # i.e. `inlineeval`, `Base.invokelatest`, `Base.invokelatest` (the method instance with keyword args handled), and `include_string`
-    bt = bt[1:(i === nothing ? end : i - 4)]
+    bt = crop_backtrace(err.bt)
 
     errstr = sprint_error(err.err)
     inline = strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
@@ -146,6 +142,20 @@ function render(err::EvalError)
 
     stackframe = Frame.(st)
     return ReplRunCodeRequestReturn(inline, all, stackframe)
+end
+
+function Base.display_error(io::IO, err::EvalError)
+    bt = crop_backtrace(err.bt)
+
+    Base.display_error(io, err.err, bt)
+end
+
+function crop_backtrace(bt)
+    i = find_frame_index(bt, @__FILE__, inlineeval)
+    # NOTE:
+    # `4` corresponds to the number of function calls between `inlineeval` to the user code (, which was invoked by `include_string`),
+    # i.e. `inlineeval`, `Base.invokelatest`, `Base.invokelatest` (the method instance with keyword args handled), and `include_string`
+    return bt[1:(i === nothing ? end : i - 4)]
 end
 
 # more cleaner way ?

@@ -231,7 +231,7 @@ async function executeFile(uri?: vscode.Uri) {
             mod: module,
             code: code,
             showCodeInREPL: false,
-            showResultInREPL: false
+            showResultInREPL: true
         }
     )
     await workspace.replFinishEval()
