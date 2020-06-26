@@ -21,7 +21,7 @@ JSONRPC.@dict_readable struct ReplRunCodeRequestReturn <: JSONRPC.Outbound
 end
 ReplRunCodeRequestReturn(inline, all) = ReplRunCodeRequestReturn(inline, all, nothing)
 
-JSONRPC.@dict_readable struct ReplWorkspaceItem <: JSONRPC.Outbound
+JSONRPC.@dict_readable mutable struct ReplWorkspaceItem <: JSONRPC.Outbound
     head::String
     id::Int
     haschildren::Bool
