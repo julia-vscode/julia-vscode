@@ -122,9 +122,21 @@ function treerender(x::Module)
 end
 
 function treerender(x::AbstractArray{T,N}) where {T,N}
-    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0, function ()
-        if length(x) > MAX_PARTITION_LENGTH
-            partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
+    size_of_x = try
+        Base.invokelatest(size, x)
+    catch err
+        # TODO Gracefully handle this error in user code
+    end
+
+    length_of_x = try
+        Base.invokelatest(length, x)
+    catch err
+        # TODO Gracefully handle this error in user code
+    end
+
+    treerender(LazyTree(string(typeof(x), " with $(pluralize(size_of_x, "element", "elements"))"), wsicon(x), length_of_x == 0, function ()
+        if length_of_x > MAX_PARTITION_LENGTH
+            partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
         else
             [SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(x))]
         end
