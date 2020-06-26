@@ -26,7 +26,7 @@ module DebugAdapter
     import ..JSONRPC
     import ..JSONRPC: @dict_readable, Outbound
 
-    include("../../DebugAdapter2/src/packagedef.jl")
+    include("../../DebugAdapter/src/packagedef.jl")
 end
 
 function startdebugger()
