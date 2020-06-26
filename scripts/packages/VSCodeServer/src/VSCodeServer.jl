@@ -40,7 +40,7 @@ module DebugAdapter
     import ..JSONRPC
     import ..JSONRPC: @dict_readable, Outbound
 
-    include("../../DebugAdapter2/src/packagedef.jl")
+    include("../../DebugAdapter/src/packagedef.jl")
 end
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
