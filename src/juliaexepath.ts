@@ -33,6 +33,7 @@ export async function getJuliaExePath() {
             let pathsToSearch = []
             if (process.platform === 'win32') {
                 pathsToSearch = ['julia.exe',
+                    path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.5.0', 'bin', 'julia.exe'),
                     path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.3', 'bin', 'julia.exe'),
                     path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.2', 'bin', 'julia.exe'),
                     path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.1', 'bin', 'julia.exe'),
@@ -53,6 +54,8 @@ export async function getJuliaExePath() {
             }
             else if (process.platform === 'darwin') {
                 pathsToSearch = ['julia',
+                    path.join(homedir, 'Applications', 'Julia-1.5.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                    path.join('/', 'Applications', 'Julia-1.5.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                     path.join(homedir, 'Applications', 'Julia-1.4.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                     path.join('/', 'Applications', 'Julia-1.4.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                     path.join(homedir, 'Applications', 'Julia-1.3.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
