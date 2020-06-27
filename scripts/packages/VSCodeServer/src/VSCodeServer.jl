@@ -1,8 +1,7 @@
 module VSCodeServer
 
 export vscodedisplay, @enter, @run
-# TODO uncomment to ship feature
-# export view_profile, @profview
+export view_profile, @profview
 
 using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
