@@ -31,8 +31,8 @@ export class Result {
     content: ResultContent
     decoration: vscode.TextEditorDecorationType
     destroyed: boolean
-    removeEmitter: vscode.EventEmitter<null>
-    onDidRemove: vscode.Event<null>
+    removeEmitter: vscode.EventEmitter<undefined>
+    onDidRemove: vscode.Event<undefined>
 
     constructor(editor: vscode.TextEditor, range: vscode.Range, content: ResultContent) {
         this.range = range
@@ -166,7 +166,7 @@ export class Result {
         this.destroyed = destroy
         this.decoration.dispose()
         if (destroy) {
-            this.removeEmitter.fire(null)
+            this.removeEmitter.fire(undefined)
             this.removeEmitter.dispose()
         }
     }
@@ -174,7 +174,7 @@ export class Result {
 
 const results: Result[] = []
 
-export function activate(context) {
+export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         // subscriptions
         vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)),
@@ -256,7 +256,7 @@ export interface Frame {
 }
 interface Highlight {
     frame: Frame,
-    result: null | Result
+    result: undefined | Result
 }
 
 interface StackFrameHighlights {
@@ -290,11 +290,9 @@ function setStackFrameHighlight(
 ) {
     stackFrameHighlights.err = err
     frames.forEach(frame => {
-        const targetEditors = editors.filter(editor => {
-            return frame.path === editor.document.fileName || vscode.Uri.file(frame.path).toString() === editor.document.uri.toString()
-        })
+        const targetEditors = editors.filter(editor => isEditorPath(editor, frame.path))
         if (targetEditors.length === 0) {
-            stackFrameHighlights.highlights.push({ frame, result: null })
+            stackFrameHighlights.highlights.push({ frame, result: undefined })
         } else {
             targetEditors.forEach(targetEditor => {
                 const result = addErrorResult(err, frame, targetEditor)
@@ -302,6 +300,15 @@ function setStackFrameHighlight(
             })
         }
     })
+}
+
+function isEditorPath(editor: vscode.TextEditor, path: string) {
+    return (
+        // for untitled editor we need this
+        editor.document.fileName === path ||
+        // more robust than using e.g. `editor.document.fileName`
+        editor.document.uri.toString() === vscode.Uri.file(path).toString()
+    )
 }
 
 function addErrorResult(err: string, frame: Frame, editor: vscode.TextEditor) {
@@ -343,7 +350,7 @@ export function refreshResults(editors: vscode.TextEditor[]) {
     stackFrameHighlights.highlights.forEach(highlight => {
         const frame = highlight.frame
         editors.forEach(editor => {
-            if (frame.path === editor.document.fileName || vscode.Uri.file(frame.path).toString() === editor.document.uri.toString()) {
+            if (isEditorPath(editor, frame.path)) {
                 if (highlight.result) {
                     highlight.result.draw()
                 } else {
@@ -363,8 +370,8 @@ export function removeResult(target: Result) {
     return results.splice(results.indexOf(target), 1)
 }
 
-export function removeAll(editor: vscode.TextEditor | null = null) {
-    const isvalid = (result: Result) => editor === null || result.document === editor.document
+export function removeAll(editor: undefined | vscode.TextEditor = undefined) {
+    const isvalid = (result: Result) => (!editor) || result.document === editor.document
     results.filter(isvalid).forEach(removeResult)
 }
 
@@ -385,7 +392,7 @@ function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: v
 
 // goto frame utilties
 
-async function openFile(path: string, line: number = null) {
+async function openFile(path: string, line: number = undefined) {
     line = line || 1
     const start = new vscode.Position(line - 1, 0)
     const end = new vscode.Position(line - 1, 0)
