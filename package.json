@@ -299,7 +299,7 @@
             {
                 "command": "language-julia.clearCurrentInlineResult",
                 "key": "Escape",
-                "when": "editorTextFocus && editorLangId == julia && juliaHasInlineResult"
+                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && juliaHasInlineResult"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
