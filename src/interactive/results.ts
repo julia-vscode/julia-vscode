@@ -378,7 +378,6 @@ function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: v
     const intersect = range.intersection(result.range)
     const lineRange = new vscode.Range(range.start.with(undefined, 0), editor.document.validatePosition(range.start.with(undefined, LINE_INF)))
     const lineIntersect = lineRange.intersection(result.range)
-    console.log(result.document === editor.document, intersect, lineIntersect)
     return intersect !== undefined || lineIntersect !== undefined
 }
 
