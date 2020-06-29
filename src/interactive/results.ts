@@ -179,6 +179,7 @@ export function activate(context) {
         // subscriptions
         vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)),
         vscode.window.onDidChangeVisibleTextEditors((editors) => refreshResults(editors)),
+        vscode.window.onDidChangeTextEditorSelection(changeEvent => updateResultContextKey(changeEvent)),
 
         // public commands
         vscode.commands.registerCommand('language-julia.clearAllInlineResults', removeAll),
@@ -197,8 +198,7 @@ export function activate(context) {
             gotoNextFrame(frameArg.frame)
         }),
         vscode.commands.registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
-        vscode.commands.registerCommand('language-julia.clearStackTrace', clearStackTrace),
-        vscode.window.onDidChangeTextEditorSelection(changeEvent => updateResultContextKey(changeEvent))
+        vscode.commands.registerCommand('language-julia.clearStackTrace', clearStackTrace)
     )
 }
 
