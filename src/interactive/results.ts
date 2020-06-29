@@ -375,11 +375,12 @@ export function removeCurrent(editor: vscode.TextEditor) {
 }
 
 function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: vscode.Selection | vscode.Range) {
+    if (result.document !== editor.document) { return false }
     const intersect = range.intersection(result.range)
     const lineRange = new vscode.Range(range.start.with(undefined, 0), editor.document.validatePosition(range.start.with(undefined, LINE_INF)))
     const lineIntersect = lineRange.intersection(result.range)
     console.log(result.document === editor.document, intersect, lineIntersect)
-    return result.document === editor.document && (intersect !== undefined || lineIntersect !== undefined)
+    return intersect !== undefined || lineIntersect !== undefined
 }
 
 // goto frame utilties
