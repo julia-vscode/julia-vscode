@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import { setContext } from '../utils'
 
 const LINE_INF = 9999
 
@@ -207,12 +208,12 @@ function updateResultContextKey(changeEvent: vscode.TextEditorSelectionChangeEve
     for (const selection of changeEvent.selections) {
         for (const r of results) {
             if (isResultInLineRange(changeEvent.textEditor, r, selection)) {
-                vscode.commands.executeCommand('setContext', 'juliaHasInlineResult', true)
+                setContext('juliaHasInlineResult', true)
                 return
             }
         }
     }
-    vscode.commands.executeCommand('setContext', 'juliaHasInlineResult', false)
+    setContext('juliaHasInlineResult', false)
 }
 
 
@@ -370,7 +371,7 @@ export function removeCurrent(editor: vscode.TextEditor) {
     editor.selections.forEach(selection => {
         results.filter(r => isResultInLineRange(editor, r, selection)).forEach(removeResult)
     })
-    vscode.commands.executeCommand('setContext', 'juliaHasInlineResult', false)
+    setContext('juliaHasInlineResult', false)
 }
 
 function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: vscode.Selection | vscode.Range) {
