@@ -196,9 +196,26 @@ export function activate(context) {
             gotoNextFrame(frameArg.frame)
         }),
         vscode.commands.registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
-        vscode.commands.registerCommand('language-julia.clearStackTrace', clearStackTrace)
+        vscode.commands.registerCommand('language-julia.clearStackTrace', clearStackTrace),
+        vscode.window.onDidChangeTextEditorSelection(changeEvent => updateResultContextKey(changeEvent))
     )
 }
+
+function updateResultContextKey(changeEvent: vscode.TextEditorSelectionChangeEvent) {
+    if (changeEvent.textEditor.document.languageId !== 'julia') {
+        return
+    }
+    for (const selection of changeEvent.selections) {
+        for (const r of results) {
+            if (isResultInLineRange(changeEvent.textEditor, r, selection)) {
+                vscode.commands.executeCommand('setContext', 'juliaHasInlineResult', true)
+                return
+            }
+        }
+    }
+    vscode.commands.executeCommand('setContext', 'juliaHasInlineResult', false)
+}
+
 
 export function deactivate() { }
 
@@ -352,12 +369,16 @@ export function removeAll(editor: vscode.TextEditor | null = null) {
 
 export function removeCurrent(editor: vscode.TextEditor) {
     editor.selections.forEach(selection => {
-        const isvalid = (result: Result) => {
-            const intersect = selection.intersection(result.range)
-            return result.document === editor.document && intersect !== undefined
-        }
-        results.filter(isvalid).forEach(removeResult)
+        results.filter(r => isResultInLineRange(editor, r, selection)).forEach(removeResult)
     })
+}
+
+function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: vscode.Selection | vscode.Range) {
+    const intersect = range.intersection(result.range)
+    const lineRange = new vscode.Range(range.start.with(undefined, 0), editor.document.validatePosition(range.start.with(undefined, LINE_INF)))
+    const lineIntersect = lineRange.intersection(result.range)
+    console.log(result.document === editor.document, intersect, lineIntersect)
+    return result.document === editor.document && (intersect !== undefined || lineIntersect !== undefined)
 }
 
 // goto frame utilties
