@@ -326,8 +326,8 @@
             },
             {
                 "command": "language-julia.clearCurrentInlineResult",
-                "key": "ctrl+i ctrl+d",
-                "when": "editorTextFocus && editorLangId == julia"
+                "key": "Escape",
+                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && juliaHasInlineResult"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
