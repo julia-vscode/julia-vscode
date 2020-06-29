@@ -251,13 +251,13 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
     let ret_val: vscode.Position[]
     try {
         ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
-    } catch (ex) {
-        if (ex.message === 'Language client is not ready yet') {
+    } catch (err) {
+        if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err)
             return zeroReturn
-        }
-        else {
-            throw ex
+        } else {
+            console.error(err)
+            throw err
         }
     }
 
