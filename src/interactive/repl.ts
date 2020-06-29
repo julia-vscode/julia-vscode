@@ -5,12 +5,12 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
-import { TextDocumentPositionParams } from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
@@ -267,7 +267,11 @@ async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
 
     const editor = vscode.window.activeTextEditor
-    const params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
+    const params: VersionedTextDocumentPositionParams = {
+        textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
+        version: editor.document.version,
+        position: new vscode.Position(editor.selection.start.line, editor.selection.start.character)
+    }
 
     const ret_val: vscode.Position[] = await getBlockRange(params)
 
@@ -332,8 +336,9 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
         const startpos: vscode.Position = new vscode.Position(selection.start.line, selection.start.character)
-        const params: TextDocumentPositionParams = {
+        const params: VersionedTextDocumentPositionParams = {
             textDocument: editorId,
+            version: editor.document.version,
             position: startpos
         }
 

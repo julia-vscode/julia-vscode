@@ -1,9 +1,9 @@
 import * as vscode from 'vscode'
-import * as vslc from 'vscode-languageclient'
 import * as rpc from 'vscode-jsonrpc'
-import { onInit, onExit } from './repl'
+import * as vslc from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
-import { TextDocumentPositionParams } from 'vscode-languageclient'
+import { VersionedTextDocumentPositionParams } from './misc'
+import { onExit, onInit } from './repl'
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
@@ -54,8 +54,9 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
     let mod = manuallySetDocuments[editor.document.fileName]
 
     if (mod === undefined) {
-        const params: TextDocumentPositionParams = {
+        const params: VersionedTextDocumentPositionParams = {
             textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
+            version: editor.document.version,
             position: position
         }
 
@@ -90,12 +91,14 @@ async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionCh
 async function updateModuleForEditor(editor: vscode.TextEditor) {
     const mod = await getModuleForEditor(editor)
 
-    let loaded = false
-    if (isConnectionActive()) {
-        loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
-    }
+    if (mod) {
+        let loaded = false
+        if (isConnectionActive()) {
+            loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
+        }
 
-    statusBarItem.text = loaded ? mod : '(' + mod + ')'
+        statusBarItem.text = loaded ? mod : '(' + mod + ')'
+    }
 }
 
 async function chooseModule() {
