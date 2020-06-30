@@ -78,7 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
             })
     }
 
-    vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider())
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
 }
 
 // this method is called when your extension is deactivated
@@ -211,7 +211,7 @@ async function startLanguageServer() {
 }
 
 export class JuliaDebugConfigurationProvider
-    implements vscode.DebugConfigurationProvider {
+implements vscode.DebugConfigurationProvider {
 
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
