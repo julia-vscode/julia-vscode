@@ -17,8 +17,8 @@ import * as tasks from './tasks'
 import * as telemetry from './telemetry'
 import * as weave from './weave'
 
-let g_languageClient: LanguageClient = null
-let g_context: vscode.ExtensionContext = null
+let g_languageClient: LanguageClient = undefined
+let g_context: vscode.ExtensionContext = undefined
 
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context)
@@ -83,9 +83,29 @@ export function deactivate() { }
 
 const g_onSetLanguageClient = new vscode.EventEmitter<vslc.LanguageClient>()
 export const onSetLanguageClient = g_onSetLanguageClient.event
-function setLanguageClient(languageClient: vslc.LanguageClient = null) {
+function setLanguageClient(languageClient: vslc.LanguageClient = undefined) {
     g_onSetLanguageClient.fire(languageClient)
     g_languageClient = languageClient
+}
+function isLanguageClientActive() {
+    return g_languageClient !== undefined
+}
+
+export function withLanguageClient(
+    callback: (languageClient: vslc.LanguageClient) => any,
+    callbackOnHandledErr: Function
+) {
+    if (!isLanguageClientActive()) {
+        return callbackOnHandledErr()
+    }
+    try {
+        callback(g_languageClient)
+    } catch (err) {
+        if (err.message === 'Language client is not ready yet') {
+            return callbackOnHandledErr(err)
+        }
+        throw err
+    }
 }
 
 const g_onDidChangeConfig = new vscode.EventEmitter<vscode.ConfigurationChangeEvent>()
@@ -93,10 +113,13 @@ export const onDidChangeConfig = g_onDidChangeConfig.event
 function changeConfig(event: vscode.ConfigurationChangeEvent) {
     g_onDidChangeConfig.fire(event)
     if (event.affectsConfiguration('julia.executablePath')) {
-        if (g_languageClient !== null) {
-            g_languageClient.stop()
-            setLanguageClient()
-        }
+        withLanguageClient(
+            languageClient => {
+                languageClient.stop()
+                setLanguageClient()
+            },
+            err => { }
+        )
         startLanguageServer()
     }
 }

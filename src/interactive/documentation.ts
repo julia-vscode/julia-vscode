@@ -5,12 +5,12 @@ import { getParamsAtPosition, setContext } from '../utils'
 
 const viewType = 'JuliaDocumentationBrowser'
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
-let extensionPath: string = null
-let panel: vscode.WebviewPanel = null
-const messageSubscription: vscode.Disposable = null
+let extensionPath: string = undefined
+let panel: vscode.WebviewPanel = undefined
+const messageSubscription: vscode.Disposable = undefined
 
-const backStack: string[] = [] // also keep current page
-let forwardStack: string[] = []
+const backStack = Array<string>() // also keep current page
+let forwardStack = Array<string>()
 
 export function activate(context: vscode.ExtensionContext) {
     // assets path
@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.show-documentation-pane', showDocumentationPane),
         vscode.commands.registerCommand('language-julia.show-documentation', showDocumentation),
         vscode.commands.registerCommand('language-julia.browse-back-documentation', browseBack),
-        vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward)
+        vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward),
     )
     setPanelContext()
     vscode.window.registerWebviewPanelSerializer(viewType, new DocumentationPaneSerializer())
@@ -95,11 +95,14 @@ async function showDocumentation() {
     const params = getParamsAtPosition(editor, positiion)
     showDocumentationPane()
     forwardStack = [] // initialize forward page stack for manual search
-    withLanguageClient('Getting a documentatin', async languageClient => {
-        const inner: string = await languageClient.sendRequest('julia/getDocAt', params)
-        const html = createWebviewHTML(inner)
-        _setHTML(html)
-    })
+    withLanguageClient(
+        async languageClient => {
+            const inner: string = await languageClient.sendRequest('julia/getDocAt', params)
+            const html = createWebviewHTML(inner)
+            _setHTML(html)
+        },
+        err => {}
+    )
 }
 
 function createWebviewHTML(inner: string) {

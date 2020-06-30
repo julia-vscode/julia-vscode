@@ -255,7 +255,7 @@ async function executeFile(uri?: vscode.Uri) {
     await workspace.replFinishEval()
 }
 
-async function getBlockRange(params): Promise<vscode.Position[]> {
+async function getBlockRange(params: TextDocumentPositionParams) {
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
@@ -265,9 +265,8 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
         vscode.window.showErrorMessage(err)
         return zeroReturn
     }
-    let ret_val: vscode.Position[]
     try {
-        ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+        return await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
     } catch (ex) {
         if (ex.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err)
@@ -277,17 +276,16 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
             throw ex
         }
     }
-
-    return ret_val
 }
 
 async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
 
     const editor = vscode.window.activeTextEditor
-    const params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
-
-    const ret_val: vscode.Position[] = await getBlockRange(params)
+    const ret_val = await getBlockRange({
+        textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
+        position: new vscode.Position(editor.selection.start.line, editor.selection.start.character)
+    })
 
     const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
     const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
@@ -350,15 +348,13 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
         const startpos: vscode.Position = new vscode.Position(selection.start.line, selection.start.character)
-        const params: TextDocumentPositionParams = {
-            textDocument: editorId,
-            position: startpos
-        }
 
         const module: string = await modules.getModuleForEditor(editor, startpos)
-
         if (selection.isEmpty) {
-            const currentBlock = await getBlockRange(params)
+            const currentBlock = await getBlockRange({
+                textDocument: editorId,
+                position: startpos
+            })
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
             nextBlock = new vscode.Position(currentBlock[2].line, currentBlock[2].character)
         } else {
