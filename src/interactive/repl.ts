@@ -5,12 +5,12 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
-import { TextDocumentPositionParams } from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
@@ -201,6 +201,8 @@ function startREPLMsgServer(pipename: string) {
 async function executeFile(uri?: vscode.Uri) {
     telemetry.traceEvent('command-executeFile')
 
+    const editor = vscode.window.activeTextEditor
+
     await startREPL(true, false)
 
     let module = 'Main'
@@ -212,7 +214,6 @@ async function executeFile(uri?: vscode.Uri) {
         code = Buffer.from(readBytes).toString('utf8')
     }
     else {
-        const editor = vscode.window.activeTextEditor
         if (!editor) {
             return
         }
@@ -250,13 +251,13 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
     let ret_val: vscode.Position[]
     try {
         ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
-    } catch (ex) {
-        if (ex.message === 'Language client is not ready yet') {
+    } catch (err) {
+        if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err)
             return zeroReturn
-        }
-        else {
-            throw ex
+        } else {
+            console.error(err)
+            throw err
         }
     }
 
@@ -267,12 +268,16 @@ async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
 
     const editor = vscode.window.activeTextEditor
-    const params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
+    const params: VersionedTextDocumentPositionParams = {
+        textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
+        version: editor.document.version,
+        position: editor.document.validatePosition(new vscode.Position(editor.selection.start.line, editor.selection.start.character))
+    }
 
     const ret_val: vscode.Position[] = await getBlockRange(params)
 
-    const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
-    const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
+    const start_pos = editor.document.validatePosition(new vscode.Position(ret_val[0].line, ret_val[0].character))
+    const end_pos = editor.document.validatePosition(new vscode.Position(ret_val[1].line, ret_val[1].character))
     vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
     vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
 }
@@ -281,8 +286,6 @@ const g_cellDelimiter = new RegExp('^##(?!#)')
 
 async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell')
-
-    await startREPL(true, false)
 
     const ed = vscode.window.activeTextEditor
     const doc = ed.document
@@ -305,10 +308,12 @@ async function executeCell(shouldMove: boolean = false) {
         }
     }
     end -= 1
-    const startpos = new vscode.Position(start, 0)
-    const endpos = new vscode.Position(end, doc.lineAt(end).text.length)
-    const nextpos = new vscode.Position(end + 1, 0)
+    const startpos = ed.document.validatePosition(new vscode.Position(start, 0))
+    const endpos = ed.document.validatePosition(new vscode.Position(end, doc.lineAt(end).text.length))
+    const nextpos = ed.document.validatePosition(new vscode.Position(end + 1, 0))
     const code = doc.getText(new vscode.Range(startpos, endpos))
+
+    await startREPL(true, false)
 
     const module: string = await modules.getModuleForEditor(ed, startpos)
 
@@ -323,17 +328,20 @@ async function executeCell(shouldMove: boolean = false) {
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCodeBlockOrSelection')
 
-    await startREPL(true, false)
 
     const editor = vscode.window.activeTextEditor
     const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString())
+    const selections = editor.selections.slice()
 
-    for (const selection of editor.selections) {
+    await startREPL(true, false)
+
+    for (const selection of selections) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
-        const startpos: vscode.Position = new vscode.Position(selection.start.line, selection.start.character)
-        const params: TextDocumentPositionParams = {
+        const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
+        const params: VersionedTextDocumentPositionParams = {
             textDocument: editorId,
+            version: editor.document.version,
             position: startpos
         }
 
@@ -342,7 +350,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         if (selection.isEmpty) {
             const currentBlock = await getBlockRange(params)
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
-            nextBlock = new vscode.Position(currentBlock[2].line, currentBlock[2].character)
+            nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
         } else {
             range = new vscode.Range(selection.start, selection.end)
         }
@@ -396,6 +404,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             showResultInREPL: resultType !== 'inline'
         }
     )
+
     await workspace.replFinishEval()
 
     if (resultType !== 'REPL') {
