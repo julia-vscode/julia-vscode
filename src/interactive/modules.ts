@@ -1,16 +1,13 @@
 import * as vscode from 'vscode'
-import * as vslc from 'vscode-languageclient'
 import * as rpc from 'vscode-jsonrpc'
-import { onInit, onExit } from './repl'
+import * as vslc from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
-import { TextDocumentPositionParams } from 'vscode-languageclient'
+import { VersionedTextDocumentPositionParams } from './misc'
+import { onExit, onInit } from './repl'
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
 let g_languageClient: vslc.LanguageClient = null
-
-const isConnectionActive = () => g_connection !== null
-const isLanguageClientActive = () => g_languageClient !== null
 
 const manuallySetDocuments = []
 
@@ -54,14 +51,16 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
     let mod = manuallySetDocuments[editor.document.fileName]
 
     if (mod === undefined) {
-        const params: TextDocumentPositionParams = {
+        const params: VersionedTextDocumentPositionParams = {
             textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
+            version: editor.document.version,
             position: position
         }
 
-        if (isLanguageClientActive()) {
+        try {
             mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
-        } else {
+        } catch (err) {
+            console.error(err)
             mod = 'Main'
         }
     }
@@ -74,7 +73,7 @@ function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEdito
 }
 
 async function updateStatusBarItem(editor: vscode.TextEditor) {
-    if (isConnectionActive() && isJuliaEditor(editor)) {
+    if (isJuliaEditor(editor)) {
         statusBarItem.show()
         await updateModuleForEditor(editor)
     } else {
@@ -88,23 +87,34 @@ async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionCh
 }
 
 async function updateModuleForEditor(editor: vscode.TextEditor) {
-    const mod = await getModuleForEditor(editor)
+    let mod = 'Main'
+    try {
+        mod = await getModuleForEditor(editor)
+    } catch (err) {
+        console.error(err)
+        return
+    }
 
     let loaded = false
-    if (isConnectionActive()) {
+    try {
         loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
+    } catch (err) {
+        console.error(err)
+        return
     }
 
     statusBarItem.text = loaded ? mod : '(' + mod + ')'
 }
 
 async function chooseModule() {
-    if (!isConnectionActive()) {
+    let possibleModules = []
+    try {
+        possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
+    } catch (err) {
+        console.error(err)
         vscode.window.showInformationMessage('Setting a module requires an active REPL.')
         return
     }
-
-    const possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
 
     possibleModules.sort()
     possibleModules.splice(0, 0, automaticallyChooseOption)
