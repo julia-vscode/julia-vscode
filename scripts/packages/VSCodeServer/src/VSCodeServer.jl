@@ -78,7 +78,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
 
             if is_dev
                 try
-                    Base.invokelatest(JSONRPC.dispatch_msg, conn_endpoint[], msg_dispatcher, msg)
+                    JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
                 catch err
                     Base.display_error(err, catch_backtrace())
                 end
