@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "0.16.2",
+    "version": "0.16.11",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -174,18 +174,12 @@
             {
                 "command": "language-julia.plotpane-next",
                 "title": "Julia: Show Next Plot",
-                "icon": {
-                    "light": "./media/next.svg",
-                    "dark": "./media/next-inverse.svg"
-                }
+                "icon": "$(arrow-right)"
             },
             {
                 "command": "language-julia.plotpane-previous",
                 "title": "Julia: Show Previous Plot",
-                "icon": {
-                    "light": "./media/previous.svg",
-                    "dark": "./media/previous-inverse.svg"
-                }
+                "icon": "$(arrow-left)"
             },
             {
                 "command": "language-julia.plotpane-first",
@@ -198,10 +192,7 @@
             {
                 "command": "language-julia.plotpane-delete",
                 "title": "Julia: Delete plot",
-                "icon": {
-                    "light": "./media/delete.svg",
-                    "dark": "./media/delete-inverse.svg"
-                }
+                "icon": "$(trash)"
             },
             {
                 "command": "language-julia.plotpane-delete-all",
@@ -424,7 +415,7 @@
                     "type": "string",
                     "default": "",
                     "description": "Points to the julia executable.",
-                    "scope": "window"
+                    "scope": "machine-overridable"
                 },
                 "julia.lint.run": {
                     "type": "boolean",
@@ -612,10 +603,21 @@
                     "description": "Format inline documentation.",
                     "scope": "window"
                 },
-                "julia.format.kw": {
-                    "type": "boolean",
+                "julia.format.keywords": {
+                    "type": "bool",
                     "default": true,
-                    "description": "Remove spaces around = in function keywords.",
+                    "description": "Ensure single spacing following keywords.",
+                    "scope": "window"
+                },
+                "julia.format.kwarg": {
+                    "type": "string",
+                    "default": "none",
+                    "description": "Format whitespace around function keyword arguments.",
+                    "enum": [
+                        "none",
+                        "single",
+                        "off"
+                    ],
                     "scope": "window"
                 },
                 "julia.execution.resultType": {
@@ -782,21 +784,21 @@
         "watch": "tsc -watch -p ./",
         "test": "node ./out/test/runTest.js",
         "initialsetup": "npm i && git submodule init && git submodule update",
-        "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile",
+        "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run webpack",
         "package": "vsce package",
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
         "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
-        "@types/vscode": "^1.45.1",
-        "applicationinsights": "^1.7.6",
+        "@types/vscode": "^1.46.0",
+        "applicationinsights": "^1.8.0",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
-        "uuidv4": "^6.1.0",
+        "uuidv4": "^6.1.1",
         "vscode-debugadapter": "^1.41.0",
         "vscode-jsonrpc": "^5.0.1",
         "vscode-languageclient": "^6.1.3",
@@ -806,17 +808,17 @@
         "@types/cson-parser": "^4.0.4",
         "@types/download": "^6.2.4",
         "@types/mocha": "^7.0.2",
-        "@types/node": "^12.12.44",
-        "@typescript-eslint/parser": "^3.2.0",
+        "@types/node": "^12.12.47",
+        "@typescript-eslint/parser": "^3.4.0",
         "cson-parser": "^4.0.4",
         "download": "^7.1.0",
-        "eslint": "^7.2.0",
+        "eslint": "^7.3.1",
         "mocha": "^7.2.0",
         "ts-loader": "^7.0.5",
         "typescript": "^3.9.5",
-        "vsce": "^1.76.0",
+        "vsce": "^1.77.0",
         "vscode-test": "^1.4.0",
         "webpack": "^4.43.0",
-        "webpack-cli": "^3.3.11"
+        "webpack-cli": "^3.3.12"
     }
 }

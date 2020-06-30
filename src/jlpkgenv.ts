@@ -4,10 +4,9 @@ import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
-import { onDidChangeConfig, onSetLanguageClient } from './extension'
+import { onSetLanguageClient } from './extension'
 import * as juliaexepath from './juliaexepath'
 import * as packagepath from './packagepath'
-import * as settings from './settings'
 import * as telemetry from './telemetry'
 
 let g_languageClient: vslc.LanguageClient = null
@@ -188,11 +187,10 @@ export async function getEnvName() {
     return path.basename(envpath)
 }
 
-export async function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
+export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(onSetLanguageClient(languageClient => {
         g_languageClient = languageClient
     }))
-    context.subscriptions.push(onDidChangeConfig(newSettings => { }))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
     // Environment status bar

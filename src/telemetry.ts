@@ -50,7 +50,7 @@ function loadConfig() {
 export async function init(context: vscode.ExtensionContext) {
     loadConfig()
 
-    context.subscriptions.push(onDidChangeConfig(newSettings => {
+    context.subscriptions.push(onDidChangeConfig(event => {
         loadConfig()
     }))
 
@@ -158,6 +158,10 @@ export function traceEvent(message) {
 
 export function tracePackageLoadError(packagename, message) {
     extensionClient.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
+}
+
+export function traceTrace(msg) {
+    extensionClient.trackTrace(msg)
 }
 
 function sendCrashReportQueue() {

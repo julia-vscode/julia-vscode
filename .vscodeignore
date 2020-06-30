@@ -7,7 +7,9 @@ node_modules/**
 tsconfig.json
 webpack.config.js
 scripts/languageserver/julia_pkgdir/**
+scripts/testenvironments
 CONTRIBUTING.md
 *.vsix
 azure-pipelines.yml
 README-insider.md
+projectmanagement

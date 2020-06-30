@@ -9,13 +9,13 @@ import { TextDocumentPositionParams } from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
-import * as settings from '../settings'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import * as documentation from './documentation'
 import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
+import { Frame } from './results'
 import * as workspace from './workspace'
 
 
@@ -62,29 +62,34 @@ function get_editor(): string {
     }
 }
 
-async function startREPL(preserveFocus: boolean) {
+async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (g_terminal === null) {
         const pipename = generatePipeName(process.pid.toString(), 'vsc-julia-repl')
+        const args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
+        function getArgs() {
+            const jlarg2 = [args, pipename, telemetry.getCrashReportingPipename()]
+            if (vscode.workspace.getConfiguration('julia').get('useRevise')) {
+                jlarg2.push('USE_REVISE')
+            }
+            if (vscode.workspace.getConfiguration('julia').get('usePlotPane')) {
+                jlarg2.push('USE_PLOTPANE')
+            }
+            if (process.env.DEBUG_MODE === 'true') {
+                jlarg2.push('DEBUG_MODE')
+            }
+            return jlarg2
+        }
 
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
-
-        const args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         const exepath = await juliaexepath.getJuliaExePath()
         const pkgenvpath = await jlpkgenv.getEnvPath()
         if (pkgenvpath === null) {
             const jlarg1 = ['-i', '--banner=no'].concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
-            const jlarg2 = [
-                args,
-                pipename,
-                vscode.workspace.getConfiguration('julia').get('useRevise').toString(),
-                vscode.workspace.getConfiguration('julia').get('usePlotPane').toString(),
-                telemetry.getCrashReportingPipename()
-            ]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: 'Julia REPL',
                     shellPath: exepath,
-                    shellArgs: jlarg1.concat(jlarg2),
+                    shellArgs: jlarg1.concat(getArgs()),
                     env: {
                         JULIA_EDITOR: get_editor(),
                         JULIA_NUM_THREADS: inferJuliaNumThreads()
@@ -107,18 +112,11 @@ async function startREPL(preserveFocus: boolean) {
                 }
             }
             const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
-            const jlarg2 = [
-                args,
-                pipename,
-                vscode.workspace.getConfiguration('julia').get('useRevise').toString(),
-                vscode.workspace.getConfiguration('julia').get('usePlotPane').toString(),
-                telemetry.getCrashReportingPipename()
-            ]
             g_terminal = vscode.window.createTerminal(
                 {
                     name: 'Julia REPL',
                     shellPath: exepath,
-                    shellArgs: jlarg1.concat(jlarg2),
+                    shellArgs: jlarg1.concat(getArgs()),
                     env: {
                         JULIA_EDITOR: get_editor(),
                         JULIA_NUM_THREADS: inferJuliaNumThreads()
@@ -128,7 +126,7 @@ async function startREPL(preserveFocus: boolean) {
         g_terminal.show(preserveFocus)
         await juliaIsConnectedPromise.wait()
     }
-    else {
+    else if (showTerminal) {
         g_terminal.show(preserveFocus)
     }
 }
@@ -155,15 +153,21 @@ function debuggerEnter(code: string) {
     vscode.debug.startDebugging(undefined, x)
 }
 
+interface ReturnResult {
+    inline: string,
+    all: string,
+    stackframe: null | Array<Frame>
+}
+
 const requestTypeReplRunCode = new rpc.RequestType<{
     filename: string,
     line: number,
     column: number,
     code: string,
-    module: string,
+    mod: string,
     showCodeInREPL: boolean,
     showResultInREPL: boolean
-}, void, void, void>('repl/runcode')
+}, ReturnResult, void, void>('repl/runcode')
 
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display')
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter')
@@ -215,7 +219,7 @@ function startREPLMsgServer(pipename: string) {
 async function executeFile(uri?: vscode.Uri) {
     telemetry.traceEvent('command-executeFile')
 
-    await startREPL(true)
+    await startREPL(true, false)
 
     let module = 'Main'
     let path = ''
@@ -242,40 +246,53 @@ async function executeFile(uri?: vscode.Uri) {
             filename: path,
             line: 0,
             column: 0,
-            module: module,
+            mod: module,
             code: code,
             showCodeInREPL: false,
-            showResultInREPL: false
+            showResultInREPL: true
         }
     )
+    await workspace.replFinishEval()
+}
+
+async function getBlockRange(params): Promise<vscode.Position[]> {
+    const zeroPos = new vscode.Position(0, 0)
+    const zeroReturn = [zeroPos, zeroPos, params.position]
+
+    const err = 'Error: Julia Language server is not running.\n\nPlease wait a few seconds and try again once the `Starting Julia Language Server...` message in the status bar is gone.'
+
+    if (g_languageClient === null) {
+        vscode.window.showErrorMessage(err)
+        return zeroReturn
+    }
+    let ret_val: vscode.Position[]
+    try {
+        ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+    } catch (ex) {
+        if (ex.message === 'Language client is not ready yet') {
+            vscode.window.showErrorMessage(err)
+            return zeroReturn
+        }
+        else {
+            throw ex
+        }
+    }
+
+    return ret_val
 }
 
 async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
-    if (g_languageClient === null) {
-        vscode.window.showErrorMessage('Error: Language server is not running.')
-    }
-    else {
-        const editor = vscode.window.activeTextEditor
-        const params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
 
-        try {
-            const ret_val: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+    const editor = vscode.window.activeTextEditor
+    const params: TextDocumentPositionParams = { textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()), position: new vscode.Position(editor.selection.start.line, editor.selection.start.character) }
 
-            const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
-            const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
-            vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
-            vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
-        }
-        catch (ex) {
-            if (ex.message === 'Language client is not ready yet') {
-                vscode.window.showErrorMessage('Select code block only works once the Julia Language Server is ready.')
-            }
-            else {
-                throw ex
-            }
-        }
-    }
+    const ret_val: vscode.Position[] = await getBlockRange(params)
+
+    const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
+    const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
+    vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
+    vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
 }
 
 const g_cellDelimiter = new RegExp('^##(?!#)')
@@ -283,7 +300,7 @@ const g_cellDelimiter = new RegExp('^##(?!#)')
 async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell')
 
-    await startREPL(true)
+    await startREPL(true, false)
 
     const ed = vscode.window.activeTextEditor
     const doc = ed.document
@@ -313,18 +330,18 @@ async function executeCell(shouldMove: boolean = false) {
 
     const module: string = await modules.getModuleForEditor(ed, startpos)
 
-    await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
-
     if (shouldMove) {
         vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
         vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
     }
+
+    await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
 }
 
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCodeBlockOrSelection')
 
-    await startREPL(true)
+    await startREPL(true, false)
 
     const editor = vscode.window.activeTextEditor
     const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString())
@@ -341,7 +358,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         const module: string = await modules.getModuleForEditor(editor, startpos)
 
         if (selection.isEmpty) {
-            const currentBlock: vscode.Position[] = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+            const currentBlock = await getBlockRange(params)
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
             nextBlock = new vscode.Position(currentBlock[2].line, currentBlock[2].character)
         } else {
@@ -355,6 +372,9 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.revealRange(new vscode.Range(nextBlock, nextBlock))
         }
 
+        if (range.isEmpty) {
+            return
+        }
 
         const tempDecoration = vscode.window.createTextEditorDecorationType({
             backgroundColor: new vscode.ThemeColor('editor.hoverHighlightBackground'),
@@ -379,45 +399,38 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
 
     let r: results.Result = null
     if (resultType !== 'REPL') {
-        r = results.addResult(editor, range, {
-            content: ' ⟳ ',
-            isIcon: false,
-            hoverContent: '',
-            isError: false
-        })
+        r = results.addResult(editor, range, ' ⟳ ', '')
     }
 
-    const result: any = await g_connection.sendRequest(
+    const result: ReturnResult = await g_connection.sendRequest(
         requestTypeReplRunCode,
         {
             filename: editor.document.fileName,
             line: range.start.line,
             column: range.start.character,
             code: text,
-            module: module,
+            mod: module,
             showCodeInREPL: codeInREPL,
             showResultInREPL: resultType !== 'inline'
         }
     )
+    await workspace.replFinishEval()
 
     if (resultType !== 'REPL') {
-        const hoverString = '```\n' + result.all.toString() + '\n```'
-
-        r.setContent({
-            content: ' ' + result.inline.toString() + ' ',
-            isIcon: false,
-            hoverContent: hoverString,
-            isError: result.iserr
-        })
+        if (result.stackframe) {
+            results.clearStackTrace()
+            results.setStackTrace(r, result.all, result.stackframe)
+        }
+        r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, Boolean(result.stackframe)))
     }
 }
 
-async function executeCodeCopyPaste(text, individualLine) {
+async function executeCodeCopyPaste(text: string, individualLine: boolean) {
     if (!text.endsWith('\n')) {
         text = text + '\n'
     }
 
-    await startREPL(true)
+    await startREPL(true, true)
 
     let lines = text.split(/\r?\n/)
     lines = lines.filter(line => line !== '')
@@ -464,7 +477,7 @@ export async function replStartDebugger(pipename: string) {
     g_connection.sendNotification(notifyTypeReplStartDebugger, pipename)
 }
 
-export function activate(context: vscode.ExtensionContext, settings: settings.ISettings) {
+export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
     context.subscriptions.push(onSetLanguageClient(languageClient => {
