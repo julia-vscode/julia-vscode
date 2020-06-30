@@ -3,7 +3,7 @@ import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import { getParamsAtPosition } from '../utils'
-import { onExit, onInit, withConnection } from './repl'
+import { onExit, onInit } from './repl'
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
@@ -95,25 +95,28 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
 }
 
 async function chooseModule() {
-    withConnection('Setting a module', async connection => {
-        const possibleModules = await connection.sendRequest(requestTypeGetModules, null)
+    if (!isConnectionActive()) {
+        vscode.window.showInformationMessage('Setting a module requires an active REPL.')
+        return
+    }
 
-        possibleModules.sort()
-        possibleModules.splice(0, 0, automaticallyChooseOption)
+    const possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
 
-        const qpOptions: vscode.QuickPickOptions = {
-            placeHolder: 'Select module',
-            canPickMany: false
-        }
-        const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
+    possibleModules.sort()
+    possibleModules.splice(0, 0, automaticallyChooseOption)
 
-        const ed = vscode.window.activeTextEditor
-        if (mod === automaticallyChooseOption) {
-            delete manuallySetDocuments[ed.document.fileName]
-        } else {
-            manuallySetDocuments[ed.document.fileName] = mod
-        }
+    const qpOptions: vscode.QuickPickOptions = {
+        placeHolder: 'Select module',
+        canPickMany: false
+    }
+    const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
 
-        updateStatusBarItem(ed)
-    })
+    const ed = vscode.window.activeTextEditor
+    if (mod === automaticallyChooseOption) {
+        delete manuallySetDocuments[ed.document.fileName]
+    } else {
+        manuallySetDocuments[ed.document.fileName] = mod
+    }
+
+    updateStatusBarItem(ed)
 }
