@@ -7,7 +7,7 @@ interface DisconnectResponseArguments {
 
 /** Arguments for 'setBreakpoints' response. */
 interface SetBreakpointsResponseArguments {
-	/** Information about the breakpoints.
+    /** Information about the breakpoints.
                 The array elements are in the same order as the elements of the 'breakpoints' (or the deprecated 'lines') array in the arguments.
             */
     breakpoints: DebugProtocol.Breakpoint[];
@@ -15,7 +15,7 @@ interface SetBreakpointsResponseArguments {
 
 /** Arguments for 'stackTrace' response. */
 interface StackTraceResponseArguments {
-	/** The frames of the stackframe. If the array has length zero, there are no stackframes available.
+    /** The frames of the stackframe. If the array has length zero, there are no stackframes available.
                 This means that there is no location information available.
             */
     stackFrames: DebugProtocol.StackFrame[];
@@ -55,9 +55,9 @@ interface VariablesResponseArguments {
 
 /** Arguments for 'continue' response. */
 interface ContinueResponseArguments {
-	/** If true, the 'continue' request has ignored the specified thread and continued all threads instead.
-		If this attribute is missing a value of 'true' is assumed for backward compatibility.
-	*/
+    /** If true, the 'continue' request has ignored the specified thread and continued all threads instead.
+        If this attribute is missing a value of 'true' is assumed for backward compatibility.
+    */
     allThreadsContinued?: boolean;
 }
 
@@ -67,6 +67,10 @@ interface NextResponseArguments {
 
 /** Arguments for 'stepIn' response. */
 interface StepInResponseArguments {
+}
+
+interface StepInTargetsResponseArguments {
+    targets: DebugProtocol.StepInTarget[]
 }
 
 /** Arguments for 'stepOut' response. */
@@ -184,19 +188,20 @@ export const requestTypeStackTrace = new RequestType<DebugProtocol.StackTraceArg
 export const requestTypeScopes = new RequestType<DebugProtocol.ScopesArguments, ScopesResponseArguments, void, void>('scopes')
 export const requestTypeSource = new RequestType<DebugProtocol.SourceArguments, SourceResponseArguments, void, void>('source')
 export const requestTypeVariables = new RequestType<DebugProtocol.VariablesArguments, VariablesResponseArguments, void, void>('variables')
-export const requestTypeContinue = new RequestType<DebugProtocol.ContinueArguments,ContinueResponseArguments,void,void>('continue')
-export const requestTypeNext = new RequestType<DebugProtocol.NextArguments,NextResponseArguments,void,void>('next')
-export const requestTypeStepIn = new RequestType<DebugProtocol.StepInArguments,StepInResponseArguments,void,void>('stepIn')
-export const requestTypeStepOut = new RequestType<DebugProtocol.StepOutArguments,StepOutResponseArguments,void,void>('stepOut')
+export const requestTypeContinue = new RequestType<DebugProtocol.ContinueArguments, ContinueResponseArguments, void, void>('continue')
+export const requestTypeNext = new RequestType<DebugProtocol.NextArguments, NextResponseArguments, void, void>('next')
+export const requestTypeStepIn = new RequestType<DebugProtocol.StepInArguments, StepInResponseArguments, void, void>('stepIn')
+export const requestTypeStepInTargets = new RequestType<DebugProtocol.StepInTargetsArguments, StepInTargetsResponseArguments, void, void>('stepInTargets')
+export const requestTypeStepOut = new RequestType<DebugProtocol.StepOutArguments, StepOutResponseArguments, void, void>('stepOut')
 export const requestTypeEvaluate = new RequestType<DebugProtocol.EvaluateArguments, EvaluateResponseArguments, void, void>('evaluate')
 export const requestTypeTerminate = new RequestType<DebugProtocol.TerminateArguments, TerminateResponseArguments, void, void>('terminate')
 export const requestTypeExceptionInfo = new RequestType<DebugProtocol.ExceptionInfoArguments, ExceptionInfoResponseArguments, void, void>('exceptionInfo')
-export const requestTypeRestartFrame = new RequestType<DebugProtocol.RestartFrameArguments,RestartFrameResponseArguments,void,void>('restartFrame')
+export const requestTypeRestartFrame = new RequestType<DebugProtocol.RestartFrameArguments, RestartFrameResponseArguments, void, void>('restartFrame')
 export const requestTypeSetVariable = new RequestType<DebugProtocol.SetVariableArguments, SetVariableResponseArguments, void, void>('setVariable')
 export const requestTypeThreads = new RequestType0<ThreadsResponseArguments, void, void>('threads')
 export const requestTypeBreakpointLocations = new RequestType<DebugProtocol.BreakpointLocationsArguments, BreakpointLocationsResponseArguments, void, void>('breakpointLocations')
 export const notifyTypeRun = new NotificationType<string, void>('run')
 export const notifyTypeDebug = new NotificationType<{ stopOnEntry: boolean, program: string }, void>('debug')
 export const notifyTypeExec = new NotificationType<{ stopOnEntry: boolean, code: string }, void>('exec')
-export const notifyTypeOurFinised = new NotificationType<void, void>('finished')
+export const notifyTypeOurFinished = new NotificationType<void, void>('finished')
 export const notifyTypeStopped = new NotificationType<StoppedArguments, void>('stopped')
