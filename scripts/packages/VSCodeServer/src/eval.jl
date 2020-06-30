@@ -67,6 +67,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
             end
 
             rendered_result = safe_render(res)
+            add_clear_cmds!(rendered_result, source_filename, code_line)
         end
     end
     return rendered_result
@@ -174,4 +175,12 @@ function backtrace_string(bt)
         linktitle = string("Go to ", linktext)
         return "$(i-1). `$(m[:body])` at [$(linktext)]($(linkbody) \"$(linktitle)\")"
     end |> joinlines
+end
+
+function add_clear_cmds!(res, path, line)
+    linewise_cmd = vscode_cmd_uri("language-julia.clearAtLine"; path = path, line = line)
+    linewise_link = "[`x`]($(linewise_cmd) \"Remove this inline result\")"
+    editorwise_cmd = vscode_cmd_uri("language-julia.clearInEditor"; path = path)
+    editorwise_link = "[`\u20E0`]($(editorwise_cmd) \"Remove inline results in this editor\")"
+    res.all = string(join((linewise_link, editorwise_link), " "), '\n', res.all)
 end

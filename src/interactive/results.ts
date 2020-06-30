@@ -197,7 +197,13 @@ export function activate(context: vscode.ExtensionContext) {
             gotoNextFrame(frameArg.frame)
         }),
         vscode.commands.registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
-        vscode.commands.registerCommand('language-julia.clearStackTrace', clearStackTrace)
+        vscode.commands.registerCommand('language-julia.clearAtLine', (arg: { path: string, line: number }) => {
+            removeAtLine(arg.path, arg.line)
+        }),
+        vscode.commands.registerCommand('language-julia.clearInEditor', (arg: { path: string }) => {
+            removeAllInEditorFromPath(arg.path)
+        }),
+        vscode.commands.registerCommand('language-julia.clearStackTrace', clearStackTrace),
     )
 }
 
@@ -379,6 +385,19 @@ export function removeCurrent(editor: vscode.TextEditor) {
         results.filter(r => isResultInLineRange(editor, r, selection)).forEach(removeResult)
     })
     setContext('juliaHasInlineResult', false)
+}
+
+function removeAtLine(path: string, line: number) {
+    const range = new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, LINE_INF))
+    vscode.window.visibleTextEditors.filter(editor => isEditorPath(editor, path)).forEach(editor => {
+        results.filter(result => isResultInLineRange(editor, result, range)).forEach(removeResult)
+    })
+}
+
+function removeAllInEditorFromPath(path: string) {
+    vscode.window.visibleTextEditors.filter(editor => isEditorPath(editor, path)).forEach(editor => {
+        removeAll(editor)
+    })
 }
 
 function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: vscode.Selection | vscode.Range) {

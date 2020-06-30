@@ -14,7 +14,7 @@ struct Frame
 end
 Frame(st::Base.StackFrame) = Frame(fullpath(string(st.file)), st.line)
 
-JSONRPC.@dict_readable struct ReplRunCodeRequestReturn <: JSONRPC.Outbound
+JSONRPC.@dict_readable mutable struct ReplRunCodeRequestReturn <: JSONRPC.Outbound
     inline::String
     all::String
     stackframe::Union{Nothing,Vector{Frame}}
