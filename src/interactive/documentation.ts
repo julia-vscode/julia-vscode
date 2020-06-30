@@ -1,10 +1,9 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
-import * as rpc from 'vscode-jsonrpc'
 import { withLanguageClient } from '../extension'
 import { getParamsAtPosition, setContext } from '../utils'
-import { getModuleForEditor } from './modules'
-import { withREPL } from './repl'
+// import * as rpc from 'vscode-jsonrpc'
+// import { withREPL } from './repl'
 
 const viewType = 'JuliaDocumentationBrowser'
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
@@ -80,8 +79,8 @@ function setPanelContext(state: boolean = false) {
     setContext(panelActiveContextKey, state)
 }
 
-const requestTypeGetDoc = new rpc.RequestType<{ word: string, mod: string }, string, void, void>('repl/getdoc')
-const wordRegex = /[\u00A0-\uFFFF\w_!´\.]*@?[\u00A0-\uFFFF\w_!´]+/
+// const requestTypeGetDoc = new rpc.RequestType<{ word: string, mod: string }, string, void, void>('repl/getdoc')
+// const wordRegex = /[\u00A0-\uFFFF\w_!´\.]*@?[\u00A0-\uFFFF\w_!´]+/
 const LS_ERR_MSG = `
 Error: Julia Language server is not running.
 Please wait a few seconds and try again once the \`Starting Julia Language Server...\` message in the status bar is gone.
@@ -97,18 +96,18 @@ async function getDocumentation(): Promise<string> {
     const selection = editor.selection
     const position = new vscode.Position(selection.start.line, selection.start.character)
 
-    const retFromREPL = await withREPL(
-        async connection => {
-            const mod = await getModuleForEditor(editor, position)
-            const range = selection.isEmpty ?
-                editor.document.getWordRangeAtPosition(position, wordRegex) :
-                new vscode.Range(selection.start, selection.end)
-            const word = editor.document.getText(range)
-            return connection.sendRequest(requestTypeGetDoc, { word, mod, })
-        },
-        err => { return '' }
-    )
-    if (retFromREPL) { return retFromREPL }
+    // const retFromREPL = await withREPL(
+    //     async connection => {
+    //         const mod = await getModuleForEditor(editor, position)
+    //         const range = selection.isEmpty ?
+    //             editor.document.getWordRangeAtPosition(position, wordRegex) :
+    //             new vscode.Range(selection.start, selection.end)
+    //         const word = editor.document.getText(range)
+    //         return connection.sendRequest(requestTypeGetDoc, { word, mod, })
+    //     },
+    //     err => { return '' }
+    // )
+    // if (retFromREPL) { return retFromREPL }
 
     return await withLanguageClient(
         async languageClient => {
@@ -207,14 +206,14 @@ function _setHTML(html: string) {
     messageSubscription = panel.webview.onDidReceiveMessage(
         message => {
             if (message.method === 'search') {
-                withREPL(
-                    async connection => {
-                        const { word, mod } = message.params
-                        const inner = await connection.sendRequest(requestTypeGetDoc, { word, mod, })
-                        setDocumentation(inner)
-                    },
-                    err => { return '' }
-                )
+                // withREPL(
+                //     async connection => {
+                //         const { word, mod } = message.params
+                //         const inner = await connection.sendRequest(requestTypeGetDoc, { word, mod, })
+                //         setDocumentation(inner)
+                //     },
+                //     err => { return '' }
+                // )
             }
         }
     )

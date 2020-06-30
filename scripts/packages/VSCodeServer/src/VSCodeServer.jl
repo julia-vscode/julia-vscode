@@ -5,8 +5,6 @@ export vscodedisplay, @enter, @run
 using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
 import Dates
-using Base.Docs, Markdown
-using Markdown: MD, HorizontalRule
 
 
 function __init__()
@@ -53,7 +51,6 @@ include("repl_protocol.jl")
 include("misc.jl")
 include("trees.jl")
 include("repl.jl")
-include("docs.jl")
 include("gridviewer.jl")
 include("module.jl")
 include("eval.jl")
@@ -71,7 +68,6 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_runcode_request_type] = repl_runcode_request
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
-        msg_dispatcher[repl_getdoc_request_type] = repl_getdoc_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
         msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request
         msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
