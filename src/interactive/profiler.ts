@@ -20,3 +20,12 @@ export async function showProfileResult(content: string) {
     const doc = await vscode.workspace.openTextDocument(uri)
     await vscode.window.showTextDocument(doc, { preview: false })
 }
+
+export async function showProfileResultFile(file: string) {
+    const uri = vscode.Uri.file(file)
+    await vscode.commands.executeCommand('vscode.open', uri, {
+        preserveFocuse: true,
+        preview: false,
+        viewColumn: vscode.ViewColumn.Beside
+    })
+}

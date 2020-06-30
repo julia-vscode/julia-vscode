@@ -7,12 +7,12 @@ import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient'
 import { JuliaDebugSession } from './debugger/juliaDebug'
+import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
 import * as openpackagedirectory from './openpackagedirectory'
 import * as packagepath from './packagepath'
-import { ProfilerResultsProvider } from './profiler'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
@@ -153,7 +153,7 @@ async function startLanguageServer() {
                 const validatedPosition = document.validatePosition(position)
 
                 if (validatedPosition !== position) {
-                    telemetry.traceTrace({ message: `Middleware found a change in position in provideCompletionItem. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}`})
+                    telemetry.traceTrace({ message: `Middleware found a change in position in provideCompletionItem. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}` })
 
                 }
 
@@ -211,7 +211,7 @@ async function startLanguageServer() {
 }
 
 export class JuliaDebugConfigurationProvider
-implements vscode.DebugConfigurationProvider {
+    implements vscode.DebugConfigurationProvider {
 
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
