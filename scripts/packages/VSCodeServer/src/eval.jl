@@ -125,7 +125,7 @@ end
 sprint_error(err::LoadError) = sprint_error(err.error)
 
 function sprint_error(err)
-    sprintlimited(err, nothing, func = Base.display_error, limit = MAX_RESULT_LENGTH)
+    sprintlimited(err, func = Base.display_error, limit = MAX_RESULT_LENGTH)
 end
 
 function render(err::EvalError)
