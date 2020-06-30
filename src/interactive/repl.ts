@@ -26,20 +26,23 @@ let g_terminal: vscode.Terminal = null
 
 export let g_connection: rpc.MessageConnection = undefined
 
-export function withConnection(what: string, callback: (connection: rpc.MessageConnection) => void) {
-    try {
-        if (isConnectionActive()) {
-            callback(g_connection)
-        } else {
-            vscode.window.showInformationMessage(`${what} requires an active REPL.`)
-        }
-    } catch (err) {
-        vscode.window.showWarningMessage(`REPL connection has been closed while ${what.toLocaleLowerCase()}.`)
-    }
-}
-
 function isConnectionActive() {
     return g_connection !== undefined
+}
+
+export async function withREPL(
+    callback: (connection: rpc.MessageConnection) => any,
+    callbackOnHandledErr: (err: Error) => any
+) {
+    if (!isConnectionActive()) {
+        return callbackOnHandledErr(new Error('REPL is not active'))
+    }
+    try {
+        return callback(g_connection)
+    } catch (err) {
+        // TODO: identify which error should be handled
+        throw err
+    }
 }
 
 function startREPLCommand() {

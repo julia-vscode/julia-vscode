@@ -1,10 +1,7 @@
-using Base.Docs, Markdown
-using Markdown: MD, HorizontalRule
-
-
-function get_doc_html(params)
-    docs = getdocs(params["module"], params["word"])
-    return to_webview_html.(docs.content) |> join
+function repl_getdoc_request(conn, params::ReplGetDocRequestParams)
+    docs = getdocs(params.mod, params.word)
+    global ds = docs
+    to_webview_html.(docs.content) |> joinlines
 end
 
 const CODE_LANG_REGEX = r"\<code class\=\"language-(?<lang>(?!\>).+)\"\>"

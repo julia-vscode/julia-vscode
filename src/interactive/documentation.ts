@@ -1,13 +1,16 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
+import * as rpc from 'vscode-jsonrpc'
 import { withLanguageClient } from '../extension'
 import { getParamsAtPosition, setContext } from '../utils'
+import { getModuleForEditor } from './modules'
+import { withREPL } from './repl'
 
 const viewType = 'JuliaDocumentationBrowser'
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
 let extensionPath: string = undefined
 let panel: vscode.WebviewPanel = undefined
-const messageSubscription: vscode.Disposable = undefined
+let messageSubscription: vscode.Disposable = undefined
 
 const backStack = Array<string>() // also keep current page
 let forwardStack = Array<string>()
@@ -26,11 +29,11 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 function showDocumentationPane() {
-    if (!panel) {
+    if (panel === undefined) {
         panel = createDocumentationPanel()
         setPanelSubscription(panel)
     }
-    if (!panel.visible) {
+    if (panel !== undefined && !panel.visible) {
         panel.reveal()
     }
 }
@@ -52,10 +55,10 @@ function createDocumentationPanel() {
 class DocumentationPaneSerializer implements vscode.WebviewPanelSerializer {
     async deserializeWebviewPanel(deserializedPanel: vscode.WebviewPanel, state: any) {
         panel = deserializedPanel
+        setPanelSubscription(panel)
         const { inner } = state
         const html = createWebviewHTML(inner)
         _setHTML(html)
-        setPanelSubscription(panel)
     }
 }
 
@@ -65,7 +68,7 @@ function setPanelSubscription(panel: vscode.WebviewPanel) {
     })
     panel.onDidDispose(() => {
         setPanelContext(false)
-        if (messageSubscription) {
+        if (messageSubscription !== undefined) {
             messageSubscription.dispose()
         }
         panel = null
@@ -77,32 +80,54 @@ function setPanelContext(state: boolean = false) {
     setContext(panelActiveContextKey, state)
 }
 
-// const requestTypeGetDoc = new rpc.RequestType<{ word: string, module: string }, string, void, void>('repl/getdoc')
-
-// const wordRegex = /[\u00A0-\uFFFF\w_!´\.]*@?[\u00A0-\uFFFF\w_!´]+/
-
+const requestTypeGetDoc = new rpc.RequestType<{ word: string, mod: string }, string, void, void>('repl/getdoc')
+const wordRegex = /[\u00A0-\uFFFF\w_!´\.]*@?[\u00A0-\uFFFF\w_!´]+/
+const LS_ERR_MSG = `
+Error: Julia Language server is not running.
+Please wait a few seconds and try again once the \`Starting Julia Language Server...\` message in the status bar is gone.
+`
 async function showDocumentation() {
     // telemetry.traceEvent('command-showdocumentation')
+    const inner = await getDocumentation()
+    setDocumentation(inner)
+}
 
+async function getDocumentation(): Promise<string> {
     const editor = vscode.window.activeTextEditor
     const selection = editor.selection
-    const positiion = new vscode.Position(selection.start.line, selection.start.character)
+    const position = new vscode.Position(selection.start.line, selection.start.character)
 
-    // TODO?
-    // - documentation on selection
-    // - module-aware documentation
-
-    const params = getParamsAtPosition(editor, positiion)
-    showDocumentationPane()
-    forwardStack = [] // initialize forward page stack for manual search
-    withLanguageClient(
-        async languageClient => {
-            const inner: string = await languageClient.sendRequest('julia/getDocAt', params)
-            const html = createWebviewHTML(inner)
-            _setHTML(html)
+    const retFromREPL = await withREPL(
+        async connection => {
+            const mod = await getModuleForEditor(editor, position)
+            const range = selection.isEmpty ?
+                editor.document.getWordRangeAtPosition(position, wordRegex) :
+                new vscode.Range(selection.start, selection.end)
+            const word = editor.document.getText(range)
+            return connection.sendRequest(requestTypeGetDoc, { word, mod, })
         },
-        err => {}
+        err => { return '' }
     )
+    if (retFromREPL) { return retFromREPL }
+
+    return await withLanguageClient(
+        async languageClient => {
+            const params = getParamsAtPosition(editor, position)
+            return languageClient.sendRequest('julia/getDocAt', params)
+        },
+        err => {
+            vscode.window.showErrorMessage(LS_ERR_MSG)
+            return ''
+        }
+    )
+}
+
+function setDocumentation(inner: string) {
+    if (!inner) { return }
+    forwardStack = [] // initialize forward page stack for manual search
+    showDocumentationPane()
+    const html = createWebviewHTML(inner)
+    _setHTML(html)
 }
 
 function createWebviewHTML(inner: string) {
@@ -141,13 +166,13 @@ function createWebviewHTML(inner: string) {
             for (const el of els) {
                 const href = el.getAttribute('href')
                 if (href.includes('julia-vscode/')) {
-                    const module = href.split('/').pop()
+                    const mod = href.split('/').pop()
                     el.onclick = () => {
                         vscode.postMessage({
                             method: 'search',
                             params: {
                                 word: el.text,
-                                module
+                                mod
                             }
                         })
                     }
@@ -175,20 +200,25 @@ function _setHTML(html: string) {
     // set current stack
     backStack.push(html)
 
-    // TODO: link handling
-    // if (messageSubscription) {
-    //     messageSubscription.dispose() // dispose previouse
-    // }
-    // messageSubscription = panel.webview.onDidReceiveMessage(
-    //     message => {
-    //         if (message.method === 'search') {
-    //             const { word, module } = message.params
-    //             getDocumentationAndSetHTML(word, module)
-    //         }
-    //     }
-    // )
+    // TODO: link handling for documentations retrieved from LS
+    if (messageSubscription !== undefined) {
+        messageSubscription.dispose() // dispose previouse
+    }
+    messageSubscription = panel.webview.onDidReceiveMessage(
+        message => {
+            if (message.method === 'search') {
+                withREPL(
+                    async connection => {
+                        const { word, mod } = message.params
+                        const inner = await connection.sendRequest(requestTypeGetDoc, { word, mod, })
+                        setDocumentation(inner)
+                    },
+                    err => { return '' }
+                )
+            }
+        }
+    )
 
-    // set content
     panel.webview.html = html
 }
 

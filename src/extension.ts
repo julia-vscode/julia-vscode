@@ -91,15 +91,15 @@ function isLanguageClientActive() {
     return g_languageClient !== undefined
 }
 
-export function withLanguageClient(
+export async function withLanguageClient(
     callback: (languageClient: vslc.LanguageClient) => any,
-    callbackOnHandledErr: Function
+    callbackOnHandledErr: (err: Error) => any
 ) {
     if (!isLanguageClientActive()) {
-        return callbackOnHandledErr()
+        return callbackOnHandledErr(new Error('Language client is not active'))
     }
     try {
-        callback(g_languageClient)
+        return callback(g_languageClient)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             return callbackOnHandledErr(err)

@@ -103,6 +103,18 @@ end
 
 const joinlines = Base.Fix2(join, '\n')
 
+# is utilities
+# ------------
+
+iskeyword(word::Symbol) = word in keys(Docs.keywords)
+iskeyword(word::AbstractString) = iskeyword(Symbol(word))
+
+
+# miscellaneous
+# -------------
+
+@inbounds interpose(xs, y) = map(i -> iseven(i) ? xs[i÷2] : y, 2:2length(xs))
+
 
 # VSCode specific
 # ---------------
