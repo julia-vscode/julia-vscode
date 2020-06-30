@@ -349,9 +349,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
         this.sendResponse(response)
     }
     protected async stepInTargetsRequest(response: DebugProtocol.StepInTargetsResponse, args: DebugProtocol.StepInTargetsArguments) {
-        console.log(response, args)
         response.body = await this._connection.sendRequest(requestTypeStepInTargets, args)
-        console.log(response, args)
         this.sendResponse(response)
     }
 
