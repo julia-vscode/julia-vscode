@@ -1,5 +1,8 @@
 *.css linguist-vendored
 *.js linguist-vendored
+./assets/**/*.css linguist-generated
+./assets/**/*.js linguist-generated
+./assets/google_fonts linguist-generated
 
 package.json eol=lf
 package-lock.json eol=lf
