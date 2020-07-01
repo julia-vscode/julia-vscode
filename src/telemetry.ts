@@ -160,7 +160,7 @@ export function tracePackageLoadError(packagename, message) {
     extensionClient.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
 }
 
-export function traceTrace(msg) {
+export function traceTrace(msg: appInsights.Contracts.TraceTelemetry) {
     extensionClient.trackTrace(msg)
 }
 

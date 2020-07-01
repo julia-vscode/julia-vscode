@@ -1,7 +1,9 @@
+import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
+import * as telemetry from '../telemetry'
 import { VersionedTextDocumentPositionParams } from './misc'
 import { onExit, onInit } from './repl'
 
@@ -91,16 +93,24 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
     try {
         mod = await getModuleForEditor(editor)
     } catch (err) {
-        console.error(err)
-        return
+        if (g_languageClient) {
+            telemetry.traceTrace({
+                message: err.toString(),
+                severity: SeverityLevel.Error
+            })
+        }
     }
 
     let loaded = false
     try {
         loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
     } catch (err) {
-        console.error(err)
-        return
+        if (g_connection) {
+            telemetry.traceTrace({
+                message: err.toString(),
+                severity: SeverityLevel.Error
+            })
+        }
     }
 
     statusBarItem.text = loaded ? mod : '(' + mod + ')'
@@ -111,8 +121,14 @@ async function chooseModule() {
     try {
         possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     } catch (err) {
-        console.error(err)
-        vscode.window.showInformationMessage('Setting a module requires an active REPL.')
+        if (g_connection) {
+            telemetry.traceTrace({
+                message: err.toString(),
+                severity: SeverityLevel.Error
+            })
+        } else {
+            vscode.window.showInformationMessage('Setting a module requires an active REPL.')
+        }
         return
     }
 
