@@ -26,25 +26,6 @@ let g_terminal: vscode.Terminal = null
 
 export let g_connection: rpc.MessageConnection = undefined
 
-function isConnectionActive() {
-    return g_connection !== undefined
-}
-
-export async function withREPL(
-    callback: (connection: rpc.MessageConnection) => any,
-    callbackOnHandledErr: (err: Error) => any
-) {
-    if (!isConnectionActive()) {
-        return callbackOnHandledErr(new Error('REPL is not active'))
-    }
-    try {
-        return callback(g_connection)
-    } catch (err) {
-        // TODO: identify which error should be handled
-        throw err
-    }
-}
-
 function startREPLCommand() {
     telemetry.traceEvent('command-startrepl')
 

@@ -113,13 +113,10 @@ export const onDidChangeConfig = g_onDidChangeConfig.event
 function changeConfig(event: vscode.ConfigurationChangeEvent) {
     g_onDidChangeConfig.fire(event)
     if (event.affectsConfiguration('julia.executablePath')) {
-        withLanguageClient(
-            languageClient => {
-                languageClient.stop()
-                setLanguageClient()
-            },
-            err => { }
-        )
+        if (g_languageClient !== null) {
+            g_languageClient.stop()
+            setLanguageClient()
+        }
         startLanguageServer()
     }
 }
