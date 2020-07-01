@@ -122,6 +122,22 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
     }
 }
 
+export function handleNewCrashReportFromException(exception: Error, cloudRole: string) {
+    crashReporterQueue.push({
+        exception: exception,
+        tagOverrides: {
+            [extensionClient.context.keys.cloudRole]: cloudRole
+        }
+    })
+
+    if (enableCrashReporter) {
+        sendCrashReportQueue()
+    }
+    else {
+        showCrashReporterUIConsent()
+    }
+}
+
 export function startLsCrashServer() {
 
     g_jlcrashreportingpipename = generatePipeName(process.pid.toString(), 'vsc-jl-cr')
