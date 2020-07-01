@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
-import { getParamsAtPosition, setContext } from '../utils'
+import { getVersionedParamsAtPosition, setContext } from '../utils'
 
 const viewType = 'JuliaDocumentationBrowser'
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
@@ -94,8 +94,7 @@ async function getDocumentation(): Promise<string> {
 
     return await withLanguageClient(
         async languageClient => {
-            const params = getParamsAtPosition(editor, position)
-            return languageClient.sendRequest('julia/getDocAt', params)
+            return languageClient.sendRequest('julia/getDocAt', getVersionedParamsAtPosition(editor, position))
         },
         err => {
             vscode.window.showErrorMessage(LS_ERR_MSG)

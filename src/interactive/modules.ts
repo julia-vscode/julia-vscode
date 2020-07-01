@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
+import { getVersionedParamsAtPosition } from '../utils'
 import { onExit, onInit } from './repl'
 
 
@@ -52,11 +53,7 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
 
     if (mod === undefined) {
         try {
-            mod = await g_languageClient.sendRequest('julia/getModuleAt', {
-                textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
-                version: editor.document.version,
-                position: position
-            })
+            mod = await g_languageClient.sendRequest('julia/getModuleAt', getVersionedParamsAtPosition(editor, position))
         } catch (err) {
             console.error(err)
             mod = 'Main'
