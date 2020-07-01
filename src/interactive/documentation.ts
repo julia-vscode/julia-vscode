@@ -5,7 +5,7 @@ import { getParamsAtPosition, setContext } from '../utils'
 
 const viewType = 'JuliaDocumentationBrowser'
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
-let extensionPath: string = undefined
+let extensionPath: string | undefined = undefined
 let panel: vscode.WebviewPanel = undefined
 let messageSubscription: vscode.Disposable = undefined
 
