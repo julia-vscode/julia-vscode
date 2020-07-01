@@ -114,7 +114,7 @@ function setDocumentation(inner: string) {
 function createWebviewHTML(inner: string) {
     const darkMode: boolean = vscode.workspace.getConfiguration('julia.documentation').darkMode
 
-    const assetsDir = path.join(extensionPath, 'assets')
+    const assetsDir = path.join(extensionPath, 'libs', 'documenter')
     const googleFonts = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'google_fonts')))
     const fontawesome = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'fontawesome.min.css')))
     const solid = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'solid.min.css')))

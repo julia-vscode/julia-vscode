@@ -1,7 +1,7 @@
 *.vsix
 .vscode/.browse.VC.db*
 /.vscode-test/
-/assets/sandbox/build/
+/libs/documenter/sandbox/build/
 /node_modules/
 /dist/
 /out/
