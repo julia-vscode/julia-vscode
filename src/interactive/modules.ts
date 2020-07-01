@@ -93,7 +93,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
         mod = await getModuleForEditor(editor)
     } catch (err) {
         if (g_languageClient) {
-            telemetry.handleNewCrashReport('getModuleForEditor error', err.toString(), '', '')
+            telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
     }
 
@@ -102,7 +102,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
         loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
     } catch (err) {
         if (g_connection) {
-            telemetry.handleNewCrashReport('isModuleLoaded error', err.toString(), '', '')
+            telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
     }
 
@@ -115,7 +115,7 @@ async function chooseModule() {
         possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     } catch (err) {
         if (g_connection) {
-            telemetry.handleNewCrashReport('getModules error', err.toString(), '', '')
+            telemetry.handleNewCrashReportFromException(err, 'Extension')
         } else {
             vscode.window.showInformationMessage('Setting a module requires an active REPL.')
         }
