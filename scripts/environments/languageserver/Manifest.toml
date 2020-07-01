@@ -102,7 +102,7 @@ version = "4.4.1-DEV"
 deps = ["LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "../../packages/SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
-version = "4.5.1-DEV"
+version = "5.0.1-DEV"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]

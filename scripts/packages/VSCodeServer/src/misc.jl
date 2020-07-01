@@ -7,7 +7,7 @@ function find_frame_index(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}}, fi
     for (i, ip) in enumerate(bt)
         st = Base.StackTraces.lookup(ip)
         ind = find_frame_index(st, file, func)
-        isnothing(ind) || return i
+        ind===nothing || return i
     end
     return
 end
