@@ -1,4 +1,3 @@
-import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
@@ -94,10 +93,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
         mod = await getModuleForEditor(editor)
     } catch (err) {
         if (g_languageClient) {
-            telemetry.traceTrace({
-                message: err.toString(),
-                severity: SeverityLevel.Error
-            })
+            telemetry.handleNewCrashReport('getModuleForEditor error', err.toString(), '', '')
         }
     }
 
@@ -106,10 +102,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
         loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
     } catch (err) {
         if (g_connection) {
-            telemetry.traceTrace({
-                message: err.toString(),
-                severity: SeverityLevel.Error
-            })
+            telemetry.handleNewCrashReport('isModuleLoaded error', err.toString(), '', '')
         }
     }
 
@@ -122,10 +115,7 @@ async function chooseModule() {
         possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     } catch (err) {
         if (g_connection) {
-            telemetry.traceTrace({
-                message: err.toString(),
-                severity: SeverityLevel.Error
-            })
+            telemetry.handleNewCrashReport('getModules error', err.toString(), '', '')
         } else {
             vscode.window.showInformationMessage('Setting a module requires an active REPL.')
         }
