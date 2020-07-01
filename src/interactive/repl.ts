@@ -9,7 +9,7 @@ import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
-import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads } from '../utils'
 import * as documentation from './documentation'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
@@ -286,11 +286,8 @@ async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
 
     const editor = vscode.window.activeTextEditor
-    const ret_val = await getBlockRange({
-        textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
-        version: editor.document.version,
-        position: editor.document.validatePosition(new vscode.Position(editor.selection.start.line, editor.selection.start.character))
-    })
+    const position = editor.document.validatePosition(new vscode.Position(editor.selection.start.line, editor.selection.start.character))
+    const ret_val = await getBlockRange(getVersionedParamsAtPosition(editor, position))
 
     const start_pos = editor.document.validatePosition(new vscode.Position(ret_val[0].line, ret_val[0].character))
     const end_pos = editor.document.validatePosition(new vscode.Position(ret_val[1].line, ret_val[1].character))
@@ -346,7 +343,6 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
 
     const editor = vscode.window.activeTextEditor
-    const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString())
     const selections = editor.selections.slice()
 
     await startREPL(true, false)
@@ -357,11 +353,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
         const module: string = await modules.getModuleForEditor(editor, startpos)
         if (selection.isEmpty) {
-            const currentBlock = await getBlockRange({
-                textDocument: editorId,
-                version: editor.document.version,
-                position: startpos
-            })
+            const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor, startpos))
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
             nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
         } else {

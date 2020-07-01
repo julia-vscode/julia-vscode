@@ -12,7 +12,7 @@ export function getVersionedParamsAtPosition(editor: vscode.TextEditor, position
     return {
         textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
         version: editor.document.version,
-        position: position
+        position
     }
 }
 
