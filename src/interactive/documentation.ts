@@ -114,31 +114,39 @@ function setDocumentation(inner: string) {
 function createWebviewHTML(inner: string) {
     const darkMode: boolean = vscode.workspace.getConfiguration('julia.documentation').darkMode
 
-    const assetsDir = path.join(extensionPath, 'libs', 'documenter')
-    const googleFonts = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'google_fonts')))
-    const fontawesome = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'fontawesome.min.css')))
-    const solid = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'solid.min.css')))
-    const brands = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'brands.min.css')))
-    const katex = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'katex.min.css')))
-    const require = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'require.min.js')))
-    const documenterScript = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'documenter.js')))
-    const documenterStylesheet = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
+    const googleFontscss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css')))
+    const fontawesomecss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
+    const solidcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
+    const brandscss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
+    const documenterStylesheetcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
+    const katexcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
+
+    const webfontjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
+    const katexjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.js')))
+    const katexautorenderjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'auto-render.min.js')))
+    const highlightjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'highlight.min.js')))
+    const highlightjuliajs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia.min.js')))
+    const highlightjuliarepljs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia-repl.min.js')))
 
     return `
-<!DOCTYPE html>
 <html lang="en" class=${darkMode ? 'theme--documenter-dark' : ''}>
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Julia Documentation Pane</title>
-    <link href=${googleFonts} rel="stylesheet" type="text/css" />
-    <link href=${fontawesome} rel="stylesheet" type="text/css" />
-    <link href=${solid} rel="stylesheet" type="text/css" />
-    <link href=${brands} rel="stylesheet" type="text/css" />
-    <link href=${katex} rel="stylesheet" type="text/css" />
-    <script src=${require} data-main=${documenterScript}></script>
-    <link href=${documenterStylesheet} rel="stylesheet" type="text/css">
+    <link href=${googleFontscss} rel="stylesheet" type="text/css" />
+    <link href=${fontawesomecss} rel="stylesheet" type="text/css" />
+    <link href=${solidcss} rel="stylesheet" type="text/css" />
+    <link href=${brandscss} rel="stylesheet" type="text/css" />
+    <link href=${katexcss} rel="stylesheet" type="text/css" />
+    <link href=${documenterStylesheetcss} rel="stylesheet" type="text/css">
+
+    <script src=${katexjs}></script>
+    <script src=${katexautorenderjs}></script>
+    <script src=${highlightjs}></script>
+    <script src=${highlightjuliajs}></script>
+    <script src=${highlightjuliarepljs}></script>
 
     <script type="text/javascript">
         const vscode = acquireVsCodeApi()
@@ -161,7 +169,22 @@ function createWebviewHTML(inner: string) {
             }
         }
         vscode.setState({ inner: \`${inner}\` })
+
+        hljs.initHighlightingOnLoad();
+
+        WebFontConfig = {
+            custom: {
+                families: ['KaTeX_AMS', 'KaTeX_Caligraphic:n4,n7', 'KaTeX_Fraktur:n4,n7','KaTeX_Main:n4,n7,i4,i7', 'KaTeX_Math:i4,i7', 'KaTeX_Script','KaTeX_SansSerif:n4,n7,i4', 'KaTeX_Size1', 'KaTeX_Size2', 'KaTeX_Size3', 'KaTeX_Size4', 'KaTeX_Typewriter'],
+                urls: ['${katexcss}']
+            },
+        };
+
+        document.addEventListener("DOMContentLoaded", function() {renderMathInElement(document.body,{delimiters: [{left: "$", right: "$", display: false}, {left: "$$", right: "$$", display: true}, {left: "\\[", right: "\\]", display: true}]});
+    });
+
     </script>
+
+    <script src=${webfontjs}></script>
 
 </head>
 
