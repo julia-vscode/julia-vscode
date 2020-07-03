@@ -640,11 +640,6 @@
                     "default": false,
                     "description": "Print executed code in REPL.",
                     "scope": "window"
-                },
-                "julia.documentation.darkMode": {
-                    "type": "boolean",
-                    "default": true,
-                    "markdownDescription": "Use [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl)'s dark theme stylesheet for documentation pane, otherwise its light theme stylesheet will be used."
                 }
             }
         },

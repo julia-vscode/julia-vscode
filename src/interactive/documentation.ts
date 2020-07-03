@@ -112,7 +112,7 @@ function setDocumentation(inner: string) {
 }
 
 function createWebviewHTML(inner: string) {
-    const darkMode: boolean = vscode.workspace.getConfiguration('julia.documentation').darkMode
+    const darkMode = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark
 
     const assetsDir = path.join(extensionPath, 'libs', 'documenter')
     const googleFonts = panel.webview.asWebviewUri(vscode.Uri.file(path.join(assetsDir, 'google_fonts')))
