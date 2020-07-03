@@ -26,5 +26,6 @@
         "source.organizeImports": true,
         "source.fixAll.eslint": true
     },
-    "eslint.lintTask.enable": true
+    "eslint.lintTask.enable": true,
+    "julia.environmentPath": "./scripts/environments/development"
 }
