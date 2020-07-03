@@ -122,6 +122,22 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
     }
 }
 
+export function handleNewCrashReportFromException(exception: Error, cloudRole: string) {
+    crashReporterQueue.push({
+        exception: exception,
+        tagOverrides: {
+            [extensionClient.context.keys.cloudRole]: cloudRole
+        }
+    })
+
+    if (enableCrashReporter) {
+        sendCrashReportQueue()
+    }
+    else {
+        showCrashReporterUIConsent()
+    }
+}
+
 export function startLsCrashServer() {
 
     g_jlcrashreportingpipename = generatePipeName(process.pid.toString(), 'vsc-jl-cr')
@@ -160,7 +176,7 @@ export function tracePackageLoadError(packagename, message) {
     extensionClient.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
 }
 
-export function traceTrace(msg) {
+export function traceTrace(msg: appInsights.Contracts.TraceTelemetry) {
     extensionClient.trackTrace(msg)
 }
 
