@@ -228,7 +228,7 @@ async function startLanguageServer() {
 }
 
 export class JuliaDebugConfigurationProvider
-    implements vscode.DebugConfigurationProvider {
+implements vscode.DebugConfigurationProvider {
 
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
