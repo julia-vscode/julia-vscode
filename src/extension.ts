@@ -76,6 +76,18 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             })
     }
+
+    const api = {
+        version: 1,
+        async getEnvironment() {
+            return await jlpkgenv.getEnvPath()
+        },
+        async getJuliaPath() {
+            return await juliaexepath.getJuliaExePath()
+        }
+    }
+
+    return api
 }
 
 // this method is called when your extension is deactivated
