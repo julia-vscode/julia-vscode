@@ -28,7 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
 function showDocumentationPane() {
     if (panel === undefined) {
         panel = createDocumentationPanel()
-        setPanelSubscription(panel)
+        setPanelSubscription()
     }
     if (panel !== undefined && !panel.visible) {
         panel.reveal()
@@ -52,14 +52,14 @@ function createDocumentationPanel() {
 class DocumentationPaneSerializer implements vscode.WebviewPanelSerializer {
     async deserializeWebviewPanel(deserializedPanel: vscode.WebviewPanel, state: any) {
         panel = deserializedPanel
-        setPanelSubscription(panel)
+        setPanelSubscription()
         const { inner } = state
         const html = createWebviewHTML(inner)
         _setHTML(html)
     }
 }
 
-function setPanelSubscription(panel: vscode.WebviewPanel) {
+function setPanelSubscription() {
     panel.onDidChangeViewState(({ webviewPanel }) => {
         setPanelContext(webviewPanel.active)
     })
@@ -68,7 +68,7 @@ function setPanelSubscription(panel: vscode.WebviewPanel) {
         if (messageSubscription !== undefined) {
             messageSubscription.dispose()
         }
-        panel = null
+        panel = undefined
     })
     setPanelContext(true)
 }
