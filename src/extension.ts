@@ -1,6 +1,7 @@
 'use strict'
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
@@ -79,6 +80,18 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
+
+    const api = {
+        version: 1,
+        async getEnvironment() {
+            return await jlpkgenv.getEnvPath()
+        },
+        async getJuliaPath() {
+            return await juliaexepath.getJuliaExePath()
+        }
+    }
+
+    return api
 }
 
 // this method is called when your extension is deactivated
@@ -153,7 +166,11 @@ async function startLanguageServer() {
                 const validatedPosition = document.validatePosition(position)
 
                 if (validatedPosition !== position) {
-                    telemetry.traceTrace({ message: `Middleware found a change in position in provideCompletionItem. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}` })
+                    telemetry.traceTrace({
+                        message: `Middleware found a change in position in provideCompletionItem. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}`,
+                        severity: SeverityLevel.Error
+
+                    })
 
                 }
 
@@ -164,7 +181,10 @@ async function startLanguageServer() {
                 const validatedPosition = document.validatePosition(position)
 
                 if (validatedPosition !== position) {
-                    telemetry.traceTrace({ message: `Middleware found a change in position in provideDefinition. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}` })
+                    telemetry.traceTrace({
+                        message: `Middleware found a change in position in provideDefinition. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}`,
+                        severity: SeverityLevel.Error
+                    })
                 }
 
                 return await next(document, position, token)

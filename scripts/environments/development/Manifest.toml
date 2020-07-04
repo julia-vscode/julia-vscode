@@ -9,9 +9,21 @@ path = "../../packages/CSTParser"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
 version = "2.4.1-DEV"
 
+[[CodeTracking]]
+deps = ["InteractiveUtils", "UUIDs"]
+path = "../../packages/CodeTracking"
+uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+version = "1.0.0"
+
 [[Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
+
+[[DebugAdapter]]
+deps = ["Base64", "JSON", "JSONRPC", "JuliaInterpreter", "Sockets", "UUIDs"]
+path = "../../packages/DebugAdapter"
+uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
+version = "1.0.0-DEV"
 
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -45,6 +57,12 @@ path = "../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
 version = "1.1.1-DEV"
 
+[[JuliaInterpreter]]
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+path = "../../packages/JuliaInterpreter"
+uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+version = "0.7.23"
+
 [[LanguageServer]]
 deps = ["CSTParser", "DocumentFormat", "JSON", "JSONRPC", "Markdown", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
 path = "../../packages/LanguageServer"
@@ -52,6 +70,7 @@ uuid = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
 version = "3.1.1-DEV"
 
 [[LibGit2]]
+deps = ["Printf"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
@@ -67,8 +86,14 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
+[[PackageCompiler]]
+deps = ["Libdl", "Pkg", "UUIDs"]
+path = "../../packages/PackageCompiler"
+uuid = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
+version = "1.1.1"
+
 [[Pkg]]
-deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Test", "UUIDs"]
+deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[Printf]]
@@ -125,3 +150,15 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[VSCodeDebugger]]
+deps = ["Base64", "Dates", "InteractiveUtils", "Mmap", "REPL", "Random", "Sockets", "UUIDs", "Unicode"]
+path = "../../packages/VSCodeDebugger"
+uuid = "a80fdaa1-3292-45d6-85e6-157a63518481"
+version = "0.1.0"
+
+[[VSCodeServer]]
+deps = ["Base64", "Dates", "InteractiveUtils", "Mmap", "Pkg", "Printf", "REPL", "Random", "Sockets", "UUIDs", "Unicode"]
+path = "../../packages/VSCodeServer"
+uuid = "9f5989ce-84fe-42d4-91ec-6a7a8d53ed0f"
+version = "0.0.0"
