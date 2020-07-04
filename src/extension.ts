@@ -8,6 +8,7 @@ import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient'
 import { JuliaDebugSession } from './debugger/juliaDebug'
+import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
@@ -77,6 +78,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             })
     }
+
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
 
     const api = {
         version: 1,

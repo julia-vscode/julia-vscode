@@ -13,6 +13,7 @@ import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
+import { showProfileResult, showProfileResultFile } from './profiler'
 import * as results from './results'
 import { Frame } from './results'
 import * as workspace from './workspace'
@@ -159,6 +160,8 @@ const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl
 const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('repl/showingrid')
+const notifyTypeShowProfilerResult = new rpc.NotificationType<string, void>('repl/showprofileresult')
+const notifyTypeShowProfilerResultFile = new rpc.NotificationType<string, void>('repl/showprofileresult_file')
 
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
@@ -185,6 +188,8 @@ function startREPLMsgServer(pipename: string) {
         g_connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
         g_connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
         g_connection.onNotification(notifyTypeReplStartEval, () => { })
+        g_connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
+        g_connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
 
         g_connection.listen()
 

@@ -1,10 +1,12 @@
 module VSCodeServer
 
 export vscodedisplay, @enter, @run
+export view_profile, @profview
 
 using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
 import Dates
+import Profile
 
 function __init__()
     atreplinit() do repl
@@ -43,6 +45,13 @@ module DebugAdapter
     include("../../DebugAdapter/src/packagedef.jl")
 end
 
+module ChromeProfileFormat
+    import ..JSON
+    import Profile
+
+    include("../../ChromeProfileFormat/src/core.jl")
+end
+
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 
 include("../../../error_handler.jl")
@@ -54,6 +63,7 @@ include("gridviewer.jl")
 include("module.jl")
 include("eval.jl")
 include("display.jl")
+include("profiler.jl")
 include("debugger.jl")
 
 function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
