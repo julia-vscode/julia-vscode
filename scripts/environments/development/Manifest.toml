@@ -70,7 +70,6 @@ uuid = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
 version = "3.1.1-DEV"
 
 [[LibGit2]]
-deps = ["Printf"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
@@ -93,7 +92,7 @@ uuid = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
 version = "1.1.1"
 
 [[Pkg]]
-deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
+deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Test", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[Printf]]
