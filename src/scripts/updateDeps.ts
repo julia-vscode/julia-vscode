@@ -56,6 +56,23 @@ async function main() {
     await our_download('https://cdn.jsdelivr.net/npm/vega@4', 'libs/vega-4/vega.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega@5', 'libs/vega-5/vega.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-embed@6', 'libs/vega-embed/vega-embed.min.js')
+    await our_download('https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js', 'libs/katex/katex.min.js')
+    await our_download('https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js', 'libs/katex/auto-render.min.js')
+
+    await our_download('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.0.0/highlight.min.js', 'libs/highlight/highlight.min.js')
+    await our_download('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.0.0/languages/julia.min.js', 'libs/highlight/julia.min.js')
+    await our_download('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.0.0/languages/julia-repl.min.js', 'libs/highlight/julia-repl.min.js')
+
+    await our_download('https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js', 'libs/webfont/webfont.js')
+
+    await our_download('https://raw.githubusercontent.com/JuliaDocs/Documenter.jl/master/assets/html/themes/documenter-light.css', 'libs/documenter/documenter-light.css')
+    await our_download('https://raw.githubusercontent.com/JuliaDocs/Documenter.jl/master/assets/html/themes/documenter-dark.css', 'libs/documenter/documenter-dark.css')
+
+    // await our_download('https://fonts.googleapis.com/css?family=Lato|Roboto+Mono', 'libs/google_fonts/css')
+
+    await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css', 'libs/fontawesome/fontawesome.min.css')
+    await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css', 'libs/fontawesome/solid.min.css')
+    await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css', 'libs/fontawesome/brands.min.css')
 
     await download_and_convert_grammar(juliaPath)
 
