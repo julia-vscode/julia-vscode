@@ -8,6 +8,7 @@ import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient'
 import { JuliaDebugSession } from './debugger/juliaDebug'
+import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
@@ -77,6 +78,20 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             })
     }
+
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
+
+    const api = {
+        version: 1,
+        async getEnvironment() {
+            return await jlpkgenv.getEnvPath()
+        },
+        async getJuliaPath() {
+            return await juliaexepath.getJuliaExePath()
+        }
+    }
+
+    return api
 }
 
 // this method is called when your extension is deactivated
@@ -236,7 +251,7 @@ async function startLanguageServer() {
 }
 
 export class JuliaDebugConfigurationProvider
-    implements vscode.DebugConfigurationProvider {
+implements vscode.DebugConfigurationProvider {
 
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
