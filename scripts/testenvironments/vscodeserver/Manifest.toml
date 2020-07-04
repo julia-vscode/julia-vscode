@@ -39,6 +39,10 @@ uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
+[[Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+
 [[REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
@@ -68,7 +72,7 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [[VSCodeServer]]
-deps = ["Base64", "Dates", "InteractiveUtils", "Mmap", "Pkg", "Printf", "REPL", "Random", "Sockets", "UUIDs", "Unicode"]
+deps = ["Base64", "Dates", "InteractiveUtils", "Mmap", "Pkg", "Printf", "Profile", "REPL", "Random", "Sockets", "UUIDs", "Unicode"]
 path = "../../packages/VSCodeServer"
 uuid = "9f5989ce-84fe-42d4-91ec-6a7a8d53ed0f"
 version = "0.0.0"
