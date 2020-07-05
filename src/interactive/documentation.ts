@@ -7,7 +7,6 @@ const viewType = 'JuliaDocumentationBrowser'
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
 let extensionPath: string | undefined = undefined
 let panel: vscode.WebviewPanel = undefined
-let messageSubscription: vscode.Disposable = undefined
 
 const backStack = Array<string>() // also keep current page
 let forwardStack = Array<string>()
@@ -20,9 +19,14 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.show-documentation', showDocumentation),
         vscode.commands.registerCommand('language-julia.browse-back-documentation', browseBack),
         vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward),
+        vscode.commands.registerCommand('language-julia.findHelp', findHelp)
     )
     setPanelContext()
     vscode.window.registerWebviewPanelSerializer(viewType, new DocumentationPaneSerializer())
+}
+
+function findHelp(mod: { searchTerm: string }) {
+    console.log(`Searched for documentation topic '${mod.searchTerm}'.`)
 }
 
 function showDocumentationPane() {
@@ -45,6 +49,7 @@ function createDocumentationPanel() {
             enableFindWidget: true,
             // retainContextWhenHidden: true, // comment in if loading is slow, while there would be high memory overhead
             enableScripts: true,
+            enableCommandUris: true
         }
     )
 }
@@ -65,9 +70,6 @@ function setPanelSubscription() {
     })
     panel.onDidDispose(() => {
         setPanelContext(false)
-        if (messageSubscription !== undefined) {
-            messageSubscription.dispose()
-        }
         panel = undefined
     })
     setPanelContext(true)
@@ -149,26 +151,6 @@ function createWebviewHTML(inner: string) {
     <script src=${highlightjuliarepljs}></script>
 
     <script type="text/javascript">
-        // vscode API
-        const vscode = acquireVsCodeApi()
-        window.onload = () => {
-            const els = document.getElementsByTagName('a')
-            for (const el of els) {
-                const href = el.getAttribute('href')
-                if (href.includes('julia-vscode/')) {
-                    const mod = href.split('/').pop()
-                    el.onclick = () => {
-                        vscode.postMessage({
-                            method: 'search',
-                            params: {
-                                word: el.text,
-                                mod
-                            }
-                        })
-                    }
-                }
-            }
-        }
         vscode.setState({ inner: \`${inner}\` })
 
         // styling
@@ -212,25 +194,6 @@ function createWebviewHTML(inner: string) {
 function _setHTML(html: string) {
     // set current stack
     backStack.push(html)
-
-    // TODO: link handling for documentations retrieved from LS
-    if (messageSubscription !== undefined) {
-        messageSubscription.dispose() // dispose previouse
-    }
-    messageSubscription = panel.webview.onDidReceiveMessage(
-        message => {
-            if (message.method === 'search') {
-                // withREPL(
-                //     async connection => {
-                //         const { word, mod } = message.params
-                //         const inner = await connection.sendRequest(requestTypeGetDoc, { word, mod, })
-                //         setDocumentation(inner)
-                //     },
-                //     err => { return '' }
-                // )
-            }
-        }
-    )
 
     panel.webview.html = html
 }
