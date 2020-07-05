@@ -75,12 +75,12 @@ async function showDocumentation() {
 
 async function getDocumentation(): Promise<string> {
     const editor = vscode.window.activeTextEditor
-    const selection = editor.selection
-    const position = new vscode.Position(selection.start.line, selection.start.character)
+
+    // TODO Check whether editor is undefined
 
     return await withLanguageClient(
         async languageClient => {
-            return languageClient.sendRequest('julia/getDocAt', getVersionedParamsAtPosition(editor, position))
+            return languageClient.sendRequest('julia/getDocAt', getVersionedParamsAtPosition(editor, editor.selection.start))
         },
         err => {
             vscode.window.showErrorMessage(LS_ERR_MSG)
