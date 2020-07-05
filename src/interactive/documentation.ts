@@ -54,7 +54,7 @@ function showDocumentationPane() {
 
         setPanelContext(true)
     }
-    if (g_panel !== undefined && !g_panel.visible) {
+    else if (!g_panel.visible) {
         g_panel.reveal()
     }
 }
