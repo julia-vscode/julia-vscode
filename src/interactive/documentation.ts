@@ -4,11 +4,11 @@ import { withLanguageClient } from '../extension'
 import { getVersionedParamsAtPosition, setContext } from '../utils'
 
 let g_context: vscode.ExtensionContext | undefined = undefined
-const panelActiveContextKey = 'juliaDocumentationPaneActive'
-let panel: vscode.WebviewPanel = undefined
+const g_panelActiveContextKey = 'juliaDocumentationPaneActive'
+let g_panel: vscode.WebviewPanel = undefined
 
-const backStack = Array<string>() // also keep current page
-let forwardStack = Array<string>()
+const g_backStack = Array<string>() // also keep current page
+let g_forwardStack = Array<string>()
 
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
@@ -28,8 +28,8 @@ function findHelp(mod: { searchTerm: string }) {
 }
 
 function showDocumentationPane() {
-    if (panel === undefined) {
-        panel = vscode.window.createWebviewPanel('JuliaDocumentationBrowser', 'Julia Documentation Pane',
+    if (g_panel === undefined) {
+        g_panel = vscode.window.createWebviewPanel('JuliaDocumentationBrowser', 'Julia Documentation Pane',
             {
                 preserveFocus: true,
                 viewColumn: g_context.globalState.get('juliaDocumentationPanelViewColumn', vscode.ViewColumn.Beside),
@@ -42,25 +42,25 @@ function showDocumentationPane() {
             }
         )
 
-        panel.onDidChangeViewState(({ webviewPanel }) => {
+        g_panel.onDidChangeViewState(({ webviewPanel }) => {
             g_context.globalState.update('juliaDocumentationPanelViewColumn', webviewPanel.viewColumn)
             setPanelContext(webviewPanel.active)
         })
 
-        panel.onDidDispose(() => {
+        g_panel.onDidDispose(() => {
             setPanelContext(false)
-            panel = undefined
+            g_panel = undefined
         })
 
         setPanelContext(true)
     }
-    if (panel !== undefined && !panel.visible) {
-        panel.reveal()
+    if (g_panel !== undefined && !g_panel.visible) {
+        g_panel.reveal()
     }
 }
 
 function setPanelContext(state: boolean) {
-    setContext(panelActiveContextKey, state)
+    setContext(g_panelActiveContextKey, state)
 }
 
 const LS_ERR_MSG = `
@@ -91,7 +91,7 @@ async function getDocumentation(): Promise<string> {
 
 function setDocumentation(inner: string) {
     if (!inner) { return }
-    forwardStack = [] // initialize forward page stack for manual search
+    g_forwardStack = [] // initialize forward page stack for manual search
     showDocumentationPane()
     const html = createWebviewHTML(inner)
     _setHTML(html)
@@ -102,19 +102,19 @@ function createWebviewHTML(inner: string) {
 
     const extensionPath = g_context.extensionPath
 
-    const googleFontscss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css')))
-    const fontawesomecss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
-    const solidcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
-    const brandscss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
-    const documenterStylesheetcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
-    const katexcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
+    const googleFontscss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css')))
+    const fontawesomecss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
+    const solidcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
+    const brandscss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
+    const documenterStylesheetcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
+    const katexcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
 
-    const webfontjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
-    const katexjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.js')))
-    const katexautorenderjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'auto-render.min.js')))
-    const highlightjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'highlight.min.js')))
-    const highlightjuliajs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia.min.js')))
-    const highlightjuliarepljs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia-repl.min.js')))
+    const webfontjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
+    const katexjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.js')))
+    const katexautorenderjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'auto-render.min.js')))
+    const highlightjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'highlight.min.js')))
+    const highlightjuliajs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia.min.js')))
+    const highlightjuliarepljs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia-repl.min.js')))
 
     return `
 <html lang="en" class=${darkMode ? 'theme--documenter-dark' : ''}>
@@ -177,30 +177,30 @@ function createWebviewHTML(inner: string) {
 
 function _setHTML(html: string) {
     // set current stack
-    backStack.push(html)
+    g_backStack.push(html)
 
-    panel.webview.html = html
+    g_panel.webview.html = html
 }
 
 function isBrowseBackAvailable() {
-    return backStack.length > 1
+    return g_backStack.length > 1
 }
 
 function isBrowseForwardAvailable() {
-    return forwardStack.length > 0
+    return g_forwardStack.length > 0
 }
 
 function browseBack() {
     if (!isBrowseBackAvailable()) { return }
 
-    const current = backStack.pop()
-    forwardStack.push(current)
+    const current = g_backStack.pop()
+    g_forwardStack.push(current)
 
-    _setHTML(backStack.pop())
+    _setHTML(g_backStack.pop())
 }
 
 function browseForward() {
     if (!isBrowseForwardAvailable()) { return }
 
-    _setHTML(forwardStack.pop())
+    _setHTML(g_forwardStack.pop())
 }
