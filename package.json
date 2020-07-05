@@ -43,7 +43,6 @@
         "onCommand:language-julia.debug.getActiveJuliaEnvironment",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
-        "onWebviewPanel:JuliaDocumentationBrowser",
         "workspaceContains:deps/build.jl",
         "workspaceContains:test/runtests.jl",
         "workspaceContains:benchmark/benchmarks.jl",

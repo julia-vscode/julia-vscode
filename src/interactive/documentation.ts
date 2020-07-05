@@ -3,17 +3,16 @@ import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
 import { getVersionedParamsAtPosition, setContext } from '../utils'
 
-const viewType = 'JuliaDocumentationBrowser'
+let g_context: vscode.ExtensionContext | undefined = undefined
 const panelActiveContextKey = 'juliaDocumentationPaneActive'
-let extensionPath: string | undefined = undefined
 let panel: vscode.WebviewPanel = undefined
 
 const backStack = Array<string>() // also keep current page
 let forwardStack = Array<string>()
 
 export function activate(context: vscode.ExtensionContext) {
-    // assets path
-    extensionPath = context.extensionPath
+    g_context = context
+
     context.subscriptions.push(
         vscode.commands.registerCommand('language-julia.show-documentation-pane', showDocumentationPane),
         vscode.commands.registerCommand('language-julia.show-documentation', showDocumentation),
@@ -21,8 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward),
         vscode.commands.registerCommand('language-julia.findHelp', findHelp)
     )
-    setPanelContext()
-    vscode.window.registerWebviewPanelSerializer(viewType, new DocumentationPaneSerializer())
+    setPanelContext(false)
 }
 
 function findHelp(mod: { searchTerm: string }) {
@@ -31,51 +29,37 @@ function findHelp(mod: { searchTerm: string }) {
 
 function showDocumentationPane() {
     if (panel === undefined) {
-        panel = createDocumentationPanel()
-        setPanelSubscription()
+        panel = vscode.window.createWebviewPanel('JuliaDocumentationBrowser', 'Julia Documentation Pane',
+            {
+                preserveFocus: true,
+                viewColumn: g_context.globalState.get('juliaDocumentationPanelViewColumn', vscode.ViewColumn.Beside),
+            },
+            {
+                enableFindWidget: true,
+                // retainContextWhenHidden: true, // comment in if loading is slow, while there would be high memory overhead
+                enableScripts: true,
+                enableCommandUris: true
+            }
+        )
+
+        panel.onDidChangeViewState(({ webviewPanel }) => {
+            g_context.globalState.update('juliaDocumentationPanelViewColumn', webviewPanel.viewColumn)
+            setPanelContext(webviewPanel.active)
+        })
+
+        panel.onDidDispose(() => {
+            setPanelContext(false)
+            panel = undefined
+        })
+
+        setPanelContext(true)
     }
     if (panel !== undefined && !panel.visible) {
         panel.reveal()
     }
 }
 
-function createDocumentationPanel() {
-    return vscode.window.createWebviewPanel(viewType, 'Julia Documentation Pane',
-        {
-            preserveFocus: true,
-            viewColumn: vscode.ViewColumn.Beside,
-        },
-        {
-            enableFindWidget: true,
-            // retainContextWhenHidden: true, // comment in if loading is slow, while there would be high memory overhead
-            enableScripts: true,
-            enableCommandUris: true
-        }
-    )
-}
-
-class DocumentationPaneSerializer implements vscode.WebviewPanelSerializer {
-    async deserializeWebviewPanel(deserializedPanel: vscode.WebviewPanel, state: any) {
-        panel = deserializedPanel
-        setPanelSubscription()
-        const { inner } = state
-        const html = createWebviewHTML(inner)
-        _setHTML(html)
-    }
-}
-
-function setPanelSubscription() {
-    panel.onDidChangeViewState(({ webviewPanel }) => {
-        setPanelContext(webviewPanel.active)
-    })
-    panel.onDidDispose(() => {
-        setPanelContext(false)
-        panel = undefined
-    })
-    setPanelContext(true)
-}
-
-function setPanelContext(state: boolean = false) {
+function setPanelContext(state: boolean) {
     setContext(panelActiveContextKey, state)
 }
 
@@ -116,6 +100,8 @@ function setDocumentation(inner: string) {
 function createWebviewHTML(inner: string) {
     const darkMode = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark
 
+    const extensionPath = g_context.extensionPath
+
     const googleFontscss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css')))
     const fontawesomecss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
     const solidcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
@@ -151,8 +137,6 @@ function createWebviewHTML(inner: string) {
     <script src=${highlightjuliarepljs}></script>
 
     <script type="text/javascript">
-        vscode.setState({ inner: \`${inner}\` })
-
         // styling
         hljs.initHighlightingOnLoad()
         WebFontConfig = {
