@@ -240,6 +240,10 @@
                 {
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete-all"
+                },
+                {
+                    "when": "editorLangId == julia",
+                    "command": "language-julia.clearAllInlineResultsInEditor"
                 }
             ],
             "commandPalette": [
@@ -295,7 +299,7 @@
             {
                 "command": "language-julia.clearCurrentInlineResult",
                 "key": "Ctrl+I Ctrl+D",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && juliaHasInlineResult"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
