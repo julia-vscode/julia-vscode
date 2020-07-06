@@ -78,7 +78,7 @@ function treerender(x::Leaf)
     )
 end
 
-getfield_safe(x, f, default = Undef()) = isdefined(x, f) ? getfield(x, f) : default
+getfield_safe(x, f, default = UNDEF) = isdefined(x, f) ? getfield(x, f) : default
 
 function treerender(x)
     fields = fieldnames(typeof(x))
@@ -123,10 +123,12 @@ end
 
 struct Undef end
 
-function undefs(xs)
+const UNDEF = Undef()
+
+function assign_undefs(xs)
     xs′ = similar(xs, Any)
     for i in eachindex(xs)
-        xs′[i] = isassigned(xs, i) ? xs[i] : Undef()
+        xs′[i] = isassigned(xs, i) ? xs[i] : UNDEF
     end
     return xs′
 end
@@ -136,7 +138,7 @@ function treerender(x::AbstractArray{T,N}) where {T,N}
         if length(x) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
         else
-            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(undefs(x)))])
+            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))])
         end
     end))
 end
@@ -164,7 +166,7 @@ function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
             end))
         else
             push!(out, LazyTree(head, function ()
-                collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(part, getindex.(Ref(x), undefs(part)))])
+                collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(part, getindex.(Ref(x), assign_undefs(part)))])
             end))
         end
     end
