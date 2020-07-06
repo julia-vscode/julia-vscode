@@ -330,7 +330,12 @@
             },
             {
                 "command": "language-julia.chooseModule",
-                "key": "Ctrl-J Ctrl+M",
+                "key": "Alt+J Alt+M",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.changeCurrentEnvironment",
+                "key": "Alt+J Alt+E",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
