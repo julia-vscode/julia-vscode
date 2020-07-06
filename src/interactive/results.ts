@@ -93,6 +93,7 @@ export class Result {
                 color: new vscode.ThemeColor('editor.foreground'),
                 backgroundColor: '#ffffff22',
                 margin: '0 0 0 10px',
+                textDecoration: 'none; white-space: pre', // HACK sneak in the whitespace styling
                 border
             },
             dark: {
