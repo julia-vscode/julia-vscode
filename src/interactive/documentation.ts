@@ -5,7 +5,7 @@ import { getVersionedParamsAtPosition, setContext } from '../utils'
 
 let g_context: vscode.ExtensionContext | undefined = undefined
 const g_panelActiveContextKey = 'juliaDocumentationPaneActive'
-let g_panel: vscode.WebviewPanel = undefined
+let g_panel: vscode.WebviewPanel | undefined = undefined
 
 const g_backStack = Array<string>() // also keep current page
 let g_forwardStack = Array<string>()
