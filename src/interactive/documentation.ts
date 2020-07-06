@@ -2,6 +2,30 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
 import { getVersionedParamsAtPosition, setContext } from '../utils'
+import MarkdownIt = require('markdown-it')
+
+const md = new MarkdownIt().
+    use(require('@traptitech/markdown-it-katex'), {
+        output: 'html'
+    }).
+    use(require('markdown-it-highlightjs'), {
+        inline: true, register: {
+            julia: require('highlight.js/lib/languages/julia'),
+            juliarepl: require('highlight.js/lib/languages/julia-repl'),
+            jldoctest: require('highlight.js/lib/languages/julia-repl')
+        }
+    })
+
+md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+    const aIndex = tokens[idx].attrIndex('href')
+
+    if (aIndex >= 0 && tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
+        const commandUri = `command:language-julia.findHelp?${encodeURIComponent(JSON.stringify({ searchTerm: tokens[idx + 1].content }))}`
+        tokens[idx].attrs[aIndex][1] = commandUri
+    }
+
+    return self.renderToken(tokens, idx, options)
+}
 
 let g_context: vscode.ExtensionContext | undefined = undefined
 const g_panelActiveContextKey = 'juliaDocumentationPaneActive'
@@ -80,7 +104,9 @@ async function getDocumentation(): Promise<string> {
 
     return await withLanguageClient(
         async languageClient => {
-            return languageClient.sendRequest('julia/getDocAt', getVersionedParamsAtPosition(editor, editor.selection.start))
+            const docAsMD = await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor, editor.selection.start))
+            const docAsHTML = md.render(docAsMD)
+            return docAsHTML
         },
         err => {
             vscode.window.showErrorMessage(LS_ERR_MSG)
@@ -110,11 +136,6 @@ function createWebviewHTML(inner: string) {
     const katexcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
 
     const webfontjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
-    const katexjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.js')))
-    const katexautorenderjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'auto-render.min.js')))
-    const highlightjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'highlight.min.js')))
-    const highlightjuliajs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia.min.js')))
-    const highlightjuliarepljs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia-repl.min.js')))
 
     return `
 <html lang="en" class=${darkMode ? 'theme--documenter-dark' : ''}>
@@ -130,33 +151,13 @@ function createWebviewHTML(inner: string) {
     <link href=${katexcss} rel="stylesheet" type="text/css" />
     <link href=${documenterStylesheetcss} rel="stylesheet" type="text/css">
 
-    <script src=${katexjs}></script>
-    <script src=${katexautorenderjs}></script>
-    <script src=${highlightjs}></script>
-    <script src=${highlightjuliajs}></script>
-    <script src=${highlightjuliarepljs}></script>
-
     <script type="text/javascript">
-        // styling
-        hljs.initHighlightingOnLoad()
         WebFontConfig = {
             custom: {
                 families: ['KaTeX_AMS', 'KaTeX_Caligraphic:n4,n7', 'KaTeX_Fraktur:n4,n7','KaTeX_Main:n4,n7,i4,i7', 'KaTeX_Math:i4,i7', 'KaTeX_Script','KaTeX_SansSerif:n4,n7,i4', 'KaTeX_Size1', 'KaTeX_Size2', 'KaTeX_Size3', 'KaTeX_Size4', 'KaTeX_Typewriter'],
                 urls: ['${katexcss}']
             },
         }
-        document.addEventListener(
-            'DOMContentLoaded',
-            () => {
-                renderMathInElement(document.body, {
-                    delimiters: [
-                        { left: '$', right: '$', display: false },
-                        { left: '$$', right: '$$', display: true },
-                        { left: '\\[', right: '\\]', display: true }
-                    ]
-                })
-            }
-        )
     </script>
 
     <script src=${webfontjs}></script>
