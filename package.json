@@ -41,6 +41,8 @@
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
         "onCommand:language-julia.debug.getActiveJuliaEnvironment",
+        "onCommand:language-julia.debugEditorContents",
+        "onCommand:language-julia.runEditorContents",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
@@ -229,6 +231,16 @@
             {
                 "command": "language-julia.chooseModule",
                 "title": "Julia: Select Current Module"
+            },
+            {
+                "command": "language-julia.debugEditorContents",
+                "title": "Debug Julia File",
+                "icon": "$(debug-alt)"
+            },
+            {
+                "command": "language-julia.runEditorContents",
+                "title": "Run Julia File",
+                "icon": "$(play)"
             }
         ],
         "menus": {
@@ -268,6 +280,16 @@
                 {
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete-all"
+                },
+                {
+                    "command": "language-julia.runEditorContents",
+                    "when": "resourceLangId == julia",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "language-julia.debugEditorContents",
+                    "when": "resourceLangId == julia",
+                    "group": "navigation@2"
                 },
                 {
                     "when": "editorLangId == julia",
