@@ -85,7 +85,7 @@ export class Result {
 
     createResultDecoration(): vscode.DecorationRenderOptions {
 
-        const border = this.content.isError ? '1px solid #ff000044' : undefined
+        const borderColor = this.content.isError ? '#d11111' : '#159eed'
         return {
             before: {
                 contentIconPath: undefined,
@@ -93,8 +93,8 @@ export class Result {
                 color: new vscode.ThemeColor('editor.foreground'),
                 backgroundColor: '#ffffff22',
                 margin: '0 0 0 10px',
-                textDecoration: 'none; white-space: pre', // HACK sneak in the whitespace styling
-                border
+                // HACK: CSS injection to get custom styling in:
+                textDecoration: `none; white-space: pre; border-left: 2px ${borderColor} solid; border-radius: 2px`
             },
             dark: {
                 before: {
