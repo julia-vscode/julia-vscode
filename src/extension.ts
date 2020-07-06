@@ -7,7 +7,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient'
-import { JuliaDebugSession } from './debugger/juliaDebug'
+import { JuliaDebugFeature } from './debugger/debugFeature'
 import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
@@ -55,17 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
     openpackagedirectory.activate(context)
     jlpkgenv.activate(context)
 
-    // register a configuration provider for 'mock' debug type
-    const provider = new JuliaDebugConfigurationProvider()
-    context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('julia', provider))
-
-    const factory = new InlineDebugAdapterFactory()
-    context.subscriptions.push(vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory))
-
-    vscode.commands.registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
-        const pkgenvpath = await jlpkgenv.getEnvPath()
-        return pkgenvpath
-    })
+    context.subscriptions.push(new JuliaDebugFeature(context))
 
     // Start language server
     startLanguageServer()
@@ -227,62 +217,5 @@ async function startLanguageServer() {
         setLanguageClient()
         disposable.dispose()
         startupNotification.dispose()
-    }
-}
-
-export class JuliaDebugConfigurationProvider
-implements vscode.DebugConfigurationProvider {
-
-    public resolveDebugConfiguration(
-        folder: vscode.WorkspaceFolder | undefined,
-        config: vscode.DebugConfiguration,
-        token?: vscode.CancellationToken,
-    ): vscode.ProviderResult<vscode.DebugConfiguration> {
-
-        return (async () => {
-            if (!config.request) {
-                config.request = 'launch'
-            }
-
-            if (!config.type) {
-                config.type = 'julia'
-            }
-
-            if (!config.name) {
-                config.name = 'Launch Julia'
-            }
-
-            if (!config.program && config.request !== 'attach') {
-                config.program = vscode.window.activeTextEditor.document.fileName
-            }
-
-            if (!config.internalConsoleOptions) {
-                config.internalConsoleOptions = 'neverOpen'
-            }
-
-            if (!config.stopOnEntry) {
-                config.stopOnEntry = false
-            }
-
-            if (!config.cwd && config.request !== 'attach') {
-                config.cwd = '${workspaceFolder}'
-            }
-
-            if (!config.juliaEnv && config.request !== 'attach') {
-                config.juliaEnv = '${command:activeJuliaEnvironment}'
-            }
-
-            return config
-        })()
-    }
-
-}
-
-class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
-
-    createDebugAdapterDescriptor(_session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
-        return (async () => {
-            return new vscode.DebugAdapterInlineImplementation(<any>new JuliaDebugSession(g_context, await juliaexepath.getJuliaExePath()))
-        })()
     }
 }

@@ -115,7 +115,8 @@ end
 
 render(::Nothing) = ReplRunCodeRequestReturn("✓", codeblock("nothing"))
 
-codeblock(s) = string("```julia", '\n', s, '\n', "```")
+indent4(s) = string(' ' ^ 4, s)
+codeblock(s) = joinlines(indent4.(splitlines(s)))
 
 struct EvalError
     err
@@ -133,7 +134,7 @@ function render(err::EvalError)
 
     errstr = sprint_error(err.err)
     inline = strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
-    all = string(codeblock(errstr), '\n', backtrace_string(bt))
+    all = string('\n', codeblock(errstr), '\n', backtrace_string(bt))
 
     # handle duplicates e.g. from recursion
     st = unique!(stacktrace(bt))
