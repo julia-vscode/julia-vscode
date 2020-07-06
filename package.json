@@ -368,7 +368,7 @@
             },
             {
                 "command": "language-julia.show-documentation",
-                "key": "ctrl+j ctrl+d",
+                "key": "alt+J alt+D",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
