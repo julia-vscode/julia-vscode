@@ -388,6 +388,14 @@
                     ],
                     "description": "Highlight unknown symbols. The `symbols` option will not mark unknown fields."
                 },
+                "julia.lint.disabledDirs": {
+                    "type": "array",
+                    "default": [
+                        "docs",
+                        "test"
+                    ],
+                    "markdownDescription": "Specifies sub-directories in [a package-format directory](https://docs.julialang.org/en/v1/manual/code-loading/#Package-directories-1) where only basic lintings are enabled and most false positve lintings would be surpressed."
+                },
                 "julia.lint.call": {
                     "type": "boolean",
                     "default": true,
