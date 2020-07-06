@@ -2,6 +2,10 @@ import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 
+export function setContext(contextKey: string, state: boolean) {
+    vscode.commands.executeCommand('setContext', contextKey, state)
+}
+
 export function generatePipeName(pid: string, name: string) {
     if (process.platform === 'win32') {
         return '\\\\.\\pipe\\' + name + '-' + pid
