@@ -4,10 +4,6 @@ import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
 import { VersionedTextDocumentPositionParams } from './interactive/misc'
 
-export function setContext(contextKey: string, state: boolean) {
-    vscode.commands.executeCommand('setContext', contextKey, state)
-}
-
 export function getVersionedParamsAtPosition(editor: vscode.TextEditor, position: vscode.Position): VersionedTextDocumentPositionParams {
     return {
         textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
