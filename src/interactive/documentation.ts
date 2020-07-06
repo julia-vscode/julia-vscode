@@ -3,78 +3,64 @@ import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
 import { getVersionedParamsAtPosition, setContext } from '../utils'
 
-const viewType = 'JuliaDocumentationBrowser'
-const panelActiveContextKey = 'juliaDocumentationPaneActive'
-let extensionPath: string | undefined = undefined
-let panel: vscode.WebviewPanel = undefined
-let messageSubscription: vscode.Disposable = undefined
+let g_context: vscode.ExtensionContext | undefined = undefined
+const g_panelActiveContextKey = 'juliaDocumentationPaneActive'
+let g_panel: vscode.WebviewPanel | undefined = undefined
 
-const backStack = Array<string>() // also keep current page
-let forwardStack = Array<string>()
+const g_backStack = Array<string>() // also keep current page
+let g_forwardStack = Array<string>()
 
 export function activate(context: vscode.ExtensionContext) {
-    // assets path
-    extensionPath = context.extensionPath
+    g_context = context
+
     context.subscriptions.push(
         vscode.commands.registerCommand('language-julia.show-documentation-pane', showDocumentationPane),
         vscode.commands.registerCommand('language-julia.show-documentation', showDocumentation),
         vscode.commands.registerCommand('language-julia.browse-back-documentation', browseBack),
         vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward),
+        vscode.commands.registerCommand('language-julia.findHelp', findHelp)
     )
-    setPanelContext()
-    vscode.window.registerWebviewPanelSerializer(viewType, new DocumentationPaneSerializer())
+    setPanelContext(false)
+}
+
+function findHelp(mod: { searchTerm: string }) {
+    console.log(`Searched for documentation topic '${mod.searchTerm}'.`)
 }
 
 function showDocumentationPane() {
-    if (panel === undefined) {
-        panel = createDocumentationPanel()
-        setPanelSubscription()
-    }
-    if (panel !== undefined && !panel.visible) {
-        panel.reveal()
-    }
-}
+    if (g_panel === undefined) {
+        g_panel = vscode.window.createWebviewPanel('JuliaDocumentationBrowser', 'Julia Documentation Pane',
+            {
+                preserveFocus: true,
+                viewColumn: g_context.globalState.get('juliaDocumentationPanelViewColumn', vscode.ViewColumn.Beside),
+            },
+            {
+                enableFindWidget: true,
+                // retainContextWhenHidden: true, // comment in if loading is slow, while there would be high memory overhead
+                enableScripts: true,
+                enableCommandUris: true
+            }
+        )
 
-function createDocumentationPanel() {
-    return vscode.window.createWebviewPanel(viewType, 'Julia Documentation Pane',
-        {
-            preserveFocus: true,
-            viewColumn: vscode.ViewColumn.Beside,
-        },
-        {
-            enableFindWidget: true,
-            // retainContextWhenHidden: true, // comment in if loading is slow, while there would be high memory overhead
-            enableScripts: true,
-        }
-    )
-}
+        g_panel.onDidChangeViewState(({ webviewPanel }) => {
+            g_context.globalState.update('juliaDocumentationPanelViewColumn', webviewPanel.viewColumn)
+            setPanelContext(webviewPanel.active)
+        })
 
-class DocumentationPaneSerializer implements vscode.WebviewPanelSerializer {
-    async deserializeWebviewPanel(deserializedPanel: vscode.WebviewPanel, state: any) {
-        panel = deserializedPanel
-        setPanelSubscription()
-        const { inner } = state
-        const html = createWebviewHTML(inner)
-        _setHTML(html)
+        g_panel.onDidDispose(() => {
+            setPanelContext(false)
+            g_panel = undefined
+        })
+
+        setPanelContext(true)
+    }
+    else if (!g_panel.visible) {
+        g_panel.reveal()
     }
 }
 
-function setPanelSubscription() {
-    panel.onDidChangeViewState(({ webviewPanel }) => {
-        setPanelContext(webviewPanel.active)
-    })
-    panel.onDidDispose(() => {
-        setPanelContext(false)
-        if (messageSubscription !== undefined) {
-            messageSubscription.dispose()
-        }
-        panel = undefined
-    })
-    setPanelContext(true)
-}
-
-function setPanelContext(state: boolean = false) {
-    setContext(panelActiveContextKey, state)
+function setPanelContext(state: boolean) {
+    setContext(g_panelActiveContextKey, state)
 }
 
 const LS_ERR_MSG = `
@@ -89,12 +75,12 @@ async function showDocumentation() {
 
 async function getDocumentation(): Promise<string> {
     const editor = vscode.window.activeTextEditor
-    const selection = editor.selection
-    const position = new vscode.Position(selection.start.line, selection.start.character)
+
+    // TODO Check whether editor is undefined
 
     return await withLanguageClient(
         async languageClient => {
-            return languageClient.sendRequest('julia/getDocAt', getVersionedParamsAtPosition(editor, position))
+            return languageClient.sendRequest('julia/getDocAt', getVersionedParamsAtPosition(editor, editor.selection.start))
         },
         err => {
             vscode.window.showErrorMessage(LS_ERR_MSG)
@@ -105,7 +91,7 @@ async function getDocumentation(): Promise<string> {
 
 function setDocumentation(inner: string) {
     if (!inner) { return }
-    forwardStack = [] // initialize forward page stack for manual search
+    g_forwardStack = [] // initialize forward page stack for manual search
     showDocumentationPane()
     const html = createWebviewHTML(inner)
     _setHTML(html)
@@ -114,19 +100,21 @@ function setDocumentation(inner: string) {
 function createWebviewHTML(inner: string) {
     const darkMode = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark
 
-    const googleFontscss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css')))
-    const fontawesomecss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
-    const solidcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
-    const brandscss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
-    const documenterStylesheetcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
-    const katexcss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
+    const extensionPath = g_context.extensionPath
 
-    const webfontjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
-    const katexjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.js')))
-    const katexautorenderjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'auto-render.min.js')))
-    const highlightjs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'highlight.min.js')))
-    const highlightjuliajs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia.min.js')))
-    const highlightjuliarepljs = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia-repl.min.js')))
+    const googleFontscss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css')))
+    const fontawesomecss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
+    const solidcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
+    const brandscss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
+    const documenterStylesheetcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
+    const katexcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
+
+    const webfontjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
+    const katexjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.js')))
+    const katexautorenderjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'auto-render.min.js')))
+    const highlightjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'highlight.min.js')))
+    const highlightjuliajs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia.min.js')))
+    const highlightjuliarepljs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'highlight', 'julia-repl.min.js')))
 
     return `
 <html lang="en" class=${darkMode ? 'theme--documenter-dark' : ''}>
@@ -149,28 +137,6 @@ function createWebviewHTML(inner: string) {
     <script src=${highlightjuliarepljs}></script>
 
     <script type="text/javascript">
-        // vscode API
-        const vscode = acquireVsCodeApi()
-        window.onload = () => {
-            const els = document.getElementsByTagName('a')
-            for (const el of els) {
-                const href = el.getAttribute('href')
-                if (href.includes('julia-vscode/')) {
-                    const mod = href.split('/').pop()
-                    el.onclick = () => {
-                        vscode.postMessage({
-                            method: 'search',
-                            params: {
-                                word: el.text,
-                                mod
-                            }
-                        })
-                    }
-                }
-            }
-        }
-        vscode.setState({ inner: \`${inner}\` })
-
         // styling
         hljs.initHighlightingOnLoad()
         WebFontConfig = {
@@ -211,49 +177,30 @@ function createWebviewHTML(inner: string) {
 
 function _setHTML(html: string) {
     // set current stack
-    backStack.push(html)
+    g_backStack.push(html)
 
-    // TODO: link handling for documentations retrieved from LS
-    if (messageSubscription !== undefined) {
-        messageSubscription.dispose() // dispose previouse
-    }
-    messageSubscription = panel.webview.onDidReceiveMessage(
-        message => {
-            if (message.method === 'search') {
-                // withREPL(
-                //     async connection => {
-                //         const { word, mod } = message.params
-                //         const inner = await connection.sendRequest(requestTypeGetDoc, { word, mod, })
-                //         setDocumentation(inner)
-                //     },
-                //     err => { return '' }
-                // )
-            }
-        }
-    )
-
-    panel.webview.html = html
+    g_panel.webview.html = html
 }
 
 function isBrowseBackAvailable() {
-    return backStack.length > 1
+    return g_backStack.length > 1
 }
 
 function isBrowseForwardAvailable() {
-    return forwardStack.length > 0
+    return g_forwardStack.length > 0
 }
 
 function browseBack() {
     if (!isBrowseBackAvailable()) { return }
 
-    const current = backStack.pop()
-    forwardStack.push(current)
+    const current = g_backStack.pop()
+    g_forwardStack.push(current)
 
-    _setHTML(backStack.pop())
+    _setHTML(g_backStack.pop())
 }
 
 function browseForward() {
     if (!isBrowseForwardAvailable()) { return }
 
-    _setHTML(forwardStack.pop())
+    _setHTML(g_forwardStack.pop())
 }
