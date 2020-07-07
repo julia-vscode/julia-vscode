@@ -831,8 +831,8 @@
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
+        "highlight.js": "^10.1.1",
         "markdown-it": "^11.0.0",
-        "markdown-it-highlightjs": "^3.2.0",
         "promised-temp": "^v0.1.0",
         "uuidv4": "^6.1.1",
         "vscode-debugadapter": "^1.41.0",
@@ -843,6 +843,7 @@
     "devDependencies": {
         "@types/cson-parser": "^4.0.4",
         "@types/download": "^6.2.4",
+        "@types/highlight.js": "^9.12.4",
         "@types/markdown-it": "^10.0.1",
         "@types/mocha": "^7.0.2",
         "@types/node": "^12.12.48",
