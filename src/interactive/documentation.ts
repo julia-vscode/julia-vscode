@@ -1,20 +1,32 @@
+import * as hljs from 'highlight.js'
 import * as markdownit from 'markdown-it'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
 import { constructCommandString, getVersionedParamsAtPosition, setContext } from '../utils'
 
-const md = new markdownit().
-    use(require('@traptitech/markdown-it-katex'), {
-        output: 'html'
-    }).
-    use(require('markdown-it-highlightjs'), {
-        inline: true, register: {
-            julia: require('highlight.js/lib/languages/julia'),
-            juliarepl: require('highlight.js/lib/languages/julia-repl'),
-            jldoctest: require('highlight.js/lib/languages/julia-repl')
+const md = new markdownit(
+    {
+        highlight: (str: string, lang: string) => {
+            if (lang) {
+                if (hljs.getLanguage(lang)) {
+                    try {
+                        return hljs.highlight(lang, str).value
+                    } catch (__) { }
+                }
+                else if (lang === 'juliarepl' || lang === 'jldoctest' || lang === 'jldoctest;') {
+                    return hljs.highlight('julia-repl', str).value
+                }
+            }
+            return ''
         }
-    })
+    }).
+    use(
+        require('@traptitech/markdown-it-katex'),
+        {
+            output: 'html'
+        }
+    )
 
 md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
@@ -25,6 +37,13 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     }
 
     return self.renderToken(tokens, idx, options)
+}
+
+// highlight inline code with Julia syntax
+md.renderer.rules.code_inline = (tokens, idx, options) => {
+    const code = tokens[idx]
+    const highlighted = options.highlight(code.content, 'julia')
+    return `<code class="language-julia">${highlighted}</code>`
 }
 
 let g_context: vscode.ExtensionContext | undefined = undefined
