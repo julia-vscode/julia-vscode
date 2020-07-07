@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { setContext } from '../utils'
+import { commandString, setContext } from '../utils'
 
 const LINE_INF = 9999
 
@@ -242,8 +242,6 @@ export function resultContent(content: string, hoverContent: string, isError: bo
     }
 }
 
-const commandString = (cmd: string, args: string = '') => `command:${cmd}?${encodeURIComponent(args)}`
-
 function toMarkdownString(str: string) {
     const markdownString = new vscode.MarkdownString(str)
     markdownString.isTrusted = true
@@ -328,11 +326,10 @@ function errorResultContent(err: string, frame: Frame): ResultContent {
 }
 
 function attachGotoFrameCommandLinks(transformed: string, frame: Frame) {
-    const args = encodeURIComponent(JSON.stringify({ frame }))
     return [
         `[\`${GlyphChars.MuchLessThan}\`](${commandString('language-julia.gotoFirstFrame')} "Goto First Frame")`,
-        `[\`${GlyphChars.LessThan}\`](${commandString('language-julia.gotoPreviousFrame', args)} "Goto Previous Frame")`,
-        `[\`${GlyphChars.GreaterThan}\`](${commandString('language-julia.gotoNextFrame', args)} "Goto Next Frame")`,
+        `[\`${GlyphChars.LessThan}\`](${commandString('language-julia.gotoPreviousFrame', { frame })} "Goto Previous Frame")`,
+        `[\`${GlyphChars.GreaterThan}\`](${commandString('language-julia.gotoNextFrame', { frame })} "Goto Next Frame")`,
         `[\`${GlyphChars.MuchGreaterThan}\`](${commandString('language-julia.gotoLastFrame')} "Goto Last Frame")`,
         `[\`${GlyphChars.BallotX}\`](${commandString('language-julia.clearStackTrace')} "Clear Stack Traces")`,
         `\n${transformed}`
