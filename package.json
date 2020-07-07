@@ -333,17 +333,17 @@
         "keybindings": [
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+enter",
+                "key": "ctrl+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
-                "key": "alt+enter",
+                "key": "alt+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
                 "command": "language-julia.executeCellAndMove",
-                "key": "shift+enter",
+                "key": "shift+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
@@ -353,7 +353,7 @@
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
-                "key": "ctrl+i ctrl+c",
+                "key": "ctrl+I ctrl+C",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
@@ -368,7 +368,7 @@
             },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+enter",
+                "key": "ctrl+Enter",
                 "when": "editorTextFocus && editorLangId == juliamarkdown"
             },
             {
