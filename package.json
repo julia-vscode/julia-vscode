@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "0.17.0",
+    "version": "0.17.1",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -41,6 +41,8 @@
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
         "onCommand:language-julia.debug.getActiveJuliaEnvironment",
+        "onCommand:language-julia.debugEditorContents",
+        "onCommand:language-julia.runEditorContents",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
@@ -229,6 +231,16 @@
             {
                 "command": "language-julia.chooseModule",
                 "title": "Julia: Select Current Module"
+            },
+            {
+                "command": "language-julia.debugEditorContents",
+                "title": "Debug Julia File",
+                "icon": "$(debug-alt)"
+            },
+            {
+                "command": "language-julia.runEditorContents",
+                "title": "Run Julia File",
+                "icon": "$(play)"
             }
         ],
         "menus": {
@@ -268,6 +280,20 @@
                 {
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete-all"
+                },
+                {
+                    "command": "language-julia.runEditorContents",
+                    "when": "resourceLangId == julia",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "language-julia.debugEditorContents",
+                    "when": "resourceLangId == julia",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "language-julia.clearAllInlineResultsInEditor",
+                    "when": "editorLangId == julia"
                 }
             ],
             "commandPalette": [
@@ -322,8 +348,8 @@
             },
             {
                 "command": "language-julia.clearCurrentInlineResult",
-                "key": "ctrl+i ctrl+d",
-                "when": "editorTextFocus && editorLangId == julia"
+                "key": "Ctrl+I Ctrl+D",
+                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && juliaHasInlineResult"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
@@ -332,7 +358,12 @@
             },
             {
                 "command": "language-julia.chooseModule",
-                "key": "ctrl+j ctrl+m",
+                "key": "Alt+J Alt+M",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.changeCurrentEnvironment",
+                "key": "Alt+J Alt+E",
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
@@ -430,6 +461,14 @@
                         "all"
                     ],
                     "description": "Highlight unknown symbols. The `symbols` option will not mark unknown fields."
+                },
+                "julia.lint.disabledDirs": {
+                    "type": "array",
+                    "default": [
+                        "docs",
+                        "test"
+                    ],
+                    "markdownDescription": "Specifies sub-directories in [a package directory](https://docs.julialang.org/en/v1/manual/code-loading/#Package-directories-1) where only basic linting is. This drastically lowers the chance for false positives."
                 },
                 "julia.lint.call": {
                     "type": "boolean",
@@ -802,8 +841,8 @@
         "@types/cson-parser": "^4.0.4",
         "@types/download": "^6.2.4",
         "@types/mocha": "^7.0.2",
-        "@types/node": "^12.12.47",
-        "@typescript-eslint/parser": "^3.5.0",
+        "@types/node": "^12.12.48",
+        "@typescript-eslint/parser": "^3.6.0",
         "cson-parser": "^4.0.4",
         "download": "^7.1.0",
         "eslint": "^7.4.0",
