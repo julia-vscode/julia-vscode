@@ -20,8 +20,8 @@ import * as tasks from './tasks'
 import * as telemetry from './telemetry'
 import * as weave from './weave'
 
-let g_languageClient: LanguageClient = undefined
-let g_context: vscode.ExtensionContext = undefined
+let g_languageClient: LanguageClient = null
+let g_context: vscode.ExtensionContext = null
 
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context)
@@ -91,19 +91,16 @@ export function deactivate() { }
 
 const g_onSetLanguageClient = new vscode.EventEmitter<vslc.LanguageClient>()
 export const onSetLanguageClient = g_onSetLanguageClient.event
-function setLanguageClient(languageClient: vslc.LanguageClient = undefined) {
+function setLanguageClient(languageClient: vslc.LanguageClient = null) {
     g_onSetLanguageClient.fire(languageClient)
     g_languageClient = languageClient
-}
-function isLanguageClientActive() {
-    return g_languageClient !== undefined
 }
 
 export async function withLanguageClient(
     callback: (languageClient: vslc.LanguageClient) => any,
     callbackOnHandledErr: (err: Error) => any
 ) {
-    if (!isLanguageClientActive()) {
+    if (g_languageClient === null) {
         return callbackOnHandledErr(new Error('Language client is not active'))
     }
     try {
