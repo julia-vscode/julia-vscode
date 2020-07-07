@@ -272,7 +272,7 @@ async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
 
     const editor = vscode.window.activeTextEditor
-    const position = editor.document.validatePosition(new vscode.Position(editor.selection.start.line, editor.selection.start.character))
+    const position = editor.document.validatePosition(editor.selection.start)
     const ret_val = await getBlockRange(getVersionedParamsAtPosition(editor, position))
 
     const start_pos = editor.document.validatePosition(new vscode.Position(ret_val[0].line, ret_val[0].character))
@@ -338,6 +338,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         let nextBlock: vscode.Position = null
         const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
         const module: string = await modules.getModuleForEditor(editor, startpos)
+
         if (selection.isEmpty) {
             const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor, startpos))
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)

@@ -6,7 +6,6 @@ import * as telemetry from '../telemetry'
 import { getVersionedParamsAtPosition } from '../utils'
 import { onExit, onInit } from './repl'
 
-
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
 let g_languageClient: vslc.LanguageClient = null
@@ -54,7 +53,8 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
 
     if (mod === undefined) {
         try {
-            mod = await g_languageClient.sendRequest('julia/getModuleAt', getVersionedParamsAtPosition(editor, position))
+            const params = getVersionedParamsAtPosition(editor, position)
+            mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
         } catch (err) {
             console.error(err)
             mod = 'Main'
