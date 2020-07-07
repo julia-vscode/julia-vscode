@@ -1,10 +1,10 @@
+import * as markdownit from 'markdown-it'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
 import { constructCommandString, getVersionedParamsAtPosition, setContext } from '../utils'
-import MarkdownIt = require('markdown-it')
 
-const md = new MarkdownIt().
+const md = new markdownit().
     use(require('@traptitech/markdown-it-katex'), {
         output: 'html'
     }).
