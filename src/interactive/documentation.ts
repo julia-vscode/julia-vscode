@@ -12,8 +12,7 @@ const md = new markdownit({
                 try {
                     return hljs.highlight(lang, str).value
                 } catch (__) { }
-            }
-            if (lang === 'juliarepl' || lang === 'jldoctest') {
+            } else if (lang === 'juliarepl' || lang === 'jldoctest') { // special cases
                 return hljs.highlight('julia-repl', str).value
             }
         }
@@ -24,6 +23,7 @@ const md = new markdownit({
         output: 'html'
     })
 
+// highlight inline code with Julia syntax
 md.renderer.rules.code_inline = (tokens, idx, options) => {
     const code = tokens[idx]
     const highlighted = options.highlight(code.content, 'julia')
