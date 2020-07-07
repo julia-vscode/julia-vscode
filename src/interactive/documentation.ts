@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
-import { getVersionedParamsAtPosition, setContext } from '../utils'
+import { constructCommandString, getVersionedParamsAtPosition, setContext } from '../utils'
 import MarkdownIt = require('markdown-it')
 
 const md = new MarkdownIt().
@@ -20,7 +20,7 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
 
     if (aIndex >= 0 && tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
-        const commandUri = `command:language-julia.findHelp?${encodeURIComponent(JSON.stringify({ searchTerm: tokens[idx + 1].content }))}`
+        const commandUri = constructCommandString('language-julia', { searchTerm: tokens[idx + 1].content })
         tokens[idx].attrs[aIndex][1] = commandUri
     }
 
