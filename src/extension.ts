@@ -8,6 +8,7 @@ import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient'
 import { JuliaDebugFeature } from './debugger/debugFeature'
+import * as documentation from './docbrowser/documentation'
 import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
@@ -48,6 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
     juliaexepath.activate(context)
     await juliaexepath.getJuliaExePath() // We run this function now and await to make sure we don't run in twice simultaneously later
     repl.activate(context)
+    documentation.activate(context)
     weave.activate(context)
     tasks.activate(context)
     smallcommands.activate(context)

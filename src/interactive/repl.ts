@@ -10,7 +10,6 @@ import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads } from '../utils'
-import * as documentation from './documentation'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -493,5 +492,4 @@ export function activate(context: vscode.ExtensionContext) {
     plots.activate(context)
     workspace.activate(context)
     modules.activate(context)
-    documentation.activate(context)
 }
