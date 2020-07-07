@@ -8,7 +8,6 @@ import Base: display, redisplay
 import Dates
 import Profile
 
-
 function __init__()
     atreplinit() do repl
         @async try
