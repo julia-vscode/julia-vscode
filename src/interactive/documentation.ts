@@ -26,6 +26,9 @@ const md = new markdownit(
         {
             output: 'html'
         }
+    ).
+    use(
+        require('markdown-it-footnote')
     )
 
 md.renderer.rules.link_open = (tokens, idx, options, env, self) => {

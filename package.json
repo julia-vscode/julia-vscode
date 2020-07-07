@@ -833,6 +833,7 @@
         "child-process-promise": "^v2.2.1",
         "highlight.js": "^10.1.1",
         "markdown-it": "^11.0.0",
+        "markdown-it-footnote": "^3.0.2",
         "promised-temp": "^v0.1.0",
         "uuidv4": "^6.1.1",
         "vscode-debugadapter": "^1.41.1",
