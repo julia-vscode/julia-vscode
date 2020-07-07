@@ -292,13 +292,8 @@
                     "group": "navigation@2"
                 },
                 {
-<<<<<<< HEAD
-                    "when": "editorLangId == julia",
-                    "command": "language-julia.clearAllInlineResultsInEditor"
-=======
                     "command": "language-julia.clearAllInlineResultsInEditor",
                     "when": "editorLangId == julia"
->>>>>>> avi/documentation
                 }
             ],
             "commandPalette": [
