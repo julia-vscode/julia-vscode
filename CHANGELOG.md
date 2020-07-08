@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.17
+* Global variable support in the debugger variable explorer
+* Debug and run buttons above Julia files
+* Support for step in targets in the debugger
+* Profile viewing support
+* Stackframe highlighting for inline evaluations
+* Configuration option to exclude folders from linting
+* Add an extension API
+
 ## 0.16
 * Inline display of evaluation results
 * Workspace view
