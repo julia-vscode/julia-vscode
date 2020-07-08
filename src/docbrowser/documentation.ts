@@ -114,20 +114,22 @@ Please wait a few seconds and try again once the \`Starting Julia Language Serve
 `
 async function showDocumentation() {
     // telemetry.traceEvent('command-showdocumentation')
-    const inner = await getDocumentation()
-    setDocumentation(inner)
+    const editor = vscode.window.activeTextEditor
+    if (!editor) { return }
+
+    const docAsMD = await getDocumentation(editor)
+    if (!docAsMD) { return }
+
+    g_forwardStack = [] // initialize forward page stack for manual search
+    showDocumentationPane()
+    const html = createWebviewHTML(docAsMD)
+    _setHTML(html)
 }
 
-async function getDocumentation(): Promise<string> {
-    const editor = vscode.window.activeTextEditor
-
-    // TODO Check whether editor is undefined
-
+async function getDocumentation(editor: vscode.TextEditor): Promise<string> {
     return await withLanguageClient(
         async languageClient => {
-            const docAsMD = await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor, editor.selection.start))
-            const docAsHTML = md.render(docAsMD)
-            return docAsHTML
+            return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor, editor.selection.start))
         },
         err => {
             vscode.window.showErrorMessage(LS_ERR_MSG)
@@ -136,15 +138,8 @@ async function getDocumentation(): Promise<string> {
     )
 }
 
-function setDocumentation(inner: string) {
-    if (!inner) { return }
-    g_forwardStack = [] // initialize forward page stack for manual search
-    showDocumentationPane()
-    const html = createWebviewHTML(inner)
-    _setHTML(html)
-}
-
-function createWebviewHTML(inner: string) {
+function createWebviewHTML(docAsMD: string) {
+    const docAsHTML = md.render(docAsMD)
     const darkMode = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark
 
     const extensionPath = g_context.extensionPath
@@ -182,13 +177,12 @@ function createWebviewHTML(inner: string) {
     </script>
 
     <script src=${webfontjs}></script>
-
 </head>
 
 <body>
     <div class="docs-main" style="padding: 1em">
         <article class="content">
-            ${inner}
+            ${docAsHTML}
         </article>
     </div>
 </body>
