@@ -84,7 +84,6 @@ function showDocumentationPane() {
                 enableFindWidget: true,
                 // retainContextWhenHidden: true, // comment in if loading is slow, while there would be high memory overhead
                 enableScripts: true,
-                enableCommandUris: true
             }
         )
 
