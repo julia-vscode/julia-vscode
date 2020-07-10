@@ -35,7 +35,7 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
 
     if (aIndex >= 0 && tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
-        const commandUri = constructCommandString('language-julia', { searchTerm: tokens[idx + 1].content })
+        const commandUri = constructCommandString('language-julia.handle-link', { searchTerm: tokens[idx + 1].content })
         tokens[idx].attrs[aIndex][1] = commandUri
     }
 
@@ -60,17 +60,18 @@ export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
     context.subscriptions.push(
+        // public commands
         vscode.commands.registerCommand('language-julia.show-documentation-pane', showDocumentationPane),
         vscode.commands.registerCommand('language-julia.show-documentation', showDocumentation),
         vscode.commands.registerCommand('language-julia.browse-back-documentation', browseBack),
         vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward),
-        vscode.commands.registerCommand('language-julia.findHelp', findHelp)
+
+        // internal commands
+        vscode.commands.registerCommand('language-julia.handle-link', (params: { searchTerm: string }) => {
+            showDocumentationFromWord(params.searchTerm)
+        })
     )
     setPanelContext(false)
-}
-
-function findHelp(mod: { searchTerm: string }) {
-    console.log(`Searched for documentation topic '${mod.searchTerm}'.`)
 }
 
 function showDocumentationPane() {
@@ -121,6 +122,17 @@ async function showDocumentation() {
     const docAsMD = await getDocumentation(editor)
     if (!docAsMD) { return }
 
+    setDocumentation(docAsMD)
+}
+
+async function showDocumentationFromWord(word: string) {
+    const docAsMD = await getDocumentationFromWord(word)
+    if (!docAsMD) { return }
+
+    setDocumentation(docAsMD)
+}
+
+function setDocumentation(docAsMD: string) {
     g_forwardStack = [] // initialize forward page stack for manual search
     showDocumentationPane()
     const html = createWebviewHTML(docAsMD)
@@ -131,6 +143,18 @@ async function getDocumentation(editor: vscode.TextEditor): Promise<string> {
     return await withLanguageClient(
         async languageClient => {
             return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor.document, editor.selection.start))
+        },
+        err => {
+            vscode.window.showErrorMessage(LS_ERR_MSG)
+            return ''
+        }
+    )
+}
+
+async function getDocumentationFromWord(word: string): Promise<string> {
+    return await withLanguageClient(
+        async languageClient => {
+            return await languageClient.sendRequest('julia/getDocFromWord', word)
         },
         err => {
             vscode.window.showErrorMessage(LS_ERR_MSG)
