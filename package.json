@@ -669,7 +669,8 @@
             "julia-explorer": [
                 {
                     "id": "REPLVariables",
-                    "name": "Julia Workspace"
+                    "name": "Julia Workspace",
+                    "when": "JuliaExtension:enabled"
                 }
             ]
         },
