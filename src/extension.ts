@@ -17,15 +17,13 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
-import { setContext } from "./utils"
+import { setContext } from './utils'
 import * as weave from './weave'
 
 let g_languageClient: LanguageClient = null
 let g_context: vscode.ExtensionContext = null
 
 export async function activate(context: vscode.ExtensionContext) {
-    setContext("JuliaExtension:enabled", true)
-
     await telemetry.init(context)
 
     telemetry.traceEvent('activate')
@@ -51,6 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
     juliaexepath.activate(context)
     await juliaexepath.getJuliaExePath() // We run this function now and await to make sure we don't run in twice simultaneously later
     repl.activate(context)
+    setContext('Julia:activated', true)
     weave.activate(context)
     tasks.activate(context)
     smallcommands.activate(context)

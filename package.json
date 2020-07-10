@@ -670,7 +670,7 @@
                 {
                     "id": "REPLVariables",
                     "name": "Julia Workspace",
-                    "when": "JuliaExtension:enabled"
+                    "when": "Julia:activated"
                 }
             ]
         },
