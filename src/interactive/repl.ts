@@ -318,9 +318,9 @@ async function executeCell(shouldMove: boolean = false) {
     const nextpos = ed.document.validatePosition(new vscode.Position(end + 1, 0))
     const code = doc.getText(new vscode.Range(startpos, endpos))
 
-    await startREPL(true, false)
-
     const module: string = await modules.getModuleForEditor(ed, startpos)
+
+    await startREPL(true, false)
 
     if (shouldMove) {
         vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
