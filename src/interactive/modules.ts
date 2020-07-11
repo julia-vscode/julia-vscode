@@ -1,3 +1,4 @@
+import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
@@ -56,6 +57,13 @@ export async function getModuleForEditor(editor: vscode.TextEditor, position: vs
             textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
             version: editor.document.version,
             position: position
+        }
+
+        if (position.line > editor.document.lineCount) {
+            telemetry.traceTrace({
+                message: `getModuleForEditor is about to send a request with an invalid line. Request is asking for line ${position.line}, but doc only has ${editor.document.lineCount} lines.}`,
+                severity: SeverityLevel.Error
+            })
         }
 
         try {
