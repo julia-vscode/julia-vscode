@@ -53,7 +53,11 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     Base.display_error(stderr, res)
 
                 elseif res !== nothing && !ends_with_semicolon(source_code)
-                    Base.invokelatest(display, res)
+                    try
+                        Base.invokelatest(display, res)
+                    catch err
+                        Base.display_error(stderr, err, catch_backtrace())
+                    end
                 end
             else
                 try
