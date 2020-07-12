@@ -1,7 +1,21 @@
 # Changelog
 
+## 0.17
+* Global variable support in the debugger variable explorer
+* Debug and run buttons above Julia files
+* Support for step in targets in the debugger
+* Profile viewing support
+* Stackframe highlighting for inline evaluations
+* Configuration option to exclude folders from linting
+* Add an extension API
+
+## 0.16
+* Inline display of evaluation results
+* Workspace view
+
 ## 0.15
 * Add an experimental debugger
+* Improve cell delimiter regex so that it won't recognize YAS-style section headers as cell separator anymore (#1256, #1259)
 
 ## 0.14
 * Make Language Server indexing async
@@ -12,7 +26,6 @@
 * Better presentation of documentation
 * Fully implement LSP 3.14
 * StaticLint: improved path handling (file tree), extended macro handling, handle local/global variables, general refactor with speed/robustness improvements
-
 
 ## 0.13.1
 * Update CHANGELOG
@@ -34,7 +47,7 @@
 * Various bug fixes
 
 ## 0.12.0
-* Add vscodedisplay() function for a grid view of tables
+* Add `vscodedisplay()` function for a grid view of tables
 * Add a command to delete all plots from the plot pane
 * Store Julia environment choice in settings
 * Auto detect Julia environments
