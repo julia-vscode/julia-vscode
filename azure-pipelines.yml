@@ -91,6 +91,7 @@ stages:
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/testenvironments/debugadapter -e 'using Pkg; Pkg.test("DebugAdapter", coverage=true)'
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/testenvironments/vscodedebugger -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/testenvironments/vscodeserver -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/testenvironments/chromeprofileformat -e 'using Pkg; Pkg.test("ChromeProfileFormat", coverage=true)'
       displayName: 'Run the Julia tests'
 
   - job: TestJuliaMacOS
@@ -136,6 +137,7 @@ stages:
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/testenvironments/debugadapter -e 'using Pkg; Pkg.test("DebugAdapter", coverage=true)'
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/testenvironments/vscodedebugger -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
         ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/testenvironments/vscodeserver -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
+        ./julia-$(JULIA_VERSION)/bin/julia --project=./scripts/testenvironments/chromeprofileformat -e 'using Pkg; Pkg.test("ChromeProfileFormat", coverage=true)'
       displayName: 'Run the Julia tests'
 
   - job: TestJuliaWin
@@ -188,6 +190,7 @@ stages:
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/testenvironments/debugadapter -e 'using Pkg; Pkg.test("DebugAdapter", coverage=true)'
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/testenvironments/vscodedebugger -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
         C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/testenvironments/vscodeserver -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
+        C:\\julia-$(JULIA_VERSION)\\bin\\julia.exe --project=./scripts/testenvironments/chromeprofileformat -e 'using Pkg; Pkg.test("ChromeProfileFormat", coverage=true)'
       displayName: 'Run the tests'
       failOnStderr: false
 
