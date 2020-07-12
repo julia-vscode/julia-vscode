@@ -2,9 +2,9 @@ struct JuliaNotebookStdio{IO_t <: IO} <: Base.AbstractPipe
     io::IOContext{IO_t}
 end
 JuliaNotebookStdio(io::IO, stream::AbstractString="unknown") =
-    JuliaNotebookStdio{typeof(io)}(IOContext(io, :color=>Base.have_color,
-                            :jupyter_stream=>stream,
-                            :displaysize=>displaysize()))
+    JuliaNotebookStdio{typeof(io)}(IOContext(io, :color => Base.have_color,
+                            :jupyter_stream => stream,
+                            :displaysize => displaysize()))
 Base.pipe_reader(io::JuliaNotebookStdio) = io.io.io
 Base.pipe_writer(io::JuliaNotebookStdio) = io.io.io
 Base.lock(io::JuliaNotebookStdio) = lock(io.io.io)
@@ -61,11 +61,11 @@ end
 #     end
 # end
 
-#name=>iobuffer for each stream ("stdout","stderr") so they can be sent in flush
+# name=>iobuffer for each stream ("stdout","stderr") so they can be sent in flush
 const bufs = Dict{String,IOBuffer}()
 const stream_interval = 0.1
 # maximum number of bytes in libuv/os buffer before emptying
-const max_bytes = 10*1024
+const max_bytes = 10 * 1024
 # max output per code cell is 512 kb by default
 const max_output_per_request = Ref(1 << 19)
 
@@ -89,7 +89,7 @@ function watch_stream(rd::IO, name::AbstractString)
                 if stdio_bytes[] >= max_output_per_request[]
                     read(rd, nb) # read from libuv/os buffer and discard
                     if stdio_bytes[] - nb < max_output_per_request[]
-                        JSONRPC.send_notification(conn_endpoint, "streamoutput", Dict{String,Any}("name"=>"stderr", "current_request_id"=>current_request_id[], "data"=>"Excessive output truncated after $(stdio_bytes[]) bytes."))
+                        JSONRPC.send_notification(conn_endpoint[], "streamoutput", Dict{String,Any}("name" => "stderr", "current_request_id" => current_request_id[], "data" => "Excessive output truncated after $(stdio_bytes[]) bytes."))
                     end
                 else
                     write(buf, read(rd, nb))
@@ -97,7 +97,7 @@ function watch_stream(rd::IO, name::AbstractString)
             end
             if buf.size > 0
                 if buf.size >= max_bytes
-                    #send immediately
+                    # send immediately
                     send_stream(name)
                 end
             end
@@ -144,7 +144,7 @@ function send_stream(name::AbstractString)
     if buf.size > 0
         d = take!(buf)
         n = num_utf8_trailing(d)
-        dextra = d[end-(n-1):end]
+        dextra = d[end - (n - 1):end]
         resize!(d, length(d) - n)
         s = String(copy(d))
         if isvalid(String, s)
@@ -161,7 +161,7 @@ function send_stream(name::AbstractString)
             print(sbuf, '\n')
             s = String(take!(sbuf))
         end
-        JSONRPC.send_notification(conn_endpoint, "streamoutput", Dict{String,Any}("name"=>name, "current_request_id"=>current_request_id[], "data"=>s))
+        JSONRPC.send_notification(conn_endpoint[], "streamoutput", Dict{String,Any}("name" => name, "current_request_id" => current_request_id[], "data" => s))
     end
 end
 
@@ -209,11 +209,11 @@ end
 
 # override prompts using julia#28038 in 0.7
 function check_prompt_streams(input::JuliaNotebookStdio, output::JuliaNotebookStdio)
-    if get(input,:jupyter_stream,"unknown") != "stdin" ||
-        get(output,:jupyter_stream,"unknown") != "stdout"
+    if get(input, :jupyter_stream, "unknown") != "stdin" ||
+        get(output, :jupyter_stream, "unknown") != "stdout"
         throw(ArgumentError("prompt on IJulia stdio streams only works for stdin/stdout"))
-        end
     end
+end
 function Base.prompt(input::JuliaNotebookStdio, output::JuliaNotebookStdio, message::AbstractString; default::AbstractString="")
     check_prompt_streams(input, output)
     val = chomp(readprompt(message * ": "))
@@ -232,7 +232,7 @@ end
 # In the meantime, however, we can just hack it so that readline works:
 import Base.readline
 function readline(io::JuliaNotebookStdio)
-    if get(io,:jupyter_stream,"unknown") == "stdin"
+    if get(io, :jupyter_stream, "unknown") == "stdin"
         return readprompt("stdin> ")
     else
         readline(io.io)
@@ -243,12 +243,12 @@ function watch_stdio()
     task_local_storage(:IJulia_task, "init task")
     if capture_stdout
         read_task = @async watch_stream(read_stdout[], "stdout")
-        #send stdout stream msgs every stream_interval secs (if there is output to send)
+        # send stdout stream msgs every stream_interval secs (if there is output to send)
         Timer(send_stdout, stream_interval, interval=stream_interval)
     end
     if capture_stderr
         readerr_task = @async watch_stream(read_stderr[], "stderr")
-        #send STDERR stream msgs every stream_interval secs (if there is output to send)
+        # send STDERR stream msgs every stream_interval secs (if there is output to send)
         Timer(send_stderr, stream_interval, interval=stream_interval)
     end
 end
@@ -260,7 +260,7 @@ function flush_all()
 end
 
 function oslibuv_flush()
-    #refs: https://github.com/JuliaLang/IJulia.jl/issues/347#issuecomment-144505862
+    # refs: https://github.com/JuliaLang/IJulia.jl/issues/347#issuecomment-144505862
     #      https://github.com/JuliaLang/IJulia.jl/issues/347#issuecomment-144605024
     @static if Sys.iswindows()
         ccall(:SwitchToThread, stdcall, Cvoid, ())
@@ -273,5 +273,5 @@ import Base.flush
 function flush(io::JuliaNotebookStdio)
     flush(io.io)
     oslibuv_flush()
-    send_stream(get(io,:jupyter_stream,"unknown"))
+    send_stream(get(io, :jupyter_stream, "unknown"))
 end

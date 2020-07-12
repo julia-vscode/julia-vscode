@@ -12,7 +12,7 @@ import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
-import { JuliaNotebookProvider } from './notebookProvider'
+import { JuliaNotebookProvider } from './notebook/notebookProvider'
 import * as openpackagedirectory from './openpackagedirectory'
 import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
@@ -72,16 +72,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const nb_provider = new JuliaNotebookProvider(context.extensionPath)
     context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('julianotebook', nb_provider))
-    context.subscriptions.push(vscode.notebook.registerNotebookKernel('julia-kernel', ['*'], nb_provider))
-    context.subscriptions.push(vscode.notebook.registerNotebookOutputRenderer(
-        'juliavega',
-        {
-            type: 'display_data',
-            subTypes: [
-                'application/vnd.vegalite.v4+json'
-            ]
-        },
-        new VegaRenderer(context.extensionPath)))
+    // context.subscriptions.push(vscode.notebook.registerNotebookKernel('julia-kernel', ['*'], nb_provider))
+    // context.subscriptions.push(vscode.notebook.registerNotebookOutputRenderer(
+    //     'juliavega',
+    //     {
+    //         type: 'display_data',
+    //         subTypes: [
+    //             'application/vnd.vegalite.v4+json'
+    //         ]
+    //     },
+    //     new VegaRenderer(context.extensionPath)))
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
 
