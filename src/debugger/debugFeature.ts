@@ -53,7 +53,8 @@ export class JuliaDebugFeature {
 }
 
 const getActiveUri = (
-    uri: vscode.Uri | undefined, editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor
+    uri: vscode.Uri | undefined,
+    editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor
 ) => uri ? uri.fsPath : editor ? editor.document.fileName : undefined
 
 export class JuliaDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
