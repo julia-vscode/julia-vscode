@@ -16,12 +16,11 @@ export class JuliaDebugFeature {
                 return pkgenvpath
             }),
             vscode.commands.registerCommand('language-julia.runEditorContents', (resource: vscode.Uri | undefined) => {
-                const editor = vscode.window.activeTextEditor
-                if (!(resource || editor)) {
+                const program = getActiveUri(resource)
+                if (!program) {
                     vscode.window.showInformationMessage('No active editor found.')
                     return
                 }
-                const program = resource === undefined ? editor.document.fileName : resource.fsPath
                 vscode.debug.startDebugging(undefined, {
                     type: 'julia',
                     name: 'Run Editor Contents',
@@ -35,12 +34,11 @@ export class JuliaDebugFeature {
 			*/)
             }),
             vscode.commands.registerCommand('language-julia.debugEditorContents', (resource: vscode.Uri | undefined) => {
-                const editor = vscode.window.activeTextEditor
-                if (!(resource || editor)) {
+                const program = getActiveUri(resource)
+                if (!program) {
                     vscode.window.showInformationMessage('No active editor found.')
                     return
                 }
-                const program = resource === undefined ? editor.document.fileName : resource.fsPath
                 vscode.debug.startDebugging(undefined, {
                     type: 'julia',
                     name: 'Debug Editor Contents',
@@ -53,6 +51,10 @@ export class JuliaDebugFeature {
 
     public dispose() { }
 }
+
+const getActiveUri = (
+    uri: vscode.Uri | undefined, editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor
+) => uri ? uri.fsPath : editor ? editor.document.fileName : undefined
 
 export class JuliaDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
 
