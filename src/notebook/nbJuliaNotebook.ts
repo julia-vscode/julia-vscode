@@ -99,6 +99,21 @@ export class JuliaNotebook implements vscode.Disposable {
 
     dispose() { }
 
+    public async toggleDebugging(document: vscode.NotebookDocument) {
+
+        if (this.debugging) {
+            this.stopDebugger()
+        }
+
+        this.debugging = !this.debugging
+
+        for (const cell of document.cells) {
+            if (cell.cellKind === vscode.CellKind.Code) {
+                cell.metadata.breakpointMargin = this.debugging
+            }
+        }
+    }
+
     async startKernel() {
         const connectedPromise = new Subject()
         const serverListeningPromise = new Subject()

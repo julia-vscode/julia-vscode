@@ -225,6 +225,11 @@
                 "command": "language-julia.runEditorContents",
                 "title": "Run Julia File",
                 "icon": "$(play)"
+            },
+            {
+                "title": "Toggle Debugging",
+                "command": "language-julia.toggleDebugging",
+                "icon": "$(bug)"
             }
         ],
         "menus": {
@@ -268,6 +273,11 @@
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
                     "when": "editorLangId == julia"
+                },
+                {
+                    "command": "language-julia.toggleDebugging",
+                    "when": "notebookEditorFocused",
+                    "group": "navigation@1"
                 }
             ],
             "commandPalette": [

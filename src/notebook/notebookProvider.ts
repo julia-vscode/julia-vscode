@@ -20,7 +20,7 @@ export interface RawCell {
 export class JuliaNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernel {
     private _localDisposables: vscode.Disposable[] = []
 
-    private _notebooks: Map<string, JuliaNotebook> = new Map()
+    public _notebooks: Map<string, JuliaNotebook> = new Map()
 
 
     public label = 'Julia Kernel'

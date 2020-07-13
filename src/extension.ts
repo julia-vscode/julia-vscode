@@ -78,6 +78,17 @@ export async function activate(context: vscode.ExtensionContext) {
         { mimeTypes: ['application/vnd.vegalite.v4+json'] },
         new VegaRenderer(context.extensionPath)))
 
+    context.subscriptions.push(vscode.commands.registerCommand('nodebook.toggleDebugging', () => {
+        if (vscode.notebook.activeNotebookEditor) {
+            const { document } = vscode.notebook.activeNotebookEditor
+            const notebook = nb_provider._notebooks.get(document.uri.toString())
+            if (notebook) {
+                notebook.toggleDebugging(document)
+            }
+        }
+    })
+    )
+
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
 
     const api = {
