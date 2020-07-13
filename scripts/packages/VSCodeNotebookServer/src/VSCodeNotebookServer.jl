@@ -81,7 +81,7 @@ end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/markdown")}) = true
 
 function Base.display(d::JuliaNotebookInlineDisplay, x)
-    if showable("application/vnd.vegalite.v4+json", x)
+    if showable("application/vnd.vegalite.v4+json", x) && false
         display(d, "application/vnd.vegalite.v4+json", x)
     elseif showable("image/svg+xml", x)
         display(d, "image/svg+xml", x)
