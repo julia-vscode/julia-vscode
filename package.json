@@ -799,7 +799,7 @@
         "@types/download": "^6.2.4",
         "@types/mocha": "^7.0.2",
         "@types/node": "^12.12.50",
-        "@typescript-eslint/parser": "^3.6.0",
+        "@typescript-eslint/parser": "^3.6.1",
         "cson-parser": "^4.0.4",
         "download": "^7.1.0",
         "eslint": "^7.4.0",
