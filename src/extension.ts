@@ -12,8 +12,7 @@ import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
-import { JuliaNotebookProvider } from './notebook/notebookProvider'
-import { VegaRenderer } from './notebook/notebookVegaRenderer'
+import { JuliaNotebookFeature } from './notebook/notebookFeature'
 import * as openpackagedirectory from './openpackagedirectory'
 import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
@@ -23,6 +22,11 @@ import * as weave from './weave'
 
 let g_languageClient: LanguageClient = null
 let g_context: vscode.ExtensionContext = null
+
+export class ExtensionFeatures {
+    public Notebook?: JuliaNotebookFeature = undefined
+    public Debug?: JuliaDebugFeature = undefined
+}
 
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context)
@@ -46,6 +50,8 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     })
 
+    const extensionFeatures = new ExtensionFeatures()
+
     // Active features from other files
     juliaexepath.activate(context)
     await juliaexepath.getJuliaExePath() // We run this function now and await to make sure we don't run in twice simultaneously later
@@ -57,7 +63,11 @@ export async function activate(context: vscode.ExtensionContext) {
     openpackagedirectory.activate(context)
     jlpkgenv.activate(context)
 
-    context.subscriptions.push(new JuliaDebugFeature(context))
+    extensionFeatures.Notebook = new JuliaNotebookFeature(context)
+    extensionFeatures.Debug = new JuliaDebugFeature(context, extensionFeatures)
+
+    context.subscriptions.push(extensionFeatures.Notebook)
+    context.subscriptions.push(extensionFeatures.Debug)
 
     // Start language server
     startLanguageServer()
@@ -70,24 +80,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             })
     }
-
-    const nb_provider = new JuliaNotebookProvider(context.extensionPath)
-    context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('julianotebook', nb_provider))
-    context.subscriptions.push(vscode.notebook.registerNotebookOutputRenderer(
-        'juliavega',
-        { mimeTypes: ['application/vnd.vegalite.v4+json'] },
-        new VegaRenderer(context.extensionPath)))
-
-    context.subscriptions.push(vscode.commands.registerCommand('nodebook.toggleDebugging', () => {
-        if (vscode.notebook.activeNotebookEditor) {
-            const { document } = vscode.notebook.activeNotebookEditor
-            const notebook = nb_provider._notebooks.get(document.uri.toString())
-            if (notebook) {
-                notebook.toggleDebugging(document)
-            }
-        }
-    })
-    )
 
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
 

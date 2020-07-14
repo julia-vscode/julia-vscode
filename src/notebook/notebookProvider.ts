@@ -6,8 +6,9 @@
 import { TextEncoder } from 'util'
 import * as vscode from 'vscode'
 import { NotebookDocumentEditEvent } from 'vscode'
-import { JuliaNotebook, RawCellOutput } from './nbJuliaNotebook'
+import { JuliaNotebook } from './nbJuliaNotebook'
 import { convertNotebookToHtml } from './notebookexport'
+import { RawCellOutput } from './notebookKernel'
 
 export interface RawCell {
     cell_type: 'markdown' | 'code';
@@ -33,7 +34,7 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider, vs
             vscode.notebook.onDidOpenNotebookDocument(document => {
                 const docKey = document.uri.toString()
                 if (!this._notebooks.has(docKey)) {
-                    const notebook = new JuliaNotebook(extensionPath)
+                    const notebook = new JuliaNotebook(document, extensionPath)
                     this._notebooks.set(docKey, notebook)
                     // this.register(
                     //     docKey,
@@ -50,6 +51,27 @@ export class JuliaNotebookProvider implements vscode.NotebookContentProvider, vs
                     this._notebooks.delete(docKey)
                     // TODO Reenable
                     // notebook.dispose()
+                }
+            }),
+
+            vscode.debug.onDidStartDebugSession(session => {
+                if (session.configuration.__notebookID) {
+                    const docId = session.configuration.__notebookID
+                    if (this._notebooks.has(docId)) {
+                        const project = this._notebooks.get(docId)
+                        project.addDebugSession(session)
+                    }
+                }
+            }),
+
+            vscode.debug.onDidTerminateDebugSession(session => {
+                if (session.configuration.__notebookID) {
+                    const docId = session.configuration.__notebookID
+
+                    if (this._notebooks.has(docId)) {
+                        const project = this._notebooks.get(docId)
+                        project.removeDebugSession(session)
+                    }
                 }
             }),
         )

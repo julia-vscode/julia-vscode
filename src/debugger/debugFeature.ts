@@ -1,10 +1,11 @@
 import * as vscode from 'vscode'
+import { ExtensionFeatures } from '../extension'
 import { getEnvPath } from '../jlpkgenv'
 import { getJuliaExePath } from '../juliaexepath'
 import { JuliaDebugSession } from './juliaDebug'
 
 export class JuliaDebugFeature {
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private context: vscode.ExtensionContext, private extensionFeatures: ExtensionFeatures) {
         const provider = new JuliaDebugConfigurationProvider()
         const factory = new InlineDebugAdapterFactory(this.context)
 
@@ -91,11 +92,11 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
 
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 
-    constructor(private context: vscode.ExtensionContext) { }
+    constructor(private context: vscode.ExtensionContext, private extensionFeatures: ExtensionFeatures) { }
 
     createDebugAdapterDescriptor(_session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
         return (async () => {
-            return new vscode.DebugAdapterInlineImplementation(<any>new JuliaDebugSession(this.context, await getJuliaExePath()))
+            return new vscode.DebugAdapterInlineImplementation(<any>new JuliaDebugSession(this.context, await getJuliaExePath(), this.extensionFeatures))
         })()
     }
 }
