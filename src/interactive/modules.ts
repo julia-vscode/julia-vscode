@@ -48,13 +48,13 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(statusBarItem)
 }
 
-export async function getModuleForEditor(editor: vscode.TextEditor, position: vscode.Position = editor.selection.start) {
-    let mod = manuallySetDocuments[editor.document.fileName]
+export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position) {
+    let mod = manuallySetDocuments[document.fileName]
 
     if (mod === undefined) {
         const params: VersionedTextDocumentPositionParams = {
-            textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
-            version: editor.document.version,
+            textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
+            version: document.version,
             position: position
         }
 
@@ -90,7 +90,7 @@ async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionCh
 async function updateModuleForEditor(editor: vscode.TextEditor) {
     let mod = 'Main'
     try {
-        mod = await getModuleForEditor(editor)
+        mod = await getModuleForEditor(editor.document, editor.selection.start)
     } catch (err) {
         if (g_languageClient) {
             telemetry.handleNewCrashReportFromException(err, 'Extension')

@@ -225,7 +225,7 @@ async function executeFile(uri?: vscode.Uri) {
         path = editor.document.fileName
         code = editor.document.getText()
 
-        module = await modules.getModuleForEditor(editor, new vscode.Position(0, 0))
+        module = await modules.getModuleForEditor(editor.document, new vscode.Position(0, 0))
     }
 
     await g_connection.sendRequest(
@@ -318,7 +318,7 @@ async function executeCell(shouldMove: boolean = false) {
     const nextpos = ed.document.validatePosition(new vscode.Position(end + 1, 0))
     const code = doc.getText(new vscode.Range(startpos, endpos))
 
-    const module: string = await modules.getModuleForEditor(ed, startpos)
+    const module: string = await modules.getModuleForEditor(ed.document, startpos)
 
     await startREPL(true, false)
 
@@ -350,7 +350,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             position: startpos
         }
 
-        const module: string = await modules.getModuleForEditor(editor, startpos)
+        const module: string = await modules.getModuleForEditor(editor.document, startpos)
 
         if (selection.isEmpty) {
             const currentBlock = await getBlockRange(params)
