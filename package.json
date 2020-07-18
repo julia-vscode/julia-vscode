@@ -411,7 +411,7 @@
                 },
                 "julia.lint.missingrefs": {
                     "type": "string",
-                    "default": "all",
+                    "default": "none",
                     "enum": [
                         "none",
                         "symbols",
