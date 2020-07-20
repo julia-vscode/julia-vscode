@@ -10,6 +10,7 @@ import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import * as completions from './completions'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -243,7 +244,7 @@ async function executeFile(uri?: vscode.Uri) {
     await workspace.replFinishEval()
 }
 
-async function getBlockRange(params): Promise<vscode.Position[]> {
+async function getBlockRange(params: VersionedTextDocumentPositionParams) {
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
@@ -253,9 +254,8 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
         vscode.window.showErrorMessage(err)
         return zeroReturn
     }
-    let ret_val: vscode.Position[]
     try {
-        ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+        return await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err)
@@ -265,8 +265,6 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
             throw err
         }
     }
-
-    return ret_val
 }
 
 async function selectJuliaBlock() {
@@ -506,4 +504,5 @@ export function activate(context: vscode.ExtensionContext) {
     plots.activate(context)
     workspace.activate(context)
     modules.activate(context)
+    completions.activate(context)
 }

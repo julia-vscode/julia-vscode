@@ -3,10 +3,8 @@ module VSCodeServer
 export vscodedisplay, @enter, @run
 export view_profile, @profview
 
-using REPL, Sockets, Base64, Pkg, UUIDs
+using REPL, Sockets, Base64, Pkg, UUIDs, Dates, Profile
 import Base: display, redisplay
-import Dates
-import Profile
 
 function __init__()
     atreplinit() do repl
@@ -62,6 +60,7 @@ include("repl.jl")
 include("gridviewer.jl")
 include("module.jl")
 include("eval.jl")
+include("completions.jl")
 include("display.jl")
 include("profiler.jl")
 include("debugger.jl")
@@ -80,6 +79,9 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
         msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request
         msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
+        msg_dispatcher[repl_getcompletions_request_type] = repl_getcompletions_request
+        msg_dispatcher[repl_resolvecompletion_request_type] = repl_resolvecompletion_request
+        msg_dispatcher[repl_getsignaturehelp_request_type] = repl_getsignaturehelp_request
         msg_dispatcher[repl_startdebugger_notification_type] = (conn, params)->repl_startdebugger_request(conn, params, crashreporting_pipename)
 
         while true
