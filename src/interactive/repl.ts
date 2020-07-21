@@ -225,7 +225,8 @@ async function executeFile(uri?: vscode.Uri) {
         path = editor.document.fileName
         code = editor.document.getText()
 
-        module = await modules.getModuleForEditor(editor.document, new vscode.Position(0, 0))
+        const pos = editor.document.validatePosition(new vscode.Position(0, 1)) // xref: https://github.com/julia-vscode/julia-vscode/issues/1500
+        module = await modules.getModuleForEditor(editor.document, pos)
     }
 
     await g_connection.sendRequest(
