@@ -107,6 +107,10 @@
         ],
         "commands": [
             {
+                "command": "language-julia.newJuliaFile",
+                "title": "Julia: New Julia File"
+            },
+            {
                 "command": "language-julia.openPackageDirectory",
                 "title": "Julia: Open Package Directory in New Window"
             },
@@ -228,6 +232,10 @@
         "menus": {
             "explorer/context": [
                 {
+                    "command": "language-julia.newJuliaFile",
+                    "group": "julia"
+                },
+                {
                     "when": "resourceLangId == julia",
                     "command": "language-julia.executeFile",
                     "group": "julia"
@@ -303,6 +311,10 @@
             ]
         },
         "keybindings": [
+            {
+                "command": "language-julia.newJuliaFile",
+                "key": "alt+j alt+f"
+            },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "key": "ctrl+Enter",

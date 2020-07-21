@@ -1,3 +1,5 @@
+import * as fs from 'async-file'
+import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from './telemetry'
 
@@ -39,7 +41,51 @@ function applyTextEdit(we) {
 //     }
 // }
 
+async function newJuliaFile(uri?: vscode.Uri) {
+    if (uri) {
+        const stat = await vscode.workspace.fs.stat(uri)
+        const dir = stat.type === vscode.FileType.Directory ? uri.fsPath : path.dirname(uri.fsPath)
+        const givenPath = await vscode.window.showInputBox({
+            value: dir,
+            valueSelection: [dir.length, dir.length], // no selection
+            prompt: 'Enter a file path to be created',
+            validateInput: async input => {
+                const givenPath = vscode.Uri.file(input).fsPath
+                const exist = await fs.exists(givenPath)
+                if (exist) { return `${givenPath} already exists` }
+                const givenDir = path.dirname(givenPath)
+                const dirExist = await fs.exists(givenDir)
+                if (!dirExist) { return `Directory ${givenDir} doesn't exist` }
+                return undefined // valid
+            }
+        })
+        if (!givenPath) { return } // canceled, etc
+        const targetUri = vscode.Uri.file(givenPath)
+        try {
+            await fs.writeTextFile(targetUri.fsPath, '')
+            vscode.workspace.openTextDocument(targetUri)
+                .then(document => {
+                    return vscode.languages.setTextDocumentLanguage(document, 'julia')
+                })
+                .then(document => {
+                    vscode.window.showTextDocument(document)
+                })
+        } catch (err) {
+            vscode.window.showErrorMessage(`Failed to create ${targetUri.fsPath}`)
+        }
+    } else {
+        // untitled editor
+        const document = await vscode.workspace.openTextDocument({
+            language: 'julia'
+        })
+        vscode.window.showTextDocument(document)
+    }
+}
+
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter))
+    context.subscriptions.push(
+        vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit),
+        vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter),
+        vscode.commands.registerCommand('language-julia.newJuliaFile', newJuliaFile)
+    )
 }
