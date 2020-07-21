@@ -29,13 +29,11 @@ function is_target_completion(c)
         c isa DictCompletion
 end
 
-function completion(c)
-    return (
-        label = completion_label(c),
-        detail = completion_detail(c),
-        kind = completion_kind(c),
-    )
-end
+completion(c) = (
+    label = completion_label(c),
+    detail = completion_detail(c),
+    kind = completion_kind(c),
+)
 
 completion_label(c) = completion_text(c)
 completion_label(c::DictCompletion) = rstrip(completion_text(c), (']', '"'))
@@ -109,13 +107,12 @@ function signature_information(mc::MethodCompletion)
     # return type inference
     rt = rt_inf(f, m, Base.tuple_type_tail(tt))
 
-    ret = SignatureInformation(
+    return SIGNATURE_INFO_CACHE[h] = SignatureInformation(
         active_parameter(mc),
         signature_documentation(m),
         signature_label(m, rt),
         signature_parameters(tt, m)
     )
-    return SIGNATURE_INFO_CACHE[h] = ret
 end
 
 function rt_inf(@nospecialize(f), m, @nospecialize(tt::Type))
@@ -181,10 +178,7 @@ function signature_parameters(@nospecialize(tt::Type), m)
     end
 end
 
-function parameter_label(argname, argtype)
-    isempty(argtype) && return argname
-    return string(argname, "::", argtype)
-end
+parameter_label(argname, argtype) = isempty(argtype) ? argname : string(argname, "::", argtype)
 
 """
     cangetdocs(mod::Module, word::Symbol)
