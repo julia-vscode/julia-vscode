@@ -5,7 +5,9 @@ using REPL.LineEdit
 
 isREPL() = isdefined(Base, :active_repl) &&
            isdefined(Base.active_repl, :interface) &&
-           isdefined(Base.active_repl.interface, :modes)
+           isdefined(Base.active_repl.interface, :modes) &&
+           isdefined(Base.active_repl, :mistate) &&
+           isdefined(Base.active_repl.mistate, :current_mode)
 
 juliaprompt = "julia> "
 

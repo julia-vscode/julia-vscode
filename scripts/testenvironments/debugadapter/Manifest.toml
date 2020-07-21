@@ -33,13 +33,13 @@ version = "0.20.1"
 deps = ["JSON", "UUIDs"]
 path = "../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "1.1.1-DEV"
+version = "1.2.1-DEV"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.7.23"
+version = "0.7.24"
 
 [[Markdown]]
 deps = ["Base64"]

@@ -3,12 +3,10 @@ import * as child_process from 'child_process'
 import * as os from 'os'
 import * as path from 'path'
 import * as process from 'process'
-import * as util from 'util'
 import * as vscode from 'vscode'
 import * as which from 'which'
 import { onDidChangeConfig } from './extension'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
-const whichAsync = util.promisify(which)
 
 let actualJuliaExePath: string = null
 
@@ -17,6 +15,7 @@ async function setNewJuliaExePath(newPath: string) {
 
     child_process.exec(`"${newPath}" --version`, (error, stdout, stderr) => {
         if (error) {
+            actualJuliaExePath = null
             return
         }
         const version = stdout.trim()
@@ -70,7 +69,7 @@ export async function getJuliaExePath() {
             else {
                 pathsToSearch = ['julia']
             }
-            let foundJulia = false
+
             for (const p of pathsToSearch) {
                 try {
                     const res = await exec(`"${p}" --startup-file=no --history-file=no -e "println(Sys.BINDIR)"`)
@@ -80,14 +79,10 @@ export async function getJuliaExePath() {
                     } else {
                         setNewJuliaExePath(p)
                     }
-                    foundJulia = true
                     break
                 }
                 catch (e) {
                 }
-            }
-            if (!foundJulia) {
-                setNewJuliaExePath(getExecutablePath())
             }
         }
         else {
@@ -95,7 +90,16 @@ export async function getJuliaExePath() {
                 setNewJuliaExePath(getExecutablePath().replace(/^~/, os.homedir()))
             } else {
                 // resolve full path
-                setNewJuliaExePath(await whichAsync(getExecutablePath()))
+                let fullPath: string | undefined = undefined
+                try {
+                    fullPath = await which(getExecutablePath())
+                }
+                catch (err) {
+                }
+
+                if (fullPath) {
+                    setNewJuliaExePath(fullPath)
+                }
             }
         }
     }

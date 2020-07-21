@@ -48,12 +48,12 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(statusBarItem)
 }
 
-export async function getModuleForEditor(editor: vscode.TextEditor, position: vscode.Position = editor.selection.start) {
-    let mod = manuallySetDocuments[editor.document.fileName]
+export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position) {
+    let mod = manuallySetDocuments[document.fileName]
 
     if (mod === undefined) {
         try {
-            const params = getVersionedParamsAtPosition(editor, position)
+            const params = getVersionedParamsAtPosition(document, position)
             mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
         } catch (err) {
             console.error(err)
@@ -85,7 +85,7 @@ async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionCh
 async function updateModuleForEditor(editor: vscode.TextEditor) {
     let mod = 'Main'
     try {
-        mod = await getModuleForEditor(editor)
+        mod = await getModuleForEditor(editor.document, editor.selection.start)
     } catch (err) {
         if (g_languageClient) {
             telemetry.handleNewCrashReportFromException(err, 'Extension')

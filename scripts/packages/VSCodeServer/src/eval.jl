@@ -53,7 +53,11 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     Base.display_error(stderr, res)
 
                 elseif res !== nothing && !ends_with_semicolon(source_code)
-                    Base.invokelatest(display, res)
+                    try
+                        Base.invokelatest(display, res)
+                    catch err
+                        Base.display_error(stderr, err, catch_backtrace())
+                    end
                 end
             else
                 try
@@ -92,7 +96,7 @@ function safe_render(x)
         return ReplRunCodeRequestReturn(
             string("Display Error: ", out.inline),
             string("Display Error: ", out.all),
-            out.iserr
+            out.stackframe
         )
     end
 end
@@ -123,7 +127,8 @@ struct EvalError
     bt
 end
 
-sprint_error(err::LoadError) = sprint_error(err.error)
+sprint_error_unwrap(err::LoadError) = sprint_error(err.error)
+sprint_error_unwrap(err) = sprint_error(err)
 
 function sprint_error(err)
     sprintlimited(err, [], func = Base.display_error, limit = MAX_RESULT_LENGTH)
@@ -132,7 +137,7 @@ end
 function render(err::EvalError)
     bt = crop_backtrace(err.bt)
 
-    errstr = sprint_error(err.err)
+    errstr = sprint_error_unwrap(err.err)
     inline = strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
     all = string('\n', codeblock(errstr), '\n', backtrace_string(bt))
 
