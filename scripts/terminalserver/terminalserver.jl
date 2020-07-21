@@ -10,7 +10,6 @@ if "USE_REVISE" in Base.ARGS
         @eval using Revise
         Revise.async_steal_repl_backend()
     catch err
-        @warn "failed to load Revise: $err"
     end
 end
 
