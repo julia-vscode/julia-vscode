@@ -130,7 +130,7 @@ async function showDocumentation() {
 async function getDocumentation(editor: vscode.TextEditor): Promise<string> {
     return await withLanguageClient(
         async languageClient => {
-            return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor, editor.selection.start))
+            return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor.document, editor.selection.start))
         },
         err => {
             vscode.window.showErrorMessage(LS_ERR_MSG)
