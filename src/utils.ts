@@ -8,10 +8,10 @@ export function constructCommandString(cmd: string, args: any = {}) {
     return `command:${cmd}?${encodeURIComponent(JSON.stringify(args))}`
 }
 
-export function getVersionedParamsAtPosition(editor: vscode.TextEditor, position: vscode.Position): VersionedTextDocumentPositionParams {
+export function getVersionedParamsAtPosition(document: vscode.TextDocument, position: vscode.Position): VersionedTextDocumentPositionParams {
     return {
-        textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
-        version: editor.document.version,
+        textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
+        version: document.version,
         position
     }
 }

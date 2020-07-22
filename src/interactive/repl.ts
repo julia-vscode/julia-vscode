@@ -226,7 +226,8 @@ async function executeFile(uri?: vscode.Uri) {
         path = editor.document.fileName
         code = editor.document.getText()
 
-        module = await modules.getModuleForEditor(editor, new vscode.Position(0, 0))
+        const pos = editor.document.validatePosition(new vscode.Position(0, 1)) // xref: https://github.com/julia-vscode/julia-vscode/issues/1500
+        module = await modules.getModuleForEditor(editor.document, pos)
     }
 
     await g_connection.sendRequest(
@@ -272,7 +273,7 @@ async function selectJuliaBlock() {
 
     const editor = vscode.window.activeTextEditor
     const position = editor.document.validatePosition(editor.selection.start)
-    const ret_val = await getBlockRange(getVersionedParamsAtPosition(editor, position))
+    const ret_val = await getBlockRange(getVersionedParamsAtPosition(editor.document, position))
 
     const start_pos = editor.document.validatePosition(new vscode.Position(ret_val[0].line, ret_val[0].character))
     const end_pos = editor.document.validatePosition(new vscode.Position(ret_val[1].line, ret_val[1].character))
@@ -311,9 +312,9 @@ async function executeCell(shouldMove: boolean = false) {
     const nextpos = ed.document.validatePosition(new vscode.Position(end + 1, 0))
     const code = doc.getText(new vscode.Range(startpos, endpos))
 
-    await startREPL(true, false)
+    const module: string = await modules.getModuleForEditor(ed.document, startpos)
 
-    const module: string = await modules.getModuleForEditor(ed, startpos)
+    await startREPL(true, false)
 
     if (shouldMove) {
         vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
@@ -336,10 +337,10 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
         const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
-        const module: string = await modules.getModuleForEditor(editor, startpos)
+        const module: string = await modules.getModuleForEditor(editor.document, startpos)
 
         if (selection.isEmpty) {
-            const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor, startpos))
+            const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor.document, startpos))
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
             nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
         } else {
