@@ -153,7 +153,10 @@ end
 function Base.display_error(io::IO, err::EvalError)
     bt = crop_backtrace(err.bt)
 
-    Base.display_error(io, err.err, bt)
+    try
+        Base.invokelatest(Base.display_error, io, err.err, bt)
+    catch err
+    end
 end
 
 function crop_backtrace(bt)
