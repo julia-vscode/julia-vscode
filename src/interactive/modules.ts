@@ -33,19 +33,19 @@ export function activate(context: vscode.ExtensionContext) {
     // https://github.com/microsoft/vscode/blob/1d268b701376470bc638100fbe17d283404ac559/src/vs/workbench/browser/parts/editor/editorStatus.ts#L534
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99)
     statusBarItem.command = 'language-julia.chooseModule'
-    statusBarItem.text = 'Main'
     statusBarItem.tooltip = 'Choose Current Module'
 
     onInit(conn => {
         g_connection = conn
-        updateStatusBarItem(vscode.window.activeTextEditor)
+        updateStatusBarItem()
     })
     onExit(hadError => {
         g_connection = null
-        statusBarItem.hide()
+        updateStatusBarItem()
     })
 
     context.subscriptions.push(statusBarItem)
+    updateStatusBarItem()
 }
 
 export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position) {
@@ -72,7 +72,7 @@ function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEdito
     return editor && editor.document.languageId === 'julia'
 }
 
-async function updateStatusBarItem(editor: vscode.TextEditor) {
+async function updateStatusBarItem(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
     if (isJuliaEditor(editor)) {
         statusBarItem.show()
         await updateModuleForEditor(editor)
