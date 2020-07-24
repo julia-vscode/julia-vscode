@@ -198,8 +198,8 @@ function getvariables()
             tree.canshow = can_display(x)
             push!(variables, tree)
         catch err
-            printstyled("Internal Error: ", bold = true, color = Base.error_color())
-            Base.display_error(err, catch_backtrace())
+            # printstyled("Internal Error: ", bold = true, color = Base.error_color())
+            # Base.display_error(err, catch_backtrace())
         end
     end
 
@@ -241,8 +241,8 @@ function get_lazy(id::Int)
             return [treerender(Text("[out of date result]"))]
         end
     catch err
-        printstyled("Internal Error: ", bold = true, color = Base.error_color())
-        Base.display_error(err, catch_backtrace())
+        # printstyled("Internal Error: ", bold = true, color = Base.error_color())
+        # Base.display_error(err, catch_backtrace())
         return []
     end
 end
