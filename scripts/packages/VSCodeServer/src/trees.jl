@@ -198,6 +198,9 @@ function getvariables()
             tree.canshow = can_display(x)
             push!(variables, tree)
         catch err
+            # FIXME: This should end up in the tree view as an "error child".
+            # Ref: https://github.com/julia-vscode/julia-vscode/issues/1491
+            #
             # printstyled("Internal Error: ", bold = true, color = Base.error_color())
             # Base.display_error(err, catch_backtrace())
         end
@@ -241,6 +244,9 @@ function get_lazy(id::Int)
             return [treerender(Text("[out of date result]"))]
         end
     catch err
+        # FIXME: This should end up in the tree view as an "error child".
+        # Ref: https://github.com/julia-vscode/julia-vscode/issues/1491
+        #
         # printstyled("Internal Error: ", bold = true, color = Base.error_color())
         # Base.display_error(err, catch_backtrace())
         return []
