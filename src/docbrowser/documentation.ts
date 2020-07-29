@@ -1,9 +1,12 @@
+import * as fs from 'fs'
 import * as hljs from 'highlight.js'
 import * as markdownit from 'markdown-it'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
 import { constructCommandString, getVersionedParamsAtPosition, setContext } from '../utils'
+
+const fileWithLineNumberRegex = /(.+):(\d+)/
 
 const md = new markdownit(
     {
@@ -34,9 +37,22 @@ const md = new markdownit(
 md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
 
-    if (aIndex >= 0 && tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
-        const commandUri = constructCommandString('language-julia.handle-link', { searchTerm: tokens[idx + 1].content })
-        tokens[idx].attrs[aIndex][1] = commandUri
+    if (aIndex >= 0) {
+        const attr = tokens[idx].attrs[aIndex][1]
+        // file with line number
+        // NOTE: line number aren't stored in `tokens[idx]`, so we have to look for one token ahead for whole file information
+        if (fs.existsSync(attr) && tokens.length > idx + 1 && fileWithLineNumberRegex.test(tokens[idx + 1].content)) {
+            const m = tokens[idx + 1].content.match(fileWithLineNumberRegex)
+            const path = m[1]
+            const line = Number(m[2])
+            const commandUri = constructCommandString('language-julia.openFile', { path, line })
+            tokens[idx].attrs[aIndex][1] = commandUri
+        }
+        // @ref word
+        else if (tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
+            const commandUri = constructCommandString('language-julia.handle-link', { searchTerm: tokens[idx + 1].content })
+            tokens[idx].attrs[aIndex][1] = commandUri
+        }
     }
 
     return self.renderToken(tokens, idx, options)
