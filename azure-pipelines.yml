@@ -312,11 +312,28 @@ stages:
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
-              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
             env:
               MARKET_KEY: $(vscekey)
-              OPENVSX_KEY: $(ovsxkey)
 
+- stage: DeployProductionOpenVSX
+  displayName: 'Deploy Release to Open VSX Registry'
+  dependsOn: [Package]
+  jobs:
+  - deployment: DeployProductionOpenVSX
+    pool:
+      vmImage: 'Ubuntu-latest'
+    environment: 'Production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: release
+          - bash: |
+              PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
+            env:
+              OPENVSX_KEY: $(ovsxkey)
 
 - stage: DeployGithub
   displayName: 'Deploy to GitHub'
