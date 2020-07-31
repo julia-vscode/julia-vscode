@@ -294,6 +294,26 @@ stages:
             env:
               MARKET_KEY: $(vscekey)
 
+- stage: DeployInsiderOpenVSX
+  displayName: 'Deploy Insider to Open VSX Registry'
+  dependsOn: [Package]
+  jobs:
+  - deployment: DeployInsiderOpenVSX
+    pool:
+      vmImage: 'Ubuntu-latest'
+    environment: 'Insider'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: insider
+          - bash: |
+              PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
+            env:
+              OPENVSX_KEY: $(ovsxkey)
+
 - stage: DeployProductionMarketplace
   displayName: 'Deploy Release to Marketplace'
   dependsOn: [Package]
