@@ -49,18 +49,12 @@ function get_editor(): string {
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (g_terminal === null) {
         const pipename = generatePipeName(process.pid.toString(), 'vsc-julia-repl')
-        const args = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
+        const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         function getArgs() {
-            const jlarg2 = [args, pipename, telemetry.getCrashReportingPipename()]
-            if (vscode.workspace.getConfiguration('julia').get('useRevise')) {
-                jlarg2.push('USE_REVISE')
-            }
-            if (vscode.workspace.getConfiguration('julia').get('usePlotPane')) {
-                jlarg2.push('USE_PLOTPANE')
-            }
-            if (process.env.DEBUG_MODE === 'true') {
-                jlarg2.push('DEBUG_MODE')
-            }
+            const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
+            jlarg2.push(`USE_REVISE=${vscode.workspace.getConfiguration('julia').get('useRevise')}`)
+            jlarg2.push(`USE_PLOTPANE=${vscode.workspace.getConfiguration('julia').get('usePlotPane')}`)
+            jlarg2.push(`DEBUG_MODE=${process.env.DEBUG_MODE}`)
             return jlarg2
         }
 
