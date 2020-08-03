@@ -7,7 +7,7 @@ import { JuliaDebugSession } from './juliaDebug'
 export class JuliaDebugFeature {
     constructor(private context: vscode.ExtensionContext, private extensionFeatures: ExtensionFeatures) {
         const provider = new JuliaDebugConfigurationProvider()
-        const factory = new InlineDebugAdapterFactory(this.context)
+        const factory = new InlineDebugAdapterFactory(this.context, this.extensionFeatures)
 
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
