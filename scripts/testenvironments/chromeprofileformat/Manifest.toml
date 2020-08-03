@@ -4,7 +4,7 @@
 deps = ["JSON", "Profile"]
 path = "../../packages/ChromeProfileFormat"
 uuid = "b19f0eae-10f4-4ff0-9df2-b48cd85f6b2e"
-version = "0.1.0"
+version = "1.0.1-DEV"
 
 [[Dates]]
 deps = ["Printf"]

@@ -274,7 +274,7 @@ stages:
         publishLocation: 'Container'
 
 - stage: DeployInsiderMarketplace
-  displayName: 'Deploy Insider to Marketplace'
+  displayName: 'Deploy Insider'
   dependsOn: [Package]
   jobs:
   - deployment: DeployInsider
@@ -291,11 +291,13 @@ stages:
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
             env:
               MARKET_KEY: $(vscekey)
+              OPENVSX_KEY: $(ovsxkey)
 
 - stage: DeployProductionMarketplace
-  displayName: 'Deploy Release to Marketplace'
+  displayName: 'Deploy Release'
   dependsOn: [Package]
   jobs:
   - deployment: DeployProduction
@@ -312,9 +314,10 @@ stages:
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
             env:
               MARKET_KEY: $(vscekey)
-
+              OPENVSX_KEY: $(ovsxkey)
 
 - stage: DeployGithub
   displayName: 'Deploy to GitHub'
