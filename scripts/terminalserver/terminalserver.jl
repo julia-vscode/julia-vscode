@@ -20,8 +20,6 @@ let
         "USE_PLOTPANE=true" in args && Base.Multimedia.pushdisplay(VSCodeServer.InlineDisplay())
     end
 
-    let
-        conn_pipeline, telemetry_pipeline = args[1:2]
-        VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE=true" in args, crashreporting_pipename = telemetry_pipeline)
-    end
+    conn_pipeline, telemetry_pipeline = args[1:2]
+    VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE=true" in args, crashreporting_pipename = telemetry_pipeline)
 end
