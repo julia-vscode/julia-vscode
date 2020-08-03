@@ -134,6 +134,11 @@ export function displayPlot(params: { kind: string, data: string }) {
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
+    else if (kind === 'image/gif') {
+        const plotPaneContent = '<html><img src="data:image/gif;base64,' + payload + '" /></html>'
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
+        showPlotPane()
+    }
     else if (kind === 'juliavscode/html') {
         g_currentPlotIndex = g_plots.push(payload) - 1
         showPlotPane()
