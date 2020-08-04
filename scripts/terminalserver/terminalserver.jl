@@ -10,8 +10,12 @@ let
     # load Revise ?
     if "USE_REVISE=true" in args
         try
-            @eval using Revise
-            Revise.async_steal_repl_backend()
+            @static if VERSION ≥ v"1.5"
+                using Revise
+            else
+                @eval using Revise
+                Revise.async_steal_repl_backend()
+            end
         catch err
         end
     end
