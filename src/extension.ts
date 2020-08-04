@@ -24,64 +24,70 @@ let g_context: vscode.ExtensionContext = null
 
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context)
+    try {
 
-    telemetry.traceEvent('activate')
+        telemetry.traceEvent('activate')
 
-    telemetry.startLsCrashServer()
+        telemetry.startLsCrashServer()
 
-    g_context = context
+        g_context = context
 
-    console.log('Activating extension language-julia')
+        console.log('Activating extension language-julia')
 
-    // Config change
-    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(changeConfig))
+        // Config change
+        context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(changeConfig))
 
-    // Language settings
-    vscode.languages.setLanguageConfiguration('julia', {
-        indentationRules: {
-            increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*\b(if|while|for|function|macro|immutable|struct|type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!.*\bend\b[^\]]*$).*$/,
-            decreaseIndentPattern: /^\s*(end|else|elseif|catch|finally)\b.*$/
+        // Language settings
+        vscode.languages.setLanguageConfiguration('julia', {
+            indentationRules: {
+                increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*\b(if|while|for|function|macro|immutable|struct|type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!.*\bend\b[^\]]*$).*$/,
+                decreaseIndentPattern: /^\s*(end|else|elseif|catch|finally)\b.*$/
+            }
+        })
+
+        // Active features from other files
+        juliaexepath.activate(context)
+        await juliaexepath.getJuliaExePath() // We run this function now and await to make sure we don't run in twice simultaneously later
+        repl.activate(context)
+        weave.activate(context)
+        tasks.activate(context)
+        smallcommands.activate(context)
+        packagepath.activate(context)
+        openpackagedirectory.activate(context)
+        jlpkgenv.activate(context)
+
+        context.subscriptions.push(new JuliaDebugFeature(context))
+
+        // Start language server
+        startLanguageServer()
+
+        if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
+            vscode.window.showInformationMessage('To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more how we use usage data and how to permanently hide this notification.', 'I agree to usage data collection')
+                .then(telemetry_choice => {
+                    if (telemetry_choice === 'I agree to usage data collection') {
+                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true)
+                    }
+                })
         }
-    })
 
-    // Active features from other files
-    juliaexepath.activate(context)
-    await juliaexepath.getJuliaExePath() // We run this function now and await to make sure we don't run in twice simultaneously later
-    repl.activate(context)
-    weave.activate(context)
-    tasks.activate(context)
-    smallcommands.activate(context)
-    packagepath.activate(context)
-    openpackagedirectory.activate(context)
-    jlpkgenv.activate(context)
+        context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
 
-    context.subscriptions.push(new JuliaDebugFeature(context))
-
-    // Start language server
-    startLanguageServer()
-
-    if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
-        vscode.window.showInformationMessage('To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more how we use usage data and how to permanently hide this notification.', 'I agree to usage data collection')
-            .then(telemetry_choice => {
-                if (telemetry_choice === 'I agree to usage data collection') {
-                    vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true)
-                }
-            })
-    }
-
-    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
-
-    const api = {
-        version: 1,
-        async getEnvironment() {
-            return await jlpkgenv.getEnvPath()
-        },
-        async getJuliaPath() {
-            return await juliaexepath.getJuliaExePath()
+        const api = {
+            version: 1,
+            async getEnvironment() {
+                return await jlpkgenv.getEnvPath()
+            },
+            async getJuliaPath() {
+                return await juliaexepath.getJuliaExePath()
+            }
         }
-    }
 
-    return api
+        return api
+    }
+    catch (err) {
+        telemetry.handleNewCrashReportFromException(err, 'Extension')
+        throw (err)
+    }
 }
 
 // this method is called when your extension is deactivated
