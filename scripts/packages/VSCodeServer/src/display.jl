@@ -182,7 +182,7 @@ end
 
 function repl_showingrid_notification(conn, params::String)
     try
-        var = Core.eval(Main, Meta.parse(params))
+        var = Base.invokelatest(Base.include_string, Main, params)
 
         Base.invokelatest(internal_vscodedisplay, var)
     catch err
