@@ -49,24 +49,23 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position) {
-    let mod = manuallySetDocuments[document.fileName]
+    const manuallySetModule = manuallySetDocuments[document.fileName]
+    if (manuallySetModule) { return manuallySetModule }
 
-    if (mod === undefined) {
+    if (!g_languageClient) { return 'Main' }
+    try {
         const params: VersionedTextDocumentPositionParams = {
             textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
             version: document.version,
             position: position
         }
-
-        try {
-            mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
-        } catch (err) {
-            console.error(err)
-            mod = 'Main'
+        return await g_languageClient.sendRequest<string>('julia/getModuleAt', params)
+    } catch (err) {
+        if (g_languageClient) {
+            telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
+        return 'Main'
     }
-
-    return mod
 }
 
 function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
@@ -88,25 +87,21 @@ async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionCh
 }
 
 async function updateModuleForEditor(editor: vscode.TextEditor) {
-    let mod = 'Main'
-    try {
-        mod = await getModuleForEditor(editor.document, editor.selection.start)
-    } catch (err) {
-        if (g_languageClient) {
-            telemetry.handleNewCrashReportFromException(err, 'Extension')
-        }
-    }
+    const mod = await getModuleForEditor(editor.document, editor.selection.start)
+    const loaded = await isModuleLoaded(mod)
+    statusBarItem.text = loaded ? mod : '(' + mod + ')'
+}
 
-    let loaded = false
+async function isModuleLoaded(mod: string) {
+    if (!g_connection) { return false }
     try {
-        loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
+        return await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
     } catch (err) {
         if (g_connection) {
             telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
+        return false
     }
-
-    statusBarItem.text = loaded ? mod : '(' + mod + ')'
 }
 
 async function chooseModule() {
