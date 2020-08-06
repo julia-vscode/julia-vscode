@@ -127,7 +127,7 @@ uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
 version = "4.5.1-DEV"
 
 [[SymbolServer]]
-deps = ["LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
+deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "../../packages/SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
 version = "5.1.1-DEV"
