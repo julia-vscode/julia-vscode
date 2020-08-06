@@ -19,61 +19,73 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     show_result = params.showResultInREPL
 
     rendered_result = nothing
-
-    hideprompt() do
-        if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-            let mode = get(ENV, "JULIA_REVISE", "auto")
-                mode == "auto" && Main.Revise.revise()
-            end
-        end
-        if show_code
-            for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                if i==1
-                    printstyled("julia> ", color=:green)
-                    print(' '^code_column)
-                else
-                    # Indent by 7 so that it aligns with the julia> prompt
-                    print(' '^7)
+    Logging.with_logger(VSCodeLogger()) do
+        hideprompt() do
+            if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+                let mode = get(ENV, "JULIA_REVISE", "auto")
+                    mode == "auto" && Main.Revise.revise()
                 end
-
-                println(line)
             end
-        end
-
-        withpath(source_filename) do
-            res = try
-                ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename)
-                @eval Main ans = $(QuoteNode(ans))
-            catch err
-                EvalError(err, catch_backtrace())
-            end
-
-            if show_result
-                if res isa EvalError
-                    Base.display_error(stderr, res)
-
-                elseif res !== nothing && !ends_with_semicolon(source_code)
-                    try
-                        Base.invokelatest(display, res)
-                    catch err
-                        Base.display_error(stderr, err, catch_backtrace())
+            if show_code
+                for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                    if i==1
+                        printstyled("julia> ", color=:green)
+                        print(' '^code_column)
+                    else
+                        # Indent by 7 so that it aligns with the julia> prompt
+                        print(' '^7)
                     end
+
+                    println(line)
                 end
-            else
-                try
-                    Base.invokelatest(display, InlineDisplay(), res)
+            end
+
+            fix_displays()
+
+            withpath(source_filename) do
+                res = try
+                    ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename)
+                    @eval Main ans = $(QuoteNode(ans))
                 catch err
-                    if !(err isa MethodError)
-                        printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                        Base.display_error(stderr, err, catch_backtrace())
+                    EvalError(err, catch_backtrace())
+                end
+
+                if show_result
+                    if res isa EvalError
+                        Base.display_error(stderr, res)
+
+                    elseif res !== nothing && !ends_with_semicolon(source_code)
+                        try
+                            Base.invokelatest(display, res)
+                        catch err
+                            Base.display_error(stderr, err, catch_backtrace())
+                        end
+                    end
+                else
+                    try
+                        Base.invokelatest(display, InlineDisplay(), res)
+                    catch err
+                        if !(err isa MethodError)
+                            printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                            Base.display_error(stderr, err, catch_backtrace())
+                        end
                     end
                 end
-            end
 
-            rendered_result = safe_render(res)
+                rendered_result = safe_render(res)
+            end
         end
     end
     return rendered_result
+end
+
+function fix_displays()
+    for d in reverse(Base.Multimedia.displays)
+        if d isa InlineDisplay
+            popdisplay(InlineDisplay())
+        end
+    end
+    pushdisplay(InlineDisplay())
 end
 
 # don't inline this so we can find it in the stacktrace
