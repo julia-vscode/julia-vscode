@@ -73,12 +73,15 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
 
         const api = {
-            version: 1,
+            version: 2,
             async getEnvironment() {
                 return await jlpkgenv.getEnvPath()
             },
             async getJuliaPath() {
                 return await juliaexepath.getJuliaExePath()
+            },
+            getPkgServer() {
+                return vscode.workspace.getConfiguration('julia').get('packageServer')
             }
         }
 
