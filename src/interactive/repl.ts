@@ -58,6 +58,16 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             return jlarg2
         }
 
+        const env = {
+            JULIA_EDITOR: get_editor(),
+            JULIA_NUM_THREADS: inferJuliaNumThreads()
+        }
+
+        const pkgServer: string = vscode.workspace.getConfiguration('julia').get('packageServer')
+        if (pkgServer.length !== 0) {
+            env['JULIA_PKG_SERVER'] = pkgServer
+        }
+
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
         const exepath = await juliaexepath.getJuliaExePath()
         const pkgenvpath = await jlpkgenv.getEnvPath()
@@ -68,10 +78,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                     name: 'Julia REPL',
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(getArgs()),
-                    env: {
-                        JULIA_EDITOR: get_editor(),
-                        JULIA_NUM_THREADS: inferJuliaNumThreads()
-                    }
+                    env: env
                 })
         }
         else {
@@ -95,10 +102,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                     name: 'Julia REPL',
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(getArgs()),
-                    env: {
-                        JULIA_EDITOR: get_editor(),
-                        JULIA_NUM_THREADS: inferJuliaNumThreads()
-                    }
+                    env: env
                 })
         }
         g_terminal.show(preserveFocus)
