@@ -30,6 +30,7 @@
         "onCommand:language-julia.openPackageDirectory",
         "onCommand:language-julia.changeCurrentEnvironment",
         "onCommand:language-julia.startREPL",
+        "onCommand:language-julia.stopREPL",
         "onCommand:language-julia.executeCodeBlockOrSelection",
         "onCommand:language-julia.executeFile",
         "onCommand:language-julia.toggleLinter",
@@ -117,6 +118,10 @@
             {
                 "command": "language-julia.startREPL",
                 "title": "Julia: Start REPL"
+            },
+            {
+                "command": "language-julia.stopREPL",
+                "title": "Julia: Stop REPL"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelection",
@@ -332,6 +337,14 @@
                 "command": "language-julia.chooseModule",
                 "key": "Alt+J Alt+M",
                 "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.startREPL",
+                "key": "Alt+J Alt+O"
+            },
+            {
+                "command": "language-julia.stopREPL",
+                "key": "Alt+J Alt+K"
             },
             {
                 "command": "language-julia.changeCurrentEnvironment",
