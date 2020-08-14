@@ -3,9 +3,8 @@
 	circle {
 		stroke: #d7dae0;
 		fill: transparent;
-		stroke-width: 18;
-		stroke-linejoin: round;
-		r: 67;
+		stroke-width: 20;
+		r: 65;
 	}
 </style>
 <circle cx="75.8" cy="225" />
