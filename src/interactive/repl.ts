@@ -113,6 +113,12 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     }
 }
 
+function killREPL() {
+    if (g_terminal) {
+        g_terminal.dispose()
+    }
+}
+
 function debuggerRun(code: string) {
     const x = {
         type: 'julia',
@@ -487,6 +493,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.stopREPL', killREPL))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock))
 
