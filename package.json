@@ -220,14 +220,14 @@
                 "title": "Julia: Select Current Module"
             },
             {
-                "command": "language-julia.debugEditorContents",
-                "title": "Debug Julia File",
-                "icon": "$(debug-alt)"
+                "command": "language-julia.runEditorContents",
+                "title": "Julia: Run File",
+                "icon": "$(play)"
             },
             {
-                "command": "language-julia.runEditorContents",
-                "title": "Run Julia File",
-                "icon": "$(play)"
+                "command": "language-julia.debugEditorContents",
+                "title": "Julia: Debug File",
+                "icon": "$(debug-alt)"
             }
         ],
         "menus": {
