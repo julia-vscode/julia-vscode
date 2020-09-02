@@ -36,10 +36,10 @@ uuid = "ffa9a821-9c82-50df-894e-fbcef3ed31cd"
 version = "3.2.1-DEV"
 
 [[FilePathsBase]]
-deps = ["Dates", "Printf", "Test", "UUIDs"]
+deps = ["Dates", "Mmap", "Printf", "Test", "UUIDs"]
 path = "../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.3"
+version = "0.9.5"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -61,7 +61,7 @@ version = "1.2.1-DEV"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.7.24"
+version = "0.7.26"
 
 [[LanguageServer]]
 deps = ["CSTParser", "DocumentFormat", "JSON", "JSONRPC", "Markdown", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
@@ -89,7 +89,7 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 deps = ["Libdl", "Pkg", "UUIDs"]
 path = "../../packages/PackageCompiler"
 uuid = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
-version = "1.1.1"
+version = "1.2.1"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Test", "UUIDs"]
