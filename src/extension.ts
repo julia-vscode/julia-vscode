@@ -24,7 +24,8 @@ let g_context: vscode.ExtensionContext = null
 
 export async function activate(context: vscode.ExtensionContext) {
     if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
-        vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall one of the two extensions.')
+        vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
+
         return
     }
 
