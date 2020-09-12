@@ -1,8 +1,8 @@
 # this script basially only handles `ARGS`
 
-
-Base.push!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
-using VSCodeServer
+using Distributed
+@everywhere Base.push!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
+@everywhere using VSCodeServer
 pop!(LOAD_PATH)
 
 let
