@@ -168,7 +168,7 @@ const notifyTypeShowProfilerResult = new rpc.NotificationType<string, void>('rep
 const notifyTypeShowProfilerResultFile = new rpc.NotificationType<string, void>('repl/showprofileresult_file')
 
 interface Progress {
-    id: string,
+    id: { value: number },
     name: string,
     fraction: number,
     done: Boolean
@@ -216,24 +216,39 @@ function startREPLMsgServer(pipename: string) {
     return connected
 }
 
-let g_progress = undefined
-let g_id = undefined
-let g_last_fraction = 0
+let g_progress_dict = {}
 
 async function updateProgress(progress: Progress) {
-    if (g_progress) {
-        console.log(progress)
-        let increment = progress.done ? 100 : (progress.fraction - g_last_fraction) * 100
-        if (g_id === undefined) {
-            g_id = progress.id
-        } else if (g_id === progress.id) {
-
-        }
-        g_progress.report({
+    if (g_progress_dict[progress.id.value]) {
+        const p = g_progress_dict[progress.id.value]
+        const increment = progress.done ? 100 : (progress.fraction - p.last_fraction) * 100
+        p.progress.report({
             increment: increment,
             message: progress.name + ` (${(progress.fraction * 100).toFixed(1)}%)`
         })
-        g_last_fraction = progress.fraction
+        p.last_fraction = progress.fraction
+
+        if (progress.done) {
+            p.resolve()
+            delete g_progress_dict[progress.id.value]
+        }
+    } else {
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: 'Julia'
+        }, (prog) => {
+            return new Promise(resolve => {
+                g_progress_dict[progress.id.value] = {
+                    progress: prog,
+                    last_fraction: progress.fraction,
+                    resolve: resolve
+                }
+                prog.report({
+                    increment: progress.fraction,
+                    message: progress.name + ` (${(progress.fraction * 100).toFixed(1)}%)`
+                })
+            })
+        })
     }
 }
 
@@ -262,30 +277,20 @@ async function executeFile(uri?: vscode.Uri) {
         const pos = editor.document.validatePosition(new vscode.Position(0, 1)) // xref: https://github.com/julia-vscode/julia-vscode/issues/1500
         module = await modules.getModuleForEditor(editor.document, pos)
     }
-    await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Window,
-        title: 'Julia'
-    }, (progress) => {
-        g_progress = progress
-        g_last_fraction = 0
-        const p = g_connection.sendRequest(
-            requestTypeReplRunCode,
-            {
-                filename: path,
-                line: 0,
-                column: 0,
-                mod: module,
-                code: code,
-                showCodeInREPL: false,
-                showResultInREPL: true
-            }
-        )
-        p.then(() => {
-            g_progress = 0
-            g_last_fraction = 0
-        })
-        return p
-    })
+
+    await g_connection.sendRequest(
+        requestTypeReplRunCode,
+        {
+            filename: path,
+            line: 0,
+            column: 0,
+            mod: module,
+            code: code,
+            showCodeInREPL: false,
+            showResultInREPL: true
+        }
+    )
+
     await workspace.replFinishEval()
 }
 
@@ -449,30 +454,18 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     if (resultType !== 'REPL') {
         r = results.addResult(editor, range, ' ⟳ ', '')
     }
-    const result: ReturnResult = await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Window,
-        title: 'Julia'
-    }, (progress) => {
-        g_progress = progress
-        g_last_fraction = 0
-        const p = g_connection.sendRequest(
-            requestTypeReplRunCode,
-            {
-                filename: editor.document.fileName,
-                line: range.start.line,
-                column: range.start.character,
-                code: text,
-                mod: module,
-                showCodeInREPL: codeInREPL,
-                showResultInREPL: resultType !== 'inline'
-            }
-        )
-        p.then(() => {
-            g_progress = 0
-            g_last_fraction = 0
-        })
-        return p
-    })
+    const result: ReturnResult = await g_connection.sendRequest(
+        requestTypeReplRunCode,
+        {
+            filename: editor.document.fileName,
+            line: range.start.line,
+            column: range.start.character,
+            code: text,
+            mod: module,
+            showCodeInREPL: codeInREPL,
+            showResultInREPL: resultType !== 'inline'
+        }
+    )
 
     await workspace.replFinishEval()
 
