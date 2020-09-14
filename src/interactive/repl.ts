@@ -252,6 +252,13 @@ async function updateProgress(progress: Progress) {
     }
 }
 
+export function clearProgress() {
+    for (const id in g_progress_dict) {
+        g_progress_dict[id].resolve()
+        delete g_progress_dict[id]
+    }
+}
+
 async function executeFile(uri?: vscode.Uri) {
     telemetry.traceEvent('command-executeFile')
 

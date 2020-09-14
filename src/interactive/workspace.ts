@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
-import { notifyTypeReplFinishEval, notifyTypeReplShowInGrid, onExit, onInit } from './repl'
+import { clearProgress, notifyTypeReplFinishEval, notifyTypeReplShowInGrid, onExit, onInit } from './repl'
 
 let g_connection: rpc.MessageConnection = null
 
@@ -73,6 +73,7 @@ export async function updateReplVariables() {
 
 export async function replFinishEval() {
     await updateReplVariables()
+    clearProgress()
 }
 
 async function showInVSCode(node: WorkspaceVariable) {
