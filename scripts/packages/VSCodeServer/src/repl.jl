@@ -78,11 +78,13 @@ end
 function evalrepl(m, line, repl, main_mode)
     return try
         JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
-        try
-            repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
-        catch err
-            display_repl_error(stderr, err, stacktrace(catch_backtrace()))
-            nothing
+        Logging.with_logger(VSCodeLogger()) do
+            try
+                repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
+            catch err
+                display_repl_error(stderr, err, stacktrace(catch_backtrace()))
+                nothing
+            end
         end
     catch err
         # This is for internal errors only.

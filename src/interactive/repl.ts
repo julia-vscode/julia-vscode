@@ -207,12 +207,20 @@ function startREPLMsgServer(pipename: string) {
 }
 
 let g_progress = undefined
+let g_id = undefined
 let g_last_fraction = 0
 
 async function updateProgress(progress: Progress) {
     if (g_progress) {
+        console.log(progress)
+        let increment = progress.done ? 100 : (progress.fraction - g_last_fraction) * 100
+        if (g_id === undefined) {
+            g_id = progress.id
+        } else if (g_id === progress.id) {
+
+        }
         g_progress.report({
-            increment: progress.done ? 100 : (progress.fraction - g_last_fraction) * 100,
+            increment: increment,
             message: progress.name + ` (${(progress.fraction * 100).toFixed(1)}%)`
         })
         g_last_fraction = progress.fraction
