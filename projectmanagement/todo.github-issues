@@ -1,1 +1,116 @@
-[{"kind":1,"language":"markdown","value":"# My TODO list\n\nThis notebook gives you a quick overview of things you need to do.","editable":true},{"kind":1,"language":"markdown","value":"## Showstoppers\n\nThis section will show any showstoppers. If we have any, we all try to help out to resolve those first.","editable":true},{"kind":2,"language":"github-issues","value":"org:julia-vscode label:Showstopper is:open","editable":true},{"kind":1,"language":"markdown","value":"## Review requests\n\nThese are PRs that are waiting for reviews from you.","editable":true},{"kind":2,"language":"github-issues","value":"org:julia-vscode review-requested:@me is:open draft:false","editable":true},{"kind":1,"language":"markdown","value":"## Bugs assigned to me","editable":true},{"kind":1,"language":"markdown","value":"### Should be done ASAP\n\nPlease, please, try to fix them as soon as possible :)","editable":true},{"kind":2,"language":"github-issues","value":"org:julia-vscode is:open is:issue label:bug assignee:@me milestone:\"Next extension patch release\"","editable":true},{"kind":1,"language":"markdown","value":"### Triage\n\nMake a decision whether this should go onto the Backlog or the next patch release.","editable":true},{"kind":2,"language":"github-issues","value":"org:julia-vscode is:open is:issue label:bug assignee:@me milestone:Triage","editable":true},{"kind":1,"language":"markdown","value":"### Backlog\n\nMaybe, at some point, if you feel like it, you could try to fix these.","editable":true},{"kind":2,"language":"github-issues","value":"org:julia-vscode is:open is:issue label:bug assignee:@me milestone:Backlog","editable":true},{"kind":1,"language":"markdown","value":"## Project management","editable":true},{"kind":1,"language":"markdown","value":"### Milestone needed","editable":true},{"kind":2,"language":"github-issues","value":"org:julia-vscode is:open no:milestone -label:\"no changelog\"","editable":true},{"kind":1,"language":"markdown","value":"### Label needed","editable":true},{"kind":2,"language":"github-issues","value":"org:julia-vscode is:open no:label","editable":true},{"kind":1,"language":"markdown","value":"### Triage decision needed","editable":true},{"kind":2,"language":"github-issues","value":"org:julia-vscode is:open milestone:Triage no:assignee","editable":true}]
+[
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "# My TODO list\n\nThis notebook gives you a quick overview of things you need to do.",
+    "editable": true
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## Showstoppers\n\nThis section will show any showstoppers. If we have any, we all try to help out to resolve those first.",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "org:julia-vscode label:Showstopper is:open",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## Review requests\n\nThese are PRs that are waiting for reviews from you.",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "org:julia-vscode review-requested:@me is:open draft:false",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## Bugs assigned to me",
+    "editable": true
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Should be done ASAP\n\nPlease, please, try to fix them as soon as possible :)",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "org:julia-vscode is:open is:issue label:bug assignee:@me milestone:\"Next Patch\"",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Triage\n\nMake a decision whether this should go onto the Backlog or the next patch release.",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "org:julia-vscode is:open is:issue label:bug assignee:@me milestone:Triage",
+    "editable": true
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Backlog\n\nMaybe, at some point, if you feel like it, you could try to fix these.",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "org:julia-vscode is:open is:issue label:bug assignee:@me milestone:Backlog",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## Project management",
+    "editable": true
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Milestone needed",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "org:julia-vscode is:open no:milestone -label:\"no changelog\"",
+    "editable": true
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Label needed",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "org:julia-vscode is:open no:label",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Triage decision needed",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "org:julia-vscode is:open milestone:Triage no:assignee",
+    "editable": false
+  }
+]

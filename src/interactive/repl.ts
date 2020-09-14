@@ -58,6 +58,16 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             return jlarg2
         }
 
+        const env = {
+            JULIA_EDITOR: get_editor(),
+            JULIA_NUM_THREADS: inferJuliaNumThreads()
+        }
+
+        const pkgServer: string = vscode.workspace.getConfiguration('julia').get('packageServer')
+        if (pkgServer.length !== 0) {
+            env['JULIA_PKG_SERVER'] = pkgServer
+        }
+
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
         const exepath = await juliaexepath.getJuliaExePath()
         const pkgenvpath = await jlpkgenv.getEnvPath()
@@ -68,10 +78,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                     name: 'Julia REPL',
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(getArgs()),
-                    env: {
-                        JULIA_EDITOR: get_editor(),
-                        JULIA_NUM_THREADS: inferJuliaNumThreads()
-                    }
+                    env: env
                 })
         }
         else {
@@ -95,10 +102,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                     name: 'Julia REPL',
                     shellPath: exepath,
                     shellArgs: jlarg1.concat(getArgs()),
-                    env: {
-                        JULIA_EDITOR: get_editor(),
-                        JULIA_NUM_THREADS: inferJuliaNumThreads()
-                    }
+                    env: env
                 })
         }
         g_terminal.show(preserveFocus)
@@ -106,6 +110,12 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     }
     else if (showTerminal) {
         g_terminal.show(preserveFocus)
+    }
+}
+
+function killREPL() {
+    if (g_terminal) {
+        g_terminal.dispose()
     }
 }
 
@@ -323,7 +333,14 @@ async function selectJuliaBlock() {
     vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
 }
 
-const g_cellDelimiter = new RegExp('^##(?!#)')
+const g_cellDelimiters = [
+    /^##(?!#)/,
+    /^#(\s?)%%/
+]
+
+function isCellBorder(s: string) {
+    return g_cellDelimiters.some(regex => regex.test(s))
+}
 
 async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell')
@@ -333,7 +350,7 @@ async function executeCell(shouldMove: boolean = false) {
     const curr = doc.validatePosition(ed.selection.active).line
     let start = curr
     while (start >= 0) {
-        if (g_cellDelimiter.test(doc.lineAt(start).text)) {
+        if (isCellBorder(doc.lineAt(start).text)) {
             break
         } else {
             start -= 1
@@ -342,7 +359,7 @@ async function executeCell(shouldMove: boolean = false) {
     start += 1
     let end = start
     while (end < doc.lineCount) {
-        if (g_cellDelimiter.test(doc.lineAt(end).text)) {
+        if (isCellBorder(doc.lineAt(end).text)) {
             break
         } else {
             end += 1
@@ -528,6 +545,7 @@ export function activate(context: vscode.ExtensionContext) {
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.stopREPL', killREPL))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock))
 

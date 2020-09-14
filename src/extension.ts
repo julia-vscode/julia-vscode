@@ -23,6 +23,12 @@ let g_languageClient: LanguageClient = null
 let g_context: vscode.ExtensionContext = null
 
 export async function activate(context: vscode.ExtensionContext) {
+    if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
+        vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
+
+        return
+    }
+
     await telemetry.init(context)
     try {
 
@@ -73,12 +79,15 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
 
         const api = {
-            version: 1,
+            version: 2,
             async getEnvironment() {
                 return await jlpkgenv.getEnvPath()
             },
             async getJuliaPath() {
                 return await juliaexepath.getJuliaExePath()
+            },
+            getPkgServer() {
+                return vscode.workspace.getConfiguration('julia').get('packageServer')
             }
         }
 

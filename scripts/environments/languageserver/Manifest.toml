@@ -24,10 +24,10 @@ uuid = "ffa9a821-9c82-50df-894e-fbcef3ed31cd"
 version = "3.2.1-DEV"
 
 [[FilePathsBase]]
-deps = ["Dates", "Printf", "Test", "UUIDs"]
+deps = ["Dates", "Mmap", "Printf", "Test", "UUIDs"]
 path = "../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.3"
+version = "0.9.5"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -99,7 +99,7 @@ uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
 version = "4.5.1-DEV"
 
 [[SymbolServer]]
-deps = ["LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
+deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "../../packages/SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
 version = "5.1.1-DEV"
