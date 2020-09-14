@@ -24,6 +24,8 @@ let g_languageClient: vslc.LanguageClient = null
 
 let g_terminal: vscode.Terminal = null
 
+let last_cell_code = null;
+
 export let g_connection: rpc.MessageConnection = undefined
 
 function startREPLCommand() {
@@ -301,6 +303,18 @@ function isCellBorder(s: string) {
     return g_cellDelimiters.some(regex => regex.test(s))
 }
 
+async function executeLastCell() {
+    if (last_cell_code != null) {
+        const [startpos, endpos, code] = last_cell_code;
+        const ed = vscode.window.activeTextEditor;
+        const module: string = await modules.getModuleForEditor(
+            ed.document,
+            startpos
+        );
+        await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
+    }
+}
+
 async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell')
 
@@ -338,6 +352,8 @@ async function executeCell(shouldMove: boolean = false) {
         vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
         vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
     }
+
+    last_cell_code = [startpos, endpos, code]
 
     await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
 }
@@ -502,6 +518,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCell', executeCell))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)))
+    context.subscriptions.push(vscode.commands.registerCommand("language-julia.executeLastCell", executeLastCell));
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeFile', executeFile))
 
