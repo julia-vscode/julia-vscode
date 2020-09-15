@@ -6,6 +6,7 @@ JSONRPC.@dict_readable struct ReplRunCodeRequestParams <: JSONRPC.Outbound
     mod::String
     showCodeInREPL::Bool
     showResultInREPL::Bool
+    softscope::Bool
 end
 
 struct Frame
