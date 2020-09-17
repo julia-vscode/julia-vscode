@@ -2,7 +2,7 @@ struct VSCodeLogger <: Logging.AbstractLogger end
 
 function Logging.handle_message(j::VSCodeLogger, level, message, _module,
                                 group, id, file, line; kwargs...)
-    progress = ProgressLogging.asprogress(level, message, _module, group, id, file, line; kwargs...)
+    progress = ProgessBase.asprogress(level, message, _module, group, id, file, line; kwargs...)
     if progress !== nothing
         JSONRPC.send_notification(conn_endpoint[], "repl/updateProgress", progress)
     else
@@ -26,7 +26,7 @@ function Logging.min_enabled_level(::VSCodeLogger)
     min(Base.invokelatest(Logging.min_enabled_level, Logging.global_logger()), Logging.LogLevel(-1))
 end
 
-module ProgressLogging
+module ProgessBase
 
 using Base.Meta: isexpr
 using UUIDs: UUID
@@ -59,14 +59,14 @@ end
 const ProgressLevel = LogLevel(-1)
 
 """
-    ProgressLogging.ROOTID
+    ProgessBase.ROOTID
 
 This is used as `parentid` of root [`Progress`](@ref)es.
 """
 const ROOTID = UUID(0)
 
 """
-    ProgressLogging.Progress(id, [fraction]; [parentid, name, done])
+    ProgessBase.Progress(id, [fraction]; [parentid, name, done])
 
 # Usage: Progress log record provider
 
@@ -91,7 +91,7 @@ log records.
 
 # Usage: Progress log record consumer (aka progress monitor)
 
-It is recommended to use [`ProgressLogging.asprogress`](@ref) instead
+It is recommended to use [`ProgessBase.asprogress`](@ref) instead
 of checking `message isa Progress`.  Progress monitors can retrieve
 progress-related information from the following properties.
 
@@ -102,7 +102,7 @@ progress-related information from the following properties.
   - `fraction = nothing`: indeterminate progress
 - `id::UUID`: Identifier of the job whose progress is at `fraction`.
 - `parentid::UUID`: The ID of the parent progress.  It is set to
-  [`ProgressLogging.ROOTID`](@ref) when there is no parent progress.
+  [`ProgessBase.ROOTID`](@ref) when there is no parent progress.
   This is used for representing progresses of nested jobs.  Note that
   sub-jobs may be executed concurrently; i.e., there can be multiple
   child jobs for one parent job.
@@ -142,7 +142,7 @@ asuuid(id) = uuid5(PROGRESS_LOGGING_UUID_NS, repr(id))
 
 
 """
-    ProgressLogging.asprogress(_, name, _, _, id, _, _; progress, ...) :: Union{Progress, Nothing}
+    ProgessBase.asprogress(_, name, _, _, id, _, _; progress, ...) :: Union{Progress, Nothing}
 
 Pre-process log record to obtain a [`Progress`](@ref) object if it is
 one of the supported format.  This is mean to be used with the
@@ -151,7 +151,7 @@ one of the supported format.  This is mean to be used with the
 
 ```julia
 function Logging.handle_message(logger::MyLogger, args...; kwargs...)
-    progress = ProgressLogging.asprogress(args...; kwargs...)
+    progress = ProgessBase.asprogress(args...; kwargs...)
     if progress !== nothing
         return # handle progress log record
     end
