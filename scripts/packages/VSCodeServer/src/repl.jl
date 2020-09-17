@@ -96,7 +96,10 @@ function evalrepl(m, line, repl, main_mode)
 end
 
 # don't inline this so we can find it in the stacktrace
-@noinline repleval(m, code, file) = include_string(m, code, file)
+@noinline function repleval(m, code, file)
+    args = VERSION >= v"1.5" ? (REPL.softscope, m, code, file) : (m, code, file)
+    return include_string(args...)
+end
 
 # basically the same as Base's `display_error`, with internal frames removed
 function display_repl_error(io, err, st)

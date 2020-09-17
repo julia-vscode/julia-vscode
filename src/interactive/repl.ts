@@ -154,7 +154,8 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     code: string,
     mod: string,
     showCodeInREPL: boolean,
-    showResultInREPL: boolean
+    showResultInREPL: boolean,
+    softscope: boolean
 }, ReturnResult, void, void>('repl/runcode')
 
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display')
@@ -294,7 +295,8 @@ async function executeFile(uri?: vscode.Uri) {
             mod: module,
             code: code,
             showCodeInREPL: false,
-            showResultInREPL: true
+            showResultInREPL: true,
+            softscope: false
         }
     )
 
@@ -470,7 +472,8 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             code: text,
             mod: module,
             showCodeInREPL: codeInREPL,
-            showResultInREPL: resultType !== 'inline'
+            showResultInREPL: resultType !== 'inline',
+            softscope: true
         }
     )
 
