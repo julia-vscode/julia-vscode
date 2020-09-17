@@ -22,7 +22,6 @@ function __init__()
 end
 
 include("../../JSON/src/JSON.jl")
-include("../../ProgressLogging/src/ProgressLogging.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
 
 module JSONRPC
@@ -69,7 +68,7 @@ include("display.jl")
 include("profiler.jl")
 include("debugger.jl")
 
-function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractString,Nothing} = nothing)
     conn = connect(args...)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
     run(conn_endpoint[])
@@ -83,7 +82,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
         msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request
         msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
-        msg_dispatcher[repl_startdebugger_notification_type] = (conn, params)->repl_startdebugger_request(conn, params, crashreporting_pipename)
+        msg_dispatcher[repl_startdebugger_notification_type] = (conn, params) -> repl_startdebugger_request(conn, params, crashreporting_pipename)
 
         while true
             msg = JSONRPC.get_next_message(conn_endpoint[])

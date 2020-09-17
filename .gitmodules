@@ -43,6 +43,3 @@
 [submodule "scripts/packages/DebugAdapter"]
 	path = scripts/packages/DebugAdapter
 	url = https://github.com/julia-vscode/DebugAdapter.jl.git
-[submodule "scripts/packages/ProgressLogging"]
-	path = scripts/packages/ProgressLogging
-	url = git@github.com:JunoLab/ProgressLogging.jl.git
