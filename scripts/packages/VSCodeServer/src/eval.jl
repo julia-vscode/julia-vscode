@@ -40,8 +40,6 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                 end
             end
 
-            fix_displays()
-
             withpath(source_filename) do
                 res = try
                     ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename)
@@ -53,7 +51,6 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                 if show_result
                     if res isa EvalError
                         Base.display_error(stderr, res)
-
                     elseif res !== nothing && !ends_with_semicolon(source_code)
                         try
                             Base.invokelatest(display, res)
@@ -77,15 +74,6 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
         end
     end
     return rendered_result
-end
-
-function fix_displays()
-    for d in reverse(Base.Multimedia.displays)
-        if d isa InlineDisplay
-            popdisplay(InlineDisplay())
-        end
-    end
-    pushdisplay(InlineDisplay())
 end
 
 # don't inline this so we can find it in the stacktrace
