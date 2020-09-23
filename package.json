@@ -808,7 +808,7 @@
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
         "uuidv4": "^6.2.3",
-        "vscode-debugadapter": "^1.41.1",
+        "vscode-debugadapter": "^1.42.0",
         "vscode-jsonrpc": "^5.0.1",
         "vscode-languageclient": "^6.1.3",
         "which": "^2.0.2"
@@ -817,7 +817,7 @@
         "@types/cson-parser": "^4.0.4",
         "@types/download": "^6.2.4",
         "@types/mocha": "^7.0.2",
-        "@types/node": "^12.12.59",
+        "@types/node": "^12.12.62",
         "@typescript-eslint/parser": "^3.10.1",
         "cson-parser": "^4.0.5",
         "download": "^7.1.0",
@@ -827,7 +827,7 @@
         "typescript": "^3.9.7",
         "vsce": "^1.79.5",
         "vscode-test": "^1.4.0",
-        "webpack": "^4.44.1",
+        "webpack": "^4.44.2",
         "webpack-cli": "^3.3.12"
     }
 }
