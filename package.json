@@ -39,7 +39,7 @@
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
         "onCommand:language-julia.executeCell",
-        "onCommand:language-julia.executeLastCell",
+        "onCommand:language-julia.executeLastCachedCell",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
         "onCommand:language-julia.debug.getActiveJuliaEnvironment",
@@ -196,8 +196,8 @@
                 "title": "Julia: Execute Code Cell And Move"
             },
             {
-                "command": "language-julia.executeLastCell",
-                "title": "Julia: Execute Last Code Cell"
+                "command": "language-julia.executeLastCachedCell",
+                "title": "Julia: Execute Last Cached Cell"
             },
             {
                 "command": "language-julia.selectBlock",
