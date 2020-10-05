@@ -69,23 +69,25 @@ include("debugger.jl")
 function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     conn = connect(args...)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
+    start_eval_backend()
     run(conn_endpoint[])
 
     @async try
         msg_dispatcher = JSONRPC.MsgDispatcher()
 
         msg_dispatcher[repl_runcode_request_type] = repl_runcode_request
+        msg_dispatcher[repl_interrupt_notification_type] = repl_interrupt_request
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
         msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request
         msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
-        msg_dispatcher[repl_startdebugger_notification_type] = (conn, params)->repl_startdebugger_request(conn, params, crashreporting_pipename)
+        msg_dispatcher[repl_startdebugger_notification_type] = (conn, params) -> repl_startdebugger_request(conn, params, crashreporting_pipename)
 
         while true
             msg = JSONRPC.get_next_message(conn_endpoint[])
 
-            if is_dev
+            @async if is_dev
                 try
                     JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
                 catch err

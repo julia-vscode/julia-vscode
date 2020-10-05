@@ -480,6 +480,11 @@ function executeSelectionCopyPaste() {
     executeCodeCopyPaste(text, selection.isEmpty)
 }
 
+function interrupt() {
+    telemetry.traceEvent('command-interrupt')
+    g_connection.sendNotification('repl/interrupt')
+}
+
 // code execution end
 
 export async function replStartDebugger(pipename: string) {
@@ -507,6 +512,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeFile', executeFile))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.interrupt', interrupt))
 
     // copy-paste selection into REPL. doesn't require LS to be started
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste))
