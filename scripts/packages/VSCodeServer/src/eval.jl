@@ -42,6 +42,7 @@ function start_eval_backend()
 end
 
 function repl_interrupt_request(conn, ::Nothing)
+    println(stderr, "^C")
     if EVAL_BACKEND_TASK[] !== nothing && !istaskdone(EVAL_BACKEND_TASK[]) && IS_BACKEND_WORKING[]
         schedule(EVAL_BACKEND_TASK[], InterruptException(); error = true)
     end

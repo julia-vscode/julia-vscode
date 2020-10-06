@@ -9,7 +9,7 @@ import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
-import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import { generatePipeName, inferJuliaNumThreads, setContext } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -521,6 +521,23 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal === g_terminal) {
             g_terminal = null
+        }
+    })
+
+    const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
+    const shellSkipCommands: Array<String> = terminalConfig.get('commandsToSkipShell')
+    if (shellSkipCommands.indexOf('language-julia.interrupt') == -1) {
+        shellSkipCommands.push('language-julia.interrupt')
+        terminalConfig.update('commandsToSkipShell', shellSkipCommands, true)
+    }
+
+    vscode.window.onDidChangeActiveTerminal(terminal => {
+        if (terminal === g_terminal) {
+            setContext('isJuliaREPL', true)
+            console.log('isJuliaREPL')
+        } else {
+            setContext('isJuliaREPL', false)
+            console.log('isNoJuliaREPL')
         }
     })
 

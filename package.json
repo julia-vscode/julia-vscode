@@ -328,6 +328,11 @@
                 "when": "!terminalFocus"
             },
             {
+                "command": "language-julia.interrupt",
+                "key": "Ctrl+C",
+                "when": "terminalFocus && isJuliaREPL"
+            },
+            {
                 "command": "language-julia.executeCellAndMove",
                 "key": "shift+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
