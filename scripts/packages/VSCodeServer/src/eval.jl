@@ -175,7 +175,7 @@ function backtrace_string(bt)
     s = sprintlimited(bt, func = Base.show_backtrace, limit = MAX_RESULT_LENGTH)
     lines = strip.(split(s, '\n'))
 
-    return map(enumerate(lines)) do (i, line)
+    return join(map(enumerate(lines)) do (i, line)
         i === 1 && return line # "Stacktrace:"
         m = match(LOCATION_REGEX, line)
         m === nothing && return line
@@ -183,5 +183,5 @@ function backtrace_string(bt)
         linkbody = vscode_cmd_uri("language-julia.openFile"; path = fullpath(m[:path]), line = m[:line])
         linktitle = string("Go to ", linktext)
         return "$(i-1). `$(m[:body])` at [$(linktext)]($(linkbody) \"$(linktitle)\")"
-    end |> joinlines
+    end, "\n\n")
 end
