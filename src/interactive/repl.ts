@@ -24,7 +24,7 @@ let g_languageClient: vslc.LanguageClient = null
 
 let g_terminal: vscode.Terminal = null
 
-let last_cell_code = null;
+let last_cell_code = null
 
 export let g_connection: rpc.MessageConnection = undefined
 
@@ -424,6 +424,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
+        last_cell_code = [range.start, range.end, text]
         await evaluate(editor, range, text, module)
     }
 }
