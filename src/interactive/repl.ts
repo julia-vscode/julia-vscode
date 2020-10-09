@@ -307,7 +307,7 @@ function isCellBorder(s: string) {
 
 async function executeLastCachedCell() {
     if (last_cell_code !== null) {
-        const [doc, startpos, endpos, code] = last_cell_code
+        const [ed, doc, startpos, endpos, code] = last_cell_code
         const curr_range = new vscode.Range(startpos, endpos)
         const curr_code = doc.getText(curr_range)
         if (code === curr_code) {
@@ -317,7 +317,7 @@ async function executeLastCachedCell() {
                 startpos
             )
             await evaluate(
-                doc,
+                ed,
                 curr_range,
                 code,
                 module
@@ -370,7 +370,7 @@ async function executeCell(shouldMove: boolean = false) {
         vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
     }
 
-    last_cell_code = [doc, startpos, endpos, code]
+    last_cell_code = [ed, doc, startpos, endpos, code]
 
     await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
 }
@@ -427,7 +427,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
-        last_cell_code = [doc, range.start, range.end, text]
+        last_cell_code = [editor, doc, range.start, range.end, text]
         await evaluate(editor, range, text, module)
     }
 }
