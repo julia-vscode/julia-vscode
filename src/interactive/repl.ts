@@ -308,17 +308,17 @@ function isCellBorder(s: string) {
 async function executeLastCachedCell() {
     if (last_cell_code !== null) {
         const [doc, startpos, endpos, code] = last_cell_code
-        const curr_code = doc.getText(new vscode.Range(startpos, endpos))
+        const curr_range = new vscode.Range(startpos, endpos)
+        const curr_code = doc.getText(curr_range)
         if (code === curr_code) {
             await startREPL(true, false)
-            const ed = vscode.window.activeTextEditor
             const module: string = await modules.getModuleForEditor(
-                ed.document,
+                doc,
                 startpos
             )
             await evaluate(
-                ed,
-                new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0)),
+                doc,
+                curr_range,
                 code,
                 module
             )
