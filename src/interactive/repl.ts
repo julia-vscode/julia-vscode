@@ -319,7 +319,7 @@ async function executeLastCachedCell() {
             await evaluate(
                 ed,
                 curr_range,
-                code,
+                code + ';',  // we add ; because nobody want it to print the end result if it is 1000 or million size of array... we print what we ordered to print, no default print.
                 module
             )
         } else {
