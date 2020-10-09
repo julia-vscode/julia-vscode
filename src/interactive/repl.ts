@@ -306,30 +306,30 @@ function isCellBorder(s: string) {
 }
 
 async function executeLastCachedCell() {
-  if (last_cell_code != null) {
-    const [doc, startpos, endpos, code] = last_cell_code;
-    const curr_code = doc.getText(new vscode.Range(startpos, endpos));
-    if (code == curr_code) {
-      await startREPL(true, false);
-      const ed = vscode.window.activeTextEditor;
-      const module: string = await modules.getModuleForEditor(
-        ed.document,
-        startpos
-      );
-      await evaluate(
-        ed,
-        new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0)),
-        code,
-        module
-      );
+    if (last_cell_code !== null) {
+        const [doc, startpos, endpos, code] = last_cell_code
+        const curr_code = doc.getText(new vscode.Range(startpos, endpos))
+        if (code === curr_code) {
+            await startREPL(true, false)
+            const ed = vscode.window.activeTextEditor
+            const module: string = await modules.getModuleForEditor(
+                ed.document,
+                startpos
+            )
+            await evaluate(
+                ed,
+                new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0)),
+                code,
+                module
+            )
+        } else {
+            vscode.window.showWarningMessage(
+                'There were a modification on the cached file and the last cached cell command lost it\'s cell position. Run \'Execute cell\' again on the cell you want!'
+            )
+        }
     } else {
-      vscode.window.showWarningMessage(
-        "There were a modification on the cached file and the last cached cell command lost it's cell position. Run 'Execute cell' again on the cell you want!"
-      );
+        vscode.window.showInformationMessage('There is no cached cell!')
     }
-  } else {
-    vscode.window.showInformationMessage("There is no cached cell!");
-  }
 }
 
 async function executeCell(shouldMove: boolean = false) {
@@ -370,7 +370,7 @@ async function executeCell(shouldMove: boolean = false) {
         vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
     }
 
-    last_cell_code = [doc, startpos, endpos, code];
+    last_cell_code = [doc, startpos, endpos, code]
 
     await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
 }
@@ -380,7 +380,8 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
 
     const editor = vscode.window.activeTextEditor
-    const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString())
+    const doc = editor.document
+    const editorId = vslc.TextDocumentIdentifier.create(doc.uri.toString())
     const selections = editor.selections.slice()
 
     await startREPL(true, false)
@@ -426,7 +427,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
-        last_cell_code = [range.start, range.end, text]
+        last_cell_code = [doc, range.start, range.end, text]
         await evaluate(editor, range, text, module)
     }
 }
@@ -537,7 +538,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCell', executeCell))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)))
-    context.subscriptions.push(vscode.commands.registerCommand("language-julia.executeLastCachedCell", executeLastCachedCell))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeLastCachedCell', executeLastCachedCell))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeFile', executeFile))
 
