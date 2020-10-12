@@ -324,11 +324,6 @@
             },
             {
                 "command": "language-julia.interrupt",
-                "key": "Ctrl+Shift+C",
-                "when": "!terminalFocus"
-            },
-            {
-                "command": "language-julia.interrupt",
                 "key": "Ctrl+C",
                 "when": "terminalFocus && isJuliaREPL"
             },
