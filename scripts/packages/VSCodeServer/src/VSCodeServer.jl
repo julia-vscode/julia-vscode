@@ -66,6 +66,18 @@ include("display.jl")
 include("profiler.jl")
 include("debugger.jl")
 
+function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
+    if is_dev
+        try
+            JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
+        catch err
+            Base.display_error(err, catch_backtrace())
+        end
+    else
+        JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
+    end
+end
+
 function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     conn = connect(args...)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
@@ -87,14 +99,10 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         while true
             msg = JSONRPC.get_next_message(conn_endpoint[])
 
-            @async if is_dev
-                try
-                    JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
-                catch err
-                    Base.display_error(err, catch_backtrace())
-                end
+            if msg["method"] == repl_runcode_request_type.method
+                @async dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
             else
-                JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
+                dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
             end
         end
     catch err
