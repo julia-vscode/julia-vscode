@@ -13,7 +13,11 @@ let actualJuliaExePath: string = null
 async function setNewJuliaExePath(newPath: string) {
     actualJuliaExePath = newPath
 
-    child_process.exec(`"${newPath}" --version`, (error, stdout, stderr) => {
+    const env = {
+        JULIA_LANGUAGESERVER: '1'
+    }
+
+    child_process.exec(`"${newPath}" --version`, { env: env }, (error, stdout, stderr) => {
         if (error) {
             actualJuliaExePath = null
             return
