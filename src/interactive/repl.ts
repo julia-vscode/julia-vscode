@@ -534,10 +534,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidChangeActiveTerminal(terminal => {
         if (terminal === g_terminal) {
             setContext('isJuliaREPL', true)
-            console.log('isJuliaREPL')
         } else {
             setContext('isJuliaREPL', false)
-            console.log('isNoJuliaREPL')
         }
     })
 
