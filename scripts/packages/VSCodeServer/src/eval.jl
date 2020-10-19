@@ -1,79 +1,128 @@
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
 
+const EVAL_CHANNEL_IN = Channel(1)
+const EVAL_CHANNEL_OUT = Channel(1)
+const EVAL_BACKEND_TASK = Ref{Any}(nothing)
+const IS_BACKEND_WORKING = Ref{Bool}(false)
+
+function is_evaling()
+  return IS_BACKEND_WORKING[]
+end
+
+function run_with_backend(f, args...)
+  put!(EVAL_CHANNEL_IN, (f, args))
+  return take!(EVAL_CHANNEL_OUT)
+end
+
+function start_eval_backend()
+  global EVAL_BACKEND_TASK[] = @async begin
+    Base.sigatomic_begin()
+    while true
+      try
+        f, args = take!(EVAL_CHANNEL_IN)
+        Base.sigatomic_end()
+        IS_BACKEND_WORKING[] = true
+        res = try
+            Base.invokelatest(f, args...)
+        catch err
+            EvalError(err, catch_backtrace())
+        end
+        IS_BACKEND_WORKING[] = false
+        Base.sigatomic_begin()
+        put!(EVAL_CHANNEL_OUT, res)
+      catch err
+        put!(EVAL_CHANNEL_OUT, err)
+      finally
+        IS_BACKEND_WORKING[] = false
+      end
+    end
+    Base.sigatomic_end()
+  end
+end
+
+function repl_interrupt_request(conn, ::Nothing)
+    println(stderr, "^C")
+    if EVAL_BACKEND_TASK[] !== nothing && !istaskdone(EVAL_BACKEND_TASK[]) && IS_BACKEND_WORKING[]
+        schedule(EVAL_BACKEND_TASK[], InterruptException(); error = true)
+    end
+end
+
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
-    source_filename = params.filename
-    code_line = params.line
-    code_column = params.column
-    source_code = params.code
-    mod = params.mod
+    return run_with_backend() do
+        source_filename = params.filename
+        code_line = params.line
+        code_column = params.column
+        source_code = params.code
+        mod = params.mod
 
-    resolved_mod = try
-        module_from_string(mod)
-    catch err
-        # maybe trigger error reporting here
-        Main
-    end
-
-    show_code = params.showCodeInREPL
-    show_result = params.showResultInREPL
-
-    rendered_result = nothing
-
-    hideprompt() do
-        if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-            let mode = get(ENV, "JULIA_REVISE", "auto")
-                mode == "auto" && Main.Revise.revise()
-            end
+        resolved_mod = try
+            module_from_string(mod)
+        catch err
+            # maybe trigger error reporting here
+            Main
         end
-        if show_code
-            for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                if i==1
-                    printstyled("julia> ", color=:green)
-                    print(' '^code_column)
-                else
-                    # Indent by 7 so that it aligns with the julia> prompt
-                    print(' '^7)
+
+        show_code = params.showCodeInREPL
+        show_result = params.showResultInREPL
+
+        rendered_result = nothing
+
+        hideprompt() do
+            if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+                let mode = get(ENV, "JULIA_REVISE", "auto")
+                    mode == "auto" && Main.Revise.revise()
                 end
-
-                println(line)
             end
-        end
-
-        withpath(source_filename) do
-            res = try
-                ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
-                @eval Main ans = $(QuoteNode(ans))
-            catch err
-                EvalError(err, catch_backtrace())
-            end
-
-            if show_result
-                if res isa EvalError
-                    Base.display_error(stderr, res)
-
-                elseif res !== nothing && !ends_with_semicolon(source_code)
-                    try
-                        Base.invokelatest(display, res)
-                    catch err
-                        Base.display_error(stderr, err, catch_backtrace())
+            if show_code
+                for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                    if i==1
+                        printstyled("julia> ", color=:green)
+                        print(' '^code_column)
+                    else
+                        # Indent by 7 so that it aligns with the julia> prompt
+                        print(' '^7)
                     end
+
+                    println(line)
                 end
-            else
-                try
-                    Base.invokelatest(display, InlineDisplay(), res)
+            end
+
+            withpath(source_filename) do
+                res = try
+                    ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
+                    @eval Main ans = $(QuoteNode(ans))
                 catch err
-                    if !(err isa MethodError)
-                        printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                        Base.display_error(stderr, err, catch_backtrace())
+                    EvalError(err, catch_backtrace())
+                end
+
+                if show_result
+                    if res isa EvalError
+                        Base.display_error(stderr, res)
+
+                    elseif res !== nothing && !ends_with_semicolon(source_code)
+                        try
+                            Base.invokelatest(display, res)
+                        catch err
+                            Base.display_error(stderr, err, catch_backtrace())
+                        end
+                    end
+                else
+                    try
+                        Base.invokelatest(display, InlineDisplay(), res)
+                    catch err
+                        if !(err isa MethodError)
+                            printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                            Base.display_error(stderr, err, catch_backtrace())
+                        end
                     end
                 end
-            end
 
-            rendered_result = safe_render(res)
+                rendered_result = safe_render(res)
+            end
         end
+        return rendered_result
     end
-    return rendered_result
 end
 
 # don't inline this so we can find it in the stacktrace

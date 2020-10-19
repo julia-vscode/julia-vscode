@@ -34,6 +34,7 @@ JSONRPC.@dict_readable mutable struct ReplWorkspaceItem <: JSONRPC.Outbound
 end
 
 const repl_runcode_request_type = JSONRPC.RequestType("repl/runcode", ReplRunCodeRequestParams, ReplRunCodeRequestReturn)
+const repl_interrupt_notification_type = JSONRPC.NotificationType("repl/interrupt", Nothing)
 const repl_getvariables_request_type = JSONRPC.RequestType("repl/getvariables", Nothing, Vector{ReplWorkspaceItem})
 const repl_getlazy_request_type = JSONRPC.RequestType("repl/getlazy", Int, Vector{ReplWorkspaceItem})
 const repl_showingrid_notification_type = JSONRPC.NotificationType("repl/showingrid", String)

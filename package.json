@@ -140,6 +140,10 @@
                 "title": "Julia: Execute File"
             },
             {
+                "command": "language-julia.interrupt",
+                "title": "Julia: Interrupt Execution"
+            },
+            {
                 "command": "language-julia.toggleLinter",
                 "title": "Julia: Toggle Linter"
             },
@@ -317,6 +321,11 @@
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
                 "key": "alt+Enter",
                 "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.interrupt",
+                "key": "Ctrl+C",
+                "when": "terminalFocus && isJuliaREPL"
             },
             {
                 "command": "language-julia.executeCellAndMove",
