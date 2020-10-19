@@ -12,6 +12,13 @@ end
 
 displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
 
+function display(d::InlineDisplay, ::MIME{Symbol("image/gif")}, x)
+    payload = stringmime(MIME("image/gif"), x)
+    sendDisplayMsg("image/gif", payload)
+end
+
+displayable(d::InlineDisplay, ::MIME{Symbol("image/gif")}) = true
+
 function display(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
     payload = stringmime(MIME("image/svg+xml"), x)
     sendDisplayMsg("image/svg+xml", payload)
@@ -104,7 +111,8 @@ const DISPLAYABLE_MIMES = [
     "juliavscode/html",
     # "text/html",
     "image/svg+xml",
-    "image/png"
+    "image/png",
+    "image/gif"
 ]
 
 function can_display(x)
