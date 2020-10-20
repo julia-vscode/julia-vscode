@@ -310,7 +310,7 @@ async function executeLastCachedCode() {
         const [ed, doc, startpos, endpos, code] = last_cell_code
         const curr_range = new vscode.Range(startpos, endpos)
         const curr_code = doc.getText(curr_range)
-        const withcolon: boolean = vscode.workspace.getConfiguration('julia').get('execution.executeLastCodeWithColon')
+        const withcolon: boolean = vscode.workspace.getConfiguration('julia').get('execution.executeLastCodeWithSemicolon')
         if (code === curr_code) {
             await startREPL(true, false)
             const module: string = await modules.getModuleForEditor(
