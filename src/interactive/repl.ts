@@ -24,6 +24,8 @@ let g_languageClient: vslc.LanguageClient = null
 
 let g_terminal: vscode.Terminal = null
 
+let last_cell_code = null
+
 export let g_connection: rpc.MessageConnection = undefined
 
 function startREPLCommand() {
@@ -303,6 +305,34 @@ function isCellBorder(s: string) {
     return g_cellDelimiters.some(regex => regex.test(s))
 }
 
+async function executeLastCachedCode() {
+    if (last_cell_code !== null) {
+        const [ed, doc, startpos, endpos, code] = last_cell_code
+        const curr_range = new vscode.Range(startpos, endpos)
+        const curr_code = doc.getText(curr_range)
+        const withcolon: boolean = vscode.workspace.getConfiguration('julia').get('execution.executeLastCodeWithSemicolon')
+        if (code === curr_code) {
+            await startREPL(true, false)
+            const module: string = await modules.getModuleForEditor(
+                doc,
+                startpos
+            )
+            await evaluate(
+                ed,
+                curr_range,
+                code + (withcolon ? ';' : ''),  // we add ; because nobody want it to print the end result if it is 1000 or million size of array... we print what we ordered to print, no default print.
+                module
+            )
+        } else {
+            vscode.window.showWarningMessage(
+                'There were a modification on the cached file and the last cached cell command lost it\'s cell position. Run \'Execute cell\' again on the cell you want!'
+            )
+        }
+    } else {
+        vscode.window.showInformationMessage('There is no cached cell!')
+    }
+}
+
 async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell')
 
@@ -341,6 +371,8 @@ async function executeCell(shouldMove: boolean = false) {
         vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
     }
 
+    last_cell_code = [ed, doc, startpos, endpos, code]
+
     await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
 }
 
@@ -349,7 +381,8 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
 
     const editor = vscode.window.activeTextEditor
-    const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString())
+    const doc = editor.document
+    const editorId = vslc.TextDocumentIdentifier.create(doc.uri.toString())
     const selections = editor.selections.slice()
 
     await startREPL(true, false)
@@ -395,6 +428,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
+        last_cell_code = [editor, doc, range.start, range.end, text]
         await evaluate(editor, range, text, module)
     }
 }
@@ -510,6 +544,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCell', executeCell))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeLastCachedCode', executeLastCachedCode))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeFile', executeFile))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.interrupt', interrupt))
