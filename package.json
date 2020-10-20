@@ -39,7 +39,7 @@
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
         "onCommand:language-julia.executeCell",
-        "onCommand:language-julia.executeLastCachedCell",
+        "onCommand:language-julia.executeLastCachedCode",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
         "onCommand:language-julia.debug.getActiveJuliaEnvironment",
@@ -196,8 +196,8 @@
                 "title": "Julia: Execute Code Cell And Move"
             },
             {
-                "command": "language-julia.executeLastCachedCell",
-                "title": "Julia: Execute Last Cached Cell"
+                "command": "language-julia.executeLastCachedCode",
+                "title": "Julia: Reexecute Last Cached Code or Cell"
             },
             {
                 "command": "language-julia.selectBlock",
@@ -653,6 +653,11 @@
                     "default": false,
                     "description": "Print executed code in REPL.",
                     "scope": "window"
+                },
+                "julia.execution.executeLastCodeWithColon": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Execute last code run with a closing colon to only print what we explicitely print during the run."
                 },
                 "julia.packageServer": {
                     "type": "string",

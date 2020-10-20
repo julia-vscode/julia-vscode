@@ -305,11 +305,12 @@ function isCellBorder(s: string) {
     return g_cellDelimiters.some(regex => regex.test(s))
 }
 
-async function executeLastCachedCell() {
+async function executeLastCachedCode() {
     if (last_cell_code !== null) {
         const [ed, doc, startpos, endpos, code] = last_cell_code
         const curr_range = new vscode.Range(startpos, endpos)
         const curr_code = doc.getText(curr_range)
+        const withcolon: boolean = vscode.workspace.getConfiguration('julia').get('execution.executeLastCodeWithColon')
         if (code === curr_code) {
             await startREPL(true, false)
             const module: string = await modules.getModuleForEditor(
@@ -319,7 +320,7 @@ async function executeLastCachedCell() {
             await evaluate(
                 ed,
                 curr_range,
-                code + ';',  // we add ; because nobody want it to print the end result if it is 1000 or million size of array... we print what we ordered to print, no default print.
+                code + (withcolon ? ';' : ''),  // we add ; because nobody want it to print the end result if it is 1000 or million size of array... we print what we ordered to print, no default print.
                 module
             )
         } else {
@@ -538,7 +539,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCell', executeCell))
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeLastCachedCell', executeLastCachedCell))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeLastCachedCode', executeLastCachedCode))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeFile', executeFile))
 
