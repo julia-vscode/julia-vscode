@@ -564,6 +564,7 @@
                         "null"
                     ],
                     "default": null,
+                    "scope": "machine-overridable",
                     "description": "Number of threads to use for Julia processes."
                 },
                 "julia.format.indent": {
