@@ -424,10 +424,10 @@
             }
           },
           "name": "embed.cxx.julia",
-          "contentName": "source.cpp",
+          "contentName": "meta.embedded.inline.cpp",
           "patterns": [
             {
-              "include": "source.cpp"
+              "include": "source.cpp#root_context"
             },
             {
               "include": "#string_dollar_sign_interpolate"
@@ -451,10 +451,10 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "source.cpp",
+          "contentName": "meta.embedded.inline.cpp",
           "patterns": [
             {
-              "include": "source.cpp"
+              "include": "source.cpp#root_context"
             },
             {
               "include": "#string_dollar_sign_interpolate"
@@ -478,7 +478,7 @@
             }
           },
           "name": "embed.python.julia",
-          "contentName": "source.python",
+          "contentName": "meta.embedded.inline.python",
           "patterns": [
             {
               "include": "source.python"
@@ -505,7 +505,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "source.python",
+          "contentName": "meta.embedded.inline.python",
           "patterns": [
             {
               "include": "source.python"
@@ -532,7 +532,7 @@
             }
           },
           "name": "embed.js.julia",
-          "contentName": "source.js",
+          "contentName": "meta.embedded.inline.javascript",
           "patterns": [
             {
               "include": "source.js"
@@ -559,7 +559,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "source.js",
+          "contentName": "meta.embedded.inline.javascript",
           "patterns": [
             {
               "include": "source.js"
@@ -586,7 +586,7 @@
             }
           },
           "name": "embed.R.julia",
-          "contentName": "source.r",
+          "contentName": "meta.embedded.inline.r",
           "patterns": [
             {
               "include": "source.r"
@@ -613,7 +613,7 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "source.r",
+          "contentName": "meta.embedded.inline.r",
           "patterns": [
             {
               "include": "source.r"
@@ -676,13 +676,13 @@
             }
           },
           "name": "embed.markdown.julia",
-          "contentName": "source.gfm",
+          "contentName": "meta.embedded.inline.markdown",
           "patterns": [
             {
               "include": "text.md"
             },
             {
-              "include": "source.gfm"
+              "include": "text.html.markdown.julia"
             },
             {
               "include": "#string_dollar_sign_interpolate"
@@ -706,13 +706,13 @@
               "name": "punctuation.definition.string.end.julia"
             }
           },
-          "contentName": "source.gfm",
+          "contentName": "meta.embedded.inline.markdown",
           "patterns": [
             {
               "include": "text.md"
             },
             {
-              "include": "source.gfm"
+              "include": "text.html.markdown.julia"
             },
             {
               "include": "#string_dollar_sign_interpolate"
