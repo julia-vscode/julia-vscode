@@ -9,7 +9,7 @@ import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
-import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import { generatePipeName, inferJuliaNumThreads, setContext } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -532,6 +532,11 @@ function executeSelectionCopyPaste() {
     executeCodeCopyPaste(text, selection.isEmpty)
 }
 
+function interrupt() {
+    telemetry.traceEvent('command-interrupt')
+    g_connection.sendNotification('repl/interrupt')
+}
+
 // code execution end
 
 export async function replStartDebugger(pipename: string) {
@@ -559,6 +564,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeFile', executeFile))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.interrupt', interrupt))
 
     // copy-paste selection into REPL. doesn't require LS to be started
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste))
@@ -567,6 +573,21 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal === g_terminal) {
             g_terminal = null
+        }
+    })
+
+    const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
+    const shellSkipCommands: Array<String> = terminalConfig.get('commandsToSkipShell')
+    if (shellSkipCommands.indexOf('language-julia.interrupt') == -1) {
+        shellSkipCommands.push('language-julia.interrupt')
+        terminalConfig.update('commandsToSkipShell', shellSkipCommands, true)
+    }
+
+    vscode.window.onDidChangeActiveTerminal(terminal => {
+        if (terminal === g_terminal) {
+            setContext('isJuliaREPL', true)
+        } else {
+            setContext('isJuliaREPL', false)
         }
     })
 

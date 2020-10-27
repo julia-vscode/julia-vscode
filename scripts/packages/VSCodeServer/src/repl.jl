@@ -13,7 +13,7 @@ juliaprompt = "julia> "
 
 current_prompt = juliaprompt
 
-function get_main_mode(repl = Base.active_repl)
+function get_main_mode(repl=Base.active_repl)
     mode = repl.interface.modes[1]
     mode isa LineEdit.Prompt || error("no julia repl mode found")
     mode
@@ -50,7 +50,7 @@ function hideprompt(f)
     elseif mode isa LineEdit.PrefixHistoryPrompt || :parent_prompt in fieldnames(typeof(mode))
         LineEdit.write_prompt(stdout, mode.parent_prompt)
     else
-        printstyled(stdout, current_prompt, color = :green)
+        printstyled(stdout, current_prompt, color=:green)
     end
 
     truncate(LineEdit.buffer(mistate), 0)
@@ -68,7 +68,7 @@ function hook_repl(repl)
     main_mode = get_main_mode(repl)
 
     # TODO: set up REPL module ?
-    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty = false) do line
+    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty=false) do line
         quote
             $(evalrepl)(Main, $line, $repl, $main_mode)
         end
@@ -78,13 +78,14 @@ end
 function evalrepl(m, line, repl, main_mode)
     return try
         JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
-        Logging.with_logger(VSCodeLogger()) do
-            try
-                repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
-            catch err
-                display_repl_error(stderr, err, stacktrace(catch_backtrace()))
-                nothing
-            end
+        r = Logging.with_logger(VSCodeLogger()) do
+            run_with_backend(repleval, m, line, REPL.repl_filename(repl, main_mode.hist))
+        end
+        if r isa EvalError
+            display_repl_error(stderr, r.err, stacktrace(r.bt))
+            nothing
+        else
+            r
         end
     catch err
         # This is for internal errors only.
@@ -105,7 +106,7 @@ end
 function display_repl_error(io, err, st)
     ind = find_frame_index(st, @__FILE__, repleval)
     st = st[1:(ind === nothing ? end : ind - 2)]
-    printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
+    printstyled(io, "ERROR: "; bold=true, color=Base.error_color())
     showerror(IOContext(io, :limit => true), err, st)
     println(io)
 end
