@@ -168,6 +168,14 @@ export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('
 const notifyTypeShowProfilerResult = new rpc.NotificationType<string, void>('repl/showprofileresult')
 const notifyTypeShowProfilerResultFile = new rpc.NotificationType<string, void>('repl/showprofileresult_file')
 
+interface Progress {
+    id: { value: number },
+    name: string,
+    fraction: number,
+    done: Boolean
+}
+const notifyTypeProgress = new rpc.NotificationType<Progress, void>('repl/updateProgress')
+
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
 const g_onExit = new vscode.EventEmitter<Boolean>()
@@ -195,6 +203,7 @@ function startREPLMsgServer(pipename: string) {
         g_connection.onNotification(notifyTypeReplStartEval, () => { })
         g_connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
         g_connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
+        g_connection.onNotification(notifyTypeProgress, updateProgress)
 
         g_connection.listen()
 
@@ -206,6 +215,49 @@ function startREPLMsgServer(pipename: string) {
     server.listen(pipename)
 
     return connected
+}
+
+let g_progress_dict = {}
+
+async function updateProgress(progress: Progress) {
+    if (g_progress_dict[progress.id.value]) {
+        const p = g_progress_dict[progress.id.value]
+        const increment = progress.done ? 100 : (progress.fraction - p.last_fraction) * 100
+        p.progress.report({
+            increment: increment,
+            message: progress.name + ` (${(progress.fraction * 100).toFixed(1)}%)`
+        })
+        p.last_fraction = progress.fraction
+
+        if (progress.done) {
+            p.resolve()
+            delete g_progress_dict[progress.id.value]
+        }
+    } else {
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: 'Julia'
+        }, (prog) => {
+            return new Promise(resolve => {
+                g_progress_dict[progress.id.value] = {
+                    progress: prog,
+                    last_fraction: progress.fraction,
+                    resolve: resolve
+                }
+                prog.report({
+                    increment: progress.fraction,
+                    message: progress.name + ` (${(progress.fraction * 100).toFixed(1)}%)`
+                })
+            })
+        })
+    }
+}
+
+export function clearProgress() {
+    for (const id in g_progress_dict) {
+        g_progress_dict[id].resolve()
+        delete g_progress_dict[id]
+    }
 }
 
 async function executeFile(uri?: vscode.Uri) {
@@ -247,6 +299,7 @@ async function executeFile(uri?: vscode.Uri) {
             softscope: false
         }
     )
+
     await workspace.replFinishEval()
 }
 
@@ -410,7 +463,6 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     if (resultType !== 'REPL') {
         r = results.addResult(editor, range, ' ⟳ ', '')
     }
-
     const result: ReturnResult = await g_connection.sendRequest(
         requestTypeReplRunCode,
         {

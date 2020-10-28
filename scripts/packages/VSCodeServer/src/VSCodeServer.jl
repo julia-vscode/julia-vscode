@@ -7,6 +7,7 @@ using REPL, Sockets, Base64, Pkg, UUIDs
 import Base: display, redisplay
 import Dates
 import Profile
+import Logging
 
 function __init__()
     atreplinit() do repl
@@ -61,6 +62,7 @@ include("trees.jl")
 include("repl.jl")
 include("gridviewer.jl")
 include("module.jl")
+include("progress.jl")
 include("eval.jl")
 include("display.jl")
 include("profiler.jl")
