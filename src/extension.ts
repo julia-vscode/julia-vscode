@@ -147,7 +147,8 @@ async function startLanguageServer() {
         env: {
             JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
             JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
-            HOME: process.env.HOME ? process.env.HOME : os.homedir()
+            HOME: process.env.HOME ? process.env.HOME : os.homedir(),
+            JULIA_LANGUAGESERVER: '1'
         }
     }
 
