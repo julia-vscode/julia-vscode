@@ -233,12 +233,12 @@
             },
             {
                 "command": "language-julia.runEditorContents",
-                "title": "Julia: Run File",
+                "title": "Julia: Run File in new process",
                 "icon": "$(play)"
             },
             {
                 "command": "language-julia.debugEditorContents",
-                "title": "Julia: Debug File",
+                "title": "Julia: Debug File in new process",
                 "icon": "$(debug-alt)"
             }
         ],
@@ -271,7 +271,7 @@
                     "command": "language-julia.plotpane-delete-all"
                 },
                 {
-                    "command": "language-julia.runEditorContents",
+                    "command": "language-julia.executeFile",
                     "when": "resourceLangId == julia",
                     "group": "1_run@10"
                 },
