@@ -76,7 +76,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 })
         }
 
-        context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
+        context.subscriptions.push(
+            // commands
+            vscode.commands.registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
+            vscode.commands.registerCommand('language-julia.restartLanguageServer', restartLanguageServer),
+            // registries
+            vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider())
+        )
 
         const api = {
             version: 2,
@@ -114,11 +120,7 @@ export const onDidChangeConfig = g_onDidChangeConfig.event
 function changeConfig(event: vscode.ConfigurationChangeEvent) {
     g_onDidChangeConfig.fire(event)
     if (event.affectsConfiguration('julia.executablePath')) {
-        if (g_languageClient !== null) {
-            g_languageClient.stop()
-            setLanguageClient()
-        }
-        startLanguageServer()
+        restartLanguageServer()
     }
 }
 
@@ -214,6 +216,17 @@ async function startLanguageServer() {
         }
     })
 
+    // automatic environement refreshing
+    const targetFile = (await jlpkgenv.getProjectFilePaths(jlEnvPath)).manifest_toml_path
+    const disposableWatcher = vscode.workspace.createFileSystemWatcher(targetFile) // TODO: needs to fix backslashes on Windows ?
+    g_context.subscriptions.push(
+        disposableWatcher,
+        disposableWatcher.onDidChange(_ => {
+            if (!languageClient.needsStop()) { return } // this client already gets stopped
+            refreshLanguageServer(languageClient)
+        })
+    )
+
     const disposable = vscode.commands.registerCommand('language-julia.showLanguageServerOutput', () => {
         languageClient.outputChannel.show(true)
     })
@@ -234,4 +247,17 @@ async function startLanguageServer() {
         disposable.dispose()
         startupNotification.dispose()
     }
+}
+
+function refreshLanguageServer(languageClient: vslc.LanguageClient = g_languageClient) {
+    if (!languageClient) { return }
+    languageClient.sendNotification('julia/refreshLanguageServer')
+}
+
+function restartLanguageServer(languageClient: vslc.LanguageClient = g_languageClient) {
+    if (languageClient !== null) {
+        languageClient.stop()
+        setLanguageClient()
+    }
+    startLanguageServer()
 }

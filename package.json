@@ -108,6 +108,14 @@
         ],
         "commands": [
             {
+                "command": "language-julia.refreshLanguageServer",
+                "title": "Julia: Re-Index Language Server Cache"
+            },
+            {
+                "command": "language-julia.restartLanguageServer",
+                "title": "Julia: Restart Language Server"
+            },
+            {
                 "command": "language-julia.openPackageDirectory",
                 "title": "Julia: Open Package Directory in New Window"
             },
