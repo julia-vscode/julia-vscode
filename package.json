@@ -109,7 +109,7 @@
         "commands": [
             {
                 "command": "language-julia.refreshLanguageServer",
-                "title": "Julia: Refresh Language Server"
+                "title": "Julia: Re-Index Language Server Cache"
             },
             {
                 "command": "language-julia.restartLanguageServer",
