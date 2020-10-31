@@ -19,7 +19,7 @@ function sendDisplayMsg(kind, data)
     JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,String}("kind" => kind, "data" => data))
 end
 
-function display(_::InlineDisplay, m::MIME, x)
+function display(d::InlineDisplay, m::MIME, x)
     mime = string(m)
     if PLOT_PANE_ENABLED[] && mime in DISPLAYABLE_MIMES
         payload = stringmime(m, x)
