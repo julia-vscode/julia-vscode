@@ -50,6 +50,8 @@ end
 
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     return run_with_backend() do
+        fix_displays()
+
         source_filename = params.filename
         code_line = params.line
         code_column = params.column
@@ -99,7 +101,6 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     if show_result
                         if res isa EvalError
                             Base.display_error(stderr, res)
-
                         elseif res !== nothing && !ends_with_semicolon(source_code)
                             try
                                 Base.invokelatest(display, res)

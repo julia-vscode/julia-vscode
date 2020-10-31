@@ -569,6 +569,15 @@ export function activate(context: vscode.ExtensionContext) {
     // copy-paste selection into REPL. doesn't require LS to be started
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste))
 
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
+        if (event.affectsConfiguration('julia.usePlotPane')) {
+            try {
+                g_connection.sendNotification('repl/togglePlotPane', vscode.workspace.getConfiguration('julia').get('usePlotPane'))
+            } catch (err) {
+                console.warn(err)
+            }
+        }
+    }))
 
     vscode.window.onDidCloseTerminal(terminal => {
         if (terminal === g_terminal) {

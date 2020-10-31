@@ -43,3 +43,4 @@ const repl_isModuleLoaded_request_type = JSONRPC.RequestType("repl/isModuleLoade
 const repl_startdebugger_notification_type = JSONRPC.NotificationType("repl/startdebugger", String)
 const repl_showprofileresult_notification_type = JSONRPC.NotificationType("repl/showprofileresult", String)
 const repl_showprofileresult_file_notification_type = JSONRPC.NotificationType("repl/showprofileresult_file", String)
+const repl_toggle_plot_pane_notification_type = JSONRPC.NotificationType("repl/togglePlotPane", Bool)
