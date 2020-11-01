@@ -82,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.showInVSCode', showInVSCode))
     context.subscriptions.push(onInit(connection => {
         g_connection = connection
-        connection.onNotification(notifyTypeReplFinishEval, async () => await updateReplVariables())
+        connection.onNotification(notifyTypeReplFinishEval, updateReplVariables)
         updateReplVariables()
     }))
     context.subscriptions.push(onExit(hasError => {
