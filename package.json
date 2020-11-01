@@ -238,7 +238,7 @@
             },
             {
                 "command": "language-julia.debugEditorContents",
-                "title": "Julia: Debug File in new process",
+                "title": "Julia: Debug File in New Process",
                 "icon": "$(debug-alt)"
             }
         ],
