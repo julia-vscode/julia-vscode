@@ -545,42 +545,44 @@ export async function replStartDebugger(pipename: string) {
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
-    context.subscriptions.push(onSetLanguageClient(languageClient => {
-        g_languageClient = languageClient
-    }))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.stopREPL', killREPL))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCell', executeCell))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeFile', executeFile))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.interrupt', interrupt))
-
-    // copy-paste selection into REPL. doesn't require LS to be started
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste))
-
-    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
-        if (event.affectsConfiguration('julia.usePlotPane')) {
-            try {
-                g_connection.sendNotification('repl/togglePlotPane', vscode.workspace.getConfiguration('julia').get('usePlotPane'))
-            } catch (err) {
-                console.warn(err)
+    context.subscriptions.push(
+        // listeners
+        onSetLanguageClient(languageClient => {
+            g_languageClient = languageClient
+        }),
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('julia.usePlotPane')) {
+                try {
+                    g_connection.sendNotification('repl/togglePlotPane', vscode.workspace.getConfiguration('julia').get('usePlotPane'))
+                } catch (err) {
+                    console.warn(err)
+                }
             }
-        }
-    }))
-
-    vscode.window.onDidCloseTerminal(terminal => {
-        if (terminal === g_terminal) {
-            g_terminal = null
-        }
-    })
+        }),
+        vscode.window.onDidChangeActiveTerminal(terminal => {
+            if (terminal === g_terminal) {
+                setContext('isJuliaREPL', true)
+            } else {
+                setContext('isJuliaREPL', false)
+            }
+        }),
+        vscode.window.onDidCloseTerminal(terminal => {
+            if (terminal === g_terminal) {
+                g_terminal = null
+            }
+        }),
+        // commands
+        vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand),
+        vscode.commands.registerCommand('language-julia.stopREPL', killREPL),
+        vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock),
+        vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
+        vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
+        vscode.commands.registerCommand('language-julia.executeCell', executeCell),
+        vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
+        vscode.commands.registerCommand('language-julia.executeFile', executeFile),
+        vscode.commands.registerCommand('language-julia.interrupt', interrupt),
+        vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
+    )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
     const shellSkipCommands: Array<String> = terminalConfig.get('commandsToSkipShell')
@@ -588,14 +590,6 @@ export function activate(context: vscode.ExtensionContext) {
         shellSkipCommands.push('language-julia.interrupt')
         terminalConfig.update('commandsToSkipShell', shellSkipCommands, true)
     }
-
-    vscode.window.onDidChangeActiveTerminal(terminal => {
-        if (terminal === g_terminal) {
-            setContext('isJuliaREPL', true)
-        } else {
-            setContext('isJuliaREPL', false)
-        }
-    })
 
     results.activate(context)
     plots.activate(context)
