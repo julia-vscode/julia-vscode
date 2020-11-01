@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
-import { notifyTypeReplFinishEval, notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
+import { notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
 
 let g_connection: rpc.MessageConnection = null
 
@@ -83,7 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
         // listeners
         onInit(connection => {
             g_connection = connection
-            connection.onNotification(notifyTypeReplFinishEval, updateReplVariables)
+            updateReplVariables()
         }),
         onFinishEval(_ => updateReplVariables()),
         onExit(e => clearVariables()),
