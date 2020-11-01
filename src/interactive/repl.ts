@@ -180,6 +180,10 @@ const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
 const g_onExit = new vscode.EventEmitter<Boolean>()
 export const onExit = g_onExit.event
+const g_onStartEval = new vscode.EventEmitter<null>()
+export const onStartEval = g_onStartEval.event
+const g_onFinishEval = new vscode.EventEmitter<null>()
+export const onFinishEval = g_onFinishEval.event
 
 // code execution start
 
@@ -196,15 +200,6 @@ function startREPLMsgServer(pipename: string) {
             new rpc.StreamMessageReader(socket),
             new rpc.StreamMessageWriter(socket)
         )
-
-        g_connection.onNotification(notifyTypeDisplay, plots.displayPlot)
-        g_connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
-        g_connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
-        g_connection.onNotification(notifyTypeReplStartEval, () => { })
-        g_connection.onNotification(notifyTypeReplFinishEval, clearProgress)
-        g_connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
-        g_connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
-        g_connection.onNotification(notifyTypeProgress, updateProgress)
 
         g_connection.listen()
 
@@ -550,6 +545,17 @@ export function activate(context: vscode.ExtensionContext) {
         onSetLanguageClient(languageClient => {
             g_languageClient = languageClient
         }),
+        onInit(connection => {
+            connection.onNotification(notifyTypeDisplay, plots.displayPlot)
+            connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
+            connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
+            connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
+            connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
+            connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
+            connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
+            connection.onNotification(notifyTypeProgress, updateProgress)
+        }),
+        onFinishEval(clearProgress),
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('julia.usePlotPane')) {
                 try {
