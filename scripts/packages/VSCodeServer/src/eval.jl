@@ -91,6 +91,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                 end
 
                 withpath(source_filename) do
+                    info = (; filename = source_filename, line = code_line)
+                    JSONRPC.send_notification(conn_endpoint[], "repl/starteval", info)
                     res = try
                         ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
                         @eval Main ans = $(QuoteNode(ans))

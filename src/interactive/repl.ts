@@ -5,6 +5,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
+import { Command } from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
@@ -162,7 +163,7 @@ const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, 
 const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter')
 const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run')
 const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger')
-const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval')
+const notifyTypeReplStartEval = new rpc.NotificationType<EvaluationInfo|undefined, void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('repl/showingrid')
 const notifyTypeShowProfilerResult = new rpc.NotificationType<string, void>('repl/showprofileresult')
@@ -174,15 +175,20 @@ interface Progress {
     fraction: number,
     done: Boolean
 }
+interface EvaluationInfo {
+    filename: string
+    line: number
+}
+
 const notifyTypeProgress = new rpc.NotificationType<Progress, void>('repl/updateProgress')
 
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
 const g_onExit = new vscode.EventEmitter<Boolean>()
 export const onExit = g_onExit.event
-const g_onStartEval = new vscode.EventEmitter<null>()
+const g_onStartEval = new vscode.EventEmitter<EvaluationInfo|undefined>()
 export const onStartEval = g_onStartEval.event
-const g_onFinishEval = new vscode.EventEmitter<null>()
+const g_onFinishEval = new vscode.EventEmitter<undefined>()
 export const onFinishEval = g_onFinishEval.event
 
 // code execution start
@@ -540,22 +546,46 @@ export async function replStartDebugger(pipename: string) {
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
+    let evaluationIndicator: vscode.StatusBarItem
+
     context.subscriptions.push(
         // listeners
         onSetLanguageClient(languageClient => {
             g_languageClient = languageClient
         }),
         onInit(connection => {
+            evaluationIndicator = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
+            evaluationIndicator.text = '$(refresh~spin) Julia: Evaluating ...'
+
             connection.onNotification(notifyTypeDisplay, plots.displayPlot)
             connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
             connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
-            connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
-            connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
+            connection.onNotification(notifyTypeReplStartEval, info => g_onStartEval.fire(info))
+            connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(undefined))
             connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
             connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
-            connection.onNotification(notifyTypeProgress, updateProgress)
+            connection.onNotification(notifyTypeProgress, progress => {
+                evaluationIndicator.hide() // otherwise evaluation indicator and progress indicator will look verbose
+                updateProgress(progress)
+            })
         }),
-        onFinishEval(clearProgress),
+        onStartEval(info => {
+            evaluationIndicator.tooltip = `click to jump to the code`
+            if (info) {
+                evaluationIndicator.command = Command.create('openFile', 'language-julia.openFile', {
+                    path: info.filename,
+                    line: info.line + 1,
+                })
+            }
+            evaluationIndicator.show()
+        }),
+        onFinishEval(_ => {
+            evaluationIndicator.hide()
+            clearProgress()
+        }),
+        onExit(_ => {
+            evaluationIndicator.dispose()
+        }),
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('julia.usePlotPane')) {
                 try {
