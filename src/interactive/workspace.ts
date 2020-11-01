@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
-import { clearProgress, notifyTypeReplFinishEval, notifyTypeReplShowInGrid, onExit, onInit } from './repl'
+import { notifyTypeReplFinishEval, notifyTypeReplShowInGrid, onExit, onInit } from './repl'
 
 let g_connection: rpc.MessageConnection = null
 
@@ -71,11 +71,6 @@ export async function updateReplVariables() {
     g_REPLTreeDataProvider.refresh()
 }
 
-export async function replFinishEval() {
-    await updateReplVariables()
-    clearProgress()
-}
-
 async function showInVSCode(node: WorkspaceVariable) {
     g_connection.sendNotification(notifyTypeReplShowInGrid, node.head)
 }
@@ -87,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.showInVSCode', showInVSCode))
     context.subscriptions.push(onInit(connection => {
         g_connection = connection
-        connection.onNotification(notifyTypeReplFinishEval, replFinishEval)
+        connection.onNotification(notifyTypeReplFinishEval, async () => await updateReplVariables())
         updateReplVariables()
     }))
     context.subscriptions.push(onExit(hasError => {

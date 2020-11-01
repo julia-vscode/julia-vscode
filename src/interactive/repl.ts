@@ -201,6 +201,7 @@ function startREPLMsgServer(pipename: string) {
         g_connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
         g_connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
         g_connection.onNotification(notifyTypeReplStartEval, () => { })
+        g_connection.onNotification(notifyTypeReplFinishEval, clearProgress)
         g_connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
         g_connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
         g_connection.onNotification(notifyTypeProgress, updateProgress)
@@ -217,7 +218,7 @@ function startREPLMsgServer(pipename: string) {
     return connected
 }
 
-let g_progress_dict = {}
+const g_progress_dict = {}
 
 async function updateProgress(progress: Progress) {
     if (g_progress_dict[progress.id.value]) {
@@ -253,7 +254,7 @@ async function updateProgress(progress: Progress) {
     }
 }
 
-export function clearProgress() {
+function clearProgress() {
     for (const id in g_progress_dict) {
         g_progress_dict[id].resolve()
         delete g_progress_dict[id]
@@ -299,8 +300,6 @@ async function executeFile(uri?: vscode.Uri) {
             softscope: false
         }
     )
-
-    await workspace.replFinishEval()
 }
 
 async function getBlockRange(params): Promise<vscode.Position[]> {
@@ -477,8 +476,6 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         }
     )
 
-    await workspace.replFinishEval()
-
     if (resultType !== 'REPL') {
         if (result.stackframe) {
             results.clearStackTrace()
@@ -587,7 +584,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
     const shellSkipCommands: Array<String> = terminalConfig.get('commandsToSkipShell')
-    if (shellSkipCommands.indexOf('language-julia.interrupt') == -1) {
+    if (shellSkipCommands.indexOf('language-julia.interrupt') === -1) {
         shellSkipCommands.push('language-julia.interrupt')
         terminalConfig.update('commandsToSkipShell', shellSkipCommands, true)
     }
