@@ -233,7 +233,7 @@
             },
             {
                 "command": "language-julia.runEditorContents",
-                "title": "Julia: Run File in new process",
+                "title": "Julia: Run File in New Process",
                 "icon": "$(play)"
             },
             {
