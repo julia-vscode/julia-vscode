@@ -38,8 +38,13 @@ function is_remote_env(): boolean {
 
 function get_editor(): string {
     if (is_remote_env() || process.platform === 'darwin') {
-        const cmd = vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
-        return `"${path.join(vscode.env.appRoot, 'bin', cmd)}"`
+        // code-server:
+        if (vscode.env.appName === 'Code - OSS') {
+            return `"${path.join(vscode.env.appRoot, '..', '..', 'bin', 'code-server')}"`
+        } else {
+            const cmd = vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
+            return `"${path.join(vscode.env.appRoot, 'bin', cmd)}"`
+        }
     }
     else {
         return `"${process.execPath}"`
