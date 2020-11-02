@@ -219,9 +219,10 @@ async function updateProgress(progress: Progress) {
     if (g_progress_dict[progress.id.value]) {
         const p = g_progress_dict[progress.id.value]
         const increment = progress.done ? 100 : (progress.fraction - p.last_fraction) * 100
+
         p.progress.report({
             increment: increment,
-            message: progress.name + ` (${(progress.fraction * 100).toFixed(1)}%)`
+            message: progressMessage(progress)
         })
         p.last_fraction = progress.fraction
 
@@ -232,21 +233,32 @@ async function updateProgress(progress: Progress) {
     } else {
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Window,
-            title: 'Julia'
-        }, (prog) => {
+            title: 'Julia',
+            cancellable: true
+        }, (prog, token) => {
             return new Promise(resolve => {
                 g_progress_dict[progress.id.value] = {
                     progress: prog,
                     last_fraction: progress.fraction,
-                    resolve: resolve
+                    resolve: resolve,
                 }
+                token.onCancellationRequested(ev => {
+                    interrupt()
+                })
                 prog.report({
-                    increment: progress.fraction,
-                    message: progress.name + ` (${(progress.fraction * 100).toFixed(1)}%)`
+                    message: progressMessage(progress)
                 })
             })
         })
     }
+}
+
+function progressMessage(prog: Progress) {
+    let message = prog.name
+    if (!isNaN(prog.fraction) && 0 <= prog.fraction && prog.fraction <= 1) {
+        message += ` (${(prog.fraction * 100).toFixed(1)}%)`
+    }
+    return message
 }
 
 function clearProgress() {
@@ -457,6 +469,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     if (resultType !== 'REPL') {
         r = results.addResult(editor, range, ' ⟳ ', '')
     }
+
     const result: ReturnResult = await g_connection.sendRequest(
         requestTypeReplRunCode,
         {
@@ -554,6 +567,14 @@ export function activate(context: vscode.ExtensionContext) {
             connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
             connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
             connection.onNotification(notifyTypeProgress, updateProgress)
+        }),
+        onStartEval(() => {
+            updateProgress({
+                name: 'Evaluating…',
+                id: { value: -1 },
+                fraction: -1,
+                done: false
+            })
         }),
         onFinishEval(clearProgress),
         vscode.workspace.onDidChangeConfiguration(event => {

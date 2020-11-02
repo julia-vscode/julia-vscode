@@ -68,6 +68,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
         show_code = params.showCodeInREPL
         show_result = params.showResultInREPL
 
+        JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+
         rendered_result = nothing
         Logging.with_logger(VSCodeLogger()) do
             hideprompt() do
