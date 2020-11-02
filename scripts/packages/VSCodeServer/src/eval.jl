@@ -96,6 +96,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                         @eval Main ans = $(QuoteNode(ans))
                     catch err
                         EvalError(err, catch_backtrace())
+                    finally
+                        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
                     end
 
                     if show_result
