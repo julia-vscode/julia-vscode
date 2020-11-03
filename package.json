@@ -333,7 +333,7 @@
             {
                 "command": "language-julia.interrupt",
                 "key": "Ctrl+C",
-                "when": "terminalFocus && isJuliaREPL"
+                "when": "terminalFocus && isJuliaREPL && isJuliaEvaluating"
             },
             {
                 "command": "language-julia.executeCellAndMove",
