@@ -572,9 +572,11 @@ export function activate(context: vscode.ExtensionContext) {
             connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
             connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
             connection.onNotification(notifyTypeProgress, updateProgress)
+            setContext('isJuliaEvaluating', false)
         }),
         onExit(() => {
             results.removeAll()
+            setContext('isJuliaEvaluating', false)
         }),
         onStartEval(() => {
             updateProgress({
@@ -583,8 +585,12 @@ export function activate(context: vscode.ExtensionContext) {
                 fraction: -1,
                 done: false
             })
+            setContext('isJuliaEvaluating', true)
         }),
-        onFinishEval(clearProgress),
+        onFinishEval(() => {
+            clearProgress()
+            setContext('isJuliaEvaluating', false)
+        }),
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('julia.usePlotPane')) {
                 try {
