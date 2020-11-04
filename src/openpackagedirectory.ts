@@ -4,8 +4,7 @@ import * as vscode from 'vscode'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
 
-// This method implements the language-julia.openPackageDirectory command
-async function openPackageDirectoryCommand() {
+async function openPackageDirectory(newWindow = false) {
     telemetry.traceEvent('command-openpackagedirectory')
 
     const optionsPackage: vscode.QuickPickOptions = {
@@ -29,7 +28,7 @@ async function openPackageDirectoryCommand() {
                 const folder = vscode.Uri.file(path.join(juliaVersionHomeDir, resultPackage))
 
                 try {
-                    await vscode.commands.executeCommand('vscode.openFolder', folder, true)
+                    await vscode.commands.executeCommand('vscode.openFolder', folder, newWindow)
                 }
                 catch (e) {
                     vscode.window.showInformationMessage('Could not open the package.')
@@ -43,5 +42,6 @@ async function openPackageDirectoryCommand() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.openPackageDirectory', () => openPackageDirectory(true)))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.addPackageDirectory', () => openPackageDirectory(false)))
 }

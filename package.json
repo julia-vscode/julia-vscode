@@ -28,6 +28,7 @@
         "onDebugInitialConfigurations",
         "onDebugResolve:julia",
         "onCommand:language-julia.openPackageDirectory",
+        "onCommand:language-julia.addPackageDirectory",
         "onCommand:language-julia.changeCurrentEnvironment",
         "onCommand:language-julia.startREPL",
         "onCommand:language-julia.stopREPL",
@@ -118,6 +119,10 @@
             {
                 "command": "language-julia.openPackageDirectory",
                 "title": "Julia: Open Package Directory in New Window"
+            },
+            {
+                "command": "language-julia.addPackageDirectory",
+                "title": "Julia: Add Package Directory to Workspace"
             },
             {
                 "command": "language-julia.changeCurrentEnvironment",
