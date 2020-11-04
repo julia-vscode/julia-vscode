@@ -565,12 +565,15 @@ async function activateHere(uri: vscode.Uri) {
     }
 }
 
-async function getDirUriFsPath(uri: vscode.Uri) {
+async function getDirUriFsPath(uri: vscode.Uri | undefined) {
     if (!uri) {
         const ed = vscode.window.activeTextEditor
         if (ed && ed.document && ed.document.uri) {
             uri = ed.document.uri
         }
+    }
+    if (!uri || !uri.fsPath) {
+        return undefined
     }
     let uriPath = uri.fsPath
     const stat = await fs.stat(uriPath)
@@ -579,7 +582,7 @@ async function getDirUriFsPath(uri: vscode.Uri) {
     } else if (stat.isDirectory()) {
         return uriPath
     } else {
-        return null
+        return undefined
     }
 
 }
@@ -658,8 +661,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.executeFile', executeFile),
         vscode.commands.registerCommand('language-julia.interrupt', interrupt),
         vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
-        vscode.commands.registerCommand('language-julia.cdHere', cdToHere), // copy-paste selection into REPL. doesn't require LS to be started
-        vscode.commands.registerCommand('language-julia.activateHere', activateHere), // copy-paste selection into REPL. doesn't require LS to be started
+        vscode.commands.registerCommand('language-julia.cdHere', cdToHere),
+        vscode.commands.registerCommand('language-julia.activateHere', activateHere)
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
