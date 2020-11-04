@@ -44,6 +44,10 @@
         "onCommand:language-julia.debug.getActiveJuliaEnvironment",
         "onCommand:language-julia.debugEditorContents",
         "onCommand:language-julia.runEditorContents",
+        "onCommand:language-julia.interrupt",
+        "onCommand:language-julia.cdHere",
+        "onCommand:language-julia.activateHere",
+        "onCommand:language-julia.activateFromDir",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
@@ -145,7 +149,8 @@
             },
             {
                 "command": "language-julia.executeFile",
-                "title": "Julia: Execute File"
+                "title": "Julia: Execute File",
+                "icon": "$(play)"
             },
             {
                 "command": "language-julia.interrupt",
@@ -240,6 +245,18 @@
                 "command": "language-julia.debugEditorContents",
                 "title": "Julia: Debug File in New Process",
                 "icon": "$(debug-alt)"
+            },
+            {
+                "command": "language-julia.cdHere",
+                "title": "Julia: Change to This Directory"
+            },
+            {
+                "command": "language-julia.activateHere",
+                "title": "Julia: Activate This Environment"
+            },
+            {
+                "command": "language-julia.activateFromDir",
+                "title": "Julia: Activate Parent Environment"
             }
         ],
         "menus": {
@@ -247,6 +264,18 @@
                 {
                     "when": "resourceLangId == julia",
                     "command": "language-julia.executeFile",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.cdHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateFromDir",
                     "group": "julia"
                 }
             ],
@@ -283,6 +312,18 @@
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
                     "when": "editorLangId == julia"
+                },
+                {
+                    "command": "language-julia.cdHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateFromDir",
+                    "group": "julia"
                 }
             ],
             "commandPalette": [

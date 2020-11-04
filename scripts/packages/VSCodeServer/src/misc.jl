@@ -7,7 +7,7 @@ function find_frame_index(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}}, fi
     for (i, ip) in enumerate(bt)
         st = Base.StackTraces.lookup(ip)
         ind = find_frame_index(st, file, func)
-        ind===nothing || return i
+        ind === nothing || return i
     end
     return
 end
@@ -28,11 +28,11 @@ isuntitled(path) = occursin(r"Untitled-\d+$", path)
 basepath(path) = normpath(joinpath(Sys.BINDIR, Base.DATAROOTDIR, "julia", "base", path))
 
 function realpath′(p)
-  try
-    ispath(p) ? realpath(p) : p
-  catch e
-    p
-  end |> normpath
+    try
+        ispath(p) ? realpath(p) : p
+    catch e
+        p
+    end |> normpath
 end
 
 
@@ -128,3 +128,34 @@ function encode_uri_component(uri)
 end
 
 vscode_cmd_uri(cmd; cmdargs...) = string("command:", cmd, '?', encode_uri_component(JSON.json(cmdargs)))
+
+# Misc handlers
+function cd_to_uri(conn, uri)
+    cd(uri)
+    return nothing
+end
+
+function activate_uri(conn, uri)
+    Pkg.activate(uri)
+    return nothing
+end
+
+function activate_from_dir(conn, dir)
+    path = search_up_file("Project.toml", dir)
+    path === nothing && return nothing
+    Pkg.activate(path)
+    return dirname(path)
+end
+
+function search_up_file(basename, dir)
+    parent_dir = dirname(dir)
+    return if (parent_dir == dir || # ensure to escape infinite recursion
+        isempty(dir)) # reached to the system root
+        nothing
+    else
+        path = joinpath(dir, basename)
+        isfile′(path) ? path : search_up_file(basename, parent_dir)
+    end
+end
+
+isfile′(p) = try; isfile(p) catch; false end
