@@ -588,7 +588,11 @@ async function activateFromDir(uri: vscode.Uri) {
     await startREPL(true, false)
     if (uriPath) {
         try {
-            const activeDir = await g_connection.sendRequest<string>('repl/activateProjectFromDir', uriPath)
+            const activeDir = await g_connection.sendRequest<string | undefined>('repl/activateProjectFromDir', uriPath)
+            if (!activeDir) {
+                vscode.window.showWarningMessage(`No project file found for ${uriPath}`)
+                return
+            }
             switchEnvToPath(activeDir, true)
         } catch (err) {
             console.log(err)
