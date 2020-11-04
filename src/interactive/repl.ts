@@ -7,6 +7,7 @@ import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
+import { switchEnvToPath } from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads, setContext } from '../utils'
@@ -549,6 +550,40 @@ function interrupt() {
 
 // code execution end
 
+async function cdToHere(uri: vscode.Uri) {
+    const uriPath = await getDirUriFsPath(uri)
+    if (uriPath) {
+        g_connection.sendNotification('repl/cd', uriPath)
+    }
+}
+
+async function activateHere(uri: vscode.Uri) {
+    const uriPath = await getDirUriFsPath(uri)
+    if (uriPath) {
+        g_connection.sendNotification('repl/activateProject', uriPath)
+        switchEnvToPath(uriPath, true)
+    }
+}
+
+async function getDirUriFsPath(uri: vscode.Uri) {
+    if (!uri) {
+        const ed = vscode.window.activeTextEditor
+        if (ed && ed.document && ed.document.uri) {
+            uri = ed.document.uri
+        }
+    }
+    let uriPath = uri.fsPath
+    const stat = await fs.stat(uriPath)
+    if (stat.isFile()) {
+        return path.dirname(uriPath)
+    } else if (stat.isDirectory()) {
+        return uriPath
+    } else {
+        return null
+    }
+
+}
+
 export async function replStartDebugger(pipename: string) {
     await startREPL(true)
 
@@ -623,6 +658,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.executeFile', executeFile),
         vscode.commands.registerCommand('language-julia.interrupt', interrupt),
         vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
+        vscode.commands.registerCommand('language-julia.cdHere', cdToHere), // copy-paste selection into REPL. doesn't require LS to be started
+        vscode.commands.registerCommand('language-julia.activateHere', activateHere), // copy-paste selection into REPL. doesn't require LS to be started
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')

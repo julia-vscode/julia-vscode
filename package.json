@@ -145,7 +145,8 @@
             },
             {
                 "command": "language-julia.executeFile",
-                "title": "Julia: Execute File"
+                "title": "Julia: Execute File",
+                "icon": "$(play)"
             },
             {
                 "command": "language-julia.interrupt",
@@ -240,6 +241,14 @@
                 "command": "language-julia.debugEditorContents",
                 "title": "Julia: Debug File in New Process",
                 "icon": "$(debug-alt)"
+            },
+            {
+                "command": "language-julia.cdHere",
+                "title": "Julia: Change to this directory"
+            },
+            {
+                "command": "language-julia.activateHere",
+                "title": "Julia: Activate this environment"
             }
         ],
         "menus": {
@@ -247,6 +256,14 @@
                 {
                     "when": "resourceLangId == julia",
                     "command": "language-julia.executeFile",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.cdHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateHere",
                     "group": "julia"
                 }
             ],
@@ -283,6 +300,14 @@
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
                     "when": "editorLangId == julia"
+                },
+                {
+                    "command": "language-julia.cdHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateHere",
+                    "group": "julia"
                 }
             ],
             "commandPalette": [
