@@ -100,6 +100,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_toggle_plot_pane_notification_type] = toggle_plot_pane
         msg_dispatcher[cd_notification_type] = cd_to_uri
         msg_dispatcher[activate_project_notification_type] = activate_uri
+        msg_dispatcher[activate_project_from_dir_request] = activate_from_dir
 
         while true
             msg = JSONRPC.get_next_message(conn_endpoint[])

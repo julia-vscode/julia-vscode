@@ -46,3 +46,4 @@ const repl_showprofileresult_file_notification_type = JSONRPC.NotificationType("
 const repl_toggle_plot_pane_notification_type = JSONRPC.NotificationType("repl/togglePlotPane", Bool)
 const cd_notification_type = JSONRPC.NotificationType("repl/cd", String)
 const activate_project_notification_type = JSONRPC.NotificationType("repl/activateProject", String)
+const activate_project_from_dir_request = JSONRPC.RequestType("repl/activateProjectFromDir", String, Union{Nothing,String})

@@ -47,6 +47,7 @@
         "onCommand:language-julia.interrupt",
         "onCommand:language-julia.cdHere",
         "onCommand:language-julia.activateHere",
+        "onCommand:language-julia.activateFromDir",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
@@ -252,6 +253,10 @@
             {
                 "command": "language-julia.activateHere",
                 "title": "Julia: Activate This Environment"
+            },
+            {
+                "command": "language-julia.activateFromDir",
+                "title": "Julia: Activate Parent Environment"
             }
         ],
         "menus": {
@@ -267,6 +272,10 @@
                 },
                 {
                     "command": "language-julia.activateHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateFromDir",
                     "group": "julia"
                 }
             ],
@@ -310,6 +319,10 @@
                 },
                 {
                     "command": "language-julia.activateHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateFromDir",
                     "group": "julia"
                 }
             ],
