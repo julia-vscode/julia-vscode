@@ -248,7 +248,7 @@
             },
             {
                 "command": "language-julia.activateHere",
-                "title": "Julia: Activate this environment"
+                "title": "Julia: Activate This Environment"
             }
         ],
         "menus": {
