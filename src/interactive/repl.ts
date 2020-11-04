@@ -545,23 +545,41 @@ function executeSelectionCopyPaste() {
 
 function interrupt() {
     telemetry.traceEvent('command-interrupt')
-    g_connection.sendNotification('repl/interrupt')
+    try {
+        g_connection.sendNotification('repl/interrupt')
+    } catch (err) {
+        console.log(err)
+    }
 }
 
 // code execution end
 
 async function cdToHere(uri: vscode.Uri) {
+    telemetry.traceEvent('command-cdHere')
+
     const uriPath = await getDirUriFsPath(uri)
+    await startREPL(true, false)
     if (uriPath) {
-        g_connection.sendNotification('repl/cd', uriPath)
+        try {
+            g_connection.sendNotification('repl/cd', uriPath)
+        } catch (err) {
+            console.log(err)
+        }
     }
 }
 
 async function activateHere(uri: vscode.Uri) {
+    telemetry.traceEvent('command-activateThisEnvironment')
+
     const uriPath = await getDirUriFsPath(uri)
+    await startREPL(true, false)
     if (uriPath) {
-        g_connection.sendNotification('repl/activateProject', uriPath)
-        switchEnvToPath(uriPath, true)
+        try {
+            g_connection.sendNotification('repl/activateProject', uriPath)
+            switchEnvToPath(uriPath, true)
+        } catch (err) {
+            console.log(err)
+        }
     }
 }
 
@@ -575,6 +593,7 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
     if (!uri || !uri.fsPath) {
         return undefined
     }
+
     let uriPath = uri.fsPath
     const stat = await fs.stat(uriPath)
     if (stat.isFile()) {
@@ -584,7 +603,6 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
     } else {
         return undefined
     }
-
 }
 
 export async function replStartDebugger(pipename: string) {
