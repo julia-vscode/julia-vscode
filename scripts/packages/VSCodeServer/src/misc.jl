@@ -139,3 +139,24 @@ function activate_uri(conn, uri)
     Pkg.activate(uri)
     return nothing
 end
+
+function activate_from_dir(conn, dir)
+    path = search_up_file("Project.toml", dir)
+    if path === nothing
+        @warn "No Project.toml found for `$(dir)`"
+        return
+    end
+    Pkg.activate(path)
+    return dirname(path)
+end
+
+function search_up_file(basename, dir)
+    parent_dir = dirname(dir)
+    return if (parent_dir == dir || # ensure to escape infinite recursion
+        isempty(dir)) # reached to the system root
+        nothing
+    else
+        path = joinpath(dir, basename)
+        isfile(path) ? path : search_up_file(basename, parent_dir)
+    end
+end

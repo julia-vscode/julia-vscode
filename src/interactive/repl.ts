@@ -583,6 +583,19 @@ async function activateHere(uri: vscode.Uri) {
     }
 }
 
+async function activateFromDir(uri: vscode.Uri) {
+    const uriPath = await getDirUriFsPath(uri)
+    await startREPL(true, false)
+    if (uriPath) {
+        try {
+            const activeDir = await g_connection.sendRequest<string>('repl/activateProjectFromDir', uriPath)
+            switchEnvToPath(activeDir, true)
+        } catch (err) {
+            console.log(err)
+        }
+    }
+}
+
 async function getDirUriFsPath(uri: vscode.Uri | undefined) {
     if (!uri) {
         const ed = vscode.window.activeTextEditor
@@ -594,7 +607,7 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
         return undefined
     }
 
-    let uriPath = uri.fsPath
+    const uriPath = uri.fsPath
     const stat = await fs.stat(uriPath)
     if (stat.isFile()) {
         return path.dirname(uriPath)
@@ -680,7 +693,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.interrupt', interrupt),
         vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
         vscode.commands.registerCommand('language-julia.cdHere', cdToHere),
-        vscode.commands.registerCommand('language-julia.activateHere', activateHere)
+        vscode.commands.registerCommand('language-julia.activateHere', activateHere),
+        vscode.commands.registerCommand('language-julia.activateFromDir', activateFromDir),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
