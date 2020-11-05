@@ -1,7 +1,7 @@
 # ENV["JULIA_DEBUG"] = "all"
 
-Base.push!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
+pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
 import VSCodeDebugger
-pop!(LOAD_PATH)
+popfirst!(LOAD_PATH)
 
 VSCodeDebugger.startdebugger()
