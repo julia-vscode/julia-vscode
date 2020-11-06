@@ -34,9 +34,9 @@ Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
 
 displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
-function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}, x)
-    payload = stringmime(MIME("application/vnd.datareso urce+json"), x)
-    sendDisplayMsg("application/vnd.dataresource+json", payload)
+function display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
+    payload = stringmime(m, x)
+    sendDisplayMsg(string(m), payload)
 end
 
 Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) = true
