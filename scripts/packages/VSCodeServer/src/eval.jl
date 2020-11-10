@@ -48,6 +48,41 @@ function repl_interrupt_request(conn, ::Nothing)
     end
 end
 
+# https://github.com/JuliaLang/julia/blob/53a781d399bfb517b554fb1ae106e6dac99205f1/stdlib/REPL/src/REPL.jl#L547
+function add_code_to_repl_history(code)
+    code = strip(code)
+    isempty(code) && return
+
+    try
+        mode = get_main_mode()
+        hist = mode.hist
+        !isempty(hist.history) &&
+            isequal(:julia, hist.modes[end]) && code == hist.history[end] && return
+
+        hist.last_mode = mode
+        hist.last_buffer = let
+            io = IOBuffer()
+            print(io, code)
+            io
+        end
+        push!(hist.modes, :julia)
+        push!(hist.history, code)
+        hist.history_file === nothing && return
+        entry = """
+        # time: $(Libc.strftime("%Y-%m-%d %H:%M:%S %Z", time()))
+        # mode: julia
+        $(replace(code, r"^"ms => "\t"))
+        """
+        seekend(hist.history_file)
+        print(hist.history_file, entry)
+        flush(hist.history_file)
+
+        hist.cur_idx = length(hist.history) + 1
+    catch err
+        @error "writing to history failed" exception=(err, catch_backtrace())
+    end
+end
+
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     return run_with_backend() do
         fix_displays()
@@ -79,13 +114,25 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     end
                 end
                 if show_code
+                    add_code_to_repl_history(source_code)
+
+                    prompt = "julia> "
+                    prefix = "\e[32m"
+                    try
+                        mode = get_main_mode()
+                        prompt = mode.prompt
+                        prefix = mode.prompt_prefix
+                    catch err
+                        @debug "getting prompt info failed" exception=(err, catch_backtrace())
+                    end
+
                     for (i,line) in enumerate(eachline(IOBuffer(source_code)))
                         if i==1
-                            printstyled("julia> ", color=:green)
+                            print(prefix, prompt, "\e[0m")
                             print(' '^code_column)
                         else
                             # Indent by 7 so that it aligns with the julia> prompt
-                            print(' '^7)
+                            print(' '^length(prompt))
                         end
 
                         println(line)

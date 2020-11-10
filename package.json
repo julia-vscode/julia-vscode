@@ -705,7 +705,7 @@
                 "julia.execution.codeInREPL": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Print executed code in REPL.",
+                    "description": "Print executed code in REPL and append it to the REPL history.",
                     "scope": "window"
                 },
                 "julia.packageServer": {
