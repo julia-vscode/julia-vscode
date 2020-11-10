@@ -319,10 +319,8 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
-    const err = 'Error: Julia Language server is not running.\n\nPlease wait a few seconds and try again once the `Starting Julia Language Server...` message in the status bar is gone.'
-
     if (g_languageClient === null) {
-        vscode.window.showErrorMessage(err)
+        vscode.window.showWarningMessage(LSERRORMSG)
         return zeroReturn
     }
     let ret_val: vscode.Position[]
@@ -340,6 +338,9 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
 
     return ret_val
 }
+
+const LSERRORMSG = `Error: Julia Language server is not running.\n
+Please wait a few seconds and try again once the \`Starting Julia Language Server...\` message in the status bar is gone.`
 
 async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
@@ -572,11 +573,15 @@ async function activateHere(uri: vscode.Uri) {
     telemetry.traceEvent('command-activateThisEnvironment')
 
     const uriPath = await getDirUriFsPath(uri)
+    activatePath(uriPath)
+}
+
+async function activatePath(path: string) {
     await startREPL(true, false)
-    if (uriPath) {
+    if (path) {
         try {
-            g_connection.sendNotification('repl/activateProject', uriPath)
-            switchEnvToPath(uriPath, true)
+            g_connection.sendNotification('repl/activateProject', path)
+            switchEnvToPath(path, true)
         } catch (err) {
             console.log(err)
         }
@@ -584,16 +589,23 @@ async function activateHere(uri: vscode.Uri) {
 }
 
 async function activateFromDir(uri: vscode.Uri) {
+    if (!g_languageClient) {
+        vscode.window.showWarningMessage(LSERRORMSG)
+        return
+    }
+
     const uriPath = await getDirUriFsPath(uri)
-    await startREPL(true, false)
     if (uriPath) {
         try {
-            const activeDir = await g_connection.sendRequest<string | undefined>('repl/activateProjectFromDir', uriPath)
-            if (!activeDir) {
+            const target = await g_languageClient.sendRequest<string | undefined>('julia/fileSearchUp', {
+                target: 'Project.toml',
+                from: uriPath
+            })
+            if (!target) {
                 vscode.window.showWarningMessage(`No project file found for ${uriPath}`)
                 return
             }
-            switchEnvToPath(activeDir, true)
+            activatePath(path.dirname(target))
         } catch (err) {
             console.log(err)
         }
