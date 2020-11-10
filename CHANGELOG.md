@@ -1,10 +1,85 @@
-# Changelog
+# Change Log
+
+All notable changes to the Julia extension will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-* Code evaluated inline can now be interrupted with the `Julia: Interrupt` command.
-* The workspace view is now more robust against errors and only special-cases the `Array` and `Dict` types instead of their `Abstract*` supertypes.
+### Fixed
+* Push internal Julia modules to the front of `LOAD_PATH` to prevent loading code from the workspace instead ([#1747](https://github.com/julia-vscode/julia-vscode/pull/1747)).
 
-## [1.0.0]
+## [1.0.9] - 2020-10-16
+### Added
+* The workspace now shows errors encountered while rendering the tree view. Furthermore, it now only special cases `Array` and `Dict` instead of their `Abstract...` supertypes ([#1709](https://github.com/julia-vscode/julia-vscode/pull/1709)).
+* Inline evaluation and the REPL can now be interrupted with the `Julia: Interrupt Execution` comamnd (or its default keyboard binding <kbd>ctrl+c</kbd>) ([#1690](https://github.com/julia-vscode/julia-vscode/pull/1690)).
+* [ProgressLogging.jl](https://github.com/JunoLab/ProgressLogging.jl)'s progress bars are now displayed in the editor ([1579](https://github.com/julia-vscode/julia-vscode/pull/1579)).
+* The language server process is now started with the `JULIA_LANGUAGESERVER` environment variable set to `1` ([#1707](https://github.com/julia-vscode/julia-vscode/pull/1707)).
+* Added commands to re-start the LS or re-index the symbol cache ([#1721](https://github.com/julia-vscode/julia-vscode/pull/1721)).
+* `@edit` now works properly on [code-server](https://github.com/cdr/code-server) instances ([#1737](https://github.com/julia-vscode/julia-vscode/pull/1737)).
+* Added commands to `cd` to the current directory, `Pkg.activate` the current directory, or `Pkg.activate` the current files nearest project. These commands are also available in the file explorer ([#1743](https://github.com/julia-vscode/julia-vscode/pull/1743)).
+
+### Changed
+* Updated some JS dependencies.
+* The plot pane is now opened in a new column by default, but also remembers it's last position ([#1554](https://github.com/julia-vscode/julia-vscode/pull/1554)).
+* The `julia.NumThreads` setting is now machine-overrideable ([#1714](https://github.com/julia-vscode/julia-vscode/pull/1714)).
+* Updated the Julia grammar definition ([#1720](https://github.com/julia-vscode/julia-vscode/pull/1720)), which [fixed various bugs](https://github.com/JuliaEditorSupport/atom-language-julia/compare/v0.19.3...v0.20.0).
+* `julia.usePlotPane` can now be changed without requiring the Julia process to be restarted. Additionally, the related `display` machinery is now much more robust ([#1729](https://github.com/julia-vscode/julia-vscode/pull/1729)).
+* The "play" button in the editor toolbar now runs the file in the integrated REPL process ([#1728](https://github.com/julia-vscode/julia-vscode/pull/1728)).
+* All inline results are now removed when the REPL process exits ([#1738](https://github.com/julia-vscode/julia-vscode/pull/1738)).
+
+### Fixed
+* Stracktraces are now rendered properly (i.e. with linebreaks) once again ([#1692](https://github.com/julia-vscode/julia-vscode/pull/1692)).
+* The module indicator is now correctly initialized (instead of `Main`) ([#1516](https://github.com/julia-vscode/julia-vscode/pull/1516)).
+
+## [1.0.8] - 2020-10-16
+### Changed
+* Both inline evaluation and the REPL now follow the changed soft-scope rules for Julia 1.5 and newer ([#1665](https://github.com/julia-vscode/julia-vscode/pull/1665)).
+
+## [1.0.7] - 2020-10-05
+### Changed
+* Updated JS dependencies.
+* We now show an error message when both insiders and the regular extension are loaded.
+
+## [1.0.6] - 2020-09-29
+### Changed
+* Updated JS dependencies.
+
+## [1.0.5] - 2020-09-27
+### Added
+* Default paths for Julia 1.5.1 and 1.5.2.
+
+## [1.0.4] - 2020-09-18
+### Added
+* `JULIA_PKG_SERVER` is now an exposed setting.
+* `Julia: Stop REPL` command.
+
+### Changed
+* Toolbar icon now follows the style guide (outline instead of filled).
+
+### Fixed
+* Run/Debug commands now work when invoked from the command palette.
+
+## [1.0.3] - 2020-09-06
+### Fixed
+* `ARGS` now no longer contains extension internals.
+* Use correct default path for Julia 1.5.
+* Fixed a world age error when using the integrated table viewer.
+
+### Changed
+* Revise is now loaded without stealing the REPL backend for newer Julia versions.
+* `#%%` and `# %%` are now valid cell seperators.
+* Improved crash reporting.
+
+## [1.0.2] - 2020-09-01
+### Changed
+* Improved Azure build pipeline
+* Updated some JS dependencies
+
+## [1.0.1] - 2020-08-31
+### Added
+* This plugin is now also available on [open-vsx.org](https://open-vsx.org/extension/julialang/language-julia)
+
+## [1.0.0] - 2020-08-28
 This is identical to the latest 0.17 release.
 
 ## [0.17]
