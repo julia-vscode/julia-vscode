@@ -77,7 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.0.1] - 2020-08-31
 ### Added
-* This plugin is now also available on open-vsx.org
+* This plugin is now also available on [open-vsx.org](https://open-vsx.org/extension/julialang/language-julia)
 
 ## [1.0.0] - 2020-08-28
 This is identical to the latest 0.17 release.
