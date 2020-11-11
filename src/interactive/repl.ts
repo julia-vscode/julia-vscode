@@ -589,18 +589,10 @@ async function activatePath(path: string) {
 }
 
 async function activateFromDir(uri: vscode.Uri) {
-    if (!g_languageClient) {
-        vscode.window.showWarningMessage(LSERRORMSG)
-        return
-    }
-
     const uriPath = await getDirUriFsPath(uri)
     if (uriPath) {
         try {
-            const target = await g_languageClient.sendRequest<string | undefined>('julia/fileSearchUp', {
-                target: 'Project.toml',
-                from: uriPath
-            })
+            const target = await searchUpFile('Project.toml', uriPath)
             if (!target) {
                 vscode.window.showWarningMessage(`No project file found for ${uriPath}`)
                 return
@@ -609,6 +601,19 @@ async function activateFromDir(uri: vscode.Uri) {
         } catch (err) {
             console.log(err)
         }
+    }
+}
+
+async function searchUpFile(target: string, from: string): Promise<string> {
+    const parentDir = path.dirname(from)
+    // XXX: on windows ?
+    if (parentDir === from || // ensure to escape infinite recursion
+        from === '/'          // reached to the system root
+    ) {
+        return undefined
+    } else {
+        const p = path.join(from, target)
+        return (await fs.exists(p)) ? p : searchUpFile(target, parentDir)
     }
 }
 
