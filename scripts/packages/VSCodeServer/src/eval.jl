@@ -1,8 +1,8 @@
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
 
-const EVAL_CHANNEL_IN = Channel(1)
-const EVAL_CHANNEL_OUT = Channel(1)
+const EVAL_CHANNEL_IN = Channel(0)
+const EVAL_CHANNEL_OUT = Channel(0)
 const EVAL_BACKEND_TASK = Ref{Any}(nothing)
 const IS_BACKEND_WORKING = Ref{Bool}(false)
 
