@@ -172,7 +172,7 @@ export async function getEnvPath() {
     if (g_path_of_current_environment === null) {
         const section = vscode.workspace.getConfiguration('julia')
         const envPathConfig = section.get<string>('environmentPath')
-        if (envPathConfig !== null) {
+        if (envPathConfig) {
             g_path_of_current_environment = envPathConfig
         }
         else {

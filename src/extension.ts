@@ -2,6 +2,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
+import { unwatchFile, watchFile } from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
@@ -21,6 +22,7 @@ import * as weave from './weave'
 
 let g_languageClient: LanguageClient = null
 let g_context: vscode.ExtensionContext = null
+let g_watchedEnvironmentFile: string = null
 
 export async function activate(context: vscode.ExtensionContext) {
     if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
@@ -216,16 +218,19 @@ async function startLanguageServer() {
         }
     })
 
+    if (g_watchedEnvironmentFile) {
+        unwatchFile(g_watchedEnvironmentFile)
+    }
+
     // automatic environement refreshing
-    const targetFile = (await jlpkgenv.getProjectFilePaths(jlEnvPath)).manifest_toml_path
-    const disposableWatcher = vscode.workspace.createFileSystemWatcher(targetFile) // TODO: needs to fix backslashes on Windows ?
-    g_context.subscriptions.push(
-        disposableWatcher,
-        disposableWatcher.onDidChange(_ => {
+    g_watchedEnvironmentFile = (await jlpkgenv.getProjectFilePaths(jlEnvPath)).manifest_toml_path
+    // polling watch for robustness
+    watchFile(g_watchedEnvironmentFile, { interval: 10000 }, (curr, prev) => {
+        if (curr.mtime > prev.mtime) {
             if (!languageClient.needsStop()) { return } // this client already gets stopped
             refreshLanguageServer(languageClient)
-        })
-    )
+        }
+    })
 
     const disposable = vscode.commands.registerCommand('language-julia.showLanguageServerOutput', () => {
         languageClient.outputChannel.show(true)
