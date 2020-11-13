@@ -5,10 +5,22 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.0.10] - 2020-11-13
+### Added
+* Support for Julia 1.5.3 and 1.5.4 default installation paths ([#1755](https://github.com/julia-vscode/julia-vscode/pull/1755), [#1759](https://github.com/julia-vscode/julia-vscode/pull/1759)).
+* New up-to-date changelog ([#1750](https://github.com/julia-vscode/julia-vscode/pull/1750)).
+
+### Changed
+* Inline evaluation now adds the evaluated code to the REPL history *if* the `julia.codeInREPL` options is set ([#1754](https://github.com/julia-vscode/julia-vscode/pull/1754)).
+* The extension now watches the global Manifest as well as Manifests in the workspace for changes and prompts the LS to re-index accordingly ([#1756](https://github.com/julia-vscode/julia-vscode/pull/1756)).
+
 ### Fixed
 * Push internal Julia modules to the front of `LOAD_PATH` to prevent loading code from the workspace instead ([#1747](https://github.com/julia-vscode/julia-vscode/pull/1747)).
+* Fixed a typo in the tableviewer code ([#1749](https://github.com/julia-vscode/julia-vscode/pull/1749)).
+* Evaluation now uses unbuffered channels for communication, which might fix a rare off-by-one-result bug ([#1762](https://github.com/julia-vscode/julia-vscode/pull/1762)).
 
-## [1.0.9] - 2020-10-16
+## [1.0.9] - 2020-11-04
 ### Added
 * The workspace now shows errors encountered while rendering the tree view. Furthermore, it now only special cases `Array` and `Dict` instead of their `Abstract...` supertypes ([#1709](https://github.com/julia-vscode/julia-vscode/pull/1709)).
 * Inline evaluation and the REPL can now be interrupted with the `Julia: Interrupt Execution` comamnd (or its default keyboard binding <kbd>ctrl+c</kbd>) ([#1690](https://github.com/julia-vscode/julia-vscode/pull/1690)).
