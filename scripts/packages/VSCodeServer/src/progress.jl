@@ -7,6 +7,7 @@ function Logging.handle_message(j::VSCodeLogger, level, message, _module,
     end isa Some
 
     if isprogress
+        sleep(.01) # issue #1769
         return nothing
     end
 
