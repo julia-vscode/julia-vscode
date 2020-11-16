@@ -239,9 +239,8 @@ async function startLanguageServer() {
         // Push the disposable to the context's subscriptions so that the  client can be deactivated on extension deactivation
         g_context.subscriptions.push(languageClient.start())
         startupNotification.command = 'language-julia.showLanguageServerOutput'
-        languageClient.onReady().then(() => {
-            setLanguageClient(languageClient)
-        }).finally(() => {
+        setLanguageClient(languageClient)
+        languageClient.onReady().finally(() => {
             disposable.dispose()
             startupNotification.dispose()
         })

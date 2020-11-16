@@ -319,12 +319,13 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
-    const err = 'Error: Julia Language server is not running.\n\nPlease wait a few seconds and try again once the `Starting Julia Language Server...` message in the status bar is gone.'
-
     if (g_languageClient === null) {
-        vscode.window.showErrorMessage(err)
+        vscode.window.showErrorMessage('No LS running or start. Check your settings.')
         return zeroReturn
     }
+
+    await g_languageClient.onReady()
+
     let ret_val: vscode.Position[]
     try {
         ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
