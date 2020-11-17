@@ -544,12 +544,39 @@ function executeSelectionCopyPaste() {
     executeCodeCopyPaste(text, selection.isEmpty)
 }
 
+const interrupts = []
+let last_interrupt_index = -1
 function interrupt() {
     telemetry.traceEvent('command-interrupt')
+    // always send out internal interrupt
+    softInterrupt()
+    // but we'll try sending a SIGINT if more than 3 interrupts were sent in the last second
+    last_interrupt_index = (last_interrupt_index + 1) % 5
+    interrupts[last_interrupt_index] = new Date()
+    const now = new Date()
+    if (interrupts.filter(x => (now.getTime() - x.getTime()) < 1000).length >= 3) {
+        signalInterrupt()
+    }
+}
+
+function softInterrupt() {
     try {
         g_connection.sendNotification('repl/interrupt')
     } catch (err) {
-        console.log(err)
+        console.warn(err)
+    }
+}
+
+function signalInterrupt() {
+    telemetry.traceEvent('command-signal-interrupt')
+    try {
+        if (process.platform !== 'win32') {
+            g_terminal.processId.then(pid => process.kill(pid, 'SIGINT'))
+        } else {
+            console.warn('Signal interrupts are not supported on Windows.')
+        }
+    } catch (err) {
+        console.warn(err)
     }
 }
 
