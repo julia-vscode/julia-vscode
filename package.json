@@ -362,14 +362,29 @@
         },
         "keybindings": [
             {
-                "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "key": "ctrl+enter",
+                "command": "language-julia.executeCodeBlockOrSelection",
+                "when": "editorTextFocus && editorLangId == julia && notebookViewType != jupyter-notebook"
             },
             {
+                "key": "shift+enter",
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
-                "key": "alt+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && notebookViewType != jupyter-notebook"
+            },
+            {
+                "key": "alt+enter",
+                "command": "language-julia.executeCell",
+                "when": "editorTextFocus && editorLangId == julia && notebookViewType != jupyter-notebook"
+            },
+            {
+                "key": "shift+alt+enter",
+                "command": "language-julia.executeCellAndMove",
+                "when": "editorTextFocus && editorLangId == julia && notebookViewType != jupyter-notebook"
+            },
+            {
+                "key": "ctrl+shift+enter",
+                "command": "language-julia.executeFile",
+                "when": "editorTextFocus && editorLangId == julia && notebookViewType != jupyter-notebook"
             },
             {
                 "command": "language-julia.interrupt",
@@ -377,24 +392,19 @@
                 "when": "terminalFocus && isJuliaREPL && isJuliaEvaluating"
             },
             {
-                "command": "language-julia.executeCellAndMove",
-                "key": "shift+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
-            },
-            {
                 "command": "language-julia.clearCurrentInlineResult",
                 "key": "Ctrl+I Ctrl+D",
-                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && juliaHasInlineResult"
+                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && notebookViewType != jupyter-notebook && juliaHasInlineResult"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
-                "key": "ctrl+I ctrl+C",
-                "when": "editorTextFocus && editorLangId == julia"
+                "key": "Ctrl+I Ctrl+C",
+                "when": "editorTextFocus && editorLangId == julia && notebookViewType != jupyter-notebook"
             },
             {
                 "command": "language-julia.chooseModule",
                 "key": "Alt+J Alt+M",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && notebookViewType != jupyter-notebook"
             },
             {
                 "command": "language-julia.startREPL",
@@ -407,12 +417,7 @@
             {
                 "command": "language-julia.changeCurrentEnvironment",
                 "key": "Alt+J Alt+E",
-                "when": "editorTextFocus && editorLangId == julia"
-            },
-            {
-                "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == juliamarkdown"
+                "when": "editorTextFocus && editorLangId == julia && notebookViewType != jupyter-notebook"
             },
             {
                 "command": "language-julia.plotpane-previous",
