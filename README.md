@@ -16,8 +16,8 @@ At the end of this step you should be able to start VS Code.
 executing the ``View: Show Extensions`` command (click View->Command Palette...)
 or by clicking on the extension icon on the left side of the VS Code
 window.      
-3.3 In the extensions view, simply search for the term ``Julia`` in the marketplace
-search box, then select the Julia extension and click the install button.
+3.3 In the extensions view, simply search for the term ``julia`` in the marketplace
+search box, then select the extension named ``Julia`` and click the install button.
 You might have to restart VS Code after this step.
 
 ### Configure the Julia extension
