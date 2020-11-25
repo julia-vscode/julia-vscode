@@ -15,17 +15,34 @@ function fix_displays()
     pushdisplay(InlineDisplay())
 end
 
+function with_no_default_display(f)
+    stack = copy(Base.Multimedia.displays)
+    filter!(Base.Multimedia.displays) do d
+        !(d isa REPL.REPLDisplay || d isa TextDisplay || d isa InlineDisplay)
+    end
+    try
+        return f()
+    finally
+        empty!(Base.Multimedia.displays)
+        foreach(pushdisplay, stack)
+    end
+end
+
 function sendDisplayMsg(kind, data)
     JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,String}("kind" => kind, "data" => data))
 end
 
 function display(d::InlineDisplay, m::MIME, x)
-    mime = string(m)
-    if PLOT_PANE_ENABLED[] && mime in DISPLAYABLE_MIMES
-        payload = stringmime(m, x)
-        sendDisplayMsg(mime, payload)
+    if !PLOT_PANE_ENABLED[]
+        with_no_default_display(() -> display(m, x))
     else
-        throw(MethodError(display, (d, m, x)))
+        mime = string(m)
+        if mime in DISPLAYABLE_MIMES
+            payload = stringmime(m, x)
+            sendDisplayMsg(mime, payload)
+        else
+            throw(MethodError(display, (d, m, x)))
+        end
     end
     return nothing
 end
@@ -87,6 +104,8 @@ function Base.display(d::InlineDisplay, x)
                 return display(d, mime, x)
             end
         end
+    else
+        with_no_default_display(() -> display(x))
     end
 
     throw(MethodError(display, (d, x)))
