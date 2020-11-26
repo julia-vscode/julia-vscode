@@ -105,7 +105,7 @@ function Base.display(d::InlineDisplay, x)
             end
         end
     else
-        with_no_default_display(() -> display(x))
+        return with_no_default_display(() -> display(x))
     end
 
     throw(MethodError(display, (d, x)))
