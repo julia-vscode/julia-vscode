@@ -274,7 +274,7 @@ function clearProgress() {
     }
 }
 
-async function executeFile(uri?: vscode.Uri) {
+async function executeFile(uri?: vscode.Uri | string) {
     telemetry.traceEvent('command-executeFile')
 
     const editor = vscode.window.activeTextEditor
@@ -284,7 +284,12 @@ async function executeFile(uri?: vscode.Uri) {
     let module = 'Main'
     let path = ''
     let code = ''
-    if (uri) {
+
+    if (uri && !(uri instanceof vscode.Uri)) {
+        uri = vscode.Uri.parse(uri)
+    }
+
+    if (uri && uri instanceof vscode.Uri) {
         path = uri.fsPath
         const readBytes = await vscode.workspace.fs.readFile(uri)
         code = Buffer.from(readBytes).toString('utf8')
