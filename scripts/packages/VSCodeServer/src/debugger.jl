@@ -5,7 +5,11 @@ function repl_startdebugger_request(conn, params::String, crashreporting_pipenam
             @debug "Trying to connect to debug adapter."
             socket = Sockets.connect(debug_pipename)
             try
-                DebugAdapter.startdebug(socket, (err, bt)->global_err_handler(err, bt, crashreporting_pipename, "Debugger"))
+                DebugAdapter.startdebug(socket, function (err, bt)
+                    printstyled(stderr, "Error while running the debugger", color=:red, bold=true)
+                    printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color=:red)
+                    Base.display_error(stderr, err, bt)
+                end)
             finally
                 close(socket)
             end
@@ -27,10 +31,10 @@ end
 
 macro enter(command)
     remove_lln!(command)
-    :(JSONRPC.send_notification(conn_endpoint[], "debugger/enter", $(string(command))))
+    :(JSONRPC.send_notification(conn_endpoint[], "debugger/enter", (code = $(string(command)), filename = $(string(__source__.file)))))
 end
 
 macro run(command)
     remove_lln!(command)
-    :(JSONRPC.send_notification(conn_endpoint[], "debugger/run", $(string(command))))
+    :(JSONRPC.send_notification(conn_endpoint[], "debugger/run", (code = $(string(command)), filename = $(string(__source__.file)))))
 end
