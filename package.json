@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.0.8",
+    "version": "1.0.10",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -45,6 +45,10 @@
         "onCommand:language-julia.debug.getActiveJuliaEnvironment",
         "onCommand:language-julia.debugEditorContents",
         "onCommand:language-julia.runEditorContents",
+        "onCommand:language-julia.interrupt",
+        "onCommand:language-julia.cdHere",
+        "onCommand:language-julia.activateHere",
+        "onCommand:language-julia.activateFromDir",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
@@ -109,6 +113,14 @@
         ],
         "commands": [
             {
+                "command": "language-julia.refreshLanguageServer",
+                "title": "Julia: Re-Index Language Server Cache"
+            },
+            {
+                "command": "language-julia.restartLanguageServer",
+                "title": "Julia: Restart Language Server"
+            },
+            {
                 "command": "language-julia.openPackageDirectory",
                 "title": "Julia: Open Package Directory in New Window"
             },
@@ -138,7 +150,8 @@
             },
             {
                 "command": "language-julia.executeFile",
-                "title": "Julia: Execute File"
+                "title": "Julia: Execute File",
+                "icon": "$(play)"
             },
             {
                 "command": "language-julia.interrupt",
@@ -230,13 +243,25 @@
             },
             {
                 "command": "language-julia.runEditorContents",
-                "title": "Julia: Run File",
+                "title": "Julia: Run File in New Process",
                 "icon": "$(play)"
             },
             {
                 "command": "language-julia.debugEditorContents",
-                "title": "Julia: Debug File",
+                "title": "Julia: Debug File in New Process",
                 "icon": "$(debug-alt)"
+            },
+            {
+                "command": "language-julia.cdHere",
+                "title": "Julia: Change to This Directory"
+            },
+            {
+                "command": "language-julia.activateHere",
+                "title": "Julia: Activate This Environment"
+            },
+            {
+                "command": "language-julia.activateFromDir",
+                "title": "Julia: Activate Parent Environment"
             }
         ],
         "menus": {
@@ -244,6 +269,18 @@
                 {
                     "when": "resourceLangId == julia",
                     "command": "language-julia.executeFile",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.cdHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateFromDir",
                     "group": "julia"
                 }
             ],
@@ -268,7 +305,7 @@
                     "command": "language-julia.plotpane-delete-all"
                 },
                 {
-                    "command": "language-julia.runEditorContents",
+                    "command": "language-julia.executeFile",
                     "when": "resourceLangId == julia",
                     "group": "1_run@10"
                 },
@@ -280,6 +317,18 @@
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
                     "when": "editorLangId == julia"
+                },
+                {
+                    "command": "language-julia.cdHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateHere",
+                    "group": "julia"
+                },
+                {
+                    "command": "language-julia.activateFromDir",
+                    "group": "julia"
                 }
             ],
             "commandPalette": [
@@ -330,7 +379,7 @@
             {
                 "command": "language-julia.interrupt",
                 "key": "Ctrl+C",
-                "when": "terminalFocus && isJuliaREPL"
+                "when": "terminalFocus && isJuliaREPL && isJuliaEvaluating"
             },
             {
                 "command": "language-julia.executeCellAndMove",
@@ -569,6 +618,7 @@
                         "null"
                     ],
                     "default": null,
+                    "scope": "machine-overridable",
                     "description": "Number of threads to use for Julia processes."
                 },
                 "julia.format.indent": {
@@ -660,7 +710,7 @@
                 "julia.execution.codeInREPL": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Print executed code in REPL.",
+                    "description": "Print executed code in REPL and append it to the REPL history.",
                     "scope": "window"
                 },
                 "julia.execution.executeLastCodeWithSemicolon": {
@@ -819,14 +869,14 @@
     "dependencies": {
         "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
-        "@types/vscode": "^1.50.0",
-        "applicationinsights": "^1.8.7",
+        "@types/vscode": "^1.51.0",
+        "applicationinsights": "^1.8.8",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
         "promised-temp": "^v0.1.0",
-        "uuidv4": "^6.2.4",
+        "uuidv4": "^6.2.5",
         "vscode-debugadapter": "^1.42.1",
         "vscode-jsonrpc": "^5.0.1",
         "vscode-languageclient": "^6.1.3",
@@ -836,16 +886,16 @@
         "@types/cson-parser": "^4.0.4",
         "@types/download": "^6.2.4",
         "@types/mocha": "^7.0.2",
-        "@types/node": "^12.12.68",
+        "@types/node": "^12.19.4",
         "@typescript-eslint/parser": "^3.10.1",
         "cson-parser": "^4.0.5",
         "download": "^7.1.0",
-        "eslint": "^7.11.0",
+        "eslint": "^7.13.0",
         "mocha": "^7.2.0",
         "ts-loader": "^7.0.5",
         "typescript": "^3.9.7",
         "vsce": "^1.81.1",
-        "vscode-test": "^1.4.0",
+        "vscode-test": "^1.4.1",
         "webpack": "^4.44.2",
         "webpack-cli": "^3.3.12"
     }

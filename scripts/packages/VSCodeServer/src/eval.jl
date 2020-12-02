@@ -1,8 +1,8 @@
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
 
-const EVAL_CHANNEL_IN = Channel(1)
-const EVAL_CHANNEL_OUT = Channel(1)
+const EVAL_CHANNEL_IN = Channel(0)
+const EVAL_CHANNEL_OUT = Channel(0)
 const EVAL_BACKEND_TASK = Ref{Any}(nothing)
 const IS_BACKEND_WORKING = Ref{Bool}(false)
 
@@ -48,8 +48,45 @@ function repl_interrupt_request(conn, ::Nothing)
     end
 end
 
+# https://github.com/JuliaLang/julia/blob/53a781d399bfb517b554fb1ae106e6dac99205f1/stdlib/REPL/src/REPL.jl#L547
+function add_code_to_repl_history(code)
+    code = strip(code)
+    isempty(code) && return
+
+    try
+        mode = get_main_mode()
+        hist = mode.hist
+        !isempty(hist.history) &&
+            isequal(:julia, hist.modes[end]) && code == hist.history[end] && return
+
+        hist.last_mode = mode
+        hist.last_buffer = let
+            io = IOBuffer()
+            print(io, code)
+            io
+        end
+        push!(hist.modes, :julia)
+        push!(hist.history, code)
+        hist.history_file === nothing && return
+        entry = """
+        # time: $(Libc.strftime("%Y-%m-%d %H:%M:%S %Z", time()))
+        # mode: julia
+        $(replace(code, r"^"ms => "\t"))
+        """
+        seekend(hist.history_file)
+        print(hist.history_file, entry)
+        flush(hist.history_file)
+
+        hist.cur_idx = length(hist.history) + 1
+    catch err
+        @error "writing to history failed" exception=(err, catch_backtrace())
+    end
+end
+
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     return run_with_backend() do
+        fix_displays()
+
         source_filename = params.filename
         code_line = params.line
         code_column = params.column
@@ -66,59 +103,75 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
         show_code = params.showCodeInREPL
         show_result = params.showResultInREPL
 
+        JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+
         rendered_result = nothing
-
-        hideprompt() do
-            if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-                let mode = get(ENV, "JULIA_REVISE", "auto")
-                    mode == "auto" && Main.Revise.revise()
-                end
-            end
-            if show_code
-                for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                    if i==1
-                        printstyled("julia> ", color=:green)
-                        print(' '^code_column)
-                    else
-                        # Indent by 7 so that it aligns with the julia> prompt
-                        print(' '^7)
+        Logging.with_logger(VSCodeLogger()) do
+            hideprompt() do
+                if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+                    let mode = get(ENV, "JULIA_REVISE", "auto")
+                        mode == "auto" && Main.Revise.revise()
                     end
-
-                    println(line)
                 end
-            end
+                if show_code
+                    add_code_to_repl_history(source_code)
 
-            withpath(source_filename) do
-                res = try
-                    ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
-                    @eval Main ans = $(QuoteNode(ans))
-                catch err
-                    EvalError(err, catch_backtrace())
-                end
-
-                if show_result
-                    if res isa EvalError
-                        Base.display_error(stderr, res)
-
-                    elseif res !== nothing && !ends_with_semicolon(source_code)
-                        try
-                            Base.invokelatest(display, res)
-                        catch err
-                            Base.display_error(stderr, err, catch_backtrace())
-                        end
-                    end
-                else
+                    prompt = "julia> "
+                    prefix = "\e[32m"
                     try
-                        Base.invokelatest(display, InlineDisplay(), res)
+                        mode = get_main_mode()
+                        prompt = mode.prompt
+                        prefix = mode.prompt_prefix
                     catch err
-                        if !(err isa MethodError)
-                            printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                            Base.display_error(stderr, err, catch_backtrace())
+                        @debug "getting prompt info failed" exception=(err, catch_backtrace())
+                    end
+
+                    for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                        if i==1
+                            print(prefix, prompt, "\e[0m")
+                            print(' '^code_column)
+                        else
+                            # Indent by 7 so that it aligns with the julia> prompt
+                            print(' '^length(prompt))
                         end
+
+                        println(line)
                     end
                 end
 
-                rendered_result = safe_render(res)
+                withpath(source_filename) do
+                    res = try
+                        ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
+                        @eval Main ans = $(QuoteNode(ans))
+                    catch err
+                        EvalError(err, catch_backtrace())
+                    finally
+                        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+                    end
+
+                    if show_result
+                        if res isa EvalError
+                            Base.display_error(stderr, res)
+                        elseif res !== nothing && !ends_with_semicolon(source_code)
+                            try
+                                Base.invokelatest(display, res)
+                            catch err
+                                Base.display_error(stderr, err, catch_backtrace())
+                            end
+                        end
+                    else
+                        try
+                            Base.invokelatest(display, InlineDisplay(), res)
+                        catch err
+                            if !(err isa MethodError)
+                                printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                                Base.display_error(stderr, err, catch_backtrace())
+                            end
+                        end
+                    end
+
+                    rendered_result = safe_render(res)
+                end
             end
         end
         return rendered_result

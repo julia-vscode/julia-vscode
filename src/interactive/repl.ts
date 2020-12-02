@@ -7,6 +7,7 @@ import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
+import { switchEnvToPath } from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads, setContext } from '../utils'
@@ -40,8 +41,13 @@ function is_remote_env(): boolean {
 
 function get_editor(): string {
     if (is_remote_env() || process.platform === 'darwin') {
-        const cmd = vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
-        return `"${path.join(vscode.env.appRoot, 'bin', cmd)}"`
+        // code-server:
+        if (vscode.env.appName === 'Code - OSS') {
+            return `"${path.join(vscode.env.appRoot, '..', '..', 'bin', 'code-server')}"`
+        } else {
+            const cmd = vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
+            return `"${path.join(vscode.env.appRoot, 'bin', cmd)}"`
+        }
     }
     else {
         return `"${process.execPath}"`
@@ -170,10 +176,22 @@ export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('
 const notifyTypeShowProfilerResult = new rpc.NotificationType<string, void>('repl/showprofileresult')
 const notifyTypeShowProfilerResultFile = new rpc.NotificationType<string, void>('repl/showprofileresult_file')
 
+interface Progress {
+    id: { value: number },
+    name: string,
+    fraction: number,
+    done: Boolean
+}
+const notifyTypeProgress = new rpc.NotificationType<Progress, void>('repl/updateProgress')
+
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
 const g_onExit = new vscode.EventEmitter<Boolean>()
 export const onExit = g_onExit.event
+const g_onStartEval = new vscode.EventEmitter<null>()
+export const onStartEval = g_onStartEval.event
+const g_onFinishEval = new vscode.EventEmitter<null>()
+export const onFinishEval = g_onFinishEval.event
 
 // code execution start
 
@@ -191,13 +209,6 @@ function startREPLMsgServer(pipename: string) {
             new rpc.StreamMessageWriter(socket)
         )
 
-        g_connection.onNotification(notifyTypeDisplay, plots.displayPlot)
-        g_connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
-        g_connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
-        g_connection.onNotification(notifyTypeReplStartEval, () => { })
-        g_connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
-        g_connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
-
         g_connection.listen()
 
         g_onInit.fire(g_connection)
@@ -208,6 +219,61 @@ function startREPLMsgServer(pipename: string) {
     server.listen(pipename)
 
     return connected
+}
+
+const g_progress_dict = {}
+
+async function updateProgress(progress: Progress) {
+    if (g_progress_dict[progress.id.value]) {
+        const p = g_progress_dict[progress.id.value]
+        const increment = progress.done ? 100 : (progress.fraction - p.last_fraction) * 100
+
+        p.progress.report({
+            increment: increment,
+            message: progressMessage(progress)
+        })
+        p.last_fraction = progress.fraction
+
+        if (progress.done) {
+            p.resolve()
+            delete g_progress_dict[progress.id.value]
+        }
+    } else {
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: 'Julia',
+            cancellable: true
+        }, (prog, token) => {
+            return new Promise(resolve => {
+                g_progress_dict[progress.id.value] = {
+                    progress: prog,
+                    last_fraction: progress.fraction,
+                    resolve: resolve,
+                }
+                token.onCancellationRequested(ev => {
+                    interrupt()
+                })
+                prog.report({
+                    message: progressMessage(progress)
+                })
+            })
+        })
+    }
+}
+
+function progressMessage(prog: Progress) {
+    let message = prog.name
+    if (!isNaN(prog.fraction) && 0 <= prog.fraction && prog.fraction <= 1) {
+        message += ` (${(prog.fraction * 100).toFixed(1)}%)`
+    }
+    return message
+}
+
+function clearProgress() {
+    for (const id in g_progress_dict) {
+        g_progress_dict[id].resolve()
+        delete g_progress_dict[id]
+    }
 }
 
 async function executeFile(uri?: vscode.Uri) {
@@ -249,7 +315,6 @@ async function executeFile(uri?: vscode.Uri) {
             softscope: false
         }
     )
-    await workspace.replFinishEval()
 }
 
 async function getBlockRange(params): Promise<vscode.Position[]> {
@@ -459,8 +524,6 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         }
     )
 
-    await workspace.replFinishEval()
-
     if (resultType !== 'REPL') {
         if (result.stackframe) {
             results.clearStackTrace()
@@ -516,10 +579,82 @@ function executeSelectionCopyPaste() {
 
 function interrupt() {
     telemetry.traceEvent('command-interrupt')
-    g_connection.sendNotification('repl/interrupt')
+    try {
+        g_connection.sendNotification('repl/interrupt')
+    } catch (err) {
+        console.log(err)
+    }
 }
 
 // code execution end
+
+async function cdToHere(uri: vscode.Uri) {
+    telemetry.traceEvent('command-cdHere')
+
+    const uriPath = await getDirUriFsPath(uri)
+    await startREPL(true, false)
+    if (uriPath) {
+        try {
+            g_connection.sendNotification('repl/cd', uriPath)
+        } catch (err) {
+            console.log(err)
+        }
+    }
+}
+
+async function activateHere(uri: vscode.Uri) {
+    telemetry.traceEvent('command-activateThisEnvironment')
+
+    const uriPath = await getDirUriFsPath(uri)
+    await startREPL(true, false)
+    if (uriPath) {
+        try {
+            g_connection.sendNotification('repl/activateProject', uriPath)
+            switchEnvToPath(uriPath, true)
+        } catch (err) {
+            console.log(err)
+        }
+    }
+}
+
+async function activateFromDir(uri: vscode.Uri) {
+    const uriPath = await getDirUriFsPath(uri)
+    await startREPL(true, false)
+    if (uriPath) {
+        try {
+            const activeDir = await g_connection.sendRequest<string | undefined>('repl/activateProjectFromDir', uriPath)
+            if (!activeDir) {
+                vscode.window.showWarningMessage(`No project file found for ${uriPath}`)
+                return
+            }
+            switchEnvToPath(activeDir, true)
+        } catch (err) {
+            console.log(err)
+        }
+    }
+}
+
+async function getDirUriFsPath(uri: vscode.Uri | undefined) {
+    if (!uri) {
+        const ed = vscode.window.activeTextEditor
+        if (ed && ed.document && ed.document.uri) {
+            uri = ed.document.uri
+        }
+    }
+    if (!uri || !uri.fsPath) {
+        return undefined
+    }
+
+    const uriPath = uri.fsPath
+    const stat = await fs.stat(uriPath)
+    if (stat.isFile()) {
+        return path.dirname(uriPath)
+    } else if (stat.isDirectory()) {
+        return uriPath
+    } else {
+        return undefined
+    }
+}
 
 export async function replStartDebugger(pipename: string) {
     await startREPL(true)
@@ -530,49 +665,83 @@ export async function replStartDebugger(pipename: string) {
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
-    context.subscriptions.push(onSetLanguageClient(languageClient => {
-        g_languageClient = languageClient
-    }))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.stopREPL', killREPL))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCell', executeCell))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeLastCachedCode', executeLastCachedCode))
-
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeFile', executeFile))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.interrupt', interrupt))
-
-    // copy-paste selection into REPL. doesn't require LS to be started
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste))
-
-
-    vscode.window.onDidCloseTerminal(terminal => {
-        if (terminal === g_terminal) {
-            g_terminal = null
-        }
-    })
+    context.subscriptions.push(
+        // listeners
+        onSetLanguageClient(languageClient => {
+            g_languageClient = languageClient
+        }),
+        onInit(connection => {
+            connection.onNotification(notifyTypeDisplay, plots.displayPlot)
+            connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
+            connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
+            connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
+            connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
+            connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
+            connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
+            connection.onNotification(notifyTypeProgress, updateProgress)
+            setContext('isJuliaEvaluating', false)
+        }),
+        onExit(() => {
+            results.removeAll()
+            setContext('isJuliaEvaluating', false)
+        }),
+        onStartEval(() => {
+            updateProgress({
+                name: 'Evaluating…',
+                id: { value: -1 },
+                fraction: -1,
+                done: false
+            })
+            setContext('isJuliaEvaluating', true)
+        }),
+        onFinishEval(() => {
+            clearProgress()
+            setContext('isJuliaEvaluating', false)
+        }),
+        vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('julia.usePlotPane')) {
+                try {
+                    g_connection.sendNotification('repl/togglePlotPane', vscode.workspace.getConfiguration('julia').get('usePlotPane'))
+                } catch (err) {
+                    console.warn(err)
+                }
+            }
+        }),
+        vscode.window.onDidChangeActiveTerminal(terminal => {
+            if (terminal === g_terminal) {
+                setContext('isJuliaREPL', true)
+            } else {
+                setContext('isJuliaREPL', false)
+            }
+        }),
+        vscode.window.onDidCloseTerminal(terminal => {
+            if (terminal === g_terminal) {
+                g_terminal = null
+            }
+        }),
+        // commands
+        vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand),
+        vscode.commands.registerCommand('language-julia.stopREPL', killREPL),
+        vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock),
+        vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
+        vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
+        vscode.commands.registerCommand('language-julia.executeCell', executeCell),
+        vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
+        vscode.commands.registerCommand('language-julia.executeLastCachedCode', executeLastCachedCode),
+        vscode.commands.registerCommand('language-julia.executeFile', executeFile),
+        vscode.commands.registerCommand('language-julia.interrupt', interrupt),
+        vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
+        vscode.commands.registerCommand('language-julia.cdHere', cdToHere),
+        vscode.commands.registerCommand('language-julia.activateHere', activateHere),
+        vscode.commands.registerCommand('language-julia.activateFromDir', activateFromDir),
+    )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
     const shellSkipCommands: Array<String> = terminalConfig.get('commandsToSkipShell')
-    if (shellSkipCommands.indexOf('language-julia.interrupt') == -1) {
+    if (shellSkipCommands.indexOf('language-julia.interrupt') === -1) {
         shellSkipCommands.push('language-julia.interrupt')
         terminalConfig.update('commandsToSkipShell', shellSkipCommands, true)
     }
-
-    vscode.window.onDidChangeActiveTerminal(terminal => {
-        if (terminal === g_terminal) {
-            setContext('isJuliaREPL', true)
-        } else {
-            setContext('isJuliaREPL', false)
-        }
-    })
 
     results.activate(context)
     plots.activate(context)

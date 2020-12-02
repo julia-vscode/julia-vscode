@@ -43,3 +43,7 @@ const repl_isModuleLoaded_request_type = JSONRPC.RequestType("repl/isModuleLoade
 const repl_startdebugger_notification_type = JSONRPC.NotificationType("repl/startdebugger", String)
 const repl_showprofileresult_notification_type = JSONRPC.NotificationType("repl/showprofileresult", String)
 const repl_showprofileresult_file_notification_type = JSONRPC.NotificationType("repl/showprofileresult_file", String)
+const repl_toggle_plot_pane_notification_type = JSONRPC.NotificationType("repl/togglePlotPane", Bool)
+const cd_notification_type = JSONRPC.NotificationType("repl/cd", String)
+const activate_project_notification_type = JSONRPC.NotificationType("repl/activateProject", String)
+const activate_project_from_dir_request = JSONRPC.RequestType("repl/activateProjectFromDir", String, Union{Nothing,String})

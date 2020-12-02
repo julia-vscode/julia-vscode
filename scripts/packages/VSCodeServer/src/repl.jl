@@ -78,7 +78,12 @@ end
 function evalrepl(m, line, repl, main_mode)
     return try
         JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
-        r = run_with_backend(repleval, m, line, REPL.repl_filename(repl, main_mode.hist))
+        r = run_with_backend() do
+            fix_displays()
+            Logging.with_logger(VSCodeLogger()) do
+                repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
+            end
+        end
         if r isa EvalError
             display_repl_error(stderr, r.err, stacktrace(r.bt))
             nothing

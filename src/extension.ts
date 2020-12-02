@@ -2,6 +2,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
+import { unwatchFile, watchFile } from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
@@ -21,6 +22,7 @@ import * as weave from './weave'
 
 let g_languageClient: LanguageClient = null
 let g_context: vscode.ExtensionContext = null
+let g_watchedEnvironmentFile: string = null
 
 export async function activate(context: vscode.ExtensionContext) {
     if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
@@ -46,7 +48,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Language settings
         vscode.languages.setLanguageConfiguration('julia', {
             indentationRules: {
-                increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*\b(if|while|for|function|macro|immutable|struct|type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!.*\bend\b[^\]]*$).*$/,
+                increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!.*\bend\b[^\]]*$).*$/,
                 decreaseIndentPattern: /^\s*(end|else|elseif|catch|finally)\b.*$/
             }
         })
@@ -76,7 +78,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 })
         }
 
-        context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider()))
+        context.subscriptions.push(
+            // commands
+            vscode.commands.registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
+            vscode.commands.registerCommand('language-julia.restartLanguageServer', restartLanguageServer),
+            // registries
+            vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider())
+        )
 
         const api = {
             version: 2,
@@ -114,11 +122,7 @@ export const onDidChangeConfig = g_onDidChangeConfig.event
 function changeConfig(event: vscode.ConfigurationChangeEvent) {
     g_onDidChangeConfig.fire(event)
     if (event.affectsConfiguration('julia.executablePath')) {
-        if (g_languageClient !== null) {
-            g_languageClient.stop()
-            setLanguageClient()
-        }
-        startLanguageServer()
+        restartLanguageServer()
     }
 }
 
@@ -147,7 +151,8 @@ async function startLanguageServer() {
         env: {
             JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
             JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
-            HOME: process.env.HOME ? process.env.HOME : os.homedir()
+            HOME: process.env.HOME ? process.env.HOME : os.homedir(),
+            JULIA_LANGUAGESERVER: '1'
         }
     }
 
@@ -213,6 +218,20 @@ async function startLanguageServer() {
         }
     })
 
+    if (g_watchedEnvironmentFile) {
+        unwatchFile(g_watchedEnvironmentFile)
+    }
+
+    // automatic environement refreshing
+    g_watchedEnvironmentFile = (await jlpkgenv.getProjectFilePaths(jlEnvPath)).manifest_toml_path
+    // polling watch for robustness
+    watchFile(g_watchedEnvironmentFile, { interval: 10000 }, (curr, prev) => {
+        if (curr.mtime > prev.mtime) {
+            if (!languageClient.needsStop()) { return } // this client already gets stopped
+            refreshLanguageServer(languageClient)
+        }
+    })
+
     const disposable = vscode.commands.registerCommand('language-julia.showLanguageServerOutput', () => {
         languageClient.outputChannel.show(true)
     })
@@ -233,4 +252,17 @@ async function startLanguageServer() {
         disposable.dispose()
         startupNotification.dispose()
     }
+}
+
+function refreshLanguageServer(languageClient: vslc.LanguageClient = g_languageClient) {
+    if (!languageClient) { return }
+    languageClient.sendNotification('julia/refreshLanguageServer')
+}
+
+function restartLanguageServer(languageClient: vslc.LanguageClient = g_languageClient) {
+    if (languageClient !== null) {
+        languageClient.stop()
+        setLanguageClient()
+    }
+    startLanguageServer()
 }

@@ -1,9 +1,8 @@
 # this script basially only handles `ARGS`
 
-
-Base.push!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
+pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
 using VSCodeServer
-pop!(LOAD_PATH)
+popfirst!(LOAD_PATH)
 
 let
     args = [popfirst!(Base.ARGS) for _ in 1:5]
@@ -21,9 +20,9 @@ let
     end
 
     atreplinit() do repl
-        "USE_PLOTPANE=true" in args && Base.Multimedia.pushdisplay(VSCodeServer.InlineDisplay())
+        VSCodeServer.toggle_plot_pane(nothing, "USE_PLOTPANE=true" in args)
     end
 
     conn_pipeline, telemetry_pipeline = args[1:2]
-    VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE=true" in args, crashreporting_pipename = telemetry_pipeline)
+    VSCodeServer.serve(conn_pipeline; is_dev="DEBUG_MODE=true" in args, crashreporting_pipename=telemetry_pipeline)
 end
