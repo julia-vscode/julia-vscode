@@ -4,6 +4,7 @@ function Logging.handle_message(j::VSCodeLogger, level, message, _module,
                                 group, id, file, line; kwargs...)
     isprogress = try_process_progress(level, message, _module, group, id, file, line; kwargs...) do progress
         JSONRPC.send_notification(conn_endpoint[], "repl/updateProgress", progress)
+        JSONRPC.flush(conn_endpoint[])
     end isa Some
 
     if isprogress
