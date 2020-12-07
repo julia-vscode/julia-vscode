@@ -11,8 +11,21 @@ function find_frame_index(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}}, fi
     end
     return
 end
-
-
+function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}})
+    for (i, ip) in enumerate(bt)
+        st = Base.StackTraces.lookup(ip)
+        ind = findfirst(st) do frame
+            if frame.linfo isa Base.CodeInfo
+                if frame.linfo.linetable[1].method == Symbol("top-level scope")
+                    return true
+                end
+            end
+            return false
+        end
+        ind === nothing || return i
+    end
+    return
+end
 # path utilitiles
 # ---------------
 
