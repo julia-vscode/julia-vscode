@@ -60,9 +60,10 @@ The extension currently provides
 
 ## Documentation
 
-The [documentation](https://github.com/julia-vscode/julia-vscode/wiki)
+The [documentation](https://www.julia-vscode.org/docs/stable/)
 has sections that describe the features of this extension (including
-e.g. keyboard shortcuts).
+e.g. keyboard shortcuts). This repo also has legacy docs in the
+[wiki](https://github.com/julia-vscode/julia-vscode/wiki).
 
 ## Known issues and workarounds
 
