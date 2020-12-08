@@ -15,8 +15,10 @@ function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cv
     for (i, ip) in enumerate(bt)
         st = Base.StackTraces.lookup(ip)
         ind = findfirst(st) do frame
-            if frame.linfo isa Base.CodeInfo
-                if frame.linfo.linetable[1].method == Symbol("top-level scope")
+            linfo = frame.linfo
+            if linfo isa Core.CodeInfo
+                linetable = linfo.linetable
+                if isa(linetable, Core.LineInfoNode) && length(linetable) ≥ 1 && first(linetable).method === Symbol("top-level scope")
                     return true
                 end
             end
