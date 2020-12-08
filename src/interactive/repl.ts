@@ -616,11 +616,8 @@ async function activateFromDir(uri: vscode.Uri) {
 
 async function searchUpFile(target: string, from: string): Promise<string> {
     const parentDir = path.dirname(from)
-    // XXX: on windows ?
-    if (parentDir === from || // ensure to escape infinite recursion
-        from === '/'          // reached to the system root
-    ) {
-        return undefined
+    if (parentDir === from) {
+        return undefined // ensure to escape infinite recursion
     } else {
         const p = path.join(from, target)
         return (await fs.exists(p)) ? p : searchUpFile(target, parentDir)
