@@ -583,11 +583,15 @@ async function activateHere(uri: vscode.Uri) {
     telemetry.traceEvent('command-activateThisEnvironment')
 
     const uriPath = await getDirUriFsPath(uri)
+    activatePath(uriPath)
+}
+
+async function activatePath(path: string) {
     await startREPL(true, false)
-    if (uriPath) {
+    if (path) {
         try {
-            g_connection.sendNotification('repl/activateProject', uriPath)
-            switchEnvToPath(uriPath, true)
+            g_connection.sendNotification('repl/activateProject', path)
+            switchEnvToPath(path, true)
         } catch (err) {
             console.log(err)
         }
@@ -596,18 +600,27 @@ async function activateHere(uri: vscode.Uri) {
 
 async function activateFromDir(uri: vscode.Uri) {
     const uriPath = await getDirUriFsPath(uri)
-    await startREPL(true, false)
     if (uriPath) {
         try {
-            const activeDir = await g_connection.sendRequest<string | undefined>('repl/activateProjectFromDir', uriPath)
-            if (!activeDir) {
+            const target = await searchUpFile('Project.toml', uriPath)
+            if (!target) {
                 vscode.window.showWarningMessage(`No project file found for ${uriPath}`)
                 return
             }
-            switchEnvToPath(activeDir, true)
+            activatePath(path.dirname(target))
         } catch (err) {
             console.log(err)
         }
+    }
+}
+
+async function searchUpFile(target: string, from: string): Promise<string> {
+    const parentDir = path.dirname(from)
+    if (parentDir === from) {
+        return undefined // ensure to escape infinite recursion
+    } else {
+        const p = path.join(from, target)
+        return (await fs.exists(p)) ? p : searchUpFile(target, parentDir)
     }
 }
 
