@@ -125,26 +125,26 @@ function killREPL() {
     }
 }
 
-function debuggerRun(code: string) {
-    const x = {
+function debuggerRun(params: DebugLaunchParams) {
+    vscode.debug.startDebugging(undefined, {
         type: 'julia',
         request: 'attach',
         name: 'Julia REPL',
-        code: code,
+        code: params.code,
+        file: params.filename,
         stopOnEntry: false
-    }
-    vscode.debug.startDebugging(undefined, x)
+    })
 }
 
-function debuggerEnter(code: string) {
-    const x = {
+function debuggerEnter(params: DebugLaunchParams) {
+    vscode.debug.startDebugging(undefined, {
         type: 'julia',
         request: 'attach',
         name: 'Julia REPL',
-        code: code,
+        code: params.code,
+        file: params.filename,
         stopOnEntry: true
-    }
-    vscode.debug.startDebugging(undefined, x)
+    })
 }
 
 interface ReturnResult {
@@ -164,9 +164,14 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     softscope: boolean
 }, ReturnResult, void, void>('repl/runcode')
 
+interface DebugLaunchParams {
+    code: string,
+    filename: string
+}
+
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display')
-const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter')
-const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run')
+const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams, void>('debugger/enter')
+const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams, void>('debugger/run')
 const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger')
 const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval')
@@ -274,7 +279,7 @@ function clearProgress() {
     }
 }
 
-async function executeFile(uri?: vscode.Uri) {
+async function executeFile(uri?: vscode.Uri | string) {
     telemetry.traceEvent('command-executeFile')
 
     const editor = vscode.window.activeTextEditor
@@ -284,7 +289,12 @@ async function executeFile(uri?: vscode.Uri) {
     let module = 'Main'
     let path = ''
     let code = ''
-    if (uri) {
+
+    if (uri && !(uri instanceof vscode.Uri)) {
+        uri = vscode.Uri.parse(uri)
+    }
+
+    if (uri && uri instanceof vscode.Uri) {
         path = uri.fsPath
         const readBytes = await vscode.workspace.fs.readFile(uri)
         code = Buffer.from(readBytes).toString('utf8')
@@ -320,9 +330,12 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
     if (g_languageClient === null) {
-        vscode.window.showWarningMessage(LSERRORMSG)
+        vscode.window.showErrorMessage('No LS running or start. Check your settings.')
         return zeroReturn
     }
+
+    await g_languageClient.onReady()
+
     let ret_val: vscode.Position[]
     try {
         ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
@@ -338,9 +351,6 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
 
     return ret_val
 }
-
-const LSERRORMSG = `Error: Julia Language server is not running.\n
-Please wait a few seconds and try again once the \`Starting Julia Language Server...\` message in the status bar is gone.`
 
 async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
