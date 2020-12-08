@@ -8,8 +8,11 @@ function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cv
             linfo = frame.linfo
             if linfo isa Core.CodeInfo
                 linetable = linfo.linetable
-                if isa(linetable, Vector) && length(linetable) ≥ 1 && first(linetable).method === Symbol("top-level scope")
-                    return true
+                if isa(linetable, Vector) && length(linetable) ≥ 1
+                    lin = first(linetable)
+                    if isa(lin, Core.LineInfoNode) && lin.method === Symbol("top-level scope")
+                        return true
+                    end
                 end
             end
             return false
@@ -18,6 +21,7 @@ function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cv
     end
     return
 end
+
 # path utilitiles
 # ---------------
 
