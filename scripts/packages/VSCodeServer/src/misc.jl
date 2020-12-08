@@ -1,16 +1,6 @@
 # error handling
 # --------------
 
-find_frame_index(st::Vector{Base.StackTraces.StackFrame}, file, func) =
-    return findfirst(frame -> frame.file === Symbol(file) && frame.func === Symbol(func), st)
-function find_frame_index(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}}, file, func)
-    for (i, ip) in enumerate(bt)
-        st = Base.StackTraces.lookup(ip)
-        ind = find_frame_index(st, file, func)
-        ind === nothing || return i
-    end
-    return
-end
 function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}})
     for (i, ip) in enumerate(bt)
         st = Base.StackTraces.lookup(ip)
