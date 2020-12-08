@@ -598,7 +598,7 @@
                         "null"
                     ],
                     "default": null,
-                    "description": "Path to a julia environment.",
+                    "description": "Path to a julia environment. VS Code needs to be reloaded for changes to take effect.",
                     "scope": "window"
                 },
                 "julia.useCustomSysimage": {

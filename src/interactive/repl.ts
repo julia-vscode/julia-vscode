@@ -125,26 +125,26 @@ function killREPL() {
     }
 }
 
-function debuggerRun(code: string) {
-    const x = {
+function debuggerRun(params: DebugLaunchParams) {
+    vscode.debug.startDebugging(undefined, {
         type: 'julia',
         request: 'attach',
         name: 'Julia REPL',
-        code: code,
+        code: params.code,
+        file: params.filename,
         stopOnEntry: false
-    }
-    vscode.debug.startDebugging(undefined, x)
+    })
 }
 
-function debuggerEnter(code: string) {
-    const x = {
+function debuggerEnter(params: DebugLaunchParams) {
+    vscode.debug.startDebugging(undefined, {
         type: 'julia',
         request: 'attach',
         name: 'Julia REPL',
-        code: code,
+        code: params.code,
+        file: params.filename,
         stopOnEntry: true
-    }
-    vscode.debug.startDebugging(undefined, x)
+    })
 }
 
 interface ReturnResult {
@@ -164,9 +164,14 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     softscope: boolean
 }, ReturnResult, void, void>('repl/runcode')
 
+interface DebugLaunchParams {
+    code: string,
+    filename: string
+}
+
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display')
-const notifyTypeDebuggerEnter = new rpc.NotificationType<string, void>('debugger/enter')
-const notifyTypeDebuggerRun = new rpc.NotificationType<string, void>('debugger/run')
+const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams, void>('debugger/enter')
+const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams, void>('debugger/run')
 const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger')
 const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval')
@@ -274,7 +279,7 @@ function clearProgress() {
     }
 }
 
-async function executeFile(uri?: vscode.Uri) {
+async function executeFile(uri?: vscode.Uri | string) {
     telemetry.traceEvent('command-executeFile')
 
     const editor = vscode.window.activeTextEditor
@@ -284,7 +289,12 @@ async function executeFile(uri?: vscode.Uri) {
     let module = 'Main'
     let path = ''
     let code = ''
-    if (uri) {
+
+    if (uri && !(uri instanceof vscode.Uri)) {
+        uri = vscode.Uri.parse(uri)
+    }
+
+    if (uri && uri instanceof vscode.Uri) {
         path = uri.fsPath
         const readBytes = await vscode.workspace.fs.readFile(uri)
         code = Buffer.from(readBytes).toString('utf8')
@@ -373,8 +383,13 @@ async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell')
 
     const ed = vscode.window.activeTextEditor
+    if (ed === undefined) {
+        return
+    }
+
     const doc = ed.document
-    const curr = doc.validatePosition(ed.selection.active).line
+    const selection = ed.selection
+    const curr = doc.validatePosition(selection.active).line
     let start = curr
     while (start >= 0) {
         if (isCellBorder(doc.lineAt(start).text)) {
@@ -402,7 +417,7 @@ async function executeCell(shouldMove: boolean = false) {
 
     await startREPL(true, false)
 
-    if (shouldMove) {
+    if (shouldMove && ed.selection === selection) {
         vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
         vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
     }
@@ -415,6 +430,10 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
 
     const editor = vscode.window.activeTextEditor
+    if (editor === undefined) {
+        return
+    }
+
     const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString())
     const selections = editor.selections.slice()
 
@@ -442,7 +461,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
         const text = editor.document.getText(range)
 
-        if (shouldMove && nextBlock && selection.isEmpty && editor.selections.length === 1) {
+        if (shouldMove && nextBlock && selection.isEmpty && editor.selections.length === 1 && editor.selection === selection) {
             editor.selection = new vscode.Selection(nextBlock, nextBlock)
             editor.revealRange(new vscode.Range(nextBlock, nextBlock))
         }
@@ -600,11 +619,15 @@ async function activateHere(uri: vscode.Uri) {
     telemetry.traceEvent('command-activateThisEnvironment')
 
     const uriPath = await getDirUriFsPath(uri)
+    activatePath(uriPath)
+}
+
+async function activatePath(path: string) {
     await startREPL(true, false)
-    if (uriPath) {
+    if (path) {
         try {
-            g_connection.sendNotification('repl/activateProject', uriPath)
-            switchEnvToPath(uriPath, true)
+            g_connection.sendNotification('repl/activateProject', path)
+            switchEnvToPath(path, true)
         } catch (err) {
             console.log(err)
         }
@@ -613,18 +636,27 @@ async function activateHere(uri: vscode.Uri) {
 
 async function activateFromDir(uri: vscode.Uri) {
     const uriPath = await getDirUriFsPath(uri)
-    await startREPL(true, false)
     if (uriPath) {
         try {
-            const activeDir = await g_connection.sendRequest<string | undefined>('repl/activateProjectFromDir', uriPath)
-            if (!activeDir) {
+            const target = await searchUpFile('Project.toml', uriPath)
+            if (!target) {
                 vscode.window.showWarningMessage(`No project file found for ${uriPath}`)
                 return
             }
-            switchEnvToPath(activeDir, true)
+            activatePath(path.dirname(target))
         } catch (err) {
             console.log(err)
         }
+    }
+}
+
+async function searchUpFile(target: string, from: string): Promise<string> {
+    const parentDir = path.dirname(from)
+    if (parentDir === from) {
+        return undefined // ensure to escape infinite recursion
+    } else {
+        const p = path.join(from, target)
+        return (await fs.exists(p)) ? p : searchUpFile(target, parentDir)
     }
 }
 

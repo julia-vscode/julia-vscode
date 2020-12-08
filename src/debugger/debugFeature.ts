@@ -21,17 +21,18 @@ export class JuliaDebugFeature {
                     vscode.window.showInformationMessage('No active editor found.')
                     return
                 }
-                vscode.debug.startDebugging(undefined, {
+                const folder = vscode.workspace.getWorkspaceFolder(resource)
+                if (folder === undefined) {
+                    vscode.window.showInformationMessage('File not found in workspace.')
+                    return
+                }
+                vscode.debug.startDebugging(folder, {
                     type: 'julia',
                     name: 'Run Editor Contents',
                     request: 'launch',
                     program,
                     noDebug: true
-                },/* upcoming proposed API:
-				{
-					noDebug: true
-				}
-			*/)
+                })
             }),
             vscode.commands.registerCommand('language-julia.debugEditorContents', (resource: vscode.Uri | undefined) => {
                 const program = getActiveUri(resource)
@@ -39,11 +40,17 @@ export class JuliaDebugFeature {
                     vscode.window.showInformationMessage('No active editor found.')
                     return
                 }
-                vscode.debug.startDebugging(undefined, {
+                const folder = vscode.workspace.getWorkspaceFolder(resource)
+                if (folder === undefined) {
+                    vscode.window.showInformationMessage('File not found in workspace.')
+                    return
+                }
+                vscode.debug.startDebugging(folder, {
                     type: 'julia',
                     name: 'Debug Editor Contents',
                     request: 'launch',
-                    program
+                    program,
+
                 })
             })
         )

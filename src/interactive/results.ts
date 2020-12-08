@@ -217,7 +217,6 @@ function updateResultContextKey(changeEvent: vscode.TextEditorSelectionChangeEve
     setContext('juliaHasInlineResult', false)
 }
 
-
 export function deactivate() { }
 
 export function addResult(
@@ -296,7 +295,9 @@ function setStackFrameHighlight(
         } else {
             targetEditors.forEach(targetEditor => {
                 const result = addErrorResult(err, frame, targetEditor)
-                stackFrameHighlights.highlights.push({ frame, result })
+                if (result) {
+                    stackFrameHighlights.highlights.push({ frame, result })
+                }
             })
         }
     })
@@ -312,8 +313,14 @@ function isEditorPath(editor: vscode.TextEditor, path: string) {
 }
 
 function addErrorResult(err: string, frame: Frame, editor: vscode.TextEditor) {
-    const range = new vscode.Range(new vscode.Position(frame.line - 1, 0), new vscode.Position(frame.line - 1, LINE_INF))
-    return new Result(editor, range, errorResultContent(err, frame))
+    if (frame.line > 0) {
+        const range = new vscode.Range(
+            editor.document.validatePosition(new vscode.Position(frame.line - 1, 0)),
+            editor.document.validatePosition(new vscode.Position(frame.line - 1, LINE_INF))
+        )
+        return new Result(editor, range, errorResultContent(err, frame))
+    }
+    return null
 }
 
 function errorResultContent(err: string, frame: Frame): ResultContent {
@@ -354,7 +361,10 @@ export function refreshResults(editors: vscode.TextEditor[]) {
                 if (highlight.result) {
                     highlight.result.draw()
                 } else {
-                    highlight.result = addErrorResult(stackFrameHighlights.err, frame, editor)
+                    const result = addErrorResult(stackFrameHighlights.err, frame, editor)
+                    if (result) {
+                        highlight.result = result
+                    }
                 }
             }
         })
