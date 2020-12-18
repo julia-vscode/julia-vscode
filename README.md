@@ -44,8 +44,7 @@ in JSON, so you need to use ``\\`` as the path separator character on Windows.
 The extension currently provides
 
 * syntax highlighting
-* snippets
-* [latex snippets](https://github.com/julia-vscode/julia-vscode/wiki/Snippets#latex)
+* [snippets: latex and user-shared snippets](https://github.com/julia-vscode/julia-vscode/wiki/Snippets)
 * [Julia specific commands](https://github.com/julia-vscode/julia-vscode/wiki/Commands)
 * [integrated Julia REPL](https://github.com/julia-vscode/julia-vscode/wiki/REPL)
 * [code completion](https://github.com/julia-vscode/julia-vscode/wiki/IntelliSense)
