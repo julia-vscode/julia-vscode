@@ -512,7 +512,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
-        last_cell_code = [editor, doc, range.start, range.end, text]
+        last_cell_code = [editor, editor.document, range.start, range.end, text]
         await evaluate(editor, range, text, module)
     }
 }
