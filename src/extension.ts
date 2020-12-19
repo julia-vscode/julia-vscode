@@ -23,6 +23,7 @@ import * as weave from './weave'
 let g_languageClient: LanguageClient = null
 let g_context: vscode.ExtensionContext = null
 let g_watchedEnvironmentFile: string = null
+let g_startupNotification: vscode.StatusBarItem = null
 
 export async function activate(context: vscode.ExtensionContext) {
     if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
@@ -65,6 +66,9 @@ export async function activate(context: vscode.ExtensionContext) {
         jlpkgenv.activate(context)
 
         context.subscriptions.push(new JuliaDebugFeature(context))
+
+        g_startupNotification = vscode.window.createStatusBarItem()
+        context.subscriptions.push(g_startupNotification)
 
         // Start language server
         startLanguageServer()
@@ -127,9 +131,8 @@ function changeConfig(event: vscode.ConfigurationChangeEvent) {
 }
 
 async function startLanguageServer() {
-    const startupNotification = vscode.window.createStatusBarItem()
-    startupNotification.text = 'Starting Julia Language Server...'
-    startupNotification.show()
+    g_startupNotification.text = 'Starting Julia Language Server…'
+    g_startupNotification.show()
 
     // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
 
@@ -238,19 +241,23 @@ async function startLanguageServer() {
     try {
         // Push the disposable to the context's subscriptions so that the  client can be deactivated on extension deactivation
         g_context.subscriptions.push(languageClient.start())
-        startupNotification.command = 'language-julia.showLanguageServerOutput'
-        languageClient.onReady().then(() => {
-            setLanguageClient(languageClient)
-        }).finally(() => {
+        g_startupNotification.command = 'language-julia.showLanguageServerOutput'
+        setLanguageClient(languageClient)
+        languageClient.onReady().finally(() => {
             disposable.dispose()
-            startupNotification.dispose()
+            g_startupNotification.hide()
         })
     }
     catch (e) {
-        vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.')
+        vscode.window.showErrorMessage(
+            'Could not start the julia language server. Make sure the configuration setting `julia.executablePath` points to the julia binary.',
+            {
+
+            }
+        )
         setLanguageClient()
         disposable.dispose()
-        startupNotification.dispose()
+        g_startupNotification.hide()
     }
 }
 

@@ -53,6 +53,7 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
     if (manuallySetModule) { return manuallySetModule }
 
     if (!g_languageClient) { return 'Main' }
+    await g_languageClient.onReady()
     try {
         const params: VersionedTextDocumentPositionParams = {
             textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),

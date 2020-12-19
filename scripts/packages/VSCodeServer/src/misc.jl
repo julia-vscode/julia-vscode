@@ -1,17 +1,26 @@
 # error handling
 # --------------
 
-find_frame_index(st::Vector{Base.StackTraces.StackFrame}, file, func) =
-    return findfirst(frame -> frame.file === Symbol(file) && frame.func === Symbol(func), st)
-function find_frame_index(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}}, file, func)
+function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}})
     for (i, ip) in enumerate(bt)
         st = Base.StackTraces.lookup(ip)
-        ind = find_frame_index(st, file, func)
+        ind = findfirst(st) do frame
+            linfo = frame.linfo
+            if linfo isa Core.CodeInfo
+                linetable = linfo.linetable
+                if isa(linetable, Vector) && length(linetable) ≥ 1
+                    lin = first(linetable)
+                    if isa(lin, Core.LineInfoNode) && lin.method === Symbol("top-level scope")
+                        return true
+                    end
+                end
+            end
+            return false
+        end
         ind === nothing || return i
     end
     return
 end
-
 
 # path utilitiles
 # ---------------
@@ -139,23 +148,3 @@ function activate_uri(conn, uri)
     Pkg.activate(uri)
     return nothing
 end
-
-function activate_from_dir(conn, dir)
-    path = search_up_file("Project.toml", dir)
-    path === nothing && return nothing
-    Pkg.activate(path)
-    return dirname(path)
-end
-
-function search_up_file(basename, dir)
-    parent_dir = dirname(dir)
-    return if (parent_dir == dir || # ensure to escape infinite recursion
-        isempty(dir)) # reached to the system root
-        nothing
-    else
-        path = joinpath(dir, basename)
-        isfile′(path) ? path : search_up_file(basename, parent_dir)
-    end
-end
-
-isfile′(p) = try; isfile(p) catch; false end

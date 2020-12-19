@@ -10,7 +10,7 @@ interface SetBreakpointsResponseArguments {
     /** Information about the breakpoints.
                 The array elements are in the same order as the elements of the 'breakpoints' (or the deprecated 'lines') array in the arguments.
             */
-    breakpoints: DebugProtocol.Breakpoint[];
+    breakpoints: DebugProtocol.Breakpoint[]
 }
 
 /** Arguments for 'stackTrace' response. */
@@ -18,9 +18,9 @@ interface StackTraceResponseArguments {
     /** The frames of the stackframe. If the array has length zero, there are no stackframes available.
                 This means that there is no location information available.
             */
-    stackFrames: DebugProtocol.StackFrame[];
+    stackFrames: DebugProtocol.StackFrame[]
     /** The total number of frames available. */
-    totalFrames?: number;
+    totalFrames?: number
 }
 
 /** Arguments for 'setExceptionBreakpoints' response. */
@@ -30,27 +30,27 @@ interface SetExceptionBreakpointsResponseArguments {
 /** Arguments for 'setFunctionBreakpoints' response. */
 interface SetFunctionBreakpointsResponseArguments {
     /** Information about the breakpoints. The array elements correspond to the elements of the 'breakpoints' array. */
-    breakpoints: DebugProtocol.Breakpoint[];
+    breakpoints: DebugProtocol.Breakpoint[]
 }
 
 /** Arguments for 'scopes' response. */
 interface ScopesResponseArguments {
     /** The scopes of the stackframe. If the array has length zero, there are no scopes available. */
-    scopes: DebugProtocol.Scope[];
+    scopes: DebugProtocol.Scope[]
 }
 
 /** Arguments for 'source' response. */
 interface SourceResponseArguments {
     /** Content of the source reference. */
-    content: string;
+    content: string
     /** Optional content type (mime type) of the source. */
-    mimeType?: string;
+    mimeType?: string
 }
 
 /** Arguments for 'variables' response. */
 interface VariablesResponseArguments {
     /** All (or a range) of variables for the given variable reference. */
-    variables: DebugProtocol.Variable[];
+    variables: DebugProtocol.Variable[]
 }
 
 /** Arguments for 'continue' response. */
@@ -58,7 +58,7 @@ interface ContinueResponseArguments {
     /** If true, the 'continue' request has ignored the specified thread and continued all threads instead.
         If this attribute is missing a value of 'true' is assumed for backward compatibility.
     */
-    allThreadsContinued?: boolean;
+    allThreadsContinued?: boolean
 }
 
 /** Arguments for 'next' response. */
@@ -80,32 +80,32 @@ interface StepOutResponseArguments {
 /** Arguments for 'evaluate' response. */
 interface EvaluateResponseArguments {
     /** The result of the evaluate request. */
-    result: string;
+    result: string
     /** The optional type of the evaluate result.
         This attribute should only be returned by a debug adapter if the client has passed the value true for the 'supportsVariableType' capability of the 'initialize' request.
     */
-    type?: string;
+    type?: string
     /** Properties of a evaluate result that can be used to determine how to render the result in the UI. */
-    presentationHint?: DebugProtocol.VariablePresentationHint;
+    presentationHint?: DebugProtocol.VariablePresentationHint
     /** If variablesReference is > 0, the evaluate result is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
         The value should be less than or equal to 2147483647 (2^31 - 1).
     */
-    variablesReference: number;
+    variablesReference: number
     /** The number of named child variables.
         The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
         The value should be less than or equal to 2147483647 (2^31 - 1).
     */
-    namedVariables?: number;
+    namedVariables?: number
     /** The number of indexed child variables.
         The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
         The value should be less than or equal to 2147483647 (2^31 - 1).
     */
-    indexedVariables?: number;
+    indexedVariables?: number
     /** Optional memory reference to a location appropriate for this result.
         For pointer type eval results, this is generally a reference to the memory address contained in the pointer.
         This attribute should be returned by a debug adapter if the client has passed the value true for the 'supportsMemoryReferences' capability of the 'initialize' request.
     */
-    memoryReference?: string;
+    memoryReference?: string
 }
 
 /** Arguments for 'terminate' response. */
@@ -115,13 +115,13 @@ interface TerminateResponseArguments {
 /** Arguments for 'exceptionInfo' response. */
 interface ExceptionInfoResponseArguments {
     /** ID of the exception that was thrown. */
-    exceptionId: string;
+    exceptionId: string
     /** Descriptive text for the exception provided by the debug adapter. */
-    description?: string;
+    description?: string
     /** Mode that caused the exception notification to be raised. */
-    breakMode: DebugProtocol.ExceptionBreakMode;
+    breakMode: DebugProtocol.ExceptionBreakMode
     /** Detailed information about the exception. */
-    details?: DebugProtocol.ExceptionDetails;
+    details?: DebugProtocol.ExceptionDetails
 }
 
 /** Arguments for 'restartFrame' response. */
@@ -130,23 +130,23 @@ interface RestartFrameResponseArguments {
 
 interface SetVariableResponseArguments {
     /** The new value of the variable. */
-    value: string;
+    value: string
     /** The type of the new value. Typically shown in the UI when hovering over the value. */
-    type?: string;
+    type?: string
     /** If variablesReference is > 0, the new value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
         The value should be less than or equal to 2147483647 (2^31 - 1).
     */
-    variablesReference?: number;
+    variablesReference?: number
     /** The number of named child variables.
         The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
         The value should be less than or equal to 2147483647 (2^31 - 1).
     */
-    namedVariables?: number;
+    namedVariables?: number
     /** The number of indexed child variables.
         The client can use this optional information to present the variables in a paged UI and fetch them in chunks.
         The value should be less than or equal to 2147483647 (2^31 - 1).
     */
-    indexedVariables?: number;
+    indexedVariables?: number
 }
 
 export interface StoppedArguments {
@@ -154,30 +154,30 @@ export interface StoppedArguments {
         For backward compatibility this string is shown in the UI if the 'description' attribute is missing (but it must not be translated).
         Values: 'step', 'breakpoint', 'exception', 'pause', 'entry', 'goto', 'function breakpoint', 'data breakpoint', 'instruction breakpoint', etc.
     */
-    reason: string;
+    reason: string
     /** The full reason for the event, e.g. 'Paused on exception'. This string is shown in the UI as is and must be translated. */
-    description?: string;
+    description?: string
     /** The thread which was stopped. */
-    threadId?: number;
+    threadId?: number
     /** A value of true hints to the frontend that this event should not change the focus. */
-    preserveFocusHint?: boolean;
+    preserveFocusHint?: boolean
     /** Additional information. E.g. if reason is 'exception', text contains the exception name. This string is shown in the UI. */
-    text?: string;
+    text?: string
     /** If 'allThreadsStopped' is true, a debug adapter can announce that all threads have stopped.
         - The client should use this information to enable that all threads can be expanded to access their stacktraces.
         - If the attribute is missing or false, only the thread with the given threadId can be expanded.
     */
-    allThreadsStopped?: boolean;
+    allThreadsStopped?: boolean
 }
 
 interface ThreadsResponseArguments {
     /** All threads. */
-    threads: DebugProtocol.Thread[];
+    threads: DebugProtocol.Thread[]
 }
 
 interface BreakpointLocationsResponseArguments {
     /** Sorted set of possible breakpoint locations. */
-    breakpoints: DebugProtocol.BreakpointLocation[];
+    breakpoints: DebugProtocol.BreakpointLocation[]
 }
 
 export const requestTypeDisconnect = new RequestType<DebugProtocol.DisconnectArguments, DisconnectResponseArguments, void, void>('disconnect')
@@ -202,6 +202,6 @@ export const requestTypeThreads = new RequestType0<ThreadsResponseArguments, voi
 export const requestTypeBreakpointLocations = new RequestType<DebugProtocol.BreakpointLocationsArguments, BreakpointLocationsResponseArguments, void, void>('breakpointLocations')
 export const notifyTypeRun = new NotificationType<string, void>('run')
 export const notifyTypeDebug = new NotificationType<{ stopOnEntry: boolean, program: string }, void>('debug')
-export const notifyTypeExec = new NotificationType<{ stopOnEntry: boolean, code: string }, void>('exec')
+export const notifyTypeExec = new NotificationType<{ stopOnEntry: boolean, code: string, file: string }, void>('exec')
 export const notifyTypeOurFinished = new NotificationType<void, void>('finished')
 export const notifyTypeStopped = new NotificationType<StoppedArguments, void>('stopped')
