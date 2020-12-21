@@ -392,16 +392,6 @@
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
-                "command": "language-julia.moveCellUp",
-                "key": "ctrl+alt+[",
-                "when": "editorTextFocus && editorLangId == julia"
-            },
-            {
-                "command": "language-julia.moveCellDown",
-                "key": "ctrl+alt+]",
-                "when": "editorTextFocus && editorLangId == julia"
-            },
-            {
                 "command": "language-julia.clearCurrentInlineResult",
                 "key": "Ctrl+I Ctrl+D",
                 "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && juliaHasInlineResult"
