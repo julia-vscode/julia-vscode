@@ -1,5 +1,6 @@
 import * as fs from 'async-file'
 import { Subject } from 'await-notify'
+import { assert } from 'console'
 import * as net from 'net'
 import * as path from 'path'
 import * as vscode from 'vscode'
@@ -364,10 +365,9 @@ async function selectJuliaBlock() {
 
     const ret_val: vscode.Position[] = await getBlockRange(params)
 
-    const start_pos = editor.document.validatePosition(new vscode.Position(ret_val[0].line, ret_val[0].character))
-    const end_pos = editor.document.validatePosition(new vscode.Position(ret_val[1].line, ret_val[1].character))
-    vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
-    vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
+    const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
+    const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
+    validateMoveAndReveal(editor, start_pos, end_pos)
 }
 
 const g_cellDelimiters = [
@@ -377,6 +377,60 @@ const g_cellDelimiters = [
 
 function isCellBorder(s: string) {
     return g_cellDelimiters.some(regex => regex.test(s))
+}
+
+function _nextCellBorder(doc, line_num: number, direction: number) {
+    assert(direction === 1 || direction === -1)
+    while (0 <= line_num && line_num < doc.lineCount) {
+        if (isCellBorder(doc.lineAt(line_num).text)) {
+            break
+        }
+        line_num += direction
+    }
+    return line_num
+}
+
+const nextCellBorder = (doc, line_num) => _nextCellBorder(doc, line_num, +1)
+const prevCellBorder = (doc, line_num) => _nextCellBorder(doc, line_num, -1)
+
+function validateMoveAndReveal(editor: vscode.TextEditor, startpos: vscode.Position, endpos: vscode.Position) {
+    const doc = editor.document
+    startpos = doc.validatePosition(startpos)
+    endpos = doc.validatePosition(endpos)
+    editor.selection = new vscode.Selection(startpos, endpos)
+    editor.revealRange(new vscode.Range(startpos, endpos))
+}
+
+async function moveCellDown() {
+    telemetry.traceEvent('command-moveCellDown')
+    const ed = vscode.window.activeTextEditor
+    if (ed === undefined) {
+        return
+    }
+    const currline = ed.selection.active.line
+    const newpos = new vscode.Position(nextCellBorder(ed.document, currline + 1) + 1, 0)
+    validateMoveAndReveal(ed, newpos, newpos)
+}
+
+async function moveCellUp() {
+    telemetry.traceEvent('command-moveCellUp')
+    const ed = vscode.window.activeTextEditor
+    if (ed === undefined) {
+        return
+    }
+    const currline = ed.selection.active.line
+    const newpos = new vscode.Position(Math.max(0, prevCellBorder(ed.document, currline) - 1), 0)
+    validateMoveAndReveal(ed, newpos, newpos)
+}
+
+function currentCellRange(editor: vscode.TextEditor) {
+    const doc = editor.document
+    const currline = editor.selection.active.line
+    const startline = prevCellBorder(doc, currline) + 1
+    const endline = nextCellBorder(doc, currline + 1) - 1
+    const startpos = doc.validatePosition(new vscode.Position(startline, 0))
+    const endpos = doc.validatePosition(new vscode.Position(endline, doc.lineAt(endline).text.length))
+    return new vscode.Range(startpos, endpos)
 }
 
 async function executeCell(shouldMove: boolean = false) {
@@ -389,40 +443,19 @@ async function executeCell(shouldMove: boolean = false) {
 
     const doc = ed.document
     const selection = ed.selection
-    const curr = doc.validatePosition(selection.active).line
-    let start = curr
-    while (start >= 0) {
-        if (isCellBorder(doc.lineAt(start).text)) {
-            break
-        } else {
-            start -= 1
-        }
-    }
-    start += 1
-    let end = start
-    while (end < doc.lineCount) {
-        if (isCellBorder(doc.lineAt(end).text)) {
-            break
-        } else {
-            end += 1
-        }
-    }
-    end -= 1
-    const startpos = ed.document.validatePosition(new vscode.Position(start, 0))
-    const endpos = ed.document.validatePosition(new vscode.Position(end, doc.lineAt(end).text.length))
-    const nextpos = ed.document.validatePosition(new vscode.Position(end + 1, 0))
-    const code = doc.getText(new vscode.Range(startpos, endpos))
+    const cellrange = currentCellRange(ed)
+    const code = doc.getText(cellrange)
 
-    const module: string = await modules.getModuleForEditor(ed.document, startpos)
+    const module: string = await modules.getModuleForEditor(ed.document, cellrange.start)
 
     await startREPL(true, false)
 
     if (shouldMove && ed.selection === selection) {
-        vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
-        vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
+        const nextpos = new vscode.Position(cellrange.end.line + 2, 0)
+        validateMoveAndReveal(ed, nextpos, nextpos)
     }
 
-    await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
+    await evaluate(ed, cellrange, code, module)
 }
 
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
@@ -462,8 +495,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         const text = editor.document.getText(range)
 
         if (shouldMove && nextBlock && selection.isEmpty && editor.selections.length === 1 && editor.selection === selection) {
-            editor.selection = new vscode.Selection(nextBlock, nextBlock)
-            editor.revealRange(new vscode.Range(nextBlock, nextBlock))
+            validateMoveAndReveal(editor, nextBlock, nextBlock)
         }
 
         if (range.isEmpty) {
@@ -753,6 +785,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
         vscode.commands.registerCommand('language-julia.executeCell', executeCell),
         vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
+        vscode.commands.registerCommand('language-julia.moveCellUp', moveCellUp),
+        vscode.commands.registerCommand('language-julia.moveCellDown', moveCellDown),
         vscode.commands.registerCommand('language-julia.executeFile', executeFile),
         vscode.commands.registerCommand('language-julia.interrupt', interrupt),
         vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started

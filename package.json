@@ -41,6 +41,8 @@
         "onCommand:language-julia.executeCell",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
+        "onCommand:language-julia.moveCellUp",
+        "onCommand:language-julia.moveCellDown",
         "onCommand:language-julia.debug.getActiveJuliaEnvironment",
         "onCommand:language-julia.debugEditorContents",
         "onCommand:language-julia.runEditorContents",
@@ -210,6 +212,14 @@
             {
                 "command": "language-julia.executeCellAndMove",
                 "title": "Julia: Execute Code Cell And Move"
+            },
+            {
+                "command": "language-julia.moveCellUp",
+                "title": "Julia: Move to Previous Cell"
+            },
+            {
+                "command": "language-julia.moveCellDown",
+                "title": "Julia: Move to Next Cell"
             },
             {
                 "command": "language-julia.selectBlock",
