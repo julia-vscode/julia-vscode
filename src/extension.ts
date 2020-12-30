@@ -151,12 +151,12 @@ async function startLanguageServer() {
     const serverArgsDebug = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath]
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
-        env: {
-            JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+        env: Object.assign(process.env, {
+            JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir') + ':' + oldDepotPath,
             JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
             HOME: process.env.HOME ? process.env.HOME : os.homedir(),
             JULIA_LANGUAGESERVER: '1'
-        }
+        })
     }
 
     const jlexepath = await juliaexepath.getJuliaExePath()

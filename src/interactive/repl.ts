@@ -65,10 +65,10 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             return jlarg2
         }
 
-        const env = {
+        const env = Object.assign(process.env, {
             JULIA_EDITOR: get_editor(),
             JULIA_NUM_THREADS: inferJuliaNumThreads()
-        }
+        })
 
         const pkgServer: string = vscode.workspace.getConfiguration('julia').get('packageServer')
         if (pkgServer.length !== 0) {
