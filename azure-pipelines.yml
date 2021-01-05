@@ -291,7 +291,7 @@ stages:
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
-              # npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
             env:
               MARKET_KEY: $(vscekey)
               OPENVSX_KEY: $(ovsxkey)
@@ -314,7 +314,7 @@ stages:
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
-              # npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
             env:
               MARKET_KEY: $(vscekey)
               OPENVSX_KEY: $(ovsxkey)
