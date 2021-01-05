@@ -85,7 +85,7 @@ function evalrepl(m, line, repl, main_mode)
             end
         end
         if r isa EvalError
-            display_repl_error(stderr, r.err, stacktrace(r.bt))
+            display_repl_error(stderr, r.err, r.bt)
             nothing
         else
             r
@@ -106,14 +106,13 @@ end
 end
 
 # basically the same as Base's `display_error`, with internal frames removed
-function display_repl_error(io, err, st)
-    ind = find_frame_index(st, @__FILE__, repleval)
-    st = st[1:(ind === nothing ? end : ind - 2)]
+function display_repl_error(io, err, bt)
+    st = stacktrace(crop_backtrace(bt))
     printstyled(io, "ERROR: "; bold=true, color=Base.error_color())
     showerror(IOContext(io, :limit => true), err, st)
     println(io)
 end
-display_repl_error(io, err::LoadError, st) = display_repl_error(io, err.error, st)
+display_repl_error(io, err::LoadError, bt) = display_repl_error(io, err.error, bt)
 
 function withpath(f, path)
     tls = task_local_storage()
