@@ -712,6 +712,12 @@
                         "Shows inline execution results in REPL and inline bubbles"
                     ]
                 },
+                "julia.execution.inlineResults.colors": {
+                    "type": "object",
+                    "default": {},
+                    "markdownDescription": "Customizes the colors of inline results when they are displayed in the editor. \n* Available keys for this setting are : \n\t* `foreground`: foreground text color\n\t* `foreground-light`: foreground text color in light themes \n\t* `foreground-dark`: foreground text color in dark themes\n\t* `background`: background color\n\t* `background-light`: background color in light themes\n\t* `background-dark`: background color in dark themes\n\t* `accent`: accent color for normal execution results\n\t* `accent-error`: accent color for error execution results \n* Accepted values are: \n\t* valid CSS color strings\n\t* VS Code [Theme Colors](https://code.visualstudio.com/api/references/theme-color), prefixed by `vscode.` (i.e. `vscode.editor.foreground`)",
+                    "scope": "window"
+                },
                 "julia.execution.codeInREPL": {
                     "type": "boolean",
                     "default": false,
