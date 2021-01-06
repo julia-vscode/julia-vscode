@@ -89,29 +89,29 @@ export class Result {
         const section = vscode.workspace.getConfiguration('julia')
         const colorConfig = section.get<object>('execution.inlineResults.colors')
 
-        let colorFor = function (candidates: string[], defaultCallBack: () => string | vscode.ThemeColor): string | vscode.ThemeColor {
+        let colorFor = function (candidates: string[], defaultTo: string | vscode.ThemeColor): string | vscode.ThemeColor {
             if (candidates.length > 0) {
                 if (colorConfig && colorConfig[candidates[0]]) {
                     let color: string = colorConfig[candidates[0]]
                     return color.startsWith('vscode.') ? new vscode.ThemeColor(color.replace(/^(vscode\.)/, '')) : color
                 } else {
-                    return colorFor(candidates.slice(1), defaultCallBack)
+                    return colorFor(candidates.slice(1), defaultTo)
                 }
             } else {
-                return defaultCallBack()
+                return defaultTo
             }
         }
 
         const accentColor = this.content.isError
-            ? colorFor(['accent-error'], () => '#d11111')
-            : colorFor(['accent'], () => '#159eed')
+            ? colorFor(['accent-error'], '#d11111')
+            : colorFor(['accent'], '#159eed')
 
         return {
             before: {
                 contentIconPath: undefined,
                 contentText: undefined,
-                color: colorFor(['foreground'], () => new vscode.ThemeColor('editor.foreground')),
-                backgroundColor: colorFor(['background'], () => '#ffffff22'),
+                color: colorFor(['foreground'], new vscode.ThemeColor('editor.foreground')),
+                backgroundColor: colorFor(['background'], '#ffffff22'),
                 margin: '0 0 0 10px',
                 border: "2px solid",
                 borderColor: accentColor,
@@ -120,14 +120,14 @@ export class Result {
             },
             dark: {
                 before: {
-                    color: colorFor(['foreground-dark', 'foreground'], () => new vscode.ThemeColor('editor.foreground')),
-                    backgroundColor: colorFor(['background-dark', 'background'], () => '#ffffff22')
+                    color: colorFor(['foreground-dark', 'foreground'], new vscode.ThemeColor('editor.foreground')),
+                    backgroundColor: colorFor(['background-dark', 'background'], '#ffffff22')
                 }
             },
             light: {
                 before: {
-                    color: colorFor(['foreground-light', 'foreground'], () => new vscode.ThemeColor('editor.foreground')),
-                    backgroundColor: colorFor(['background-light', 'background'], () => '#00000011')
+                    color: colorFor(['foreground-light', 'foreground'], new vscode.ThemeColor('editor.foreground')),
+                    backgroundColor: colorFor(['background-light', 'background'], '#00000011')
                 }
             },
             rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed,
