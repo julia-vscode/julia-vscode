@@ -90,7 +90,7 @@ export class Result {
         const colorConfig = section.get<object>('execution.inlineResults.colors')
 
         let colorFor = function (candidates: string[], defaultCallBack: () => string | vscode.ThemeColor): string | vscode.ThemeColor {
-            if (candidates.length) {
+            if (candidates.length > 0) {
                 if (colorConfig && colorConfig[candidates[0]]) {
                     let color: string = colorConfig[candidates[0]]
                     return color.startsWith('vscode.') ? new vscode.ThemeColor(color.replace(/^(vscode\.)/, '')) : color
