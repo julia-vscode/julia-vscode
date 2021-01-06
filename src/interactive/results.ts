@@ -113,8 +113,10 @@ export class Result {
                 color: colorFor(['foreground'], () => new vscode.ThemeColor('editor.foreground')),
                 backgroundColor: colorFor(['background'], () => '#ffffff22'),
                 margin: '0 0 0 10px',
+                border: "2px solid",
+                borderColor: accentColor,
                 // HACK: CSS injection to get custom styling in:
-                textDecoration: `none; white-space: pre; border-left: 2px ${accentColor} solid; border-radius: 2px`
+                textDecoration: `none; white-space: pre; border-top: 0px; border-right: 0px; border-bottom: 0px; border-radius: 2px`
             },
             dark: {
                 before: {
