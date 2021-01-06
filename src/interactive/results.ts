@@ -87,13 +87,13 @@ export class Result {
     createResultDecoration(): vscode.DecorationRenderOptions {
 
         const section = vscode.workspace.getConfiguration('julia')
-        const colorConfig = section.get<object>("execution.inlineResults.colors")
+        const colorConfig = section.get<object>('execution.inlineResults.colors')
 
         let colorFor = function (candidates: string[], defaultCallBack: () => string | vscode.ThemeColor): string | vscode.ThemeColor {
             if (candidates.length) {
                 if (colorConfig && colorConfig[candidates[0]]) {
                     let color: string = colorConfig[candidates[0]]
-                    return color.startsWith('vscode.') ? new vscode.ThemeColor(color.replace(/^(vscode\.)/, "")) : color
+                    return color.startsWith('vscode.') ? new vscode.ThemeColor(color.replace(/^(vscode\.)/, '')) : color
                 } else {
                     return colorFor(candidates.slice(1), defaultCallBack)
                 }
