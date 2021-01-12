@@ -44,7 +44,7 @@ function get_editor(): string {
         if (vscode.env.appName === 'Code - OSS') {
             return `"${path.join(vscode.env.appRoot, '..', '..', 'bin', 'code-server')}"`
         } else {
-            const cmd = vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
+            const cmd = vscode.env.appName.includes('Insiders') && process.platform !== 'darwin' ? 'code-insiders' : 'code'
             return `"${path.join(vscode.env.appRoot, 'bin', cmd)}"`
         }
     }
