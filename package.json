@@ -595,12 +595,12 @@
                 "julia.usePlotPane": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Display plots within vscode."
+                    "description": "Display plots within VS Code. Might require a restart of the Julia process."
                 },
                 "julia.additionalArgs": {
                     "type": "array",
                     "default": [],
-                    "description": "Additional julia arguments."
+                    "description": "Additional Julia arguments."
                 },
                 "julia.environmentPath": {
                     "type": [

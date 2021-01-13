@@ -48,19 +48,19 @@ function display(d::InlineDisplay, m::MIME, x)
 end
 
 Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
+Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
+Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
 function display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
     payload = stringmime(m, x)
     sendDisplayMsg(string(m), payload)
 end
 
-Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
+Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
-displayable(_::InlineDisplay, mime::MIME) = PLOT_PANE_ENABLED[] && string(mime) in DISPLAYABLE_MIMES
+Base.Multimedia.displayable(_::InlineDisplay, mime::MIME) = PLOT_PANE_ENABLED[] && string(mime) in DISPLAYABLE_MIMES
 
 const DISPLAYABLE_MIMES = [
     "application/vnd.vegalite.v4+json",
