@@ -5,6 +5,22 @@ import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
 import { constructCommandString, getVersionedParamsAtPosition } from '../utils'
 
+function openArgs(href: string) {
+    const matches = href.match(/^((?:\w+\:\/\/)?.+?)(?:\:(\d+))?$/)
+    let uri
+    let options
+    if (matches[1]) {
+        uri = vscode.Uri.parse(matches[1])
+    }
+    if (matches[2]) {
+        const line = parseInt(matches[2])
+        options = {
+            selection: new vscode.Range(line, 0, line, 0)
+        }
+    }
+    return { uri, options }
+}
+
 const md = new markdownit(
     {
         highlight: (str: string, lang: string) => {
@@ -35,7 +51,13 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
 
     if (aIndex >= 0 && tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
-        const commandUri = constructCommandString('language-julia', { searchTerm: tokens[idx + 1].content })
+        const commandUri = constructCommandString('language-julia.findHelp', { searchTerm: tokens[idx + 1].content })
+        tokens[idx].attrs[aIndex][1] = vscode.Uri.parse(commandUri).toString()
+    } else if (aIndex >= 0 && tokens.length > idx + 1) {
+        const href = tokens[idx + 1].content
+        const { uri, options } = openArgs(href)
+        // FIXME: opening at a position doesn't work
+        const commandUri = constructCommandString('vscode.open', [uri, options])
         tokens[idx].attrs[aIndex][1] = commandUri
     }
 
@@ -77,7 +99,8 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         this.view = view
 
         view.webview.options = {
-            enableScripts: true
+            enableScripts: true,
+            enableCommandUris: true
         }
         view.webview.html = '<html>Who let the docs out?!</html>'
     }
@@ -123,7 +146,6 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
     createWebviewHTML(docAsMD: string) {
         const docAsHTML = md.render(docAsMD)
-        const darkMode = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark
 
         const extensionPath = this.context.extensionPath
 
@@ -131,13 +153,13 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         const fontawesomecss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
         const solidcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
         const brandscss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
-        const documenterStylesheetcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
+        const documenterStylesheetcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', 'documenter-dark.css')))
         const katexcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
 
         const webfontjs = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
 
         return `
-    <html lang="en" class=${darkMode ? 'theme--documenter-dark' : ''}>
+    <html lang="en" class='theme--documenter-dark'>
 
     <head>
         <meta charset="UTF-8">
