@@ -3,7 +3,7 @@ import * as markdownit from 'markdown-it'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
-import { constructCommandString, getVersionedParamsAtPosition, setContext } from '../utils'
+import { constructCommandString, getVersionedParamsAtPosition } from '../utils'
 
 const md = new markdownit(
     {
@@ -49,175 +49,160 @@ md.renderer.rules.code_inline = (tokens, idx, options) => {
     return `<code class="language-julia">${highlighted}</code>`
 }
 
-let g_context: vscode.ExtensionContext | undefined = undefined
-const g_panelActiveContextKey = 'juliaDocumentationPaneActive'
-let g_panel: vscode.WebviewPanel | undefined = undefined
-
-const g_backStack = Array<string>() // also keep current page
-let g_forwardStack = Array<string>()
-
 export function activate(context: vscode.ExtensionContext) {
-    g_context = context
+    const provider = new DocumentationViewProvider(context)
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('language-julia.show-documentation-pane', showDocumentationPane),
-        vscode.commands.registerCommand('language-julia.show-documentation', showDocumentation),
-        vscode.commands.registerCommand('language-julia.browse-back-documentation', browseBack),
-        vscode.commands.registerCommand('language-julia.browse-forward-documentation', browseForward),
-        vscode.commands.registerCommand('language-julia.findHelp', findHelp)
+        vscode.commands.registerCommand('language-julia.show-documentation-pane', () => provider.showDocumentationPane()),
+        vscode.commands.registerCommand('language-julia.show-documentation', () => provider.showDocumentation()),
+        vscode.commands.registerCommand('language-julia.browse-back-documentation', () => provider.browseBack()),
+        vscode.commands.registerCommand('language-julia.browse-forward-documentation', () => provider.browseForward()),
+        vscode.commands.registerCommand('language-julia.findHelp', (mod) => provider.findHelp(mod)),
+        vscode.window.registerWebviewViewProvider('julia-documentation', provider)
     )
-    setPanelContext(false)
 }
 
-function findHelp(mod: { searchTerm: string }) {
-    console.log(`Searched for documentation topic '${mod.searchTerm}'.`)
-}
+class DocumentationViewProvider implements vscode.WebviewViewProvider {
+    private view?: vscode.WebviewView
+    private context: vscode.ExtensionContext
 
-function showDocumentationPane() {
-    if (g_panel === undefined) {
-        g_panel = vscode.window.createWebviewPanel('JuliaDocumentationBrowser', 'Julia Documentation Pane',
-            {
-                preserveFocus: true,
-                viewColumn: g_context.globalState.get('juliaDocumentationPanelViewColumn', vscode.ViewColumn.Beside),
+    private backStack = Array<string>() // also keep current page
+    private forwardStack = Array<string>()
+
+    constructor(context) {
+        this.context = context
+    }
+
+    resolveWebviewView(view: vscode.WebviewView, context: vscode.WebviewViewResolveContext) {
+        this.view = view
+
+        view.webview.options = {
+            enableScripts: true
+        }
+        view.webview.html = '<html>Who let the docs out?!</html>'
+    }
+
+    findHelp(mod: { searchTerm: string }) {
+        console.log(`Searched for documentation topic '${mod.searchTerm}'.`)
+    }
+
+    async showDocumentationPane() {
+        // this forces the webview to be resolved:
+        await vscode.commands.executeCommand('julia-documentation.focus')
+        // should always be true, but better safe than sorry
+        if (this.view) {
+            this.view.show?.(true)
+        }
+    }
+
+    async showDocumentation() {
+        // telemetry.traceEvent('command-showdocumentation')
+        const editor = vscode.window.activeTextEditor
+        if (!editor) { return }
+
+        const docAsMD = await this.getDocumentation(editor)
+        if (!docAsMD) { return }
+
+        this.forwardStack = [] // initialize forward page stack for manual search
+        await this.showDocumentationPane()
+        const html = this.createWebviewHTML(docAsMD)
+        this.setHTML(html)
+    }
+
+    async getDocumentation(editor: vscode.TextEditor): Promise<string> {
+        return await withLanguageClient(
+            async languageClient => {
+                return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor.document, editor.selection.start))
             },
-            {
-                enableFindWidget: true,
-                // retainContextWhenHidden: true, // comment in if loading is slow, while there would be high memory overhead
-                enableScripts: true,
-                enableCommandUris: true
+            err => {
+                console.log('making LC request failed')
+                return ''
             }
         )
-
-        g_panel.onDidChangeViewState(({ webviewPanel }) => {
-            g_context.globalState.update('juliaDocumentationPanelViewColumn', webviewPanel.viewColumn)
-            setPanelContext(webviewPanel.active)
-        })
-
-        g_panel.onDidDispose(() => {
-            setPanelContext(false)
-            g_panel = undefined
-        })
-
-        setPanelContext(true)
     }
-    else if (!g_panel.visible) {
-        g_panel.reveal()
+
+    createWebviewHTML(docAsMD: string) {
+        const docAsHTML = md.render(docAsMD)
+        const darkMode = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark
+
+        const extensionPath = this.context.extensionPath
+
+        const googleFontscss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css')))
+        const fontawesomecss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
+        const solidcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
+        const brandscss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
+        const documenterStylesheetcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
+        const katexcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
+
+        const webfontjs = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
+
+        return `
+    <html lang="en" class=${darkMode ? 'theme--documenter-dark' : ''}>
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Julia Documentation Pane</title>
+        <link href=${googleFontscss} rel="stylesheet" type="text/css" />
+        <link href=${fontawesomecss} rel="stylesheet" type="text/css" />
+        <link href=${solidcss} rel="stylesheet" type="text/css" />
+        <link href=${brandscss} rel="stylesheet" type="text/css" />
+        <link href=${katexcss} rel="stylesheet" type="text/css" />
+        <link href=${documenterStylesheetcss} rel="stylesheet" type="text/css">
+
+        <script type="text/javascript">
+            WebFontConfig = {
+                custom: {
+                    families: ['KaTeX_AMS', 'KaTeX_Caligraphic:n4,n7', 'KaTeX_Fraktur:n4,n7','KaTeX_Main:n4,n7,i4,i7', 'KaTeX_Math:i4,i7', 'KaTeX_Script','KaTeX_SansSerif:n4,n7,i4', 'KaTeX_Size1', 'KaTeX_Size2', 'KaTeX_Size3', 'KaTeX_Size4', 'KaTeX_Typewriter'],
+                    urls: ['${katexcss}']
+                },
+            }
+        </script>
+
+        <script src=${webfontjs}></script>
+    </head>
+
+    <body>
+        <div class="docs-main" style="padding: 1em">
+            <article class="content">
+                ${docAsHTML}
+            </article>
+        </div>
+    </body>
+
+    </html>
+    `
     }
-}
 
-function setPanelContext(state: boolean) {
-    setContext(g_panelActiveContextKey, state)
-}
+    setHTML(html: string) {
+        // set current stack
+        this.backStack.push(html)
 
-const LS_ERR_MSG = `
-Error: Julia Language server is not running.
-Please wait a few seconds and try again once the \`Starting Julia Language Server...\` message in the status bar is gone.
-`
-async function showDocumentation() {
-    // telemetry.traceEvent('command-showdocumentation')
-    const editor = vscode.window.activeTextEditor
-    if (!editor) { return }
-
-    const docAsMD = await getDocumentation(editor)
-    if (!docAsMD) { return }
-
-    g_forwardStack = [] // initialize forward page stack for manual search
-    showDocumentationPane()
-    const html = createWebviewHTML(docAsMD)
-    _setHTML(html)
-}
-
-async function getDocumentation(editor: vscode.TextEditor): Promise<string> {
-    return await withLanguageClient(
-        async languageClient => {
-            return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor.document, editor.selection.start))
-        },
-        err => {
-            vscode.window.showErrorMessage(LS_ERR_MSG)
-            return ''
+        if (this.view) {
+            this.view.webview.html = html
         }
-    )
-}
+    }
 
-function createWebviewHTML(docAsMD: string) {
-    const docAsHTML = md.render(docAsMD)
-    const darkMode = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark
+    isBrowseBackAvailable() {
+        return this.backStack.length > 1
+    }
 
-    const extensionPath = g_context.extensionPath
+    isBrowseForwardAvailable() {
+        return this.forwardStack.length > 0
+    }
 
-    const googleFontscss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css')))
-    const fontawesomecss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
-    const solidcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
-    const brandscss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
-    const documenterStylesheetcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', darkMode ? 'documenter-dark.css' : 'documenter-light.css')))
-    const katexcss = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
+    browseBack() {
+        if (!this.isBrowseBackAvailable()) { return }
 
-    const webfontjs = g_panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
+        const current = this.backStack.pop()
+        this.forwardStack.push(current)
 
-    return `
-<html lang="en" class=${darkMode ? 'theme--documenter-dark' : ''}>
+        this.setHTML(this.backStack.pop())
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Julia Documentation Pane</title>
-    <link href=${googleFontscss} rel="stylesheet" type="text/css" />
-    <link href=${fontawesomecss} rel="stylesheet" type="text/css" />
-    <link href=${solidcss} rel="stylesheet" type="text/css" />
-    <link href=${brandscss} rel="stylesheet" type="text/css" />
-    <link href=${katexcss} rel="stylesheet" type="text/css" />
-    <link href=${documenterStylesheetcss} rel="stylesheet" type="text/css">
+    browseForward() {
+        if (!this.isBrowseForwardAvailable()) { return }
 
-    <script type="text/javascript">
-        WebFontConfig = {
-            custom: {
-                families: ['KaTeX_AMS', 'KaTeX_Caligraphic:n4,n7', 'KaTeX_Fraktur:n4,n7','KaTeX_Main:n4,n7,i4,i7', 'KaTeX_Math:i4,i7', 'KaTeX_Script','KaTeX_SansSerif:n4,n7,i4', 'KaTeX_Size1', 'KaTeX_Size2', 'KaTeX_Size3', 'KaTeX_Size4', 'KaTeX_Typewriter'],
-                urls: ['${katexcss}']
-            },
-        }
-    </script>
-
-    <script src=${webfontjs}></script>
-</head>
-
-<body>
-    <div class="docs-main" style="padding: 1em">
-        <article class="content">
-            ${docAsHTML}
-        </article>
-    </div>
-</body>
-
-</html>
-`
-}
-
-function _setHTML(html: string) {
-    // set current stack
-    g_backStack.push(html)
-
-    g_panel.webview.html = html
-}
-
-function isBrowseBackAvailable() {
-    return g_backStack.length > 1
-}
-
-function isBrowseForwardAvailable() {
-    return g_forwardStack.length > 0
-}
-
-function browseBack() {
-    if (!isBrowseBackAvailable()) { return }
-
-    const current = g_backStack.pop()
-    g_forwardStack.push(current)
-
-    _setHTML(g_backStack.pop())
-}
-
-function browseForward() {
-    if (!isBrowseForwardAvailable()) { return }
-
-    _setHTML(g_forwardStack.pop())
+        this.setHTML(this.forwardStack.pop())
+    }
 }
