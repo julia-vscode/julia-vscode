@@ -734,7 +734,8 @@
         },
         "configurationDefaults": {
             "[julia]": {
-                "editor.quickSuggestions": true
+                "editor.quickSuggestions": true,
+                "editor.wordSeparators": "`~#$%^&*()-=+[{]}\\|;:'\",.<>/?"
             }
         },
         "taskDefinitions": [
