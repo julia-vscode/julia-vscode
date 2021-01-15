@@ -13,7 +13,7 @@ juliaprompt = "julia> "
 
 current_prompt = juliaprompt
 
-function get_main_mode(repl = Base.active_repl)
+function get_main_mode(repl=Base.active_repl)
     mode = repl.interface.modes[1]
     mode isa LineEdit.Prompt || error("no julia repl mode found")
     mode
@@ -50,7 +50,7 @@ function hideprompt(f)
     elseif mode isa LineEdit.PrefixHistoryPrompt || :parent_prompt in fieldnames(typeof(mode))
         LineEdit.write_prompt(stdout, mode.parent_prompt)
     else
-        printstyled(stdout, current_prompt, color = :green)
+        printstyled(stdout, current_prompt, color=:green)
     end
 
     truncate(LineEdit.buffer(mistate), 0)
@@ -68,7 +68,7 @@ function hook_repl(repl)
     main_mode = get_main_mode(repl)
 
     # TODO: set up REPL module ?
-    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty = false) do line
+    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty=false) do line
         quote
             $(evalrepl)(Main, $line, $repl, $main_mode)
         end
@@ -78,11 +78,17 @@ end
 function evalrepl(m, line, repl, main_mode)
     return try
         JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
-        try
-            repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
-        catch err
-            display_repl_error(stderr, err, stacktrace(catch_backtrace()))
+        r = run_with_backend() do
+            fix_displays()
+            Logging.with_logger(VSCodeLogger()) do
+                repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
+            end
+        end
+        if r isa EvalError
+            display_repl_error(stderr, r.err, r.bt)
             nothing
+        else
+            r
         end
     catch err
         # This is for internal errors only.
@@ -94,17 +100,19 @@ function evalrepl(m, line, repl, main_mode)
 end
 
 # don't inline this so we can find it in the stacktrace
-@noinline repleval(m, code, file) = include_string(m, code, file)
+@noinline function repleval(m, code, file)
+    args = VERSION >= v"1.5" ? (REPL.softscope, m, code, file) : (m, code, file)
+    return include_string(args...)
+end
 
 # basically the same as Base's `display_error`, with internal frames removed
-function display_repl_error(io, err, st)
-    ind = find_frame_index(st, @__FILE__, repleval)
-    st = st[1:(ind === nothing ? end : ind - 2)]
-    printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
+function display_repl_error(io, err, bt)
+    st = stacktrace(crop_backtrace(bt))
+    printstyled(io, "ERROR: "; bold=true, color=Base.error_color())
     showerror(IOContext(io, :limit => true), err, st)
     println(io)
 end
-display_repl_error(io, err::LoadError, st) = display_repl_error(io, err.error, st)
+display_repl_error(io, err::LoadError, bt) = display_repl_error(io, err.error, bt)
 
 function withpath(f, path)
     tls = task_local_storage()

@@ -29,7 +29,7 @@ export async function getProjectFilePaths(envpath: string) {
     }
 }
 
-async function switchEnvToPath(envpath: string, notifyLS: boolean) {
+export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
     g_path_of_current_environment = envpath
 
     const section = vscode.workspace.getConfiguration('julia')
@@ -72,6 +72,10 @@ async function switchEnvToPath(envpath: string, notifyLS: boolean) {
     }
 
     if (notifyLS) {
+        if (!g_languageClient) {
+            return
+        }
+        await g_languageClient.onReady()
         g_languageClient.sendNotification('julia/activateenvironment', envpath)
     }
 }
@@ -100,9 +104,9 @@ async function changeJuliaEnvironment() {
                         break
                     }
                 }
-                if (curPath === homeDir) {break}
+                if (curPath === homeDir) { break }
                 curPath = path.dirname(curPath)
-                if (oldPath === curPath) {break}
+                if (oldPath === curPath) { break }
             }
         }
     }
@@ -172,7 +176,7 @@ export async function getEnvPath() {
     if (g_path_of_current_environment === null) {
         const section = vscode.workspace.getConfiguration('julia')
         const envPathConfig = section.get<string>('environmentPath')
-        if (envPathConfig !== null) {
+        if (envPathConfig) {
             g_path_of_current_environment = envPathConfig
         }
         else {

@@ -1,17 +1,26 @@
 # error handling
 # --------------
 
-find_frame_index(st::Vector{Base.StackTraces.StackFrame}, file, func) =
-    return findfirst(frame -> frame.file === Symbol(file) && frame.func === Symbol(func), st)
-function find_frame_index(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}}, file, func)
+function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}})
     for (i, ip) in enumerate(bt)
         st = Base.StackTraces.lookup(ip)
-        ind = find_frame_index(st, file, func)
-        ind===nothing || return i
+        ind = findfirst(st) do frame
+            linfo = frame.linfo
+            if linfo isa Core.CodeInfo
+                linetable = linfo.linetable
+                if isa(linetable, Vector) && length(linetable) ≥ 1
+                    lin = first(linetable)
+                    if isa(lin, Core.LineInfoNode) && lin.method === Symbol("top-level scope")
+                        return true
+                    end
+                end
+            end
+            return false
+        end
+        ind === nothing || return i
     end
     return
 end
-
 
 # path utilitiles
 # ---------------
@@ -28,11 +37,11 @@ isuntitled(path) = occursin(r"Untitled-\d+$", path)
 basepath(path) = normpath(joinpath(Sys.BINDIR, Base.DATAROOTDIR, "julia", "base", path))
 
 function realpath′(p)
-  try
-    ispath(p) ? realpath(p) : p
-  catch e
-    p
-  end |> normpath
+    try
+        ispath(p) ? realpath(p) : p
+    catch e
+        p
+    end |> normpath
 end
 
 
@@ -128,3 +137,14 @@ function encode_uri_component(uri)
 end
 
 vscode_cmd_uri(cmd; cmdargs...) = string("command:", cmd, '?', encode_uri_component(JSON.json(cmdargs)))
+
+# Misc handlers
+function cd_to_uri(conn, uri)
+    cd(uri)
+    return nothing
+end
+
+function activate_uri(conn, uri)
+    Pkg.activate(uri)
+    return nothing
+end

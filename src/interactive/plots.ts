@@ -42,7 +42,20 @@ export function showPlotPane() {
     const plotTitle = g_plots.length > 0 ? `Julia Plots (${g_currentPlotIndex + 1}/${g_plots.length})` : 'Julia Plots (0/0)'
     if (!g_plotPanel) {
         // Otherwise, create a new panel
-        g_plotPanel = vscode.window.createWebviewPanel('jlplotpane', plotTitle, { preserveFocus: true, viewColumn: vscode.ViewColumn.Active }, { enableScripts: true })
+        g_plotPanel = vscode.window.createWebviewPanel(
+            'jlplotpane',
+            plotTitle,
+            {
+                preserveFocus: true,
+                viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Beside)
+            },
+            {
+                enableScripts: true
+            }
+        )
+        g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
+            g_context.globalState.update('juliaPlotPanelViewColumn', webviewPanel.viewColumn)
+        })
         g_plotPanel.webview.html = getPlotPaneContent()
         vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true)
 
@@ -54,7 +67,7 @@ export function showPlotPane() {
 
         g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
             vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active)
-        })
+        }, null, g_context.subscriptions)
     }
     else {
         g_plotPanel.title = plotTitle
@@ -131,6 +144,11 @@ export function displayPlot(params: { kind: string, data: string }) {
     }
     else if (kind === 'image/png') {
         const plotPaneContent = '<html><img src="data:image/png;base64,' + payload + '" /></html>'
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
+        showPlotPane()
+    }
+    else if (kind === 'image/gif') {
+        const plotPaneContent = '<html><img src="data:image/gif;base64,' + payload + '" /></html>'
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }

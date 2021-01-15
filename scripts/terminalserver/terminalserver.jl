@@ -1,23 +1,28 @@
-# this script basially only handles `Base.ARGS`
+# this script basially only handles `ARGS`
 
-Base.push!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
+pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
 using VSCodeServer
-pop!(LOAD_PATH)
-
-# load Revise ?
-if "USE_REVISE" in Base.ARGS
-    try
-        @eval using Revise
-        Revise.async_steal_repl_backend()
-    catch err
-    end
-end
-
-atreplinit() do repl
-    "USE_PLOTPANE" in Base.ARGS && Base.Multimedia.pushdisplay(VSCodeServer.InlineDisplay())
-end
+popfirst!(LOAD_PATH)
 
 let
-    conn_pipeline, telemetry_pipeline = Base.ARGS[1:2]
-    VSCodeServer.serve(conn_pipeline; is_dev = "DEBUG_MODE" in Base.ARGS, crashreporting_pipename = telemetry_pipeline)
+    args = [popfirst!(Base.ARGS) for _ in 1:5]
+    # load Revise ?
+    if "USE_REVISE=true" in args
+        try
+            @static if VERSION ≥ v"1.5"
+                using Revise
+            else
+                @eval using Revise
+                Revise.async_steal_repl_backend()
+            end
+        catch err
+        end
+    end
+
+    atreplinit() do repl
+        VSCodeServer.toggle_plot_pane(nothing, "USE_PLOTPANE=true" in args)
+    end
+
+    conn_pipeline, telemetry_pipeline = args[1:2]
+    VSCodeServer.serve(conn_pipeline; is_dev="DEBUG_MODE=true" in args, crashreporting_pipename=telemetry_pipeline)
 end

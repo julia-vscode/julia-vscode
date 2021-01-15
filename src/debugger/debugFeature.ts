@@ -15,31 +15,55 @@ export class JuliaDebugFeature {
                 const pkgenvpath = await getEnvPath()
                 return pkgenvpath
             }),
-            vscode.commands.registerCommand('language-julia.runEditorContents', (resource: vscode.Uri) => {
-                vscode.debug.startDebugging(undefined, {
+            vscode.commands.registerCommand('language-julia.runEditorContents', (resource: vscode.Uri | undefined) => {
+                const program = getActiveUri(resource)
+                if (!program) {
+                    vscode.window.showInformationMessage('No active editor found.')
+                    return
+                }
+                const folder = vscode.workspace.getWorkspaceFolder(resource)
+                if (folder === undefined) {
+                    vscode.window.showInformationMessage('File not found in workspace.')
+                    return
+                }
+                vscode.debug.startDebugging(folder, {
                     type: 'julia',
                     name: 'Run Editor Contents',
                     request: 'launch',
-                    program: resource.fsPath,
+                    program,
                     noDebug: true
-                },/* upcoming proposed API:
-				{
-					noDebug: true
-				}
-			*/)
+                })
             }),
-            vscode.commands.registerCommand('language-julia.debugEditorContents', (resource: vscode.Uri) => {
-                vscode.debug.startDebugging(undefined, {
+            vscode.commands.registerCommand('language-julia.debugEditorContents', (resource: vscode.Uri | undefined) => {
+                const program = getActiveUri(resource)
+                if (!program) {
+                    vscode.window.showInformationMessage('No active editor found.')
+                    return
+                }
+                const folder = vscode.workspace.getWorkspaceFolder(resource)
+                if (folder === undefined) {
+                    vscode.window.showInformationMessage('File not found in workspace.')
+                    return
+                }
+                vscode.debug.startDebugging(folder, {
                     type: 'julia',
                     name: 'Debug Editor Contents',
                     request: 'launch',
-                    program: resource.fsPath
+                    program,
+
                 })
             })
         )
     }
 
     public dispose() { }
+}
+
+function getActiveUri(
+    uri: vscode.Uri | undefined,
+    editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor
+) {
+    return uri ? uri.fsPath : editor ? editor.document.fileName : undefined
 }
 
 export class JuliaDebugConfigurationProvider implements vscode.DebugConfigurationProvider {

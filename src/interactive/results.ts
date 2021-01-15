@@ -86,25 +86,48 @@ export class Result {
 
     createResultDecoration(): vscode.DecorationRenderOptions {
 
-        const borderColor = this.content.isError ? '#d11111' : '#159eed'
+        const section = vscode.workspace.getConfiguration('julia')
+        const colorConfig = section.get<object>('execution.inlineResults.colors')
+
+        const colorFor = function (candidates: string[], defaultTo: string | vscode.ThemeColor): string | vscode.ThemeColor {
+            if (candidates.length > 0) {
+                if (colorConfig && colorConfig[candidates[0]]) {
+                    const color: string = colorConfig[candidates[0]]
+                    return color.startsWith('vscode.') ? new vscode.ThemeColor(color.replace(/^(vscode\.)/, '')) : color
+                } else {
+                    return colorFor(candidates.slice(1), defaultTo)
+                }
+            } else {
+                return defaultTo
+            }
+        }
+
+        const accentColor = this.content.isError
+            ? colorFor(['accent-error'], '#d11111')
+            : colorFor(['accent'], '#159eed')
+
         return {
             before: {
                 contentIconPath: undefined,
                 contentText: undefined,
-                color: new vscode.ThemeColor('editor.foreground'),
-                backgroundColor: '#ffffff22',
+                color: colorFor(['foreground'], new vscode.ThemeColor('editor.foreground')),
+                backgroundColor: colorFor(['background'], '#ffffff22'),
                 margin: '0 0 0 10px',
+                border: '2px solid',
+                borderColor: accentColor,
                 // HACK: CSS injection to get custom styling in:
-                textDecoration: `none; white-space: pre; border-left: 2px ${borderColor} solid; border-radius: 2px`
+                textDecoration: 'none; white-space: pre; border-top: 0px; border-right: 0px; border-bottom: 0px; border-radius: 2px'
             },
             dark: {
                 before: {
-                    backgroundColor: '#ffffff22'
+                    color: colorFor(['foreground-dark', 'foreground'], new vscode.ThemeColor('editor.foreground')),
+                    backgroundColor: colorFor(['background-dark', 'background'], '#ffffff22')
                 }
             },
             light: {
                 before: {
-                    backgroundColor: '#00000011'
+                    color: colorFor(['foreground-light', 'foreground'], new vscode.ThemeColor('editor.foreground')),
+                    backgroundColor: colorFor(['background-light', 'background'], '#00000011')
                 }
             },
             rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed,
@@ -217,7 +240,6 @@ function updateResultContextKey(changeEvent: vscode.TextEditorSelectionChangeEve
     setContext('juliaHasInlineResult', false)
 }
 
-
 export function deactivate() { }
 
 export function addResult(
@@ -294,7 +316,9 @@ function setStackFrameHighlight(
         } else {
             targetEditors.forEach(targetEditor => {
                 const result = addErrorResult(err, frame, targetEditor)
-                stackFrameHighlights.highlights.push({ frame, result })
+                if (result) {
+                    stackFrameHighlights.highlights.push({ frame, result })
+                }
             })
         }
     })
@@ -310,8 +334,14 @@ function isEditorPath(editor: vscode.TextEditor, path: string) {
 }
 
 function addErrorResult(err: string, frame: Frame, editor: vscode.TextEditor) {
-    const range = new vscode.Range(new vscode.Position(frame.line - 1, 0), new vscode.Position(frame.line - 1, LINE_INF))
-    return new Result(editor, range, errorResultContent(err, frame))
+    if (frame.line > 0) {
+        const range = new vscode.Range(
+            editor.document.validatePosition(new vscode.Position(frame.line - 1, 0)),
+            editor.document.validatePosition(new vscode.Position(frame.line - 1, LINE_INF))
+        )
+        return new Result(editor, range, errorResultContent(err, frame))
+    }
+    return null
 }
 
 function errorResultContent(err: string, frame: Frame): ResultContent {
@@ -351,7 +381,10 @@ export function refreshResults(editors: vscode.TextEditor[]) {
                 if (highlight.result) {
                     highlight.result.draw()
                 } else {
-                    highlight.result = addErrorResult(stackFrameHighlights.err, frame, editor)
+                    const result = addErrorResult(stackFrameHighlights.err, frame, editor)
+                    if (result) {
+                        highlight.result = result
+                    }
                 }
             }
         })

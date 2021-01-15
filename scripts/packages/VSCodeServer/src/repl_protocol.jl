@@ -6,6 +6,7 @@ JSONRPC.@dict_readable struct ReplRunCodeRequestParams <: JSONRPC.Outbound
     mod::String
     showCodeInREPL::Bool
     showResultInREPL::Bool
+    softscope::Bool
 end
 
 struct Frame
@@ -33,6 +34,7 @@ JSONRPC.@dict_readable mutable struct ReplWorkspaceItem <: JSONRPC.Outbound
 end
 
 const repl_runcode_request_type = JSONRPC.RequestType("repl/runcode", ReplRunCodeRequestParams, ReplRunCodeRequestReturn)
+const repl_interrupt_notification_type = JSONRPC.NotificationType("repl/interrupt", Nothing)
 const repl_getvariables_request_type = JSONRPC.RequestType("repl/getvariables", Nothing, Vector{ReplWorkspaceItem})
 const repl_getlazy_request_type = JSONRPC.RequestType("repl/getlazy", Int, Vector{ReplWorkspaceItem})
 const repl_showingrid_notification_type = JSONRPC.NotificationType("repl/showingrid", String)
@@ -41,3 +43,7 @@ const repl_isModuleLoaded_request_type = JSONRPC.RequestType("repl/isModuleLoade
 const repl_startdebugger_notification_type = JSONRPC.NotificationType("repl/startdebugger", String)
 const repl_showprofileresult_notification_type = JSONRPC.NotificationType("repl/showprofileresult", String)
 const repl_showprofileresult_file_notification_type = JSONRPC.NotificationType("repl/showprofileresult_file", String)
+const repl_toggle_plot_pane_notification_type = JSONRPC.NotificationType("repl/togglePlotPane", Bool)
+const cd_notification_type = JSONRPC.NotificationType("repl/cd", String)
+const activate_project_notification_type = JSONRPC.NotificationType("repl/activateProject", String)
+const activate_project_from_dir_request = JSONRPC.RequestType("repl/activateProjectFromDir", String, Union{Nothing,String})

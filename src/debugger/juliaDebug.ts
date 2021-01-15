@@ -19,30 +19,31 @@ import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, 
  */
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
     /** An absolute path to the "program" to debug. */
-    program: string;
+    program: string
     /** Automatically stop target after launch. If not specified, target does not stop. */
-    stopOnEntry?: boolean;
-    cwd?: string;
+    stopOnEntry?: boolean
+    cwd?: string
     juliaEnv?: string,
     /** enable logging the Debug Adapter Protocol */
-    trace?: boolean;
-    args?: string[];
+    trace?: boolean
+    args?: string[]
 }
 
 interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
-    code: string;
-    stopOnEntry: boolean;
+    code: string
+    file: string
+    stopOnEntry: boolean
 }
 
 export class JuliaDebugSession extends LoggingDebugSession {
     private _configurationDone = new Subject();
 
-    private _debuggeeTerminal: vscode.Terminal;
-    private _connection: MessageConnection;
-    private _debuggeeWrapperSocket: net.Socket;
+    private _debuggeeTerminal: vscode.Terminal
+    private _connection: MessageConnection
+    private _debuggeeWrapperSocket: net.Socket
 
-    private _launchMode: boolean;
-    private _launchedWithoutDebug: boolean;
+    private _launchMode: boolean
+    private _launchedWithoutDebug: boolean
 
     private _no_need_for_force_kill: boolean = false;
 
@@ -172,10 +173,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
         // await this._configurationDone.wait(1000);
         await this._configurationDone.wait()
 
-
-        const code_to_run = args.code
-
-        this._connection.sendNotification(notifyTypeExec, { stopOnEntry: args.stopOnEntry, code: code_to_run })
+        this._connection.sendNotification(notifyTypeExec, { stopOnEntry: args.stopOnEntry, code: args.code, file: args.file })
 
         this.sendResponse(response)
     }

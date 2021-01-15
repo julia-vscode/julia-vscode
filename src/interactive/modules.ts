@@ -3,7 +3,7 @@ import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient'
 import { onSetLanguageClient } from '../extension'
 import * as telemetry from '../telemetry'
-import { getVersionedParamsAtPosition } from '../utils'
+import { VersionedTextDocumentPositionParams } from './misc'
 import { onExit, onInit } from './repl'
 
 let statusBarItem: vscode.StatusBarItem = null
@@ -33,42 +33,47 @@ export function activate(context: vscode.ExtensionContext) {
     // https://github.com/microsoft/vscode/blob/1d268b701376470bc638100fbe17d283404ac559/src/vs/workbench/browser/parts/editor/editorStatus.ts#L534
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99)
     statusBarItem.command = 'language-julia.chooseModule'
-    statusBarItem.text = 'Main'
     statusBarItem.tooltip = 'Choose Current Module'
 
     onInit(conn => {
         g_connection = conn
-        updateStatusBarItem(vscode.window.activeTextEditor)
+        updateStatusBarItem()
     })
     onExit(hadError => {
         g_connection = null
-        statusBarItem.hide()
+        updateStatusBarItem()
     })
 
     context.subscriptions.push(statusBarItem)
+    updateStatusBarItem()
 }
 
 export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position) {
-    let mod = manuallySetDocuments[document.fileName]
+    const manuallySetModule = manuallySetDocuments[document.fileName]
+    if (manuallySetModule) { return manuallySetModule }
 
-    if (mod === undefined) {
-        try {
-            const params = getVersionedParamsAtPosition(document, position)
-            mod = await g_languageClient.sendRequest('julia/getModuleAt', params)
-        } catch (err) {
-            console.error(err)
-            mod = 'Main'
+    if (!g_languageClient) { return 'Main' }
+    await g_languageClient.onReady()
+    try {
+        const params: VersionedTextDocumentPositionParams = {
+            textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
+            version: document.version,
+            position: position
         }
+        return await g_languageClient.sendRequest<string>('julia/getModuleAt', params)
+    } catch (err) {
+        if (g_languageClient) {
+            telemetry.handleNewCrashReportFromException(err, 'Extension')
+        }
+        return 'Main'
     }
-
-    return mod
 }
 
 function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
     return editor && editor.document.languageId === 'julia'
 }
 
-async function updateStatusBarItem(editor: vscode.TextEditor) {
+async function updateStatusBarItem(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
     if (isJuliaEditor(editor)) {
         statusBarItem.show()
         await updateModuleForEditor(editor)
@@ -83,25 +88,21 @@ async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionCh
 }
 
 async function updateModuleForEditor(editor: vscode.TextEditor) {
-    let mod = 'Main'
-    try {
-        mod = await getModuleForEditor(editor.document, editor.selection.start)
-    } catch (err) {
-        if (g_languageClient) {
-            telemetry.handleNewCrashReportFromException(err, 'Extension')
-        }
-    }
+    const mod = await getModuleForEditor(editor.document, editor.selection.start)
+    const loaded = await isModuleLoaded(mod)
+    statusBarItem.text = loaded ? mod : '(' + mod + ')'
+}
 
-    let loaded = false
+async function isModuleLoaded(mod: string) {
+    if (!g_connection) { return false }
     try {
-        loaded = await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
+        return await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
     } catch (err) {
         if (g_connection) {
             telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
+        return false
     }
-
-    statusBarItem.text = loaded ? mod : '(' + mod + ')'
 }
 
 async function chooseModule() {
