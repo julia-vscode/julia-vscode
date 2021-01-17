@@ -2,6 +2,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
+import * as fs from 'async-file'
 import { unwatchFile, watchFile } from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
@@ -149,6 +150,8 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage(e)
         return
     }
+    const languageServerDepotPath = path.join(g_context.globalStoragePath, 'lsdepot', 'v1')
+    await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
     const envForLSPath = path.join(g_context.extensionPath, 'scripts', 'environments', 'languageserver')
     const serverArgsRun = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath]
@@ -156,7 +159,7 @@ async function startLanguageServer() {
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            JULIA_DEPOT_PATH: languageServerDepotPath,
             JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
             HOME: process.env.HOME ? process.env.HOME : os.homedir(),
             JULIA_LANGUAGESERVER: '1'
