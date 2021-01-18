@@ -1,9 +1,14 @@
 struct InlineDisplay <: AbstractDisplay end
 
 const PLOT_PANE_ENABLED = Ref(true)
+const PROGRESS_ENABLED = Ref(true)
 
 function toggle_plot_pane(_, enable::Bool)
     PLOT_PANE_ENABLED[] = enable
+end
+
+function toggle_progress(_, enable::Bool)
+    PROGRESS_ENABLED[] = enable
 end
 
 function fix_displays()

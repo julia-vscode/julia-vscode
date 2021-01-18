@@ -597,6 +597,11 @@
                     "default": true,
                     "description": "Display plots within VS Code. Might require a restart of the Julia process."
                 },
+                "julia.useProgressFrontend": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Display [progress bars](https://github.com/JunoLab/ProgressLogging.jl) within VS Code."
+                },
                 "julia.additionalArgs": {
                     "type": "array",
                     "default": [],
