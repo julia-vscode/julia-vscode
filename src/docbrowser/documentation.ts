@@ -6,19 +6,16 @@ import { withLanguageClient } from '../extension'
 import { constructCommandString, getVersionedParamsAtPosition } from '../utils'
 
 function openArgs(href: string) {
-    const matches = href.match(/^((?:\w+\:\/\/)?.+?)(?:\:(\d+))?$/)
+    const matches = href.match(/^((\w+\:\/\/)?.+?)(?:\:(\d+))?$/)
     let uri
-    let options
-    if (matches[1]) {
+    let line
+    if (matches[1] && matches[3] && matches[2] === undefined) {
+        uri = matches[1]
+        line = parseInt(matches[3])
+    } else {
         uri = vscode.Uri.parse(matches[1])
     }
-    if (matches[2]) {
-        const line = parseInt(matches[2])
-        options = {
-            selection: new vscode.Range(line, 0, line, 0)
-        }
-    }
-    return { uri, options }
+    return { uri, line }
 }
 
 const md = new markdownit(
@@ -51,13 +48,19 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
 
     if (aIndex >= 0 && tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
-        const commandUri = constructCommandString('language-julia.findHelp', { searchTerm: tokens[idx + 1].content })
+        const commandUri = constructCommandString('language-julia.search-word', { searchTerm: tokens[idx + 1].content })
         tokens[idx].attrs[aIndex][1] = vscode.Uri.parse(commandUri).toString()
     } else if (aIndex >= 0 && tokens.length > idx + 1) {
         const href = tokens[idx + 1].content
-        const { uri, options } = openArgs(href)
-        // FIXME: opening at a position doesn't work
-        const commandUri = constructCommandString('vscode.open', [uri, options])
+        const { uri, line } = openArgs(href)
+        console.log(uri, line)
+        let commandUri
+        if (line === undefined) {
+            commandUri = constructCommandString('vscode.open', uri)
+        } else {
+            commandUri = constructCommandString('language-julia.openFile', { path: uri, line })
+        }
+        console.log(commandUri)
         tokens[idx].attrs[aIndex][1] = commandUri
     }
 
@@ -79,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.show-documentation', () => provider.showDocumentation()),
         vscode.commands.registerCommand('language-julia.browse-back-documentation', () => provider.browseBack()),
         vscode.commands.registerCommand('language-julia.browse-forward-documentation', () => provider.browseForward()),
-        vscode.commands.registerCommand('language-julia.findHelp', (mod) => provider.findHelp(mod)),
+        vscode.commands.registerCommand('language-julia.search-word', (params) => provider.findHelp(params)),
         vscode.window.registerWebviewViewProvider('julia-documentation', provider)
     )
 }
@@ -103,10 +106,19 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
             enableCommandUris: true
         }
         view.webview.html = '<html>Who let the docs out?!</html>'
+
+        view.webview.onDidReceiveMessage(msg => {
+            console.log(msg)
+            if (msg.type === 'search') {
+                this.showDocumentationFromWord(msg.query)
+            } else {
+                console.error('unknown message received')
+            }
+        })
     }
 
-    findHelp(mod: { searchTerm: string }) {
-        console.log(`Searched for documentation topic '${mod.searchTerm}'.`)
+    findHelp(params: { searchTerm: string }) {
+        this.showDocumentationFromWord(params.searchTerm)
     }
 
     async showDocumentationPane() {
@@ -116,6 +128,28 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         if (this.view) {
             this.view.show?.(true)
         }
+    }
+
+    async showDocumentationFromWord(word: string) {
+        const docAsMD = await this.getDocumentationFromWord(word)
+        console.log(docAsMD)
+        if (!docAsMD) { return }
+
+        await this.showDocumentationPane()
+        const html = this.createWebviewHTML(docAsMD)
+        this.setHTML(html)
+    }
+
+    async getDocumentationFromWord(word: string): Promise<string> {
+        return await withLanguageClient(
+            async languageClient => {
+                return await languageClient.sendRequest('julia/getDocFromWord', word)
+            },
+            err => {
+                console.log('LC request failed')
+                return ''
+            }
+        )
     }
 
     async showDocumentation() {
@@ -138,7 +172,7 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
                 return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor.document, editor.selection.start))
             },
             err => {
-                console.log('making LC request failed')
+                console.log('LC request failed')
                 return ''
             }
         )
@@ -153,13 +187,13 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         const fontawesomecss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
         const solidcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
         const brandscss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
-        const documenterStylesheetcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', 'documenter-dark.css')))
+        const documenterStylesheetcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', 'documenter-vscode.css')))
         const katexcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
 
         const webfontjs = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
 
         return `
-    <html lang="en" class='theme--documenter-dark'>
+    <html lang="en" class='theme--documenter-vscode'>
 
     <head>
         <meta charset="UTF-8">
@@ -181,15 +215,85 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
             }
         </script>
 
+        <style>
+        body:active {
+            outline: 1px solid var(--vscode-focusBorder);
+        }
+        .search {
+            position: fixed;
+            background-color: var(--vscode-sideBar-background);
+            width: 100%;
+            padding: 5px;
+            display: flex;
+        }
+        .search input[type="text"] {
+            width: 100%;
+            background-color: var(--vscode-input-background);
+            border: none;
+            outline: none;
+            color: var(--vscode-input-foreground);
+            padding: 4px;
+        }
+        .search input[type="text"]:focus {
+            outline: 1px solid var(--vscode-editorWidget-border);
+        }
+        button {
+            width: 30px;
+            margin: 0 5px 0 0;
+            display: inline;
+            border: none;
+            box-sizing: border-box;
+            padding: 5px 7px;
+            text-align: center;
+            cursor: pointer;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            font-family: var(--vscode-font-family);
+        }
+        button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        button:focus {
+            outline: 1px solid var(--vscode-focusBorder);
+            outline-offset: 0px;
+        }
+        </style>
+
         <script src=${webfontjs}></script>
     </head>
 
     <body>
-        <div class="docs-main" style="padding: 1em">
+        <div class="search">
+            <input id="search-input" type="text" placeholder="Search"></input>
+        </div>
+        <div class="docs-main" style="padding: 50px 1em 1em 1em">
             <article class="content">
                 ${docAsHTML}
             </article>
         </div>
+        <script>
+            const vscode = acquireVsCodeApi()
+
+            function search(val) {
+                if (val) {
+                    console.log('searching docs for ' + val)
+                    vscode.postMessage({
+                        type: 'search',
+                        query: val
+                    })
+                }
+            }
+            function onKeyDown(ev) {
+                if (ev && ev.keyCode === 13) {
+                    const val = document.getElementById('search-input').value
+                    search(val)
+                }
+            }
+            document.getElementById('search-input').addEventListener('keydown', onKeyDown)
+        </script>
     </body>
 
     </html>
