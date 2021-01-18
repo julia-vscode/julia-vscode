@@ -52,17 +52,19 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
     const manuallySetModule = manuallySetDocuments[document.fileName]
     if (manuallySetModule) { return manuallySetModule }
 
-    if (!g_languageClient) { return 'Main' }
-    await g_languageClient.onReady()
+    const languageClient = g_languageClient
+
+    if (!languageClient) { return 'Main' }
+    await languageClient.onReady()
     try {
         const params: VersionedTextDocumentPositionParams = {
             textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
             version: document.version,
             position: position
         }
-        return await g_languageClient.sendRequest<string>('julia/getModuleAt', params)
+        return await languageClient.sendRequest<string>('julia/getModuleAt', params)
     } catch (err) {
-        if (g_languageClient) {
+        if (languageClient) {
             telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
         return 'Main'

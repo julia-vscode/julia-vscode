@@ -2,6 +2,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
+import * as fs from 'async-file'
 import { unwatchFile, watchFile } from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
@@ -76,10 +77,14 @@ export async function activate(context: vscode.ExtensionContext) {
         startLanguageServer()
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
-            vscode.window.showInformationMessage('To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more how we use usage data and how to permanently hide this notification.', 'I agree to usage data collection')
-                .then(telemetry_choice => {
-                    if (telemetry_choice === 'I agree to usage data collection') {
+            const agree = 'Yes'
+            const disagree = 'No'
+            vscode.window.showInformationMessage('To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use usage data. Do you agree to usage data collection?', agree, disagree)
+                .then(choice => {
+                    if (choice === agree) {
                         vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true)
+                    } else if (choice === disagree) {
+                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', false, true)
                     }
                 })
         }
@@ -164,6 +169,8 @@ async function startLanguageServer() {
         vscode.window.showErrorMessage(e)
         return
     }
+    const languageServerDepotPath = path.join(g_context.globalStoragePath, 'lsdepot', 'v1')
+    await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
     const envForLSPath = path.join(g_context.extensionPath, 'scripts', 'environments', 'languageserver')
     const serverArgsRun = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath]
@@ -171,7 +178,7 @@ async function startLanguageServer() {
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_DEPOT_PATH: path.join(g_context.extensionPath, 'scripts', 'languageserver', 'julia_pkgdir'),
+            JULIA_DEPOT_PATH: languageServerDepotPath,
             JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
             HOME: process.env.HOME ? process.env.HOME : os.homedir(),
             JULIA_LANGUAGESERVER: '1'
@@ -201,7 +208,6 @@ async function startLanguageServer() {
                     telemetry.traceTrace({
                         message: `Middleware found a change in position in provideCompletionItem. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}`,
                         severity: SeverityLevel.Error
-
                     })
 
                 }

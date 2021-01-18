@@ -27,7 +27,7 @@ version = "3.2.2-DEV"
 deps = ["Dates", "Mmap", "Printf", "Test", "UUIDs"]
 path = "../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.5"
+version = "0.9.6"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -111,7 +111,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [[Tokenize]]
 path = "../../packages/Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.8"
+version = "0.5.10"
 
 [[URIParser]]
 deps = ["Unicode"]

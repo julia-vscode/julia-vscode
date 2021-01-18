@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -789,7 +789,8 @@
         },
         "configurationDefaults": {
             "[julia]": {
-                "editor.quickSuggestions": true
+                "editor.quickSuggestions": true,
+                "editor.wordSeparators": "`~#$%^&*()-=+[{]}\\|;:'\",.<>/?"
             }
         },
         "taskDefinitions": [
@@ -959,11 +960,11 @@
         "@types/highlight.js": "^9.12.4",
         "@types/markdown-it": "^10.0.1",
         "@types/mocha": "^7.0.2",
-        "@types/node": "^12.19.13",
+        "@types/node": "^12.19.14",
         "@typescript-eslint/parser": "^3.10.1",
         "cson-parser": "^4.0.7",
         "download": "^7.1.0",
-        "eslint": "^7.17.0",
+        "eslint": "^7.18.0",
         "mocha": "^7.2.0",
         "ts-loader": "^7.0.5",
         "typescript": "^3.9.7",
