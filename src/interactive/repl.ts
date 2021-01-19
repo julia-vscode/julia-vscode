@@ -234,7 +234,7 @@ async function updateProgress(progress: Progress) {
 
         p.progress.report({
             increment: increment,
-            message: progressMessage(progress)
+            message: progressMessage(progress, p.started)
         })
         p.last_fraction = progress.fraction
 
@@ -252,6 +252,7 @@ async function updateProgress(progress: Progress) {
                 g_progress_dict[progress.id.value] = {
                     progress: prog,
                     last_fraction: progress.fraction,
+                    started: new Date(),
                     resolve: resolve,
                 }
                 token.onCancellationRequested(ev => {
@@ -265,12 +266,39 @@ async function updateProgress(progress: Progress) {
     }
 }
 
-function progressMessage(prog: Progress) {
+function progressMessage(prog: Progress, started = null) {
     let message = prog.name
+    const parenthezise = message.trim().length > 0
     if (!isNaN(prog.fraction) && 0 <= prog.fraction && prog.fraction <= 1) {
-        message += ` (${(prog.fraction * 100).toFixed(1)}%)`
+        if (parenthezise) {
+            message += ' ('
+        }
+        message += `${(prog.fraction * 100).toFixed(1)}%`
+        if (started !== null) {
+            const elapsed = ((new Date()).valueOf() - started) / 1000
+            const remaining = (1 / prog.fraction - 1) * elapsed
+            message += ` - ${formattedTimePeriod(remaining)} remaining`
+        }
+        if (parenthezise) {
+            message += ')'
+        }
     }
     return message
+}
+
+function formattedTimePeriod(t) {
+    const seconds = Math.floor(t % 60)
+    const minutes = Math.floor(t / 60 % 60)
+    const hours = Math.floor(t / 60 / 60)
+    let out = ''
+    if (hours > 0) {
+        out += `${hours}h, `
+    }
+    if (minutes > 0) {
+        out += `${minutes}min, `
+    }
+    out += `${seconds}s`
+    return out
 }
 
 function clearProgress() {
