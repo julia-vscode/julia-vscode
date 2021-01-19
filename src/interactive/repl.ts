@@ -61,6 +61,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
             jlarg2.push(`USE_REVISE=${vscode.workspace.getConfiguration('julia').get('useRevise')}`)
             jlarg2.push(`USE_PLOTPANE=${vscode.workspace.getConfiguration('julia').get('usePlotPane')}`)
+            jlarg2.push(`USE_PROGRESS=${vscode.workspace.getConfiguration('julia').get('useProgressFrontend')}`)
             jlarg2.push(`DEBUG_MODE=${process.env.DEBUG_MODE}`)
             return jlarg2
         }
@@ -760,6 +761,12 @@ export function activate(context: vscode.ExtensionContext) {
             if (event.affectsConfiguration('julia.usePlotPane')) {
                 try {
                     g_connection.sendNotification('repl/togglePlotPane', vscode.workspace.getConfiguration('julia').get('usePlotPane'))
+                } catch (err) {
+                    console.warn(err)
+                }
+            } else if (event.affectsConfiguration('julia.useProgressFrontend')) {
+                try {
+                    g_connection.sendNotification('repl/toggleProgress', vscode.workspace.getConfiguration('julia').get('useProgressFrontend'))
                 } catch (err) {
                     console.warn(err)
                 }

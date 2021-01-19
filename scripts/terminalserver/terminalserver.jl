@@ -21,6 +21,7 @@ let
 
     atreplinit() do repl
         VSCodeServer.toggle_plot_pane(nothing, "USE_PLOTPANE=true" in args)
+        VSCodeServer.toggle_progress(nothing, "USE_PROGRESS=true" in args)
     end
 
     conn_pipeline, telemetry_pipeline = args[1:2]

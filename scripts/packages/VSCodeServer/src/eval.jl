@@ -106,74 +106,74 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
         JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
 
         rendered_result = nothing
-        Logging.with_logger(VSCodeLogger()) do
-            hideprompt() do
-                if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-                    let mode = get(ENV, "JULIA_REVISE", "auto")
-                        mode == "auto" && Main.Revise.revise()
-                    end
-                end
-                if show_code
-                    add_code_to_repl_history(source_code)
-
-                    prompt = "julia> "
-                    prefix = "\e[32m"
-                    try
-                        mode = get_main_mode()
-                        prompt = mode.prompt
-                        prefix = mode.prompt_prefix
-                    catch err
-                        @debug "getting prompt info failed" exception=(err, catch_backtrace())
-                    end
-
-                    for (i,line) in enumerate(eachline(IOBuffer(source_code)))
-                        if i==1
-                            print(prefix, prompt, "\e[0m")
-                            print(' '^code_column)
-                        else
-                            # Indent by 7 so that it aligns with the julia> prompt
-                            print(' '^length(prompt))
-                        end
-
-                        println(line)
-                    end
-                end
-
-                withpath(source_filename) do
-                    res = try
-                        ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
-                        @eval Main ans = $(QuoteNode(ans))
-                    catch err
-                        EvalError(err, catch_backtrace())
-                    finally
-                        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
-                    end
-
-                    if show_result
-                        if res isa EvalError
-                            Base.display_error(stderr, res)
-                        elseif res !== nothing && !ends_with_semicolon(source_code)
-                            try
-                                Base.invokelatest(display, res)
-                            catch err
-                                Base.display_error(stderr, err, catch_backtrace())
-                            end
-                        end
-                    else
-                        try
-                            Base.invokelatest(display, InlineDisplay(), res)
-                        catch err
-                            if !(err isa MethodError)
-                                printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                                Base.display_error(stderr, err, catch_backtrace())
-                            end
-                        end
-                    end
-
-                    rendered_result = safe_render(res)
+        f = () -> hideprompt() do
+            if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+                let mode = get(ENV, "JULIA_REVISE", "auto")
+                    mode == "auto" && Main.Revise.revise()
                 end
             end
+            if show_code
+                add_code_to_repl_history(source_code)
+
+                prompt = "julia> "
+                prefix = "\e[32m"
+                try
+                    mode = get_main_mode()
+                    prompt = mode.prompt
+                    prefix = mode.prompt_prefix
+                catch err
+                    @debug "getting prompt info failed" exception=(err, catch_backtrace())
+                end
+
+                for (i,line) in enumerate(eachline(IOBuffer(source_code)))
+                    if i==1
+                        print(prefix, prompt, "\e[0m")
+                        print(' '^code_column)
+                    else
+                        # Indent by 7 so that it aligns with the julia> prompt
+                        print(' '^length(prompt))
+                    end
+
+                    println(line)
+                end
+            end
+
+            withpath(source_filename) do
+                res = try
+                    ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
+                    @eval Main ans = $(QuoteNode(ans))
+                catch err
+                    EvalError(err, catch_backtrace())
+                finally
+                    JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+                end
+
+                if show_result
+                    if res isa EvalError
+                        Base.display_error(stderr, res)
+                    elseif res !== nothing && !ends_with_semicolon(source_code)
+                        try
+                            Base.invokelatest(display, res)
+                        catch err
+                            Base.display_error(stderr, err, catch_backtrace())
+                        end
+                    end
+                else
+                    try
+                        Base.invokelatest(display, InlineDisplay(), res)
+                    catch err
+                        if !(err isa MethodError)
+                            printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                            Base.display_error(stderr, err, catch_backtrace())
+                        end
+                    end
+                end
+
+                rendered_result = safe_render(res)
+            end
         end
+        PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
+
         return rendered_result
     end
 end
