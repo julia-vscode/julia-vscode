@@ -408,6 +408,13 @@
                     "when": "view == julia-documentation",
                     "group": "navigation"
                 }
+            ],
+            "editor/context": [
+                {
+                    "command": "language-julia.show-documentation",
+                    "when": "editorLangId == julia",
+                    "group": "z_commands"
+                }
             ]
         },
         "keybindings": [
