@@ -1,4 +1,3 @@
-import * as hljs from 'highlight.js'
 import * as markdownit from 'markdown-it'
 import * as path from 'path'
 import * as vscode from 'vscode'
@@ -18,31 +17,14 @@ function openArgs(href: string) {
     return { uri, line }
 }
 
-const md = new markdownit(
+const md = new markdownit().use(
+    require('@traptitech/markdown-it-katex'),
     {
-        highlight: (str: string, lang: string) => {
-            if (lang) {
-                if (hljs.getLanguage(lang)) {
-                    try {
-                        return hljs.highlight(lang, str).value
-                    } catch (__) { }
-                }
-                else if (lang === 'juliarepl' || lang === 'jldoctest' || lang === 'jldoctest;') {
-                    return hljs.highlight('julia-repl', str).value
-                }
-            }
-            return ''
-        }
-    }).
-    use(
-        require('@traptitech/markdown-it-katex'),
-        {
-            output: 'html'
-        }
-    ).
-    use(
-        require('markdown-it-footnote')
-    )
+        output: 'html'
+    }
+).use(
+    require('markdown-it-footnote')
+)
 
 md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
@@ -53,25 +35,16 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     } else if (aIndex >= 0 && tokens.length > idx + 1) {
         const href = tokens[idx + 1].content
         const { uri, line } = openArgs(href)
-        console.log(uri, line)
         let commandUri
         if (line === undefined) {
             commandUri = constructCommandString('vscode.open', uri)
         } else {
             commandUri = constructCommandString('language-julia.openFile', { path: uri, line })
         }
-        console.log(commandUri)
         tokens[idx].attrs[aIndex][1] = commandUri
     }
 
     return self.renderToken(tokens, idx, options)
-}
-
-// highlight inline code with Julia syntax
-md.renderer.rules.code_inline = (tokens, idx, options) => {
-    const code = tokens[idx]
-    const highlighted = options.highlight(code.content, 'julia')
-    return `<code class="language-julia">${highlighted}</code>`
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -105,10 +78,9 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
             enableScripts: true,
             enableCommandUris: true
         }
-        view.webview.html = '<html>Who let the docs out?!</html>'
+        view.webview.html = this.createWebviewHTML('Use the `language-julia.show-documentation` command in an editor or search for documentation above.')
 
         view.webview.onDidReceiveMessage(msg => {
-            console.log(msg)
             if (msg.type === 'search') {
                 this.showDocumentationFromWord(msg.query)
             } else {
@@ -132,7 +104,6 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
     async showDocumentationFromWord(word: string) {
         const docAsMD = await this.getDocumentationFromWord(word)
-        console.log(docAsMD)
         if (!docAsMD) { return }
 
         await this.showDocumentationPane()
@@ -144,9 +115,8 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         return await withLanguageClient(
             async languageClient => {
                 return await languageClient.sendRequest('julia/getDocFromWord', word)
-            },
-            err => {
-                console.log('LC request failed')
+            }, err => {
+                console.error('LC request failed with ', err)
                 return ''
             }
         )
@@ -170,9 +140,8 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         return await withLanguageClient(
             async languageClient => {
                 return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor.document, editor.selection.start))
-            },
-            err => {
-                console.log('LC request failed')
+            }, err => {
+                console.error('LC request failed with ', err)
                 return ''
             }
         )
@@ -279,7 +248,6 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
             function search(val) {
                 if (val) {
-                    console.log('searching docs for ' + val)
                     vscode.postMessage({
                         type: 'search',
                         query: val
