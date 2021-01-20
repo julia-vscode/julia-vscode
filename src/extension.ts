@@ -15,6 +15,7 @@ import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
 import * as openpackagedirectory from './openpackagedirectory'
+import { JuliaPackageDevFeature } from './packagedevtools'
 import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
@@ -67,6 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
         jlpkgenv.activate(context)
 
         context.subscriptions.push(new JuliaDebugFeature(context))
+        context.subscriptions.push(new JuliaPackageDevFeature(context))
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
