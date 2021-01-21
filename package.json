@@ -6,7 +6,7 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.47.0"
+        "vscode": "^1.52.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -50,6 +50,7 @@
         "onCommand:language-julia.cdHere",
         "onCommand:language-julia.activateHere",
         "onCommand:language-julia.activateFromDir",
+        "onCommand:language-julia.tagNewPackageVersion",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "workspaceContains:deps/build.jl",
@@ -124,6 +125,10 @@
             {
                 "command": "language-julia.openPackageDirectory",
                 "title": "Julia: Open Package Directory in New Window"
+            },
+            {
+                "command": "language-julia.tagNewPackageVersion",
+                "title": "Julia: Tag new package version (experimental)"
             },
             {
                 "command": "language-julia.changeCurrentEnvironment",
