@@ -175,6 +175,24 @@
                 "title": "Julia Weave: Save to File..."
             },
             {
+                "command": "language-julia.show-documentation",
+                "title": "Julia: Show Documentation"
+            },
+            {
+                "command": "language-julia.show-documentation-pane",
+                "title": "Julia: Show Documentation Pane"
+            },
+            {
+                "command": "language-julia.browse-back-documentation",
+                "title": "Julia: Browse Back Documentation",
+                "icon": "$(arrow-left)"
+            },
+            {
+                "command": "language-julia.browse-forward-documentation",
+                "title": "Julia: Browse Forward Documentation",
+                "icon": "$(arrow-right)"
+            },
+            {
                 "command": "language-julia.show-plotpane",
                 "title": "Julia: Show Plot"
             },
@@ -291,6 +309,16 @@
             ],
             "editor/title": [
                 {
+                    "command": "language-julia.browse-back-documentation",
+                    "when": "juliaDocumentationPaneActive",
+                    "group": "navigation@-2"
+                },
+                {
+                    "command": "language-julia.browse-forward-documentation",
+                    "when": "juliaDocumentationPaneActive",
+                    "group": "navigation@-1"
+                },
+                {
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete",
                     "group": "navigation@0"
@@ -368,6 +396,25 @@
                     "when": "view == REPLVariables && viewItem == globalvariable",
                     "group": "inline"
                 }
+            ],
+            "view/title": [
+                {
+                    "command": "language-julia.browse-back-documentation",
+                    "when": "view == julia-documentation",
+                    "group": "navigation"
+                },
+                {
+                    "command": "language-julia.browse-forward-documentation",
+                    "when": "view == julia-documentation",
+                    "group": "navigation"
+                }
+            ],
+            "editor/context": [
+                {
+                    "command": "language-julia.show-documentation",
+                    "when": "editorLangId == julia",
+                    "group": "z_commands"
+                }
             ]
         },
         "keybindings": [
@@ -423,6 +470,21 @@
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "key": "ctrl+Enter",
                 "when": "editorTextFocus && editorLangId == juliamarkdown"
+            },
+            {
+                "command": "language-julia.show-documentation",
+                "key": "alt+J alt+D",
+                "when": "editorTextFocus && editorLangId == julia"
+            },
+            {
+                "command": "language-julia.browse-back-documentation",
+                "key": "left",
+                "when": "juliaDocumentationPaneActive"
+            },
+            {
+                "command": "language-julia.browse-forward-documentation",
+                "key": "right",
+                "when": "juliaDocumentationPaneActive"
             },
             {
                 "command": "language-julia.plotpane-previous",
@@ -760,7 +822,7 @@
             "activitybar": [
                 {
                     "id": "julia-explorer",
-                    "title": "Julia Explorer",
+                    "title": "Julia",
                     "icon": "images/julia-dots-outline.svg"
                 }
             ]
@@ -768,8 +830,14 @@
         "views": {
             "julia-explorer": [
                 {
+                    "type": "tree",
                     "id": "REPLVariables",
-                    "name": "Julia Workspace"
+                    "name": "Workspace"
+                },
+                {
+                    "type": "webview",
+                    "id": "julia-documentation",
+                    "name": "Documentation"
                 }
             ]
         },
@@ -879,6 +947,7 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
+        "@traptitech/markdown-it-katex": "^3.2.4",
         "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
         "@types/vscode": "^1.52.0",
@@ -887,6 +956,8 @@
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
+        "markdown-it": "^11.0.0",
+        "markdown-it-footnote": "^3.0.2",
         "promised-temp": "^v0.1.0",
         "uuidv4": "^6.2.6",
         "vscode-debugadapter": "^1.43.0",
@@ -897,6 +968,7 @@
     "devDependencies": {
         "@types/cson-parser": "^4.0.4",
         "@types/download": "^6.2.4",
+        "@types/markdown-it": "^10.0.1",
         "@types/mocha": "^7.0.2",
         "@types/node": "^12.19.14",
         "@typescript-eslint/parser": "^3.10.1",

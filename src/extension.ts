@@ -10,6 +10,7 @@ import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient'
 import { JuliaDebugFeature } from './debugger/debugFeature'
+import * as documentation from './docbrowser/documentation'
 import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
@@ -60,6 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
         await juliaexepath.getJuliaExePath() // We run this function now and await to make sure we don't run in twice simultaneously later
         repl.activate(context)
         weave.activate(context)
+        documentation.activate(context)
         tasks.activate(context)
         smallcommands.activate(context)
         packagepath.activate(context)
@@ -124,6 +126,23 @@ export const onSetLanguageClient = g_onSetLanguageClient.event
 function setLanguageClient(languageClient: vslc.LanguageClient = null) {
     g_onSetLanguageClient.fire(languageClient)
     g_languageClient = languageClient
+}
+
+export async function withLanguageClient(
+    callback: (languageClient: vslc.LanguageClient) => any,
+    callbackOnHandledErr: (err: Error) => any
+) {
+    if (g_languageClient === null) {
+        return callbackOnHandledErr(new Error('Language client is not active'))
+    }
+    try {
+        return callback(g_languageClient)
+    } catch (err) {
+        if (err.message === 'Language client is not ready yet') {
+            return callbackOnHandledErr(err)
+        }
+        throw err
+    }
 }
 
 const g_onDidChangeConfig = new vscode.EventEmitter<vscode.ConfigurationChangeEvent>()

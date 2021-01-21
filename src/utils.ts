@@ -1,6 +1,20 @@
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
+import * as vslc from 'vscode-languageclient'
+import { VersionedTextDocumentPositionParams } from './interactive/misc'
+
+export function constructCommandString(cmd: string, args: any = {}) {
+    return `command:${cmd}?${encodeURIComponent(JSON.stringify(args))}`
+}
+
+export function getVersionedParamsAtPosition(document: vscode.TextDocument, position: vscode.Position): VersionedTextDocumentPositionParams {
+    return {
+        textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
+        version: document.version,
+        position
+    }
+}
 
 export function setContext(contextKey: string, state: boolean) {
     vscode.commands.executeCommand('setContext', contextKey, state)

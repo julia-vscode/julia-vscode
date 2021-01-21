@@ -11,7 +11,7 @@ import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
-import { generatePipeName, inferJuliaNumThreads, setContext } from '../utils'
+import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, setContext } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -206,6 +206,7 @@ function startREPLMsgServer(pipename: string) {
     const server = net.createServer((socket: net.Socket) => {
         socket.on('close', hadError => {
             g_onExit.fire(hadError)
+            g_connection = undefined
             server.close()
         })
 
@@ -327,7 +328,7 @@ async function executeFile(uri?: vscode.Uri | string) {
     )
 }
 
-async function getBlockRange(params): Promise<vscode.Position[]> {
+async function getBlockRange(params: VersionedTextDocumentPositionParams) {
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
@@ -338,9 +339,8 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
 
     await g_languageClient.onReady()
 
-    let ret_val: vscode.Position[]
     try {
-        ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+        return await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err)
@@ -350,21 +350,14 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
             throw err
         }
     }
-
-    return ret_val
 }
 
 async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
 
     const editor = vscode.window.activeTextEditor
-    const params: VersionedTextDocumentPositionParams = {
-        textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
-        version: editor.document.version,
-        position: editor.document.validatePosition(new vscode.Position(editor.selection.start.line, editor.selection.start.character))
-    }
-
-    const ret_val: vscode.Position[] = await getBlockRange(params)
+    const position = editor.document.validatePosition(editor.selection.start)
+    const ret_val = await getBlockRange(getVersionedParamsAtPosition(editor.document, position))
 
     const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
     const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
@@ -468,7 +461,6 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         return
     }
 
-    const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString())
     const selections = editor.selections.slice()
 
     await startREPL(true, false)
@@ -477,16 +469,10 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
         const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
-        const params: VersionedTextDocumentPositionParams = {
-            textDocument: editorId,
-            version: editor.document.version,
-            position: startpos
-        }
-
         const module: string = await modules.getModuleForEditor(editor.document, startpos)
 
         if (selection.isEmpty) {
-            const currentBlock = await getBlockRange(params)
+            const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor.document, startpos))
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
             nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
         } else {
