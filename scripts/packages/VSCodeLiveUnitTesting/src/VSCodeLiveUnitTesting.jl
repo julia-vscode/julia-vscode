@@ -34,4 +34,79 @@ module Revise
     include("../../Revise/src/packagedef.jl")
 end
 
+include("copied_from_test_reports.jl")
+
+function run_test_loop()
+    Pkg.status()
+
+    println()
+
+    try
+        VSCodeLiveUnitTesting.Revise.track(joinpath(pwd(), "test", "runtests.jl"); mode=:eval, skip_include=false)
+    catch err
+        Base.display_error(err, catch_backtrace())
+    end
+
+    VSCodeLiveUnitTesting.Revise.entr([joinpath(pwd(), "test", "runtests.jl")]; all=true, postpone=true) do
+        println()
+        println("Rerunning tests...")
+        println()
+
+        try
+            VSCodeLiveUnitTesting.Revise.include(joinpath(pwd(), "test", "runtests.jl"))
+        catch err
+            Base.display_error(err, catch_backtrace())
+        end
+    end
+end
+
+function live_unit_test(pkg_name::AbstractString)
+    pkgspec = deepcopy(Pkg.PackageSpec(pkg_name))
+
+    ctx = Pkg.API.Context()
+
+    if !isinstalled!(ctx, pkgspec)
+        error("Package not in here")
+    end
+
+    Pkg.instantiate(ctx)
+
+    testfilepath = gettestfilepath(ctx, pkgspec)
+
+    if !isfile(testfilepath)
+        error("")
+    end
+
+    test_folder_has_project_file = isfile(joinpath(dirname(testfilepath), "Project.toml"))
+
+    if VERSION >= v"1.4.0" || (VERSION >= v"1.2.0" && test_folder_has_project_file)
+        # Operations.sandbox() has different arguments between versions
+        sandbox_args = (ctx,
+                            pkgspec,
+                            pkgspec.path,
+                            joinpath(pkgspec.path, "test"))
+
+        if VERSION >= v"1.4.0"
+            test_project_override = test_folder_has_project_file ?
+                    nothing :
+                    gen_target_project(ctx, pkgspec, pkgspec.path, "test")
+
+            sandbox_args = (sandbox_args..., test_project_override)
+        end
+
+        sandbox(sandbox_args...) do
+            run_test_loop()
+        end
+    else
+        with_dependencies_loadable_at_toplevel(ctx, pkgspec; might_need_to_resolve=true) do localctx
+            Pkg.activate(localctx.env.project_file)
+            try
+                run_test_loop()
+            finally
+                Pkg.activate(ctx.env.project_file)
+            end
+        end
+    end
+end
+
 end
