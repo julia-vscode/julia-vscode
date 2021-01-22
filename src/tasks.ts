@@ -50,6 +50,12 @@ class JuliaTaskProvider {
                 testTaskWithCoverage.group = vscode.TaskGroup.Test
                 testTaskWithCoverage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
                 result.push(testTaskWithCoverage)
+
+                const livetestTask = new vscode.Task({ type: 'julia', command: 'livetest' }, folder, `Run live unit tests (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_liveunittesting.jl'), folder.name], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }), '')
+                livetestTask.group = vscode.TaskGroup.Test
+                livetestTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
+                result.push(livetestTask)
+
             }
 
             const buildJuliaSysimage = new vscode.Task({ type: 'julia', command: 'juliasysimagebuild' }, folder, `Build custom sysimage for current environment (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${path.join(this.context.extensionPath, 'scripts', 'environments', 'sysimagecompile')}`, '--startup-file=no', '--history-file=no', path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_compileenv.jl'), pkgenvpath]), '')
