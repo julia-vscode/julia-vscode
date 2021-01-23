@@ -4,8 +4,8 @@ import { assert } from 'console'
 import * as net from 'net'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import * as rpc from 'vscode-jsonrpc'
-import * as vslc from 'vscode-languageclient'
+import * as rpc from 'vscode-jsonrpc/node'
+import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
@@ -164,22 +164,22 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     showCodeInREPL: boolean,
     showResultInREPL: boolean,
     softscope: boolean
-}, ReturnResult, void, void>('repl/runcode')
+}, ReturnResult, void>('repl/runcode')
 
 interface DebugLaunchParams {
     code: string,
     filename: string
 }
 
-const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display')
-const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams, void>('debugger/enter')
-const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams, void>('debugger/run')
-const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger')
-const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval')
-export const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval')
-export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('repl/showingrid')
-const notifyTypeShowProfilerResult = new rpc.NotificationType<string, void>('repl/showprofileresult')
-const notifyTypeShowProfilerResultFile = new rpc.NotificationType<string, void>('repl/showprofileresult_file')
+const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
+const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams>('debugger/enter')
+const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams>('debugger/run')
+const notifyTypeReplStartDebugger = new rpc.NotificationType<string>('repl/startdebugger')
+const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
+export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
+export const notifyTypeReplShowInGrid = new rpc.NotificationType<string>('repl/showingrid')
+const notifyTypeShowProfilerResult = new rpc.NotificationType<string>('repl/showprofileresult')
+const notifyTypeShowProfilerResultFile = new rpc.NotificationType<string>('repl/showprofileresult_file')
 
 interface Progress {
     id: { value: number },
@@ -187,7 +187,7 @@ interface Progress {
     fraction: number,
     done: Boolean
 }
-const notifyTypeProgress = new rpc.NotificationType<Progress, void>('repl/updateProgress')
+const notifyTypeProgress = new rpc.NotificationType<Progress>('repl/updateProgress')
 
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event

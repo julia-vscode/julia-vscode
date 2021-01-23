@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
-import * as vslc from 'vscode-languageclient'
+import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import * as telemetry from '../telemetry'
 import { VersionedTextDocumentPositionParams } from './misc'
@@ -12,8 +12,8 @@ let g_languageClient: vslc.LanguageClient = null
 
 const manuallySetDocuments = []
 
-const requestTypeGetModules = new rpc.RequestType<void, string[], void, void>('repl/loadedModules')
-const requestTypeIsModuleLoaded = new rpc.RequestType<string, boolean, void, void>('repl/isModuleLoaded')
+const requestTypeGetModules = new rpc.RequestType<void, string[], void>('repl/loadedModules')
+const requestTypeIsModuleLoaded = new rpc.RequestType<string, boolean, void>('repl/isModuleLoaded')
 
 const automaticallyChooseOption = 'Choose Automatically'
 
