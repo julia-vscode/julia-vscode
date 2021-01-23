@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2021-01-23
+### Added
+* Documentation browser
+* Package tagging
+* Live testing
+* Remaining time for progress logging
+
+### Changed
+* Cache format for the language server
+
 ## [1.0.10] - 2020-11-13
 ### Added
 * Support for Julia 1.5.3 and 1.5.4 default installation paths ([#1755](https://github.com/julia-vscode/julia-vscode/pull/1755), [#1759](https://github.com/julia-vscode/julia-vscode/pull/1759)).
