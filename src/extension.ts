@@ -7,8 +7,7 @@ import { unwatchFile, watchFile } from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import * as vslc from 'vscode-languageclient'
-import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient'
+import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient/node'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
 import { ProfilerResultsProvider } from './interactive/profiler'
@@ -123,15 +122,15 @@ export async function activate(context: vscode.ExtensionContext) {
 // this method is called when your extension is deactivated
 export function deactivate() { }
 
-const g_onSetLanguageClient = new vscode.EventEmitter<vslc.LanguageClient>()
+const g_onSetLanguageClient = new vscode.EventEmitter<LanguageClient>()
 export const onSetLanguageClient = g_onSetLanguageClient.event
-function setLanguageClient(languageClient: vslc.LanguageClient = null) {
+function setLanguageClient(languageClient: LanguageClient = null) {
     g_onSetLanguageClient.fire(languageClient)
     g_languageClient = languageClient
 }
 
 export async function withLanguageClient(
-    callback: (languageClient: vslc.LanguageClient) => any,
+    callback: (languageClient: LanguageClient) => any,
     callbackOnHandledErr: (err: Error) => any
 ) {
     if (g_languageClient === null) {
@@ -288,12 +287,12 @@ async function startLanguageServer() {
     }
 }
 
-function refreshLanguageServer(languageClient: vslc.LanguageClient = g_languageClient) {
+function refreshLanguageServer(languageClient: LanguageClient = g_languageClient) {
     if (!languageClient) { return }
     languageClient.sendNotification('julia/refreshLanguageServer')
 }
 
-function restartLanguageServer(languageClient: vslc.LanguageClient = g_languageClient) {
+function restartLanguageServer(languageClient: LanguageClient = g_languageClient) {
     if (languageClient !== null) {
         languageClient.stop()
         setLanguageClient()

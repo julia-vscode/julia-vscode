@@ -18,12 +18,12 @@ interface WorkspaceVariable {
 const requestTypeGetVariables = new rpc.RequestType<
     void,
     WorkspaceVariable[],
-    void, void>('repl/getvariables')
+    void>('repl/getvariables')
 
 const requestTypeGetLazy = new rpc.RequestType<
     number,
     WorkspaceVariable[],
-    void, void>('repl/getlazy')
+    void>('repl/getlazy')
 
 let g_replVariables: WorkspaceVariable[] = []
 
