@@ -36,31 +36,33 @@ end
 
 include("copied_from_test_reports.jl")
 
-function run_test_loop()
+function run_test_loop(test_file::AbstractString)
     Pkg.status()
 
     println()
 
     try
-        VSCodeLiveUnitTesting.Revise.track(joinpath(pwd(), "test", "runtests.jl"); mode=:eval, skip_include=false)
+        VSCodeLiveUnitTesting.Revise.track(test_file; mode=:eval, skip_include=false)
     catch err
         Base.display_error(err, catch_backtrace())
     end
 
-    VSCodeLiveUnitTesting.Revise.entr([joinpath(pwd(), "test", "runtests.jl")]; all=true, postpone=true) do
+    VSCodeLiveUnitTesting.Revise.entr([test_file]; all=true, postpone=true) do
         println()
         println("Rerunning tests...")
         println()
 
         try
-            VSCodeLiveUnitTesting.Revise.include(joinpath(pwd(), "test", "runtests.jl"))
+            VSCodeLiveUnitTesting.Revise.include(test_file)
         catch err
             Base.display_error(err, catch_backtrace())
         end
     end
 end
 
-function live_unit_test(pkg_name::AbstractString)
+function live_unit_test(pkg_name::AbstractString, test_file::AbstractString)
+    absolute_path_of_test_file = joinpath(pwd(), test_file)
+
     pkgspec = deepcopy(Pkg.PackageSpec(pkg_name))
 
     ctx = Pkg.API.Context()
@@ -95,13 +97,13 @@ function live_unit_test(pkg_name::AbstractString)
         end
 
         sandbox(sandbox_args...) do
-            run_test_loop()
+            run_test_loop(absolute_path_of_test_file)
         end
     else
         with_dependencies_loadable_at_toplevel(ctx, pkgspec; might_need_to_resolve=true) do localctx
             Pkg.activate(localctx.env.project_file)
             try
-                run_test_loop()
+                run_test_loop(absolute_path_of_test_file)
             finally
                 Pkg.activate(ctx.env.project_file)
             end
