@@ -174,12 +174,12 @@ interface DebugLaunchParams {
 const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
 const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams>('debugger/enter')
 const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams>('debugger/run')
-const notifyTypeReplStartDebugger = new rpc.NotificationType<string>('repl/startdebugger')
+const notifyTypeReplStartDebugger = new rpc.NotificationType<{ debugPipename: string }>('repl/startdebugger')
 const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
-export const notifyTypeReplShowInGrid = new rpc.NotificationType<string>('repl/showingrid')
-const notifyTypeShowProfilerResult = new rpc.NotificationType<string>('repl/showprofileresult')
-const notifyTypeShowProfilerResultFile = new rpc.NotificationType<string>('repl/showprofileresult_file')
+export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
+const notifyTypeShowProfilerResult = new rpc.NotificationType<{ content: string }>('repl/showprofileresult')
+const notifyTypeShowProfilerResultFile = new rpc.NotificationType<{ filename: string }>('repl/showprofileresult_file')
 
 interface Progress {
     id: { value: number },
@@ -655,7 +655,7 @@ async function cdToHere(uri: vscode.Uri) {
     await startREPL(true, false)
     if (uriPath) {
         try {
-            g_connection.sendNotification('repl/cd', uriPath)
+            g_connection.sendNotification('repl/cd', { uri: uriPath })
         } catch (err) {
             console.log(err)
         }
@@ -673,7 +673,7 @@ async function activatePath(path: string) {
     await startREPL(true, false)
     if (path) {
         try {
-            g_connection.sendNotification('repl/activateProject', path)
+            g_connection.sendNotification('repl/activateProject', { uri: path })
             switchEnvToPath(path, true)
         } catch (err) {
             console.log(err)
@@ -732,7 +732,7 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
 export async function replStartDebugger(pipename: string) {
     await startREPL(true)
 
-    g_connection.sendNotification(notifyTypeReplStartDebugger, pipename)
+    g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -774,13 +774,13 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('julia.usePlotPane')) {
                 try {
-                    g_connection.sendNotification('repl/togglePlotPane', vscode.workspace.getConfiguration('julia').get('usePlotPane'))
+                    g_connection.sendNotification('repl/togglePlotPane', { enable: vscode.workspace.getConfiguration('julia').get('usePlotPane') })
                 } catch (err) {
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.useProgressFrontend')) {
                 try {
-                    g_connection.sendNotification('repl/toggleProgress', vscode.workspace.getConfiguration('julia').get('useProgressFrontend'))
+                    g_connection.sendNotification('repl/toggleProgress', { enable: vscode.workspace.getConfiguration('julia').get('useProgressFrontend') })
                 } catch (err) {
                     console.warn(err)
                 }

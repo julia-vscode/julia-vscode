@@ -13,16 +13,16 @@ export function addProfilerResult(uri: vscode.Uri, content: string) {
     g_profilerResults.set(uri.toString(), content)
 }
 
-export async function showProfileResult(content: string) {
+export async function showProfileResult(params: { content: string }) {
     const new_uuid = uuid()
     const uri = vscode.Uri.parse('juliavsodeprofilerresults:' + new_uuid.toString() + '.cpuprofile')
-    addProfilerResult(uri, content)
+    addProfilerResult(uri, params.content)
     const doc = await vscode.workspace.openTextDocument(uri)
     await vscode.window.showTextDocument(doc, { preview: false })
 }
 
-export async function showProfileResultFile(file: string) {
-    const uri = vscode.Uri.file(file)
+export async function showProfileResultFile(params: { filename: string }) {
+    const uri = vscode.Uri.file(params.filename)
     await vscode.commands.executeCommand('vscode.open', uri, {
         preserveFocuse: true,
         preview: false,

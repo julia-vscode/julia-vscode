@@ -21,7 +21,7 @@ const requestTypeGetVariables = new rpc.RequestType<
     void>('repl/getvariables')
 
 const requestTypeGetLazy = new rpc.RequestType<
-    number,
+    { id: number },
     WorkspaceVariable[],
     void>('repl/getlazy')
 
@@ -37,7 +37,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVa
 
     async getChildren(node?: WorkspaceVariable) {
         if (node) {
-            const children = await g_connection.sendRequest(requestTypeGetLazy, node.id)
+            const children = await g_connection.sendRequest(requestTypeGetLazy, { id: node.id })
 
             const out: WorkspaceVariable[] = []
 
@@ -72,7 +72,7 @@ async function updateReplVariables() {
 }
 
 async function showInVSCode(node: WorkspaceVariable) {
-    g_connection.sendNotification(notifyTypeReplShowInGrid, node.head)
+    g_connection.sendNotification(notifyTypeReplShowInGrid, { code: node.head })
 }
 
 export function activate(context: vscode.ExtensionContext) {

@@ -249,7 +249,7 @@ wsicon(::Undef) = "question"
 
 # handle lazy clicks
 
-repl_getlazy_request(conn, id::Int) = Base.invokelatest(get_lazy, id)
+repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}) = Base.invokelatest(get_lazy, params.id)
 
 function get_lazy(id::Int)
     try

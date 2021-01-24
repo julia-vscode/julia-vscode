@@ -114,7 +114,7 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
     async getDocumentationFromWord(word: string): Promise<string> {
         return await withLanguageClient(
             async languageClient => {
-                return await languageClient.sendRequest('julia/getDocFromWord', word)
+                return await languageClient.sendRequest('julia/getDocFromWord', { word: word })
             }, err => {
                 console.error('LC request failed with ', err)
                 return ''

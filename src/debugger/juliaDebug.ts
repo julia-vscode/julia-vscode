@@ -261,7 +261,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
         this._launchedWithoutDebug = args.noDebug
 
         if (args.noDebug) {
-            this._connection.sendNotification(notifyTypeRun, args.program)
+            this._connection.sendNotification(notifyTypeRun, { program: args.program })
         }
         else {
             this._connection.sendNotification(notifyTypeDebug, { stopOnEntry: args.stopOnEntry, program: args.program })
