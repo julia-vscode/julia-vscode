@@ -1,6 +1,6 @@
 repl_loadedModules_request(conn, params::Nothing) = string.(collect(get_modules()))
 
-repl_isModuleLoaded_request(conn, params::String) = is_module_loaded(params)
+repl_isModuleLoaded_request(conn, params::NamedTuple{(:mod,),Tuple{String}}) = is_module_loaded(params.mod)
 
 function module_from_string(mod)
     ms = split(mod, '.')

@@ -13,7 +13,7 @@ let g_languageClient: vslc.LanguageClient = null
 const manuallySetDocuments = []
 
 const requestTypeGetModules = new rpc.RequestType<void, string[], void>('repl/loadedModules')
-const requestTypeIsModuleLoaded = new rpc.RequestType<string, boolean, void>('repl/isModuleLoaded')
+const requestTypeIsModuleLoaded = new rpc.RequestType<{ mod: string }, boolean, void>('repl/isModuleLoaded')
 
 const automaticallyChooseOption = 'Choose Automatically'
 
@@ -98,7 +98,7 @@ async function updateModuleForEditor(editor: vscode.TextEditor) {
 async function isModuleLoaded(mod: string) {
     if (!g_connection) { return false }
     try {
-        return await g_connection.sendRequest(requestTypeIsModuleLoaded, mod)
+        return await g_connection.sendRequest(requestTypeIsModuleLoaded, { mod: mod })
     } catch (err) {
         if (g_connection) {
             telemetry.handleNewCrashReportFromException(err, 'Extension')

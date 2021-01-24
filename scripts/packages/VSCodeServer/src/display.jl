@@ -3,12 +3,12 @@ struct InlineDisplay <: AbstractDisplay end
 const PLOT_PANE_ENABLED = Ref(true)
 const PROGRESS_ENABLED = Ref(true)
 
-function toggle_plot_pane(_, enable::Bool)
-    PLOT_PANE_ENABLED[] = enable
+function toggle_plot_pane(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    PLOT_PANE_ENABLED[] = params.enable
 end
 
-function toggle_progress(_, enable::Bool)
-    PROGRESS_ENABLED[] = enable
+function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    PROGRESS_ENABLED[] = params.enable
 end
 
 function fix_displays()
@@ -159,9 +159,9 @@ function pkgload(pkg)
     end
 end
 
-function repl_showingrid_notification(conn, params::String)
+function repl_showingrid_notification(conn, params::NamedTuple{(:code,),Tuple{String}})
     try
-        var = Base.invokelatest(Base.include_string, Main, params)
+        var = Base.invokelatest(Base.include_string, Main, params.code)
 
         Base.invokelatest(internal_vscodedisplay, var)
     catch err
