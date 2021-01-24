@@ -134,21 +134,48 @@ export function plotPaneDelAll() {
     }
 }
 
+// wrap a source string with an <img> tag that shows the content
+// scaled to fit the plot pane unless the plot pane is bigger than the image
+function wrap_imagelike(srcstring: string) {
+    const html = `
+    <html style="padding:0;margin:0;">
+        <body style="padding:0;margin:0;">
+            <div style='width: 100%; height: 100vh'>
+                <img style='display:block; height: 100%; width: 100%; object-fit: scale-down; object-position: 0 0;' src='${srcstring}'>
+            </div>
+        </body>
+    </html>`
+    return html
+}
+
 export function displayPlot(params: { kind: string, data: string }) {
     const kind = params.kind
     const payload = params.data
 
     if (kind === 'image/svg+xml') {
-        g_currentPlotIndex = g_plots.push(payload) - 1
+        const has_xmlns_attribute = payload.includes("xmlns=");
+        var plotPaneContent: string;
+        if (has_xmlns_attribute) {
+            // the xmlns attribute has to be present for data:image/svg+xml to work
+            // encodeURIComponent is needed to replace all special characters from the SVG string
+            // which could break the HTML
+            plotPaneContent = wrap_imagelike(`data:image/svg+xml,${encodeURIComponent(payload)}`);
+        } else {
+            // otherwise we just show the svg directly as it's not straightforward to scale it
+            // correctly if it's not in an img tag
+            plotPaneContent = payload;
+        }
+
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
     else if (kind === 'image/png') {
-        const plotPaneContent = '<html><img src="data:image/png;base64,' + payload + '" /></html>'
+        const plotPaneContent = wrap_imagelike(`data:image/png;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
     else if (kind === 'image/gif') {
-        const plotPaneContent = '<html><img src="data:image/gif;base64,' + payload + '" /></html>'
+        const plotPaneContent = wrap_imagelike(`data:image/gif;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
