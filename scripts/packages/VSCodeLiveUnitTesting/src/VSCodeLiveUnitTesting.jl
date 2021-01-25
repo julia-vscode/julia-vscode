@@ -41,7 +41,10 @@ function run_test_loop(test_file::AbstractString)
 
     println()
 
+    test_folder = dirname(test_file)
+
     try
+        cd(test_folder)
         VSCodeLiveUnitTesting.Revise.track(test_file; mode=:eval, skip_include=false)
     catch err
         Base.display_error(err, catch_backtrace())
@@ -53,6 +56,7 @@ function run_test_loop(test_file::AbstractString)
         println()
 
         try
+            cd(test_folder)
             VSCodeLiveUnitTesting.Revise.include(test_file)
         catch err
             Base.display_error(err, catch_backtrace())
