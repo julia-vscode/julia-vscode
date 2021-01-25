@@ -660,6 +660,60 @@
           }
         },
         {
+          "begin": "(sql)(\"\"\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"\"\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "name": "embed.sql.julia",
+          "contentName": "meta.embedded.inline.sql",
+          "patterns": [
+            {
+              "include": "source.sql"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(sql)(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"",
+          "name": "embed.sql.julia",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "contentName": "meta.embedded.inline.sql",
+          "patterns": [
+            {
+              "include": "source.sql"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
           "begin": "var\"\"\"",
           "end": "\"\"\"",
           "name": "constant.other.symbol.julia"
