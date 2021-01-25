@@ -982,7 +982,7 @@
         "@types/markdown-it": "^12.0.1",
         "@types/mocha": "^8.2.0",
         "@types/node": "^12.19.15",
-        "@typescript-eslint/parser": "^4.14.0",
+        "@typescript-eslint/parser": "^4.14.1",
         "cson-parser": "^4.0.7",
         "download": "^8.0.0",
         "eslint": "^7.18.0",
