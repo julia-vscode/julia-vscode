@@ -153,10 +153,10 @@ export function displayPlot(params: { kind: string, data: string }) {
     const payload = params.data
 
     if (kind === 'image/svg+xml') {
-        const has_xmlns_attribute = payload.includes("xmlns=");
-        var plotPaneContent: string;
+        const has_xmlns_attribute = payload.includes('xmlns=');
+        let plotPaneContent: string;
         if (has_xmlns_attribute) {
-            // the xmlns attribute has to be present for data:image/svg+xml to work
+            // the xmlns attribute has to be present for data:image/svg+xml to work (https://stackoverflow.com/questions/18467982)
             // encodeURIComponent is needed to replace all special characters from the SVG string
             // which could break the HTML
             plotPaneContent = wrap_imagelike(`data:image/svg+xml,${encodeURIComponent(payload)}`);
