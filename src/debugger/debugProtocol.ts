@@ -202,6 +202,6 @@ export const requestTypeThreads = new RequestType0<ThreadsResponseArguments, voi
 export const requestTypeBreakpointLocations = new RequestType<DebugProtocol.BreakpointLocationsArguments, BreakpointLocationsResponseArguments, void>('breakpointLocations')
 export const notifyTypeRun = new NotificationType<{ program: string }>('run')
 export const notifyTypeDebug = new NotificationType<{ stopOnEntry: boolean, program: string }>('debug')
-export const notifyTypeExec = new NotificationType<{ stopOnEntry: boolean, code: string, file: string }>('exec')
+export const notifyTypeExec = new NotificationType<{ stopOnEntry: boolean, code: string, file: string, compiledModulesOrFunctions: string[] }>('exec')
 export const notifyTypeOurFinished = new NotificationType<void>('finished')
 export const notifyTypeStopped = new NotificationType<StoppedArguments>('stopped')

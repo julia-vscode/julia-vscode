@@ -92,7 +92,7 @@
                 "embeddedLanguages": {
                     "meta.embedded.inline.cpp": "cpp",
                     "meta.embedded.inline.javascript": "javascript",
-                    "meta.embedded.inline.markdown": "juliamarkdown",
+                    "meta.embedded.inline.markdown": "markdown",
                     "meta.embedded.inline.python": "python",
                     "meta.embedded.inline.r": "r"
                 }
@@ -290,6 +290,35 @@
             {
                 "command": "language-julia.activateFromDir",
                 "title": "Julia: Activate Parent Environment"
+            },
+            {
+                "command": "language-julia.switchToInterpreted",
+                "title": "Interpret"
+            },
+            {
+                "command": "language-julia.switchToCompiled",
+                "title": "Compile"
+            },
+            {
+                "command": "language-julia.switchAllToInterpreted",
+                "title": "Switch all to interpreted"
+            },
+            {
+                "command": "language-julia.switchAllToCompiled",
+                "title": "(all)"
+            },
+            {
+                "command": "language-julia.apply-compiled-defaults",
+                "title": "Apply default compiled modules/functions"
+            },
+            {
+                "command": "language-julia.reset-compiled",
+                "title": "Reset compiled modules/functions",
+                "icon": "$(close)"
+            },
+            {
+                "command": "language-julia.refreshCompiled",
+                "title": "Julia: Refresh Compiled/Interpreted Pane"
             }
         ],
         "menus": {
@@ -400,6 +429,21 @@
                     "command": "language-julia.showInVSCode",
                     "when": "view == REPLVariables && viewItem == globalvariable",
                     "group": "inline"
+                },
+                {
+                    "command": "language-julia.switchToInterpreted",
+                    "when": "view == debugger-compiled && viewItem == is-compiled || viewItem == is-compiled-with-children",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "language-julia.switchToCompiled",
+                    "when": "view == debugger-compiled && viewItem == is-interpreted || viewItem == is-interpreted-with-children",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "language-julia.switchAllToCompiled",
+                    "when": "view == debugger-compiled && viewItem == is-interpreted-with-children",
+                    "group": "inline@2"
                 }
             ],
             "view/title": [
@@ -412,6 +456,16 @@
                     "command": "language-julia.browse-forward-documentation",
                     "when": "view == julia-documentation",
                     "group": "navigation"
+                },
+                {
+                    "command": "language-julia.apply-compiled-defaults",
+                    "when": "view == debugger-compiled",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.reset-compiled",
+                    "when": "view == debugger-compiled",
+                    "group": "menu"
                 }
             ],
             "editor/context": [
@@ -807,6 +861,14 @@
                     "default": "test/runtests.jl",
                     "description": "A workspace relative path to a Julia file that contains the tests that should be run for live testing.",
                     "scope": "window"
+                },
+                "julia.debuggerDefaultCompiled": {
+                    "type": "array",
+                    "default": [
+                        "Base.iterate"
+                    ],
+                    "description": "Functions or modules that are set to compiled mode when setting the defaults.",
+                    "scope": "window"
                 }
             }
         },
@@ -849,6 +911,13 @@
                     "type": "webview",
                     "id": "julia-documentation",
                     "name": "Documentation"
+                }
+            ],
+            "debug": [
+                {
+                    "type": "tree",
+                    "id": "debugger-compiled",
+                    "name": "Compiled/Interpreted Code"
                 }
             ]
         },

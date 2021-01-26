@@ -33,6 +33,7 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
     code: string
     file: string
     stopOnEntry: boolean
+    compiledModulesOrFunctions?: string[]
 }
 
 export class JuliaDebugSession extends LoggingDebugSession {
@@ -173,7 +174,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
         // await this._configurationDone.wait(1000);
         await this._configurationDone.wait()
 
-        this._connection.sendNotification(notifyTypeExec, { stopOnEntry: args.stopOnEntry, code: args.code, file: args.file })
+        this._connection.sendNotification(notifyTypeExec, { stopOnEntry: args.stopOnEntry, code: args.code, file: args.file, compiledModulesOrFunctions: args.compiledModulesOrFunctions })
 
         this.sendResponse(response)
     }

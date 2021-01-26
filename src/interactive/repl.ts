@@ -12,6 +12,7 @@ import { switchEnvToPath } from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, setContext } from '../utils'
+import * as debugViewProvider from './debugConfig'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -23,6 +24,7 @@ import * as workspace from './workspace'
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
+let g_compiledProvider = null
 
 let g_terminal: vscode.Terminal = null
 
@@ -134,7 +136,8 @@ function debuggerRun(params: DebugLaunchParams) {
         name: 'Julia REPL',
         code: params.code,
         file: params.filename,
-        stopOnEntry: false
+        stopOnEntry: false,
+        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems()
     })
 }
 
@@ -145,7 +148,8 @@ function debuggerEnter(params: DebugLaunchParams) {
         name: 'Julia REPL',
         code: params.code,
         file: params.filename,
-        stopOnEntry: true
+        stopOnEntry: true,
+        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems()
     })
 }
 
@@ -737,6 +741,8 @@ export async function replStartDebugger(pipename: string) {
 
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
+
+    g_compiledProvider = debugViewProvider.activate(context)
 
     context.subscriptions.push(
         // listeners
