@@ -293,32 +293,43 @@
             },
             {
                 "command": "language-julia.switchToInterpreted",
-                "title": "Interpret"
+                "title": "Remove from compiled modules/functions",
+                "icon": "$(remove)"
             },
             {
                 "command": "language-julia.switchToCompiled",
-                "title": "Compile"
+                "title": "Julia: Add to compiled modules/functions",
+                "icon": "$(add)"
             },
             {
                 "command": "language-julia.switchAllToInterpreted",
-                "title": "Switch all to interpreted"
+                "title": "Julia: Switch all to interpreted"
             },
             {
                 "command": "language-julia.switchAllToCompiled",
-                "title": "(all)"
+                "title": "all"
             },
             {
                 "command": "language-julia.apply-compiled-defaults",
-                "title": "Apply default compiled modules/functions"
+                "title": "Julia: Apply default compiled modules/functions"
             },
             {
                 "command": "language-julia.reset-compiled",
-                "title": "Reset compiled modules/functions",
-                "icon": "$(close)"
+                "title": "Julia: Reset compiled modules/functions",
+                "icon": "$(remove)"
             },
             {
                 "command": "language-julia.refreshCompiled",
                 "title": "Julia: Refresh Compiled/Interpreted Pane"
+            },
+            {
+                "command": "language-julia.set-compiled-for-name",
+                "title": "Julia: Add symbol to compiled modules/functions",
+                "icon": "$(add)"
+            },
+            {
+                "command": "language-julia.set-current-as-default-compiled",
+                "title": "Julia: Set current compiled modules/functions as default"
             }
         ],
         "menus": {
@@ -444,6 +455,11 @@
                     "command": "language-julia.switchAllToCompiled",
                     "when": "view == debugger-compiled && viewItem == is-interpreted-with-children",
                     "group": "inline@2"
+                },
+                {
+                    "command": "language-julia.reset-compiled",
+                    "when": "view == debugger-compiled && viewItem == is-root-compiled",
+                    "group": "inline"
                 }
             ],
             "view/title": [
@@ -466,6 +482,16 @@
                     "command": "language-julia.reset-compiled",
                     "when": "view == debugger-compiled",
                     "group": "menu"
+                },
+                {
+                    "command": "language-julia.set-current-as-default-compiled",
+                    "when": "view == debugger-compiled",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.set-compiled-for-name",
+                    "when": "view == debugger-compiled",
+                    "group": "navigation"
                 }
             ],
             "editor/context": [
@@ -865,7 +891,17 @@
                 "julia.debuggerDefaultCompiled": {
                     "type": "array",
                     "default": [
-                        "Base.iterate"
+                        "Base.iterate",
+                        "Core",
+                        "Core.Compiler.",
+                        "Core.IR",
+                        "Core.Intrinsics",
+                        "DelimitedFiles",
+                        "Distributed",
+                        "LinearAlgebra.",
+                        "Serialization",
+                        "SparseArrays",
+                        "Mmap"
                     ],
                     "description": "Functions or modules that are set to compiled mode when setting the defaults.",
                     "scope": "window"
@@ -917,7 +953,7 @@
                 {
                     "type": "tree",
                     "id": "debugger-compiled",
-                    "name": "Compiled/Interpreted Code"
+                    "name": "Julia: Compiled Code"
                 }
             ]
         },

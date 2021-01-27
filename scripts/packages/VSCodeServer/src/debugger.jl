@@ -75,16 +75,14 @@ function get_obj_by_accessor(accessor, super = nothing)
             return get_obj_by_accessor(accessor, Main)
         end
     else
-        for name in names(super; all = true)
-            if string(name) == top && isdefined(super, name)
-                this = getfield(super, name)
-                if length(parts) > 0
-                    if this isa Module
-                        return get_obj_by_accessor(join(parts, '.'), this)
-                    end
-                else
-                    return this
+        if isdefined(super, Symbol(top))
+            this = getfield(super, Symbol(top))
+            if length(parts) > 0
+                if this isa Module
+                    return get_obj_by_accessor(join(parts, '.'), this)
                 end
+            else
+                return this
             end
         end
     end

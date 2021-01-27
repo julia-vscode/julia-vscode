@@ -6,6 +6,7 @@ interface DebugConfigTreeItem {
     label: string
     hasChildren?: boolean
     juliaAccessor?: string
+    isCompiledTree: boolean
 }
 
 const requestTypeGetDebugItems = new rpc.RequestType<
@@ -29,9 +30,9 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
 
     getChildren(node?: DebugConfigTreeItem): vscode.ProviderResult<DebugConfigTreeItem[]> {
         if (node) {
-            if (node.hasChildren) {
+            if (!node.isCompiledTree && node.hasChildren) {
                 if (this._connection) {
-                    const accessor = node.juliaAccessor || '#root'
+                    const accessor = node.juliaAccessor
                     return Promise.race([
                         this._connection.sendRequest(requestTypeGetDebugItems, { juliaAccessor: accessor }),
                         new Promise(resolve => {
@@ -40,6 +41,8 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
                     ])
                 }
                 return []
+            } else if (node.isCompiledTree && node.hasChildren) {
+                return this.getCompiledTreeChildrenForNode(node)
             } else {
                 return []
             }
@@ -50,11 +53,47 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     getToplevelItems(): DebugConfigTreeItem[] {
         return [
             {
-                label: 'All loaded modules',
+                label: 'Compiled',
                 hasChildren: true,
-                juliaAccessor: '#root'
+                juliaAccessor: '#root-compiled',
+                isCompiledTree: true
+            },
+            {
+                label: 'All',
+                hasChildren: true,
+                juliaAccessor: '#root',
+                isCompiledTree: false
             }
         ]
+    }
+
+    getCompiledTreeChildrenForNode(node: DebugConfigTreeItem) {
+        const out: DebugConfigTreeItem[] = []
+        console.log(node)
+        for (const item of [...this._compiledItems]) {
+            const isRoot = node.juliaAccessor.startsWith('#root')
+            if (item.startsWith(node.juliaAccessor) || isRoot) {
+                const rest = item.slice(node.juliaAccessor.length)
+                const parts = (isRoot ? item : rest).split('.').filter(x => x.length > 0)
+                if (parts.length > 0) {
+                    const juliaAccessor = isRoot ?
+                        parts[0] :
+                        item.slice(0, node.juliaAccessor.length - (node.juliaAccessor.endsWith('.') ? 1 : 0)) + '.' + parts[0]
+                    const index = out.map(x => x.juliaAccessor).indexOf(juliaAccessor)
+                    if (index === -1) {
+                        out.push({
+                            label: parts[0],
+                            hasChildren: parts.length > 1,
+                            juliaAccessor: juliaAccessor,
+                            isCompiledTree: true
+                        })
+                    } else {
+                        out[index].hasChildren = parts.length > 1
+                    }
+                }
+            }
+        }
+        return [...out].sort((a, b) => a.label.localeCompare(b.label))
     }
 
     getTreeItem(node: DebugConfigTreeItem): vscode.TreeItem {
@@ -76,14 +115,17 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
             }
         }
         const compiledBecauseParentIsCompiled = node.hasChildren ? parent && this._compiledItems.has(this.getNodeId(parent) + '.') : parent && this._compiledItems.has(this.getNodeId(parent))
-        const isCompiled = this._compiledItems.has(id) || compiledBecauseParentIsCompiled || anyAncestorCompiledAll
-        if (id !== '#root') {
-            treeItem.description = isCompiled ? 'compiled' : 'interpreted'
+        const isCompiledAll = this._compiledItems.has(id + '.') || (anyAncestorCompiledAll && node.hasChildren)
+        const isCompiled = this._compiledItems.has(id) || compiledBecauseParentIsCompiled || anyAncestorCompiledAll || isCompiledAll
+        if (!id.startsWith('#')) {
+            treeItem.description = isCompiled ? 'compiled' + (isCompiledAll ? ' (all)' : '') : 'interpreted'
             treeItem.tooltip = isCompiled ? 'Compiled code cannot be stepped through and breakpoints are disregarded.' : 'Interpreted code can be stepped through and breakpoints are respected.'
-            treeItem.contextValue = compiledBecauseParentIsCompiled || anyAncestorCompiledAll ? '' : node.hasChildren ? (isCompiled ? 'is-compiled-with-children' : 'is-interpreted-with-children') : (isCompiled ? 'is-compiled' : 'is-interpreted')
+            treeItem.contextValue = (!node.isCompiledTree && compiledBecauseParentIsCompiled) || anyAncestorCompiledAll ? '' : node.hasChildren ? (isCompiled ? 'is-compiled-with-children' : 'is-interpreted-with-children') : (isCompiled ? 'is-compiled' : 'is-interpreted')
+        } else if (id === '#root-compiled') {
+            treeItem.contextValue = 'is-root-compiled'
         }
         treeItem.collapsibleState = node.hasChildren ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
-        treeItem.id = id
+        // treeItem.id = id
         return treeItem
     }
 
@@ -100,7 +142,8 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
                 return {
                     label: parts[parts.length - 1], // previous name
                     hasChildren: true, // by definition
-                    juliaAccessor: parts.join('.')
+                    juliaAccessor: parts.join('.'),
+                    isCompiledTree: node.isCompiledTree
                 }
             }
         }
@@ -121,11 +164,11 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
             this._compiledItems.delete(id)
             this._compiledItems.delete(id + '.')
         }
-        this.refresh(node)
+        this.refresh()
     }
 
     getNodeId(node: DebugConfigTreeItem): string {
-        return node.juliaAccessor || node.label
+        return node.juliaAccessor
     }
 
     getCompiledItems() {
@@ -140,6 +183,15 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
         this.refresh()
     }
 
+    setCurrentAsDefault() {
+        vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), true)
+    }
+
+    addNameToCompiled(name: string) {
+        this._compiledItems.add(name)
+        this.refresh()
+    }
+
     reset() {
         this._compiledItems.clear()
         this.refresh()
@@ -148,6 +200,8 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
 
 export function activate(context: vscode.ExtensionContext) {
     const provider = new DebugConfigTreeProvider()
+    provider.applyDefaults()
+
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('debugger-compiled', provider),
         vscode.commands.registerCommand('language-julia.switchToCompiled', (item: DebugConfigTreeItem) => {
@@ -170,6 +224,17 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('language-julia.reset-compiled', () => {
             provider.reset()
+        }),
+        vscode.commands.registerCommand('language-julia.set-compiled-for-name', async () => {
+            const name = await vscode.window.showInputBox({
+                prompt: 'Please enter a fully qualified module or function name you want the debugger to treat as compiled code (e.g. `Base.Math.sin` or `StaticArrays`). A trailing `.` will treat all submodules as compiled as well.'
+            })
+            if (name) {
+                provider.addNameToCompiled(name)
+            }
+        }),
+        vscode.commands.registerCommand('language-julia.set-current-as-default-compiled', async () => {
+            provider.setCurrentAsDefault()
         }),
         onInit(connection => {
             provider.setConnection(connection)
