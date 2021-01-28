@@ -971,7 +971,7 @@
         "markdown-it-footnote": "^3.0.2",
         "promised-temp": "^v0.1.0",
         "uuidv4": "^6.2.6",
-        "vscode-debugadapter": "^1.43.0",
+        "vscode-debugadapter": "^1.44.0",
         "vscode-jsonrpc": "^6.0.0",
         "vscode-languageclient": "^7.0.0",
         "which": "^2.0.2"
