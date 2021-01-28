@@ -52,6 +52,8 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
     const manuallySetModule = manuallySetDocuments[document.fileName]
     if (manuallySetModule) { return manuallySetModule }
 
+    await g_languageClient.onReady()
+
     const languageClient = g_languageClient
 
     if (!languageClient) { return 'Main' }
@@ -64,7 +66,10 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
         }
         return await languageClient.sendRequest<string>('julia/getModuleAt', params)
     } catch (err) {
-        if (languageClient) {
+        if (err.message === 'Language client is not ready yet') {
+            vscode.window.showErrorMessage(err)
+        } else if (languageClient) {
+            console.error(err)
             telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
         return 'Main'
