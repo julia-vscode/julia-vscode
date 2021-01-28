@@ -9,7 +9,7 @@ import { createMessageConnection, Disposable, MessageConnection, StreamMessageRe
 import { replStartDebugger } from '../interactive/repl'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
-import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepInTargets, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables } from './debugProtocol'
+import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, notifyTypeSetCompiledItems, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepInTargets, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables } from './debugProtocol'
 
 /**
  * This interface describes the Julia specific launch attributes
@@ -23,10 +23,11 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
     /** Automatically stop target after launch. If not specified, target does not stop. */
     stopOnEntry?: boolean
     cwd?: string
-    juliaEnv?: string,
+    juliaEnv?: string
     /** enable logging the Debug Adapter Protocol */
     trace?: boolean
     args?: string[]
+    compiledModulesOrFunctions?: string[]
 }
 
 interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
@@ -265,7 +266,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
             this._connection.sendNotification(notifyTypeRun, { program: args.program })
         }
         else {
-            this._connection.sendNotification(notifyTypeDebug, { stopOnEntry: args.stopOnEntry, program: args.program })
+            this._connection.sendNotification(notifyTypeDebug, { stopOnEntry: args.stopOnEntry, program: args.program, compiledModulesOrFunctions: args.compiledModulesOrFunctions })
         }
 
         this.sendResponse(response)
@@ -390,5 +391,11 @@ export class JuliaDebugSession extends LoggingDebugSession {
     protected async variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments) {
         response.body = await this._connection.sendRequest(requestTypeVariables, args)
         this.sendResponse(response)
+    }
+
+    protected async customRequest(request: string, response: any, args: any) {
+        if (request === 'setCompiledItems') {
+            this._connection.sendNotification(notifyTypeSetCompiledItems, args)
+        }
     }
 }

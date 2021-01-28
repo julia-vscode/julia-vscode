@@ -4,9 +4,15 @@ import { getJuliaExePath } from '../juliaexepath'
 import { JuliaDebugSession } from './juliaDebug'
 
 export class JuliaDebugFeature {
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private context: vscode.ExtensionContext, compiledProvider) {
         const provider = new JuliaDebugConfigurationProvider()
         const factory = new InlineDebugAdapterFactory(this.context)
+
+        compiledProvider.onDidChangeTreeData(() => {
+            if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
+                vscode.debug.activeDebugSession.customRequest('setCompiledItems', { compiledModulesOrFunctions: compiledProvider.getCompiledItems() })
+            }
+        })
 
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
@@ -50,7 +56,7 @@ export class JuliaDebugFeature {
                     name: 'Debug Editor Contents',
                     request: 'launch',
                     program,
-
+                    compiledModulesOrFunctions: compiledProvider.getCompiledItems()
                 })
             })
         )

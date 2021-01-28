@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
-import { onExit, onFinishEval, onInit } from './repl'
+import { onExit, onFinishEval, onInit } from '../interactive/repl'
 
 interface DebugConfigTreeItem {
     label: string
@@ -23,7 +23,6 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     refresh(el = null): void {
         this._onDidChangeTreeData.fire(el)
     }
-
     setConnection(conn) {
         this._connection = conn
     }

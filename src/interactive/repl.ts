@@ -12,7 +12,6 @@ import { switchEnvToPath } from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, setContext } from '../utils'
-import * as debugViewProvider from './debugConfig'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -20,7 +19,6 @@ import { showProfileResult, showProfileResultFile } from './profiler'
 import * as results from './results'
 import { Frame } from './results'
 import * as workspace from './workspace'
-
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
@@ -739,10 +737,10 @@ export async function replStartDebugger(pipename: string) {
     g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext, compiledProvider) {
     g_context = context
 
-    g_compiledProvider = debugViewProvider.activate(context)
+    g_compiledProvider = compiledProvider
 
     context.subscriptions.push(
         // listeners
