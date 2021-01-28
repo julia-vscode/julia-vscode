@@ -136,6 +136,9 @@ export async function withLanguageClient(
     if (g_languageClient === null) {
         return callbackOnHandledErr(new Error('Language client is not active'))
     }
+
+    await g_languageClient.onReady()
+
     try {
         return callback(g_languageClient)
     } catch (err) {
