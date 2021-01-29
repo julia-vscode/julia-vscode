@@ -54,14 +54,16 @@ function get_editor(): string {
 }
 
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
+    const config = vscode.workspace.getConfiguration('julia')
+
     if (g_terminal === null) {
         const pipename = generatePipeName(process.pid.toString(), 'vsc-julia-repl')
         const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         function getArgs() {
             const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
-            jlarg2.push(`USE_REVISE=${vscode.workspace.getConfiguration('julia').get('useRevise')}`)
-            jlarg2.push(`USE_PLOTPANE=${vscode.workspace.getConfiguration('julia').get('usePlotPane')}`)
-            jlarg2.push(`USE_PROGRESS=${vscode.workspace.getConfiguration('julia').get('useProgressFrontend')}`)
+            jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
+            jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
+            jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
             jlarg2.push(`DEBUG_MODE=${process.env.DEBUG_MODE}`)
             return jlarg2
         }
@@ -71,25 +73,20 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             JULIA_NUM_THREADS: inferJuliaNumThreads()
         }
 
-        const pkgServer: string = vscode.workspace.getConfiguration('julia').get('packageServer')
+        const pkgServer: string = config.get('packageServer')
         if (pkgServer.length !== 0) {
             env['JULIA_PKG_SERVER'] = pkgServer
         }
 
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
+
         const exepath = await juliaexepath.getJuliaExePath()
         const pkgenvpath = await jlpkgenv.getEnvPath()
+        let jlarg1: string[]
+
         if (pkgenvpath === null) {
-            const jlarg1 = ['-i', '--banner=no'].concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
-            g_terminal = vscode.window.createTerminal(
-                {
-                    name: 'Julia REPL',
-                    shellPath: exepath,
-                    shellArgs: jlarg1.concat(getArgs()),
-                    env: env
-                })
-        }
-        else {
+            jlarg1 = ['-i', '--banner=no'].concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
+        } else {
             const env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath)
 
             let sysImageArgs = []
@@ -104,15 +101,35 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                     vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
                 }
             }
-            const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
-            g_terminal = vscode.window.createTerminal(
-                {
-                    name: 'Julia REPL',
-                    shellPath: exepath,
-                    shellArgs: jlarg1.concat(getArgs()),
-                    env: env
-                })
+            jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
         }
+
+        if (Boolean(config.get('persistentSession.enabled'))) {
+            const shellPath: string = config.get('persistentSession.shell')
+            const connectJuliaCode = `VSCodeServer.serve("${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, crashreporting_pipename = "${telemetry.getCrashReportingPipename()}");nothing # re-establishing connection with VSCode`
+            const sessionName = config.get('persistentSession.tmuxSessionName')
+            const tmuxArgs = [
+                <string>config.get('persistentSession.shellExecutionArgument'),
+                // create a new tmux session, set remain-on-exit to true, and attach; if the session already exists we just attach to the existing session
+                `tmux new -d -s ${sessionName} ${exepath} ${jlarg1.concat(getArgs()).join(' ')} && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
+                tmux send-keys -t ${sessionName}.left ^A ^K ^H '${connectJuliaCode}' ENTER && tmux attach -t ${sessionName}`
+            ]
+
+            g_terminal = vscode.window.createTerminal({
+                name: 'Julia REPL',
+                shellPath: shellPath,
+                shellArgs: tmuxArgs,
+                env: env
+            })
+        } else {
+            g_terminal = vscode.window.createTerminal({
+                name: 'Julia REPL',
+                shellPath: exepath,
+                shellArgs: jlarg1.concat(getArgs()),
+                env: env
+            })
+        }
+
         g_terminal.show(preserveFocus)
         await juliaIsConnectedPromise.wait()
     }
@@ -202,6 +219,10 @@ export const onFinishEval = g_onFinishEval.event
 
 function startREPLMsgServer(pipename: string) {
     const connected = new Subject()
+
+    if (g_connection) {
+        g_connection = undefined
+    }
 
     const server = net.createServer((socket: net.Socket) => {
         socket.on('close', hadError => {

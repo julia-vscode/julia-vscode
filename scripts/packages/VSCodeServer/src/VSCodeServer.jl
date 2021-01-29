@@ -81,9 +81,15 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
 end
 
 function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    if conn_endpoint[] !== nothing
+        close(conn_endpoint[])
+        conn_endpoint[] = nothing
+    end
     conn = connect(args...)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
-    start_eval_backend()
+    if EVAL_BACKEND_TASK[] === nothing
+        start_eval_backend()
+    end
     run(conn_endpoint[])
 
     @async try
@@ -102,7 +108,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[cd_notification_type] = cd_to_uri
         msg_dispatcher[activate_project_notification_type] = activate_uri
 
-        while true
+        while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && conn_endpoint[].status === :running
             msg = JSONRPC.get_next_message(conn_endpoint[])
 
             if msg["method"] == repl_runcode_request_type.method
@@ -112,7 +118,11 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
             end
         end
     catch err
-        global_err_handler(err, catch_backtrace(), crashreporting_pipename, "REPL")
+        if (err isa InvalidStateException || err isa Base.IOError) && (conn_endpoint[] === nothing || conn_endpoint[].status === :closed)
+            # expected error when stopping the JSONRPC error
+        else
+            global_err_handler(err, catch_backtrace(), crashreporting_pipename, "REPL")
+        end
     end
 end
 
