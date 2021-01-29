@@ -52,8 +52,6 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
     const manuallySetModule = manuallySetDocuments[document.fileName]
     if (manuallySetModule) { return manuallySetModule }
 
-    await g_languageClient.onReady()
-
     const languageClient = g_languageClient
 
     if (!languageClient) { return 'Main' }
