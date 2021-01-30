@@ -71,7 +71,7 @@ class JuliaTaskProvider {
             }
 
             if (await fs.exists(path.join(rootPath, 'benchmark', 'benchmarks.jl'))) {
-                const benchmarkTask = new vscode.Task({ type: 'julia', command: 'benchmark' }, folder, `Run benchmark`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', 'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], promptsave=false, promptoverwrite=false)', folder.name]), '')
+                const benchmarkTask = new vscode.Task({ type: 'julia', command: 'benchmark' }, folder, `Run benchmark`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', 'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], resultfile="benchmark/results.json")', folder.name]), '')
                 benchmarkTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
                 result.push(benchmarkTask)
             }
