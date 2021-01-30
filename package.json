@@ -970,6 +970,7 @@
         "markdown-it": "^12.0.4",
         "markdown-it-footnote": "^3.0.2",
         "promised-temp": "^v0.1.0",
+        "underscore": "^1.12.0",
         "uuidv4": "^6.2.6",
         "vscode-debugadapter": "^1.44.0",
         "vscode-jsonrpc": "^6.0.0",

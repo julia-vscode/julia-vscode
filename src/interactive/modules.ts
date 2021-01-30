@@ -1,3 +1,4 @@
+import { debounce } from 'underscore'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient/node'
@@ -48,7 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
     updateStatusBarItem()
 }
 
-export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position) {
+export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position, cancelable: boolean = true) {
     const manuallySetModule = manuallySetDocuments[document.fileName]
     if (manuallySetModule) { return manuallySetModule }
 
@@ -62,7 +63,20 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
             version: document.version,
             position: position
         }
-        return await languageClient.sendRequest<string>('julia/getModuleAt', params)
+        if (cancelable) {
+            let mod = await debouncedGetModuleRequest(languageClient, params)
+            let retry = 1
+            while (mod !== '#retry' && retry <= 3) {
+                retry += 1
+                mod = await debouncedGetModuleRequest(languageClient, params)
+            }
+            if (mod === '#retry') {
+                throw `Could not get module for ${params}`
+            }
+            return mod
+        } else {
+            return await languageClient.sendRequest<string>('julia/getModuleAt', params)
+        }
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err)
@@ -73,6 +87,19 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
         return 'Main'
     }
 }
+
+let g_getModulePromiseRejector = null
+const debouncedGetModuleRequest = debounce(async (languageClient: vslc.LanguageClient, params: VersionedTextDocumentPositionParams) => {
+    if (g_getModulePromiseRejector) {
+        g_getModulePromiseRejector()
+        console.log('canceling promise')
+    }
+    const cancelPromise = new Promise(resolve => {
+        g_getModulePromiseRejector = resolve
+    })
+    console.log('new cancelable promise')
+    return Promise.race([languageClient.sendRequest<string>('julia/getModuleAt', params), cancelPromise])
+}, 500)
 
 function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
     return editor && editor.document.languageId === 'julia'
@@ -94,8 +121,10 @@ async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionCh
 
 async function updateModuleForEditor(editor: vscode.TextEditor) {
     const mod = await getModuleForEditor(editor.document, editor.selection.start)
-    const loaded = await isModuleLoaded(mod)
-    statusBarItem.text = loaded ? mod : '(' + mod + ')'
+    if (mod) {
+        const loaded = await isModuleLoaded(mod)
+        statusBarItem.text = loaded ? mod : '(' + mod + ')'
+    }
 }
 
 async function isModuleLoaded(mod: string) {

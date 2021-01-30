@@ -338,7 +338,7 @@ async function executeFile(uri?: vscode.Uri | string) {
         code = editor.document.getText()
 
         const pos = editor.document.validatePosition(new vscode.Position(0, 1)) // xref: https://github.com/julia-vscode/julia-vscode/issues/1500
-        module = await modules.getModuleForEditor(editor.document, pos)
+        module = await modules.getModuleForEditor(editor.document, pos, false)
     }
 
     await g_connection.sendRequest(
@@ -468,7 +468,7 @@ async function executeCell(shouldMove: boolean = false) {
     const cellrange = currentCellRange(ed)
     const code = doc.getText(cellrange)
 
-    const module: string = await modules.getModuleForEditor(ed.document, cellrange.start)
+    const module: string = await modules.getModuleForEditor(ed.document, cellrange.start, false)
 
     await startREPL(true, false)
 
@@ -497,7 +497,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
         const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
-        const module: string = await modules.getModuleForEditor(editor.document, startpos)
+        const module: string = await modules.getModuleForEditor(editor.document, startpos, false)
 
         if (selection.isEmpty) {
             const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor.document, startpos))
