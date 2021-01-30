@@ -63,20 +63,16 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
             version: document.version,
             position: position
         }
-        if (cancelable) {
-            let mod = await debouncedGetModuleRequest(languageClient, params)
-            let retry = 1
-            while (mod !== '#retry' && retry <= 3) {
-                retry += 1
-                mod = await debouncedGetModuleRequest(languageClient, params)
-            }
-            if (mod === '#retry') {
-                throw `Could not get module for ${params}`
-            }
-            return mod
-        } else {
-            return await languageClient.sendRequest<string>('julia/getModuleAt', params)
+        let mod = await debouncedGetModuleRequest(languageClient, params)
+        let retry = 1
+        while (mod !== '#retry' && retry <= 3) {
+            retry += 1
+            mod = await debouncedGetModuleRequest(languageClient, params)
         }
+        if (mod === '#retry') {
+            throw `Could not get module for ${params}`
+        }
+        return mod
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err)
