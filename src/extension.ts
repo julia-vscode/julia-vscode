@@ -257,12 +257,14 @@ async function startLanguageServer() {
     // automatic environement refreshing
     g_watchedEnvironmentFile = (await jlpkgenv.getProjectFilePaths(jlEnvPath)).manifest_toml_path
     // polling watch for robustness
-    watchFile(g_watchedEnvironmentFile, { interval: 10000 }, (curr, prev) => {
-        if (curr.mtime > prev.mtime) {
-            if (!languageClient.needsStop()) { return } // this client already gets stopped
-            refreshLanguageServer(languageClient)
-        }
-    })
+    if (g_watchedEnvironmentFile) {
+        watchFile(g_watchedEnvironmentFile, { interval: 10000 }, (curr, prev) => {
+            if (curr.mtime > prev.mtime) {
+                if (!languageClient.needsStop()) { return } // this client already gets stopped
+                refreshLanguageServer(languageClient)
+            }
+        })
+    }
 
     const disposable = vscode.commands.registerCommand('language-julia.showLanguageServerOutput', () => {
         languageClient.outputChannel.show(true)
