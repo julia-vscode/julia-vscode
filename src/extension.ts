@@ -101,7 +101,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const api = {
             version: 2,
             async getEnvironment() {
-                return await jlpkgenv.getEnvPath()
+                return await jlpkgenv.getAbsEnvPath()
             },
             async getJuliaPath() {
                 return await juliaexepath.getJuliaExePath()
@@ -166,7 +166,7 @@ async function startLanguageServer() {
 
     let jlEnvPath = ''
     try {
-        jlEnvPath = await jlpkgenv.getEnvPath()
+        jlEnvPath = await jlpkgenv.getAbsEnvPath()
     }
     catch (e) {
         vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.')

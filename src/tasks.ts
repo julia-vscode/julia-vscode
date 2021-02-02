@@ -38,7 +38,7 @@ class JuliaTaskProvider {
             const result: vscode.Task[] = []
 
             const jlexepath = await juliaexepath.getJuliaExePath()
-            const pkgenvpath = await jlpkgenv.getEnvPath()
+            const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
             if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
                 const testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.test("${folder.name}")`], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }), '')

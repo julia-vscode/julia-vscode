@@ -78,7 +78,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
         const exepath = await juliaexepath.getJuliaExePath()
-        const pkgenvpath = await jlpkgenv.getEnvPath()
+        const pkgenvpath = await jlpkgenv.getAbsEnvPath()
         if (pkgenvpath === null) {
             const jlarg1 = ['-i', '--banner=no'].concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
             g_terminal = vscode.window.createTerminal(
