@@ -162,17 +162,17 @@ async function startLanguageServer() {
     g_startupNotification.text = 'Starting Julia Language Server…'
     g_startupNotification.show()
 
-    // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
-
     let jlEnvPath = ''
     try {
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
-    }
-    catch (e) {
-        vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.')
+    } catch (e) {
+        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.')
         vscode.window.showErrorMessage(e)
+        g_startupNotification.hide()
         return
     }
+
+
     const languageServerDepotPath = path.join(g_context.globalStoragePath, 'lsdepot', 'v1')
     await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
@@ -280,12 +280,7 @@ async function startLanguageServer() {
         })
     }
     catch (e) {
-        vscode.window.showErrorMessage(
-            'Could not start the julia language server. Make sure the configuration setting `julia.executablePath` points to the julia binary.',
-            {
-
-            }
-        )
+        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.')
         setLanguageClient()
         disposable.dispose()
         g_startupNotification.hide()
