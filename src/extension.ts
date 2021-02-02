@@ -160,6 +160,7 @@ function changeConfig(event: vscode.ConfigurationChangeEvent) {
 
 async function startLanguageServer() {
     g_startupNotification.text = 'Starting Julia Language Server…'
+    g_startupNotification.show()
 
     let jlEnvPath = ''
     try {
@@ -167,10 +168,10 @@ async function startLanguageServer() {
     } catch (e) {
         vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.')
         vscode.window.showErrorMessage(e)
+        g_startupNotification.hide()
         return
     }
 
-    g_startupNotification.show()
 
     const languageServerDepotPath = path.join(g_context.globalStoragePath, 'lsdepot', 'v1')
     await fs.createDirectory(languageServerDepotPath)
