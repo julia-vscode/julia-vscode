@@ -30,7 +30,6 @@ let g_startupNotification: vscode.StatusBarItem = null
 export async function activate(context: vscode.ExtensionContext) {
     if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
         vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
-
         return
     }
 
@@ -51,7 +50,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Language settings
         vscode.languages.setLanguageConfiguration('julia', {
             indentationRules: {
-                increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!.*\bend\b[^\]]*$).*$/,
+                increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b[^\]]*)|(?:[^\[]*\].*)$).*$/,
                 decreaseIndentPattern: /^\s*(end|else|elseif|catch|finally)\b.*$/
             }
         })
@@ -171,7 +170,6 @@ async function startLanguageServer() {
         g_startupNotification.hide()
         return
     }
-
 
     const languageServerDepotPath = path.join(g_context.globalStoragePath, 'lsdepot', 'v1')
     await fs.createDirectory(languageServerDepotPath)
