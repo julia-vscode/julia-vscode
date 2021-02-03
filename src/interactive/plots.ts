@@ -212,10 +212,6 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    if (!(spec.width || spec.height)) {
-                        spec.width = 'container'
-                        spec.height = 'container'
-                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -251,10 +247,6 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    if (!(spec.width || spec.height)) {
-                        spec.width = 'container'
-                        spec.height = 'container'
-                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -290,10 +282,6 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    if (!(spec.width || spec.height)) {
-                        spec.width = 'container'
-                        spec.height = 'container'
-                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -327,10 +315,6 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    if (!(spec.width || spec.height)) {
-                        spec.width = 'container'
-                        spec.height = 'container'
-                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -364,10 +348,6 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    if (!(spec.width || spec.height)) {
-                        spec.width = 'container'
-                        spec.height = 'container'
-                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -401,10 +381,6 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    if (!(spec.width || spec.height)) {
-                        spec.width = 'container'
-                        spec.height = 'container'
-                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
