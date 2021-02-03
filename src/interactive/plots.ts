@@ -153,17 +153,17 @@ export function displayPlot(params: { kind: string, data: string }) {
     const payload = params.data
 
     if (kind === 'image/svg+xml') {
-        const has_xmlns_attribute = payload.includes('xmlns=');
-        let plotPaneContent: string;
+        const has_xmlns_attribute = payload.includes('xmlns=')
+        let plotPaneContent: string
         if (has_xmlns_attribute) {
             // the xmlns attribute has to be present for data:image/svg+xml to work (https://stackoverflow.com/questions/18467982)
             // encodeURIComponent is needed to replace all special characters from the SVG string
             // which could break the HTML
-            plotPaneContent = wrap_imagelike(`data:image/svg+xml,${encodeURIComponent(payload)}`);
+            plotPaneContent = wrap_imagelike(`data:image/svg+xml,${encodeURIComponent(payload)}`)
         } else {
             // otherwise we just show the svg directly as it's not straightforward to scale it
             // correctly if it's not in an img tag
-            plotPaneContent = payload;
+            plotPaneContent = payload
         }
 
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
@@ -211,7 +211,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega-lite",
                         actions: false
                     }
-                    var spec = ${payload}
+                    var spec = ${Buffer.from(payload, 'base64').toString()}
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -246,7 +246,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega-lite",
                         actions: false
                     }
-                    var spec = ${payload}
+                    var spec = ${Buffer.from(payload, 'base64').toString()}
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -281,7 +281,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega-lite",
                         actions: false
                     }
-                    var spec = ${payload}
+                    var spec = ${Buffer.from(payload, 'base64').toString()}
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -314,7 +314,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega",
                         actions: false
                     }
-                    var spec = ${payload}
+                    var spec = ${Buffer.from(payload, 'base64').toString()}
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -347,7 +347,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega",
                         actions: false
                     }
-                    var spec = ${payload}
+                    var spec = ${Buffer.from(payload, 'base64').toString()}
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -380,7 +380,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega",
                         actions: false
                     }
-                    var spec = ${payload}
+                    var spec = ${Buffer.from(payload, 'base64').toString()}
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -396,27 +396,20 @@ export function displayPlot(params: { kind: string, data: string }) {
             <script src="${uriPlotly}"></script>
         </head>
         <body>
+            <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
         </body>
         <script type="text/javascript">
-            gd = (function() {
-                var WIDTH_IN_PERCENT_OF_PARENT = 100
-                var HEIGHT_IN_PERCENT_OF_PARENT = 100;
-                var gd = Plotly.d3.select('body')
-                    .append('div').attr("id", "plotdiv")
-                    .style({
-                        width: WIDTH_IN_PERCENT_OF_PARENT + '%',
-                        'margin-left': (100 - WIDTH_IN_PERCENT_OF_PARENT) / 2 + '%',
-                        height: HEIGHT_IN_PERCENT_OF_PARENT + 'vh',
-                        'margin-top': (100 - HEIGHT_IN_PERCENT_OF_PARENT) / 2 + 'vh'
-                    })
-                    .node();
-                var spec = ${payload};
-                Plotly.newPlot(gd, spec.data, spec.layout);
-                window.onresize = function() {
-                    Plotly.Plots.resize(gd);
-                    };
-                return gd;
-            })();
+            function onResize () {
+                const update = {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                }
+                Plotly.relayout('plotdiv', update)
+            }
+            const spec = ${Buffer.from(payload, 'base64').toString()};
+            Plotly.newPlot('plotdiv', spec.data, spec.layout);
+            onResize()
+            window.addEventListener('resize', onResize);
         </script>
         </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
