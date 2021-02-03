@@ -196,7 +196,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -211,7 +211,11 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega-lite",
                         actions: false
                     }
-                    var spec = ${Buffer.from(payload, 'base64').toString()}
+                    var spec = ${payload}
+                    if (!(spec.width || spec.height)) {
+                        spec.width = 'container'
+                        spec.height = 'container'
+                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -231,7 +235,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -246,7 +250,11 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega-lite",
                         actions: false
                     }
-                    var spec = ${Buffer.from(payload, 'base64').toString()}
+                    var spec = ${payload}
+                    if (!(spec.width || spec.height)) {
+                        spec.width = 'container'
+                        spec.height = 'container'
+                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -266,7 +274,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -281,7 +289,11 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega-lite",
                         actions: false
                     }
-                    var spec = ${Buffer.from(payload, 'base64').toString()}
+                    var spec = ${payload}
+                    if (!(spec.width || spec.height)) {
+                        spec.width = 'container'
+                        spec.height = 'container'
+                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -299,7 +311,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -314,7 +326,11 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega",
                         actions: false
                     }
-                    var spec = ${Buffer.from(payload, 'base64').toString()}
+                    var spec = ${payload}
+                    if (!(spec.width || spec.height)) {
+                        spec.width = 'container'
+                        spec.height = 'container'
+                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -332,7 +348,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -347,7 +363,11 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega",
                         actions: false
                     }
-                    var spec = ${Buffer.from(payload, 'base64').toString()}
+                    var spec = ${payload}
+                    if (!(spec.width || spec.height)) {
+                        spec.width = 'container'
+                        spec.height = 'container'
+                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -365,7 +385,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -380,7 +400,11 @@ export function displayPlot(params: { kind: string, data: string }) {
                         mode: "vega",
                         actions: false
                     }
-                    var spec = ${Buffer.from(payload, 'base64').toString()}
+                    var spec = ${payload}
+                    if (!(spec.width || spec.height)) {
+                        spec.width = 'container'
+                        spec.height = 'container'
+                    }
                     vegaEmbed('#plotdiv', spec, opt);
                 </script>
             </html>`
@@ -406,10 +430,12 @@ export function displayPlot(params: { kind: string, data: string }) {
                 }
                 Plotly.relayout('plotdiv', update)
             }
-            const spec = ${Buffer.from(payload, 'base64').toString()};
+            const spec = ${payload};
             Plotly.newPlot('plotdiv', spec.data, spec.layout);
-            onResize()
-            window.addEventListener('resize', onResize);
+            if (!(spec.layout.width || spec.layout.height)) {
+                onResize()
+                window.addEventListener('resize', onResize);
+            }
         </script>
         </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
