@@ -14,8 +14,9 @@ function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cv
                         return true
                     end
                 end
+            else
+                return frame.func === Symbol("top-level scope")
             end
-            return false
         end
         ind === nothing || return i
     end
