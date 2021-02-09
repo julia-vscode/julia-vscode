@@ -1,6 +1,6 @@
-function repl_startdebugger_request(conn, params::String, crashreporting_pipename)
+function repl_startdebugger_request(conn, params::NamedTuple{(:debugPipename,),Tuple{String}}, crashreporting_pipename)
     hideprompt() do
-        debug_pipename = params
+        debug_pipename = params.debugPipename
         try
             @debug "Trying to connect to debug adapter."
             socket = Sockets.connect(debug_pipename)

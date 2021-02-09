@@ -1,9 +1,14 @@
 struct InlineDisplay <: AbstractDisplay end
 
 const PLOT_PANE_ENABLED = Ref(true)
+const PROGRESS_ENABLED = Ref(true)
 
-function toggle_plot_pane(_, enable::Bool)
-    PLOT_PANE_ENABLED[] = enable
+function toggle_plot_pane(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    PLOT_PANE_ENABLED[] = params.enable
+end
+
+function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    PROGRESS_ENABLED[] = params.enable
 end
 
 function fix_displays()
@@ -38,7 +43,8 @@ function display(d::InlineDisplay, m::MIME, x)
     else
         mime = string(m)
         if mime in DISPLAYABLE_MIMES
-            payload = stringmime(m, x)
+            # we now all except for `image/...` mime types are not binary
+            payload = startswith(mime, "image") ? stringmime(m, x) : String(repr(m, x))
             sendDisplayMsg(mime, payload)
         else
             throw(MethodError(display, (d, m, x)))
@@ -49,18 +55,16 @@ end
 
 Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
 
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
+Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
 function display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
-    payload = stringmime(m, x)
+    payload = String(repr(m, x))
     sendDisplayMsg(string(m), payload)
 end
 
-Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) = true
+Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
-
-displayable(_::InlineDisplay, mime::MIME) = PLOT_PANE_ENABLED[] && string(mime) in DISPLAYABLE_MIMES
+Base.Multimedia.displayable(_::InlineDisplay, mime::MIME) = PLOT_PANE_ENABLED[] && string(mime) in DISPLAYABLE_MIMES
 
 const DISPLAYABLE_MIMES = [
     "application/vnd.vegalite.v4+json",
@@ -154,9 +158,9 @@ function pkgload(pkg)
     end
 end
 
-function repl_showingrid_notification(conn, params::String)
+function repl_showingrid_notification(conn, params::NamedTuple{(:code,),Tuple{String}})
     try
-        var = Base.invokelatest(Base.include_string, Main, params)
+        var = Base.invokelatest(Base.include_string, Main, params.code)
 
         Base.invokelatest(internal_vscodedisplay, var)
     catch err

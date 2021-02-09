@@ -5,7 +5,7 @@ import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, TerminatedEvent } from 'vscode-debugadapter'
 import { DebugProtocol } from 'vscode-debugprotocol'
-import { createMessageConnection, Disposable, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc'
+import { createMessageConnection, Disposable, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { replStartDebugger } from '../interactive/repl'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
@@ -261,7 +261,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
         this._launchedWithoutDebug = args.noDebug
 
         if (args.noDebug) {
-            this._connection.sendNotification(notifyTypeRun, args.program)
+            this._connection.sendNotification(notifyTypeRun, { program: args.program })
         }
         else {
             this._connection.sendNotification(notifyTypeDebug, { stopOnEntry: args.stopOnEntry, program: args.program })

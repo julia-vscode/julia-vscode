@@ -38,7 +38,7 @@ class JuliaTaskProvider {
             const result: vscode.Task[] = []
 
             const jlexepath = await juliaexepath.getJuliaExePath()
-            const pkgenvpath = await jlpkgenv.getEnvPath()
+            const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
             if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
                 const testTask = new vscode.Task({ type: 'julia', command: 'test' }, folder, `Run tests`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', `using Pkg; Pkg.test("${folder.name}")`], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }), '')
@@ -50,6 +50,12 @@ class JuliaTaskProvider {
                 testTaskWithCoverage.group = vscode.TaskGroup.Test
                 testTaskWithCoverage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
                 result.push(testTaskWithCoverage)
+
+                // const livetestTask = new vscode.Task({ type: 'julia', command: 'livetest' }, folder, `Run tests live (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_liveunittesting.jl'), folder.name, vscode.workspace.getConfiguration('julia').get('liveTestFile')], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }), '')
+                // livetestTask.group = vscode.TaskGroup.Test
+                // livetestTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
+                // result.push(livetestTask)
+
             }
 
             const buildJuliaSysimage = new vscode.Task({ type: 'julia', command: 'juliasysimagebuild' }, folder, `Build custom sysimage for current environment (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${path.join(this.context.extensionPath, 'scripts', 'environments', 'sysimagecompile')}`, '--startup-file=no', '--history-file=no', path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_compileenv.jl'), pkgenvpath]), '')
@@ -65,7 +71,7 @@ class JuliaTaskProvider {
             }
 
             if (await fs.exists(path.join(rootPath, 'benchmark', 'benchmarks.jl'))) {
-                const benchmarkTask = new vscode.Task({ type: 'julia', command: 'benchmark' }, folder, `Run benchmark`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', 'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], promptsave=false, promptoverwrite=false)', folder.name]), '')
+                const benchmarkTask = new vscode.Task({ type: 'julia', command: 'benchmark' }, folder, `Run benchmark`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, '-e', 'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], resultfile="benchmark/results.json")', folder.name]), '')
                 benchmarkTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
                 result.push(benchmarkTask)
             }

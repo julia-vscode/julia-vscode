@@ -14,8 +14,9 @@ function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cv
                         return true
                     end
                 end
+            else
+                return frame.func === Symbol("top-level scope")
             end
-            return false
         end
         ind === nothing || return i
     end
@@ -139,12 +140,12 @@ end
 vscode_cmd_uri(cmd; cmdargs...) = string("command:", cmd, '?', encode_uri_component(JSON.json(cmdargs)))
 
 # Misc handlers
-function cd_to_uri(conn, uri)
-    cd(uri)
+function cd_to_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
+    cd(params.uri)
     return nothing
 end
 
-function activate_uri(conn, uri)
-    Pkg.activate(uri)
+function activate_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
+    Pkg.activate(params.uri)
     return nothing
 end

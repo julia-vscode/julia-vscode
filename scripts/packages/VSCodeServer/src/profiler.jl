@@ -4,8 +4,8 @@ function view_profile(data::Union{Nothing,Vector{UInt}} = nothing, period::Union
 
     ChromeProfileFormat.save_cpuprofile(filename, data, period, kwargs...)
 
-    JSONRPC.send(conn_endpoint[], repl_showprofileresult_file_notification_type, filename)
-    # JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, filename)
+    JSONRPC.send(conn_endpoint[], repl_showprofileresult_file_notification_type, (;filename=filename))
+    # JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (;content=content))
 end
 
 

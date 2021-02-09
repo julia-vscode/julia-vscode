@@ -43,3 +43,12 @@
 [submodule "scripts/packages/DebugAdapter"]
 	path = scripts/packages/DebugAdapter
 	url = https://github.com/julia-vscode/DebugAdapter.jl.git
+[submodule "scripts/packages/LoweredCodeUtils"]
+	path = scripts/packages/LoweredCodeUtils
+	url = https://github.com/JuliaDebug/LoweredCodeUtils.jl.git
+[submodule "scripts/packages/OrderedCollections"]
+	path = scripts/packages/OrderedCollections
+	url = https://github.com/JuliaCollections/OrderedCollections.jl.git
+[submodule "scripts/packages/Revise"]
+	path = scripts/packages/Revise
+	url = https://github.com/timholy/Revise.jl.git

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { getEnvPath } from '../jlpkgenv'
+import * as jlpkgenv from '../jlpkgenv'
 import { getJuliaExePath } from '../juliaexepath'
 import { JuliaDebugSession } from './juliaDebug'
 
@@ -12,7 +12,7 @@ export class JuliaDebugFeature {
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
             vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory),
             vscode.commands.registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
-                const pkgenvpath = await getEnvPath()
+                const pkgenvpath = await jlpkgenv.getAbsEnvPath()
                 return pkgenvpath
             }),
             vscode.commands.registerCommand('language-julia.runEditorContents', (resource: vscode.Uri | undefined) => {

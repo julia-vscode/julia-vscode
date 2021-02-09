@@ -30,7 +30,7 @@ stages:
 
     - task: NodeTool@0
       inputs:
-        versionSpec: '8.x'
+        versionSpec: '12.x'
       displayName: 'Install Node.js'
 
     - bash: |
@@ -67,6 +67,8 @@ stages:
           JULIA_VERSION: '1.4'
         Julia 1.5:
           JULIA_VERSION: '1.5'
+        Julia 1.6:
+          JULIA_VERSION: '1.6'
 
     steps:
 
@@ -112,6 +114,8 @@ stages:
           JULIA_VERSION: '1.4'
         Julia 1.5:
           JULIA_VERSION: '1.5'
+        Julia 1.6:
+          JULIA_VERSION: '1.6'
 
     steps:
 
@@ -158,6 +162,8 @@ stages:
           JULIA_VERSION: '1.4'
         Julia 1.5:
           JULIA_VERSION: '1.5'
+        Julia 1.6:
+          JULIA_VERSION: '1.6'
 
     steps:
 
@@ -291,7 +297,7 @@ stages:
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
-              # npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
             env:
               MARKET_KEY: $(vscekey)
               OPENVSX_KEY: $(ovsxkey)
@@ -314,7 +320,7 @@ stages:
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
-              # npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
             env:
               MARKET_KEY: $(vscekey)
               OPENVSX_KEY: $(ovsxkey)

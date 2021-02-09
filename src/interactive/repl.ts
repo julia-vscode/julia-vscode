@@ -1,16 +1,17 @@
 import * as fs from 'async-file'
 import { Subject } from 'await-notify'
+import { assert } from 'console'
 import * as net from 'net'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import * as rpc from 'vscode-jsonrpc'
-import * as vslc from 'vscode-languageclient'
+import * as rpc from 'vscode-jsonrpc/node'
+import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
-import { generatePipeName, inferJuliaNumThreads, setContext } from '../utils'
+import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, setContext } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -45,7 +46,7 @@ function get_editor(): string {
         if (vscode.env.appName === 'Code - OSS') {
             return `"${path.join(vscode.env.appRoot, '..', '..', 'bin', 'code-server')}"`
         } else {
-            const cmd = vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
+            const cmd = vscode.env.appName.includes('Insiders') && process.platform !== 'darwin' ? 'code-insiders' : 'code'
             return `"${path.join(vscode.env.appRoot, 'bin', cmd)}"`
         }
     }
@@ -62,6 +63,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
             jlarg2.push(`USE_REVISE=${vscode.workspace.getConfiguration('julia').get('useRevise')}`)
             jlarg2.push(`USE_PLOTPANE=${vscode.workspace.getConfiguration('julia').get('usePlotPane')}`)
+            jlarg2.push(`USE_PROGRESS=${vscode.workspace.getConfiguration('julia').get('useProgressFrontend')}`)
             jlarg2.push(`DEBUG_MODE=${process.env.DEBUG_MODE}`)
             return jlarg2
         }
@@ -78,7 +80,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
         const exepath = await juliaexepath.getJuliaExePath()
-        const pkgenvpath = await jlpkgenv.getEnvPath()
+        const pkgenvpath = await jlpkgenv.getAbsEnvPath()
         if (pkgenvpath === null) {
             const jlarg1 = ['-i', '--banner=no'].concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
             g_terminal = vscode.window.createTerminal(
@@ -164,22 +166,22 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     showCodeInREPL: boolean,
     showResultInREPL: boolean,
     softscope: boolean
-}, ReturnResult, void, void>('repl/runcode')
+}, ReturnResult, void>('repl/runcode')
 
 interface DebugLaunchParams {
     code: string,
     filename: string
 }
 
-const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }, void>('display')
-const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams, void>('debugger/enter')
-const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams, void>('debugger/run')
-const notifyTypeReplStartDebugger = new rpc.NotificationType<string, void>('repl/startdebugger')
-const notifyTypeReplStartEval = new rpc.NotificationType<void, void>('repl/starteval')
-export const notifyTypeReplFinishEval = new rpc.NotificationType<void, void>('repl/finisheval')
-export const notifyTypeReplShowInGrid = new rpc.NotificationType<string, void>('repl/showingrid')
-const notifyTypeShowProfilerResult = new rpc.NotificationType<string, void>('repl/showprofileresult')
-const notifyTypeShowProfilerResultFile = new rpc.NotificationType<string, void>('repl/showprofileresult_file')
+const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
+const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams>('debugger/enter')
+const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams>('debugger/run')
+const notifyTypeReplStartDebugger = new rpc.NotificationType<{ debugPipename: string }>('repl/startdebugger')
+const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
+export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
+export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
+const notifyTypeShowProfilerResult = new rpc.NotificationType<{ content: string }>('repl/showprofileresult')
+const notifyTypeShowProfilerResultFile = new rpc.NotificationType<{ filename: string }>('repl/showprofileresult_file')
 
 interface Progress {
     id: { value: number },
@@ -187,7 +189,7 @@ interface Progress {
     fraction: number,
     done: Boolean
 }
-const notifyTypeProgress = new rpc.NotificationType<Progress, void>('repl/updateProgress')
+const notifyTypeProgress = new rpc.NotificationType<Progress>('repl/updateProgress')
 
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
@@ -206,6 +208,7 @@ function startREPLMsgServer(pipename: string) {
     const server = net.createServer((socket: net.Socket) => {
         socket.on('close', hadError => {
             g_onExit.fire(hadError)
+            g_connection = undefined
             server.close()
         })
 
@@ -235,7 +238,7 @@ async function updateProgress(progress: Progress) {
 
         p.progress.report({
             increment: increment,
-            message: progressMessage(progress)
+            message: progressMessage(progress, p.started)
         })
         p.last_fraction = progress.fraction
 
@@ -253,6 +256,7 @@ async function updateProgress(progress: Progress) {
                 g_progress_dict[progress.id.value] = {
                     progress: prog,
                     last_fraction: progress.fraction,
+                    started: new Date(),
                     resolve: resolve,
                 }
                 token.onCancellationRequested(ev => {
@@ -266,12 +270,39 @@ async function updateProgress(progress: Progress) {
     }
 }
 
-function progressMessage(prog: Progress) {
+function progressMessage(prog: Progress, started = null) {
     let message = prog.name
+    const parenthezise = message.trim().length > 0
     if (!isNaN(prog.fraction) && 0 <= prog.fraction && prog.fraction <= 1) {
-        message += ` (${(prog.fraction * 100).toFixed(1)}%)`
+        if (parenthezise) {
+            message += ' ('
+        }
+        message += `${(prog.fraction * 100).toFixed(1)}%`
+        if (started !== null) {
+            const elapsed = ((new Date()).valueOf() - started) / 1000
+            const remaining = (1 / prog.fraction - 1) * elapsed
+            message += ` - ${formattedTimePeriod(remaining)} remaining`
+        }
+        if (parenthezise) {
+            message += ')'
+        }
     }
     return message
+}
+
+function formattedTimePeriod(t) {
+    const seconds = Math.floor(t % 60)
+    const minutes = Math.floor(t / 60 % 60)
+    const hours = Math.floor(t / 60 / 60)
+    let out = ''
+    if (hours > 0) {
+        out += `${hours}h, `
+    }
+    if (minutes > 0) {
+        out += `${minutes}min, `
+    }
+    out += `${seconds}s`
+    return out
 }
 
 function clearProgress() {
@@ -327,7 +358,7 @@ async function executeFile(uri?: vscode.Uri | string) {
     )
 }
 
-async function getBlockRange(params): Promise<vscode.Position[]> {
+async function getBlockRange(params: VersionedTextDocumentPositionParams) {
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
@@ -338,9 +369,8 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
 
     await g_languageClient.onReady()
 
-    let ret_val: vscode.Position[]
     try {
-        ret_val = await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+        return await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err)
@@ -350,26 +380,18 @@ async function getBlockRange(params): Promise<vscode.Position[]> {
             throw err
         }
     }
-
-    return ret_val
 }
 
 async function selectJuliaBlock() {
     telemetry.traceEvent('command-selectCodeBlock')
 
     const editor = vscode.window.activeTextEditor
-    const params: VersionedTextDocumentPositionParams = {
-        textDocument: vslc.TextDocumentIdentifier.create(editor.document.uri.toString()),
-        version: editor.document.version,
-        position: editor.document.validatePosition(new vscode.Position(editor.selection.start.line, editor.selection.start.character))
-    }
+    const position = editor.document.validatePosition(editor.selection.start)
+    const ret_val = await getBlockRange(getVersionedParamsAtPosition(editor.document, position))
 
-    const ret_val: vscode.Position[] = await getBlockRange(params)
-
-    const start_pos = editor.document.validatePosition(new vscode.Position(ret_val[0].line, ret_val[0].character))
-    const end_pos = editor.document.validatePosition(new vscode.Position(ret_val[1].line, ret_val[1].character))
-    vscode.window.activeTextEditor.selection = new vscode.Selection(start_pos, end_pos)
-    vscode.window.activeTextEditor.revealRange(new vscode.Range(start_pos, end_pos))
+    const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
+    const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
+    validateMoveAndReveal(editor, start_pos, end_pos)
 }
 
 const g_cellDelimiters = [
@@ -409,6 +431,60 @@ async function executeLastCachedCode() {
     }
 }
 
+function _nextCellBorder(doc, line_num: number, direction: number) {
+    assert(direction === 1 || direction === -1)
+    while (0 <= line_num && line_num < doc.lineCount) {
+        if (isCellBorder(doc.lineAt(line_num).text)) {
+            break
+        }
+        line_num += direction
+    }
+    return line_num
+}
+
+const nextCellBorder = (doc, line_num) => _nextCellBorder(doc, line_num, +1)
+const prevCellBorder = (doc, line_num) => _nextCellBorder(doc, line_num, -1)
+
+function validateMoveAndReveal(editor: vscode.TextEditor, startpos: vscode.Position, endpos: vscode.Position) {
+    const doc = editor.document
+    startpos = doc.validatePosition(startpos)
+    endpos = doc.validatePosition(endpos)
+    editor.selection = new vscode.Selection(startpos, endpos)
+    editor.revealRange(new vscode.Range(startpos, endpos))
+}
+
+async function moveCellDown() {
+    telemetry.traceEvent('command-moveCellDown')
+    const ed = vscode.window.activeTextEditor
+    if (ed === undefined) {
+        return
+    }
+    const currline = ed.selection.active.line
+    const newpos = new vscode.Position(nextCellBorder(ed.document, currline + 1) + 1, 0)
+    validateMoveAndReveal(ed, newpos, newpos)
+}
+
+async function moveCellUp() {
+    telemetry.traceEvent('command-moveCellUp')
+    const ed = vscode.window.activeTextEditor
+    if (ed === undefined) {
+        return
+    }
+    const currline = ed.selection.active.line
+    const newpos = new vscode.Position(Math.max(0, prevCellBorder(ed.document, currline) - 1), 0)
+    validateMoveAndReveal(ed, newpos, newpos)
+}
+
+function currentCellRange(editor: vscode.TextEditor) {
+    const doc = editor.document
+    const currline = editor.selection.active.line
+    const startline = prevCellBorder(doc, currline) + 1
+    const endline = nextCellBorder(doc, currline + 1) - 1
+    const startpos = doc.validatePosition(new vscode.Position(startline, 0))
+    const endpos = doc.validatePosition(new vscode.Position(endline, doc.lineAt(endline).text.length))
+    return new vscode.Range(startpos, endpos)
+}
+
 async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell')
 
@@ -419,42 +495,22 @@ async function executeCell(shouldMove: boolean = false) {
 
     const doc = ed.document
     const selection = ed.selection
-    const curr = doc.validatePosition(selection.active).line
-    let start = curr
-    while (start >= 0) {
-        if (isCellBorder(doc.lineAt(start).text)) {
-            break
-        } else {
-            start -= 1
-        }
-    }
-    start += 1
-    let end = start
-    while (end < doc.lineCount) {
-        if (isCellBorder(doc.lineAt(end).text)) {
-            break
-        } else {
-            end += 1
-        }
-    }
-    end -= 1
-    const startpos = ed.document.validatePosition(new vscode.Position(start, 0))
-    const endpos = ed.document.validatePosition(new vscode.Position(end, doc.lineAt(end).text.length))
-    const nextpos = ed.document.validatePosition(new vscode.Position(end + 1, 0))
-    const code = doc.getText(new vscode.Range(startpos, endpos))
+    const cellrange = currentCellRange(ed)
+    const code = doc.getText(cellrange)
 
-    const module: string = await modules.getModuleForEditor(ed.document, startpos)
+    const module: string = await modules.getModuleForEditor(ed.document, cellrange.start)
 
     await startREPL(true, false)
 
     if (shouldMove && ed.selection === selection) {
-        vscode.window.activeTextEditor.selection = new vscode.Selection(nextpos, nextpos)
-        vscode.window.activeTextEditor.revealRange(new vscode.Range(nextpos, nextpos))
+        const nextpos = new vscode.Position(cellrange.end.line + 2, 0)
+        validateMoveAndReveal(ed, nextpos, nextpos)
     }
 
     last_cell_code = [ed, doc, startpos, endpos, code]
 
-    await evaluate(ed, new vscode.Range(startpos, endpos), code, module)
+
+    await evaluate(ed, cellrange, code, module)
 }
 
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
@@ -466,7 +522,6 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         return
     }
 
-    const editorId = vslc.TextDocumentIdentifier.create(editor.document.uri.toString())
     const selections = editor.selections.slice()
 
     await startREPL(true, false)
@@ -475,16 +530,10 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
         const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
-        const params: VersionedTextDocumentPositionParams = {
-            textDocument: editorId,
-            version: editor.document.version,
-            position: startpos
-        }
-
         const module: string = await modules.getModuleForEditor(editor.document, startpos)
 
         if (selection.isEmpty) {
-            const currentBlock = await getBlockRange(params)
+            const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor.document, startpos))
             range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
             nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
         } else {
@@ -494,8 +543,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         const text = editor.document.getText(range)
 
         if (shouldMove && nextBlock && selection.isEmpty && editor.selections.length === 1 && editor.selection === selection) {
-            editor.selection = new vscode.Selection(nextBlock, nextBlock)
-            editor.revealRange(new vscode.Range(nextBlock, nextBlock))
+            validateMoveAndReveal(editor, nextBlock, nextBlock)
         }
 
         if (range.isEmpty) {
@@ -641,7 +689,7 @@ async function cdToHere(uri: vscode.Uri) {
     await startREPL(true, false)
     if (uriPath) {
         try {
-            g_connection.sendNotification('repl/cd', uriPath)
+            g_connection.sendNotification('repl/cd', { uri: uriPath })
         } catch (err) {
             console.log(err)
         }
@@ -659,7 +707,7 @@ async function activatePath(path: string) {
     await startREPL(true, false)
     if (path) {
         try {
-            g_connection.sendNotification('repl/activateProject', path)
+            g_connection.sendNotification('repl/activateProject', { uri: path })
             switchEnvToPath(path, true)
         } catch (err) {
             console.log(err)
@@ -718,7 +766,7 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
 export async function replStartDebugger(pipename: string) {
     await startREPL(true)
 
-    g_connection.sendNotification(notifyTypeReplStartDebugger, pipename)
+    g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -760,7 +808,13 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('julia.usePlotPane')) {
                 try {
-                    g_connection.sendNotification('repl/togglePlotPane', vscode.workspace.getConfiguration('julia').get('usePlotPane'))
+                    g_connection.sendNotification('repl/togglePlotPane', { enable: vscode.workspace.getConfiguration('julia').get('usePlotPane') })
+                } catch (err) {
+                    console.warn(err)
+                }
+            } else if (event.affectsConfiguration('julia.useProgressFrontend')) {
+                try {
+                    g_connection.sendNotification('repl/toggleProgress', { enable: vscode.workspace.getConfiguration('julia').get('useProgressFrontend') })
                 } catch (err) {
                     console.warn(err)
                 }
@@ -787,6 +841,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('language-julia.executeCell', executeCell),
         vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
         vscode.commands.registerCommand('language-julia.executeLastCachedCode', executeLastCachedCode),
+        vscode.commands.registerCommand('language-julia.moveCellUp', moveCellUp),
+        vscode.commands.registerCommand('language-julia.moveCellDown', moveCellDown),
         vscode.commands.registerCommand('language-julia.executeFile', executeFile),
         vscode.commands.registerCommand('language-julia.interrupt', interrupt),
         vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
