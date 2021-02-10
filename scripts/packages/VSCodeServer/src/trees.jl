@@ -92,7 +92,7 @@ function treerender(x)
     end
 end
 
-function treerender(x::Dict{K,V}) where {K,V}
+function treerender(x::AbstractDict{K,V}) where {K,V}
     treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), wsicon(x), length(keys(x)) == 0, function ()
         if length(keys(x)) > MAX_PARTITION_LENGTH
             partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
