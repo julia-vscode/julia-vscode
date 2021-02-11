@@ -80,26 +80,34 @@ end
 
 getfield_safe(x, f, default=UNDEF) = isdefined(x, f) ? getfield(x, f) : default
 
-function treerender(x)
+struct AnyWrapper
+    x
+end
+treerender(x::AnyWrapper) = invoke(treerender, Tuple{Any,String}, x.x, "")
+
+function treerender(x, typedisplay=typeof(x))
     fields = fieldnames(typeof(x))
 
     if isempty(fields)
-        treerender(Text(string(typeof(x), "()")))
+        treerender(Text(string(typedisplay, "()")))
     else
-        treerender(LazyTree(string(typeof(x)), wsicon(x), function ()
+        treerender(LazyTree(string(typedisplay), wsicon(x), function ()
             collect([SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields])
         end))
     end
 end
 
 function treerender(x::AbstractDict{K,V}) where {K,V}
-    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), wsicon(x), length(keys(x)) == 0, function ()
-        if length(keys(x)) > MAX_PARTITION_LENGTH
-            partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
-        else
-            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in x])
-        end
-    end))
+    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), wsicon(x), length(keys(x)) == 0,
+        () -> pushfirst!(
+            if length(keys(x)) > MAX_PARTITION_LENGTH
+                partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
+            else
+                [SubTree(repr(k), wsicon(v), v) for (k, v) in x]
+            end,
+            SubTree("..", wsicon((;)), AnyWrapper(x)),
+        )
+    ))
 end
 
 function treerender(x::Module)
