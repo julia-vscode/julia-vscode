@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+* The global Julia entries in the File Explorer right-click menu can now be toggled on or off.
 
 ## [1.1.10] - 2021-01-28
 ### Fixed
