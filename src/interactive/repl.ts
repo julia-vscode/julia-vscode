@@ -507,7 +507,7 @@ async function executeCell(shouldMove: boolean = false) {
         validateMoveAndReveal(ed, nextpos, nextpos)
     }
 
-    last_cell_code = [ed, doc, startpos, endpos, code]
+    last_cell_code = [ed, doc, cellrange.start, cellrange.end, code]
 
 
     await evaluate(ed, cellrange, code, module)
