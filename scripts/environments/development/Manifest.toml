@@ -33,7 +33,7 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 deps = ["CSTParser", "FilePathsBase", "Tokenize"]
 path = "../../packages/DocumentFormat"
 uuid = "ffa9a821-9c82-50df-894e-fbcef3ed31cd"
-version = "3.2.3-DEV"
+version = "3.2.4-DEV"
 
 [[FilePathsBase]]
 deps = ["Dates", "Mmap", "Printf", "Test", "UUIDs"]
@@ -139,7 +139,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [[Tokenize]]
 path = "../../packages/Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.12"
+version = "0.5.13"
 
 [[URIParser]]
 deps = ["Unicode"]
