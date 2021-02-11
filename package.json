@@ -301,15 +301,18 @@
                 },
                 {
                     "command": "language-julia.cdHere",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "julia.showInExplorerContextMenu && explorerResourceIsFolder"
                 },
                 {
                     "command": "language-julia.activateHere",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "julia.showInExplorerContextMenu"
                 },
                 {
                     "command": "language-julia.activateFromDir",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "julia.showInExplorerContextMenu"
                 }
             ],
             "editor/title": [
@@ -624,6 +627,12 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Check that all declared arguments are used within the function body."
+                },
+                "julia.showInExplorerContextMenu": {
+                    "type": "boolean",
+                    "default": "false",
+                    "description": "Show Julia environment commands in the Explorer context menu.",
+                    "scope": "resource"
                 },
                 "julia.enableCrashReporter": {
                     "type": [
