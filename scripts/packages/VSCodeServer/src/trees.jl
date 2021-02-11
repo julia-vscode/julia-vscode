@@ -80,20 +80,20 @@ end
 
 getfield_safe(x, f, default=UNDEF) = isdefined(x, f) ? getfield(x, f) : default
 
-struct AnyWrapper
-    x
+struct PropertyBox
+    object
 end
-treerender(x::AnyWrapper) = invoke(treerender, Tuple{Any,String}, x.x, "")
+treerender(x::PropertyBox) = invoke(treerender, Tuple{Any,String,String}, x.object, "#properties", wsicon(x))
 
-function treerender(x, typedisplay=typeof(x))
+function treerender(x, typedisplay=typeof(x), icon=wsicon(x))
     fields = fieldnames(typeof(x))
 
     if isempty(fields)
         treerender(Text(string(typedisplay, "()")))
     else
-        treerender(LazyTree(string(typedisplay), wsicon(x), function ()
-            collect([SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields])
-        end))
+        treerender(LazyTree(string(typedisplay), icon,
+            () -> [SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields]
+        ))
     end
 end
 
@@ -105,10 +105,24 @@ function treerender(x::AbstractDict{K,V}) where {K,V}
             else
                 [SubTree(repr(k), wsicon(v), v) for (k, v) in x]
             end,
-            SubTree("..", wsicon((;)), AnyWrapper(x)),
+            SubTree("", wsicon(x), PropertyBox(x)),
         )
     ))
 end
+
+function treerender(x::AbstractArray{T,N}) where {T,N}
+    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0,
+        () -> pushfirst!(
+            if length(x) > MAX_PARTITION_LENGTH
+                partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
+            else
+                [SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))]
+            end,
+            SubTree("", wsicon(x), PropertyBox(x)),
+        )
+    ))
+end
+
 
 function treerender(x::Module)
     treerender(LazyTree(string(x), wsicon(x), function ()
@@ -149,16 +163,6 @@ function assign_undefs(xs)
     end
 
     return xs′
-end
-
-function treerender(x::Array{T,N}) where {T,N}
-    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0, function ()
-        if length(x) > MAX_PARTITION_LENGTH
-            partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
-        else
-            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))])
-        end
-    end))
 end
 
 function treerender(err, bt)
