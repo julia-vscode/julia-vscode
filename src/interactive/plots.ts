@@ -13,6 +13,8 @@ let g_context: vscode.ExtensionContext = null
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
+    const provider = new PlotViewProvider()
+
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-previous', plotPanePrev))
@@ -26,6 +28,120 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel))
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll))
+
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plot-navigator', provider.showPlotNavigator.bind(provider)))
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.add-thumbnail-to-plot-navigator', provider.addThumbnailToPlotNavigator.bind(provider)))
+    vscode.window.registerWebviewViewProvider('julia-plot-navigator', provider)
+}
+
+interface Plot {
+    thumbnail_type: string,
+    thumbnail_data: string
+}
+
+class PlotViewProvider implements vscode.WebviewViewProvider {
+    private view?: vscode.WebviewView
+    private plotsInfo?: Array<Plot>
+
+    constructor() {
+    }
+
+    resolveWebviewView(view: vscode.WebviewView, context: vscode.WebviewViewResolveContext) {
+        this.view = view
+
+        this.plotsInfo = []
+
+        view.webview.options = {
+            enableScripts: true,
+            enableCommandUris: true
+        }
+
+        view.webview.onDidReceiveMessage(msg => {
+            // msg.type could be used to determine messages
+            switch (msg.type) {
+                case "toPlot":
+                    if (msg.value >= 0 && msg.value <= g_plots.length - 1) {
+                        g_currentPlotIndex = msg.value
+                        updatePlotPane()
+                    }
+                    break
+                default:
+                    console.error(`Unknown message type from WebView: ${msg.type}, value: ${msg.value}`)
+            }
+
+        })
+
+        this.reloadPlotPane();
+    }
+
+    getWebviewHTML(innerHTML: string) {
+        const extensionPath = g_context.extensionPath
+        const plotterStylesheet = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'plotter', 'plotter.css')))
+        const plotterJavaScript = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'plotter', 'plotter.js')))
+
+        return `<html lang="en" class='theme--plotter'>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <title>Julia Plots</title>
+                <link href=${plotterStylesheet} rel="stylesheet" type="text/css">
+            </head>
+            <body style="padding: 10px 1em 1em 1em">
+                ${innerHTML}
+                <script src=${plotterJavaScript}></script>
+            </body>
+        </html>`
+    }
+
+    async showPlotNavigator() {
+        // this forces the webview to be resolved:
+        await vscode.commands.executeCommand('julia-plot-navigator.focus')
+        // should always be true, but better safe than sorry
+        if (this.view) {
+            this.view.show?.(true)
+        }
+    }
+
+    async addThumbnailToPlotNavigator(plot) {
+        this.plotsInfo.push(plot)
+        this.reloadPlotPane()
+    }
+
+    plotToThumbnail(plot: Plot, index: number) {
+        let thumbnailHTML: string
+        switch (plot.thumbnail_type) {
+            default:
+            case "text": // This is a fallback which shows the index of the plot
+                thumbnailHTML = `<p class="thumbnail" onclick="toPlot(${index})">Plot ${index + 1} </p>`
+                break
+        }
+        return thumbnailHTML
+    }
+
+    reloadPlotPane() {
+        let innerHTML: string
+        if (this.plotsInfo.length > 0) {
+            innerHTML = `<div>
+                ${this.plotsInfo.map(this.plotToThumbnail).join("\n")}
+            </div>`
+        } else {
+            innerHTML = `<p>Use Julia to plot and your plots will appear here.</p>`
+        }
+
+        this.setHTML(this.getWebviewHTML(innerHTML))
+    }
+
+    postMessageToWebview(message: any) {
+        if (this.view) {
+            this.view.webview.postMessage(message)
+        }
+    }
+
+    setHTML(html: string) {
+        if (this.view) {
+            this.view.webview.html = html
+        }
+    }
 }
 
 function getPlotPaneContent() {
@@ -37,8 +153,15 @@ function getPlotPaneContent() {
     }
 }
 
+function addThumbnailToPlotNavigator(plot) {
+    vscode.commands.executeCommand('language-julia.add-thumbnail-to-plot-navigator', plot)
+}
+
 export function showPlotPane() {
     telemetry.traceEvent('command-showplotpane')
+
+    vscode.commands.executeCommand('language-julia.show-plot-navigator')
+
     const plotTitle = g_plots.length > 0 ? `Julia Plots (${g_currentPlotIndex + 1}/${g_plots.length})` : 'Julia Plots (0/0)'
     if (!g_plotPanel) {
         // Otherwise, create a new panel
@@ -151,6 +274,11 @@ function wrap_imagelike(srcstring: string) {
 export function displayPlot(params: { kind: string, data: string }) {
     const kind = params.kind
     const payload = params.data
+
+    addThumbnailToPlotNavigator({
+        "thumbnail_type": "text",
+        "thumbnail_data": null
+    })
 
     if (kind === 'image/svg+xml') {
         const has_xmlns_attribute = payload.includes('xmlns=');

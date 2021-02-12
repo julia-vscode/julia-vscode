@@ -849,6 +849,11 @@
                     "type": "webview",
                     "id": "julia-documentation",
                     "name": "Documentation"
+                },
+                {
+                    "type": "webview",
+                    "id": "julia-plot-navigator",
+                    "name": "Plot Navigator"
                 }
             ]
         },
