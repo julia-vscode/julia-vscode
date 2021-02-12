@@ -753,10 +753,12 @@ export function activate(context: vscode.ExtensionContext) {
             connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
             connection.onNotification(notifyTypeProgress, updateProgress)
             setContext('isJuliaEvaluating', false)
+            setContext('hasJuliaREPL', true)
         }),
         onExit(() => {
             results.removeAll()
             setContext('isJuliaEvaluating', false)
+            setContext('hasJuliaREPL', false)
         }),
         onStartEval(() => {
             updateProgress({

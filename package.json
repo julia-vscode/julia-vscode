@@ -301,15 +301,18 @@
                 },
                 {
                     "command": "language-julia.cdHere",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "hasJuliaREPL"
                 },
                 {
                     "command": "language-julia.activateHere",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "hasJuliaREPL"
                 },
                 {
                     "command": "language-julia.activateFromDir",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "hasJuliaREPL"
                 }
             ],
             "editor/title": [
