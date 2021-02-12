@@ -7,13 +7,13 @@ const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
 let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
-
 let g_context: vscode.ExtensionContext = null
+let g_plotProvider: PlotViewProvider = null
 
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
-    const provider = new PlotViewProvider()
+    g_plotProvider = new PlotViewProvider()
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane))
 
@@ -29,9 +29,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plot-navigator', provider.showPlotNavigator.bind(provider)))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.add-thumbnail-to-plot-navigator', provider.addThumbnailToPlotNavigator.bind(provider)))
-    vscode.window.registerWebviewViewProvider('julia-plot-navigator', provider)
+    context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plot-navigator', g_plotProvider.showPlotNavigator))
+
+    vscode.window.registerWebviewViewProvider('julia-plot-navigator', g_plotProvider)
 }
 
 interface Plot {
@@ -93,7 +93,7 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
         </html>`
     }
 
-    async showPlotNavigator() {
+    showPlotNavigator = async () => {
         // this forces the webview to be resolved:
         await vscode.commands.executeCommand('julia-plot-navigator.focus')
         // should always be true, but better safe than sorry
@@ -102,7 +102,7 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    async addThumbnailToPlotNavigator(plot) {
+    addThumbnailToPlotNavigator = async (plot) => {
         this.plotsInfo.push(plot)
         this.reloadPlotPane()
     }
@@ -153,9 +153,6 @@ function getPlotPaneContent() {
     }
 }
 
-function addThumbnailToPlotNavigator(plot) {
-    vscode.commands.executeCommand('language-julia.add-thumbnail-to-plot-navigator', plot)
-}
 
 export function showPlotPane() {
     telemetry.traceEvent('command-showplotpane')
@@ -275,7 +272,7 @@ export function displayPlot(params: { kind: string, data: string }) {
     const kind = params.kind
     const payload = params.data
 
-    addThumbnailToPlotNavigator({
+    g_plotProvider.addThumbnailToPlotNavigator({
         "thumbnail_type": "text",
         "thumbnail_data": null
     })
