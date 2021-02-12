@@ -114,16 +114,16 @@ end
 
 function treerender(x::AbstractArray{T,N}) where {T,N}
     treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0,
-        () -> pushfirst!(
-            if length(x) > MAX_PARTITION_LENGTH
+        function ()
+            out = if length(x) > MAX_PARTITION_LENGTH
                 partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
             else
                 # collect is necessary because the return type of an array comprehension depends on the iterator,
                 # but we only want Arrays here
                 collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))])
-            end,
-            SubTree("", wsicon(x), PropertyBox(x)),
-        )
+            end
+            x isa Array ? out : pushfirst!(out, SubTree("", wsicon(x), PropertyBox(x)))
+        end
     ))
 end
 
