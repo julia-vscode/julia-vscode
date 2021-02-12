@@ -103,7 +103,9 @@ function treerender(x::AbstractDict{K,V}) where {K,V}
             if length(keys(x)) > MAX_PARTITION_LENGTH
                 partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
             else
-                [SubTree(repr(k), wsicon(v), v) for (k, v) in x]
+                # collect is necessary because the return type of an array comprehension depends on the iterator,
+                # but we only want Arrays here
+                collect([SubTree(repr(k), wsicon(v), v) for (k, v) in x])
             end,
             SubTree("", wsicon(x), PropertyBox(x)),
         )
@@ -116,7 +118,9 @@ function treerender(x::AbstractArray{T,N}) where {T,N}
             if length(x) > MAX_PARTITION_LENGTH
                 partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
             else
-                [SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))]
+                # collect is necessary because the return type of an array comprehension depends on the iterator,
+                # but we only want Arrays here
+                collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))])
             end,
             SubTree("", wsicon(x), PropertyBox(x)),
         )
@@ -148,7 +152,8 @@ struct Undef end
 const UNDEF = Undef()
 
 function assign_undefs(xs)
-    xs′ = similar(xs, Any)
+    s = size(xs)
+    xs′ = Array{Any,length(s)}(undef, s...)
     for i in eachindex(xs)
         xs′[i] = isassigned(xs, i) ? xs[i] : UNDEF
     end
@@ -165,7 +170,7 @@ function assign_undefs(xs)
     return xs′
 end
 
-function treerender(err, bt)
+function treerender(err::Exception, bt)
     st = stacktrace(bt)
     treerender(LazyTree(string("Internal Error: ", err), wsicon(err), length(st) == 0, () -> [Leaf(sprint(show, x), wsicon(x)) for x in st]))
 end
@@ -194,6 +199,8 @@ function partition_by_keys(x, _keys=keys(x); sz=20, maxparts=100)
             end))
         else
             push!(out, LazyTree(head, function ()
+                # collect is necessary because the return type of an array comprehension depends on the iterator,
+                # but we only want Arrays here
                 collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(part, getindex.(Ref(x), assign_undefs(part)))])
             end))
         end
