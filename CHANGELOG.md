@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* SVGs with embedded single quotes are now displayed properly again.
 
 ## [1.1.10] - 2021-01-28
 ### Fixed
