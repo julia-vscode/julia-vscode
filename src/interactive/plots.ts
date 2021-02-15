@@ -140,8 +140,8 @@ function wrap_imagelike(srcstring: string) {
     const html = `
     <html style="padding:0;margin:0;">
         <body style="padding:0;margin:0;">
-            <div style='width: 100%; height: 100vh'>
-                <img style='display:block; height: 100%; width: 100%; object-fit: scale-down; object-position: 0 0;' src='${srcstring}'>
+            <div style="width: 100%; height: 100vh;">
+                <img style="display:block; height: 100%; width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcstring}">
             </div>
         </body>
     </html>`
