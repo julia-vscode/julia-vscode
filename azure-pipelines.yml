@@ -356,3 +356,25 @@ stages:
               isPreRelease: true
               addChangeLog: false
               assets: $(Pipeline.Workspace)/insider/*.vsix
+
+- stage: ReleaseGithub
+  displayName: 'Mark as release on GitHub'
+  dependsOn: [DeployGithub, DeployProductionMarketplace]
+  jobs:
+  - deployment: PublishGithubRelease
+    dependsOn: []
+    pool:
+      vmImage: 'Ubuntu-latest'
+    environment: 'Github'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: GitHubRelease@1
+            inputs:
+              gitHubConnection: 'release'
+              repositoryName: '$(Build.Repository.Name)'
+              action: 'edit'
+              target: '$(Build.SourceVersion)'
+              tag: '$(Build.SourceVersion)'
+              isPreRelease: false
