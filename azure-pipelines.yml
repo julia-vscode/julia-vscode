@@ -361,6 +361,7 @@ stages:
   displayName: 'Mark GitHub release'
   dependsOn: [DeployGithub, DeployProductionMarketplace]
   jobs:
+  - job: BuildAndTest
     steps:
     - task: GitHubRelease@1
       inputs:
