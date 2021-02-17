@@ -361,19 +361,11 @@ stages:
   displayName: 'Mark GitHub release'
   dependsOn: [DeployGithub, DeployProductionMarketplace]
   jobs:
-  - deployment: PublishGithubRelease
-    dependsOn: []
-    pool:
-      vmImage: 'Ubuntu-latest'
-    environment: 'Github'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: GitHubRelease@1
-            inputs:
-              gitHubConnection: 'release'
-              repositoryName: '$(Build.Repository.Name)'
-              action: 'edit'
-              tag: 'v$(MajorVersion).$(MinorVersion).$(PatchVersion)'
-              isPreRelease: false
+    steps:
+    - task: GitHubRelease@1
+      inputs:
+        gitHubConnection: 'release'
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'edit'
+        tag: 'v$(MajorVersion).$(MinorVersion).$(PatchVersion)'
+        isPreRelease: false
