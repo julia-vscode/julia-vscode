@@ -368,6 +368,5 @@ stages:
         gitHubConnection: 'release'
         repositoryName: '$(Build.Repository.Name)'
         action: 'edit'
-        target: '$(Build.SourceVersion)'
-        tagSource: 'gitTag'
+        tag: '$(Build.SourceBranchName)'
         isPreRelease: false
