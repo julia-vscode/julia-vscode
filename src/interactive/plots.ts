@@ -14,7 +14,7 @@ let g_screenShotScript: string = ""
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
-    g_plotProvider = new PlotViewProvider()
+    g_plotProvider = new PlotViewProvider(context)
 
     context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane))
 
@@ -43,9 +43,11 @@ interface Plot {
 class PlotViewProvider implements vscode.WebviewViewProvider {
     private view?: vscode.WebviewView
     private plotsInfo?: Array<Plot>
+    private context: vscode.ExtensionContext
 
-    constructor() {
+    constructor(context: vscode.ExtensionContext) {
         this.plotsInfo = []
+        this.context = context
     }
 
     resolveWebviewView(view: vscode.WebviewView, context: vscode.WebviewViewResolveContext) {
@@ -75,7 +77,7 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
     }
 
     getWebviewHTML(innerHTML: string) {
-        const extensionPath = g_context.extensionPath
+        const extensionPath = this.context.extensionPath
         const plotterStylesheet = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'plotter', 'plotter.css')))
         const plotterJavaScript = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'plotter', 'plotter.js')))
 
