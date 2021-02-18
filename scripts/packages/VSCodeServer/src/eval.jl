@@ -2,8 +2,8 @@ const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
 
 # Workaround for https://github.com/julia-vscode/julia-vscode/issues/1940
-struct Wrapper{T}
-    content::T
+struct Wrapper
+    content
 end
 wrap(x) = Wrapper(x)
 unwrap(x) = x.content
