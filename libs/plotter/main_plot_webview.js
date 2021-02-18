@@ -15,8 +15,11 @@ function postMessageToHost(type, val) {
     }
 }
 
-function toPlot(index) {
-    // Note that index starts from 0
-    console.log(`Redirecting to plot ${index + 1}`);
-    postMessageToHost("toPlot", index);
-}
+window.addEventListener('load', _ => {
+    html2canvas(document.getElementsByTagName("body")[0], {
+        onrendered: (canvas) => {
+            console.log("Thumbnail is taken")
+            postMessageToHost("thumbnail", canvas.toDataURL("png"))
+        }
+    })
+})

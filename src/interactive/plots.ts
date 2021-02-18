@@ -9,6 +9,7 @@ let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
 let g_context: vscode.ExtensionContext = null
 let g_plotProvider: PlotViewProvider = null
+let g_screenShotScript: string = ""
 
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
@@ -44,12 +45,11 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
     private plotsInfo?: Array<Plot>
 
     constructor() {
+        this.plotsInfo = []
     }
 
     resolveWebviewView(view: vscode.WebviewView, context: vscode.WebviewViewResolveContext) {
         this.view = view
-
-        this.plotsInfo = []
 
         view.webview.options = {
             enableScripts: true,
@@ -59,7 +59,7 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
         view.webview.onDidReceiveMessage(msg => {
             // msg.type could be used to determine messages
             switch (msg.type) {
-                case "toPlot":
+                case "toPlot": // switch current plot to plot at index (msg.value)
                     if (msg.value >= 0 && msg.value <= g_plots.length - 1) {
                         g_currentPlotIndex = msg.value
                         updatePlotPane()
@@ -71,7 +71,7 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
 
         })
 
-        this.reloadPlotPane();
+        this.reloadPlotPane()
     }
 
     getWebviewHTML(innerHTML: string) {
@@ -102,14 +102,23 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    addThumbnailToPlotNavigator = async (plot) => {
-        this.plotsInfo.push(plot)
+    setPlotsInfo(set_func) {
+        this.plotsInfo = set_func(this.plotsInfo)
         this.reloadPlotPane()
+    }
+
+    getPlotsInfo() {
+        return this.plotsInfo
     }
 
     plotToThumbnail(plot: Plot, index: number) {
         let thumbnailHTML: string
         switch (plot.thumbnail_type) {
+            case "image":
+                thumbnailHTML = `<div class="thumbnail" onclick="toPlot(${index})">
+                    <img src="${plot.thumbnail_data}" alt="Plot ${index + 1}" />
+                </div>`
+                break
             default:
             case "text": // This is a fallback which shows the index of the plot
                 thumbnailHTML = `<p class="thumbnail" onclick="toPlot(${index})">Plot ${index + 1} </p>`
@@ -146,13 +155,26 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
 
 function getPlotPaneContent() {
     if (g_plots.length === 0) {
-        return '<html></html>'
+        return `<html>${g_screenShotScript}</html>`
     }
     else {
-        return g_plots[g_currentPlotIndex]
+        return g_plots[g_currentPlotIndex] + g_screenShotScript
     }
 }
 
+function plotPanelOnMessage(message) {
+    console.log("Message in plot panel: ", message)
+    if (message.type == "thumbnail") {
+        let thumbnailData = message.value
+        g_plotProvider.setPlotsInfo(plotsInfo => {
+            plotsInfo[g_currentPlotIndex] = {
+                "thumbnail_type": "image",
+                "thumbnail_data": thumbnailData
+            }
+            return plotsInfo
+        })
+    }
+}
 
 export function showPlotPane() {
     telemetry.traceEvent('command-showplotpane')
@@ -188,6 +210,8 @@ export function showPlotPane() {
         g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
             vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active)
         }, null, g_context.subscriptions)
+
+        g_plotPanel.webview.onDidReceiveMessage(plotPanelOnMessage)
     }
     else {
         g_plotPanel.title = plotTitle
@@ -237,6 +261,10 @@ export function plotPaneLast() {
 export function plotPaneDel() {
     telemetry.traceEvent('command-plotpanedelete')
     if (g_plots.length > 0) {
+        g_plotProvider.setPlotsInfo(plotsInfo => {
+            plotsInfo.splice(g_currentPlotIndex, 1)
+            return plotsInfo
+        })
         g_plots.splice(g_currentPlotIndex, 1)
         if (g_currentPlotIndex > g_plots.length - 1) {
             g_currentPlotIndex = g_plots.length - 1
@@ -248,6 +276,10 @@ export function plotPaneDel() {
 export function plotPaneDelAll() {
     telemetry.traceEvent('command-plotpanedeleteall')
     if (g_plots.length > 0) {
+        g_plotProvider.setPlotsInfo(plotsInfo => {
+            plotsInfo.splice(0, plotsInfo.length)
+            return plotsInfo
+        })
         g_plots.splice(0, g_plots.length)
         g_currentPlotIndex = 0
         updatePlotPane()
@@ -272,10 +304,21 @@ export function displayPlot(params: { kind: string, data: string }) {
     const kind = params.kind
     const payload = params.data
 
-    g_plotProvider.addThumbnailToPlotNavigator({
-        "thumbnail_type": "text",
-        "thumbnail_data": null
-    })
+    if (kind !== 'application/vnd.dataresource+json') {
+        showPlotPane()
+        // We need to show the pane before accessing the webview to avoid "undefined" issue in webview.
+        g_screenShotScript = `<script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotter', 'html2canvas.min.js')))}"></script>
+        <script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotter', 'main_plot_webview.js')))}"></script>`
+
+        // We display a text thumbnail first just in case that JavaScript errors in the webview or did not successfully send out message and corrupt thumbnail indices.
+        g_plotProvider.setPlotsInfo(plotsInfo => {
+            plotsInfo.push({
+                "thumbnail_type": "text",
+                "thumbnail_data": null
+            })
+            return plotsInfo
+        })
+    }
 
     if (kind === 'image/svg+xml') {
         const has_xmlns_attribute = payload.includes('xmlns=');
@@ -309,7 +352,6 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v2+json') {
-        showPlotPane()
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')))
@@ -344,7 +386,6 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v3+json') {
-        showPlotPane()
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
@@ -379,7 +420,6 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v4+json') {
-        showPlotPane()
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
@@ -414,7 +454,6 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v3+json') {
-        showPlotPane()
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')))
         const plotPaneContent = `
@@ -447,7 +486,6 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v4+json') {
-        showPlotPane()
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js')))
         const plotPaneContent = `
@@ -480,7 +518,6 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v5+json') {
-        showPlotPane()
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
         const plotPaneContent = `
@@ -513,7 +550,6 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.plotly.v1+json') {
-        showPlotPane()
         const uriPlotly = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')))
         const plotPaneContent = `
         <html>
