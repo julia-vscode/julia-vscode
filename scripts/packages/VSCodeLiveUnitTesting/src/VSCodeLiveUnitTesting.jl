@@ -42,18 +42,15 @@ function run_test_loop(test_file::AbstractString)
     println()
 
     test_folder = dirname(test_file)
+    first_run = true
 
-    try
-        cd(test_folder)
-        VSCodeLiveUnitTesting.Revise.track(test_file; mode=:eval)
-    catch err
-        Base.display_error(err, catch_backtrace())
-    end
+    VSCodeLiveUnitTesting.Revise.entr([test_file]; all=true) do
+        println()
+        printstyled(first_run ? "Running tests..." : "Rerunning tests...", bold=true)
+        println()
+        println()
 
-    VSCodeLiveUnitTesting.Revise.entr([test_file]; all=true, postpone=true) do
-        println()
-        println("Rerunning tests...")
-        println()
+        first_run = false
 
         try
             cd(test_folder)
