@@ -45,7 +45,7 @@ function run_test_loop(test_file::AbstractString)
 
     try
         cd(test_folder)
-        VSCodeLiveUnitTesting.Revise.track(test_file; mode=:eval, skip_include=false)
+        VSCodeLiveUnitTesting.Revise.track(test_file; mode=:eval)
     catch err
         Base.display_error(err, catch_backtrace())
     end
@@ -98,7 +98,7 @@ function live_unit_test(pkg_name::AbstractString, test_file::AbstractString)
                     gen_target_project(ctx, pkgspec, pkgspec.path, "test")
 
             sandbox_args = (sandbox_args..., test_project_override)
-        end
+    end
 
         sandbox(sandbox_args...) do
             run_test_loop(absolute_path_of_test_file)
