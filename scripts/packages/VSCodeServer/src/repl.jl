@@ -66,12 +66,21 @@ function hook_repl(repl)
         repl.interface = REPL.setup_interface(repl)
     end
     main_mode = get_main_mode(repl)
-
-    # TODO: set up REPL module ?
-    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty=false) do line
-        quote
-            $(evalrepl)(Main, $line, $repl, $main_mode)
+    if VERSION > v"1.5-"
+        push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
+    else
+        # TODO: set up REPL module ?
+        main_mode.on_done = REPL.respond(repl, main_mode; pass_empty=false) do line
+            quote
+                $(evalrepl)(Main, $line, $repl, $main_mode)
+            end
         end
+    end
+end
+
+function transform_backend(ast, repl, main_mode)
+    quote
+        $(evalrepl)(Main, $(QuoteNode(ast)), $repl, $main_mode)
     end
 end
 
@@ -99,9 +108,13 @@ function evalrepl(m, line, repl, main_mode)
 end
 
 # don't inline this so we can find it in the stacktrace
-@noinline function repleval(m, code, file)
+@noinline function repleval(m, code::String, file)
     args = VERSION >= v"1.5" ? (REPL.softscope, m, code, file) : (m, code, file)
     return include_string(args...)
+end
+
+@noinline function repleval(m, code, _)
+    return Base.eval(m, code)
 end
 
 # basically the same as Base's `display_error`, with internal frames removed
