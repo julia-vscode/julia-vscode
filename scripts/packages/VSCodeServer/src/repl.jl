@@ -87,6 +87,11 @@ end
 function evalrepl(m, line, repl, main_mode)
     return try
         JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+
+        if g_use_revise[]
+            Revise.revise()
+        end
+
         r = run_with_backend() do
             fix_displays()
             f = () -> repleval(m, line, REPL.repl_filename(repl, main_mode.hist))

@@ -68,7 +68,8 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
         const env = {
             JULIA_EDITOR: get_editor(),
-            JULIA_NUM_THREADS: inferJuliaNumThreads()
+            JULIA_NUM_THREADS: inferJuliaNumThreads(),
+            JULIA_REVISE: 'manual'
         }
 
         const pkgServer: string = vscode.workspace.getConfiguration('julia').get('packageServer')

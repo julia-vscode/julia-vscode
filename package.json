@@ -659,7 +659,7 @@
                 },
                 "julia.useRevise": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "description": "Load Revise.jl on startup of the REPL."
                 },
                 "julia.usePlotPane": {

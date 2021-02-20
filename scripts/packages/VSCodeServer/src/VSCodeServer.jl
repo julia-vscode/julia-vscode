@@ -23,6 +23,7 @@ end
 
 include("../../JSON/src/JSON.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
+include("../../OrderedCollections/src/OrderedCollections.jl")
 
 module JSONRPC
     import ..JSON
@@ -37,6 +38,16 @@ module JuliaInterpreter
     include("../../JuliaInterpreter/src/packagedef.jl")
 end
 
+module LoweredCodeUtils
+    using ..JuliaInterpreter
+    using ..JuliaInterpreter: SSAValue, SlotNumber, Frame
+    using ..JuliaInterpreter: @lookup, moduleof, pc_expr, step_expr!, is_global_ref, whichtt,
+                        next_until!, finish_and_return!, nstatements, codelocation,
+                        is_return, lookup_return, is_GotoIfNot, is_ReturnNode
+
+    include("../../LoweredCodeUtils/src/packagedef.jl")
+end
+
 module DebugAdapter
     import ..JuliaInterpreter
     import ..JSON
@@ -46,6 +57,25 @@ module DebugAdapter
     include("../../DebugAdapter/src/packagedef.jl")
 end
 
+module Revise
+    using ..OrderedCollections
+    using ..CodeTracking
+    using ..JuliaInterpreter
+    using ..LoweredCodeUtils
+
+    using ..CodeTracking: PkgFiles, basedir, srcfiles, line_is_decl, basepath
+    using ..JuliaInterpreter: whichtt, is_doc_expr, step_expr!, finish_and_return!, get_return,
+                        @lookup, moduleof, scopeof, pc_expr, is_quotenode_egal,
+                        linetable, codelocs, LineTypes, is_GotoIfNot, isassign, isidentical
+    using ..LoweredCodeUtils: next_or_nothing!, trackedheads, structheads, callee_matches
+
+    include("../../Revise/src/packagedef.jl")
+end
+
+using .Revise:includet
+
+export includet
+
 module ChromeProfileFormat
     import ..JSON
     import Profile
@@ -54,6 +84,7 @@ module ChromeProfileFormat
 end
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
+const g_use_revise = Ref{Bool}(false)
 
 include("../../../error_handler.jl")
 include("repl_protocol.jl")

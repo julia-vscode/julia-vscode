@@ -15,6 +15,9 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+FileWatching = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+LibGit2 = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [compat]
 julia = "1"

@@ -14,7 +14,7 @@
     "typescript.tsdk": "./node_modules/typescript/lib",
     "git.detectSubmodulesLimit": 20,
     "editor.formatOnPaste": true,
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.formatOnType": true,
     "files.trimTrailingWhitespace": true,
     "files.trimFinalNewlines": true,
