@@ -27,7 +27,7 @@ version = "3.2.4-DEV"
 deps = ["Dates", "Mmap", "Printf", "Test", "UUIDs"]
 path = "../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.9"
+version = "0.9.10"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
