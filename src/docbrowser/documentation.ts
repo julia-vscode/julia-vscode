@@ -194,6 +194,7 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
             width: 100%;
             padding: 5px;
             display: flex;
+            z-index: 2;
         }
         .search input[type="text"] {
             width: 100%;
