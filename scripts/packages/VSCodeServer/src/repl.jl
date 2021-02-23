@@ -70,7 +70,7 @@ function hook_repl(repl)
     if VERSION > v"1.5-"
         for i in 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
             isdefined(Base, :active_repl_backend) && continue
-            wait(0.5)
+            sleep(0.5)
         end
         if isdefined(Base, :active_repl_backend)
             push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
