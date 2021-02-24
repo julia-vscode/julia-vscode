@@ -13,6 +13,11 @@ export class JuliaDebugFeature {
                 vscode.debug.activeDebugSession.customRequest('setCompiledItems', { compiledModulesOrFunctions: compiledProvider.getCompiledItems() })
             }
         })
+        compiledProvider.onDidChangeCompiledMode(mode => {
+            if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
+                vscode.debug.activeDebugSession.customRequest('setCompiledMode', { compiledMode: mode })
+            }
+        })
 
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
@@ -56,7 +61,8 @@ export class JuliaDebugFeature {
                     name: 'Debug Editor Contents',
                     request: 'launch',
                     program,
-                    compiledModulesOrFunctions: compiledProvider.getCompiledItems()
+                    compiledModulesOrFunctions: compiledProvider.getCompiledItems(),
+                    compiledMode: compiledProvider.compiledMode
                 })
             })
         )

@@ -9,7 +9,7 @@ import { createMessageConnection, Disposable, MessageConnection, StreamMessageRe
 import { replStartDebugger } from '../interactive/repl'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
-import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, notifyTypeSetCompiledItems, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepInTargets, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables } from './debugProtocol'
+import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, notifyTypeSetCompiledItems, notifyTypeSetCompiledMode, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepInTargets, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables } from './debugProtocol'
 
 /**
  * This interface describes the Julia specific launch attributes
@@ -28,6 +28,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
     trace?: boolean
     args?: string[]
     compiledModulesOrFunctions?: string[]
+    compiledMode?: Boolean
 }
 
 interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
@@ -35,6 +36,7 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
     file: string
     stopOnEntry: boolean
     compiledModulesOrFunctions?: string[]
+    compiledMode?: Boolean
 }
 
 export class JuliaDebugSession extends LoggingDebugSession {
@@ -111,7 +113,6 @@ export class JuliaDebugSession extends LoggingDebugSession {
         response.body.supportsStepInTargetsRequest = true
 
         response.body.exceptionBreakpointFilters = [
-            { filter: 'compilemode', label: 'Compiled Mode (experimental)', default: false },
             { filter: 'error', label: 'Uncaught Exceptions', default: true },
             { filter: 'throw', label: 'All Exceptions', default: false }
         ]
@@ -175,7 +176,13 @@ export class JuliaDebugSession extends LoggingDebugSession {
         // await this._configurationDone.wait(1000);
         await this._configurationDone.wait()
 
-        this._connection.sendNotification(notifyTypeExec, { stopOnEntry: args.stopOnEntry, code: args.code, file: args.file, compiledModulesOrFunctions: args.compiledModulesOrFunctions })
+        this._connection.sendNotification(notifyTypeExec, {
+            stopOnEntry: args.stopOnEntry,
+            code: args.code,
+            file: args.file,
+            compiledModulesOrFunctions: args.compiledModulesOrFunctions,
+            compiledMode: args.compiledMode
+        })
 
         this.sendResponse(response)
     }
@@ -266,7 +273,12 @@ export class JuliaDebugSession extends LoggingDebugSession {
             this._connection.sendNotification(notifyTypeRun, { program: args.program })
         }
         else {
-            this._connection.sendNotification(notifyTypeDebug, { stopOnEntry: args.stopOnEntry, program: args.program, compiledModulesOrFunctions: args.compiledModulesOrFunctions })
+            this._connection.sendNotification(notifyTypeDebug, {
+                stopOnEntry: args.stopOnEntry,
+                program: args.program,
+                compiledModulesOrFunctions: args.compiledModulesOrFunctions,
+                compiledMode: args.compiledMode
+            })
         }
 
         this.sendResponse(response)
@@ -396,6 +408,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
     protected async customRequest(request: string, response: any, args: any) {
         if (request === 'setCompiledItems') {
             this._connection.sendNotification(notifyTypeSetCompiledItems, args)
+        } else if (request === 'setCompiledMode') {
+            this._connection.sendNotification(notifyTypeSetCompiledMode, args)
         }
     }
 }

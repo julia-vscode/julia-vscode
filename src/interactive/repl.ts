@@ -135,7 +135,8 @@ function debuggerRun(params: DebugLaunchParams) {
         code: params.code,
         file: params.filename,
         stopOnEntry: false,
-        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems()
+        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
+        compiledMode: g_compiledProvider.compiledMode
     })
 }
 
@@ -147,7 +148,8 @@ function debuggerEnter(params: DebugLaunchParams) {
         code: params.code,
         file: params.filename,
         stopOnEntry: true,
-        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems()
+        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
+        compiledMode: g_compiledProvider.compiledMode
     })
 }
 

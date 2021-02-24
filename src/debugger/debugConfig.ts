@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { onExit, onFinishEval, onInit } from '../interactive/repl'
+import { setContext } from '../utils'
 
 interface DebugConfigTreeItem {
     label: string
@@ -17,12 +18,16 @@ const requestTypeGetDebugItems = new rpc.RequestType<
 export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugConfigTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<DebugConfigTreeItem | undefined> = new vscode.EventEmitter<DebugConfigTreeItem | undefined>()
     readonly onDidChangeTreeData: vscode.Event<DebugConfigTreeItem | undefined> = this._onDidChangeTreeData.event
+    private _onDidChangeCompiledMode: vscode.EventEmitter<Boolean> = new vscode.EventEmitter<Boolean>()
+    readonly onDidChangeCompiledMode: vscode.Event<Boolean> = this._onDidChangeCompiledMode.event
     private _compiledItems: Set<string> = new Set()
+    public compiledMode = false
     private _connection = null
 
     refresh(el = null): void {
         this._onDidChangeTreeData.fire(el)
     }
+
     setConnection(conn) {
         this._connection = conn
     }
@@ -191,6 +196,16 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
         this.refresh()
     }
 
+    enableCompiledMode() {
+        this.compiledMode = true
+        this._onDidChangeCompiledMode.fire(this.compiledMode)
+    }
+
+    disableCompiledMode() {
+        this.compiledMode = false
+        this._onDidChangeCompiledMode.fire(this.compiledMode)
+    }
+
     reset() {
         this._compiledItems.clear()
         this.refresh()
@@ -200,6 +215,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
 export function activate(context: vscode.ExtensionContext) {
     const provider = new DebugConfigTreeProvider()
     provider.applyDefaults()
+    setContext('juliaCompiledMode', false)
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('debugger-compiled', provider),
@@ -234,6 +250,14 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('language-julia.set-current-as-default-compiled', async () => {
             provider.setCurrentAsDefault()
+        }),
+        vscode.commands.registerCommand('language-julia.enable-compiled-mode', async () => {
+            provider.enableCompiledMode()
+            setContext('juliaCompiledMode', true)
+        }),
+        vscode.commands.registerCommand('language-julia.disable-compiled-mode', async () => {
+            provider.disableCompiledMode()
+            setContext('juliaCompiledMode', false)
         }),
         onInit(connection => {
             provider.setConnection(connection)

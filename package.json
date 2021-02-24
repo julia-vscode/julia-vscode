@@ -330,6 +330,16 @@
             {
                 "command": "language-julia.set-current-as-default-compiled",
                 "title": "Julia: Set current compiled modules/functions as default"
+            },
+            {
+                "command": "language-julia.enable-compiled-mode",
+                "title": "Julia: Enable Compiled Mode for the debugger",
+                "icon": "$(debug-breakpoint)"
+            },
+            {
+                "command": "language-julia.disable-compiled-mode",
+                "title": "Julia: Disable Compiled Mode for the debugger",
+                "icon": "$(debug-breakpoint-unverified)"
             }
         ],
         "menus": {
@@ -491,6 +501,16 @@
                 {
                     "command": "language-julia.set-compiled-for-name",
                     "when": "view == debugger-compiled",
+                    "group": "navigation"
+                },
+                {
+                    "command": "language-julia.disable-compiled-mode",
+                    "when": "view == debugger-compiled && juliaCompiledMode == true",
+                    "group": "navigation"
+                },
+                {
+                    "command": "language-julia.enable-compiled-mode",
+                    "when": "view == debugger-compiled && juliaCompiledMode == false",
                     "group": "navigation"
                 }
             ],
