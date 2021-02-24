@@ -307,7 +307,8 @@
             },
             {
                 "command": "language-julia.switchAllToCompiled",
-                "title": "all"
+                "title": "Julia: Switch all to compiled",
+                "icon": "$(diff-added)"
             },
             {
                 "command": "language-julia.apply-compiled-defaults",
@@ -315,7 +316,7 @@
             },
             {
                 "command": "language-julia.reset-compiled",
-                "title": "Julia: Reset compiled modules/functions",
+                "title": "Julia: Clear compiled modules/functions",
                 "icon": "$(remove)"
             },
             {
@@ -453,22 +454,22 @@
                 },
                 {
                     "command": "language-julia.switchToInterpreted",
-                    "when": "view == debugger-compiled && viewItem == is-compiled || viewItem == is-compiled-with-children",
+                    "when": "view == debugger-compiled && viewItem =~ /\\bcompiled\\b/",
                     "group": "inline@1"
                 },
                 {
                     "command": "language-julia.switchToCompiled",
-                    "when": "view == debugger-compiled && viewItem == is-interpreted || viewItem == is-interpreted-with-children",
+                    "when": "view == debugger-compiled && viewItem =~ /\\binterpreted\\b/",
                     "group": "inline@1"
                 },
                 {
                     "command": "language-julia.switchAllToCompiled",
-                    "when": "view == debugger-compiled && viewItem == is-interpreted-with-children",
+                    "when": "view == debugger-compiled && viewItem =~ /\\binterpreted\\b/ && viewItem =~ /\\bhasChildren\\b/",
                     "group": "inline@2"
                 },
                 {
                     "command": "language-julia.reset-compiled",
-                    "when": "view == debugger-compiled && viewItem == is-root-compiled",
+                    "when": "view == debugger-compiled && viewItem == isRootCompiled",
                     "group": "inline"
                 }
             ],
@@ -911,7 +912,57 @@
                 "julia.debuggerDefaultCompiled": {
                     "type": "array",
                     "default": [
-                        "Base.iterate",
+                        "Base.",
+                        "-Base.map",
+                        "-Base.setrounding",
+                        "-Base.timedwait",
+                        "-Base.withenv",
+                        "-Base.cd",
+                        "-Base.count",
+                        "-Base.all",
+                        "-Base.atexit",
+                        "-Base.mktemp",
+                        "-Base.all!",
+                        "-Base.print",
+                        "-Base.redirect_stderr",
+                        "-Base.checkindex",
+                        "-Base.reshape",
+                        "-Base.getindex",
+                        "-Base.!",
+                        "-Base.minimum",
+                        "-Base.findfirst",
+                        "-Base.sprint",
+                        "-Base.task_local_storage",
+                        "-Base.setprecision",
+                        "-Base.reduce",
+                        "-Base.include_string",
+                        "-Base.findlast",
+                        "-Base.atreplinit",
+                        "-Base.filter",
+                        "-Base.filter!",
+                        "-Base.map",
+                        "-Base.map!",
+                        "-Base.nameof",
+                        "-Base.sum!",
+                        "-Base.minimum!",
+                        "-Base.disable_sigint",
+                        "-Base.sum",
+                        "-Base.findnext",
+                        "-Base.show",
+                        "-Base.methods",
+                        "-Base.broadcast",
+                        "-Base.mktempdir",
+                        "-Base.prod!",
+                        "-Base.maximum",
+                        "-Base.any",
+                        "-Base.setindex!",
+                        "-Base.findall",
+                        "-Base.maximum!",
+                        "-Base.parentmodule",
+                        "-Base.open",
+                        "-Base.redirect_stdout",
+                        "-Base.reenable_sigint",
+                        "-Base.redirect_stdin",
                         "Core",
                         "Core.Compiler.",
                         "Core.IR",
