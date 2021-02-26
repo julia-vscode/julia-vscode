@@ -79,7 +79,7 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
     getWebviewHTML(innerHTML: string) {
         const extensionPath = this.context.extensionPath
         const plotterStylesheet = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'plotter', 'plotter.css')))
-        const plotterJavaScript = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'plotter', 'plotter.js')))
+        const plotterJavaScript = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'src', 'interactive', 'plots', 'panel_webview.js')))
 
         return `<html lang="en" class='theme--plotter'>
             <head>
@@ -310,7 +310,7 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
         // We need to show the pane before accessing the webview to avoid "undefined" issue in webview.
         g_screenShotScript = `<script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotter', 'html2canvas.min.js')))}"></script>
-        <script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotter', 'main_plot_webview.js')))}"></script>`
+        <script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'interactive', 'plots', 'main_plot_webview.js')))}"></script>`
 
         // We display a text thumbnail first just in case that JavaScript errors in the webview or did not successfully send out message and corrupt thumbnail indices.
         g_plotProvider.setPlotsInfo(plotsInfo => {
