@@ -1,11 +1,8 @@
 *.vsix
+out
+node_modules
+scripts/languageserver/julia_pkgdir/lib/
 .vscode/.browse.VC.db*
-/.vscode-test/
-/node_modules/
-/dist/
-/out/
-/scripts/languageserver/julia_pkgdir/lib/
-/scripts/languageserver/julia_pkgdir/compiled/
-/scripts/languageserver/julia_pkgdir/logs/
+.vscode-test/
 /libs/plotter/plotter.css.map
 .sass-cache
