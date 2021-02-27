@@ -309,7 +309,7 @@ export function displayPlot(params: { kind: string, data: string }) {
     if (kind !== 'application/vnd.dataresource+json') {
         showPlotPane()
         // We need to show the pane before accessing the webview to avoid "undefined" issue in webview.
-        g_screenShotScript = `<script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotter', 'html2canvas.min.js')))}"></script>
+        g_screenShotScript = `<script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'html2canvas', 'html2canvas.min.js')))}"></script>
         <script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'src', 'interactive', 'plots', 'main_plot_webview.js')))}"></script>`
 
         // We display a text thumbnail first just in case that JavaScript errors in the webview or did not successfully send out message and corrupt thumbnail indices.
