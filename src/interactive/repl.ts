@@ -481,53 +481,58 @@ async function executeCell(shouldMove: boolean = false) {
 }
 
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
-    telemetry.traceEvent('command-executeCodeBlockOrSelection')
+    try {
+        telemetry.traceEvent('command-executeCodeBlockOrSelection')
 
 
-    const editor = vscode.window.activeTextEditor
-    if (editor === undefined) {
-        return
-    }
-
-    const selections = editor.selections.slice()
-
-    await startREPL(true, false)
-
-    for (const selection of selections) {
-        let range: vscode.Range = null
-        let nextBlock: vscode.Position = null
-        const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
-        const module: string = await modules.getModuleForEditor(editor.document, startpos)
-
-        if (selection.isEmpty) {
-            const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor.document, startpos))
-            range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
-            nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
-        } else {
-            range = new vscode.Range(selection.start, selection.end)
-        }
-
-        const text = editor.document.getText(range)
-
-        if (shouldMove && nextBlock && selection.isEmpty && editor.selections.length === 1 && editor.selection === selection) {
-            validateMoveAndReveal(editor, nextBlock, nextBlock)
-        }
-
-        if (range.isEmpty) {
+        const editor = vscode.window.activeTextEditor
+        if (editor === undefined) {
             return
         }
 
-        const tempDecoration = vscode.window.createTextEditorDecorationType({
-            backgroundColor: new vscode.ThemeColor('editor.hoverHighlightBackground'),
-            isWholeLine: true
-        })
-        editor.setDecorations(tempDecoration, [range])
+        const selections = editor.selections.slice()
 
-        setTimeout(() => {
-            editor.setDecorations(tempDecoration, [])
-        }, 200)
+        await startREPL(true, false)
 
-        await evaluate(editor, range, text, module)
+        for (const selection of selections) {
+            let range: vscode.Range = null
+            let nextBlock: vscode.Position = null
+            const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
+            const module: string = await modules.getModuleForEditor(editor.document, startpos)
+
+            if (selection.isEmpty) {
+                const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor.document, startpos))
+                range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
+                nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
+            } else {
+                range = new vscode.Range(selection.start, selection.end)
+            }
+
+            const text = editor.document.getText(range)
+
+            if (shouldMove && nextBlock && selection.isEmpty && editor.selections.length === 1 && editor.selection === selection) {
+                validateMoveAndReveal(editor, nextBlock, nextBlock)
+            }
+
+            if (range.isEmpty) {
+                return
+            }
+
+            const tempDecoration = vscode.window.createTextEditorDecorationType({
+                backgroundColor: new vscode.ThemeColor('editor.hoverHighlightBackground'),
+                isWholeLine: true
+            })
+            editor.setDecorations(tempDecoration, [range])
+
+            setTimeout(() => {
+                editor.setDecorations(tempDecoration, [])
+            }, 200)
+
+            await evaluate(editor, range, text, module)
+        }
+    }
+    catch (err) {
+        telemetry.handleNewCrashReportFromException(err, 'Extension')
     }
 }
 
