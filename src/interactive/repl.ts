@@ -533,6 +533,8 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     }
     catch (err) {
         telemetry.handleNewCrashReportFromException(err, 'Extension')
+        throw (err)
+
     }
 }
 
