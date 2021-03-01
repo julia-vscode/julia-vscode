@@ -21,11 +21,12 @@ export function setContext(contextKey: string, state: boolean) {
 }
 
 export function generatePipeName(pid: string, name: string) {
+    const id = Math.floor(Math.random() * 1000000)
     if (process.platform === 'win32') {
-        return '\\\\.\\pipe\\' + name + '-' + pid
+        return '\\\\.\\pipe\\' + name + '-' + pid + '-' + id
     }
     else {
-        return path.join(os.tmpdir(), name + '-' + pid)
+        return path.join(os.tmpdir(), name + '-' + pid + '-' + id)
     }
 }
 
