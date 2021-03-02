@@ -11,7 +11,7 @@ import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
-import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, setContext } from '../utils'
+import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerCommand, setContext } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -801,21 +801,21 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }),
         // commands
-        vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand),
-        vscode.commands.registerCommand('language-julia.stopREPL', killREPL),
-        vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock),
-        vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
-        vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
-        vscode.commands.registerCommand('language-julia.executeCell', executeCell),
-        vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
-        vscode.commands.registerCommand('language-julia.moveCellUp', moveCellUp),
-        vscode.commands.registerCommand('language-julia.moveCellDown', moveCellDown),
-        vscode.commands.registerCommand('language-julia.executeFile', executeFile),
-        vscode.commands.registerCommand('language-julia.interrupt', interrupt),
-        vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
-        vscode.commands.registerCommand('language-julia.cdHere', cdToHere),
-        vscode.commands.registerCommand('language-julia.activateHere', activateHere),
-        vscode.commands.registerCommand('language-julia.activateFromDir', activateFromDir),
+        registerCommand('language-julia.startREPL', startREPLCommand),
+        registerCommand('language-julia.stopREPL', killREPL),
+        registerCommand('language-julia.selectBlock', selectJuliaBlock),
+        registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
+        registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
+        registerCommand('language-julia.executeCell', executeCell),
+        registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
+        registerCommand('language-julia.moveCellUp', moveCellUp),
+        registerCommand('language-julia.moveCellDown', moveCellDown),
+        registerCommand('language-julia.executeFile', executeFile),
+        registerCommand('language-julia.interrupt', interrupt),
+        registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
+        registerCommand('language-julia.cdHere', cdToHere),
+        registerCommand('language-julia.activateHere', activateHere),
+        registerCommand('language-julia.activateFromDir', activateFromDir),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
