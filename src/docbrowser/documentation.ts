@@ -2,7 +2,7 @@ import * as markdownit from 'markdown-it'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
-import { constructCommandString, getVersionedParamsAtPosition } from '../utils'
+import { constructCommandString, getVersionedParamsAtPosition, registerCommand } from '../utils'
 
 function openArgs(href: string) {
     const matches = href.match(/^((\w+\:\/\/)?.+?)(?:\:(\d+))?$/)
@@ -51,11 +51,11 @@ export function activate(context: vscode.ExtensionContext) {
     const provider = new DocumentationViewProvider(context)
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('language-julia.show-documentation-pane', () => provider.showDocumentationPane()),
-        vscode.commands.registerCommand('language-julia.show-documentation', () => provider.showDocumentation()),
-        vscode.commands.registerCommand('language-julia.browse-back-documentation', () => provider.browseBack()),
-        vscode.commands.registerCommand('language-julia.browse-forward-documentation', () => provider.browseForward()),
-        vscode.commands.registerCommand('language-julia.search-word', (params) => provider.findHelp(params)),
+        registerCommand('language-julia.show-documentation-pane', () => provider.showDocumentationPane()),
+        registerCommand('language-julia.show-documentation', () => provider.showDocumentation()),
+        registerCommand('language-julia.browse-back-documentation', () => provider.browseBack()),
+        registerCommand('language-julia.browse-forward-documentation', () => provider.browseForward()),
+        registerCommand('language-julia.search-word', (params) => provider.findHelp(params)),
         vscode.window.registerWebviewViewProvider('julia-documentation', provider)
     )
 }

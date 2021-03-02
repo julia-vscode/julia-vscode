@@ -1,6 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
+import { registerCommand } from '../utils'
 
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
@@ -13,19 +14,19 @@ let g_context: vscode.ExtensionContext = null
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane))
+    context.subscriptions.push(registerCommand('language-julia.show-plotpane', showPlotPane))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-previous', plotPanePrev))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-previous', plotPanePrev))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-next', plotPaneNext))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-next', plotPaneNext))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-first', plotPaneFirst))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-first', plotPaneFirst))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-last', plotPaneLast))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-last', plotPaneLast))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-delete', plotPaneDel))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll))
 }
 
 function getPlotPaneContent() {

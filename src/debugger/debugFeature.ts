@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import * as jlpkgenv from '../jlpkgenv'
 import { getJuliaExePath } from '../juliaexepath'
+import { registerCommand } from '../utils'
 import { JuliaDebugSession } from './juliaDebug'
 
 export class JuliaDebugFeature {
@@ -11,11 +12,11 @@ export class JuliaDebugFeature {
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
             vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory),
-            vscode.commands.registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
+            registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
                 const pkgenvpath = await jlpkgenv.getAbsEnvPath()
                 return pkgenvpath
             }),
-            vscode.commands.registerCommand('language-julia.runEditorContents', (resource: vscode.Uri | undefined) => {
+            registerCommand('language-julia.runEditorContents', (resource: vscode.Uri | undefined) => {
                 const program = getActiveUri(resource)
                 if (!program) {
                     vscode.window.showInformationMessage('No active editor found.')
@@ -34,7 +35,7 @@ export class JuliaDebugFeature {
                     noDebug: true
                 })
             }),
-            vscode.commands.registerCommand('language-julia.debugEditorContents', (resource: vscode.Uri | undefined) => {
+            registerCommand('language-julia.debugEditorContents', (resource: vscode.Uri | undefined) => {
                 const program = getActiveUri(resource)
                 if (!program) {
                     vscode.window.showInformationMessage('No active editor found.')

@@ -4,6 +4,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as juliaexepath from './juliaexepath'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 
 const tempfs = require('promised-temp').track()
 const kill = require('async-child-process').kill
@@ -160,7 +161,7 @@ async function save() {
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview', open_preview))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview-side', open_preview_side))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-save', save))
+    context.subscriptions.push(registerCommand('language-julia.weave-open-preview', open_preview))
+    context.subscriptions.push(registerCommand('language-julia.weave-open-preview-side', open_preview_side))
+    context.subscriptions.push(registerCommand('language-julia.weave-save', save))
 }

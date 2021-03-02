@@ -8,6 +8,7 @@ import { onSetLanguageClient } from './extension'
 import * as juliaexepath from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 
 let g_languageClient: vslc.LanguageClient = null
 
@@ -210,7 +211,7 @@ export async function activate(context: vscode.ExtensionContext) {
         g_languageClient = languageClient
     }))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
+    context.subscriptions.push(registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
     // Environment status bar
     g_current_environment = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
     g_current_environment.show()
