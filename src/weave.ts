@@ -27,7 +27,9 @@ async function weave_core(column, selected_format: string = undefined) {
 
         await fs.writeTextFile(source_filename, source_text, 'utf8')
 
-        output_filename = path.join(temporary_dirname, 'output-file.html')
+        // note that there is a bug in Weave.jl right now that does not support the option
+        // out_path properly. The output file will therefore always have the format [input-file].html
+        output_filename = path.join(temporary_dirname, 'source-file.html')
     }
     else {
         source_filename = vscode.window.activeTextEditor.document.fileName
