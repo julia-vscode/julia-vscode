@@ -397,20 +397,62 @@ const g_cellDelimiters = [
     /^#(\s?)%%/
 ]
 
+const g_JMDDelimiters = [
+    /^```/
+]
+
+const g_JMDClosingDelimiters = [
+    /^```$/
+]
+
+const g_JMDOpeningDelimiters = [
+    /^```{?julia/
+]
+
 function isCellBorder(s: string) {
     return g_cellDelimiters.some(regex => regex.test(s))
 }
 
+function isJMDBorder(s: string) {
+    return g_JMDDelimiters.some(regex => regex.test(s))
+}
+
 function _nextCellBorder(doc, line_num: number, direction: number) {
     assert(direction === 1 || direction === -1)
+    let checkBorder = isCellBorder;
+    if (doc.languageId == 'juliamarkdown') {
+        checkBorder = isJMDBorder;
+    }
     while (0 <= line_num && line_num < doc.lineCount) {
-        if (isCellBorder(doc.lineAt(line_num).text)) {
+        if (checkBorder(doc.lineAt(line_num).text)) {
             break
         }
         line_num += direction
     }
     return line_num
 }
+
+
+
+function validateWithinCodeBlockJMD(editor: vscode.TextEditor) {
+    const doc = editor.document
+    const currline = editor.selection.active.line
+    let line_num = currline + 1
+    while (0 <= line_num && line_num < doc.lineCount) {
+        // check if the first code block is an opening:
+        if (g_JMDOpeningDelimiters.some(regex => regex.test(doc.lineAt(line_num).text))) {
+            return false
+        }
+        // then check if it is closing statement -> then we can run it
+        if (g_JMDClosingDelimiters.some(regex => regex.test(doc.lineAt(line_num).text))) {
+            return true
+        }
+        line_num += 1
+    }
+    // if the loop finished without finding closing or opening statements we are in a final markdown segment, so no execution
+    return false
+}
+
 
 const nextCellBorder = (doc, line_num) => _nextCellBorder(doc, line_num, +1)
 const prevCellBorder = (doc, line_num) => _nextCellBorder(doc, line_num, -1)
@@ -455,6 +497,7 @@ function currentCellRange(editor: vscode.TextEditor) {
     return new vscode.Range(startpos, endpos)
 }
 
+
 async function executeCell(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCell')
 
@@ -462,7 +505,11 @@ async function executeCell(shouldMove: boolean = false) {
     if (ed === undefined) {
         return
     }
-
+    if (ed.document.languageId == 'juliamarkdown') {
+        if (!validateWithinCodeBlockJMD(ed)) {
+            return
+        }
+    }
     const doc = ed.document
     const selection = ed.selection
     const cellrange = currentCellRange(ed)
@@ -487,6 +534,12 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     const editor = vscode.window.activeTextEditor
     if (editor === undefined) {
         return
+    }
+
+    if (editor.document.languageId == 'juliamarkdown') {
+        if (!validateWithinCodeBlockJMD(editor)) {
+            return
+        }
     }
 
     const selections = editor.selections.slice()
