@@ -2,6 +2,7 @@ import * as appInsights from 'applicationinsights'
 import * as fs from 'async-file'
 import * as net from 'net'
 import * as path from 'path'
+import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
 import { generatePipeName } from './utils'
@@ -140,7 +141,7 @@ export function handleNewCrashReportFromException(exception: Error, cloudRole: s
 
 export function startLsCrashServer() {
 
-    g_jlcrashreportingpipename = generatePipeName(process.pid.toString(), 'vsc-jl-cr')
+    g_jlcrashreportingpipename = generatePipeName(uuid(), 'vsc-jl-cr')
 
     const server = net.createServer(function (connection) {
         let accumulatingBuffer = Buffer.alloc(0)

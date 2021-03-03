@@ -3,6 +3,7 @@ import { Subject } from 'await-notify'
 import { assert } from 'console'
 import * as net from 'net'
 import * as path from 'path'
+import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import * as vslc from 'vscode-languageclient/node'
@@ -55,7 +56,7 @@ function get_editor(): string {
 
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (g_terminal === null) {
-        const pipename = generatePipeName(process.pid.toString(), 'vsc-julia-repl')
+        const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
         const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         function getArgs() {
             const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
