@@ -20,6 +20,7 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 import * as weave from './weave'
 
 let g_languageClient: LanguageClient = null
@@ -91,8 +92,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
         context.subscriptions.push(
             // commands
-            vscode.commands.registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
-            vscode.commands.registerCommand('language-julia.restartLanguageServer', restartLanguageServer),
+            registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
+            registerCommand('language-julia.restartLanguageServer', restartLanguageServer),
             // registries
             vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider())
         )
@@ -264,7 +265,7 @@ async function startLanguageServer() {
         })
     }
 
-    const disposable = vscode.commands.registerCommand('language-julia.showLanguageServerOutput', () => {
+    const disposable = registerCommand('language-julia.showLanguageServerOutput', () => {
         languageClient.outputChannel.show(true)
     })
     try {

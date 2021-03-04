@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { constructCommandString, setContext } from '../utils'
+import { constructCommandString, registerCommand, setContext } from '../utils'
 
 const LINE_INF = 9999
 
@@ -205,23 +205,23 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.onDidChangeTextEditorSelection(changeEvent => updateResultContextKey(changeEvent)),
 
         // public commands
-        vscode.commands.registerCommand('language-julia.clearAllInlineResults', removeAll),
-        vscode.commands.registerCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
-        vscode.commands.registerCommand('language-julia.clearCurrentInlineResult', () => removeCurrent(vscode.window.activeTextEditor)),
+        registerCommand('language-julia.clearAllInlineResults', removeAll),
+        registerCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
+        registerCommand('language-julia.clearCurrentInlineResult', () => removeCurrent(vscode.window.activeTextEditor)),
 
         // internal commands
-        vscode.commands.registerCommand('language-julia.openFile', (locationArg: { path: string, line: number }) => {
+        registerCommand('language-julia.openFile', (locationArg: { path: string, line: number }) => {
             openFile(locationArg.path, locationArg.line)
         }),
-        vscode.commands.registerCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
-        vscode.commands.registerCommand('language-julia.gotoPreviousFrame', (frameArg: { frame: Frame }) => {
+        registerCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
+        registerCommand('language-julia.gotoPreviousFrame', (frameArg: { frame: Frame }) => {
             gotoPreviousFrame(frameArg.frame)
         }),
-        vscode.commands.registerCommand('language-julia.gotoNextFrame', (frameArg: { frame: Frame }) => {
+        registerCommand('language-julia.gotoNextFrame', (frameArg: { frame: Frame }) => {
             gotoNextFrame(frameArg.frame)
         }),
-        vscode.commands.registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
-        vscode.commands.registerCommand('language-julia.clearStackTrace', clearStackTrace)
+        registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
+        registerCommand('language-julia.clearStackTrace', clearStackTrace)
     )
 }
 

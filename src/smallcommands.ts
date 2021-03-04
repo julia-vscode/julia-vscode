@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 
 function toggleLinter() {
     telemetry.traceEvent('command-togglelinter')
@@ -40,6 +41,6 @@ function applyTextEdit(we) {
 // }
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.applytextedit', applyTextEdit))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.toggleLinter', toggleLinter))
+    context.subscriptions.push(registerCommand('language-julia.applytextedit', applyTextEdit))
+    context.subscriptions.push(registerCommand('language-julia.toggleLinter', toggleLinter))
 }
