@@ -144,7 +144,7 @@
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelection",
-                "title": "Julia: Execute Code"
+                "title": "Julia: Execute Code in REPL"
             },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
@@ -152,11 +152,11 @@
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
-                "title": "Julia: Execute Code And Move"
+                "title": "Julia: Execute Code in REPL and Move"
             },
             {
                 "command": "language-julia.executeFile",
-                "title": "Julia: Execute File",
+                "title": "Julia: Execute File in REPL",
                 "icon": "$(play)"
             },
             {
@@ -230,11 +230,11 @@
             },
             {
                 "command": "language-julia.executeCell",
-                "title": "Julia: Execute Code Cell"
+                "title": "Julia: Execute Code Cell in REPL"
             },
             {
                 "command": "language-julia.executeCellAndMove",
-                "title": "Julia: Execute Code Cell And Move"
+                "title": "Julia: Execute Code Cell in REPL and Move"
             },
             {
                 "command": "language-julia.moveCellUp",
