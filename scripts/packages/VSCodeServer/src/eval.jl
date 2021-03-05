@@ -1,6 +1,13 @@
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
 
+# Workaround for https://github.com/julia-vscode/julia-vscode/issues/1940
+struct Wrapper
+    content
+end
+wrap(x) = Wrapper(x)
+unwrap(x) = x.content
+
 const EVAL_CHANNEL_IN = Channel(0)
 const EVAL_CHANNEL_OUT = Channel(0)
 const EVAL_BACKEND_TASK = Ref{Any}(nothing)
@@ -12,7 +19,7 @@ end
 
 function run_with_backend(f, args...)
   put!(EVAL_CHANNEL_IN, (f, args))
-  return take!(EVAL_CHANNEL_OUT)
+  return unwrap(take!(EVAL_CHANNEL_OUT))
 end
 
 function start_eval_backend()
@@ -30,9 +37,9 @@ function start_eval_backend()
         end
         IS_BACKEND_WORKING[] = false
         Base.sigatomic_begin()
-        put!(EVAL_CHANNEL_OUT, res)
+        put!(EVAL_CHANNEL_OUT, wrap(res))
       catch err
-        put!(EVAL_CHANNEL_OUT, err)
+        put!(EVAL_CHANNEL_OUT, wrap(err))
       finally
         IS_BACKEND_WORKING[] = false
       end

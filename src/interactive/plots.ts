@@ -1,6 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
+import { registerCommand } from '../utils'
 
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
@@ -16,21 +17,21 @@ export function activate(context: vscode.ExtensionContext) {
 
     g_plotProvider = new PlotViewProvider(context)
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plotpane', showPlotPane))
+    context.subscriptions.push(registerCommand('language-julia.show-plotpane', showPlotPane))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-previous', plotPanePrev))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-previous', plotPanePrev))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-next', plotPaneNext))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-next', plotPaneNext))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-first', plotPaneFirst))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-first', plotPaneFirst))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-last', plotPaneLast))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-last', plotPaneLast))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete', plotPaneDel))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-delete', plotPaneDel))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll))
+    context.subscriptions.push(registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.show-plot-navigator', g_plotProvider.showPlotNavigator))
+    context.subscriptions.push(registerCommand('language-julia.show-plot-navigator', g_plotProvider.showPlotNavigator))
 
     vscode.window.registerWebviewViewProvider('julia-plot-navigator', g_plotProvider)
 }
@@ -294,8 +295,8 @@ function wrap_imagelike(srcstring: string) {
     const html = `
     <html style="padding:0;margin:0;">
         <body style="padding:0;margin:0;">
-            <div style='width: 100%; height: 100vh'>
-                <img style='display:block; height: 100%; width: 100%; object-fit: scale-down; object-position: 0 0;' src='${srcstring}'>
+            <div style="width: 100%; height: 100vh;">
+                <img style="display:block; height: 100%; width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcstring}">
             </div>
         </body>
     </html>`
@@ -323,17 +324,17 @@ export function displayPlot(params: { kind: string, data: string }) {
     }
 
     if (kind === 'image/svg+xml') {
-        const has_xmlns_attribute = payload.includes('xmlns=');
-        let plotPaneContent: string;
+        const has_xmlns_attribute = payload.includes('xmlns=')
+        let plotPaneContent: string
         if (has_xmlns_attribute) {
             // the xmlns attribute has to be present for data:image/svg+xml to work (https://stackoverflow.com/questions/18467982)
             // encodeURIComponent is needed to replace all special characters from the SVG string
             // which could break the HTML
-            plotPaneContent = wrap_imagelike(`data:image/svg+xml,${encodeURIComponent(payload)}`);
+            plotPaneContent = wrap_imagelike(`data:image/svg+xml,${encodeURIComponent(payload)}`)
         } else {
             // otherwise we just show the svg directly as it's not straightforward to scale it
             // correctly if it's not in an img tag
-            plotPaneContent = payload;
+            plotPaneContent = payload
         }
 
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
@@ -365,7 +366,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -399,7 +400,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -433,7 +434,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -465,7 +466,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -497,7 +498,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -529,7 +530,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="width:100%;height:100%;"></div>
+                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -559,27 +560,22 @@ export function displayPlot(params: { kind: string, data: string }) {
             <script src="${uriPlotly}"></script>
         </head>
         <body>
+            <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
         </body>
         <script type="text/javascript">
-            gd = (function() {
-                var WIDTH_IN_PERCENT_OF_PARENT = 100
-                var HEIGHT_IN_PERCENT_OF_PARENT = 100;
-                var gd = Plotly.d3.select('body')
-                    .append('div').attr("id", "plotdiv")
-                    .style({
-                        width: WIDTH_IN_PERCENT_OF_PARENT + '%',
-                        'margin-left': (100 - WIDTH_IN_PERCENT_OF_PARENT) / 2 + '%',
-                        height: HEIGHT_IN_PERCENT_OF_PARENT + 'vh',
-                        'margin-top': (100 - HEIGHT_IN_PERCENT_OF_PARENT) / 2 + 'vh'
-                    })
-                    .node();
-                var spec = ${payload};
-                Plotly.newPlot(gd, spec.data, spec.layout);
-                window.onresize = function() {
-                    Plotly.Plots.resize(gd);
-                    };
-                return gd;
-            })();
+            function onResize () {
+                const update = {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                }
+                Plotly.relayout('plotdiv', update)
+            }
+            const spec = ${payload};
+            Plotly.newPlot('plotdiv', spec.data, spec.layout);
+            if (!(spec.layout.width || spec.layout.height)) {
+                onResize()
+                window.addEventListener('resize', onResize);
+            }
         </script>
         </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1

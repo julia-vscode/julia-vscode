@@ -43,7 +43,8 @@ function display(d::InlineDisplay, m::MIME, x)
     else
         mime = string(m)
         if mime in DISPLAYABLE_MIMES
-            payload = stringmime(m, x)
+            # we now all except for `image/...` mime types are not binary
+            payload = startswith(mime, "image") ? stringmime(m, x) : String(repr(m, x))
             sendDisplayMsg(mime, payload)
         else
             throw(MethodError(display, (d, m, x)))
@@ -53,15 +54,13 @@ function display(d::InlineDisplay, m::MIME, x)
 end
 
 Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
-Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
 Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
 function display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
-    payload = stringmime(m, x)
+    payload = String(repr(m, x))
     sendDisplayMsg(string(m), payload)
 end
-
 
 Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 

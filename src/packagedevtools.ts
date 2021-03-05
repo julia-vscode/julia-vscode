@@ -2,10 +2,11 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { getJuliaExePath } from './juliaexepath'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 
 export class JuliaPackageDevFeature {
     constructor(private context: vscode.ExtensionContext) {
-        this.context.subscriptions.push(vscode.commands.registerCommand('language-julia.tagNewPackageVersion', () => this.tagNewPackageVersion()))
+        this.context.subscriptions.push(registerCommand('language-julia.tagNewPackageVersion', () => this.tagNewPackageVersion()))
     }
 
     private async tagNewPackageVersion() {
