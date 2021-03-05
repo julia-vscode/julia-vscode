@@ -131,11 +131,15 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
     }
 
     reloadPlotPane() {
+        if (!this.view) {
+            return
+        }
+
         let innerHTML: string
         if (this.plotsInfo.length > 0) {
             innerHTML = `<div>
-                ${this.plotsInfo.map(this.plotToThumbnail).join("\n")}
-            </div>`
+            ${this.plotsInfo.map(this.plotToThumbnail).join("\n")}
+        </div>`
         } else {
             innerHTML = `<p>Use Julia to plot and your plots will appear here.</p>`
         }
