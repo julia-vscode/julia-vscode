@@ -6,7 +6,7 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.52.0"
+        "vscode": "^1.54.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -144,7 +144,7 @@
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelection",
-                "title": "Julia: Execute Code"
+                "title": "Julia: Execute Code in REPL"
             },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
@@ -152,11 +152,11 @@
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
-                "title": "Julia: Execute Code And Move"
+                "title": "Julia: Execute Code in REPL and Move"
             },
             {
                 "command": "language-julia.executeFile",
-                "title": "Julia: Execute File",
+                "title": "Julia: Execute File in REPL",
                 "icon": "$(play)"
             },
             {
@@ -230,11 +230,11 @@
             },
             {
                 "command": "language-julia.executeCell",
-                "title": "Julia: Execute Code Cell"
+                "title": "Julia: Execute Code Cell in REPL"
             },
             {
                 "command": "language-julia.executeCellAndMove",
-                "title": "Julia: Execute Code Cell And Move"
+                "title": "Julia: Execute Code Cell in REPL and Move"
             },
             {
                 "command": "language-julia.moveCellUp",
@@ -346,16 +346,6 @@
                     "command": "language-julia.plotpane-delete-all"
                 },
                 {
-                    "command": "language-julia.executeFile",
-                    "when": "resourceLangId == julia",
-                    "group": "1_run@10"
-                },
-                {
-                    "command": "language-julia.debugEditorContents",
-                    "when": "resourceLangId == julia",
-                    "group": "1_run@20"
-                },
-                {
                     "command": "language-julia.clearAllInlineResultsInEditor",
                     "when": "editorLangId == julia"
                 },
@@ -370,6 +360,23 @@
                 {
                     "command": "language-julia.activateFromDir",
                     "group": "julia"
+                }
+            ],
+            "editor/title/run": [
+                {
+                    "command": "language-julia.executeFile",
+                    "when": "resourceLangId == julia",
+                    "group": "Julia@10"
+                },
+                {
+                    "command": "language-julia.runEditorContents",
+                    "when": "resourceLangId == julia",
+                    "group": "Julia@20"
+                },
+                {
+                    "command": "language-julia.debugEditorContents",
+                    "when": "resourceLangId == julia",
+                    "group": "Julia@30"
                 }
             ],
             "commandPalette": [
