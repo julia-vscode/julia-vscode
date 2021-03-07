@@ -5,3 +5,4 @@
 /dist/
 /out/
 /scripts/languageserver/julia_pkgdir/lib/
+/ui-test-resources

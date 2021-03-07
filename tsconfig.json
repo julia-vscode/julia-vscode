@@ -8,11 +8,12 @@
             "dom"
         ],
         "sourceMap": true,
-        "rootDir": "src",
+        "rootDir": ".",
         "noUnusedLocals": true
     },
     "exclude": [
         "node_modules",
-        ".vscode-test"
+        ".vscode-test",
+        "ui-test-resources"
     ]
 }
