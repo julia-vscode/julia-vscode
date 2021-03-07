@@ -1,0 +1,54 @@
+name: UI Test CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14]
+        julia-version: ['1.5']
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup Dependencies
+        run: |
+          rm -f package-lock.json
+          npm run ui-test-setup
+          npm run compile
+
+      - name: Setup julia
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.julia-version }}
+
+      - name: Run UI Tests
+        run: |
+          sudo apt-get install xvfb
+          export DISPLAY=:99.0
+          Xvfb -ac :99 -screen 0 1920x1080x16 &
+          npm run ui-test
+
+      - name: Archive UI Test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: ui-test-screenshots
+          path: ui-test-resources/screenshots
+          if-no-files-found: ignore
+
+          name: ui-test-log
+          path: ui-test-resources/test.log
+          if-no-files-found: error
