@@ -31,6 +31,8 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
     print(io, ex.msg)
 end
 
+server = nothing # in the global scope so that memory allocation can be probed
+
 try
     if length(Base.ARGS) != 5
         error("Invalid number of arguments passed to julia language server.")
