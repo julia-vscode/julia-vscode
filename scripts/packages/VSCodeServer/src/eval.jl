@@ -90,6 +90,7 @@ function add_code_to_repl_history(code)
     end
 end
 
+ans = nothing
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     return run_with_backend() do
         fix_displays()
@@ -147,8 +148,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
 
             withpath(source_filename) do
                 res = try
-                    ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
-                    @eval Main ans = $(QuoteNode(ans))
+                    global ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope=params.softscope)
+                    @eval Main ans = Main.VSCodeServer.ans
                 catch err
                     EvalError(err, catch_backtrace())
                 finally

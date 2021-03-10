@@ -67,7 +67,7 @@ export function inferJuliaNumThreads(): string {
 export function registerCommand(cmd: string, f) {
     const fWrapped = (...args) => {
         try {
-            f(...args)
+            return f(...args)
         } catch (err) {
             handleNewCrashReportFromException(err, 'Extension')
             throw (err)
