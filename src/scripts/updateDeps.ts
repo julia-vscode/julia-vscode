@@ -1,5 +1,4 @@
 import * as cp from 'child-process-promise'
-import * as cson from 'cson-parser'
 import * as download from 'download'
 import { promises as fs } from 'fs'
 import { homedir } from 'os'
@@ -25,28 +24,6 @@ async function our_download(url: string, destination: string) {
     return
 }
 
-async function download_and_convert_grammar(juliaPath: string) {
-    const dest_path = path.join(process.cwd(), 'syntaxes/julia.json')
-
-    const grammarAsCSON = await download('https://raw.githubusercontent.com/JuliaEditorSupport/atom-language-julia/master/grammars/julia.cson')
-
-    const content = cson.parse(grammarAsCSON.toString())
-
-    const grammarAsJSON = JSON.stringify(content, undefined, 2)
-
-    try {
-        await fs.access(dest_path)
-        await fs.unlink(dest_path)
-    }
-    catch (err) {
-        console.log(`Could not delete file '${dest_path}'.`)
-    }
-
-    await fs.writeFile(dest_path, grammarAsJSON)
-
-    await cp.exec(`${juliaPath} syntaxes/update_syntax.jl`, { cwd: process.cwd() })
-}
-
 async function main() {
     const juliaPath = path.join(homedir(), 'AppData', 'Local', 'Julia-1.3.1', 'bin', 'julia.exe')
 
@@ -63,8 +40,6 @@ async function main() {
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css', 'libs/fontawesome/fontawesome.min.css')
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css', 'libs/fontawesome/solid.min.css')
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css', 'libs/fontawesome/brands.min.css')
-
-    await download_and_convert_grammar(juliaPath)
 
     for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer', 'DebugAdapter', 'ChromeProfileFormat']) {
         await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
