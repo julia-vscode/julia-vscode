@@ -2,7 +2,13 @@ using Sockets
 import InteractiveUtils
 
 function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
-    @warn "Some Julia code in the VS Code extension crashed with" e
+    @warn "Some Julia code in the VS Code extension crashed with" exception = (e, bt)
+
+    # wait 30s and then kill the process
+    @async begin
+        sleep(30)
+        exit(1)
+    end
 
     st = stacktrace(bt)
     pipe_to_vscode = connect(vscode_pipe_name)
@@ -19,7 +25,7 @@ function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
         println(temp_io)
         showerror(temp_io, e)
         error_message_str = chomp(String(take!(temp_io)))
-        n = count(i->i == '\n', error_message_str) + 1
+        n = count(i -> i == '\n', error_message_str) + 1
         println(pipe_to_vscode, n)
         println(pipe_to_vscode, error_message_str)
 
