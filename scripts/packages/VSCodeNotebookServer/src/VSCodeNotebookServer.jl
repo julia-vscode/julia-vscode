@@ -126,6 +126,8 @@ function serve(pipename)
 
         watch_stdio()
 
+        @info "Julia Kernel started..."
+
         while true
             msg = JSONRPC.get_next_message(conn_endpoint[])
 
@@ -142,10 +144,11 @@ function serve(pipename)
                         Base.display(result)
                     end
 
-                    JSONRPC.send_success_response(conn_endpoint[], msg, "success")
+
+                    JSONRPC.send_notification(conn_endpoint[], "runcellsucceeded", Dict{String,Any}("request_id" => current_request_id[]))
                 catch err
                     Base.display_error(err, catch_backtrace())
-                    JSONRPC.send_success_response(conn_endpoint[], msg, "error")
+                    JSONRPC.send_notification(conn_endpoint[], "runcellfailed", Dict{String,Any}("request_id" => current_request_id[]))
                 end
 
                 flush_all()
@@ -157,7 +160,7 @@ function serve(pipename)
     catch err
         Base.display_error(orig_stderr[], err, catch_backtrace())
         readline()
-    end
+end
 
 end
 

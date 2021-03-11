@@ -1,25 +1,39 @@
 import * as vscode from 'vscode'
-import { JuliaNotebookProvider } from './notebookProvider'
+import { JuliaKernel } from './notebookKernel'
+
+export class JuliaNotebookKernelProvider implements vscode.NotebookKernelProvider<JuliaKernel> {
+    constructor(public extensionPath: string) {
+    }
+
+    // onDidChangeKernels?: vscode.Event<vscode.NotebookDocument>;
+
+    async provideKernels(document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<JuliaKernel[]> {
+        return [new JuliaKernel(document, this.extensionPath)]
+    }
+
+    async resolveKernel?(kernel: JuliaKernel, document: vscode.NotebookDocument, webview: vscode.NotebookCommunication, token: vscode.CancellationToken): Promise<void> {
+        await kernel.start()
+    }
+
+}
 
 export class JuliaNotebookFeature {
-    public provider: JuliaNotebookProvider;
+    public provider: JuliaNotebookKernelProvider;
 
     constructor(context: vscode.ExtensionContext) {
-        this.provider = new JuliaNotebookProvider(context.extensionPath)
+        this.provider = new JuliaNotebookKernelProvider(context.extensionPath)
 
-        context.subscriptions.push(
-            vscode.notebook.registerNotebookContentProvider('julianotebook', this.provider),
-            vscode.commands.registerCommand('language-julia.toggleDebugging', async () => {
-                if (vscode.window.activeNotebookEditor) {
-                    const { document } = vscode.window.activeNotebookEditor
-                    const notebook = this.provider._notebooks.get(document.uri.toString())
-                    if (notebook) {
-                        await notebook.toggleDebugging(document)
-                    }
-                }
-            })
+        // TODO what is the correct selector for us here?
+        context.subscriptions.push(vscode.notebook.registerNotebookKernelProvider(
+            {
+                filenamePattern: '*'
+            },
+            this.provider
+        )
+
         )
     }
 
-    public dispose() {}
+    public dispose() {
+    }
 }
