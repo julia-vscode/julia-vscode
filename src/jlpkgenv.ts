@@ -3,11 +3,12 @@ import { exec } from 'child-process-promise'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import * as vslc from 'vscode-languageclient'
+import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from './extension'
 import * as juliaexepath from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 
 let g_languageClient: vslc.LanguageClient = null
 
@@ -29,7 +30,7 @@ export async function getProjectFilePaths(envpath: string) {
     }
 }
 
-async function switchEnvToPath(envpath: string, notifyLS: boolean) {
+export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
     g_path_of_current_environment = envpath
 
     const section = vscode.workspace.getConfiguration('julia')
@@ -72,7 +73,11 @@ async function switchEnvToPath(envpath: string, notifyLS: boolean) {
     }
 
     if (notifyLS) {
-        g_languageClient.sendNotification('julia/activateenvironment', envpath)
+        if (!g_languageClient) {
+            return
+        }
+        await g_languageClient.onReady()
+        g_languageClient.sendNotification('julia/activateenvironment', { envPath: envpath })
     }
 }
 
@@ -100,9 +105,9 @@ async function changeJuliaEnvironment() {
                         break
                     }
                 }
-                if (curPath === homeDir) {break}
+                if (curPath === homeDir) { break }
                 curPath = path.dirname(curPath)
-                if (oldPath === curPath) {break}
+                if (oldPath === curPath) { break }
             }
         }
     }
@@ -168,18 +173,32 @@ async function getDefaultEnvPath() {
     return g_path_of_default_environment
 }
 
-export async function getEnvPath() {
+async function getEnvPath() {
     if (g_path_of_current_environment === null) {
         const section = vscode.workspace.getConfiguration('julia')
         const envPathConfig = section.get<string>('environmentPath')
-        if (envPathConfig !== null) {
-            g_path_of_current_environment = envPathConfig
+        if (envPathConfig) {
+            if (await fs.exists(absEnvPath(envPathConfig))) {
+                g_path_of_current_environment = envPathConfig
+                return g_path_of_current_environment
+            }
         }
-        else {
-            g_path_of_current_environment = await getDefaultEnvPath()
-        }
+        g_path_of_current_environment = await getDefaultEnvPath()
     }
     return g_path_of_current_environment
+}
+
+function absEnvPath(p: string) {
+    if (path.isAbsolute(p)) {
+        return p
+    } else {
+        return path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, p)
+    }
+}
+
+export async function getAbsEnvPath() {
+    const envPath = await getEnvPath()
+    return absEnvPath(envPath)
 }
 
 export async function getEnvName() {
@@ -192,7 +211,7 @@ export async function activate(context: vscode.ExtensionContext) {
         g_languageClient = languageClient
     }))
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
+    context.subscriptions.push(registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
     // Environment status bar
     g_current_environment = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
     g_current_environment.show()

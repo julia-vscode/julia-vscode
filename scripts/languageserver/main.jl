@@ -40,7 +40,7 @@ try
         end
     end
 
-    symserver_store_path = joinpath(ARGS[5], "symbolstorev2")
+    symserver_store_path = joinpath(ARGS[5], "symbolstorev4")
 
     if !ispath(symserver_store_path)
         mkpath(symserver_store_path)

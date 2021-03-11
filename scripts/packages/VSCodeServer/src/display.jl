@@ -1,97 +1,70 @@
 struct InlineDisplay <: AbstractDisplay end
 
+const PLOT_PANE_ENABLED = Ref(true)
+const PROGRESS_ENABLED = Ref(true)
+
+function toggle_plot_pane(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    PLOT_PANE_ENABLED[] = params.enable
+end
+
+function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    PROGRESS_ENABLED[] = params.enable
+end
+
+function fix_displays()
+    for d in reverse(Base.Multimedia.displays)
+        if d isa InlineDisplay
+            popdisplay(InlineDisplay())
+        end
+    end
+    pushdisplay(InlineDisplay())
+end
+
+function with_no_default_display(f)
+    stack = copy(Base.Multimedia.displays)
+    filter!(Base.Multimedia.displays) do d
+        !(d isa REPL.REPLDisplay || d isa TextDisplay || d isa InlineDisplay)
+    end
+    try
+        return f()
+    finally
+        empty!(Base.Multimedia.displays)
+        foreach(pushdisplay, stack)
+    end
+end
+
 function sendDisplayMsg(kind, data)
     JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,String}("kind" => kind, "data" => data))
 end
 
-
-function display(d::InlineDisplay, ::MIME{Symbol("image/png")}, x)
-    payload = stringmime(MIME("image/png"), x)
-    sendDisplayMsg("image/png", payload)
-end
-
-displayable(d::InlineDisplay, ::MIME{Symbol("image/png")}) = true
-
-function display(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}, x)
-    payload = stringmime(MIME("image/svg+xml"), x)
-    sendDisplayMsg("image/svg+xml", payload)
-end
-
-displayable(d::InlineDisplay, ::MIME{Symbol("image/svg+xml")}) = true
-
-function display(d::InlineDisplay, ::MIME{Symbol("text/html")}, x)
-    payload = stringmime(MIME("text/html"), x)
-    sendDisplayMsg("text/html", payload)
-end
-
-displayable(d::InlineDisplay, ::MIME{Symbol("text/html")}) = true
-
-function display(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}, x)
-    payload = stringmime(MIME("juliavscode/html"), x)
-    sendDisplayMsg("juliavscode/html", payload)
+function display(d::InlineDisplay, m::MIME, x)
+    if !PLOT_PANE_ENABLED[]
+        with_no_default_display(() -> display(m, x))
+    else
+        mime = string(m)
+        if mime in DISPLAYABLE_MIMES
+            # we now all except for `image/...` mime types are not binary
+            payload = startswith(mime, "image") ? stringmime(m, x) : String(repr(m, x))
+            sendDisplayMsg(mime, payload)
+        else
+            throw(MethodError(display, (d, m, x)))
+        end
+    end
+    return nothing
 end
 
 Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
 
-displayable(d::InlineDisplay, ::MIME{Symbol("juliavscode/html")}) = true
+Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
-function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}, x)
-    payload = stringmime(MIME("application/vnd.vegalite.v2+json"), x)
-    sendDisplayMsg("application/vnd.vegalite.v2+json", payload)
+function display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
+    payload = String(repr(m, x))
+    sendDisplayMsg(string(m), payload)
 end
 
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v2+json")}) = true
+Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
-function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v3+json")}, x)
-    payload = stringmime(MIME("application/vnd.vegalite.v3+json"), x)
-    sendDisplayMsg("application/vnd.vegalite.v3+json", payload)
-end
-
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v3+json")}) = true
-
-function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}, x)
-    payload = stringmime(MIME("application/vnd.vegalite.v4+json"), x)
-    sendDisplayMsg("application/vnd.vegalite.v4+json", payload)
-end
-
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vegalite.v4+json")}) = true
-
-function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v3+json")}, x)
-    payload = stringmime(MIME("application/vnd.vega.v3+json"), x)
-    sendDisplayMsg("application/vnd.vega.v3+json", payload)
-end
-
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v3+json")}) = true
-
-function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v4+json")}, x)
-    payload = stringmime(MIME("application/vnd.vega.v4+json"), x)
-    sendDisplayMsg("application/vnd.vega.v4+json", payload)
-end
-
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v4+json")}) = true
-
-function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v5+json")}, x)
-    payload = stringmime(MIME("application/vnd.vega.v5+json"), x)
-    sendDisplayMsg("application/vnd.vega.v5+json", payload)
-end
-
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.vega.v5+json")}) = true
-
-function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}, x)
-    payload = stringmime(MIME("application/vnd.plotly.v1+json"), x)
-    sendDisplayMsg("application/vnd.plotly.v1+json", payload)
-end
-
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
-
-function display(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}, x)
-    payload = stringmime(MIME("application/vnd.dataresource+json"), x)
-    sendDisplayMsg("application/vnd.dataresource+json", payload)
-end
-
-Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.dataresource+json")}) = true
-
-displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
+Base.Multimedia.displayable(_::InlineDisplay, mime::MIME) = PLOT_PANE_ENABLED[] && string(mime) in DISPLAYABLE_MIMES
 
 const DISPLAYABLE_MIMES = [
     "application/vnd.vegalite.v4+json",
@@ -104,7 +77,8 @@ const DISPLAYABLE_MIMES = [
     "juliavscode/html",
     # "text/html",
     "image/svg+xml",
-    "image/png"
+    "image/png",
+    "image/gif"
 ]
 
 function can_display(x)
@@ -128,10 +102,14 @@ function can_display(x)
 end
 
 function Base.display(d::InlineDisplay, x)
-    for mime in DISPLAYABLE_MIMES
-        if showable(mime, x)
-            return display(d, mime, x)
+    if PLOT_PANE_ENABLED[]
+        for mime in DISPLAYABLE_MIMES
+            if showable(mime, x)
+                return display(d, mime, x)
+            end
         end
+    else
+        return with_no_default_display(() -> display(x))
     end
 
     throw(MethodError(display, (d, x)))
@@ -156,8 +134,8 @@ end
 const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
 const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
 
-global _isiterabletable = i->false
-global _getiterator = i->i
+global _isiterabletable = i -> false
+global _getiterator = i -> i
 
 function pkgload(pkg)
     if pkg.uuid == tabletraits_uuid
@@ -180,9 +158,9 @@ function pkgload(pkg)
     end
 end
 
-function repl_showingrid_notification(conn, params::String)
+function repl_showingrid_notification(conn, params::NamedTuple{(:code,),Tuple{String}})
     try
-        var = Core.eval(Main, Meta.parse(params))
+        var = Base.invokelatest(Base.include_string, Main, params.code)
 
         Base.invokelatest(internal_vscodedisplay, var)
     catch err
@@ -221,4 +199,4 @@ function internal_vscodedisplay(x)
 end
 
 vscodedisplay(x) = internal_vscodedisplay(x)
-vscodedisplay() = i->vscodedisplay(i)
+vscodedisplay() = i -> vscodedisplay(i)

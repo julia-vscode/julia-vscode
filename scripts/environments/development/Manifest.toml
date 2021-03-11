@@ -7,13 +7,13 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 deps = ["Tokenize"]
 path = "../../packages/CSTParser"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "2.5.1-DEV"
+version = "3.1.1-DEV"
 
 [[CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
 path = "../../packages/CodeTracking"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-version = "1.0.0"
+version = "1.0.5"
 
 [[Dates]]
 deps = ["Printf"]
@@ -23,7 +23,7 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 deps = ["Base64", "JSON", "JSONRPC", "JuliaInterpreter", "Sockets", "UUIDs"]
 path = "../../packages/DebugAdapter"
 uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
-version = "1.0.0-DEV"
+version = "1.0.1-DEV"
 
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -33,13 +33,13 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 deps = ["CSTParser", "FilePathsBase", "Tokenize"]
 path = "../../packages/DocumentFormat"
 uuid = "ffa9a821-9c82-50df-894e-fbcef3ed31cd"
-version = "3.2.1-DEV"
+version = "3.2.4-DEV"
 
 [[FilePathsBase]]
-deps = ["Dates", "Printf", "Test", "UUIDs"]
+deps = ["Dates", "Mmap", "Printf", "Test", "UUIDs"]
 path = "../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.3"
+version = "0.9.10"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -61,7 +61,7 @@ version = "1.2.1-DEV"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.7.24"
+version = "0.8.9"
 
 [[LanguageServer]]
 deps = ["CSTParser", "DocumentFormat", "JSON", "JSONRPC", "Markdown", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
@@ -89,7 +89,7 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 deps = ["Libdl", "Pkg", "UUIDs"]
 path = "../../packages/PackageCompiler"
 uuid = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
-version = "1.1.1"
+version = "1.2.5"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Test", "UUIDs"]
@@ -124,13 +124,13 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 deps = ["CSTParser", "Serialization", "SymbolServer"]
 path = "../../packages/StaticLint"
 uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
-version = "4.5.1-DEV"
+version = "7.0.1-DEV"
 
 [[SymbolServer]]
-deps = ["LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
+deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "../../packages/SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
-version = "5.1.1-DEV"
+version = "6.0.2-DEV"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
@@ -139,7 +139,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [[Tokenize]]
 path = "../../packages/Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.8"
+version = "0.5.13"
 
 [[URIParser]]
 deps = ["Unicode"]
@@ -161,7 +161,7 @@ uuid = "a80fdaa1-3292-45d6-85e6-157a63518481"
 version = "0.1.0"
 
 [[VSCodeServer]]
-deps = ["Base64", "Dates", "InteractiveUtils", "Mmap", "Pkg", "Printf", "Profile", "REPL", "Random", "Sockets", "UUIDs", "Unicode"]
+deps = ["Base64", "Dates", "InteractiveUtils", "Logging", "Mmap", "Pkg", "Printf", "Profile", "REPL", "Random", "Sockets", "UUIDs", "Unicode"]
 path = "../../packages/VSCodeServer"
 uuid = "9f5989ce-84fe-42d4-91ec-6a7a8d53ed0f"
 version = "0.0.0"

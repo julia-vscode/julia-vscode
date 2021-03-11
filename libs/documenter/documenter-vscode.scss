@@ -1,0 +1,151 @@
+@charset "UTF-8";
+// This is a modified version of https://github.com/JuliaDocs/Documenter.jl/blob/6ebd9a219dbce5088f4b2a187855fef61ac6224c/assets/html/scss/documenter-dark.scss
+// adapted to work well in VSCode's webviews.
+// It must be evaluated in https://github.com/JuliaDocs/Documenter.jl/blob/master/assets/html/scss/.
+
+$themename: "documenter-vscode"; // CSS file must be called `$(themename).css`
+
+// Darkly wants to @import the Lato font by default, but we don't need it.
+$bulmaswatch-import-font: false;
+
+@import "darkly/variables";
+
+$documenter-is-dark-theme: true;
+
+$family-sans-serif: var(--vscode-font-family);
+$family-monospace: var(--vscode-editor-font-family);
+
+$info: #024c7d;
+$success: #008438;
+$warning: #ad8100;
+$danger: #9e1b0d;
+$turquoise: #137886;
+
+$admonition-background: (
+  'default': $background, 'info': $background, 'success': $background, 'warning': $background,
+  'danger': $background, 'compat': $background
+);
+$admonition-header-background: ('default': $grey);
+
+$body-size: 16px;
+$documenter-sidebar-background: $grey-darker;
+$shadow: #171717;
+$documenter-sidebar-color: $text;
+$lightness-unit: -8%;
+
+// $docstring-pre-background: adjust-color($background, $lightness: 5);
+$border-width: 1px;
+
+@import "documenter/utilities";
+@import "documenter/variables";
+
+$code: $red;
+$code-background: rgba(255, 255, 255, 0.05);
+
+$documenter-docstring-shadow: none;
+
+@import "bulma/utilities/all";
+@import "bulma/base/minireset.sass";
+@import "bulma/base/helpers.sass";
+
+// Search box, version selector etc.
+$input-color: $grey-lighter;
+$input-background-color: $body-background-color;
+$input-border-color: $border;
+$input-placeholder-color: rgba($input-color, 0.3);
+
+$button-static-color: $grey-lighter;
+$button-static-background-color: $background;
+$button-static-border-color: $border;
+
+// All secondary themes have to be nested in a theme--$(themename) class. When Documenter
+// switches themes, it applies this class to <html> and then disables the primary
+// stylesheet.
+html.theme--#{$themename} {
+  @import "bulma/base/generic.sass";
+
+  @import "documenter/overrides";
+
+  @import "bulma/elements/all";
+  @import "bulma/form/all";
+  @import "bulma/components/all";
+  @import "bulma/grid/all";
+  @import "bulma/layout/all";
+
+  @import "darkly/overrides";
+
+  @import "documenter/elements";
+  @import "documenter/components/all";
+  @import "documenter/patches";
+  @import "documenter/layout/all";
+
+  @import "documenter/theme_overrides";
+
+  // .docstring {
+  //   border: $border-width solid $border;
+  //   box-shadow: none;
+  //
+  //   header {
+  //     box-shadow: none;
+  //     background-color: rgba($black-bis, 0.2);
+  //     border-radius: $radius $radius 0 0;
+  //   }
+  // }
+
+  // FIXME: Hack to get a proper theme for highlight.js in the Darkly theme
+  // @import "highlightjs/a11y-dark.scss";
+  // Also, a11y-dark does not highlight string interpolation properly.
+  // .hljs-subst {
+  //   color: #f8f8f2;
+  // }
+
+  background-color: var(--vscode-sideBar-background)!important;
+
+  body {
+    color: var(--vscode-foreground);
+    font-size: var(--vscode-editor-font-size);
+
+    .content {
+      pre, code {
+        background-color: var(--vscode-editor-background);
+        color: var(--vscode-editor-foreground);
+      }
+
+      pre {
+        border-radius: 0;
+        border-color: var(--vscode-editorWidget-border);
+      }
+
+      h1, h2, h3, h4, h5, h6 {
+        color: var(--vscode-foreground)!important;
+      }
+
+      h1 {
+        font-size: 1.6em;
+      }
+      h2 {
+        font-size: 1.4em;
+      }
+      h3 {
+        font-size: 1.3em;
+      }
+      h4 {
+        font-size: 1.2em;
+      }
+
+      a, a > code, code > a {
+        color: var(--vscode-textLink-foreground);
+        &:hover {
+          color: var(--vscode-textLink-activeForeground);
+        }
+        &:focus {
+          outline: none;
+        }
+      }
+    }
+
+    &::selection {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+  }
+}

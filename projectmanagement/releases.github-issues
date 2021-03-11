@@ -1,1 +1,104 @@
-[{"kind":1,"language":"markdown","value":"# Release management\r\n\r\nThis notebook gives an overview of the status of the next releases."},{"kind":1,"language":"markdown","value":"## Showstopper\r\n\r\nDo we have any showstopper issues right ?","editable":true},{"kind":2,"language":"github-issues","value":"is:open org:julia-vscode label:Showstopper","editable":false},{"kind":1,"language":"markdown","value":"## Next minor release","editable":true},{"kind":1,"language":"markdown","value":"### Review required","editable":true},{"kind":2,"language":"github-issues","value":"is:open org:julia-vscode is:pr milestone:\"Next extension minor release\" review:required draft:false","editable":false},{"kind":1,"language":"markdown","value":"### Changes requested","editable":true},{"kind":2,"language":"github-issues","value":"is:open org:julia-vscode is:pr milestone:\"Next extension minor release\" -review:approved -review:required draft:false","editable":false},{"kind":1,"language":"markdown","value":"### Ready to be merged","editable":true},{"kind":2,"language":"github-issues","value":"is:open org:julia-vscode is:pr milestone:\"Next extension minor release\" review:approved draft:false","editable":false},{"kind":1,"language":"markdown","value":"## Next patch release","editable":true},{"kind":1,"language":"markdown","value":"### Review required","editable":true},{"kind":2,"language":"github-issues","value":"is:open org:julia-vscode is:pr milestone:\"Next extension patch release\" review:required draft:false","editable":false},{"kind":1,"language":"markdown","value":"### Changes requested","editable":true},{"kind":2,"language":"github-issues","value":"is:open org:julia-vscode is:pr milestone:\"Next extension patch release\" -review:approved -review:required draft:false","editable":false},{"kind":1,"language":"markdown","value":"### Ready to be merged","editable":true},{"kind":2,"language":"github-issues","value":"is:open org:julia-vscode is:pr milestone:\"Next extension patch release\" review:approved draft:false","editable":false}]
+[
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "# Release management\r\n\r\nThis notebook gives an overview of the status of the next releases.",
+    "editable": true
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## Showstopper\r\n\r\nDo we have any showstopper issues right ?",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "is:open org:julia-vscode label:Showstopper",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## Next minor release",
+    "editable": true
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Review required",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Minor\" draft:false",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Changes requested",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Minor\" -review:approved -review:required draft:false",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Ready to be merged",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Minor\" review:approved draft:false",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "## Next patch release",
+    "editable": true
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Review required",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Patch\" review:required draft:false",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Changes requested",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Patch\" -review:approved -review:required draft:false",
+    "editable": false
+  },
+  {
+    "kind": 1,
+    "language": "markdown",
+    "value": "### Ready to be merged",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Patch\" review:approved draft:false",
+    "editable": false
+  }
+]
