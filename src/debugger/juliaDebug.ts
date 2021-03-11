@@ -6,7 +6,6 @@ import * as vscode from 'vscode'
 import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, TerminatedEvent } from 'vscode-debugadapter'
 import { DebugProtocol } from 'vscode-debugprotocol'
 import { createMessageConnection, Disposable, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
-import { ExtensionFeatures } from '../extension'
 import { replStartDebugger } from '../interactive/repl'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
@@ -34,7 +33,6 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
     code: string
     file: string
     stopOnEntry: boolean
-    __notebookID?: string;
 }
 
 export class JuliaDebugSession extends LoggingDebugSession {
@@ -53,7 +51,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
      * Creates a new debug adapter that is used for one debug session.
      * We configure the default implementation of a debug adapter here.
      */
-    public constructor(private context: vscode.ExtensionContext, private juliaPath: string, private extensionFeatures: ExtensionFeatures) {
+    public constructor(private context: vscode.ExtensionContext, private juliaPath: string) {
         super('julia-debug.txt')
 
         // this debugger uses zero-based lines and columns
@@ -162,13 +160,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
         await serverListeningPromise.wait()
 
-        if (args.__notebookID) {
-            const notebook = this.extensionFeatures.Notebook.provider._notebooks.get(args.__notebookID)
-            await notebook.attachDebugger(pn)
-        }
-        else {
-            replStartDebugger(pn)
-        }
+        replStartDebugger(pn)
 
         await connectedPromise.wait()
 
@@ -181,9 +173,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
         // await this._configurationDone.wait(1000);
         await this._configurationDone.wait()
 
-        if (!args.__notebookID) {
-            this._connection.sendNotification(notifyTypeExec, { stopOnEntry: args.stopOnEntry, code: args.code, file: args.file })
-        }
+        this._connection.sendNotification(notifyTypeExec, { stopOnEntry: args.stopOnEntry, code: args.code, file: args.file })
 
         this.sendResponse(response)
     }

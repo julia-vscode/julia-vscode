@@ -816,15 +816,6 @@
                 ]
             }
         ],
-        "notebookOutputRenderer": [
-            {
-                "viewType": "juliavega",
-                "displayName": "Julia renderer for notebook",
-                "mimeTypes": [
-                    "application/vnd.vegalite.v4+json"
-                ]
-            }
-        ],
         "viewsContainers": {
             "activitybar": [
                 {

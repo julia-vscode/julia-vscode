@@ -45,7 +45,7 @@ export class JuliaNotebook implements vscode.Disposable {
         this.debugging = !this.debugging
 
         for (const cell of document.cells) {
-            if (cell.cellKind === vscode.CellKind.Code) {
+            if (cell.kind === vscode.NotebookCellKind.Code) {
                 cell.metadata.breakpointMargin = this.debugging
             }
         }
