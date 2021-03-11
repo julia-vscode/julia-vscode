@@ -29,12 +29,6 @@ let g_context: vscode.ExtensionContext = null
 let g_watchedEnvironmentFile: string = null
 let g_startupNotification: vscode.StatusBarItem = null
 
-export class ExtensionFeatures {
-    public Notebook?: JuliaNotebookFeature = undefined
-    public Debug?: JuliaDebugFeature = undefined
-    public PackageDev?: JuliaPackageDevFeature = undefined
-}
-
 export async function activate(context: vscode.ExtensionContext) {
     if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
         vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
@@ -63,8 +57,6 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         })
 
-        const extensionFeatures = new ExtensionFeatures()
-
         // Active features from other files
         juliaexepath.activate(context)
         await juliaexepath.getJuliaExePath() // We run this function now and await to make sure we don't run in twice simultaneously later
@@ -77,13 +69,9 @@ export async function activate(context: vscode.ExtensionContext) {
         openpackagedirectory.activate(context)
         jlpkgenv.activate(context)
 
-        extensionFeatures.Notebook = new JuliaNotebookFeature(context)
-        extensionFeatures.Debug = new JuliaDebugFeature(context, extensionFeatures)
-        extensionFeatures.PackageDev = new JuliaPackageDevFeature(context)
-
-        context.subscriptions.push(extensionFeatures.Notebook)
-        context.subscriptions.push(extensionFeatures.Debug)
-        context.subscriptions.push(extensionFeatures.PackageDev)
+        context.subscriptions.push(new JuliaNotebookFeature(context))
+        context.subscriptions.push(new JuliaDebugFeature(context))
+        context.subscriptions.push(new JuliaPackageDevFeature(context))
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
