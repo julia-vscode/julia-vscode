@@ -58,7 +58,7 @@
         "workspaceContains:test/runtests.jl",
         "workspaceContains:benchmark/benchmarks.jl",
         "workspaceContains:docs/make.jl",
-        "onNotebookEditor:julianotebook"
+        "onNotebook:julianotebook"
     ],
     "main": "./dist/extension",
     "contributes": {
