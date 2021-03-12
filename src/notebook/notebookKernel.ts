@@ -52,8 +52,11 @@ export class JuliaKernel implements vscode.NotebookKernel {
             edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, cell.metadata.with({
                 runState: vscode.NotebookCellRunState.Running,
                 runStartTime: runStartTime,
-                executionOrder: executionOrder
+                executionOrder: executionOrder,
+                statusMessage: '',
+                lastRunDuration: null
             }))
+            edit.replaceNotebookCellOutput(cell.notebook.uri, cell.index, [])
         })
 
         this._msgConnection.sendNotification(notifyTypeRunCell, { current_request_id: this._current_request_id, code: cell.document.getText() })
