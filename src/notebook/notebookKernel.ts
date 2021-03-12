@@ -150,23 +150,20 @@ export class JuliaKernel implements vscode.NotebookKernel {
                 })
 
                 this._msgConnection.onNotification(notifyTypeStreamoutput, ({ name, current_request_id, data }) => {
-                    // TODO Reenable
-                    // if (name === 'stdout') {
-                    //     const executionRequest = this.executionRequests.get(current_request_id)
+                    if (name === 'stdout') {
+                        const executionRequest = this.executionRequests.get(current_request_id)
 
-                    //     if (executionRequest) {
-                    //         const cell = executionRequest.cell
-                    //         const raw_cell = {
-                    //             'output_type': 'stream',
-                    //             'text': data
-                    //         }
+                        if (executionRequest) {
+                            const cell = executionRequest.cell
 
-                    //         cell.outputs = cell.outputs.concat([transformOutputToCore(<any>raw_cell)])
-                    //     }
-                    // }
-                    // else {
-                    //     throw (new Error('Unknown stream type.'))
-                    // }
+                            const edit = new vscode.WorkspaceEdit()
+                            edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stream', data)])])
+                            vscode.workspace.applyEdit(edit)
+                        }
+                    }
+                    else {
+                        throw (new Error('Unknown stream type.'))
+                    }
                 })
 
                 this._msgConnection.listen()
