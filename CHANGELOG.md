@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Ship CoverageTools.jl as part of the extension so that test runs with coverage always work.
 * Add option to delete .cov files after test runs (on by default).
+### Fixed
+* SVGs with embedded single quotes are now displayed properly again.
+* Weave preview works again.
 
 ## [1.1.10] - 2021-01-28
 ### Fixed

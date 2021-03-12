@@ -146,6 +146,6 @@ function cd_to_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
 end
 
 function activate_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
-    Pkg.activate(params.uri)
+    hideprompt(() -> Pkg.activate(params.uri))
     return nothing
 end

@@ -3,6 +3,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient'
 import { VersionedTextDocumentPositionParams } from './interactive/misc'
+import { handleNewCrashReportFromException } from './telemetry'
 
 export function constructCommandString(cmd: string, args: any = {}) {
     return `command:${cmd}?${encodeURIComponent(JSON.stringify(args))}`
@@ -57,4 +58,20 @@ export function inferJuliaNumThreads(): string {
     else {
         return ''
     }
+}
+
+/**
+ * Same as `vscode.commands.registerCommand`, but with added middleware.
+ * Currently sends any uncaught errors in the command to crash reporting.
+ */
+export function registerCommand(cmd: string, f) {
+    const fWrapped = (...args) => {
+        try {
+            return f(...args)
+        } catch (err) {
+            handleNewCrashReportFromException(err, 'Extension')
+            throw (err)
+        }
+    }
+    return vscode.commands.registerCommand(cmd, fWrapped)
 }
