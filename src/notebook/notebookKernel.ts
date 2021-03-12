@@ -90,6 +90,7 @@ export class JuliaKernel implements vscode.NotebookKernel {
                         runState: vscode.NotebookCellRunState.Success,
                         lastRunDuration: 0,
                     }))
+                    edit.replaceNotebookCellOutput(request.cell.notebook.uri, request.cell.index, [])
                     vscode.workspace.applyEdit(edit)
 
                     // cell.metadata.statusMessage = formatDuration(Date.now() - start)
