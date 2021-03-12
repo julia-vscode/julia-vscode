@@ -8,7 +8,12 @@ export class JuliaNotebookKernelProvider implements vscode.NotebookKernelProvide
     // onDidChangeKernels?: vscode.Event<vscode.NotebookDocument>;
 
     async provideKernels(document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<JuliaKernel[]> {
-        return [new JuliaKernel(document, this.extensionPath)]
+        if (document.metadata.custom?.metadata?.kernelspec?.language === 'julia') {
+            return [new JuliaKernel(document, this.extensionPath, true)]
+        }
+        else {
+            return []
+        }
     }
 
     async resolveKernel?(kernel: JuliaKernel, document: vscode.NotebookDocument, webview: vscode.NotebookCommunication, token: vscode.CancellationToken): Promise<void> {

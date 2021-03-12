@@ -29,9 +29,10 @@ export class JuliaKernel implements vscode.NotebookKernel {
     private _current_request_id: number = 0;
 
     public label = 'Julia Kernel'
-    public kernel = this
 
-    constructor(private document: vscode.NotebookDocument, private extensionPath: string) {
+    public supportedLanguages = ['julia']
+
+    constructor(private document: vscode.NotebookDocument, private extensionPath: string, public isPreferred: boolean) {
     }
 
     public dispose() {
