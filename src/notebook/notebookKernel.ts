@@ -8,69 +8,10 @@ import { getAbsEnvPath } from '../jlpkgenv'
 import { getJuliaExePath } from '../juliaexepath'
 import { generatePipeName } from '../utils'
 
-// function formatDuration(_duration: number): string {
-//     // const seconds = Math.floor(duration / 1000);
-//     // actual: ${String(duration - seconds).charAt(0)}
-
-//     const randomSeconds = Math.floor(Math.random() * 10)
-//     const randomTenths = Math.floor(Math.random() * 10)
-//     return `${randomSeconds}.${randomTenths}s`
-// }
-
 interface ExecutionRequest {
     cell: vscode.NotebookCell
     executionOrder: number
 }
-
-interface CellErrorOutput {
-    output_type: 'error';
-    /**
-     * Exception Name
-     */
-    ename: string;
-    /**
-     * Exception Value
-     */
-    evalue: string;
-    /**
-     * Exception call stack
-     */
-    traceback: string[];
-}
-
-interface CellStreamOutput {
-    output_type: 'stream';
-    text: string;
-}
-
-interface CellDisplayOutput {
-    output_type: 'display_data' | 'execute_result';
-    data: { [key: string]: any };
-}
-
-export type RawCellOutput = CellStreamOutput | CellErrorOutput | CellDisplayOutput;
-
-
-// function transformOutputToCore(rawOutput: RawCellOutput): vscode.CellOutput {
-//     if (rawOutput.output_type === 'execute_result' || rawOutput.output_type === 'display_data') {
-//         return {
-//             outputKind: vscode.CellOutputKind.Rich,
-//             data: rawOutput.data
-//         } as vscode.CellDisplayOutput
-//     } else if (rawOutput.output_type === 'stream') {
-//         return {
-//             outputKind: vscode.CellOutputKind.Text,
-//             text: rawOutput.text
-//         } as vscode.CellStreamOutput
-//     } else {
-//         return {
-//             outputKind: vscode.CellOutputKind.Error,
-//             ename: (<CellErrorOutput>rawOutput).ename,
-//             evalue: (<CellErrorOutput>rawOutput).evalue,
-//             traceback: (<CellErrorOutput>rawOutput).traceback
-//         } as vscode.CellErrorOutput
-//     }
-// }
 
 const notifyTypeDisplay = new NotificationType<{ mimetype: string, current_request_id: number, data: string }>('display')
 const notifyTypeStreamoutput = new NotificationType<{ name: string, current_request_id: number, data: string }>('streamoutput')
