@@ -6,6 +6,7 @@ import * as vscode from 'vscode'
 import { createMessageConnection, MessageConnection, NotificationType, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { getAbsEnvPath } from '../jlpkgenv'
 import { getJuliaExePath } from '../juliaexepath'
+import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
 import { chainWithPendingUpdates } from './helpers'
 
@@ -177,7 +178,8 @@ export class JuliaKernel implements vscode.NotebookKernel {
                     '--startup-file=no',
                     '--history-file=no',
                     path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
-                    pn
+                    pn,
+                    getCrashReportingPipename()
                 ]
             })
             this._terminal.show(false)
