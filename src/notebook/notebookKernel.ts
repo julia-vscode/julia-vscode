@@ -7,6 +7,7 @@ import { createMessageConnection, MessageConnection, NotificationType, StreamMes
 import { getAbsEnvPath } from '../jlpkgenv'
 import { getJuliaExePath } from '../juliaexepath'
 import { generatePipeName } from '../utils'
+import { chainWithPendingUpdates } from './helpers'
 
 interface ExecutionRequest {
     cell: vscode.NotebookCell
@@ -45,14 +46,14 @@ export class JuliaKernel implements vscode.NotebookKernel {
 
         this.executionRequests.set(executionOrder, { cell: cell, executionOrder: executionOrder })
 
-        const edit = new vscode.WorkspaceEdit()
-        const runStartTime = Date.now()
-        edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, cell.metadata.with({
-            runState: vscode.NotebookCellRunState.Running,
-            runStartTime: runStartTime,
-            executionOrder: executionOrder
-        }))
-        vscode.workspace.applyEdit(edit)
+        chainWithPendingUpdates(cell.notebook, edit => {
+            const runStartTime = Date.now()
+            edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, cell.metadata.with({
+                runState: vscode.NotebookCellRunState.Running,
+                runStartTime: runStartTime,
+                executionOrder: executionOrder
+            }))
+        })
 
         this._msgConnection.sendNotification(notifyTypeRunCell, { current_request_id: this._current_request_id, code: cell.document.getText() })
     }
