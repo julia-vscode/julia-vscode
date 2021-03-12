@@ -83,33 +83,32 @@ export class JuliaKernel implements vscode.NotebookKernel {
                 )
 
                 this._msgConnection.onNotification(notifyTypeRunCellSucceeded, ({ request_id }) => {
-                    const edit = new vscode.WorkspaceEdit()
                     const runEndTime = Date.now()
 
                     const request = this.executionRequests.get(request_id)
-
-                    edit.replaceNotebookCellMetadata(request.cell.notebook.uri, request.cell.index, request.cell.metadata.with({
-                        runState: vscode.NotebookCellRunState.Success,
-                        lastRunDuration: runEndTime - request.cell.metadata.runStartTime,
-                    }))
-                    edit.replaceNotebookCellOutput(request.cell.notebook.uri, request.cell.index, [])
-                    vscode.workspace.applyEdit(edit)
+                    chainWithPendingUpdates(request.cell.notebook, edit => {
+                        edit.replaceNotebookCellMetadata(request.cell.notebook.uri, request.cell.index, request.cell.metadata.with({
+                            runState: vscode.NotebookCellRunState.Success,
+                            lastRunDuration: runEndTime - request.cell.metadata.runStartTime,
+                        }))
+                        edit.replaceNotebookCellOutput(request.cell.notebook.uri, request.cell.index, [])
+                    })
                 })
 
                 this._msgConnection.onNotification(notifyTypeRunCellFailed, ({ request_id, output }) => {
-                    const edit = new vscode.WorkspaceEdit()
                     const runEndTime = Date.now()
 
                     const request = this.executionRequests.get(request_id)
 
                     const cell = request.cell
 
-                    edit.replaceNotebookCellMetadata(request.cell.notebook.uri, request.cell.index, request.cell.metadata.with({
-                        runState: vscode.NotebookCellRunState.Error,
-                        lastRunDuration: runEndTime - request.cell.metadata.runStartTime,
-                    }))
-                    edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.error-traceback', output)])])
-                    vscode.workspace.applyEdit(edit)
+                    chainWithPendingUpdates(request.cell.notebook, edit => {
+                        edit.replaceNotebookCellMetadata(request.cell.notebook.uri, request.cell.index, request.cell.metadata.with({
+                            runState: vscode.NotebookCellRunState.Error,
+                            lastRunDuration: runEndTime - request.cell.metadata.runStartTime,
+                        }))
+                        edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.error-traceback', output)])])
+                    })
                 })
 
                 this._msgConnection.onNotification(notifyTypeDisplay, ({ mimetype, current_request_id, data }) => {
@@ -119,9 +118,9 @@ export class JuliaKernel implements vscode.NotebookKernel {
                     if (executionRequest) {
                         const cell = executionRequest.cell
 
-                        const edit = new vscode.WorkspaceEdit()
-                        edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(mimetype, data)])])
-                        vscode.workspace.applyEdit(edit)
+                        chainWithPendingUpdates(cell.notebook, edit => {
+                            edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(mimetype, data)])])
+                        })
                     }
                 })
 
@@ -132,9 +131,9 @@ export class JuliaKernel implements vscode.NotebookKernel {
                         if (executionRequest) {
                             const cell = executionRequest.cell
 
-                            const edit = new vscode.WorkspaceEdit()
-                            edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stream', data)])])
-                            vscode.workspace.applyEdit(edit)
+                            chainWithPendingUpdates(cell.notebook, edit => {
+                                edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stream', data)])])
+                            })
                         }
                     }
                     else if (name === 'stderr') {
@@ -142,10 +141,9 @@ export class JuliaKernel implements vscode.NotebookKernel {
 
                         if (executionRequest) {
                             const cell = executionRequest.cell
-
-                            const edit = new vscode.WorkspaceEdit()
-                            edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stream', data)])])
-                            vscode.workspace.applyEdit(edit)
+                            chainWithPendingUpdates(cell.notebook, edit => {
+                                edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stream', data)])])
+                            })
                         }
                     }
                     else {
