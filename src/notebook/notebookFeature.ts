@@ -17,7 +17,7 @@ export class JuliaNotebookKernelProvider implements vscode.NotebookKernelProvide
     }
 
     async resolveKernel?(kernel: JuliaKernel, document: vscode.NotebookDocument, webview: vscode.NotebookCommunication, token: vscode.CancellationToken): Promise<void> {
-        await kernel.start()
+
     }
 
 }

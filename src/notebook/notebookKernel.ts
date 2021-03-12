@@ -41,7 +41,8 @@ export class JuliaKernel implements vscode.NotebookKernel {
         this._localDisposables.forEach(d => d.dispose())
     }
 
-    executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell): void {
+    async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
+        await this.start()
         const executionOrder = ++this._current_request_id
 
         this.executionRequests.set(executionOrder, { cell: cell, executionOrder: executionOrder })
