@@ -95,7 +95,6 @@ export class JuliaKernel implements vscode.NotebookKernel {
                             runState: vscode.NotebookCellRunState.Success,
                             lastRunDuration: runEndTime - request.cell.metadata.runStartTime,
                         }))
-                        edit.replaceNotebookCellOutput(request.cell.notebook.uri, request.cell.index, [])
                     })
                 })
 
