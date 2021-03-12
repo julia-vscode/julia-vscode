@@ -26,7 +26,8 @@ export class JuliaNotebookFeature {
         // TODO what is the correct selector for us here?
         context.subscriptions.push(vscode.notebook.registerNotebookKernelProvider(
             {
-                filenamePattern: '*'
+                filenamePattern: '**/*.ipynb',
+                viewType: 'jupyter-notebook'
             },
             this.provider
         )
