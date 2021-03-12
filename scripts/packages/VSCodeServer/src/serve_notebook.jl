@@ -12,7 +12,7 @@ const read_stderr = Ref{Base.PipeEndpoint}()
 const capture_stdout = true
 const capture_stderr = true
 
-function serve_notebook(pipename, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     conn = Sockets.connect(pipename)
 
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
