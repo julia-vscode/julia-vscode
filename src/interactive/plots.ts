@@ -224,6 +224,7 @@ export function showPlotPane() {
         g_plotPanel.title = plotTitle
         g_plotPanel.webview.html = getPlotPaneContent()
     }
+    g_plotPanel.reveal()
 }
 
 function updatePlotPane() {

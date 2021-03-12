@@ -4,7 +4,13 @@ html.theme--plotter {
     color: var(--vscode-foreground);
     font-size: var(--vscode-editor-font-size); }
     html.theme--plotter body .thumbnail {
-      cursor: pointer; }
+      cursor: pointer;
+      text-align: center; }
+      html.theme--plotter body .thumbnail img {
+        min-height: 50px;
+        max-height: 150px;
+        max-width: 100%;
+        border: 1px black solid; }
     html.theme--plotter body .content pre, html.theme--plotter body .content code {
       background-color: var(--vscode-editor-background);
       color: var(--vscode-editor-foreground); }

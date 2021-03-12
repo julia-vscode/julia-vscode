@@ -18,6 +18,13 @@ html.theme--#{$themename} {
 
     .thumbnail {
       cursor: pointer;
+      text-align: center;
+      img {
+        min-height: 50px;
+        max-height: 150px;
+        max-width: 100%;
+        border: 1px black solid;
+      }
     }
 
     .content {
