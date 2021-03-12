@@ -114,39 +114,15 @@ export class JuliaKernel implements vscode.NotebookKernel {
                 })
 
                 this._msgConnection.onNotification(notifyTypeDisplay, ({ mimetype, current_request_id, data }) => {
-                    if (mimetype === 'image/png' || mimetype === 'image/jpeg') {
-                        // TODO Reenable
-                        // const executionRequest = this.executionRequests.get(current_request_id)
+                    // TODO This doesn't work properly, nothing ever gets shown
+                    const executionRequest = this.executionRequests.get(current_request_id)
 
-                        // if (executionRequest) {
-                        //     const cell = executionRequest.cell
+                    if (executionRequest) {
+                        const cell = executionRequest.cell
 
-                        //     const raw_cell = {
-                        //         'output_type': 'execute_result',
-                        //         'data': {}
-                        //     }
-
-                        //     raw_cell.data[mimetype] = data.split('\n')
-
-                        //     cell.outputs = cell.outputs.concat([transformOutputToCore(<any>raw_cell)])
-                        // }
-                    }
-                    else if (mimetype === 'image/svg+xml' || mimetype === 'text/html' || mimetype === 'text/plain' || mimetype === 'text/markdown' || mimetype === 'application/vnd.vegalite.v4+json') {
-                        // TODO Reenable
-                        // const executionRequest = this.executionRequests.get(current_request_id)
-
-                        // if (executionRequest) {
-                        //     const cell = executionRequest.cell
-
-                        //     const raw_cell = {
-                        //         'output_type': 'execute_result',
-                        //         'data': {}
-                        //     }
-
-                        //     raw_cell.data[mimetype] = data.split('\n')
-
-                        //     cell.outputs = cell.outputs.concat([transformOutputToCore(<any>raw_cell)])
-                        // }
+                        const edit = new vscode.WorkspaceEdit()
+                        edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(mimetype, data)])])
+                        vscode.workspace.applyEdit(edit)
                     }
                 })
 
