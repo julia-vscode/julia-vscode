@@ -25,7 +25,7 @@ const read_stdout = Ref{Base.PipeEndpoint}()
 const read_stderr = Ref{Base.PipeEndpoint}()
 
 const capture_stdout = true
-const capture_stderr = false
+const capture_stderr = true
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 

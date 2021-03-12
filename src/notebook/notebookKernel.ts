@@ -135,6 +135,17 @@ export class JuliaKernel implements vscode.NotebookKernel {
                             vscode.workspace.applyEdit(edit)
                         }
                     }
+                    else if (name === 'stderr') {
+                        const executionRequest = this.executionRequests.get(current_request_id)
+
+                        if (executionRequest) {
+                            const cell = executionRequest.cell
+
+                            const edit = new vscode.WorkspaceEdit()
+                            edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stream', data)])])
+                            vscode.workspace.applyEdit(edit)
+                        }
+                    }
                     else {
                         throw (new Error('Unknown stream type.'))
                     }
