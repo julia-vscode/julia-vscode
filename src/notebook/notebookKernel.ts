@@ -17,7 +17,7 @@ const notifyTypeDisplay = new NotificationType<{ mimetype: string, current_reque
 const notifyTypeStreamoutput = new NotificationType<{ name: string, current_request_id: number, data: string }>('streamoutput')
 const notifyTypeRunCell = new NotificationType<{ current_request_id: number, code: string }>('runcell')
 const notifyTypeRunCellSucceeded = new NotificationType<{ request_id: number }>('runcellsucceeded')
-const notifyTypeRunCellFailed = new NotificationType<{ request_id: number}>('runcellfailed')
+const notifyTypeRunCellFailed = new NotificationType<{ request_id: number, output: {ename: string, evalue: string, traceback: string}}>('runcellfailed')
 
 
 export class JuliaKernel implements vscode.NotebookKernel {
@@ -92,25 +92,22 @@ export class JuliaKernel implements vscode.NotebookKernel {
                     }))
                     edit.replaceNotebookCellOutput(request.cell.notebook.uri, request.cell.index, [])
                     vscode.workspace.applyEdit(edit)
-
-                    // cell.metadata.statusMessage = formatDuration(Date.now() - start)
-                    // cell.metadata.runState = output === 'success' ? vscode.NotebookCellRunState.Success : vscode.NotebookCellRunState.Error
                 })
 
-                this._msgConnection.onNotification(notifyTypeRunCellFailed, ({ request_id }) => {
+                this._msgConnection.onNotification(notifyTypeRunCellFailed, ({ request_id, output }) => {
                     const edit = new vscode.WorkspaceEdit()
-                    // const runEndTime = Date.now()
+                    const runEndTime = Date.now()
 
                     const request = this.executionRequests.get(request_id)
 
+                    const cell = request.cell
+
                     edit.replaceNotebookCellMetadata(request.cell.notebook.uri, request.cell.index, request.cell.metadata.with({
                         runState: vscode.NotebookCellRunState.Error,
-                        lastRunDuration: 0,
+                        lastRunDuration: runEndTime - request.cell.metadata.runStartTime,
                     }))
+                    edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.error-traceback', output)])])
                     vscode.workspace.applyEdit(edit)
-
-                    // cell.metadata.statusMessage = formatDuration(Date.now() - start)
-                    // cell.metadata.runState = output === 'success' ? vscode.NotebookCellRunState.Success : vscode.NotebookCellRunState.Error
                 })
 
                 this._msgConnection.onNotification(notifyTypeDisplay, ({ mimetype, current_request_id, data }) => {

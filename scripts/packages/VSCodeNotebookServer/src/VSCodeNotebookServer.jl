@@ -147,8 +147,21 @@ function serve(pipename)
 
                     JSONRPC.send_notification(conn_endpoint[], "runcellsucceeded", Dict{String,Any}("request_id" => current_request_id[]))
                 catch err
-                    Base.display_error(err, catch_backtrace())
-                    JSONRPC.send_notification(conn_endpoint[], "runcellfailed", Dict{String,Any}("request_id" => current_request_id[]))
+                    bt = catch_backtrace()
+
+                    if err isa LoadError
+                        inner_err = err.error
+
+                        st = stacktrace(bt)
+
+                        error_type = string(typeof(inner_err))
+                        error_message_str = sprint(showerror, inner_err)
+                        traceback = split(sprint(Base.show_backtrace, bt), '\n')
+
+                        JSONRPC.send_notification(conn_endpoint[], "runcellfailed", Dict{String,Any}("request_id" => current_request_id[], "output" => Dict("ename" => error_type, "evalue" => error_message_str, "traceback" => traceback)))
+                    else
+                        error("Not clear what this means, but we should probably send a crash report.")
+                    end
                 end
 
                 flush_all()
