@@ -64,14 +64,16 @@ export class JuliaKernel implements vscode.NotebookKernel {
     }
 
     cancelCellExecution(document: vscode.NotebookDocument, cell: vscode.NotebookCell): void {
-
     }
 
     executeAllCells(document: vscode.NotebookDocument): void {
+        // Note: The order is not guaranteed to be correct, but its a simple fix to get things working.
+        // All of this will be going away next week with the refactor to kernel execution in VS Code.
+        // See here for the WIP - https://github.com/microsoft/vscode/pull/116416.
+        document.cells.forEach(cell => this.executeCell(cell.notebook, cell))
     }
 
     cancelAllCellsExecution(document: vscode.NotebookDocument): void {
-
     }
 
     public async start() {
