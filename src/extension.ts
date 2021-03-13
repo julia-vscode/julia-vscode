@@ -14,6 +14,7 @@ import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
+import { registerWithJupyter } from './notebook/jupyterExtension'
 import { JuliaNotebookFeature } from './notebook/notebookFeature'
 import * as openpackagedirectory from './openpackagedirectory'
 import { JuliaPackageDevFeature } from './packagedevtools'
@@ -58,7 +59,8 @@ export async function activate(context: vscode.ExtensionContext) {
         })
 
         // Active features from other files
-        juliaexepath.activate(context)
+		juliaexepath.activate(context)
+		registerWithJupyter();
         await juliaexepath.getJuliaExePath() // We run this function now and await to make sure we don't run in twice simultaneously later
         repl.activate(context)
         weave.activate(context)
