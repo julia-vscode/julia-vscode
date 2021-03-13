@@ -1,4 +1,5 @@
 import * as vscode from 'vscode'
+import { getJuliaExePaths } from '../juliaexepath'
 import { JuliaKernel } from './notebookKernel'
 
 export class JuliaNotebookKernelProvider implements vscode.NotebookKernelProvider<JuliaKernel> {
@@ -9,7 +10,8 @@ export class JuliaNotebookKernelProvider implements vscode.NotebookKernelProvide
 
     async provideKernels(document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<JuliaKernel[]> {
         if (document.viewType === 'jupyter-notebook') {
-            return [new JuliaKernel(document, this.extensionPath, true)]
+            const juliaExecutables = await getJuliaExePaths()
+            return juliaExecutables.map(executable => new JuliaKernel(document, this.extensionPath, true, executable.version, executable.path))
         }
     }
 
