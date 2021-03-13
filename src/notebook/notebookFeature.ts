@@ -8,11 +8,8 @@ export class JuliaNotebookKernelProvider implements vscode.NotebookKernelProvide
     // onDidChangeKernels?: vscode.Event<vscode.NotebookDocument>;
 
     async provideKernels(document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<JuliaKernel[]> {
-        if (document.metadata.custom?.metadata?.kernelspec?.language === 'julia') {
+        if (document.viewType === 'jupyter-notebook') {
             return [new JuliaKernel(document, this.extensionPath, true)]
-        }
-        else {
-            return []
         }
     }
 
