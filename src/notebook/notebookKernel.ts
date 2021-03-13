@@ -17,7 +17,7 @@ interface ExecutionRequest {
 
 const notifyTypeDisplay = new NotificationType<{ mimetype: string, current_request_id: number, data: string }>('display')
 const notifyTypeStreamoutput = new NotificationType<{ name: string, current_request_id: number, data: string }>('streamoutput')
-const notifyTypeRunCell = new NotificationType<{ current_request_id: number, code: string }>('runcell')
+const notifyTypeRunCell = new NotificationType<{ current_request_id: number, code: string }>('notebook/runcell')
 const notifyTypeRunCellSucceeded = new NotificationType<{ request_id: number }>('runcellsucceeded')
 const notifyTypeRunCellFailed = new NotificationType<{ request_id: number, output: {ename: string, evalue: string, traceback: string}}>('runcellfailed')
 
