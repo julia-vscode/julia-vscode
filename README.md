@@ -41,7 +41,7 @@ in JSON, so you need to use ``\\`` as the path separator character on Windows.
 
 ## Features
 
-The extension currently provides
+The extension currently provides:
 
 * syntax highlighting
 * [snippets: latex and user-shared snippets](https://github.com/julia-vscode/julia-vscode/wiki/Snippets)
@@ -52,7 +52,7 @@ The extension currently provides
 * [a linter](https://github.com/julia-vscode/julia-vscode/wiki/Information#linter)
 * [code navigation](https://github.com/julia-vscode/julia-vscode/wiki/Navigation)
 * tasks for running tests, builds, benchmarks and build documentation
-* an experimental debugger
+* a debugger
 * a plot gallery
 * a grid viewer for tabular data
 * integrated support for Weave.jl

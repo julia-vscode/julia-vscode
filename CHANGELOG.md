@@ -5,16 +5,106 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* SVGs with embedded single quotes are now displayed properly again.
+* Weave preview works again.
+
+## [1.1.10] - 2021-01-28
+### Fixed
+* Stop throwing an error instead of waiting for the LS being ready ([#1889](https://github.com/julia-vscode/julia-vscode/pull/1889)).
+* Fixed an issue with formatting `if` conditions ([#124](https://github.com/julia-vscode/DocumentFormat.jl/pull/124)).
+
+## [1.1.9] - 2021-01-26
+### Fixed
+* Displaying profiler results now works again ([#1887](https://github.com/julia-vscode/julia-vscode/pull/1887)).
+
+## [1.1.7] - 2021-01-26
+### Fixed
+* `pwd` is now properly set for the live unit testing task ([#1886](https://github.com/julia-vscode/julia-vscode/pull/1886)).
+
+## [1.1.6] - 2021-01-25
+### Changed
+* The plot pane now properly scales images ([#1882](https://github.com/julia-vscode/julia-vscode/pull/1882)).
+
+### Fixed
+* The LS now correctly handles the `$/setTrace` notification ([#868](https://github.com/julia-vscode/LanguageServer.jl/pull/868)).
 
 ## [1.1.0] - 2021-01-23
+### Changed
+* The progress bar now shows an estimate of the remaining time ([#1868](https://github.com/julia-vscode/julia-vscode/pull/1868)).
+
+## [1.0.15] - 2021-01-23
 ### Added
-* Documentation browser
-* Package tagging
-* Live testing
-* Remaining time for progress logging
+* Progress logging can now be disabled in the settings ([#1867](https://github.com/julia-vscode/julia-vscode/pull/1867)).
+* The Julia explorer sidebar element now contains a documentation browser ([#1458](https://github.com/julia-vscode/julia-vscode/pull/1458)).
+* Added a command for tagging new package versions ([#1870](https://github.com/julia-vscode/julia-vscode/pull/1870)).
+* Added a task for live unit testing ([#1872](https://github.com/julia-vscode/julia-vscode/pull/1872)).
 
 ### Changed
-* Cache format for the language server
+* The LS depot path is now located in the extension global storage instead of the extension's install directory, which allows the latter to be read-only ([#1863](https://github.com/julia-vscode/julia-vscode/pull/1863)).
+* Improve docstring formatting ([#122](https://github.com/julia-vscode/DocumentFormat.jl/pull/122)).
+
+### Fixed
+* Comments and whitespace in multi-line tuples are no longer removed when formatting a file ([#121](https://github.com/julia-vscode/DocumentFormat.jl/pull/121)).
+
+## [1.0.14] - 2021-01-16
+### Changed
+* Removed the telemtry nag message ([#1676](https://github.com/julia-vscode/julia-vscode/pull/1676)).
+* Removed `@` and `!` from the list of non-word characters, so double clicking `@foo!` now selects the whole macro ([#1861](https://github.com/julia-vscode/julia-vscode/pull/1861)).
+
+### Fixed
+* Improved the algorithm for finding the current code block ([#860](https://github.com/julia-vscode/LanguageServer.jl/pull/860)).
+* Fixed jmd parsing ([#859](https://github.com/julia-vscode/LanguageServer.jl/pull/859)).
+* THe linter now doesn't attribute every `eval` call to `Core.eval` ([#237](https://github.com/julia-vscode/StaticLint.jl/pull/237)).
+
+## [1.0.13] - 2021-01-13
+### Added
+* It is now possible to customize the look of inline results ([#1846](https://github.com/julia-vscode/julia-vscode/pull/1846)).
+* Support for the upcoming `import Foo as Bar` syntax ([#220](https://github.com/julia-vscode/CSTParser.jl/pull/220)).
+
+### Changed
+* Switched to a new symbol store format ([#1857](https://github.com/julia-vscode/julia-vscode/pull/1857)).
+* Major rewrite for CSTParser ([#190](https://github.com/julia-vscode/CSTParser.jl/pull/190)).
+* StaticLint.jl now supports Julia >= v1.6 ([#227](https://github.com/julia-vscode/StaticLint.jl/pull/228)).
+* Added additional type inference for the linter ([#234](https://github.com/julia-vscode/StaticLint.jl/pull/234)).
+
+### Fixed
+* We now use the correct binary when setting the `JULIA_EDITOR` on MacOS for users of VSCode insiders ([#1852](https://github.com/julia-vscode/julia-vscode/pull/1852)).
+* `Base.displayble` is now correctly extended instead of creating a local version ([#1856](https://github.com/julia-vscode/julia-vscode/pull/1856)).
+* Conditions for line breakpoints now work again ([#26](https://github.com/julia-vscode/DebugAdapter.jl/pull/26)).
+* Debugger now correctly unwraps `UnionAll`s when collecting global refs ([#27](https://github.com/julia-vscode/DebugAdapter.jl/pull/27)).
+* The Linter now correctly handles `Base.@kwdef` ([#233](https://github.com/julia-vscode/StaticLint.jl/pull/233)).
+
+## [1.0.12] - 2021-01-05
+### Added
+* Commands for moving between code cells ([#1828](https://github.com/julia-vscode/julia-vscode/pull/1828)).
+
+### Fixed
+* Backtraces are now properly truncated in the REPL ([#1841](https://github.com/julia-vscode/julia-vscode/pull/1841)).
+
+## [1.0.11] - 2020-12-15
+### Added
+* Debugging or launching a file now works in workspaces with more than one directory ([#1789](https://github.com/julia-vscode/julia-vscode/pull/1789)).
+* Pressing `^C` more than three times in one second now sends a `SIGINT` to the Julia process (on non-Windows OSs), which should make for more robust interrupts ([#1775](https://github.com/julia-vscode/julia-vscode/pull/1775)).
+
+### Changed
+* Inline evaluation now waits for the LS to start up instead of throwing an error ([#1760](https://github.com/julia-vscode/julia-vscode/pull/1760)).
+* `julia.environmentPath` needs a REPL restart, so added a note to that effect ([#1778](https://github.com/julia-vscode/julia-vscode/pull/1778)).
+* The `language-julia.executeFile` command can now be called with a string argument for easy integration with custom keybindings ([#1779](https://github.com/julia-vscode/julia-vscode/pull/1779)).
+* Commands that require finding Julia environment files now don't need a running REPL ([#1757](https://github.com/julia-vscode/julia-vscode/pull/1757)).
+* When using inline evaluation commands that move the cursor after evaluation, the cursor is now only moved if the user hasn't interacted with it ([#1774](https://github.com/julia-vscode/julia-vscode/pull/1774)).
+* Debugging in a new process now properly loads the user's `startup.jl` ([#1806](https://github.com/julia-vscode/julia-vscode/pull/1806)).
+* Update to JuliaInterpreter.jl 0.8 ([#24](https://github.com/julia-vscode/DebugAdapter.jl/pull/24)).
+
+### Fixed
+* There can only be one LS startup notification ([#1798](https://github.com/julia-vscode/julia-vscode/pull/1789)).
+* Plots are now properly displayed when the plot pane is disabled and only inline results are enabled ([#1795](https://github.com/julia-vscode/julia-vscode/pull/1797)).
+* Added some error handling when displaying error stacktraces inline ([#1802](https://github.com/julia-vscode/julia-vscode/pull/1802)).
+* The attached debugger now properly sets `tls[:source_path]` and doesn't crash the Julia REPL on errors ([#1804](https://github.com/julia-vscode/julia-vscode/pull/1804)).
+* Staktraces are now properly truncated for inline results ([#1812](https://github.com/julia-vscode/julia-vscode/pull/1812)).
+* Progress messages are now properly flushed, so that the progress monitoring is always be up-to-date ([#1805](https://github.com/julia-vscode/julia-vscode/pull/1805)).
+* Fixed an issue with parsing kwfuncs using `where` ([#212](https://github.com/julia-vscode/CSTParser.jl/pull/212)).
+* Added missing `nothing` checks that could cause issues when linting files ([#221](https://github.com/julia-vscode/StaticLint.jl/pull/221), [#223](https://github.com/julia-vscode/StaticLint.jl/pull/223)).
 
 ## [1.0.10] - 2020-11-13
 ### Added

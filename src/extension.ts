@@ -21,6 +21,7 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 import * as weave from './weave'
 
 let g_languageClient: LanguageClient = null
@@ -31,7 +32,6 @@ let g_startupNotification: vscode.StatusBarItem = null
 export async function activate(context: vscode.ExtensionContext) {
     if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
         vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
-
         return
     }
 
@@ -52,7 +52,7 @@ export async function activate(context: vscode.ExtensionContext) {
         // Language settings
         vscode.languages.setLanguageConfiguration('julia', {
             indentationRules: {
-                increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!.*\bend\b[^\]]*$).*$/,
+                increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b[^\]]*)|(?:[^\[]*\].*)$).*$/,
                 decreaseIndentPattern: /^\s*(end|else|elseif|catch|finally)\b.*$/
             }
         })
@@ -94,8 +94,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
         context.subscriptions.push(
             // commands
-            vscode.commands.registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
-            vscode.commands.registerCommand('language-julia.restartLanguageServer', restartLanguageServer),
+            registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
+            registerCommand('language-julia.restartLanguageServer', restartLanguageServer),
             // registries
             vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider())
         )
@@ -103,7 +103,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const api = {
             version: 2,
             async getEnvironment() {
-                return await jlpkgenv.getEnvPath()
+                return await jlpkgenv.getAbsEnvPath()
             },
             async getJuliaPath() {
                 return await juliaexepath.getJuliaExePath()
@@ -138,6 +138,9 @@ export async function withLanguageClient(
     if (g_languageClient === null) {
         return callbackOnHandledErr(new Error('Language client is not active'))
     }
+
+    await g_languageClient.onReady()
+
     try {
         return callback(g_languageClient)
     } catch (err) {
@@ -161,17 +164,16 @@ async function startLanguageServer() {
     g_startupNotification.text = 'Starting Julia Language Server…'
     g_startupNotification.show()
 
-    // let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
-
     let jlEnvPath = ''
     try {
-        jlEnvPath = await jlpkgenv.getEnvPath()
-    }
-    catch (e) {
-        vscode.window.showErrorMessage('Could not start the julia language server. Make sure the configuration setting julia.executablePath points to the julia binary.')
+        jlEnvPath = await jlpkgenv.getAbsEnvPath()
+    } catch (e) {
+        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.')
         vscode.window.showErrorMessage(e)
+        g_startupNotification.hide()
         return
     }
+
     const languageServerDepotPath = path.join(g_context.globalStoragePath, 'lsdepot', 'v1')
     await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
@@ -256,14 +258,16 @@ async function startLanguageServer() {
     // automatic environement refreshing
     g_watchedEnvironmentFile = (await jlpkgenv.getProjectFilePaths(jlEnvPath)).manifest_toml_path
     // polling watch for robustness
-    watchFile(g_watchedEnvironmentFile, { interval: 10000 }, (curr, prev) => {
-        if (curr.mtime > prev.mtime) {
-            if (!languageClient.needsStop()) { return } // this client already gets stopped
-            refreshLanguageServer(languageClient)
-        }
-    })
+    if (g_watchedEnvironmentFile) {
+        watchFile(g_watchedEnvironmentFile, { interval: 10000 }, (curr, prev) => {
+            if (curr.mtime > prev.mtime) {
+                if (!languageClient.needsStop()) { return } // this client already gets stopped
+                refreshLanguageServer(languageClient)
+            }
+        })
+    }
 
-    const disposable = vscode.commands.registerCommand('language-julia.showLanguageServerOutput', () => {
+    const disposable = registerCommand('language-julia.showLanguageServerOutput', () => {
         languageClient.outputChannel.show(true)
     })
     try {
@@ -277,12 +281,7 @@ async function startLanguageServer() {
         })
     }
     catch (e) {
-        vscode.window.showErrorMessage(
-            'Could not start the julia language server. Make sure the configuration setting `julia.executablePath` points to the julia binary.',
-            {
-
-            }
-        )
+        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.')
         setLanguageClient()
         disposable.dispose()
         g_startupNotification.hide()

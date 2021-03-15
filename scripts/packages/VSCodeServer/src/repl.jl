@@ -67,11 +67,27 @@ function hook_repl(repl)
     end
     main_mode = get_main_mode(repl)
 
-    # TODO: set up REPL module ?
+    if VERSION > v"1.5-"
+        for i in 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
+            isdefined(Base, :active_repl_backend) && continue
+            sleep(0.5)
+        end
+        if isdefined(Base, :active_repl_backend)
+            push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
+            return
+        end
+    end
+
     main_mode.on_done = REPL.respond(repl, main_mode; pass_empty=false) do line
         quote
             $(evalrepl)(Main, $line, $repl, $main_mode)
         end
+    end
+end
+
+function transform_backend(ast, repl, main_mode)
+    quote
+        $(evalrepl)(Main, $(QuoteNode(ast)), $repl, $main_mode)
     end
 end
 
@@ -99,9 +115,13 @@ function evalrepl(m, line, repl, main_mode)
 end
 
 # don't inline this so we can find it in the stacktrace
-@noinline function repleval(m, code, file)
+@noinline function repleval(m, code::String, file)
     args = VERSION >= v"1.5" ? (REPL.softscope, m, code, file) : (m, code, file)
     return include_string(args...)
+end
+
+@noinline function repleval(m, code, _)
+    return Base.eval(m, code)
 end
 
 # basically the same as Base's `display_error`, with internal frames removed
