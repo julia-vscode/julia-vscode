@@ -73,7 +73,6 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
 
     getCompiledTreeChildrenForNode(node: DebugConfigTreeItem) {
         const out: DebugConfigTreeItem[] = []
-        console.log(node)
         for (let item of [...this._compiledItems]) {
             const isRoot = node.juliaAccessor.startsWith('#root')
             const isNegative = item.startsWith('-') && item.length > 1
@@ -96,7 +95,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
                             isCompiledTree: true
                         })
                     } else {
-                        out[index].hasChildren = parts.length > 1
+                        out[index].hasChildren = true
                     }
                 }
             }
