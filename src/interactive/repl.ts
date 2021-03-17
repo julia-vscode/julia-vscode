@@ -40,6 +40,11 @@ function is_remote_env(): boolean {
 }
 
 function get_editor(): string {
+    const editor: string | null = vscode.workspace.getConfiguration('julia').get('editor')
+
+    if (editor) {
+        return editor
+    }
     if (is_remote_env()) {
         if (vscode.env.appName === 'Code - OSS') {
             return 'code-server'
