@@ -524,7 +524,7 @@
                     "type": "string",
                     "default": "",
                     "description": "Points to the julia executable.",
-                    "scope": "machine-overridable"
+                    "scope": "machine"
                 },
                 "julia.lint.run": {
                     "type": "boolean",
