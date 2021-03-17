@@ -50,10 +50,30 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
 
     g_current_environment.text = 'Julia env: ' + await getEnvName()
 
+    if (notifyLS) {
+        if (!g_languageClient) {
+            return
+        }
+        await g_languageClient.onReady()
+        g_languageClient.sendNotification('julia/activateenvironment', { envPath: envpath })
+    }
+}
+
+async function showPackageNotInEnvIfNeeded() {
     if (vscode.workspace.workspaceFolders !== undefined &&
         vscode.workspace.workspaceFolders.length === 1 &&
         vscode.workspace.workspaceFolders[0].uri.fsPath !== g_path_of_current_environment &&
-        (await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Project.toml')) || await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaProject.toml')))) {
+        (
+            (
+                await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Project.toml')) &&
+                !await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Manifest.toml'))
+            ) ||
+            (
+                await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaProject.toml')) &&
+                !await fs.exists(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaManifest.toml'))
+            )
+        )
+    ) {
 
         const case_adjusted = process.platform === 'win32' ?
             vscode.workspace.workspaceFolders[0].uri.fsPath.charAt(0).toUpperCase() + vscode.workspace.workspaceFolders[0].uri.fsPath.slice(1) :
@@ -70,14 +90,6 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                     }
                 })
         }
-    }
-
-    if (notifyLS) {
-        if (!g_languageClient) {
-            return
-        }
-        await g_languageClient.onReady()
-        g_languageClient.sendNotification('julia/activateenvironment', { envPath: envpath })
     }
 }
 
@@ -136,7 +148,9 @@ async function changeJuliaEnvironment() {
                 const envPath = vscode.Uri.parse(envPathUri).fsPath
                 const isThisAEnv = await fs.exists(path.join(envPath, 'Project.toml'))
                 if (isThisAEnv) {
-                    switchEnvToPath(envPath, true)
+                    await switchEnvToPath(envPath, true)
+
+                    showPackageNotInEnvIfNeeded()
                 }
                 else {
                     vscode.window.showErrorMessage('The selected path is not a julia environment.')
@@ -144,27 +158,15 @@ async function changeJuliaEnvironment() {
             }
         }
         else {
-            switchEnvToPath(resultPackage.description, true)
+            await switchEnvToPath(resultPackage.description, true)
+
+            showPackageNotInEnvIfNeeded()
         }
     }
 }
 
 async function getDefaultEnvPath() {
     if (g_path_of_default_environment === null) {
-        if (vscode.workspace.workspaceFolders) {
-            if (vscode.workspace.workspaceFolders.length === 1) {
-                const projectFilePath1 = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaProject.toml')
-                const manifestFilePath1 = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaManifest.toml')
-                const projectFilePath2 = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Project.toml')
-                const manifestFilePath2 = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Manifest.toml')
-                if (await fs.exists(projectFilePath1) && await fs.exists(manifestFilePath1)) {
-                    return vscode.workspace.workspaceFolders[0].uri.fsPath
-                }
-                else if (await fs.exists(projectFilePath2) && await fs.exists(manifestFilePath2)) {
-                    return vscode.workspace.workspaceFolders[0].uri.fsPath
-                }
-            }
-        }
 
         const jlexepath = await juliaexepath.getJuliaExePath()
         const res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "using Pkg; println(dirname(Pkg.Types.Context().env.project_file))"`)
@@ -219,4 +221,32 @@ export async function activate(context: vscode.ExtensionContext) {
     g_current_environment.command = 'language-julia.changeCurrentEnvironment'
     context.subscriptions.push(g_current_environment)
     await switchEnvToPath(await getEnvPath(), false) // We don't need to notify the LS here because it will start with that env already
+
+
+    const configuredEnvironmentPath = vscode.workspace.getConfiguration('julia')?.get<string>('environmentPath')
+
+    if ((configuredEnvironmentPath === null || configuredEnvironmentPath === undefined) && vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length === 1) {
+        const projectFilePath1 = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaProject.toml')
+        const manifestFilePath1 = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'JuliaManifest.toml')
+        const projectFilePath2 = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Project.toml')
+        const manifestFilePath2 = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Manifest.toml')
+
+        if ((await fs.exists(projectFilePath1) && await fs.exists(manifestFilePath1)) || (await fs.exists(projectFilePath2) && await fs.exists(manifestFilePath2))) {
+            vscode.window.showInformationMessage('You opened a folder with a Julia environment. Activating this enviornment may be a security risk if you do not trust the source of the files or folders you currently have open. Do you want to activate this environment?', 'Activate', `Don't activate`)
+                .then(env_choice => {
+                    if (env_choice === 'Activate') {
+                        switchEnvToPath(vscode.workspace.workspaceFolders[0].uri.fsPath, true)
+                    }
+                    else {
+                        showPackageNotInEnvIfNeeded()
+                    }
+                })
+        }
+        else {
+            showPackageNotInEnvIfNeeded()
+        }
+    }
+    else {
+        showPackageNotInEnvIfNeeded()
+    }
 }
