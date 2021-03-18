@@ -40,18 +40,19 @@ function is_remote_env(): boolean {
 }
 
 function get_editor(): string {
-    if (is_remote_env() || process.platform === 'darwin') {
-        // code-server:
+    const editor: string | null = vscode.workspace.getConfiguration('julia').get('editor')
+
+    if (editor) {
+        return editor
+    }
+    if (is_remote_env()) {
         if (vscode.env.appName === 'Code - OSS') {
-            return `"${path.join(vscode.env.appRoot, '..', '..', 'bin', 'code-server')}"`
+            return 'code-server'
         } else {
-            const cmd = vscode.env.appName.includes('Insiders') && process.platform !== 'darwin' ? 'code-insiders' : 'code'
-            return `"${path.join(vscode.env.appRoot, 'bin', cmd)}"`
+            return `"${process.execPath}"`
         }
     }
-    else {
-        return `"${process.execPath}"`
-    }
+    return vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
 }
 
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
