@@ -6,7 +6,7 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.54.0"
+        "vscode": "1.55.0-insider"
     },
     "enableProposedApi": true,
     "license": "SEE LICENSE IN LICENSE",
