@@ -94,7 +94,7 @@ export class JuliaKernel implements vscode.NotebookKernel {
 	                const executionRequest = this.executionRequests.get(current_request_id)
 
 	                if (executionRequest) {
-	                    executionRequest.task.replaceOutput([new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(mimetype, data)])])
+	                    executionRequest.task.appendOutput([new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(mimetype, data)])])
 	                }
 	            })
 
@@ -102,13 +102,13 @@ export class JuliaKernel implements vscode.NotebookKernel {
 	                if (name === 'stdout') {
 	                    const executionRequest = this.executionRequests.get(current_request_id)
 	                    if (executionRequest) {
-	                        executionRequest.task.replaceOutput([new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stdout', data)])])
+	                        executionRequest.task.appendOutput([new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stdout', data)])])
 	                    }
 	                }
 	                else if (name === 'stderr') {
 	                    const executionRequest = this.executionRequests.get(current_request_id)
 	                    if (executionRequest) {
-	                        executionRequest.task.replaceOutput([new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stderr', data)])])
+	                        executionRequest.task.appendOutput([new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stderr', data)])])
 	                    }
 	                }
 	                else {
