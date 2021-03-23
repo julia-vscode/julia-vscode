@@ -10,8 +10,6 @@ import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
 
 interface ExecutionRequest {
-    cell: vscode.NotebookCell
-	executionOrder: number
 	task: vscode.NotebookCellExecutionTask
 	startTime: number;
 }
@@ -62,7 +60,7 @@ export class JuliaKernel implements vscode.NotebookKernel {
 	    task.start({startTime})
 	    const executionOrder = ++this._current_request_id
 	    task.executionOrder = executionOrder
-	    this.executionRequests.set(executionOrder, { cell: cell, executionOrder: executionOrder, startTime, task })
+	    this.executionRequests.set(executionOrder, { startTime, task })
 	    this._msgConnection.sendNotification(notifyTypeRunCell, { current_request_id: this._current_request_id, code: cell.document.getText() })
 	}
 
