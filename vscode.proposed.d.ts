@@ -38,13 +38,13 @@ declare module 'vscode' {
 		 * @deprecated - getSession should now trigger extension activation.
 		 * Fires with the provider id that was registered or unregistered.
 		 */
-		export const onDidChangeAuthenticationProviders: Event<AuthenticationProvidersChangeEvent>;
+		export const onDidChangeAuthenticationProviders: Event<AuthenticationProvidersChangeEvent>
 
 		/**
 		 * @deprecated
 		 * An array of the information of authentication providers that are currently registered.
 		 */
-		export const providers: ReadonlyArray<AuthenticationProviderInformation>;
+		export const providers: ReadonlyArray<AuthenticationProviderInformation>
 
 		/**
 		 * @deprecated
@@ -58,7 +58,6 @@ declare module 'vscode' {
 
 	//#endregion
 
-	// eslint-disable-next-line vscode-dts-region-comments
 	//#region @alexdima - resolvers
 
 	export interface MessageOptions {
@@ -135,10 +134,10 @@ declare module 'vscode' {
 	export type ResolverResult = ResolvedAuthority & ResolvedOptions & TunnelInformation;
 
 	export class RemoteAuthorityResolverError extends Error {
-		static NotAvailable(message?: string, handled?: boolean): RemoteAuthorityResolverError;
-		static TemporarilyNotAvailable(message?: string): RemoteAuthorityResolverError;
+	    static NotAvailable(message?: string, handled?: boolean): RemoteAuthorityResolverError;
+	    static TemporarilyNotAvailable(message?: string): RemoteAuthorityResolverError;
 
-		constructor(message?: string);
+	    constructor(message?: string);
 	}
 
 	export interface RemoteAuthorityResolver {
@@ -185,12 +184,12 @@ declare module 'vscode' {
 		 * Gets an array of the currently available tunnels. This does not include environment tunnels, only tunnels that have been created by the user.
 		 * Note that these are of type TunnelDescription and cannot be disposed.
 		 */
-		export let tunnels: Thenable<TunnelDescription[]>;
+		export let tunnels: Thenable<TunnelDescription[]>
 
 		/**
 		 * Fired when the list of tunnels has changed.
 		 */
-		export const onDidChangeTunnels: Event<void>;
+		export const onDidChangeTunnels: Event<void>
 	}
 
 	export interface ResourceLabelFormatter {
@@ -202,7 +201,6 @@ declare module 'vscode' {
 	export interface ResourceLabelFormatting {
 		label: string; // myLabel:/${path}
 		// For historic reasons we use an or string here. Once we finalize this API we should start using enums instead and adopt it in extensions.
-		// eslint-disable-next-line vscode-dts-literal-or-types
 		separator: '/' | '\\' | '';
 		tildify?: boolean;
 		normalizeDriveLetter?: boolean;
@@ -664,7 +662,6 @@ declare module 'vscode' {
 
 	//#endregion
 
-	// eslint-disable-next-line vscode-dts-region-comments
 	//#region @weinand: variables view action contributions
 
 	/**
@@ -685,7 +682,6 @@ declare module 'vscode' {
 
 	//#endregion
 
-	// eslint-disable-next-line vscode-dts-region-comments
 	//#region @joaomoreno: SCM validation
 
 	/**
@@ -736,7 +732,6 @@ declare module 'vscode' {
 
 	//#endregion
 
-	// eslint-disable-next-line vscode-dts-region-comments
 	//#region @joaomoreno: SCM selected provider
 
 	export interface SourceControl {
@@ -773,7 +768,7 @@ declare module 'vscode' {
 		 * In other words, this provides access to the raw data stream from the process running
 		 * within the terminal, including VT sequences.
 		 */
-		export const onDidWriteTerminalData: Event<TerminalDataWriteEvent>;
+		export const onDidWriteTerminalData: Event<TerminalDataWriteEvent>
 	}
 
 	//#endregion
@@ -798,7 +793,7 @@ declare module 'vscode' {
 		/**
 		 * An event which fires when the [dimensions](#Terminal.dimensions) of the terminal change.
 		 */
-		export const onDidChangeTerminalDimensions: Event<TerminalDimensionsChangeEvent>;
+		export const onDidChangeTerminalDimensions: Event<TerminalDimensionsChangeEvent>
 	}
 
 	export interface Terminal {
@@ -812,7 +807,6 @@ declare module 'vscode' {
 
 	//#endregion
 
-	// eslint-disable-next-line vscode-dts-region-comments
 	//#region @jrieken -> exclusive document filters
 
 	export interface DocumentFilter {
@@ -907,7 +901,6 @@ declare module 'vscode' {
 		 *
 		 * @return Thenable indicating that the webview editor has been moved.
 		 */
-		// eslint-disable-next-line vscode-dts-provider-naming
 		moveCustomTextEditor?(newDocument: TextDocument, existingWebviewPanel: WebviewPanel, token: CancellationToken): Thenable<void>;
 	}
 
@@ -1289,29 +1282,29 @@ declare module 'vscode' {
 
 		export function openNotebookDocument(uri: Uri): Thenable<NotebookDocument>;
 
-		export const onDidOpenNotebookDocument: Event<NotebookDocument>;
-		export const onDidCloseNotebookDocument: Event<NotebookDocument>;
+		export const onDidOpenNotebookDocument: Event<NotebookDocument>
+		export const onDidCloseNotebookDocument: Event<NotebookDocument>
 
-		export const onDidSaveNotebookDocument: Event<NotebookDocument>;
+		export const onDidSaveNotebookDocument: Event<NotebookDocument>
 
 		/**
 		 * All currently known notebook documents.
 		 */
-		export const notebookDocuments: ReadonlyArray<NotebookDocument>;
-		export const onDidChangeNotebookDocumentMetadata: Event<NotebookDocumentMetadataChangeEvent>;
-		export const onDidChangeNotebookCells: Event<NotebookCellsChangeEvent>;
-		export const onDidChangeCellOutputs: Event<NotebookCellOutputsChangeEvent>;
+		export const notebookDocuments: ReadonlyArray<NotebookDocument>
+		export const onDidChangeNotebookDocumentMetadata: Event<NotebookDocumentMetadataChangeEvent>
+		export const onDidChangeNotebookCells: Event<NotebookCellsChangeEvent>
+		export const onDidChangeCellOutputs: Event<NotebookCellOutputsChangeEvent>
 
-		export const onDidChangeCellMetadata: Event<NotebookCellMetadataChangeEvent>;
+		export const onDidChangeCellMetadata: Event<NotebookCellMetadataChangeEvent>
 	}
 
 	export namespace window {
-		export const visibleNotebookEditors: NotebookEditor[];
-		export const onDidChangeVisibleNotebookEditors: Event<NotebookEditor[]>;
-		export const activeNotebookEditor: NotebookEditor | undefined;
-		export const onDidChangeActiveNotebookEditor: Event<NotebookEditor | undefined>;
-		export const onDidChangeNotebookEditorSelection: Event<NotebookEditorSelectionChangeEvent>;
-		export const onDidChangeNotebookEditorVisibleRanges: Event<NotebookEditorVisibleRangesChangeEvent>;
+		export const visibleNotebookEditors: NotebookEditor[]
+		export const onDidChangeVisibleNotebookEditors: Event<NotebookEditor[]>
+		export const activeNotebookEditor: NotebookEditor | undefined
+		export const onDidChangeActiveNotebookEditor: Event<NotebookEditor | undefined>
+		export const onDidChangeNotebookEditorSelection: Event<NotebookEditorSelectionChangeEvent>
+		export const onDidChangeNotebookEditorVisibleRanges: Event<NotebookEditorVisibleRangesChangeEvent>
 
 		export function showNotebookDocument(uri: Uri, options?: NotebookDocumentShowOptions): Thenable<NotebookEditor>;
 		export function showNotebookDocument(document: NotebookDocument, options?: NotebookDocumentShowOptions): Thenable<NotebookEditor>;
@@ -1328,10 +1321,10 @@ declare module 'vscode' {
 	// application/x.notebook.stream
 	export class NotebookCellOutputItem {
 
-		// todo@API
-		// add factory functions for common mime types
-		// static textplain(value:string): NotebookCellOutputItem;
-		// static errortrace(value:any): NotebookCellOutputItem;
+	    // todo@API
+	    // add factory functions for common mime types
+	    // static textplain(value:string): NotebookCellOutputItem;
+	    // static errortrace(value:any): NotebookCellOutputItem;
 
 		readonly mime: string;
 		readonly value: unknown;
@@ -1453,7 +1446,6 @@ declare module 'vscode' {
 		/**
 		 * @deprecated
 		 */
-		// eslint-disable-next-line vscode-dts-cancellation
 		resolveNotebook(document: NotebookDocument, webview: NotebookCommunication): Thenable<void>;
 
 		/**
@@ -1623,7 +1615,7 @@ declare module 'vscode' {
 	}
 
 	export namespace notebook {
-		export const onDidChangeActiveNotebookKernel: Event<{ document: NotebookDocument, kernel: NotebookKernel | undefined; }>;
+		export const onDidChangeActiveNotebookKernel: Event<{ document: NotebookDocument, kernel: NotebookKernel | undefined; }>
 
 		export function registerNotebookKernelProvider(selector: NotebookDocumentFilter, provider: NotebookKernelProvider): Disposable;
 	}
@@ -2120,12 +2112,12 @@ declare module 'vscode' {
 		* List of test results stored by VS Code, sorted in descnding
 		* order by their `completedAt` time.
 		*/
-		export const testResults: ReadonlyArray<TestResults>;
+		export const testResults: ReadonlyArray<TestResults>
 
 		/**
 		* Event that fires when the {@link testResults} array is updated.
 		*/
-		export const onDidChangeTestResults: Event<void>;
+		export const onDidChangeTestResults: Event<void>
 	}
 
 	export interface TestObserver {
@@ -2238,7 +2230,6 @@ declare module 'vscode' {
 		 * @param options Options for this test run
 		 * @param cancellationToken Token that signals the used asked to abort the test run.
 		 */
-		// eslint-disable-next-line vscode-dts-provider-naming
 		runTests(options: TestRun<T>, token: CancellationToken): ProviderResult<void>;
 	}
 
@@ -2745,10 +2736,10 @@ declare module 'vscode' {
 	}
 
 	export namespace window {
-		export const openEditors: ReadonlyArray<OpenEditorInfo>;
+		export const openEditors: ReadonlyArray<OpenEditorInfo>
 
 		// todo@API proper event type
-		export const onDidChangeOpenEditors: Event<void>;
+		export const onDidChangeOpenEditors: Event<void>
 	}
 
 	//#endregion
@@ -2804,7 +2795,7 @@ declare module 'vscode' {
 		/**
 		 * The trust state of the current workspace
 		 */
-		export const trustState: WorkspaceTrustState;
+		export const trustState: WorkspaceTrustState
 
 		/**
 		 * Prompt the user to chose whether to trust the current workspace
@@ -2816,7 +2807,7 @@ declare module 'vscode' {
 		/**
 		 * Event that fires when the trust state of the current workspace changes
 		 */
-		export const onDidChangeWorkspaceTrustState: Event<WorkspaceTrustStateChangeEvent>;
+		export const onDidChangeWorkspaceTrustState: Event<WorkspaceTrustStateChangeEvent>
 	}
 
 	//#endregion
