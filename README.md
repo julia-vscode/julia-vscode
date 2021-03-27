@@ -8,14 +8,14 @@ This [VS Code](https://code.visualstudio.com) extension provides support for the
 
 ### Installing Julia/VS Code/VS Code Julia extension
 1. Install Julia for your platform: https://julialang.org/downloads/
-2. Install VS Code for your platform: https://code.visualstudio.com/download   
+2. Install VS Code for your platform: https://code.visualstudio.com/download
     At the end of this step you should be able to start VS Code.
-3. Install the Julia VS Code extension:  
-    1. Start VS Code.    
+3. Install the Julia VS Code extension:
+    1. Start VS Code.
     2. Inside VS Code, go to the extensions view either by
         executing the ``View: Show Extensions`` command (click View->Command Palette...)
         or by clicking on the extension icon on the left side of the VS Code
-        window.      
+        window.
     3. In the extensions view, simply search for the term ``julia`` in the marketplace
         search box, then select the extension named ``Julia`` and click the install button.
         You might have to restart VS Code after this step.
@@ -38,6 +38,28 @@ then make sure your user settings include the ``julia.executablePath``
 setting. The format of the string should follow your platform specific
 conventions, and be aware that the backlash ``\`` is the escape character
 in JSON, so you need to use ``\\`` as the path separator character on Windows.
+
+### Developer Instructions
+
+#### Install extension from source
+
+1. Install required dependencies, `node` and `npm`, and make sure they are available in `PATH`.
+
+2. Clone the repository (including submodules):
+   ```bash
+   $ git clone --recurse-submodules https://github.com/julia-vscode/julia-vscode
+   ```
+
+   If you have already cloned the repository, update the submodules:
+   ```bash
+    git submodule update --init
+   ```
+
+3. Open the folder where the extension was cloned in VSCode. The `Start Debugging` command (<kbd>F5</kbd>) opens a separate window with the modified extension in debug mode
+
+### Reload extension after making changes
+
+To reload the Extension Development Host window after making changes, hit <kbd>ctrl/cmd + R</kbd>.
 
 ## Features
 
