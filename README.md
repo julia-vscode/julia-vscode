@@ -39,28 +39,6 @@ setting. The format of the string should follow your platform specific
 conventions, and be aware that the backlash ``\`` is the escape character
 in JSON, so you need to use ``\\`` as the path separator character on Windows.
 
-### Developer Instructions
-
-#### Install extension from source
-
-1. Install required dependencies, `node` and `npm`, and make sure they are available in `PATH`.
-
-2. Clone the repository (including submodules):
-   ```bash
-   $ git clone --recurse-submodules https://github.com/julia-vscode/julia-vscode
-   ```
-
-   If you have already cloned the repository, update the submodules:
-   ```bash
-    git submodule update --init
-   ```
-
-3. Open the folder where the extension was cloned in VSCode. The `Start Debugging` command (<kbd>F5</kbd>) opens a separate window with the modified extension in debug mode
-
-### Reload extension after making changes
-
-To reload the Extension Development Host window after making changes, hit <kbd>ctrl/cmd + R</kbd>.
-
 ## Features
 
 The extension currently provides:
@@ -86,12 +64,12 @@ has sections that describe the features of this extension (including
 e.g. keyboard shortcuts). This repo also has legacy docs in the
 [wiki](https://github.com/julia-vscode/julia-vscode/wiki).
 
-## Known issues and workarounds
+## Questions, Feature requests and contributions
 
-Please visit the [known issues and workarounds](https://github.com/julia-vscode/julia-vscode/wiki/Known-issues-and-workarounds)
-for up-to-date information about known issues and solutions for those
-problems.
-
+1. If you face any issues, please open an issue [here](https://github.com/microsoft/vscode-python/issues).
+2. For some known issues and their solutions, please visit the [known issues and workarounds](https://github.com/julia-vscode/julia-vscode/wiki/Known-issues-and-workarounds).
+3. If there is already an issue opened related to yours, please leave an upvote/downvote on the issue.
+4. Contributions are always welcome! Please see our [contributing guide](https://github.com/julia-vscode/julia-vscode/blob/master/CONTRIBUTING.md) for more details.
 ## Data/Telemetry
 
 The Julia extension for Visual Studio Code collects usage data and sends it to the development team to help improve the extension. Read our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more and how to disable any telemetry.
