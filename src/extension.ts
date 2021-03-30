@@ -17,6 +17,7 @@ import * as juliaexepath from './juliaexepath'
 import * as openpackagedirectory from './openpackagedirectory'
 import { JuliaPackageDevFeature } from './packagedevtools'
 import * as packagepath from './packagepath'
+import * as pkgs from './pkgbrowser/pkgs'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
@@ -62,6 +63,7 @@ export async function activate(context: vscode.ExtensionContext) {
         repl.activate(context)
         weave.activate(context)
         documentation.activate(context)
+        pkgs.activate(context)
         tasks.activate(context)
         smallcommands.activate(context)
         packagepath.activate(context)
