@@ -5,7 +5,7 @@ using VSCodeServer
 popfirst!(LOAD_PATH)
 
 let
-    args = [popfirst!(Base.ARGS) for _ in 1:5]
+    args = [popfirst!(Base.ARGS) for _ in 1:6]
     # load Revise ?
     if "USE_REVISE=true" in args
         try
