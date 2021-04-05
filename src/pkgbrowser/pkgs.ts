@@ -1,84 +1,97 @@
-import * as markdownit from 'markdown-it'
+import * as fs from 'async-file'
 import * as path from 'path'
+import { parse } from 'toml'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'
-import { constructCommandString, getVersionedParamsAtPosition, registerCommand } from '../utils'
+import { registerCommand } from '../utils'
 
-function openArgs(href: string) {
-    const matches = href.match(/^((\w+\:\/\/)?.+?)(?:\:(\d+))?$/)
-    let uri
-    let line
-    if (matches[1] && matches[3] && matches[2] === undefined) {
-        uri = matches[1]
-        line = parseInt(matches[3])
-    } else {
-        uri = vscode.Uri.parse(matches[1])
-    }
-    return { uri, line }
-}
-
-const md = new markdownit().use(
-    require('@traptitech/markdown-it-katex'),
-    {
-        output: 'html'
-    }
-).use(
-    require('markdown-it-footnote')
-)
-
-md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
-    const aIndex = tokens[idx].attrIndex('href')
-
-    if (aIndex >= 0 && tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
-        const commandUri = constructCommandString('language-julia.search-word', { searchTerm: tokens[idx + 1].content })
-        tokens[idx].attrs[aIndex][1] = vscode.Uri.parse(commandUri).toString()
-    } else if (aIndex >= 0 && tokens.length > idx + 1) {
-        const href = tokens[idx + 1].content
-        const { uri, line } = openArgs(href)
-        let commandUri
-        if (line === undefined) {
-            commandUri = constructCommandString('vscode.open', uri)
-        } else {
-            commandUri = constructCommandString('language-julia.openFile', { path: uri, line })
-        }
-        tokens[idx].attrs[aIndex][1] = commandUri
-    }
-
-    return self.renderToken(tokens, idx, options)
-}
 
 export function activate(context: vscode.ExtensionContext) {
     const provider = new PkgsViewProvider(context)
 
     context.subscriptions.push(
         registerCommand('language-julia.show-pkgs-pane', () => provider.showPkgsPane()),
-        // registerCommand('language-julia.show-documentation', () => provider.showDocumentation()),
-        // registerCommand('language-julia.browse-back-documentation', () => provider.browseBack()),
-        // registerCommand('language-julia.browse-forward-documentation', () => provider.browseForward()),
-        // registerCommand('language-julia.search-word', (params) => provider.findHelp(params)),
         vscode.window.registerWebviewViewProvider('julia-pkgs', provider)
     )
 }
 
+type DepDetails = {
+    path: string,
+    type: 'Project' | 'Manifest',
+}
+
+
 class PkgsViewProvider implements vscode.WebviewViewProvider {
     private view?: vscode.WebviewView
     private context: vscode.ExtensionContext
+    private rootPath: string
+    private tomlPath: string
+    private tomlType: 'Project' | 'Manifest'
 
-    private backStack = Array<string>() // also keep current page
-    private forwardStack = Array<string>()
-
-    constructor(context) {
+    constructor(context: vscode.ExtensionContext) {
         this.context = context
+        const folders = vscode.workspace.workspaceFolders
+        this.rootPath = folders[0].uri.fsPath
+        const deps = this.resolveDepsPath()
+        this.tomlPath = deps.path
+        this.tomlType = deps.type
+
+        this.loadDeps()
+    }
+
+    resolveDepsPath(): DepDetails {
+        const ProjectTomlPath = path.join(this.rootPath, 'Project.toml')
+        const ManifestTomlPath = path.join(this.rootPath, 'Manifest.toml')
+
+        if (fs.exists(ProjectTomlPath)) {
+            return {path: ProjectTomlPath, type: 'Project'}
+        } else if (fs.exists(ManifestTomlPath)) {
+            return {path: ManifestTomlPath, type: 'Manifest'}
+
+        } else {
+            return {path: null, type: null}
+        }
+    }
+
+    loadDeps(): Promise<object> {
+        return new Promise(resolve => {
+            if (this.tomlPath !== null) {
+                if (this.tomlType === 'Project') {
+                    fs.readTextFile(this.tomlPath).then(t => {
+                        const toml = parse(t)
+                        const compat: object = toml.compat
+                        resolve(compat)
+                    })
+                }
+            }
+        })
+    }
+
+    parseDeps(): Promise<string> {
+        return new Promise(resolve => {
+            this.loadDeps().then(deps => {
+                const pkgsNames = Object.keys(deps)
+                const htmlList = pkgsNames.map(name =>
+                    `<li><h4>${name}</h4><span>${deps[name]}</span></li>`)
+                    .join('')
+
+                resolve(htmlList)
+            })
+        })
+
     }
 
     resolveWebviewView(view: vscode.WebviewView, context: vscode.WebviewViewResolveContext) {
         this.view = view
 
+
         view.webview.options = {
             enableScripts: true,
             enableCommandUris: true
         }
-        view.webview.html = this.createWebviewHTML('Use the `language-julia.show-documentation` command in an editor or search for documentation above.')
+        this.parseDeps().then(depsList => {
+            view.webview.html = this.createWebviewHTML(depsList)
+        })
 
         view.webview.onDidReceiveMessage(msg => {
             if (msg.type === 'search') {
@@ -89,13 +102,9 @@ class PkgsViewProvider implements vscode.WebviewViewProvider {
         })
     }
 
-    findHelp(params: { searchTerm: string }) {
-        this.showDocumentationFromWord(params.searchTerm)
-    }
-
     async showPkgsPane() {
         // this forces the webview to be resolved:
-        // await vscode.commands.executeCommand('julia-documentation.focus')
+        await vscode.commands.executeCommand('julia-pkgs.focus')
         // should always be true, but better safe than sorry
         if (this.view) {
             this.view.show?.(true)
@@ -122,33 +131,10 @@ class PkgsViewProvider implements vscode.WebviewViewProvider {
         )
     }
 
-    async showDocumentation() {
-        // telemetry.traceEvent('command-showdocumentation')
-        const editor = vscode.window.activeTextEditor
-        if (!editor) { return }
 
-        const docAsMD = await this.getDocumentation(editor)
-        if (!docAsMD) { return }
-
-        this.forwardStack = [] // initialize forward page stack for manual search
-        await this.showPkgsPane()
-        const html = this.createWebviewHTML(docAsMD)
-        this.setHTML(html)
-    }
-
-    async getDocumentation(editor: vscode.TextEditor): Promise<string> {
-        return await withLanguageClient(
-            async languageClient => {
-                return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor.document, editor.selection.start))
-            }, err => {
-                console.error('LC request failed with ', err)
-                return ''
-            }
-        )
-    }
-
-    createWebviewHTML(docAsMD: string) {
-        const docAsHTML = md.render(docAsMD)
+    createWebviewHTML(pkgsList: string) {
+        console.log(pkgsList)
+        // const docAsHTML = md.render(docAsMD)
 
         const extensionPath = this.context.extensionPath
 
@@ -188,6 +174,29 @@ class PkgsViewProvider implements vscode.WebviewViewProvider {
         body:active {
             outline: 1px solid var(--vscode-focusBorder);
         }
+
+       .pkgs-list > li {
+            list-style-type: none;
+            position: relative;
+            margin-bottom: 4px;
+        }
+
+        span {
+            margin-left: 5px;
+        }
+
+        li:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        ol, li, span, h4 {
+            margin: 0;
+        }
+
+        h4 {
+            position: relative;
+        }
+
         .search {
             position: fixed;
             background-color: var(--vscode-sideBar-background);
@@ -239,10 +248,11 @@ class PkgsViewProvider implements vscode.WebviewViewProvider {
         <div class="search">
             <input id="search-input" type="text" placeholder="Search"></input>
         </div>
+        <p>Here we go!</p>
         <div class="docs-main" style="padding: 50px 1em 1em 1em">
-            <article class="content">
-                ${docAsHTML}
-            </article>
+                <ul class="pkgs-list">
+                    ${pkgsList}
+                </ul>
         </div>
         <script>
             const vscode = acquireVsCodeApi()
@@ -270,34 +280,8 @@ class PkgsViewProvider implements vscode.WebviewViewProvider {
     }
 
     setHTML(html: string) {
-        // set current stack
-        this.backStack.push(html)
-
         if (this.view) {
             this.view.webview.html = html
         }
-    }
-
-    isBrowseBackAvailable() {
-        return this.backStack.length > 1
-    }
-
-    isBrowseForwardAvailable() {
-        return this.forwardStack.length > 0
-    }
-
-    browseBack() {
-        if (!this.isBrowseBackAvailable()) { return }
-
-        const current = this.backStack.pop()
-        this.forwardStack.push(current)
-
-        this.setHTML(this.backStack.pop())
-    }
-
-    browseForward() {
-        if (!this.isBrowseForwardAvailable()) { return }
-
-        this.setHTML(this.forwardStack.pop())
     }
 }
