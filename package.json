@@ -25,6 +25,7 @@
     "Debuggers"
   ],
   "activationEvents": [
+    "onCustomEditor:language-julia.packagesEditor",
     "onDebugInitialConfigurations",
     "onDebugResolve:julia",
     "onCommand:language-julia.openPackageDirectory",
@@ -75,6 +76,20 @@
         "embeddedLanguages": {
           "meta.embedded.block.julia": "julia"
         }
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "language-julia.packagesEditor",
+        "displayName": "Julia Packages Editor",
+        "selector": [
+          {
+            "filenamePattern": "Project.toml"
+          },
+          {
+            "filenamePattern": "Manifest.toml"
+          }
+        ]
       }
     ],
     "commands": [
@@ -949,6 +964,7 @@
     "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "@traptitech/markdown-it-katex": "^3.4.0",
     "@types/applicationinsights": "^0.20.0",
     "@types/child-process-promise": "^2.2.1",
@@ -961,7 +977,6 @@
     "markdown-it": "^12.0.4",
     "markdown-it-footnote": "^3.0.2",
     "promised-temp": "^v0.1.0",
-    "toml": "^3.0.0",
     "uuidv4": "^6.2.6",
     "vscode-debugadapter": "^1.45.0",
     "vscode-jsonrpc": "^6.0.0",
