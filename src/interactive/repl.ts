@@ -555,7 +555,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             code: text,
             mod: module,
             showCodeInREPL: codeInREPL,
-            showResultInREPL: resultType !== 'inline' && !isSuppressed,
+            showResultInREPL: resultType !== 'inline',
             softscope: true
         }
     )
