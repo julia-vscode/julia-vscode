@@ -275,20 +275,20 @@ function crop_backtrace(bt)
     return bt[1:(i === nothing ? end : i)]
 end
 
-# more cleaner way ?
-const LOCATION_REGEX = r"\[\d+\]\s(?<body>.+)\sat\s(?<path>.+)\:(?<line>\d+)"
-
 function backtrace_string(bt)
-    s = sprintlimited(bt, func = Base.show_backtrace, limit = MAX_RESULT_LENGTH)
-    lines = strip.(split(s, '\n'))
+    io = IOBuffer()
 
-    return join(map(enumerate(lines)) do (i, line)
-        i === 1 && return line # "Stacktrace:"
-        m = match(LOCATION_REGEX, line)
-        m === nothing && return line
-        linktext = string(m[:path], ':', m[:line])
-        linkbody = vscode_cmd_uri("language-julia.openFile"; path = fullpath(m[:path]), line = m[:line])
-        linktitle = string("Go to ", linktext)
-        return "$(i-1). `$(m[:body])` at [$(linktext)]($(linkbody) \"$(linktitle)\")"
-    end, "\n\n")
+    println(io, "Stacktrace:")
+    for (i, frame) in enumerate(stacktrace(bt))
+        file = string(frame.file)
+        full_file = fullpath(something(Base.find_source_file(file), file))
+        cmd = vscode_cmd_uri("language-julia.openFile"; path = full_file, line = frame.line)
+
+        print(io, i, ". `")
+        Base.StackTraces.show_spec_linfo(io, frame)
+        print(io, "` at [", file, "](", cmd, " \"", file, "\")")
+        println(io, "\n")
+    end
+
+    return String(take!(io))
 end
