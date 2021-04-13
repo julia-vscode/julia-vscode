@@ -275,9 +275,6 @@ function crop_backtrace(bt)
     return bt[1:(i === nothing ? end : i)]
 end
 
-# more cleaner way ?
-const LOCATION_REGEX = r"\[\d+\]\s(?<body>.+)\sat\s(?<path>.+)\:(?<line>\d+)"
-
 function backtrace_string(bt)
     io = IOBuffer()
 
