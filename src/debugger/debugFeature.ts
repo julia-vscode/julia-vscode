@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
-import { getEnvPath } from '../jlpkgenv'
+import * as jlpkgenv from '../jlpkgenv'
 import { getJuliaExePath } from '../juliaexepath'
+import { registerCommand } from '../utils'
 import { JuliaDebugSession } from './juliaDebug'
 
 export class JuliaDebugFeature {
@@ -11,13 +12,12 @@ export class JuliaDebugFeature {
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
             vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory),
-            vscode.commands.registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
-                const pkgenvpath = await getEnvPath()
-                return pkgenvpath
+            registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
+                return await jlpkgenv.getAbsEnvPath()
             }),
-            vscode.commands.registerCommand('language-julia.runEditorContents', (resource: vscode.Uri | undefined) => {
-                const program = getActiveUri(resource)
-                if (!program) {
+            registerCommand('language-julia.runEditorContents', async (resource: vscode.Uri | undefined) => {
+                resource = getActiveUri(resource)
+                if (!resource) {
                     vscode.window.showInformationMessage('No active editor found.')
                     return
                 }
@@ -26,17 +26,20 @@ export class JuliaDebugFeature {
                     vscode.window.showInformationMessage('File not found in workspace.')
                     return
                 }
-                vscode.debug.startDebugging(folder, {
+                const success = await vscode.debug.startDebugging(folder, {
                     type: 'julia',
                     name: 'Run Editor Contents',
                     request: 'launch',
-                    program,
+                    program: resource.fsPath,
                     noDebug: true
                 })
+                if (!success) {
+                    vscode.window.showErrorMessage('Could not run editor content in new process.')
+                }
             }),
-            vscode.commands.registerCommand('language-julia.debugEditorContents', (resource: vscode.Uri | undefined) => {
-                const program = getActiveUri(resource)
-                if (!program) {
+            registerCommand('language-julia.debugEditorContents', async (resource: vscode.Uri | undefined) => {
+                resource = getActiveUri(resource)
+                if (!resource) {
                     vscode.window.showInformationMessage('No active editor found.')
                     return
                 }
@@ -45,13 +48,15 @@ export class JuliaDebugFeature {
                     vscode.window.showInformationMessage('File not found in workspace.')
                     return
                 }
-                vscode.debug.startDebugging(folder, {
+                const success = await vscode.debug.startDebugging(folder, {
                     type: 'julia',
                     name: 'Debug Editor Contents',
                     request: 'launch',
-                    program,
-
+                    program: resource.fsPath
                 })
+                if (!success) {
+                    vscode.window.showErrorMessage('Could not debug editor content in new process.')
+                }
             })
         )
     }
@@ -63,54 +68,51 @@ function getActiveUri(
     uri: vscode.Uri | undefined,
     editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor
 ) {
-    return uri ? uri.fsPath : editor ? editor.document.fileName : undefined
+    return uri || (editor ? editor.document.uri : undefined)
 }
 
 export class JuliaDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
-
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
         config: vscode.DebugConfiguration,
         token?: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.DebugConfiguration> {
+        if (!config.request) {
+            config.request = 'launch'
+        }
 
-        return (async () => {
-            if (!config.request) {
-                config.request = 'launch'
-            }
+        if (!config.type) {
+            config.type = 'julia'
+        }
 
-            if (!config.type) {
-                config.type = 'julia'
-            }
+        if (!config.name) {
+            config.name = 'Launch Julia'
+        }
 
-            if (!config.name) {
-                config.name = 'Launch Julia'
-            }
+        if (!config.program && config.request !== 'attach') {
+            config.program = vscode.window.activeTextEditor.document.fileName
+        }
 
-            if (!config.program && config.request !== 'attach') {
-                config.program = vscode.window.activeTextEditor.document.fileName
-            }
+        if (!config.internalConsoleOptions) {
+            config.internalConsoleOptions = 'neverOpen'
+        }
 
-            if (!config.internalConsoleOptions) {
-                config.internalConsoleOptions = 'neverOpen'
-            }
+        if (!config.stopOnEntry) {
+            config.stopOnEntry = false
+        }
 
-            if (!config.stopOnEntry) {
-                config.stopOnEntry = false
-            }
+        if (!config.cwd && config.request !== 'attach') {
+            config.cwd = '${workspaceFolder}'
+        }
 
-            if (!config.cwd && config.request !== 'attach') {
-                config.cwd = '${workspaceFolder}'
-            }
+        if (!config.juliaEnv && config.request !== 'attach') {
+            config.juliaEnv = '${command:activeJuliaEnvironment}'
+        }
 
-            if (!config.juliaEnv && config.request !== 'attach') {
-                config.juliaEnv = '${command:activeJuliaEnvironment}'
-            }
+        console.log(config)
 
-            return config
-        })()
+        return config
     }
-
 }
 
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {

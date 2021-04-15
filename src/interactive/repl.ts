@@ -3,6 +3,7 @@ import { Subject } from 'await-notify'
 import { assert } from 'console'
 import * as net from 'net'
 import * as path from 'path'
+import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import * as vslc from 'vscode-languageclient/node'
@@ -11,7 +12,7 @@ import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import * as juliaexepath from '../juliaexepath'
 import * as telemetry from '../telemetry'
-import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, setContext } from '../utils'
+import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerCommand, setContext } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -39,25 +40,26 @@ function is_remote_env(): boolean {
 }
 
 function get_editor(): string {
-    if (is_remote_env() || process.platform === 'darwin') {
-        // code-server:
+    const editor: string | null = vscode.workspace.getConfiguration('julia').get('editor')
+
+    if (editor) {
+        return editor
+    }
+    if (is_remote_env()) {
         if (vscode.env.appName === 'Code - OSS') {
-            return `"${path.join(vscode.env.appRoot, '..', '..', 'bin', 'code-server')}"`
+            return 'code-server'
         } else {
-            const cmd = vscode.env.appName.includes('Insiders') && process.platform !== 'darwin' ? 'code-insiders' : 'code'
-            return `"${path.join(vscode.env.appRoot, 'bin', cmd)}"`
+            return `"${process.execPath}"`
         }
     }
-    else {
-        return `"${process.execPath}"`
-    }
+    return vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
 }
 
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     const config = vscode.workspace.getConfiguration('julia')
 
     if (g_terminal === null) {
-        const pipename = generatePipeName(process.pid.toString(), 'vsc-julia-repl')
+        const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
         const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
         function getArgs() {
             const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
@@ -81,9 +83,9 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
         const exepath = await juliaexepath.getJuliaExePath()
-        const pkgenvpath = await jlpkgenv.getEnvPath()
+        
         let jlarg1: string[]
-
+        const pkgenvpath = await jlpkgenv.getAbsEnvPath()
         if (pkgenvpath === null) {
             jlarg1 = ['-i', '--banner=no'].concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
         } else {
@@ -774,10 +776,12 @@ export function activate(context: vscode.ExtensionContext) {
             connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
             connection.onNotification(notifyTypeProgress, updateProgress)
             setContext('isJuliaEvaluating', false)
+            setContext('hasJuliaREPL', true)
         }),
         onExit(() => {
             results.removeAll()
             setContext('isJuliaEvaluating', false)
+            setContext('hasJuliaREPL', false)
         }),
         onStartEval(() => {
             updateProgress({
@@ -820,21 +824,21 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }),
         // commands
-        vscode.commands.registerCommand('language-julia.startREPL', startREPLCommand),
-        vscode.commands.registerCommand('language-julia.stopREPL', killREPL),
-        vscode.commands.registerCommand('language-julia.selectBlock', selectJuliaBlock),
-        vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
-        vscode.commands.registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
-        vscode.commands.registerCommand('language-julia.executeCell', executeCell),
-        vscode.commands.registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
-        vscode.commands.registerCommand('language-julia.moveCellUp', moveCellUp),
-        vscode.commands.registerCommand('language-julia.moveCellDown', moveCellDown),
-        vscode.commands.registerCommand('language-julia.executeFile', executeFile),
-        vscode.commands.registerCommand('language-julia.interrupt', interrupt),
-        vscode.commands.registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
-        vscode.commands.registerCommand('language-julia.cdHere', cdToHere),
-        vscode.commands.registerCommand('language-julia.activateHere', activateHere),
-        vscode.commands.registerCommand('language-julia.activateFromDir', activateFromDir),
+        registerCommand('language-julia.startREPL', startREPLCommand),
+        registerCommand('language-julia.stopREPL', killREPL),
+        registerCommand('language-julia.selectBlock', selectJuliaBlock),
+        registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
+        registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
+        registerCommand('language-julia.executeCell', executeCell),
+        registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
+        registerCommand('language-julia.moveCellUp', moveCellUp),
+        registerCommand('language-julia.moveCellDown', moveCellDown),
+        registerCommand('language-julia.executeFile', executeFile),
+        registerCommand('language-julia.interrupt', interrupt),
+        registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
+        registerCommand('language-julia.cdHere', cdToHere),
+        registerCommand('language-julia.activateHere', activateHere),
+        registerCommand('language-julia.activateFromDir', activateFromDir),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')

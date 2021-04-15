@@ -1,6 +1,13 @@
 const INLINE_RESULT_LENGTH = 100
 const MAX_RESULT_LENGTH = 10_000
 
+# Workaround for https://github.com/julia-vscode/julia-vscode/issues/1940
+struct Wrapper
+    content
+end
+wrap(x) = Wrapper(x)
+unwrap(x) = x.content
+
 const EVAL_CHANNEL_IN = Channel(0)
 const EVAL_CHANNEL_OUT = Channel(0)
 const EVAL_BACKEND_TASK = Ref{Any}(nothing)
@@ -12,7 +19,7 @@ end
 
 function run_with_backend(f, args...)
   put!(EVAL_CHANNEL_IN, (f, args))
-  return take!(EVAL_CHANNEL_OUT)
+  return unwrap(take!(EVAL_CHANNEL_OUT))
 end
 
 function start_eval_backend()
@@ -30,9 +37,9 @@ function start_eval_backend()
         end
         IS_BACKEND_WORKING[] = false
         Base.sigatomic_begin()
-        put!(EVAL_CHANNEL_OUT, res)
+        put!(EVAL_CHANNEL_OUT, wrap(res))
       catch err
-        put!(EVAL_CHANNEL_OUT, err)
+        put!(EVAL_CHANNEL_OUT, wrap(err))
       finally
         IS_BACKEND_WORKING[] = false
       end
@@ -83,6 +90,7 @@ function add_code_to_repl_history(code)
     end
 end
 
+ans = nothing
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     return run_with_backend() do
         fix_displays()
@@ -140,8 +148,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
 
             withpath(source_filename) do
                 res = try
-                    ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
-                    @eval Main ans = $(QuoteNode(ans))
+                    global ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope=params.softscope)
+                    @eval Main ans = Main.VSCodeServer.ans
                 catch err
                     EvalError(err, catch_backtrace())
                 finally
@@ -267,20 +275,20 @@ function crop_backtrace(bt)
     return bt[1:(i === nothing ? end : i)]
 end
 
-# more cleaner way ?
-const LOCATION_REGEX = r"\[\d+\]\s(?<body>.+)\sat\s(?<path>.+)\:(?<line>\d+)"
-
 function backtrace_string(bt)
-    s = sprintlimited(bt, func = Base.show_backtrace, limit = MAX_RESULT_LENGTH)
-    lines = strip.(split(s, '\n'))
+    io = IOBuffer()
 
-    return join(map(enumerate(lines)) do (i, line)
-        i === 1 && return line # "Stacktrace:"
-        m = match(LOCATION_REGEX, line)
-        m === nothing && return line
-        linktext = string(m[:path], ':', m[:line])
-        linkbody = vscode_cmd_uri("language-julia.openFile"; path = fullpath(m[:path]), line = m[:line])
-        linktitle = string("Go to ", linktext)
-        return "$(i-1). `$(m[:body])` at [$(linktext)]($(linkbody) \"$(linktitle)\")"
-    end, "\n\n")
+    println(io, "Stacktrace:")
+    for (i, frame) in enumerate(stacktrace(bt))
+        file = string(frame.file)
+        full_file = fullpath(something(Base.find_source_file(file), file))
+        cmd = vscode_cmd_uri("language-julia.openFile"; path = full_file, line = frame.line)
+
+        print(io, i, ". `")
+        Base.StackTraces.show_spec_linfo(io, frame)
+        print(io, "` at [", file, "](", cmd, " \"", file, "\")")
+        println(io, "\n")
+    end
+
+    return String(take!(io))
 end
