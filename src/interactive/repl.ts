@@ -83,16 +83,16 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
         const exepath = await juliaexepath.getJuliaExePath()
-        
+
         let jlarg1: string[]
         const pkgenvpath = await jlpkgenv.getAbsEnvPath()
         if (pkgenvpath === null) {
-            jlarg1 = ['-i', '--banner=no'].concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
+            jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
         } else {
             const env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath)
 
             let sysImageArgs = []
-            if (vscode.workspace.getConfiguration('julia').get('useCustomSysimage') && env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
+            if (config.get('useCustomSysimage') && env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
                 const date_sysimage = await fs.stat(env_file_paths.sysimage_path)
                 const date_manifest = await fs.stat(env_file_paths.manifest_toml_path)
 
@@ -103,7 +103,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                     vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
                 }
             }
-            jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(vscode.workspace.getConfiguration('julia').get('additionalArgs'))
+            jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(config.get('additionalArgs'))
         }
 
         if (Boolean(config.get('persistentSession.enabled'))) {
@@ -134,8 +134,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
         g_terminal.show(preserveFocus)
         await juliaIsConnectedPromise.wait()
-    }
-    else if (showTerminal) {
+    } else if (showTerminal) {
         g_terminal.show(preserveFocus)
     }
 }
