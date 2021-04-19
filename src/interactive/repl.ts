@@ -55,7 +55,15 @@ function get_editor(): string {
     return vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
 }
 
+function isConnected() {
+    return Boolean(g_connection)
+}
+
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
+    if (isConnected()) {
+        return
+    }
+
     const config = vscode.workspace.getConfiguration('julia')
 
     if (g_terminal === null) {
@@ -108,7 +116,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
         if (Boolean(config.get('persistentSession.enabled'))) {
             const shellPath: string = config.get('persistentSession.shell')
-            const connectJuliaCode = `VSCodeServer.serve("${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, crashreporting_pipename = "${telemetry.getCrashReportingPipename()}");nothing # re-establishing connection with VSCode`
+            const connectJuliaCode = juliaConnector(pipename)
             const sessionName = config.get('persistentSession.tmuxSessionName')
             const tmuxArgs = [
                 <string>config.get('persistentSession.shellExecutionArgument'),
@@ -136,6 +144,27 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         await juliaIsConnectedPromise.wait()
     } else if (showTerminal) {
         g_terminal.show(preserveFocus)
+    }
+}
+
+function juliaConnector(pipename, start = false) {
+    const connect = `VSCodeServer.serve("${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, crashreporting_pipename = "${telemetry.getCrashReportingPipename()}");nothing # re-establishing connection with VSCode`
+    if (start) {
+        return `pushfirst!(LOAD_PATH, "${path.join(g_context.extensionPath, 'scripts', 'packages')}"); using VSCodeServer; popfirst!(LOAD_PATH);` + connect
+    } else {
+        return connect
+    }
+}
+
+async function connectREPL() {
+    const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
+    const juliaIsConnectedPromise = startREPLMsgServer(pipename)
+    const connectJuliaCode = juliaConnector(pipename, true)
+
+    const click = await vscode.window.showInformationMessage('Start a Julia session, and execute the code copied into your clipboard by the button below into it.', 'Copy code')
+    if (click === 'Copy code') {
+        vscode.env.clipboard.writeText(connectJuliaCode)
+        await juliaIsConnectedPromise.wait()
     }
 }
 
@@ -824,6 +853,7 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         // commands
         registerCommand('language-julia.startREPL', startREPLCommand),
+        registerCommand('language-julia.connectREPL', connectREPL),
         registerCommand('language-julia.stopREPL', killREPL),
         registerCommand('language-julia.selectBlock', selectJuliaBlock),
         registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),

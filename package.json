@@ -30,6 +30,7 @@
         "onCommand:language-julia.openPackageDirectory",
         "onCommand:language-julia.changeCurrentEnvironment",
         "onCommand:language-julia.startREPL",
+        "onCommand:language-julia.connectREPL",
         "onCommand:language-julia.stopREPL",
         "onCommand:language-julia.executeCodeBlockOrSelection",
         "onCommand:language-julia.executeFile",
@@ -101,6 +102,10 @@
             {
                 "command": "language-julia.startREPL",
                 "title": "Julia: Start REPL"
+            },
+            {
+                "command": "language-julia.connectREPL",
+                "title": "Julia: Connect external REPL"
             },
             {
                 "command": "language-julia.stopREPL",
