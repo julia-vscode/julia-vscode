@@ -110,6 +110,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
 
         show_code = params.showCodeInREPL
         show_result = params.showResultInREPL
+        show_error = params.showErrorInREPL
 
         JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
 
@@ -156,7 +157,11 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
                 end
 
-                if show_result
+                if show_error
+                    if res isa EvalError
+                        Base.display_error(stderr, res)
+                    end
+                elseif show_result
                     if res isa EvalError
                         Base.display_error(stderr, res)
                     elseif res !== nothing && !ends_with_semicolon(source_code)
