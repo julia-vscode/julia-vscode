@@ -758,6 +758,7 @@
                     "enum": [
                         "REPL",
                         "inline",
+                        "inline, errors in REPL",
                         "both"
                     ],
                     "enumDescriptions": [
