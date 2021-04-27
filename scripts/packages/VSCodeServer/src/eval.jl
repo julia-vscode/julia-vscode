@@ -157,10 +157,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
                 end
 
-                if show_error
-                    if res isa EvalError
-                        Base.display_error(stderr, res)
-                    end
+                if show_error && res isa EvalError
+                    Base.display_error(stderr, res)
                 elseif show_result
                     if res isa EvalError
                         Base.display_error(stderr, res)
