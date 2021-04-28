@@ -60,7 +60,24 @@
     ],
     "main": "./dist/extension",
     "contributes": {
+        "languages": [
+            {
+                "id": "toml",
+                "extensions": [
+                    ".toml"
+                ],
+                "configuration": "./toml-configuration.json"
+            }
+        ],
         "grammars": [
+            {
+                "language": "toml",
+                "path": "./syntaxes/juliatoml.json",
+                "injectTo": [
+                    "text.html.markdown"
+                ],
+                "scopeName": "source.toml"
+            },
             {
                 "language": "juliamarkdown",
                 "scopeName": "text.html.markdown.julia",
@@ -74,6 +91,30 @@
                 ],
                 "embeddedLanguages": {
                     "meta.embedded.block.julia": "julia"
+                }
+            }
+        ],
+        "semanticTokenTypes": [
+            {
+                "id": "tomlArrayKey",
+                "superType": "variable",
+                "description": "Keys of regular arrays."
+            },
+            {
+                "id": "tomlTableKey",
+                "superType": "variable",
+                "description": "Keys of inline tables."
+            }
+        ],
+        "semanticTokenScopes": [
+            {
+                "scopes": {
+                    "tomlArrayKey": [
+                        "variable.key.array.toml"
+                    ],
+                    "tomlTableKey": [
+                        "variable.key.table.toml"
+                    ]
                 }
             }
         ],
@@ -940,6 +981,7 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
+        "@taplo/lsp": "^0.1.6",
         "@traptitech/markdown-it-katex": "^3.4.0",
         "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",

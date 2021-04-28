@@ -1,0 +1,53 @@
+{
+	"Credits": "https://github.com/tamasfe/taplo under the MIT License",
+	"comments": {
+		"lineComment": "#"
+	},
+	"autoCloseBefore": ";:.,=}])> \n\t",
+	"brackets": [
+		[
+			"[",
+			"]"
+		]
+	],
+	"autoClosingPairs": [
+		[
+			"\"",
+			"\""
+		],
+		[
+			"'",
+			"'"
+		],
+		[
+			"[",
+			"]"
+		],
+		[
+			"{",
+			"}"
+		]
+	],
+	"surroundingPairs": [
+		[
+			"\"",
+			"\""
+		],
+		[
+			"'",
+			"'"
+		],
+		[
+			"(",
+			")"
+		],
+		[
+			"[",
+			"]"
+		],
+		[
+			"{",
+			"}"
+		]
+	]
+}
