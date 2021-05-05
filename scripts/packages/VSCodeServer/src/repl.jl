@@ -102,6 +102,9 @@ function evalrepl(m, line, repl, main_mode)
         if r isa EvalError
             display_repl_error(stderr, r.err, r.bt)
             nothing
+        elseif r isa EvalErrorStack
+            display_repl_error(stderr, r)
+            nothing
         else
             r
         end
@@ -132,6 +135,16 @@ function display_repl_error(io, err, bt)
     println(io)
 end
 display_repl_error(io, err::LoadError, bt) = display_repl_error(io, err.error, bt)
+
+function display_repl_error(io, stack::EvalErrorStack)
+    printstyled(io, "ERROR: "; bold=true, color=Base.error_color())
+    for (i, (err, bt)) in enumerate(reverse(stack.stack))
+        i !== 1 && print(io, "\ncaused by: ")
+        st = stacktrace(crop_backtrace(bt))
+        showerror(IOContext(io, :limit => true), err, st)
+        println(io)
+    end
+end
 
 function withpath(f, path)
     tls = task_local_storage()
