@@ -66,14 +66,21 @@ function hook_repl(repl)
         repl.interface = REPL.setup_interface(repl)
     end
     main_mode = get_main_mode(repl)
+
     if VERSION > v"1.5-"
-        push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
-    else
-        # TODO: set up REPL module ?
-        main_mode.on_done = REPL.respond(repl, main_mode; pass_empty=false) do line
-            quote
-                $(evalrepl)(Main, $line, $repl, $main_mode)
-            end
+        for i in 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
+            isdefined(Base, :active_repl_backend) && continue
+            sleep(0.5)
+        end
+        if isdefined(Base, :active_repl_backend)
+            push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
+            return
+        end
+    end
+
+    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty=false) do line
+        quote
+            $(evalrepl)(Main, $line, $repl, $main_mode)
         end
     end
 end
@@ -94,6 +101,9 @@ function evalrepl(m, line, repl, main_mode)
         end
         if r isa EvalError
             display_repl_error(stderr, r.err, r.bt)
+            nothing
+        elseif r isa EvalErrorStack
+            display_repl_error(stderr, r)
             nothing
         else
             r
@@ -125,6 +135,16 @@ function display_repl_error(io, err, bt)
     println(io)
 end
 display_repl_error(io, err::LoadError, bt) = display_repl_error(io, err.error, bt)
+
+function display_repl_error(io, stack::EvalErrorStack)
+    printstyled(io, "ERROR: "; bold=true, color=Base.error_color())
+    for (i, (err, bt)) in enumerate(reverse(stack.stack))
+        i !== 1 && print(io, "\ncaused by: ")
+        st = stacktrace(crop_backtrace(bt))
+        showerror(IOContext(io, :limit => true), err, st)
+        println(io)
+    end
+end
 
 function withpath(f, path)
     tls = task_local_storage()

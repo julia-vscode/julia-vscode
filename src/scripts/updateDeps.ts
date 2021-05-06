@@ -1,10 +1,10 @@
 import * as cp from 'child-process-promise'
-import * as cson from 'cson-parser'
 import * as download from 'download'
 import { promises as fs } from 'fs'
 import { homedir } from 'os'
 import * as path from 'path'
 import * as process from 'process'
+import * as semver from 'semver'
 
 async function our_download(url: string, destination: string) {
     const dest_path = path.join(process.cwd(), path.dirname(destination))
@@ -24,30 +24,9 @@ async function our_download(url: string, destination: string) {
     return
 }
 
-async function download_and_convert_grammar(juliaPath: string) {
-    const dest_path = path.join(process.cwd(), 'syntaxes/julia.json')
-
-    const grammarAsCSON = await download('https://raw.githubusercontent.com/JuliaEditorSupport/atom-language-julia/master/grammars/julia.cson')
-
-    const content = cson.parse(grammarAsCSON.toString())
-
-    const grammarAsJSON = JSON.stringify(content, undefined, 2)
-
-    try {
-        await fs.access(dest_path)
-        await fs.unlink(dest_path)
-    }
-    catch (err) {
-        console.log(`Could not delete file '${dest_path}'.`)
-    }
-
-    await fs.writeFile(dest_path, grammarAsJSON)
-
-    await cp.exec(`${juliaPath} syntaxes/update_syntax.jl`, { cwd: process.cwd() })
-}
-
 async function main() {
     const juliaPath = path.join(homedir(), 'AppData', 'Local', 'Julia-1.3.1', 'bin', 'julia.exe')
+    const julia_1_6_Path = path.join(homedir(), 'AppData', 'Local', 'Programs', 'Julia-1.6.1', 'bin', 'julia.exe')
 
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@2', 'libs/vega-lite-2/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@3', 'libs/vega-lite-3/vega-lite.min.js')
@@ -63,11 +42,17 @@ async function main() {
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css', 'libs/fontawesome/solid.min.css')
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css', 'libs/fontawesome/brands.min.css')
 
-    await download_and_convert_grammar(juliaPath)
-
     for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer', 'DebugAdapter', 'ChromeProfileFormat']) {
         await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
+    }
+
+    for (const pkg of ['CodeTracking', 'FilePathsBase', 'JuliaInterpreter', 'LoweredCodeUtils', 'OrderedCollections', 'PackageCompiler', 'Revise', 'Tokenize', 'URIParser']) {
+        const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
+
+        const newestTag = tags.stdout.split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))[0]
+
+        await cp.exec(`git checkout ${newestTag.original}`, { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
     await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/development') })
@@ -77,6 +62,8 @@ async function main() {
     await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger') })
     await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/vscodeserver') })
     await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/chromeprofileformat') })
+
+    await cp.exec(`${julia_1_6_Path} --project=. -e "using Pkg; Pkg.update()"`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev') })
 
     await cp.exec('npm update', { cwd: process.cwd() })
 }

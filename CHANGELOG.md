@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Fixed
 * SVGs with embedded single quotes are now displayed properly again.
+* Weave preview works again.
+
 ### Changed
 * Include new completion modes for unexported variables ([#892](https://github.com/julia-vscode/LanguageServer.jl/pull/892)).
 
