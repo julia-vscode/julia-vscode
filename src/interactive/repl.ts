@@ -69,12 +69,14 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (g_terminal === null) {
         const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
         const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
+
+        // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
         function getArgs() {
             const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
             jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
             jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
             jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
-            jlarg2.push(`DEBUG_MODE=${process.env.DEBUG_MODE}`)
+            jlarg2.push(`DEBUG_MODE=${Boolean(process.env.DEBUG_MODE)}`)
             return jlarg2
         }
 
