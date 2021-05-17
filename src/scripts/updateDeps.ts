@@ -26,6 +26,7 @@ async function our_download(url: string, destination: string) {
 
 async function main() {
     const juliaPath = path.join(homedir(), 'AppData', 'Local', 'Julia-1.3.1', 'bin', 'julia.exe')
+    const julia_1_6_Path = path.join(homedir(), 'AppData', 'Local', 'Programs', 'Julia-1.6.1', 'bin', 'julia.exe')
 
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@2', 'libs/vega-lite-2/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@3', 'libs/vega-lite-3/vega-lite.min.js')
@@ -61,6 +62,8 @@ async function main() {
     await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger') })
     await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/vscodeserver') })
     await cp.exec(`${juliaPath} --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/chromeprofileformat') })
+
+    await cp.exec(`${julia_1_6_Path} --project=. -e "using Pkg; Pkg.update()"`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev') })
 
     await cp.exec('npm update', { cwd: process.cwd() })
 }
