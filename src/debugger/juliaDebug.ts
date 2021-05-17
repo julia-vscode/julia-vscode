@@ -8,7 +8,7 @@ import { DebugProtocol } from 'vscode-debugprotocol'
 import { createMessageConnection, Disposable, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { replStartDebugger } from '../interactive/repl'
 import { getCrashReportingPipename } from '../telemetry'
-import { generatePipeName } from '../utils'
+import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, notifyTypeSetCompiledItems, notifyTypeSetCompiledMode, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepInTargets, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables } from './debugProtocol'
 
 /**
@@ -244,7 +244,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
                 getCrashReportingPipename()
             ],
             env: {
-                JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : ''
+                JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : '',
+                JULIA_NUM_THREADS: inferJuliaNumThreads()
             }
         })
         this._debuggeeTerminal.show(false)

@@ -33,7 +33,11 @@ function start_eval_backend()
         res = try
             Base.invokelatest(f, args...)
         catch err
-            EvalError(err, catch_backtrace())
+            @static if isdefined(Base, :catch_stack)
+                EvalErrorStack(Base.catch_stack())
+            else
+                EvalError(err, catch_backtrace())
+            end
         end
         IS_BACKEND_WORKING[] = false
         Base.sigatomic_begin()
@@ -151,13 +155,17 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     global ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope=params.softscope)
                     @eval Main ans = Main.VSCodeServer.ans
                 catch err
-                    EvalError(err, catch_backtrace())
+                    @static if isdefined(Base, :catch_stack)
+                        EvalErrorStack(Base.catch_stack())
+                    else
+                        EvalError(err, catch_backtrace())
+                    end
                 finally
                     JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
                 end
 
                 if show_result
-                    if res isa EvalError
+                    if res isa EvalError || res isa EvalErrorStack
                         Base.display_error(stderr, res)
                     elseif res !== nothing && !ends_with_semicolon(source_code)
                         try
@@ -238,6 +246,10 @@ struct EvalError
     bt
 end
 
+struct EvalErrorStack
+    stack
+end
+
 sprint_error_unwrap(err::LoadError) = sprint_error(err.error)
 sprint_error_unwrap(err) = sprint_error(err)
 
@@ -261,12 +273,41 @@ function render(err::EvalError)
     return ReplRunCodeRequestReturn(inline, all, stackframe)
 end
 
-function Base.display_error(io::IO, err::EvalError)
-    bt = crop_backtrace(err.bt)
+function render(stack::EvalErrorStack)
+    inline = ""
+    all = ""
+    complete_bt = Union{Base.InterpreterIP,Ptr{Cvoid}}[]
+    for (i, (err, bt)) in enumerate(reverse(stack.stack))
+        bt = crop_backtrace(bt)
+        append!(complete_bt, bt)
 
+        errstr = sprint_error_unwrap(err)
+        inline *= strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
+        all *= string('\n', codeblock(errstr), '\n', backtrace_string(bt))
+    end
+
+    # handle duplicates e.g. from recursion
+    st = unique!(stacktrace(complete_bt))
+    # limit number of potential hovers shown in VSCode, just in case
+    st = st[1:min(end, 1000)]
+
+    stackframe = Frame.(st)
+    return ReplRunCodeRequestReturn(inline, all, stackframe)
+end
+
+function Base.display_error(io::IO, err::EvalError)
     try
-        Base.invokelatest(Base.display_error, io, err.err, bt)
+        Base.invokelatest(display_repl_error, io, err.err, err.bt)
     catch err
+        @error "Error trying to display an error."
+    end
+end
+
+function Base.display_error(io::IO, err::EvalErrorStack)
+    try
+        Base.invokelatest(display_repl_error, io, err)
+    catch err
+        @error "Error trying to display an error."
     end
 end
 
@@ -275,20 +316,20 @@ function crop_backtrace(bt)
     return bt[1:(i === nothing ? end : i)]
 end
 
-# more cleaner way ?
-const LOCATION_REGEX = r"\[\d+\]\s(?<body>.+)\sat\s(?<path>.+)\:(?<line>\d+)"
-
 function backtrace_string(bt)
-    s = sprintlimited(bt, func = Base.show_backtrace, limit = MAX_RESULT_LENGTH)
-    lines = strip.(split(s, '\n'))
+    io = IOBuffer()
 
-    return join(map(enumerate(lines)) do (i, line)
-        i === 1 && return line # "Stacktrace:"
-        m = match(LOCATION_REGEX, line)
-        m === nothing && return line
-        linktext = string(m[:path], ':', m[:line])
-        linkbody = vscode_cmd_uri("language-julia.openFile"; path = fullpath(m[:path]), line = m[:line])
-        linktitle = string("Go to ", linktext)
-        return "$(i-1). `$(m[:body])` at [$(linktext)]($(linkbody) \"$(linktitle)\")"
-    end, "\n\n")
+    println(io, "Stacktrace:")
+    for (i, frame) in enumerate(stacktrace(bt))
+        file = string(frame.file)
+        full_file = fullpath(something(Base.find_source_file(file), file))
+        cmd = vscode_cmd_uri("language-julia.openFile"; path = full_file, line = frame.line)
+
+        print(io, i, ". `")
+        Base.StackTraces.show_spec_linfo(io, frame)
+        print(io, "` at [", file, "](", cmd, " \"", file, "\")")
+        println(io, "\n")
+    end
+
+    return String(take!(io))
 end
