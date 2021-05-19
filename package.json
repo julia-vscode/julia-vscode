@@ -254,6 +254,57 @@
             {
                 "command": "language-julia.activateFromDir",
                 "title": "Julia: Activate Parent Environment"
+            },
+            {
+                "command": "language-julia.switchToInterpreted",
+                "title": "Remove from compiled modules/functions",
+                "icon": "$(remove)"
+            },
+            {
+                "command": "language-julia.switchToCompiled",
+                "title": "Julia: Add to compiled modules/functions",
+                "icon": "$(add)"
+            },
+            {
+                "command": "language-julia.switchAllToInterpreted",
+                "title": "Julia: Switch all to interpreted"
+            },
+            {
+                "command": "language-julia.switchAllToCompiled",
+                "title": "Julia: Switch all to compiled",
+                "icon": "$(diff-added)"
+            },
+            {
+                "command": "language-julia.apply-compiled-defaults",
+                "title": "Julia: Apply default compiled modules/functions"
+            },
+            {
+                "command": "language-julia.reset-compiled",
+                "title": "Julia: Clear compiled modules/functions",
+                "icon": "$(remove)"
+            },
+            {
+                "command": "language-julia.refreshCompiled",
+                "title": "Julia: Refresh Compiled/Interpreted Pane"
+            },
+            {
+                "command": "language-julia.set-compiled-for-name",
+                "title": "Julia: Add symbol to compiled modules/functions",
+                "icon": "$(add)"
+            },
+            {
+                "command": "language-julia.set-current-as-default-compiled",
+                "title": "Julia: Set current compiled modules/functions as default"
+            },
+            {
+                "command": "language-julia.enable-compiled-mode",
+                "title": "Julia: Enable Compiled Mode for the debugger",
+                "icon": "$(debug-breakpoint)"
+            },
+            {
+                "command": "language-julia.disable-compiled-mode",
+                "title": "Julia: Disable Compiled Mode for the debugger",
+                "icon": "$(debug-breakpoint-unverified)"
             }
         ],
         "menus": {
@@ -374,6 +425,26 @@
                     "command": "language-julia.showInVSCode",
                     "when": "view == REPLVariables && viewItem == globalvariable",
                     "group": "inline"
+                },
+                {
+                    "command": "language-julia.switchToInterpreted",
+                    "when": "view == debugger-compiled && viewItem =~ /\\bcompiled\\b/",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "language-julia.switchToCompiled",
+                    "when": "view == debugger-compiled && viewItem =~ /\\binterpreted\\b/",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "language-julia.switchAllToCompiled",
+                    "when": "view == debugger-compiled && viewItem =~ /\\binterpreted\\b/ && viewItem =~ /\\bhasChildren\\b/",
+                    "group": "inline@2"
+                },
+                {
+                    "command": "language-julia.reset-compiled",
+                    "when": "view == debugger-compiled && viewItem == isRootCompiled",
+                    "group": "inline"
                 }
             ],
             "view/title": [
@@ -385,6 +456,36 @@
                 {
                     "command": "language-julia.browse-forward-documentation",
                     "when": "view == julia-documentation",
+                    "group": "navigation"
+                },
+                {
+                    "command": "language-julia.apply-compiled-defaults",
+                    "when": "view == debugger-compiled",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.reset-compiled",
+                    "when": "view == debugger-compiled",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.set-current-as-default-compiled",
+                    "when": "view == debugger-compiled",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.set-compiled-for-name",
+                    "when": "view == debugger-compiled",
+                    "group": "navigation"
+                },
+                {
+                    "command": "language-julia.disable-compiled-mode",
+                    "when": "view == debugger-compiled && juliaCompiledMode == true",
+                    "group": "navigation"
+                },
+                {
+                    "command": "language-julia.enable-compiled-mode",
+                    "when": "view == debugger-compiled && juliaCompiledMode == false",
                     "group": "navigation"
                 }
             ],
@@ -789,6 +890,69 @@
                     "default": "test/runtests.jl",
                     "description": "A workspace relative path to a Julia file that contains the tests that should be run for live testing.",
                     "scope": "window"
+                },
+                "julia.debuggerDefaultCompiled": {
+                    "type": "array",
+                    "default": [
+                        "Base.",
+                        "-Base.!",
+                        "-Base.all",
+                        "-Base.all!",
+                        "-Base.any",
+                        "-Base.any!",
+                        "-Base.cd",
+                        "-Base.iterate",
+                        "-Base.collect",
+                        "-Base.collect_similar",
+                        "-Base._collect",
+                        "-Base.collect_to!",
+                        "-Base.collect_to_with_first!",
+                        "-Base.filter",
+                        "-Base.filter!",
+                        "-Base.foreach",
+                        "-Base.findall",
+                        "-Base.findfirst",
+                        "-Base.findlast",
+                        "-Base.findnext",
+                        "-Base.findprev",
+                        "-Base.Generator",
+                        "-Base.map",
+                        "-Base.map!",
+                        "-Base.maximum!",
+                        "-Base.minimum!",
+                        "-Base.mktemp",
+                        "-Base.mktempdir",
+                        "-Base.open",
+                        "-Base.prod!",
+                        "-Base.redirect_stderr",
+                        "-Base.redirect_stdin",
+                        "-Base.redirect_stdout",
+                        "-Base.reenable_sigint",
+                        "-Base.setindex!",
+                        "-Base.setprecision",
+                        "-Base.setrounding",
+                        "-Base.show",
+                        "-Base.sprint",
+                        "-Base.sum",
+                        "-Base.sum!",
+                        "-Base.task_local_storage",
+                        "-Base.timedwait",
+                        "-Base.withenv",
+                        "Core",
+                        "Core.Compiler.",
+                        "Core.IR",
+                        "Core.Intrinsics",
+                        "DelimitedFiles",
+                        "Distributed",
+                        "LinearAlgebra.",
+                        "Serialization",
+                        "Statistics",
+                        "-Statistics.mean",
+                        "SparseArrays",
+                        "Mmap"
+                    ],
+                    "description": "Functions or modules that are set to compiled mode when setting the defaults.",
+                    "scope": "window"
                 }
             }
         },
@@ -831,6 +995,13 @@
                     "type": "webview",
                     "id": "julia-documentation",
                     "name": "Documentation"
+                }
+            ],
+            "debug": [
+                {
+                    "type": "tree",
+                    "id": "debugger-compiled",
+                    "name": "Julia: Compiled Code"
                 }
             ]
         },
