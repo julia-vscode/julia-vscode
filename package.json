@@ -908,6 +908,12 @@
                     "description": "A workspace relative path to a Julia file that contains the tests that should be run for live testing.",
                     "scope": "window"
                 },
+                "julia.deleteJuliaCovFiles": {
+                    "type": "boolean",
+                    "default": "true",
+                    "description": "Delete Julia .cov files when running tests with coverage, leaving only a .lcov file behind.",
+                    "scope": "window",
+                },
                 "julia.debuggerDefaultCompiled": {
                     "type": "array",
                     "default": [
