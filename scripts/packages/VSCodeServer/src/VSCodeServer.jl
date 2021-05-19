@@ -59,11 +59,11 @@ include("../../../error_handler.jl")
 include("repl_protocol.jl")
 include("misc.jl")
 include("trees.jl")
-include("repl.jl")
 include("gridviewer.jl")
 include("module.jl")
 include("progress.jl")
 include("eval.jl")
+include("repl.jl")
 include("display.jl")
 include("profiler.jl")
 include("debugger.jl")
@@ -101,6 +101,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress
         msg_dispatcher[cd_notification_type] = cd_to_uri
         msg_dispatcher[activate_project_notification_type] = activate_uri
+        msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request
 
         while true
             msg = JSONRPC.get_next_message(conn_endpoint[])

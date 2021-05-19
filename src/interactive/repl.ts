@@ -21,9 +21,9 @@ import * as results from './results'
 import { Frame } from './results'
 import * as workspace from './workspace'
 
-
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
+let g_compiledProvider = null
 
 let g_terminal: vscode.Terminal = null
 
@@ -40,30 +40,33 @@ function is_remote_env(): boolean {
 }
 
 function get_editor(): string {
-    if (is_remote_env() || process.platform === 'darwin') {
-        // code-server:
+    const editor: string | null = vscode.workspace.getConfiguration('julia').get('editor')
+
+    if (editor) {
+        return editor
+    }
+    if (is_remote_env()) {
         if (vscode.env.appName === 'Code - OSS') {
-            return `"${path.join(vscode.env.appRoot, '..', '..', 'bin', 'code-server')}"`
+            return 'code-server'
         } else {
-            const cmd = vscode.env.appName.includes('Insiders') && process.platform !== 'darwin' ? 'code-insiders' : 'code'
-            return `"${path.join(vscode.env.appRoot, 'bin', cmd)}"`
+            return `"${process.execPath}"`
         }
     }
-    else {
-        return `"${process.execPath}"`
-    }
+    return vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
 }
 
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (g_terminal === null) {
         const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
         const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
+
+        // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
         function getArgs() {
             const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
             jlarg2.push(`USE_REVISE=${vscode.workspace.getConfiguration('julia').get('useRevise')}`)
             jlarg2.push(`USE_PLOTPANE=${vscode.workspace.getConfiguration('julia').get('usePlotPane')}`)
             jlarg2.push(`USE_PROGRESS=${vscode.workspace.getConfiguration('julia').get('useProgressFrontend')}`)
-            jlarg2.push(`DEBUG_MODE=${process.env.DEBUG_MODE}`)
+            jlarg2.push(`DEBUG_MODE=${Boolean(process.env.DEBUG_MODE)}`)
             return jlarg2
         }
 
@@ -135,7 +138,9 @@ function debuggerRun(params: DebugLaunchParams) {
         name: 'Julia REPL',
         code: params.code,
         file: params.filename,
-        stopOnEntry: false
+        stopOnEntry: false,
+        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
+        compiledMode: g_compiledProvider.compiledMode
     })
 }
 
@@ -146,7 +151,9 @@ function debuggerEnter(params: DebugLaunchParams) {
         name: 'Julia REPL',
         code: params.code,
         file: params.filename,
-        stopOnEntry: true
+        stopOnEntry: true,
+        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
+        compiledMode: g_compiledProvider.compiledMode
     })
 }
 
@@ -164,6 +171,7 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     mod: string,
     showCodeInREPL: boolean,
     showResultInREPL: boolean,
+    showErrorInREPL: boolean,
     softscope: boolean
 }, ReturnResult, void>('repl/runcode')
 
@@ -352,6 +360,7 @@ async function executeFile(uri?: vscode.Uri | string) {
             code: code,
             showCodeInREPL: false,
             showResultInREPL: true,
+            showErrorInREPL: true,
             softscope: false
         }
     )
@@ -553,7 +562,8 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             code: text,
             mod: module,
             showCodeInREPL: codeInREPL,
-            showResultInREPL: resultType !== 'inline',
+            showResultInREPL: resultType === 'REPL' || resultType === 'both',
+            showErrorInREPL: resultType.indexOf('error') > -1,
             softscope: true
         }
     )
@@ -736,8 +746,10 @@ export async function replStartDebugger(pipename: string) {
     g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext, compiledProvider) {
     g_context = context
+
+    g_compiledProvider = compiledProvider
 
     context.subscriptions.push(
         // listeners
