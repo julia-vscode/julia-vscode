@@ -852,6 +852,22 @@
                     ],
                     "scope": "window"
                 },
+                "julia.completionmode": {
+                    "type": "string",
+                    "default": "import",
+                    "description": "Sets the mode for completions.",
+                    "enum": [
+                        "exportedonly",
+                        "import",
+                        "qualify"
+                    ],
+                    "enumDescriptions": [
+                        "Show completions for the current namespace.",
+                        "Show completions for the current namespace and unexported variables of `using`ed modules. Selection of an unexported variable will result in the automatic insertion of an explicit `using` statement.",
+                        "Show completions for the current namespace and unexported variables of `using`ed modules. Selection of an unexported variable will complete to a qualified variable name."
+                    ],
+                    "scope": "window"
+                },
                 "julia.execution.resultType": {
                     "type": "string",
                     "default": "REPL",

@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * SVGs with embedded single quotes are now displayed properly again.
 * Weave preview works again.
 
+### Changed
+* Include new completion modes for unexported variables ([#892](https://github.com/julia-vscode/LanguageServer.jl/pull/892)).
+
 ## [1.1.10] - 2021-01-28
 ### Fixed
 * Stop throwing an error instead of waiting for the LS being ready ([#1889](https://github.com/julia-vscode/julia-vscode/pull/1889)).
