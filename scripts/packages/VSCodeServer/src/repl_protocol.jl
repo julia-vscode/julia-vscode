@@ -6,6 +6,7 @@ JSONRPC.@dict_readable struct ReplRunCodeRequestParams <: JSONRPC.Outbound
     mod::String
     showCodeInREPL::Bool
     showResultInREPL::Bool
+    showErrorInREPL::Bool
     softscope::Bool
 end
 
@@ -33,6 +34,12 @@ JSONRPC.@dict_readable mutable struct ReplWorkspaceItem <: JSONRPC.Outbound
     type::String
 end
 
+JSONRPC.@dict_readable mutable struct DebugConfigTreeItem <: JSONRPC.Outbound
+    label::String
+    hasChildren::Bool
+    juliaAccessor::String
+end
+
 const repl_runcode_request_type = JSONRPC.RequestType("repl/runcode", ReplRunCodeRequestParams, ReplRunCodeRequestReturn)
 const repl_interrupt_notification_type = JSONRPC.NotificationType("repl/interrupt", Nothing)
 const repl_getvariables_request_type = JSONRPC.RequestType("repl/getvariables", Nothing, Vector{ReplWorkspaceItem})
@@ -47,3 +54,4 @@ const repl_toggle_plot_pane_notification_type = JSONRPC.NotificationType("repl/t
 const repl_toggle_progress_notification_type = JSONRPC.NotificationType("repl/toggleProgress", Bool)
 const cd_notification_type = JSONRPC.NotificationType("repl/cd", NamedTuple{(:uri,),Tuple{String}})
 const activate_project_notification_type = JSONRPC.NotificationType("repl/activateProject", NamedTuple{(:uri,),Tuple{String}})
+const repl_getdebugitems_request_type = JSONRPC.RequestType("repl/getDebugItems", NamedTuple{(:juliaAccessor,),Tuple{String}}, Vector{DebugConfigTreeItem})

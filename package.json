@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.1.39",
+    "version": "1.1.40",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -259,6 +259,57 @@
             {
                 "command": "language-julia.activateFromDir",
                 "title": "Julia: Activate Parent Environment"
+            },
+            {
+                "command": "language-julia.switchToInterpreted",
+                "title": "Remove from compiled modules/functions",
+                "icon": "$(remove)"
+            },
+            {
+                "command": "language-julia.switchToCompiled",
+                "title": "Julia: Add to compiled modules/functions",
+                "icon": "$(add)"
+            },
+            {
+                "command": "language-julia.switchAllToInterpreted",
+                "title": "Julia: Switch all to interpreted"
+            },
+            {
+                "command": "language-julia.switchAllToCompiled",
+                "title": "Julia: Switch all to compiled",
+                "icon": "$(diff-added)"
+            },
+            {
+                "command": "language-julia.apply-compiled-defaults",
+                "title": "Julia: Apply default compiled modules/functions"
+            },
+            {
+                "command": "language-julia.reset-compiled",
+                "title": "Julia: Clear compiled modules/functions",
+                "icon": "$(remove)"
+            },
+            {
+                "command": "language-julia.refreshCompiled",
+                "title": "Julia: Refresh Compiled/Interpreted Pane"
+            },
+            {
+                "command": "language-julia.set-compiled-for-name",
+                "title": "Julia: Add symbol to compiled modules/functions",
+                "icon": "$(add)"
+            },
+            {
+                "command": "language-julia.set-current-as-default-compiled",
+                "title": "Julia: Set current compiled modules/functions as default"
+            },
+            {
+                "command": "language-julia.enable-compiled-mode",
+                "title": "Julia: Enable Compiled Mode for the debugger",
+                "icon": "$(debug-breakpoint)"
+            },
+            {
+                "command": "language-julia.disable-compiled-mode",
+                "title": "Julia: Disable Compiled Mode for the debugger",
+                "icon": "$(debug-breakpoint-unverified)"
             }
         ],
         "menus": {
@@ -379,6 +430,26 @@
                     "command": "language-julia.showInVSCode",
                     "when": "view == REPLVariables && viewItem == globalvariable",
                     "group": "inline"
+                },
+                {
+                    "command": "language-julia.switchToInterpreted",
+                    "when": "view == debugger-compiled && viewItem =~ /\\bcompiled\\b/",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "language-julia.switchToCompiled",
+                    "when": "view == debugger-compiled && viewItem =~ /\\binterpreted\\b/",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "language-julia.switchAllToCompiled",
+                    "when": "view == debugger-compiled && viewItem =~ /\\binterpreted\\b/ && viewItem =~ /\\bhasChildren\\b/",
+                    "group": "inline@2"
+                },
+                {
+                    "command": "language-julia.reset-compiled",
+                    "when": "view == debugger-compiled && viewItem == isRootCompiled",
+                    "group": "inline"
                 }
             ],
             "view/title": [
@@ -390,6 +461,36 @@
                 {
                     "command": "language-julia.browse-forward-documentation",
                     "when": "view == julia-documentation",
+                    "group": "navigation"
+                },
+                {
+                    "command": "language-julia.apply-compiled-defaults",
+                    "when": "view == debugger-compiled",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.reset-compiled",
+                    "when": "view == debugger-compiled",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.set-current-as-default-compiled",
+                    "when": "view == debugger-compiled",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.set-compiled-for-name",
+                    "when": "view == debugger-compiled",
+                    "group": "navigation"
+                },
+                {
+                    "command": "language-julia.disable-compiled-mode",
+                    "when": "view == debugger-compiled && juliaCompiledMode == true",
+                    "group": "navigation"
+                },
+                {
+                    "command": "language-julia.enable-compiled-mode",
+                    "when": "view == debugger-compiled && juliaCompiledMode == false",
                     "group": "navigation"
                 }
             ],
@@ -756,6 +857,22 @@
                     ],
                     "scope": "window"
                 },
+                "julia.completionmode": {
+                    "type": "string",
+                    "default": "import",
+                    "description": "Sets the mode for completions.",
+                    "enum": [
+                        "exportedonly",
+                        "import",
+                        "qualify"
+                    ],
+                    "enumDescriptions": [
+                        "Show completions for the current namespace.",
+                        "Show completions for the current namespace and unexported variables of `using`ed modules. Selection of an unexported variable will result in the automatic insertion of an explicit `using` statement.",
+                        "Show completions for the current namespace and unexported variables of `using`ed modules. Selection of an unexported variable will complete to a qualified variable name."
+                    ],
+                    "scope": "window"
+                },
                 "julia.execution.resultType": {
                     "type": "string",
                     "default": "REPL",
@@ -763,6 +880,7 @@
                     "enum": [
                         "REPL",
                         "inline",
+                        "inline, errors in REPL",
                         "both"
                     ],
                     "enumDescriptions": [
@@ -818,6 +936,75 @@
                     "default": "julia_vscode",
                     "scope": "machine-overridable",
                     "markdownDescription": "Name of the `tmux` session."
+                },
+                "julia.deleteJuliaCovFiles": {
+                    "type": "boolean",
+                    "default": "true",
+                    "description": "Delete Julia .cov files when running tests with coverage, leaving only a .lcov file behind.",
+                    "scope": "window",
+                },
+                "julia.debuggerDefaultCompiled": {
+                    "type": "array",
+                    "default": [
+                        "Base.",
+                        "-Base.!",
+                        "-Base.all",
+                        "-Base.all!",
+                        "-Base.any",
+                        "-Base.any!",
+                        "-Base.cd",
+                        "-Base.iterate",
+                        "-Base.collect",
+                        "-Base.collect_similar",
+                        "-Base._collect",
+                        "-Base.collect_to!",
+                        "-Base.collect_to_with_first!",
+                        "-Base.filter",
+                        "-Base.filter!",
+                        "-Base.foreach",
+                        "-Base.findall",
+                        "-Base.findfirst",
+                        "-Base.findlast",
+                        "-Base.findnext",
+                        "-Base.findprev",
+                        "-Base.Generator",
+                        "-Base.map",
+                        "-Base.map!",
+                        "-Base.maximum!",
+                        "-Base.minimum!",
+                        "-Base.mktemp",
+                        "-Base.mktempdir",
+                        "-Base.open",
+                        "-Base.prod!",
+                        "-Base.redirect_stderr",
+                        "-Base.redirect_stdin",
+                        "-Base.redirect_stdout",
+                        "-Base.reenable_sigint",
+                        "-Base.setindex!",
+                        "-Base.setprecision",
+                        "-Base.setrounding",
+                        "-Base.show",
+                        "-Base.sprint",
+                        "-Base.sum",
+                        "-Base.sum!",
+                        "-Base.task_local_storage",
+                        "-Base.timedwait",
+                        "-Base.withenv",
+                        "Core",
+                        "Core.Compiler.",
+                        "Core.IR",
+                        "Core.Intrinsics",
+                        "DelimitedFiles",
+                        "Distributed",
+                        "LinearAlgebra.",
+                        "Serialization",
+                        "Statistics",
+                        "-Statistics.mean",
+                        "SparseArrays",
+                        "Mmap"
+                    ],
+                    "description": "Functions or modules that are set to compiled mode when setting the defaults.",
+                    "scope": "window"
                 }
             }
         },
@@ -860,6 +1047,13 @@
                     "type": "webview",
                     "id": "julia-documentation",
                     "name": "Documentation"
+                }
+            ],
+            "debug": [
+                {
+                    "type": "tree",
+                    "id": "debugger-compiled",
+                    "name": "Julia: Compiled Code"
                 }
             ]
         },
@@ -969,20 +1163,20 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
-        "@traptitech/markdown-it-katex": "^3.4.0",
+        "@traptitech/markdown-it-katex": "^3.4.2",
         "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
-        "@types/vscode": "^1.54.0",
+        "@types/vscode": "^1.56.0",
         "applicationinsights": "^1.8.10",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
-        "markdown-it": "^12.0.4",
+        "markdown-it": "^12.0.6",
         "markdown-it-footnote": "^3.0.2",
         "promised-temp": "^v0.1.0",
-        "uuidv4": "^6.2.6",
-        "vscode-debugadapter": "^1.45.0",
+        "uuidv4": "^6.2.8",
+        "vscode-debugadapter": "^1.47.0",
         "vscode-jsonrpc": "^6.0.0",
         "vscode-languageclient": "^7.0.0",
         "which": "^2.0.2"
@@ -990,18 +1184,18 @@
     "devDependencies": {
         "@types/download": "^6.2.4",
         "@types/markdown-it": "^12.0.1",
-        "@types/mocha": "^8.2.1",
-        "@types/node": "^12.20.6",
-        "@types/semver": "^7.3.4",
-        "@typescript-eslint/parser": "^4.18.0",
+        "@types/mocha": "^8.2.2",
+        "@types/node": "^12.20.12",
+        "@types/semver": "^7.3.5",
+        "@typescript-eslint/parser": "^4.23.0",
         "download": "^8.0.0",
-        "eslint": "^7.22.0",
-        "mocha": "^8.3.2",
-        "semver": "^7.3.4",
-        "ts-loader": "^8.0.18",
-        "typescript": "^4.2.3",
-        "vsce": "^1.87.0",
-        "vscode-test": "^1.5.1",
+        "eslint": "^7.26.0",
+        "mocha": "^8.4.0",
+        "semver": "^7.3.5",
+        "ts-loader": "^8.2.0",
+        "typescript": "^4.2.4",
+        "vsce": "^1.88.0",
+        "vscode-test": "^1.5.2",
         "webpack": "^4.46.0",
         "webpack-cli": "^3.3.12"
     }

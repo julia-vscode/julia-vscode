@@ -16,9 +16,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[CSTParser]]
 deps = ["Tokenize"]
-git-tree-sha1 = "ffc3860cb53809f4fef6bc94117efab53975ad15"
+git-tree-sha1 = "fe8e9fa7cf14774bab38ec32986dcc8b88fe72ea"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.2.0"
+version = "3.2.1"
 
 [[DataAPI]]
 git-tree-sha1 = "dfb3b7e89e395be1e25c2ad6d7690dc29cc53b1d"
@@ -156,9 +156,9 @@ uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[PkgButlerEngine]]
 deps = ["Mustache", "Pkg"]
-git-tree-sha1 = "3fc36c049af11fe3e770aa8838689989916c0dec"
+git-tree-sha1 = "2749ce1d87ebe87bfcc79bbca648efa981266083"
 uuid = "5c9c0fc8-7103-448b-bb0a-c427020e3b0b"
-version = "1.10.0"
+version = "1.10.1"
 
 [[PkgDev]]
 deps = ["Base64", "DocumentFormat", "FilePathsBase", "GitHub", "JSON", "LibGit2", "Pkg", "PkgButlerEngine", "RegistryTools", "TOML", "URIs", "UUIDs"]
@@ -168,9 +168,9 @@ version = "1.7.0"
 
 [[Preferences]]
 deps = ["TOML"]
-git-tree-sha1 = "ea79e4c9077208cd3bc5d29631a26bc0cff78902"
+git-tree-sha1 = "00cfd92944ca9c760982747e9a1d0d5d86ab1e5a"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.2.1"
+version = "1.2.2"
 
 [[Printf]]
 deps = ["Unicode"]

@@ -21,9 +21,9 @@ import * as results from './results'
 import { Frame } from './results'
 import * as workspace from './workspace'
 
-
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
+let g_compiledProvider = null
 
 let g_terminal: vscode.Terminal = null
 
@@ -183,7 +183,9 @@ function debuggerRun(params: DebugLaunchParams) {
         name: 'Julia REPL',
         code: params.code,
         file: params.filename,
-        stopOnEntry: false
+        stopOnEntry: false,
+        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
+        compiledMode: g_compiledProvider.compiledMode
     })
 }
 
@@ -194,7 +196,9 @@ function debuggerEnter(params: DebugLaunchParams) {
         name: 'Julia REPL',
         code: params.code,
         file: params.filename,
-        stopOnEntry: true
+        stopOnEntry: true,
+        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
+        compiledMode: g_compiledProvider.compiledMode
     })
 }
 
@@ -212,6 +216,7 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     mod: string,
     showCodeInREPL: boolean,
     showResultInREPL: boolean,
+    showErrorInREPL: boolean,
     softscope: boolean
 }, ReturnResult, void>('repl/runcode')
 
@@ -404,6 +409,7 @@ async function executeFile(uri?: vscode.Uri | string) {
             code: code,
             showCodeInREPL: false,
             showResultInREPL: true,
+            showErrorInREPL: true,
             softscope: false
         }
     )
@@ -605,7 +611,8 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             code: text,
             mod: module,
             showCodeInREPL: codeInREPL,
-            showResultInREPL: resultType !== 'inline',
+            showResultInREPL: resultType === 'REPL' || resultType === 'both',
+            showErrorInREPL: resultType.indexOf('error') > -1,
             softscope: true
         }
     )
@@ -788,8 +795,10 @@ export async function replStartDebugger(pipename: string) {
     g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext, compiledProvider) {
     g_context = context
+
+    g_compiledProvider = compiledProvider
 
     context.subscriptions.push(
         // listeners
