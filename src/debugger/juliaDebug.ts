@@ -221,7 +221,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
         await serverListeningPromise.wait()
 
         this._debuggeeTerminal = vscode.window.createTerminal({
-            name: 'Julia Debugger',
+            name: args.noDebug ? 'Julia Session' : 'Julia Debugger',
             shellPath: this.juliaPath,
             shellArgs: [
                 '--color=yes',
