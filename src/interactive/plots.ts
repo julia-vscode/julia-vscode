@@ -138,8 +138,8 @@ class PlotViewProvider implements vscode.WebviewViewProvider {
         let innerHTML: string
         if (this.plotsInfo.length > 0) {
             innerHTML = `<div>
-            ${this.plotsInfo.map(this.plotToThumbnail).join("\n")}
-        </div>`
+                ${this.plotsInfo.map(this.plotToThumbnail).reverse().join("\n")}
+            </div>`
         } else {
             innerHTML = `<p>Use Julia to plot and your plots will appear here.</p>`
         }
@@ -296,12 +296,12 @@ export function plotPaneDelAll() {
 
 // wrap a source string with an <img> tag that shows the content
 // scaled to fit the plot pane unless the plot pane is bigger than the image
-function wrap_imagelike(srcstring: string) {
+function wrapImagelike(srcstring: string) {
     const html = `
     <html style="padding:0;margin:0;">
         <body style="padding:0;margin:0;">
-            <div style="width: 100%; height: 100vh;">
-                <img style="display:block; height: 100%; width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcstring}">
+            <div style="max-width: 100%; max-height: 100vh;">
+                <img id="plot-element" style="max-height: 100%; max-width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcstring}">
             </div>
         </body>
     </html>`
@@ -335,7 +335,7 @@ export function displayPlot(params: { kind: string, data: string }) {
             // the xmlns attribute has to be present for data:image/svg+xml to work (https://stackoverflow.com/questions/18467982)
             // encodeURIComponent is needed to replace all special characters from the SVG string
             // which could break the HTML
-            plotPaneContent = wrap_imagelike(`data:image/svg+xml,${encodeURIComponent(payload)}`)
+            plotPaneContent = wrapImagelike(`data:image/svg+xml,${encodeURIComponent(payload)}`)
         } else {
             // otherwise we just show the svg directly as it's not straightforward to scale it
             // correctly if it's not in an img tag
@@ -346,12 +346,12 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'image/png') {
-        const plotPaneContent = wrap_imagelike(`data:image/png;base64,${payload}`)
+        const plotPaneContent = wrapImagelike(`data:image/png;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
     else if (kind === 'image/gif') {
-        const plotPaneContent = wrap_imagelike(`data:image/gif;base64,${payload}`)
+        const plotPaneContent = wrapImagelike(`data:image/gif;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
@@ -371,7 +371,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
+                    <div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -387,7 +387,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
+                    vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
@@ -405,7 +405,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
+                    <div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -421,7 +421,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
+                    vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
@@ -439,7 +439,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
+                    <div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -455,7 +455,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
+                    vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
@@ -471,7 +471,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
+                    <div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -487,7 +487,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
+                    vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
@@ -503,7 +503,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
+                    <div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -519,7 +519,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
+                    vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
@@ -535,7 +535,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                     <script src="${uriVegaEmbed}"></script>
                 </head>
                 <body>
-                    <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
+                    <div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;"></div>
                 </body>
                 <style media="screen">
                     .vega-actions a {
@@ -551,7 +551,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         actions: false
                     }
                     var spec = ${payload}
-                    vegaEmbed('#plotdiv', spec, opt);
+                    vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
@@ -565,7 +565,7 @@ export function displayPlot(params: { kind: string, data: string }) {
             <script src="${uriPlotly}"></script>
         </head>
         <body>
-            <div id="plotdiv" style="position: absolute; width: 100%; height: 100vh; top: 0; left: 0;"></div>
+            <div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;"></div>
         </body>
         <script type="text/javascript">
             function onResize () {
@@ -573,10 +573,10 @@ export function displayPlot(params: { kind: string, data: string }) {
                     width: window.innerWidth,
                     height: window.innerHeight
                 }
-                Plotly.relayout('plotdiv', update)
+                Plotly.relayout('plot-element', update)
             }
             const spec = ${payload};
-            Plotly.newPlot('plotdiv', spec.data, spec.layout);
+            Plotly.newPlot('plot-element', spec.data, spec.layout);
             if (!(spec.layout.width || spec.layout.height)) {
                 onResize()
                 window.addEventListener('resize', onResize);
