@@ -18,7 +18,7 @@ import * as modules from './modules'
 import * as plots from './plots'
 import { showProfileResult, showProfileResultFile } from './profiler'
 import * as results from './results'
-import { Frame } from './results'
+import { Frame, openFile } from './results'
 import * as workspace from './workspace'
 
 let g_context: vscode.ExtensionContext = null
@@ -789,6 +789,44 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
     }
 }
 
+async function linkHandler(link: any) {
+    let { file, line } = link.data
+
+    if (file.startsWith('.')) {
+        // Base file
+        const exepath = await juliaexepath.getJuliaExePath()
+        file = path.join(exepath, '..', '..', 'share', 'julia', 'base', file)
+    }
+    try {
+        await openFile(file, line)
+    } catch (err) {
+        console.debug('This file does not exist.')
+    }
+}
+
+function linkProvider(context: vscode.TerminalLinkContext, token: vscode.CancellationToken) {
+    const line = context.line
+    // Can't link to the REPL
+    if (/\bREPL\[\d+\]/.test(line)) {
+        return []
+    }
+
+    const match = line.match(/(@\s+(?:[^\s]+\s+)?)(.+?):(\d+)/)
+    if (match) {
+        return [
+            {
+                startIndex: match.index + match[1].length,
+                length: match[0].length - match[1].length,
+                data: {
+                    file: match[2],
+                    line: match[3]
+                }
+            }
+        ]
+    }
+    return []
+}
+
 export async function replStartDebugger(pipename: string) {
     await startREPL(true)
 
@@ -861,6 +899,11 @@ export function activate(context: vscode.ExtensionContext, compiledProvider) {
             if (terminal === g_terminal) {
                 g_terminal = null
             }
+        }),
+        // link handler
+        vscode.window.registerTerminalLinkProvider({
+            provideTerminalLinks: linkProvider,
+            handleTerminalLink: linkHandler
         }),
         // commands
         registerCommand('language-julia.startREPL', startREPLCommand),
