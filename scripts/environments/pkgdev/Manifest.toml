@@ -16,9 +16,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[CSTParser]]
 deps = ["Tokenize"]
-git-tree-sha1 = "fe8e9fa7cf14774bab38ec32986dcc8b88fe72ea"
+git-tree-sha1 = "980055cab361b4bb77a3a158cec60375d0292a1a"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.2.1"
+version = "3.2.2"
 
 [[DataAPI]]
 git-tree-sha1 = "dfb3b7e89e395be1e25c2ad6d7690dc29cc53b1d"
@@ -36,9 +36,9 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
 [[DocumentFormat]]
 deps = ["CSTParser", "FilePathsBase", "Tokenize"]
-git-tree-sha1 = "105cbc1a595929f5a08009f64bbfafa5335728b4"
+git-tree-sha1 = "cf048d65cbcdec70f10745e5801eeb0c6478a7f7"
 uuid = "ffa9a821-9c82-50df-894e-fbcef3ed31cd"
-version = "3.2.3"
+version = "3.2.4"
 
 [[Downloads]]
 deps = ["ArgTools", "LibCURL", "NetworkOptions"]
