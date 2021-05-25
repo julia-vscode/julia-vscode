@@ -172,7 +172,7 @@ end
 
 function treerender(err::Exception, bt)
     st = stacktrace(bt)
-    treerender(LazyTree(string("Internal Error: ", err), wsicon(err), length(st) == 0, () -> [Leaf(sprint(show, x), wsicon(x)) for x in st]))
+    treerender(LazyTree(string("Internal Error: ", sprint(showerror, err)), wsicon(err), length(st) == 0, () -> [Leaf(sprint(show, x), wsicon(x)) for x in st]))
 end
 
 treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
