@@ -214,7 +214,7 @@ repl_getvariables_request(conn, params::Nothing) = Base.invokelatest(getvariable
 
 function getvariables()
     M = Main
-    variables = []
+    variables = ReplWorkspaceItem[]
     clear_lazy()
 
     for n in names(M, all=true, imported=true)
