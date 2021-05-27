@@ -104,12 +104,11 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
     }
 
     async showDocumentationPane() {
-        // this forces the webview to be resolved:
-        await vscode.commands.executeCommand('julia-documentation.focus')
-        // should always be true, but better safe than sorry
-        if (this.view) {
-            this.view.show?.(true)
+        if (this.view?.show === undefined) {
+            // this forces the webview to be resolved, but changes focus:
+            await vscode.commands.executeCommand('julia-documentation.focus')
         }
+        this.view.show(true)
     }
 
     async showDocumentationFromWord(word: string) {

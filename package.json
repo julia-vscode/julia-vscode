@@ -157,6 +157,10 @@
                 "title": "Julia: Show Documentation Pane"
             },
             {
+                "command": "language-julia.show-plot-navigator",
+                "title": "Julia: Show Plot Navigator"
+            },
+            {
                 "command": "language-julia.browse-back-documentation",
                 "title": "Julia: Browse Back Documentation",
                 "icon": "$(arrow-left)"
@@ -743,6 +747,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Display plots within VS Code. Might require a restart of the Julia process."
+                },
+                "julia.usePlotNavigator": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to automatically show the plot navigator when plotting."
                 },
                 "julia.useProgressFrontend": {
                     "type": "boolean",
