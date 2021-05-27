@@ -171,6 +171,9 @@ async function connectREPL() {
 }
 
 function killREPL() {
+    if (isConnected()) {
+        g_connection.end()
+    }
     if (g_terminal) {
         g_terminal.dispose()
     }
