@@ -8,7 +8,7 @@ import { onSetLanguageClient } from './extension'
 import * as juliaexepath from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
-import { registerCommand } from './utils'
+import { registerCommand, resolvePath } from './utils'
 
 let g_languageClient: vslc.LanguageClient = null
 
@@ -180,7 +180,7 @@ async function getEnvPath() {
         const section = vscode.workspace.getConfiguration('julia')
         const envPathConfig = section.get<string>('environmentPath')
         if (envPathConfig) {
-            if (await fs.exists(resolvePath(envPathConfig))) {
+            if (await fs.exists(absEnvPath(resolvePath(envPathConfig)))) {
                 g_path_of_current_environment = envPathConfig
                 return g_path_of_current_environment
             }
@@ -188,10 +188,6 @@ async function getEnvPath() {
         g_path_of_current_environment = await getDefaultEnvPath()
     }
     return g_path_of_current_environment
-}
-
-function resolvePath(p: string) {
-    return absEnvPath(parseEnvVariables(p))
 }
 
 function absEnvPath(p: string) {
@@ -202,19 +198,13 @@ function absEnvPath(p: string) {
     }
 }
 
-function parseEnvVariables(p: string) {
-    return p.replace(/\${env:(.*?)}/g, function (variable) {
-        return process.env[variable.match(/\${env:(.*?)}/)[1]] || ''
-    })
-}
-
 export async function getAbsEnvPath() {
     const envPath = await getEnvPath()
-    return absEnvPath(envPath)
+    return absEnvPath(resolvePath(envPath))
 }
 
 export async function getEnvName() {
-    const envpath = await getEnvPath()
+    const envpath = resolvePath(await getEnvPath())
     return path.basename(envpath)
 }
 
