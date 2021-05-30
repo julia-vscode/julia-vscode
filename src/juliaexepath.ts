@@ -1,3 +1,4 @@
+import { realpath } from 'async-file'
 import { exec } from 'child-process-promise'
 import * as child_process from 'child_process'
 import * as os from 'os'
@@ -99,20 +100,29 @@ export async function getJuliaExePath() {
             }
         }
         else {
+            let fullPath: string | undefined = undefined
             if (configPath.includes(path.sep)) {
-                setNewJuliaExePath(resolvePath(configPath))
+                fullPath = resolvePath(configPath)
             } else {
                 // resolve full path
-                let fullPath: string | undefined = undefined
                 try {
                     fullPath = await which(configPath)
                 }
                 catch (err) {
+                    console.debug('which failed to get the julia exe path')
+                    console.debug(err)
                 }
 
-                if (fullPath) {
-                    setNewJuliaExePath(fullPath)
+            }
+            if (fullPath) {
+                try {
+                    fullPath = await realpath(fullPath)
                 }
+                catch (err) {
+                    console.debug('realpath failed to resolve the julia exe path')
+                    console.debug(err)
+                }
+                setNewJuliaExePath(fullPath)
             }
         }
     }

@@ -92,8 +92,14 @@ function transform_backend(ast, repl, main_mode)
 end
 
 function evalrepl(m, line, repl, main_mode)
+    did_notify = false
     return try
-        JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+        try
+            JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+            did_notify = true
+        catch err
+            @debug "Could not send repl/starteval notification" exception=(err, catch_backtrace())
+        end
         r = run_with_backend() do
             fix_displays()
             f = () -> repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
@@ -113,7 +119,13 @@ function evalrepl(m, line, repl, main_mode)
         Base.display_error(stderr, err, catch_backtrace())
         nothing
     finally
-        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+        if did_notify
+            try
+                JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+            catch err
+                @debug "Could not send repl/finisheval notification" exception=(err, catch_backtrace())
+            end
+        end
     end
 end
 

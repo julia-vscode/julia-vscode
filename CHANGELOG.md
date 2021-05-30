@@ -6,8 +6,135 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
-* SVGs with embedded single quotes are now displayed properly again.
-* Weave preview works again.
+* Non-debugging Julia sessions no longer pretend they are debug sessions ([#2155](https://github.com/julia-vscode/julia-vscode/pull/2155))
+* Loading internal code now works better when multiple processes have been added in `startup.jl` ([#2147](https://github.com/julia-vscode/julia-vscode/pull/2147))
+
+### Changed
+* Workspace panel now shows `#properties` for `AbstractrArray`s and `AbstractDict`s ([#1927](https://github.com/julia-vscode/julia-vscode/pull/1927))
+* Clicking on a symbol now highlights only references to that symbol, instead of all symbols with the same name ([#908](https://github.com/julia-vscode/LanguageServer.jl/pull/908))
+
+### Added
+* Added a sidebar element to quickly switch between differen plots ([#1932](https://github.com/julia-vscode/julia-vscode/pull/1932))
+* Added integration for persistent `tmux` sessions, especially useful together with the Remote Editing extension ([#1893](https://github.com/julia-vscode/julia-vscode/pull/1893))
+* Ship CoverageTools.jl as part of the extension so that test runs with coverage always work ([#1928](https://github.com/julia-vscode/julia-vscode/pull/1928))
+* Add option to delete .cov files after test runs (on by default) ([#1928](https://github.com/julia-vscode/julia-vscode/pull/1928))
+* Add new completion modes for unexported variables ([#1963](https://github.com/julia-vscode/julia-vscode/pull/1963), [#892](https://github.com/julia-vscode/LanguageServer.jl/pull/892))
+* New option for showing results inline but echoing errors into the REPL ([#2121](https://github.com/julia-vscode/julia-vscode/pull/2121))
+* New UI for setting compiled/interpreted methods for the debugger, which can allow for a significantly faster debugging experience ([#1888](https://github.com/julia-vscode/julia-vscode/pull/1888), [#31](https://github.com/julia-vscode/DebugAdapter.jl/pull/31))
+* Auto-completion of un-exported symbols can now optionally insert the appropriate `using` statement ([#892](https://github.com/julia-vscode/LanguageServer.jl/pull/892))
+
+## [1.1.39] - 2021-05-06
+### Fixed
+* Inline stacktraces are now rendered properly on Julia 1.6 ([#2091](https://github.com/julia-vscode/julia-vscode/pull/2091))
+* Weaving a document now respects the current env ([#2130](https://github.com/julia-vscode/julia-vscode/pull/2130))
+* `ARGS` are now properly cleared of extension internals ([#2090](https://github.com/julia-vscode/julia-vscode/pull/2090))
+* External Julia processes now respect the number of threads setting ([#2141](https://github.com/julia-vscode/julia-vscode/pull/2141))
+* URIs in markdown hovers (e.g. in stacktraces) now properly link to the right line ([#932](https://github.com/julia-vscode/LanguageServer.jl/pull/932))
+
+### Changed
+* Added support for the error stacks introduced in Julia 1.5 ([#2142](https://github.com/julia-vscode/julia-vscode/pull/2142))
+* Improvements to the package tagging functionality (which is now also limited to Julia 1.6) ([#2144](https://github.com/julia-vscode/julia-vscode/pull/2144))
+
+### Added
+* The linter now understands the new `import Foo as Bar` syntax ([#276](https://github.com/julia-vscode/StaticLint.jl/pull/276))
+
+## [1.1.38] - 2021-03-29
+### Fixed
+* Path for auto-detecting Julia 1.6 binaries on Windows are now correct ([#2086](https://github.com/julia-vscode/julia-vscode/pull/2086))
+* Added auto-dection for 1.6.1 ([#2076](https://github.com/julia-vscode/julia-vscode/pull/2076))
+* Setting `JULIA_EDITOR` should now be more robust ([#2067](https://github.com/julia-vscode/julia-vscode/pull/2067))
+
+### Changed
+* Auto-completions now allow for a certain degree of fuzzyiness ([#906](https://github.com/julia-vscode/LanguageServer.jl/pull/906))
+
+### Added
+* The LS now support selection range requests (use `Shift-Alt-Right`/`Shift-Alt-Left` to expand/reduce the "smart selection" in VSCode) ([#893](https://github.com/julia-vscode/LanguageServer.jl/pull/893))
+
+## [1.1.37] - 2021-03-17
+### Fixed
+* Fixed a security vulnerability related to the Julia path setting ([#2062](https://github.com/julia-vscode/julia-vscode/pull/2062))
+* We should not leave any more orphaned processes behind when VSCode is closed unexpectedly ([#48](https://github.com/julia-vscode/JSONRPC.jl/pull/48))
+
+## [1.1.35] - 2021-03-12
+### Changed
+* The Julia grammar is now shipped by VSCode and therefore removed from this package ([#1998](https://github.com/julia-vscode/julia-vscode/pull/1998))
+* Error handling for internal Julia code should now be more robust ([#2015](https://github.com/julia-vscode/julia-vscode/pull/2015))
+
+## [1.1.34] - 2021-03-09
+### Fixed
+* Work around a Base issue when displaying certain types in the REPL ([#2010](https://github.com/julia-vscode/julia-vscode/pull/2010))
+* Fixed certain debugger commands not working properly ([#2008](https://github.com/julia-vscode/julia-vscode/pull/2008))
+
+## [1.1.33] - 2021-03-06
+### Fixed
+* Step Into Target now works properly for top-level frames ([#34](https://github.com/julia-vscode/DebugAdapter.jl/pull/34))
+
+### Changed
+* "Run Code" commands now conform to the VSCode guidelines ([#1999](https://github.com/julia-vscode/julia-vscode/pull/1999))
+
+## [1.1.32] - 2021-03-03
+### Changed
+* Pipes for communication between the VSCode extension host and various Julia processes are now guaranteed to be unique ([#1980](https://github.com/julia-vscode/julia-vscode/pull/1980))
+* REPL output form activating a new environment via the GUI now doesn't display a Julia prompt ([#1981](https://github.com/julia-vscode/julia-vscode/pull/1981))
+* Better crash reporting when commands fail ([#1985](https://github.com/julia-vscode/julia-vscode/pull/1985))
+
+## [1.1.29] - 2021-02-23
+### Fixed
+* Fixed a typo that made the more robust REPL hooks not very robust at all ([#1973](https://github.com/julia-vscode/julia-vscode/pull/1973))
+* Fixed a rare bug where showing variables while debugging might result in a crash ([#32](https://github.com/julia-vscode/DebugAdapter.jl/pull/32))
+
+## [1.1.28] - 2021-02-23
+### Fixed
+* LaTeX-rendered equations are now properly hidden behind the search bar in the docs pane([#1970](https://github.com/julia-vscode/julia-vscode/pull/1970))
+* REPL hooks are now more robust ([#1968](https://github.com/julia-vscode/julia-vscode/pull/1968))
+
+## [1.1.26] - 2021-02-20
+### Fixed
+* Unparametrize the wrapper introduced in #1943 ([#1957](https://github.com/julia-vscode/julia-vscode/pull/1957))
+
+### Changed
+* Debugger is no longer marked as experimental ([#1965](https://github.com/julia-vscode/julia-vscode/pull/1965))
+* We now use the `ast_transforms` machinery introduced in Julia 1.5 when appicable ([#1959](https://github.com/julia-vscode/julia-vscode/pull/1959))
+
+## [1.1.19 - 1.1.25] - 2021-02-17
+### Changed
+* Fixes to our Azure Pipelines infracstructure
+
+## [1.1.18] - 2021-02-15
+### Fixed
+* Fixed a regression when displaying SVGs in the plot pane ([#1939](https://github.com/julia-vscode/julia-vscode/pull/1939))
+* Fix an issue with displaying values with incorrect `convert` methods ([#1943](https://github.com/julia-vscode/julia-vscode/pull/1943))
+
+### Changed
+* Explorer context menu entries are now only shown when a REPL is running ([#1933](https://github.com/julia-vscode/julia-vscode/pull/1933))
+
+## [1.1.16] - 2021-02-09
+### Added
+* Julia 1.6 binaries are now auto-detected ([#1918](https://github.com/julia-vscode/julia-vscode/pull/1918))
+
+## [1.1.14] - 2021-02-03
+### Fixed
+* Removed references to outdated Julia syntax that caused incorrect auto-indentation ([#1910](https://github.com/julia-vscode/julia-vscode/pull/1910))
+* Stacktraces should now be properly truncated again ([#1912](https://github.com/julia-vscode/julia-vscode/pull/1912))
+
+### Changed
+* Updated the vendored Plotly and fixed auto-resizing for Plotly and VegaLite plots ([#1911](https://github.com/julia-vscode/julia-vscode/pull/1911))
+
+## [1.1.13] - 2021-02-03
+### Fixed
+* Relative environment paths are now persisted properly ([#1905](https://github.com/julia-vscode/julia-vscode/pull/1905))
+* User supplied environment paths are now checked for validity ([#1907](https://github.com/julia-vscode/julia-vscode/pull/1907))
+
+## [1.1.12] - 2021-02-02
+### Fixed
+* Corrected environment handling in certaing cases ([#1903](https://github.com/julia-vscode/julia-vscode/pull/1903))
+
+### Changed
+* Live testing is disabled until it can be fixed ([#1902](https://github.com/julia-vscode/julia-vscode/pull/1902))
+
+## [1.1.11] - 2021-01-31
+### Fixed
+* Getting the module at the current cursor position now no longer waits until the LS is started ([#1892](https://github.com/julia-vscode/julia-vscode/pull/1892))
 
 ## [1.1.10] - 2021-01-28
 ### Fixed

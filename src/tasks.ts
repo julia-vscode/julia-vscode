@@ -46,7 +46,24 @@ class JuliaTaskProvider {
                 testTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
                 result.push(testTask)
 
-                const testTaskWithCoverage = new vscode.Task({ type: 'julia', command: 'testcoverage' }, folder, `Run tests with coverage`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_test.jl'), folder.name], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }), '')
+                const testTaskWithCoverage = new vscode.Task(
+                    { type: 'julia', command: 'testcoverage' },
+                    folder,
+                    `Run tests with coverage`,
+                    'julia',
+                    new vscode.ProcessExecution(
+                        jlexepath,
+                        [
+                            '--color=yes',
+                            `--project=${pkgenvpath}`,
+                            path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_test.jl'),
+                            folder.uri.fsPath,
+                            vscode.workspace.getConfiguration('julia').get<boolean>('deleteJuliaCovFiles') ?? false ? 'true' : 'false'
+                        ],
+                        { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }
+                    ),
+                    ''
+                )
                 testTaskWithCoverage.group = vscode.TaskGroup.Test
                 testTaskWithCoverage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
                 result.push(testTaskWithCoverage)

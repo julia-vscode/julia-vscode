@@ -5,9 +5,20 @@ import { registerCommand } from '../utils'
 import { JuliaDebugSession } from './juliaDebug'
 
 export class JuliaDebugFeature {
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private context: vscode.ExtensionContext, compiledProvider) {
         const provider = new JuliaDebugConfigurationProvider()
         const factory = new InlineDebugAdapterFactory(this.context)
+
+        compiledProvider.onDidChangeTreeData(() => {
+            if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
+                vscode.debug.activeDebugSession.customRequest('setCompiledItems', { compiledModulesOrFunctions: compiledProvider.getCompiledItems() })
+            }
+        })
+        compiledProvider.onDidChangeCompiledMode(mode => {
+            if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
+                vscode.debug.activeDebugSession.customRequest('setCompiledMode', { compiledMode: mode })
+            }
+        })
 
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
@@ -52,7 +63,9 @@ export class JuliaDebugFeature {
                     type: 'julia',
                     name: 'Debug Editor Contents',
                     request: 'launch',
-                    program: resource.fsPath
+                    program: resource.fsPath,
+                    compiledModulesOrFunctions: compiledProvider.getCompiledItems(),
+                    compiledMode: compiledProvider.compiledMode
                 })
                 if (!success) {
                     vscode.window.showErrorMessage('Could not debug editor content in new process.')
