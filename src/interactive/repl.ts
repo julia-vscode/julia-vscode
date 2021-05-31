@@ -150,7 +150,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 }
 
 function juliaConnector(pipename: string, start = false) {
-    const connect = `VSCodeServer.serve("${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, crashreporting_pipename = "${telemetry.getCrashReportingPipename()}");nothing # re-establishing connection with VSCode`
+    const connect = `VSCodeServer.serve(raw"${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, crashreporting_pipename = raw"${telemetry.getCrashReportingPipename()}");nothing # re-establishing connection with VSCode`
     if (start) {
         return `pushfirst!(LOAD_PATH, raw"${path.join(g_context.extensionPath, 'scripts', 'packages')}");using VSCodeServer;popfirst!(LOAD_PATH);` + connect
     } else {
