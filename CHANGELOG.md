@@ -5,6 +5,12 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+* `Julia: Connect external REPL` now gives feedback when connected ([#2182](https://github.com/julia-vscode/julia-vscode/pull/2182))
+
+### Fixed
+* REPL hooks are now properly installed when connecting to already running processes ([#2182](https://github.com/julia-vscode/julia-vscode/pull/2182))
+* `tmux` integration and connecting to an external process now properly work on Windows ([#2182](https://github.com/julia-vscode/julia-vscode/pull/2182))
 
 ## [1.2.1] - 2021-05-27
 ### Fixed
