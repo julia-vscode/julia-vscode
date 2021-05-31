@@ -83,6 +83,10 @@ end
 is_disconnected_exception(err) = err isa InvalidStateException && err.state === :closed || err isa Base.IOError
 
 function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
+        hook_repl(Base.active_repl)
+    end
+
     @debug "connecting to pipe"
     conn = connect(args...)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)

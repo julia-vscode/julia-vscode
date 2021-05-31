@@ -149,10 +149,10 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     }
 }
 
-function juliaConnector(pipename, start = false) {
+function juliaConnector(pipename: string, start = false) {
     const connect = `VSCodeServer.serve("${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, crashreporting_pipename = "${telemetry.getCrashReportingPipename()}");nothing # re-establishing connection with VSCode`
     if (start) {
-        return `pushfirst!(LOAD_PATH, "${path.join(g_context.extensionPath, 'scripts', 'packages')}"); using VSCodeServer; popfirst!(LOAD_PATH);` + connect
+        return `pushfirst!(LOAD_PATH, raw"${path.join(g_context.extensionPath, 'scripts', 'packages')}");using VSCodeServer;popfirst!(LOAD_PATH);` + connect
     } else {
         return connect
     }
@@ -166,7 +166,12 @@ async function connectREPL() {
     const click = await vscode.window.showInformationMessage('Start a Julia session, and execute the code copied into your clipboard by the button below into it.', 'Copy code')
     if (click === 'Copy code') {
         vscode.env.clipboard.writeText(connectJuliaCode)
-        await juliaIsConnectedPromise.wait()
+        try {
+            await juliaIsConnectedPromise.wait()
+            vscode.window.showInformationMessage('Successfully connected to external Julia REPL.')
+        } catch (err) {
+            vscode.window.showErrorMessage('Failed to connect to external Julia REPL.')
+        }
     }
 }
 
