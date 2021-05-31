@@ -5,6 +5,14 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.2.1] - 2021-05-27
+### Fixed
+* `tmux` integration now works ([#2177](https://github.com/julia-vscode/julia-vscode/pull/2177))
+* Fixed a crash in the new multi-environment support ([#945](https://github.com/julia-vscode/LanguageServer.jl/pull/945))
+* The plots pane and navigator now (mostly) keeps focus where it was before ([#2172](https://github.com/julia-vscode/julia-vscode/pull/2174))
+
+## [1.2.0] - 2021-05-26
 ### Fixed
 * Non-debugging Julia sessions no longer pretend they are debug sessions ([#2155](https://github.com/julia-vscode/julia-vscode/pull/2155))
 * Loading internal code now works better when multiple processes have been added in `startup.jl` ([#2147](https://github.com/julia-vscode/julia-vscode/pull/2147))
