@@ -799,6 +799,8 @@ async function linkHandler(link: any) {
         // Base file
         const exepath = await juliaexepath.getJuliaExePath()
         file = path.join(exepath, '..', '..', 'share', 'julia', 'base', file)
+    } else if (file.startsWith('~')) {
+        file = path.join(process.env.HOME, file.slice(1))
     }
     try {
         await openFile(file, line)
