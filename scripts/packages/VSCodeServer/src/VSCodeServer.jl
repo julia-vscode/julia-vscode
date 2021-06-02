@@ -80,8 +80,6 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     end
 end
 
-is_disconnected_exception(err) = err isa InvalidStateException && err.state === :closed || err isa Base.IOError
-
 function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
         hook_repl(Base.active_repl)
@@ -124,10 +122,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
             end
         end
     catch err
-        if !isopen(conn) && (
-             err isa CompositeException && all(is_disconnected_exception, err.exceptions) ||
-             is_disconnected_exception(err)
-           )
+        if !isopen(conn) && is_disconnected_exception(err)
             # expected error
             @debug "remote closed the connection"
         else

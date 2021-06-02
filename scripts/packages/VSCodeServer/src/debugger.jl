@@ -6,9 +6,13 @@ function repl_startdebugger_request(conn, params::NamedTuple{(:debugPipename,),T
             socket = Sockets.connect(debug_pipename)
             try
                 DebugAdapter.startdebug(socket, function (err, bt)
-                    printstyled(stderr, "Error while running the debugger", color=:red, bold=true)
-                    printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color=:red)
-                    Base.display_error(stderr, err, bt)
+                    if is_disconnected_exception(err)
+                        @debug "connection closed"
+                    else
+                        printstyled(stderr, "Error while running the debugger", color=:red, bold=true)
+                        printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color=:red)
+                        Base.display_error(stderr, err, bt)
+                    end
                 end)
             finally
                 close(socket)
