@@ -6,9 +6,8 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.54.0"
+        "vscode": "^1.57.0"
     },
-    "enableProposedApi": true,
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
         "url": "https://github.com/julia-vscode/julia-vscode/issues"
@@ -809,17 +808,6 @@
                 }
             }
         ],
-        "notebookProvider": [
-            {
-                "viewType": "julianotebook",
-                "displayName": "Julia Notebook",
-                "selector": [
-                    {
-                        "filenamePattern": "*.jlnb"
-                    }
-                ]
-            }
-        ],
         "viewsContainers": {
             "activitybar": [
                 {
@@ -952,7 +940,6 @@
         "@traptitech/markdown-it-katex": "^3.3.1",
         "@types/applicationinsights": "^0.20.0",
         "@types/child-process-promise": "^2.2.1",
-        "@types/vscode": "^1.54.0",
         "applicationinsights": "^1.8.10",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
@@ -973,6 +960,7 @@
         "@types/mocha": "^8.2.1",
         "@types/node": "^12.20.5",
         "@types/semver": "^7.3.4",
+        "@types/vscode": "^1.57.0",
         "@typescript-eslint/parser": "^4.17.0",
         "download": "^8.0.0",
         "eslint": "^7.21.0",

@@ -8,11 +8,10 @@ import { getAbsEnvPath } from '../jlpkgenv'
 import { getJuliaExePath } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
-import { chainWithPendingUpdates } from './helpers'
 
 interface ExecutionRequest {
-    cell: vscode.NotebookCell
     executionOrder: number
+    execution: vscode.NotebookCellExecution
 }
 
 const notifyTypeDisplay = new NotificationType<{ mimetype: string, current_request_id: number, data: string }>('display')
@@ -22,61 +21,49 @@ const notifyTypeRunCellSucceeded = new NotificationType<{ request_id: number }>(
 const notifyTypeRunCellFailed = new NotificationType<{ request_id: number, output: {ename: string, evalue: string, traceback: string}}>('runcellfailed')
 
 
-export class JuliaKernel implements vscode.NotebookKernel {
+export class JuliaKernel {
     private _localDisposables: vscode.Disposable[] = []
 
-    private executionRequests: Map<number, ExecutionRequest> = new Map<number, ExecutionRequest>();
+    private executionRequests = new Map<number, ExecutionRequest>() ;
     private _terminal: vscode.Terminal;
     private _msgConnection: MessageConnection;
     private _current_request_id: number = 0;
 
-    public label = 'Julia Kernel'
+    private readonly controller: vscode.NotebookController;
 
-    public supportedLanguages = ['julia']
-
-    constructor(private document: vscode.NotebookDocument, private extensionPath: string, public isPreferred: boolean) {
+    constructor(private extensionPath: string) {
+        this.controller = vscode.notebooks.createNotebookController('julia', 'jupyter-notebook', 'Julia Kernel')
+        this.controller.supportedLanguages = ['julia']
+        this.controller.supportsExecutionOrder = true
+        this.controller.executeHandler = this.executeCells.bind(this)
     }
 
     public dispose() {
-        console.log(this.document.fileName)
         this._localDisposables.forEach(d => d.dispose())
+        this.stop()
     }
 
-    async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
+    private async executeCells(cells: vscode.NotebookCell[], notebook: vscode.NotebookDocument, controller: vscode.NotebookController): Promise<void> {
         await this.start()
+        notebook.getCells().filter(cell => cell.kind === vscode.NotebookCellKind.Code).forEach(cell => this.executeCell(cell, notebook))
+    }
+    private readonly cellExecutions = new WeakMap<vscode.NotebookCell, vscode.NotebookCellExecution>();
+    private async executeCell(cell: vscode.NotebookCell, notebook: vscode.NotebookDocument): Promise<void> {
         const executionOrder = ++this._current_request_id
 
-        this.executionRequests.set(executionOrder, { cell: cell, executionOrder: executionOrder })
+        const execution = this.controller.createNotebookCellExecution(cell)
+        this.executionRequests.set(executionOrder, { executionOrder: executionOrder, execution })
+        this.cellExecutions.set(cell, execution)
 
-        chainWithPendingUpdates(cell.notebook, edit => {
-            const runStartTime = Date.now()
-            edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, cell.metadata.with({
-                runState: vscode.NotebookCellRunState.Running,
-                runStartTime: runStartTime,
-                executionOrder: executionOrder,
-                statusMessage: '',
-                lastRunDuration: null
-            }))
-            edit.replaceNotebookCellOutput(cell.notebook.uri, cell.index, [])
-        })
+        const runStartTime = Date.now()
+        execution.start(runStartTime)
+        execution.clearOutput()
+        execution.executionOrder = executionOrder
 
         this._msgConnection.sendNotification(notifyTypeRunCell, { current_request_id: this._current_request_id, code: cell.document.getText() })
     }
 
-    cancelCellExecution(document: vscode.NotebookDocument, cell: vscode.NotebookCell): void {
-    }
-
-    executeAllCells(document: vscode.NotebookDocument): void {
-        // Note: This is a simple fix to get things working.
-        // All of this will be going away next week with the refactor to kernel execution in VS Code.
-        // See here for the WIP - https://github.com/microsoft/vscode/pull/116416.
-        document.cells.forEach(cell => this.executeCell(cell.notebook, cell))
-    }
-
-    cancelAllCellsExecution(document: vscode.NotebookDocument): void {
-    }
-
-    public async start() {
+    private async start() {
         if (!this._terminal) {
             const connectedPromise = new Subject()
             const serverListeningPromise = new Subject()
@@ -93,62 +80,44 @@ export class JuliaKernel implements vscode.NotebookKernel {
                     const runEndTime = Date.now()
 
                     const request = this.executionRequests.get(request_id)
-                    chainWithPendingUpdates(request.cell.notebook, edit => {
-                        edit.replaceNotebookCellMetadata(request.cell.notebook.uri, request.cell.index, request.cell.metadata.with({
-                            runState: vscode.NotebookCellRunState.Success,
-                            lastRunDuration: runEndTime - request.cell.metadata.runStartTime,
-                        }))
-                    })
+                    const execution = this.cellExecutions.get(request.execution.cell)
+                    if (execution) {
+                        execution.end(true, runEndTime)
+                    }
                 })
 
                 this._msgConnection.onNotification(notifyTypeRunCellFailed, ({ request_id, output }) => {
                     const runEndTime = Date.now()
 
                     const request = this.executionRequests.get(request_id)
-
-                    const cell = request.cell
-
-                    chainWithPendingUpdates(request.cell.notebook, edit => {
-                        edit.replaceNotebookCellMetadata(request.cell.notebook.uri, request.cell.index, request.cell.metadata.with({
-                            runState: vscode.NotebookCellRunState.Error,
-                            lastRunDuration: runEndTime - request.cell.metadata.runStartTime,
-                        }))
-                        edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.error-traceback', output)])])
-                    })
+                    const execution = this.cellExecutions.get(request.execution.cell)
+                    if (execution) {
+                        execution.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error({ message: output.evalue, name: output.ename, stack: output.traceback })]))
+                        execution.end(false, runEndTime)
+                    }
                 })
 
                 this._msgConnection.onNotification(notifyTypeDisplay, ({ mimetype, current_request_id, data }) => {
-                    const executionRequest = this.executionRequests.get(current_request_id)
-
-                    if (executionRequest) {
-                        const cell = executionRequest.cell
-
-                        chainWithPendingUpdates(cell.notebook, edit => {
-                            edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(mimetype, data)])])
-                        })
+                    const request = this.executionRequests.get(current_request_id)
+                    const execution = this.cellExecutions.get(request.execution.cell)
+                    if (execution) {
+                        execution.appendOutput(new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(data, mimetype)]))
                     }
                 })
 
                 this._msgConnection.onNotification(notifyTypeStreamoutput, ({ name, current_request_id, data }) => {
                     if (name === 'stdout') {
-                        const executionRequest = this.executionRequests.get(current_request_id)
-
-                        if (executionRequest) {
-                            const cell = executionRequest.cell
-
-                            chainWithPendingUpdates(cell.notebook, edit => {
-                                edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stream', data)])])
-                            })
+                        const request = this.executionRequests.get(current_request_id)
+                        const execution = this.cellExecutions.get(request.execution.cell)
+                        if (execution){
+                            execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stdout(data)])])
                         }
                     }
                     else if (name === 'stderr') {
-                        const executionRequest = this.executionRequests.get(current_request_id)
-
-                        if (executionRequest) {
-                            const cell = executionRequest.cell
-                            chainWithPendingUpdates(cell.notebook, edit => {
-                                edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, [new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem('application/x.notebook.stream', data)])])
-                            })
+                        const request = this.executionRequests.get(current_request_id)
+                        const execution = this.cellExecutions.get(request.execution.cell)
+                        if (execution){
+                            execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stdout(data)])])
                         }
                     }
                     else {
@@ -196,12 +165,12 @@ export class JuliaKernel implements vscode.NotebookKernel {
         }
     }
 
-    public async restart() {
-        this.stop()
-        await this.start()
-    }
+    // private async restart() {
+    //     this.stop()
+    //     await this.start()
+    // }
 
-    public stop() {
+    private stop() {
 
         if (this._terminal) {
             this._terminal.dispose()
