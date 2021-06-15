@@ -166,7 +166,7 @@ function getPlotPaneContent() {
 function plotPanelOnMessage(message) {
     if (message.type == 'thumbnail') {
         let thumbnailData = message.value
-        g_plotNavigatorProvider.setPlotsInfo(plotsInfo => {
+        g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
             plotsInfo[g_currentPlotIndex] = {
                 'thumbnail_type': 'image',
                 'thumbnail_data': thumbnailData
@@ -260,7 +260,7 @@ export function plotPaneLast() {
 export function plotPaneDel() {
     telemetry.traceEvent('command-plotpanedelete')
     if (g_plots.length > 0) {
-        g_plotNavigatorProvider.setPlotsInfo(plotsInfo => {
+        g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
             plotsInfo.splice(g_currentPlotIndex, 1)
             return plotsInfo
         })
@@ -274,7 +274,7 @@ export function plotPaneDel() {
 
 export function plotPaneDelAll() {
     telemetry.traceEvent('command-plotpanedeleteall')
-    g_plotNavigatorProvider.setPlotsInfo(() => [])
+    g_plotNavigatorProvider?.setPlotsInfo(() => [])
     if (g_plots.length > 0) {
         g_plots.splice(0, g_plots.length)
         g_currentPlotIndex = 0
@@ -307,7 +307,7 @@ export function displayPlot(params: { kind: string, data: string }) {
         <script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'scripts', 'plots', 'main_plot_webview.js')))}"></script>`
 
         // We display a text thumbnail first just in case that JavaScript errors in the webview or did not successfully send out message and corrupt thumbnail indices.
-        g_plotNavigatorProvider.setPlotsInfo(plotsInfo => {
+        g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
             plotsInfo.push({
                 thumbnail_type: 'text',
                 thumbnail_data: null
