@@ -631,7 +631,7 @@ export function displayPlot(params: { kind: string, data: string }) {
         throw new Error()
     }
 
-    if (vscode.workspace.getConfiguration('julia').get('usePlotNavigator')) {
+    if (vscode.workspace.getConfiguration('julia').get('focusPlotNavigator')) {
         g_plotNavigatorProvider?.showPlotNavigator()
     }
 }
