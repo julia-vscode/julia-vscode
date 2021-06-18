@@ -1,5 +1,6 @@
 import { Subject } from 'await-notify'
 import * as net from 'net'
+import { homedir } from 'os'
 import * as path from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
@@ -18,16 +19,16 @@ const notifyTypeDisplay = new NotificationType<{ mimetype: string, current_reque
 const notifyTypeStreamoutput = new NotificationType<{ name: string, current_request_id: number, data: string }>('streamoutput')
 const notifyTypeRunCell = new NotificationType<{ current_request_id: number, code: string }>('notebook/runcell')
 const notifyTypeRunCellSucceeded = new NotificationType<{ request_id: number }>('runcellsucceeded')
-const notifyTypeRunCellFailed = new NotificationType<{ request_id: number, output: {ename: string, evalue: string, traceback: string}}>('runcellfailed')
+const notifyTypeRunCellFailed = new NotificationType<{ request_id: number, output: { ename: string, evalue: string, traceback: string } }>('runcellfailed')
 
-// function getDisplayPathName(pathValue: string): string {
-//     return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue
-// }
+function getDisplayPathName(pathValue: string): string {
+    return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue
+}
 
 export class JuliaKernel {
     private _localDisposables: vscode.Disposable[] = []
 
-    private executionRequests = new Map<number, ExecutionRequest>() ;
+    private executionRequests = new Map<number, ExecutionRequest>();
     private _terminal: vscode.Terminal;
     private _msgConnection: MessageConnection;
     private _current_request_id: number = 0;
@@ -105,14 +106,14 @@ export class JuliaKernel {
                     if (name === 'stdout') {
                         const request = this.executionRequests.get(current_request_id)
                         const execution = this.cellExecutions.get(request.execution.cell)
-                        if (execution){
+                        if (execution) {
                             execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stdout(data)])])
                         }
                     }
                     else if (name === 'stderr') {
                         const request = this.executionRequests.get(current_request_id)
                         const execution = this.cellExecutions.get(request.execution.cell)
-                        if (execution){
+                        if (execution) {
                             execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stdout(data)])])
                         }
                     }
@@ -136,7 +137,7 @@ export class JuliaKernel {
             const pkgenvpath = await getAbsEnvPath()
 
             this._terminal = vscode.window.createTerminal({
-                name: `Julia Notebook Kernel ${path.basename(this.notebook.uri.fsPath)}`,
+                name: `Julia Notebook Kernel ${getDisplayPathName(this.notebook.uri.fsPath)}`,
                 shellPath: jlexepath,
                 shellArgs: [
                     '--color=yes',
