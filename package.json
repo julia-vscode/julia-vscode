@@ -748,9 +748,9 @@
                     "default": true,
                     "description": "Display plots within VS Code. Might require a restart of the Julia process."
                 },
-                "julia.usePlotNavigator": {
+                "julia.focusPlotNavigator": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "description": "Whether to automatically show the plot navigator when plotting."
                 },
                 "julia.useProgressFrontend": {
