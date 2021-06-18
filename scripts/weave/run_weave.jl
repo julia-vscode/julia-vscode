@@ -1,14 +1,4 @@
-stderr_copy = stderr
-
-rserr, wrerr = redirect_stderr()
-
 using Weave
-# For some reason this is needed on Windows, without it we see lots of errors
-@info "Ignore"
-
-redirect_stderr(stderr_copy)
-close(rserr)
-close(wrerr)
 
 input_file = readline()
 output_file = readline()

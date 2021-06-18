@@ -61,11 +61,11 @@ include("../../../error_handler.jl")
 include("repl_protocol.jl")
 include("misc.jl")
 include("trees.jl")
-include("repl.jl")
 include("gridviewer.jl")
 include("module.jl")
 include("progress.jl")
 include("eval.jl")
+include("repl.jl")
 include("display.jl")
 include("profiler.jl")
 include("debugger.jl")
@@ -85,10 +85,19 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
 end
 
 function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
+        hook_repl(Base.active_repl)
+    end
+
+    @debug "connecting to pipe"
     conn = connect(args...)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
-    start_eval_backend()
+    @debug "connected"
+    if EVAL_BACKEND_TASK[] === nothing
+        start_eval_backend()
+    end
     run(conn_endpoint[])
+    @debug "running"
 
     @async try
         msg_dispatcher = JSONRPC.MsgDispatcher()
@@ -105,8 +114,9 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress
         msg_dispatcher[cd_notification_type] = cd_to_uri
         msg_dispatcher[activate_project_notification_type] = activate_uri
+        msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request
 
-        while true
+        @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
             msg = JSONRPC.get_next_message(conn_endpoint[])
 
             if msg["method"] == repl_runcode_request_type.method
@@ -116,7 +126,18 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
             end
         end
     catch err
-        global_err_handler(err, catch_backtrace(), crashreporting_pipename, "REPL")
+        if !isopen(conn) && is_disconnected_exception(err)
+            # expected error
+            @debug "remote closed the connection"
+        else
+            try
+                global_err_handler(err, catch_backtrace(), crashreporting_pipename, "REPL")
+            catch err
+                @error "Error handler threw an error." exception=(err, catch_backtrace())
+            end
+        end
+    finally
+        @debug "JSONRPC dispatcher task finished"
     end
 end
 

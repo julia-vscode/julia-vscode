@@ -1,0 +1,73 @@
+@charset "UTF-8";
+// This file is based on the documenter SCSS.
+
+// Use the following command to generate a updated CSS file.
+// scss plotter.scss:plotter.css --watch
+
+$themename: "plotter";
+
+// All secondary themes have to be nested in a theme--$(themename) class. When Documenter
+// switches themes, it applies this class to <html> and then disables the primary
+// stylesheet.
+html.theme--#{$themename} {
+  background-color: var(--vscode-sideBar-background)!important;
+
+  body {
+    color: var(--vscode-foreground);
+    font-size: var(--vscode-editor-font-size);
+
+    .thumbnail {
+      cursor: pointer;
+      text-align: center;
+      img {
+        min-height: 50px;
+        max-height: 150px;
+        max-width: 100%;
+        border: 1px black solid;
+      }
+    }
+
+    .content {
+      pre, code {
+        background-color: var(--vscode-editor-background);
+        color: var(--vscode-editor-foreground);
+      }
+
+      pre {
+        border-radius: 0;
+        border-color: var(--vscode-editorWidget-border);
+      }
+
+      h1, h2, h3, h4, h5, h6 {
+        color: var(--vscode-foreground)!important;
+      }
+
+      h1 {
+        font-size: 1.6em;
+      }
+      h2 {
+        font-size: 1.4em;
+      }
+      h3 {
+        font-size: 1.3em;
+      }
+      h4 {
+        font-size: 1.2em;
+      }
+
+      a, a > code, code > a {
+        color: var(--vscode-textLink-foreground);
+        &:hover {
+          color: var(--vscode-textLink-activeForeground);
+        }
+        &:focus {
+          outline: none;
+        }
+      }
+    }
+
+    &::selection {
+      background-color: var(--vscode-list-hoverBackground);
+    }
+  }
+}

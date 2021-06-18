@@ -5,9 +5,20 @@ import { registerCommand } from '../utils'
 import { JuliaDebugSession } from './juliaDebug'
 
 export class JuliaDebugFeature {
-    constructor(private context: vscode.ExtensionContext) {
-        const provider = new JuliaDebugConfigurationProvider()
+    constructor(private context: vscode.ExtensionContext, compiledProvider) {
+        const provider = new JuliaDebugConfigurationProvider(compiledProvider)
         const factory = new InlineDebugAdapterFactory(this.context)
+
+        compiledProvider.onDidChangeTreeData(() => {
+            if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
+                vscode.debug.activeDebugSession.customRequest('setCompiledItems', { compiledModulesOrFunctions: compiledProvider.getCompiledItems() })
+            }
+        })
+        compiledProvider.onDidChangeCompiledMode(mode => {
+            if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
+                vscode.debug.activeDebugSession.customRequest('setCompiledMode', { compiledMode: mode })
+            }
+        })
 
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
@@ -52,7 +63,9 @@ export class JuliaDebugFeature {
                     type: 'julia',
                     name: 'Debug Editor Contents',
                     request: 'launch',
-                    program: resource.fsPath
+                    program: resource.fsPath,
+                    compiledModulesOrFunctions: compiledProvider.getCompiledItems(),
+                    compiledMode: compiledProvider.compiledMode
                 })
                 if (!success) {
                     vscode.window.showErrorMessage('Could not debug editor content in new process.')
@@ -72,6 +85,11 @@ function getActiveUri(
 }
 
 export class JuliaDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
+    compiledProvider: any
+
+    constructor(compiledProvider) {
+        this.compiledProvider = compiledProvider
+    }
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
         config: vscode.DebugConfiguration,
@@ -99,6 +117,14 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
 
         if (!config.stopOnEntry) {
             config.stopOnEntry = false
+        }
+
+        if (!config.compiledModulesOrFunctions && this.compiledProvider) {
+            config.compiledModulesOrFunctions = this.compiledProvider.getCompiledItems()
+        }
+
+        if (!config.compiledMode && this.compiledProvider) {
+            config.compiledMode = this.compiledProvider.compiledMode
         }
 
         if (!config.cwd && config.request !== 'attach') {
