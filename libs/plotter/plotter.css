@@ -1,0 +1,39 @@
+html.theme--plotter {
+  background-color: var(--vscode-sideBar-background) !important; }
+  html.theme--plotter body {
+    color: var(--vscode-foreground);
+    font-size: var(--vscode-editor-font-size); }
+    html.theme--plotter body .thumbnail {
+      cursor: pointer;
+      text-align: center; }
+      html.theme--plotter body .thumbnail img {
+        min-height: 50px;
+        max-height: 150px;
+        max-width: 100%;
+        border: 1px black solid; }
+    html.theme--plotter body .content pre, html.theme--plotter body .content code {
+      background-color: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground); }
+    html.theme--plotter body .content pre {
+      border-radius: 0;
+      border-color: var(--vscode-editorWidget-border); }
+    html.theme--plotter body .content h1, html.theme--plotter body .content h2, html.theme--plotter body .content h3, html.theme--plotter body .content h4, html.theme--plotter body .content h5, html.theme--plotter body .content h6 {
+      color: var(--vscode-foreground) !important; }
+    html.theme--plotter body .content h1 {
+      font-size: 1.6em; }
+    html.theme--plotter body .content h2 {
+      font-size: 1.4em; }
+    html.theme--plotter body .content h3 {
+      font-size: 1.3em; }
+    html.theme--plotter body .content h4 {
+      font-size: 1.2em; }
+    html.theme--plotter body .content a, html.theme--plotter body .content a > code, html.theme--plotter body .content code > a {
+      color: var(--vscode-textLink-foreground); }
+      html.theme--plotter body .content a:hover, html.theme--plotter body .content a > code:hover, html.theme--plotter body .content code > a:hover {
+        color: var(--vscode-textLink-activeForeground); }
+      html.theme--plotter body .content a:focus, html.theme--plotter body .content a > code:focus, html.theme--plotter body .content code > a:focus {
+        outline: none; }
+    html.theme--plotter body::selection {
+      background-color: var(--vscode-list-hoverBackground); }
+
+/*# sourceMappingURL=plotter.css.map */

@@ -214,7 +214,7 @@ stages:
 
     - task: NodeTool@0
       inputs:
-        versionSpec: '8.x'
+        versionSpec: '14.x'
       displayName: 'Install Node.js'
 
     - bash: |
@@ -246,7 +246,7 @@ stages:
 
     - task: NodeTool@0
       inputs:
-        versionSpec: '8.x'
+        versionSpec: '14.x'
       displayName: 'Install Node.js'
 
     - task: FileTransform@2

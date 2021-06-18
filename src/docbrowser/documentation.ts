@@ -5,7 +5,7 @@ import { withLanguageClient } from '../extension'
 import { constructCommandString, getVersionedParamsAtPosition, registerCommand } from '../utils'
 
 function openArgs(href: string) {
-    const matches = href.match(/^((\w+\:\/\/)?.+?)(?:\:(\d+))?$/)
+    const matches = href.match(/^((\w+\:\/\/)?.+?)(?:[\:#](\d+))?$/)
     let uri
     let line
     if (matches[1] && matches[3] && matches[2] === undefined) {
@@ -25,6 +25,16 @@ const md = new markdownit().use(
 ).use(
     require('markdown-it-footnote')
 )
+
+// add custom validator to allow for file:// links
+const BAD_PROTO_RE = /^(vbscript|javascript|data):/
+const GOOD_DATA_RE = /^data:image\/(gif|png|jpeg|webp);/
+md.validateLink = (url) => {
+    // url should be normalized at this point, and existing entities are decoded
+    var str = url.trim().toLowerCase()
+
+    return BAD_PROTO_RE.test(str) ? (GOOD_DATA_RE.test(str) ? true : false) : true
+}
 
 md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
@@ -94,12 +104,11 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
     }
 
     async showDocumentationPane() {
-        // this forces the webview to be resolved:
-        await vscode.commands.executeCommand('julia-documentation.focus')
-        // should always be true, but better safe than sorry
-        if (this.view) {
-            this.view.show?.(true)
+        if (this.view?.show === undefined) {
+            // this forces the webview to be resolved, but changes focus:
+            await vscode.commands.executeCommand('julia-documentation.focus')
         }
+        this.view.show(true)
     }
 
     async showDocumentationFromWord(word: string) {
@@ -185,6 +194,9 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         </script>
 
         <style>
+        body {
+            word-break: break-all;
+        }
         body:active {
             outline: 1px solid var(--vscode-focusBorder);
         }
