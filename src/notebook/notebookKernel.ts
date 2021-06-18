@@ -1,11 +1,11 @@
 import { Subject } from 'await-notify'
 import * as net from 'net'
-import { homedir } from 'os'
 import * as path from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { createMessageConnection, MessageConnection, NotificationType, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { getAbsEnvPath } from '../jlpkgenv'
+import { getJuliaExePath } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
 
@@ -20,9 +20,9 @@ const notifyTypeRunCell = new NotificationType<{ current_request_id: number, cod
 const notifyTypeRunCellSucceeded = new NotificationType<{ request_id: number }>('runcellsucceeded')
 const notifyTypeRunCellFailed = new NotificationType<{ request_id: number, output: {ename: string, evalue: string, traceback: string}}>('runcellfailed')
 
-function getDisplayPathName(pathValue: string): string {
-    return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue
-}
+// function getDisplayPathName(pathValue: string): string {
+//     return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue
+// }
 
 export class JuliaKernel {
     private _localDisposables: vscode.Disposable[] = []
@@ -32,13 +32,7 @@ export class JuliaKernel {
     private _msgConnection: MessageConnection;
     private _current_request_id: number = 0;
 
-    private readonly controller: vscode.NotebookController;
-
-    constructor(private extensionPath: string) {
-        this.controller = vscode.notebooks.createNotebookController('julia', 'jupyter-notebook', 'Julia Kernel')
-        this.controller.supportedLanguages = ['julia']
-        this.controller.supportsExecutionOrder = true
-        this.controller.executeHandler = this.executeCells.bind(this)
+    constructor(private extensionPath: string, private controller: vscode.NotebookController, private notebook: vscode.NotebookDocument) {
     }
 
     public dispose() {
@@ -46,12 +40,10 @@ export class JuliaKernel {
         this.stop()
     }
 
-    private async executeCells(cells: vscode.NotebookCell[], notebook: vscode.NotebookDocument, controller: vscode.NotebookController): Promise<void> {
-        await this.start()
-        notebook.getCells().filter(cell => cell.kind === vscode.NotebookCellKind.Code).forEach(cell => this.executeCell(cell, notebook))
-    }
     private readonly cellExecutions = new WeakMap<vscode.NotebookCell, vscode.NotebookCellExecution>();
-    private async executeCell(cell: vscode.NotebookCell, notebook: vscode.NotebookDocument): Promise<void> {
+
+    public async executeCell(cell: vscode.NotebookCell): Promise<void> {
+        await this.start()
         const executionOrder = ++this._current_request_id
 
         const execution = this.controller.createNotebookCellExecution(cell)
@@ -105,7 +97,7 @@ export class JuliaKernel {
                     const request = this.executionRequests.get(current_request_id)
                     const execution = this.cellExecutions.get(request.execution.cell)
                     if (execution) {
-                        execution.appendOutput(new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(data, mimetype)]))
+                        execution.appendOutput(new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(Buffer.from(data), mimetype)]))
                     }
                 })
 
@@ -140,11 +132,11 @@ export class JuliaKernel {
 
             await serverListeningPromise.wait()
 
-            const jlexepath = this.executablePath
+            const jlexepath = await getJuliaExePath()
             const pkgenvpath = await getAbsEnvPath()
 
             this._terminal = vscode.window.createTerminal({
-                name: `Julia Notebook Kernel ${path.basename(this.document.uri.fsPath)}`,
+                name: `Julia Notebook Kernel ${path.basename(this.notebook.uri.fsPath)}`,
                 shellPath: jlexepath,
                 shellArgs: [
                     '--color=yes',
