@@ -61,7 +61,6 @@
         "workspaceContains:test/runtests.jl",
         "workspaceContains:benchmark/benchmarks.jl",
         "workspaceContains:docs/make.jl",
-        "onNotebook:julianotebook",
         "onNotebook:jupyter-notebook"
     ],
     "main": "./dist/extension",
