@@ -1,11 +1,11 @@
 import { Subject } from 'await-notify'
 import * as net from 'net'
+import { homedir } from 'os'
 import * as path from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { createMessageConnection, MessageConnection, NotificationType, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { getAbsEnvPath } from '../jlpkgenv'
-import { getJuliaExePath } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
 
@@ -20,6 +20,9 @@ const notifyTypeRunCell = new NotificationType<{ current_request_id: number, cod
 const notifyTypeRunCellSucceeded = new NotificationType<{ request_id: number }>('runcellsucceeded')
 const notifyTypeRunCellFailed = new NotificationType<{ request_id: number, output: {ename: string, evalue: string, traceback: string}}>('runcellfailed')
 
+function getDisplayPathName(pathValue: string): string {
+    return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue
+}
 
 export class JuliaKernel {
     private _localDisposables: vscode.Disposable[] = []
@@ -65,6 +68,7 @@ export class JuliaKernel {
 
     private async start() {
         if (!this._terminal) {
+            this._current_request_id = 0
             const connectedPromise = new Subject()
             const serverListeningPromise = new Subject()
 
@@ -136,11 +140,11 @@ export class JuliaKernel {
 
             await serverListeningPromise.wait()
 
-            const jlexepath = await getJuliaExePath()
+            const jlexepath = this.executablePath
             const pkgenvpath = await getAbsEnvPath()
 
             this._terminal = vscode.window.createTerminal({
-                name: 'Julia Notebook Kernel',
+                name: `Julia Notebook Kernel ${path.basename(this.document.uri.fsPath)}`,
                 shellPath: jlexepath,
                 shellArgs: [
                     '--color=yes',
