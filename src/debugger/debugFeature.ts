@@ -6,7 +6,7 @@ import { JuliaDebugSession } from './juliaDebug'
 
 export class JuliaDebugFeature {
     constructor(private context: vscode.ExtensionContext, compiledProvider) {
-        const provider = new JuliaDebugConfigurationProvider()
+        const provider = new JuliaDebugConfigurationProvider(compiledProvider)
         const factory = new InlineDebugAdapterFactory(this.context)
 
         compiledProvider.onDidChangeTreeData(() => {
@@ -85,6 +85,11 @@ function getActiveUri(
 }
 
 export class JuliaDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
+    compiledProvider: any
+
+    constructor(compiledProvider) {
+        this.compiledProvider = compiledProvider
+    }
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
         config: vscode.DebugConfiguration,
@@ -112,6 +117,14 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
 
         if (!config.stopOnEntry) {
             config.stopOnEntry = false
+        }
+
+        if (!config.compiledModulesOrFunctions && this.compiledProvider) {
+            config.compiledModulesOrFunctions = this.compiledProvider.getCompiledItems()
+        }
+
+        if (!config.compiledMode && this.compiledProvider) {
+            config.compiledMode = this.compiledProvider.compiledMode
         }
 
         if (!config.cwd && config.request !== 'attach') {
