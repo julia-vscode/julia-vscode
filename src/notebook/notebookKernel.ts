@@ -15,7 +15,7 @@ interface ExecutionRequest {
     execution: vscode.NotebookCellExecution
 }
 
-const notifyTypeDisplay = new NotificationType<{ mimetype: string, current_request_id: number, data: string }>('display')
+const notifyTypeDisplay = new NotificationType<{ mimetype: string, current_request_id: number, data: string }>('notebook/display')
 const notifyTypeStreamoutput = new NotificationType<{ name: string, current_request_id: number, data: string }>('streamoutput')
 const notifyTypeRunCell = new NotificationType<{ current_request_id: number, code: string }>('notebook/runcell')
 const notifyTypeRunCellSucceeded = new NotificationType<{ request_id: number }>('runcellsucceeded')
