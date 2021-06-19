@@ -13,6 +13,7 @@ import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
 import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
+import { WorkspaceFeature } from './interactive/workspace'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
 import { JuliaNotebookFeature } from './notebook/notebookFeature'
@@ -71,7 +72,9 @@ export async function activate(context: vscode.ExtensionContext) {
         openpackagedirectory.activate(context)
         jlpkgenv.activate(context)
 
-        context.subscriptions.push(new JuliaNotebookFeature(context))
+        const workspaceFeature = new WorkspaceFeature(context)
+        context.subscriptions.push(workspaceFeature)
+        context.subscriptions.push(new JuliaNotebookFeature(context, workspaceFeature))
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider))
         context.subscriptions.push(new JuliaPackageDevFeature(context))
 

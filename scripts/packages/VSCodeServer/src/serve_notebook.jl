@@ -79,6 +79,9 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
 
         msg_dispatcher = JSONRPC.MsgDispatcher()
         msg_dispatcher[notebook_runcell_notification_type] = notebook_runcell_notification
+        msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
+        msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
+        msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
 
         while true
             msg = JSONRPC.get_next_message(conn_endpoint[])

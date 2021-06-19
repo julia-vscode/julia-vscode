@@ -30,10 +30,16 @@ export class JuliaKernel {
 
     private executionRequests = new Map<number, ExecutionRequest>();
     private _terminal: vscode.Terminal;
-    private _msgConnection: MessageConnection;
+    public _msgConnection: MessageConnection;
     private _current_request_id: number = 0;
 
-    constructor(private extensionPath: string, private controller: vscode.NotebookController, private notebook: vscode.NotebookDocument) {
+    private _onCellRunFinished = new vscode.EventEmitter<void>()
+    public onCellRunFinished = this._onCellRunFinished.event
+
+    private _onConnected = new vscode.EventEmitter<void>()
+    public onConnected = this._onConnected.event
+
+    constructor(private extensionPath: string, private controller: vscode.NotebookController, public notebook: vscode.NotebookDocument) {
     }
 
     public dispose() {
@@ -81,6 +87,7 @@ export class JuliaKernel {
                     if (execution) {
                         execution.end(true, runEndTime)
                     }
+                    this._onCellRunFinished.fire()
                 })
 
                 this._msgConnection.onNotification(notifyTypeRunCellFailed, ({ request_id, output }) => {
@@ -92,6 +99,7 @@ export class JuliaKernel {
                         execution.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error({ message: output.evalue, name: output.ename, stack: output.traceback })]))
                         execution.end(false, runEndTime)
                     }
+                    this._onCellRunFinished.fire()
                 })
 
                 this._msgConnection.onNotification(notifyTypeDisplay, ({ mimetype, current_request_id, data }) => {
@@ -123,6 +131,8 @@ export class JuliaKernel {
                 })
 
                 this._msgConnection.listen()
+
+                this._onConnected.fire(null)
 
                 connectedPromise.notify()
             })
