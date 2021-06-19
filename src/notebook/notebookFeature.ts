@@ -9,6 +9,11 @@ export class JuliaNotebookFeature {
         this.controller = vscode.notebooks.createNotebookController('julia', 'jupyter-notebook', 'Julia Kernel')
         this.controller.supportedLanguages = ['julia']
         this.controller.supportsExecutionOrder = true
+        this.controller.onDidChangeSelectedNotebooks((e) =>{
+            if (e.selected && e.notebook) {
+                e.notebook.getCells().filter(cell => cell.kind === vscode.NotebookCellKind.Code).map(cell => vscode.languages.setTextDocumentLanguage(cell.document, 'julia'))
+            }
+        })
         this.controller.executeHandler = this.executeCells.bind(this)
     }
 
