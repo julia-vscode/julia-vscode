@@ -1,9 +1,11 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
+import { JuliaKernel } from '../notebook/notebookKernel'
 import { registerCommand } from '../utils'
-import { notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
+import { displayPlot } from './plots'
+import { notifyTypeDisplay, notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
 
-let g_connection: rpc.MessageConnection = null
+// RPC Interface
 
 interface WorkspaceVariable {
     head: string,
@@ -26,76 +28,193 @@ const requestTypeGetLazy = new rpc.RequestType<
     WorkspaceVariable[],
     void>('repl/getlazy')
 
-let g_replVariables: WorkspaceVariable[] = []
+// Different node types
 
-export class REPLTreeDataProvider implements vscode.TreeDataProvider<WorkspaceVariable> {
-    private _onDidChangeTreeData: vscode.EventEmitter<WorkspaceVariable | undefined> = new vscode.EventEmitter<WorkspaceVariable | undefined>();
-    readonly onDidChangeTreeData: vscode.Event<WorkspaceVariable | undefined> = this._onDidChangeTreeData.event;
+abstract class AbstractWorkspaceNode {
+    public abstract getChildren()
+}
+
+abstract class SessionNode extends AbstractWorkspaceNode {
+    public abstract getConnection()
+}
+
+class NotebookNode extends SessionNode {
+    private variablesNodes: VariableNode[]
+
+    constructor(private kernel: JuliaKernel, private treeProvider: REPLTreeDataProvider) {
+        super()
+    }
+
+    public getConnection() {
+        return this.kernel._msgConnection
+    }
+
+    async updateReplVariables() {
+        const variables = await this.kernel._msgConnection.sendRequest(requestTypeGetVariables, undefined)
+        this.variablesNodes = variables.map(i => new VariableNode(this, i))
+
+        this.treeProvider.refresh()
+    }
+
+    public async getChildren() {
+        return this.variablesNodes
+    }
+
+    public getTitle() {
+        return this.kernel.notebook.uri.fsPath.toString()
+    }
+}
+
+class REPLNode extends SessionNode {
+    private variablesNodes: VariableNode[]
+
+    constructor(public connection: rpc.MessageConnection, private treeProvider: REPLTreeDataProvider) {
+        super()
+
+        onFinishEval(this.updateReplVariables.bind(this))
+
+
+        this.updateReplVariables()
+    }
+
+    public getConnection() {
+        return this.connection
+    }
+
+    async updateReplVariables() {
+        const variables = await this.connection.sendRequest(requestTypeGetVariables, undefined)
+        this.variablesNodes = variables.map(i => new VariableNode(this, i))
+
+        this.treeProvider.refresh()
+    }
+
+    public async getChildren() {
+        return this.variablesNodes
+    }
+}
+
+class VariableNode extends AbstractWorkspaceNode {
+    constructor(private parentREPL: SessionNode, public workspaceVariable: WorkspaceVariable) {
+        super()
+    }
+
+    public async getChildren() {
+        const children = await this.parentREPL.getConnection().sendRequest(requestTypeGetLazy, { id: this.workspaceVariable.id })
+
+        return children.map(i => new VariableNode(this.parentREPL, i))
+    }
+
+    public async showInVSCode() {
+        this.parentREPL.getConnection().sendNotification(notifyTypeReplShowInGrid, { code: this.workspaceVariable.head })
+    }
+}
+
+export class WorkspaceFeature {
+    _REPLTreeDataProvider: REPLTreeDataProvider
+
+    _REPLNode: REPLNode
+    _NotebokNodes: NotebookNode[] = []
+
+    constructor(private context: vscode.ExtensionContext) {
+        this._REPLTreeDataProvider = new REPLTreeDataProvider(this)
+
+        this.context.subscriptions.push(
+            // registries
+            vscode.window.registerTreeDataProvider('REPLVariables', this._REPLTreeDataProvider),
+            // listeners
+            onInit(this.openREPL.bind(this)),
+            onExit(this.closeREPL.bind(this)),
+            // commands
+            registerCommand('language-julia.showInVSCode', this.showInVSCode.bind(this)),
+        )
+    }
+
+    private openREPL(connection) {
+        this._REPLNode = new REPLNode(connection, this._REPLTreeDataProvider)
+    }
+
+    private closeREPL(e) {
+        this._REPLNode = null
+        this._REPLTreeDataProvider.refresh()
+    }
+
+    async showInVSCode(node: VariableNode) {
+        await node.showInVSCode()
+    }
+
+    public dispose() {
+        // this.kernels.dispose()
+    }
+
+    public async addNotebookKernel(kernel: JuliaKernel) {
+        const node = new NotebookNode(kernel, this._REPLTreeDataProvider)
+        this._NotebokNodes.push(node)
+        kernel.onCellRunFinished(e => node.updateReplVariables())
+        kernel.onConnected(e => {
+            kernel._msgConnection.onNotification(notifyTypeDisplay, displayPlot)
+            node.updateReplVariables()
+        })
+
+    }
+
+    public removeNotebookKernel(kernel: JuliaKernel) {
+    }
+}
+
+export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWorkspaceNode> {
+    private _onDidChangeTreeData: vscode.EventEmitter<AbstractWorkspaceNode | undefined> = new vscode.EventEmitter<AbstractWorkspaceNode | undefined>();
+    readonly onDidChangeTreeData: vscode.Event<AbstractWorkspaceNode | undefined> = this._onDidChangeTreeData.event;
+
+    constructor(private workspaceFeautre: WorkspaceFeature) {
+
+    }
 
     refresh(): void {
         this._onDidChangeTreeData.fire(undefined)
     }
 
-    async getChildren(node?: WorkspaceVariable) {
+    async getChildren(node?: AbstractWorkspaceNode) {
         if (node) {
-            const children = await g_connection.sendRequest(requestTypeGetLazy, { id: node.id })
-
-            const out: WorkspaceVariable[] = []
-
-            for (const c of children) {
-                out.push(c)
-            }
-
-            return out
+            return await node.getChildren()
         }
         else {
-            return g_replVariables
+            if (this.workspaceFeautre._REPLNode) {
+                return [this.workspaceFeautre._REPLNode, ...this.workspaceFeautre._NotebokNodes]
+            }
+            else {
+                return [...this.workspaceFeautre._NotebokNodes]
+            }
         }
     }
 
-    getTreeItem(node: WorkspaceVariable): vscode.TreeItem {
-        const treeItem = new vscode.TreeItem(node.head)
-        treeItem.description = node.value
-        treeItem.tooltip = node.type
-        treeItem.contextValue = node.canshow ? 'globalvariable' : ''
-        treeItem.collapsibleState = node.haschildren ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
-        if (node.icon && node.icon.length > 0) {
-            treeItem.iconPath = new vscode.ThemeIcon(node.icon)
+    getTreeItem(node: AbstractWorkspaceNode): vscode.TreeItem {
+        if (node instanceof VariableNode) {
+            const treeItem = new vscode.TreeItem(node.workspaceVariable.head)
+            treeItem.description = node.workspaceVariable.value
+            treeItem.tooltip = node.workspaceVariable.type
+            treeItem.contextValue = node.workspaceVariable.canshow ? 'globalvariable' : ''
+            treeItem.collapsibleState = node.workspaceVariable.haschildren ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
+            if (node.workspaceVariable.icon && node.workspaceVariable.icon.length > 0) {
+                treeItem.iconPath = new vscode.ThemeIcon(node.workspaceVariable.icon)
+            }
+            return treeItem
         }
-        return treeItem
+        else if (node instanceof REPLNode) {
+            const treeItem = new vscode.TreeItem('Julia REPL')
+            treeItem.description = ''
+            treeItem.tooltip = ''
+            treeItem.contextValue = ''
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
+            return treeItem
+        }
+        else if (node instanceof NotebookNode) {
+            const treeItem = new vscode.TreeItem('Julia Notebook kernel')
+            treeItem.description = node.getTitle()
+            treeItem.tooltip = node.getTitle()
+            treeItem.contextValue = ''
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed
+            return treeItem
+        }
     }
-}
 
-let g_REPLTreeDataProvider: REPLTreeDataProvider = null
-
-async function updateReplVariables() {
-    g_replVariables = await g_connection.sendRequest(requestTypeGetVariables, undefined)
-
-    g_REPLTreeDataProvider.refresh()
-}
-
-async function showInVSCode(node: WorkspaceVariable) {
-    g_connection.sendNotification(notifyTypeReplShowInGrid, { code: node.head })
-}
-
-export function activate(context: vscode.ExtensionContext) {
-    g_REPLTreeDataProvider = new REPLTreeDataProvider()
-    context.subscriptions.push(
-        // registries
-        vscode.window.registerTreeDataProvider('REPLVariables', g_REPLTreeDataProvider),
-        // listeners
-        onInit(connection => {
-            g_connection = connection
-            updateReplVariables()
-        }),
-        onFinishEval(_ => updateReplVariables()),
-        onExit(e => clearVariables()),
-        // commands
-        registerCommand('language-julia.showInVSCode', showInVSCode),
-    )
-}
-
-export function clearVariables() {
-    g_replVariables = []
-    g_REPLTreeDataProvider.refresh()
 }
