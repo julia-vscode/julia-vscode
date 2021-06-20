@@ -1061,6 +1061,11 @@
                     "type": "webview",
                     "id": "julia-plot-navigator",
                     "name": "Plot Navigator"
+                },
+                {
+                    "type": "tree",
+                    "id": "julia-doctoc",
+                    "name": "Documentation TOC"
                 }
             ],
             "debug": [
@@ -1177,19 +1182,23 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
+        "@iarna/toml": "^2.2.5",
         "@traptitech/markdown-it-katex": "^3.4.3",
         "applicationinsights": "^2.1.2",
         "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "child-process-promise": "^v2.2.1",
+        "download": "^8.0.0",
         "markdown-it": "^12.0.6",
         "markdown-it-footnote": "^3.0.3",
         "promised-temp": "^v0.1.0",
+        "tar": "^6.1.0",
         "uuidv4": "^6.2.10",
         "vscode-debugadapter": "^1.47.0",
         "vscode-jsonrpc": "^6.0.0",
         "vscode-languageclient": "^7.0.0",
+        "vscode-uri": "^3.0.2",
         "which": "^2.0.2"
     },
     "devDependencies": {
@@ -1200,8 +1209,8 @@
         "@types/node": "^14.0.0",
         "@types/semver": "^7.3.6",
         "@types/vscode": "^1.57.0",
+        "@types/tar": "^4.0.4",
         "@typescript-eslint/parser": "^4.27.0",
-        "download": "^6.2.5",
         "eslint": "^7.29.0",
         "mocha": "^8.4.0",
         "semver": "^7.3.5",

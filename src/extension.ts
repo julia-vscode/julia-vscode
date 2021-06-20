@@ -10,6 +10,7 @@ import * as vscode from 'vscode'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient/node'
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
+import { DocTocFeature } from './docbrowser/doctoc'
 import * as documentation from './docbrowser/documentation'
 import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
@@ -72,6 +73,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider))
         context.subscriptions.push(new JuliaPackageDevFeature(context))
+        const docTocFeature = new DocTocFeature(context)
+        context.subscriptions.push(docTocFeature)
+        await docTocFeature.init()
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
