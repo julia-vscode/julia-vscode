@@ -172,11 +172,14 @@ export class WorkspaceFeature {
             kernel._msgConnection.onNotification(notifyTypeDisplay, displayPlot)
             node.updateReplVariables()
         })
-
+        kernel.onStopped(e => {
+            const ind = this._NotebokNodes.indexOf(node)
+            this._NotebokNodes.splice(ind, 1)
+            this._REPLTreeDataProvider.refresh()
+        })
+        this._REPLTreeDataProvider.refresh()
     }
 
-    public removeNotebookKernel(kernel: JuliaKernel) {
-    }
 }
 
 export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWorkspaceNode> {
@@ -221,7 +224,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
             const treeItem = new vscode.TreeItem('Julia REPL')
             treeItem.description = ''
             treeItem.tooltip = ''
-            treeItem.contextValue = 'juliakernel'
+            treeItem.contextValue = ''
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
         }
@@ -230,7 +233,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
             treeItem.description = node.getTitle()
             treeItem.tooltip = node.getTitle()
             treeItem.contextValue = 'juliakernel'
-            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
         }
     }

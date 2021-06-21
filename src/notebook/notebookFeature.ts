@@ -9,12 +9,15 @@ export class JuliaNotebookFeature {
     private readonly _controllers: vscode.NotebookController[] = []
     private readonly _juliaVersions = new Map<string, JuliaExecutable>()
     private readonly kernels: Map<vscode.NotebookDocument, JuliaKernel> = new Map<vscode.NotebookDocument, JuliaKernel>()
+    private _outputChannel: vscode.OutputChannel
 
     constructor(private context: vscode.ExtensionContext, private workspaceFeature: WorkspaceFeature) {
         this.init()
     }
 
     private async init() {
+        this._outputChannel = vscode.window.createOutputChannel('Julia Notebook Kernels')
+
         const juliaVersions = await getJuliaExePaths()
 
         // Find the highest installed version per minor version
@@ -54,9 +57,15 @@ export class JuliaNotebookFeature {
     private async executeCells(cells: vscode.NotebookCell[], notebook: vscode.NotebookDocument, controller: vscode.NotebookController): Promise<void> {
         // First check whether we already have a kernel running for the current notebook document
         if (!this.kernels.has(notebook)) {
-            const kernel = new JuliaKernel(this.context.extensionPath, controller, notebook, this._juliaVersions.get(controller.id))
+            const kernel = new JuliaKernel(this.context.extensionPath, controller, notebook, this._juliaVersions.get(controller.id), this._outputChannel, this)
             await this.workspaceFeature.addNotebookKernel(kernel)
             this.kernels.set(notebook, kernel)
+
+            kernel.onStopped(e => {
+                if (this.kernels.get(notebook) === kernel) {
+                    this.kernels.delete(notebook)
+                }
+            })
         }
 
         const currentKernel = this.kernels.get(notebook)
@@ -64,11 +73,25 @@ export class JuliaNotebookFeature {
         for (const cell of cells) {
             await currentKernel.queueCell(cell)
         }
+    }
 
-        currentKernel.start()
+    public async restart(kernel: JuliaKernel) {
+        const newKernel = new JuliaKernel(this.context.extensionPath, kernel.controller, kernel.notebook, kernel.juliaExecutable, this._outputChannel, this)
+        kernel.onStopped(e => {
+            if (this.kernels.get(newKernel.notebook) === newKernel) {
+                this.kernels.delete(newKernel.notebook)
+            }
+        })
+
+        await kernel.stop()
+
+        await this.workspaceFeature.addNotebookKernel(newKernel)
+        this.kernels.set(kernel.notebook, newKernel)
     }
 
     public dispose() {
-        // this.kernels.dispose()
+        this.kernels.forEach(i => i.dispose())
+        this._controllers.forEach(i => i.dispose())
+        this._outputChannel.dispose()
     }
 }
