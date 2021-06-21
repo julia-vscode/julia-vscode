@@ -12,9 +12,9 @@ const read_stderr = Ref{Base.PipeEndpoint}()
 const capture_stdout = true
 const capture_stderr = true
 
-const notebook_runcell_notification_type = JSONRPC.NotificationType("notebook/runcell", NamedTuple{(:code, :current_request_id),Tuple{String,Int}})
+const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NamedTuple{(:code, :current_request_id),Tuple{String,Int}}, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
-function notebook_runcell_notification(conn, params::NamedTuple{(:code, :current_request_id),Tuple{String,Int}})
+function notebook_runcell_request(conn, params::NamedTuple{(:code, :current_request_id),Tuple{String,Int}})
     current_request_id[] = params.current_request_id
     decoded_msg = params.code
 
@@ -29,7 +29,7 @@ function notebook_runcell_notification(conn, params::NamedTuple{(:code, :current
 
         flush_all()
 
-        JSONRPC.send_notification(conn, "runcellsucceeded", Dict{String,Any}("request_id" => current_request_id[]))
+        return (success = true, error = (message = "", name = "", stack = ""))
     catch err
         bt = catch_backtrace()
 
@@ -40,9 +40,9 @@ function notebook_runcell_notification(conn, params::NamedTuple{(:code, :current
 
             error_type = string(typeof(inner_err))
             error_message_str = sprint(showerror, inner_err)
-            traceback = split(sprint(Base.show_backtrace, bt), '\n')
+            traceback = sprint(Base.show_backtrace, bt)
 
-            JSONRPC.send_notification(conn, "runcellfailed", Dict{String,Any}("request_id" => current_request_id[], "output" => Dict("ename" => error_type, "evalue" => error_message_str, "traceback" => traceback)))
+            return (success = false, error = (message = error_message_str, name = error_type, stack = traceback))
         else
             error("Not clear what this means, but we should probably send a crash report.")
         end
@@ -78,7 +78,7 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
         @info "Julia Kernel started..."
 
         msg_dispatcher = JSONRPC.MsgDispatcher()
-        msg_dispatcher[notebook_runcell_notification_type] = notebook_runcell_notification
+        msg_dispatcher[notebook_runcell_request_type] = notebook_runcell_request
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification

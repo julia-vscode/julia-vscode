@@ -4,22 +4,15 @@ import { homedir } from 'os'
 import * as path from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
-import { createMessageConnection, MessageConnection, NotificationType, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
+import { createMessageConnection, MessageConnection, NotificationType, RequestType, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { getAbsEnvPath } from '../jlpkgenv'
 import { getJuliaExePath } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
 
-interface ExecutionRequest {
-    executionOrder: number
-    execution: vscode.NotebookCellExecution
-}
-
 const notifyTypeDisplay = new NotificationType<{ mimetype: string, current_request_id: number, data: string }>('notebook/display')
 const notifyTypeStreamoutput = new NotificationType<{ name: string, current_request_id: number, data: string }>('streamoutput')
-const notifyTypeRunCell = new NotificationType<{ current_request_id: number, code: string }>('notebook/runcell')
-const notifyTypeRunCellSucceeded = new NotificationType<{ request_id: number }>('runcellsucceeded')
-const notifyTypeRunCellFailed = new NotificationType<{ request_id: number, output: { ename: string, evalue: string, traceback: string } }>('runcellfailed')
+const requestTypeRunCell = new RequestType<{ current_request_id: number, code: string }, { success: boolean, error: { message: string, name: string, stack: string } }, void>('notebook/runcell')
 
 function getDisplayPathName(pathValue: string): string {
     return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue
@@ -28,7 +21,10 @@ function getDisplayPathName(pathValue: string): string {
 export class JuliaKernel {
     private _localDisposables: vscode.Disposable[] = []
 
-    private executionRequests = new Map<number, ExecutionRequest>();
+    private _scheduledExecutionRequests: vscode.NotebookCellExecution[] = []
+    private _currentExecutionRequest: vscode.NotebookCellExecution = null
+    private _processExecutionRequests = new Subject()
+
     private _terminal: vscode.Terminal;
     public _msgConnection: MessageConnection;
     private _current_request_id: number = 0;
@@ -47,22 +43,51 @@ export class JuliaKernel {
         this.stop()
     }
 
-    private readonly cellExecutions = new WeakMap<vscode.NotebookCell, vscode.NotebookCellExecution>();
-
     public async executeCell(cell: vscode.NotebookCell): Promise<void> {
         await this.start()
+
         const executionOrder = ++this._current_request_id
 
         const execution = this.controller.createNotebookCellExecution(cell)
-        this.executionRequests.set(executionOrder, { executionOrder: executionOrder, execution })
-        this.cellExecutions.set(cell, execution)
-
-        const runStartTime = Date.now()
-        execution.start(runStartTime)
-        execution.clearOutput()
         execution.executionOrder = executionOrder
 
-        this._msgConnection.sendNotification(notifyTypeRunCell, { current_request_id: this._current_request_id, code: cell.document.getText() })
+        // TODO For some reason this doesn't work here
+        // await execution.clearOutput()
+
+        this._scheduledExecutionRequests.push(execution)
+
+        this._processExecutionRequests.notify()
+    }
+
+    private async processExecutions() {
+        while (true) {
+            await this._processExecutionRequests.wait()
+
+            while (this._scheduledExecutionRequests.length > 0) {
+                this._currentExecutionRequest = this._scheduledExecutionRequests.shift()
+
+                const runStartTime = Date.now()
+                this._currentExecutionRequest.start(runStartTime)
+
+                // TODO Ideally we would clear output at scheduling already, but for now do it here
+                await this._currentExecutionRequest.clearOutput()
+
+                const result = await this._msgConnection.sendRequest(requestTypeRunCell, { current_request_id: this._currentExecutionRequest.executionOrder, code: this._currentExecutionRequest.cell.document.getText() })
+
+                if (!result.success) {
+                    this._currentExecutionRequest.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(result.error)]))
+                }
+
+                const runEndTime = Date.now()
+                this._currentExecutionRequest.end(result.success, runEndTime)
+
+
+
+                this._currentExecutionRequest = null
+
+                this._onCellRunFinished.fire()
+            }
+        }
     }
 
     private async start() {
@@ -79,32 +104,20 @@ export class JuliaKernel {
                     new StreamMessageWriter(socket)
                 )
 
-                this._msgConnection.onNotification(notifyTypeRunCellSucceeded, ({ request_id }) => {
-                    const runEndTime = Date.now()
+                // this._msgConnection.onNotification(notifyTypeRunCellFailed, ({ request_id, output }) => {
+                //     const runEndTime = Date.now()
 
-                    const request = this.executionRequests.get(request_id)
-                    const execution = this.cellExecutions.get(request.execution.cell)
-                    if (execution) {
-                        execution.end(true, runEndTime)
-                    }
-                    this._onCellRunFinished.fire()
-                })
-
-                this._msgConnection.onNotification(notifyTypeRunCellFailed, ({ request_id, output }) => {
-                    const runEndTime = Date.now()
-
-                    const request = this.executionRequests.get(request_id)
-                    const execution = this.cellExecutions.get(request.execution.cell)
-                    if (execution) {
-                        execution.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error({ message: output.evalue, name: output.ename, stack: output.traceback })]))
-                        execution.end(false, runEndTime)
-                    }
-                    this._onCellRunFinished.fire()
-                })
+                //     const request = this.executionRequests.get(request_id)
+                //     const execution = this.cellExecutions.get(request.execution.cell)
+                //     if (execution) {
+                //
+                //         execution.end(false, runEndTime)
+                //     }
+                //     this._onCellRunFinished.fire()
+                // })
 
                 this._msgConnection.onNotification(notifyTypeDisplay, ({ mimetype, current_request_id, data }) => {
-                    const request = this.executionRequests.get(current_request_id)
-                    const execution = this.cellExecutions.get(request.execution.cell)
+                    const execution = this._currentExecutionRequest
                     if (execution) {
                         execution.appendOutput(new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(Buffer.from(data), mimetype)]))
                     }
@@ -112,15 +125,13 @@ export class JuliaKernel {
 
                 this._msgConnection.onNotification(notifyTypeStreamoutput, ({ name, current_request_id, data }) => {
                     if (name === 'stdout') {
-                        const request = this.executionRequests.get(current_request_id)
-                        const execution = this.cellExecutions.get(request.execution.cell)
+                        const execution = this._currentExecutionRequest
                         if (execution) {
                             execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stdout(data)])])
                         }
                     }
                     else if (name === 'stderr') {
-                        const request = this.executionRequests.get(current_request_id)
-                        const execution = this.cellExecutions.get(request.execution.cell)
+                        const execution = this._currentExecutionRequest
                         if (execution) {
                             execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stdout(data)])])
                         }
@@ -169,6 +180,10 @@ export class JuliaKernel {
             }, this, asdf)
 
             await connectedPromise.wait()
+
+            this.processExecutions()
+
+            console.log('Hello')
         }
     }
 
