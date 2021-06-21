@@ -29,7 +29,9 @@ export class JuliaNotebookFeature {
 
         const currentKernel = this.kernels.get(notebook)
 
-        cells.forEach(cell => currentKernel.executeCell(cell))
+        for (const cell of cells) {
+            await currentKernel.executeCell(cell)
+        }
     }
 
     public dispose() {
