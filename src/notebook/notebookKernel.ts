@@ -7,7 +7,7 @@ import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { createMessageConnection, MessageConnection, NotificationType, RequestType, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { getAbsEnvPath } from '../jlpkgenv'
-import { getJuliaExePath } from '../juliaexepath'
+import { JuliaExecutable } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
 
@@ -38,7 +38,7 @@ export class JuliaKernel {
     private _onConnected = new vscode.EventEmitter<void>()
     public onConnected = this._onConnected.event
 
-    constructor(private extensionPath: string, private controller: vscode.NotebookController, public notebook: vscode.NotebookDocument) {
+    constructor(private extensionPath: string, private controller: vscode.NotebookController, public notebook: vscode.NotebookDocument, private juliaExecutable: JuliaExecutable) {
         this._outputChannel = vscode.window.createOutputChannel(`Julia Notebook Kernel ${getDisplayPathName(this.notebook.uri.fsPath)}`)
     }
 
@@ -156,11 +156,10 @@ export class JuliaKernel {
 
             await serverListeningPromise.wait()
 
-            const jlexepath = await getJuliaExePath()
             const pkgenvpath = await getAbsEnvPath()
 
             this._kernelProcess = spawn(
-                jlexepath,
+                this.juliaExecutable.path,
                 [
                     '--color=yes',
                     `--project=${pkgenvpath}`,

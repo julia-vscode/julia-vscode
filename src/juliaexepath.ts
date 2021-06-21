@@ -4,6 +4,7 @@ import * as child_process from 'child_process'
 import * as os from 'os'
 import * as path from 'path'
 import * as process from 'process'
+import { valid } from 'semver'
 import * as vscode from 'vscode'
 import * as which from 'which'
 import { onDidChangeConfig } from './extension'
@@ -12,7 +13,7 @@ import { setCurrentJuliaVersion, traceEvent } from './telemetry'
 let actualJuliaExePath: JuliaExecutable = null
 
 async function setNewJuliaExePath(newPath: string) {
-    actualJuliaExePath = { path: newPath, version: '' }
+    actualJuliaExePath = new JuliaExecutable('', newPath)
 
     const env = {
         JULIA_LANGUAGESERVER: '1'
@@ -81,9 +82,16 @@ function getSearchPaths(): string[] {
     }
     return pathsToSearch
 }
-type JuliaExecutable = { version: string; path: string }
+export class JuliaExecutable {
+    constructor(public version: string, public path: string) {
+    }
+
+    public getVersion() {
+        return valid(this.version)
+    }
+}
 let cachedJuliaExePaths: Promise<JuliaExecutable[]> | undefined
-export async function getJuliaExePaths(): Promise<{ version: string; path: string }[]> {
+export async function getJuliaExePaths(): Promise<JuliaExecutable[]> {
     await getJuliaExePath()
     // If user has changed the julia executable, fetch all over again, possible user installed or changed something.
     if (Array.isArray(cachedJuliaExePaths) && actualJuliaExePath.path && actualJuliaExePath.version) {
@@ -110,7 +118,7 @@ export async function getJuliaExePaths(): Promise<{ version: string; path: strin
                     if (actualJuliaExePath.path === filePath && !actualJuliaExePath.version) {
                         actualJuliaExePath.version = version
                     }
-                    executables.push({ version, path: path.join(bindir, path.basename(filePath)) })
+                    executables.push(new JuliaExecutable(version, path.join(bindir, path.basename(filePath))))
                 } catch (ex) {
                     return
                 }
