@@ -318,6 +318,16 @@
                 "command": "language-julia.disable-compiled-mode",
                 "title": "Julia: Disable Compiled Mode for the debugger",
                 "icon": "$(debug-breakpoint-unverified)"
+            },
+            {
+                "command": "language-julia.restartKernel",
+                "title": "Julia: Restart kernel",
+                "icon": "$(debug-restart)"
+            },
+            {
+                "command": "language-julia.stopKernel",
+                "title": "Julia: Stop kernel",
+                "icon": "$(debug-stop)"
             }
         ],
         "menus": {
@@ -437,6 +447,16 @@
                 {
                     "command": "language-julia.showInVSCode",
                     "when": "view == REPLVariables && viewItem == globalvariable",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.stopKernel",
+                    "when": "view == REPLVariables && viewItem ==juliakernel",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.restartKernel",
+                    "when": "view == REPLVariables && viewItem ==juliakernel",
                     "group": "inline"
                 },
                 {

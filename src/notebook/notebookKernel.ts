@@ -1,4 +1,5 @@
 import { Subject } from 'await-notify'
+import { ChildProcess, spawn } from 'child_process'
 import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
@@ -25,9 +26,11 @@ export class JuliaKernel {
     private _currentExecutionRequest: vscode.NotebookCellExecution = null
     private _processExecutionRequests = new Subject()
 
-    private _terminal: vscode.Terminal;
+    private _kernelProcess: ChildProcess
     public _msgConnection: MessageConnection;
     private _current_request_id: number = 0;
+
+    private _outputChannel: vscode.OutputChannel
 
     private _onCellRunFinished = new vscode.EventEmitter<void>()
     public onCellRunFinished = this._onCellRunFinished.event
@@ -36,6 +39,7 @@ export class JuliaKernel {
     public onConnected = this._onConnected.event
 
     constructor(private extensionPath: string, private controller: vscode.NotebookController, public notebook: vscode.NotebookDocument) {
+        this._outputChannel = vscode.window.createOutputChannel(`Julia Notebook Kernel ${getDisplayPathName(this.notebook.uri.fsPath)}`)
     }
 
     public dispose() {
@@ -43,9 +47,7 @@ export class JuliaKernel {
         this.stop()
     }
 
-    public async executeCell(cell: vscode.NotebookCell): Promise<void> {
-        await this.start()
-
+    public async queueCell(cell: vscode.NotebookCell): Promise<void> {
         const executionOrder = ++this._current_request_id
 
         const execution = this.controller.createNotebookCellExecution(cell)
@@ -90,8 +92,8 @@ export class JuliaKernel {
         }
     }
 
-    private async start() {
-        if (!this._terminal) {
+    public async start() {
+        if (!this._kernelProcess) {
             this._current_request_id = 0
             const connectedPromise = new Subject()
             const serverListeningPromise = new Subject()
@@ -157,10 +159,9 @@ export class JuliaKernel {
             const jlexepath = await getJuliaExePath()
             const pkgenvpath = await getAbsEnvPath()
 
-            this._terminal = vscode.window.createTerminal({
-                name: `Julia Notebook Kernel ${getDisplayPathName(this.notebook.uri.fsPath)}`,
-                shellPath: jlexepath,
-                shellArgs: [
+            this._kernelProcess = spawn(
+                jlexepath,
+                [
                     '--color=yes',
                     `--project=${pkgenvpath}`,
                     '--startup-file=no',
@@ -169,15 +170,20 @@ export class JuliaKernel {
                     pn,
                     getCrashReportingPipename()
                 ]
+            )
+
+            const outputChannel = this._outputChannel
+
+            this._kernelProcess.stdout.on('data', function (data) {
+                outputChannel.append(String(data))
             })
-            this._terminal.show(false)
-            const asdf: Array<vscode.Disposable> = []
-            vscode.window.onDidCloseTerminal((terminal) => {
-                if (terminal === this._terminal) {
-                    asdf[0].dispose()
-                    this._terminal = undefined
-                }
-            }, this, asdf)
+            this._kernelProcess.stderr.on('data', function (data) {
+                outputChannel.append(String(data))
+            })
+            this._kernelProcess.on('close', async function (code) {
+                this._terminal = undefined
+                outputChannel.appendLine('Kernel closed.')
+            })
 
             await connectedPromise.wait()
 
@@ -187,16 +193,16 @@ export class JuliaKernel {
         }
     }
 
-    // private async restart() {
-    //     this.stop()
-    //     await this.start()
-    // }
+    public async restart() {
+        await this.stop()
+        await this.start()
+    }
 
-    private stop() {
+    public async stop() {
 
-        if (this._terminal) {
-            this._terminal.dispose()
-            this._terminal = undefined
+        if (this._kernelProcess) {
+            this._kernelProcess.kill()
+            this._kernelProcess = undefined
         }
     }
 }

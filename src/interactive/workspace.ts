@@ -63,6 +63,14 @@ class NotebookNode extends SessionNode {
     public getTitle() {
         return this.kernel.notebook.uri.fsPath.toString()
     }
+
+    async restart() {
+        await this.kernel.restart()
+    }
+
+    async stop() {
+        await this.kernel.stop()
+    }
 }
 
 class REPLNode extends SessionNode {
@@ -126,6 +134,8 @@ export class WorkspaceFeature {
             onExit(this.closeREPL.bind(this)),
             // commands
             registerCommand('language-julia.showInVSCode', this.showInVSCode.bind(this)),
+            registerCommand('language-julia.stopKernel', this.stopKernel.bind(this)),
+            registerCommand('language-julia.restartKernel', this.restartKernel.bind(this))
         )
     }
 
@@ -140,6 +150,14 @@ export class WorkspaceFeature {
 
     async showInVSCode(node: VariableNode) {
         await node.showInVSCode()
+    }
+
+    async stopKernel(node: NotebookNode) {
+        node.stop()
+    }
+
+    async restartKernel(node: NotebookNode) {
+        node.restart()
     }
 
     public dispose() {
@@ -203,7 +221,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
             const treeItem = new vscode.TreeItem('Julia REPL')
             treeItem.description = ''
             treeItem.tooltip = ''
-            treeItem.contextValue = ''
+            treeItem.contextValue = 'juliakernel'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
         }
@@ -211,7 +229,7 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
             const treeItem = new vscode.TreeItem('Julia Notebook kernel')
             treeItem.description = node.getTitle()
             treeItem.tooltip = node.getTitle()
-            treeItem.contextValue = ''
+            treeItem.contextValue = 'juliakernel'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed
             return treeItem
         }
