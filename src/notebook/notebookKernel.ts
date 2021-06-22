@@ -11,7 +11,7 @@ import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
 
-const notifyTypeDisplay = new NotificationType<{ mimetype: string, data: string }>('notebook/display')
+const notifyTypeDisplay = new NotificationType<{ items: { mimetype: string, data: string }[] }>('notebook/display')
 const notifyTypeStreamoutput = new NotificationType<{ name: string, data: string }>('streamoutput')
 const requestTypeRunCell = new RequestType<{ code: string }, { success: boolean, error: { message: string, name: string, stack: string } }, void>('notebook/runcell')
 
@@ -124,10 +124,17 @@ export class JuliaKernel {
                 new StreamMessageWriter(socket)
             )
 
-            this._msgConnection.onNotification(notifyTypeDisplay, ({ mimetype, data }) => {
+            this._msgConnection.onNotification(notifyTypeDisplay, ({ items }) => {
                 const execution = this._currentExecutionRequest
                 if (execution) {
-                    execution.appendOutput(new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(Buffer.from(data), mimetype)]))
+                    execution.appendOutput(new vscode.NotebookCellOutput(items.map(item => {
+                        if (item.mimetype == 'image/png' || item.mimetype == 'image/jpeg') {
+                            return new vscode.NotebookCellOutputItem(Buffer.from(item.data, 'base64'), item.mimetype)
+                        }
+                        else {
+                            return vscode.NotebookCellOutputItem.text(item.data, item.mimetype)
+                        }
+                    })))
                 }
             })
 

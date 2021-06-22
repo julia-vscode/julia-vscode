@@ -21,7 +21,7 @@ function notebook_runcell_request(conn, params::NamedTuple{(:code,),Tuple{String
         flush_all()
 
         if result !== nothing
-            Base.display(result)
+            Base.invokelatest(Base.display, result)
         end
 
         flush_all()
@@ -41,6 +41,7 @@ function notebook_runcell_request(conn, params::NamedTuple{(:code,),Tuple{String
 
             return (success = false, error = (message = error_message_str, name = error_type, stack = traceback))
         else
+            rethrow(err)
             error("Not clear what this means, but we should probably send a crash report.")
         end
     end
