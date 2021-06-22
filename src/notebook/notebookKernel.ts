@@ -11,9 +11,9 @@ import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
 
-const notifyTypeDisplay = new NotificationType<{ mimetype: string, current_request_id: number, data: string }>('notebook/display')
-const notifyTypeStreamoutput = new NotificationType<{ name: string, current_request_id: number, data: string }>('streamoutput')
-const requestTypeRunCell = new RequestType<{ current_request_id: number, code: string }, { success: boolean, error: { message: string, name: string, stack: string } }, void>('notebook/runcell')
+const notifyTypeDisplay = new NotificationType<{ mimetype: string, data: string }>('notebook/display')
+const notifyTypeStreamoutput = new NotificationType<{ name: string, data: string }>('streamoutput')
+const requestTypeRunCell = new RequestType<{ code: string }, { success: boolean, error: { message: string, name: string, stack: string } }, void>('notebook/runcell')
 
 // function getDisplayPathName(pathValue: string): string {
 //     return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue
@@ -90,7 +90,7 @@ export class JuliaKernel {
                     // TODO Ideally we would clear output at scheduling already, but for now do it here
                     await this._currentExecutionRequest.clearOutput()
 
-                    const result = await this._msgConnection.sendRequest(requestTypeRunCell, { current_request_id: this._currentExecutionRequest.executionOrder, code: this._currentExecutionRequest.cell.document.getText() })
+                    const result = await this._msgConnection.sendRequest(requestTypeRunCell, { code: this._currentExecutionRequest.cell.document.getText() })
 
                     if (!result.success) {
                         this._currentExecutionRequest.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(result.error)]))
@@ -113,7 +113,6 @@ export class JuliaKernel {
     }
 
     private async run(token: CancellationToken) {
-        this._current_request_id = 0
         const connectedPromise = new Subject()
         const serverListeningPromise = new Subject()
 
@@ -125,14 +124,14 @@ export class JuliaKernel {
                 new StreamMessageWriter(socket)
             )
 
-            this._msgConnection.onNotification(notifyTypeDisplay, ({ mimetype, current_request_id, data }) => {
+            this._msgConnection.onNotification(notifyTypeDisplay, ({ mimetype, data }) => {
                 const execution = this._currentExecutionRequest
                 if (execution) {
                     execution.appendOutput(new vscode.NotebookCellOutput([new vscode.NotebookCellOutputItem(Buffer.from(data), mimetype)]))
                 }
             })
 
-            this._msgConnection.onNotification(notifyTypeStreamoutput, ({ name, current_request_id, data }) => {
+            this._msgConnection.onNotification(notifyTypeStreamoutput, ({ name, data }) => {
                 if (name === 'stdout') {
                     const execution = this._currentExecutionRequest
                     if (execution) {

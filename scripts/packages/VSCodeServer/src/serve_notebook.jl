@@ -1,7 +1,5 @@
 const stdio_bytes = Ref(0)
 
-const current_request_id = Ref(0)
-
 const orig_stdin  = Ref{IO}()
 const orig_stdout = Ref{IO}()
 const orig_stderr = Ref{IO}()
@@ -12,10 +10,9 @@ const read_stderr = Ref{Base.PipeEndpoint}()
 const capture_stdout = true
 const capture_stderr = true
 
-const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NamedTuple{(:code, :current_request_id),Tuple{String,Int}}, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
+const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NamedTuple{(:code,),Tuple{String}}, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
-function notebook_runcell_request(conn, params::NamedTuple{(:code, :current_request_id),Tuple{String,Int}})
-    current_request_id[] = params.current_request_id
+function notebook_runcell_request(conn, params::NamedTuple{(:code,),Tuple{String}})
     decoded_msg = params.code
 
     try
