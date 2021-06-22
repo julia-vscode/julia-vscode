@@ -8,6 +8,7 @@ import * as vscode from 'vscode'
 import * as which from 'which'
 import { onDidChangeConfig } from './extension'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
+import { resolvePath } from './utils'
 
 let actualJuliaExePath: string = null
 
@@ -32,7 +33,8 @@ async function setNewJuliaExePath(newPath: string) {
 
 export async function getJuliaExePath() {
     if (actualJuliaExePath === null) {
-        if (getExecutablePath() === null) {
+        const configPath = getExecutablePath()
+        if (configPath === null) {
             const homedir = os.homedir()
             let pathsToSearch = []
             if (process.platform === 'win32') {
@@ -99,12 +101,12 @@ export async function getJuliaExePath() {
         }
         else {
             let fullPath: string | undefined = undefined
-            if (getExecutablePath().includes(path.sep)) {
-                fullPath = getExecutablePath().replace(/^~/, os.homedir())
+            if (configPath.includes(path.sep)) {
+                fullPath = resolvePath(configPath)
             } else {
                 // resolve full path
                 try {
-                    fullPath = await which(getExecutablePath())
+                    fullPath = await which(configPath)
                 }
                 catch (err) {
                     console.debug('which failed to get the julia exe path')
