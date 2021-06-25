@@ -1,14 +1,7 @@
 const stdio_bytes = Ref(0)
 
-const orig_stdin  = Ref{IO}()
-const orig_stdout = Ref{IO}()
-const orig_stderr = Ref{IO}()
-
 const read_stdout = Ref{Base.PipeEndpoint}()
 const read_stderr = Ref{Base.PipeEndpoint}()
-
-const capture_stdout = true
-const capture_stderr = true
 
 const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NamedTuple{(:code,),Tuple{String}}, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
@@ -61,13 +54,13 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
     try
         if capture_stdout
             read_stdout[], = Base.redirect_stdout()
-            redirect_stdout(JuliaNotebookStdio(Base.stdout, "stdout"))
+            redirect_stdout(IJuliaStdio(Base.stdout, "stdout"))
         end
         if capture_stderr
             read_stderr[], = redirect_stderr()
-            redirect_stderr(JuliaNotebookStdio(Base.stderr, "stderr"))
+            redirect_stderr(IJuliaStdio(Base.stderr, "stderr"))
         end
-        redirect_stdin(JuliaNotebookStdio(Base.stdin, "stdin"))
+        redirect_stdin(IJuliaStdio(Base.stdin, "stdin"))
 
         Base.Multimedia.pushdisplay(JuliaNotebookInlineDisplay())
 
