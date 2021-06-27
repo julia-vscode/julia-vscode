@@ -19,7 +19,6 @@ import * as plots from './plots'
 import { showProfileResult, showProfileResultFile } from './profiler'
 import * as results from './results'
 import { Frame, openFile } from './results'
-import * as workspace from './workspace'
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
@@ -235,7 +234,7 @@ interface DebugLaunchParams {
     filename: string
 }
 
-const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
+export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
 const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams>('debugger/enter')
 const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams>('debugger/run')
 const notifyTypeReplStartDebugger = new rpc.NotificationType<{ debugPipename: string }>('repl/startdebugger')
@@ -978,6 +977,5 @@ export function activate(context: vscode.ExtensionContext, compiledProvider) {
 
     results.activate(context)
     plots.activate(context)
-    workspace.activate(context)
     modules.activate(context)
 }

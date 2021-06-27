@@ -6,7 +6,7 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.54.0"
+        "vscode": "^1.57.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -22,7 +22,10 @@
         "Programming Languages",
         "Snippets",
         "Linters",
-        "Debuggers"
+        "Debuggers",
+        "Data Science",
+        "Notebooks",
+        "Machine Learning"
     ],
     "activationEvents": [
         "onDebugInitialConfigurations",
@@ -58,7 +61,8 @@
         "workspaceContains:deps/build.jl",
         "workspaceContains:test/runtests.jl",
         "workspaceContains:benchmark/benchmarks.jl",
-        "workspaceContains:docs/make.jl"
+        "workspaceContains:docs/make.jl",
+        "onNotebook:jupyter-notebook"
     ],
     "main": "./dist/extension",
     "contributes": {
@@ -319,6 +323,16 @@
                 "command": "language-julia.disable-compiled-mode",
                 "title": "Julia: Disable Compiled Mode for the debugger",
                 "icon": "$(debug-breakpoint-unverified)"
+            },
+            {
+                "command": "language-julia.restartKernel",
+                "title": "Julia: Restart kernel",
+                "icon": "$(debug-restart)"
+            },
+            {
+                "command": "language-julia.stopKernel",
+                "title": "Julia: Stop kernel",
+                "icon": "$(debug-stop)"
             }
         ],
         "menus": {
@@ -441,6 +455,16 @@
                     "group": "inline"
                 },
                 {
+                    "command": "language-julia.stopKernel",
+                    "when": "view == REPLVariables && viewItem ==juliakernel",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.restartKernel",
+                    "when": "view == REPLVariables && viewItem ==juliakernel",
+                    "group": "inline"
+                },
+                {
                     "command": "language-julia.switchToInterpreted",
                     "when": "view == debugger-compiled && viewItem =~ /\\bcompiled\\b/",
                     "group": "inline@1"
@@ -515,7 +539,7 @@
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
@@ -530,7 +554,7 @@
             {
                 "command": "language-julia.executeCellAndMove",
                 "key": "shift+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.clearCurrentInlineResult",
@@ -1196,6 +1220,7 @@
         "markdown-it": "^12.0.6",
         "markdown-it-footnote": "^3.0.3",
         "promised-temp": "^v0.1.0",
+        "semver": "^7.3.5",
         "uuidv4": "^6.2.10",
         "vscode-debugadapter": "^1.47.0",
         "vscode-jsonrpc": "^6.0.0",
@@ -1214,7 +1239,6 @@
         "download": "^6.2.5",
         "eslint": "^7.29.0",
         "mocha": "^8.4.0",
-        "semver": "^7.3.5",
         "ts-loader": "^9.2.3",
         "typescript": "^4.3.4",
         "vsce": "^1.93.0",
