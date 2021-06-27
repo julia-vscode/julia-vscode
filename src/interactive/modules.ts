@@ -3,6 +3,7 @@ import * as rpc from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import * as telemetry from '../telemetry'
+import { registerCommand } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import { onExit, onInit } from './repl'
 
@@ -30,7 +31,7 @@ export function activate(context: vscode.ExtensionContext) {
         g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
         updateModuleForSelectionEvent(changeEvent, g_currentGetModuleRequestCancelTokenSource.token)
     }))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.chooseModule', chooseModule))
+    context.subscriptions.push(registerCommand('language-julia.chooseModule', chooseModule))
 
     context.subscriptions.push(onSetLanguageClient(languageClient => {
         g_languageClient = languageClient

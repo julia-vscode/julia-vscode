@@ -1,3 +1,4 @@
+import { realpath } from 'async-file'
 import { exec } from 'child-process-promise'
 import * as child_process from 'child_process'
 import * as os from 'os'
@@ -7,6 +8,7 @@ import * as vscode from 'vscode'
 import * as which from 'which'
 import { onDidChangeConfig } from './extension'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
+import { resolvePath } from './utils'
 
 let actualJuliaExePath: string = null
 
@@ -31,12 +33,14 @@ async function setNewJuliaExePath(newPath: string) {
 
 export async function getJuliaExePath() {
     if (actualJuliaExePath === null) {
-        if (getExecutablePath() === null) {
+        const configPath = getExecutablePath()
+        if (configPath === null) {
             const homedir = os.homedir()
             let pathsToSearch = []
             if (process.platform === 'win32') {
                 pathsToSearch = ['julia.exe',
-                    path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.6.0', 'bin', 'julia.exe'),
+                    path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.1', 'bin', 'julia.exe'),
+                    path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.0', 'bin', 'julia.exe'),
                     path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.4', 'bin', 'julia.exe'),
                     path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.3', 'bin', 'julia.exe'),
                     path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.2', 'bin', 'julia.exe'),
@@ -96,20 +100,29 @@ export async function getJuliaExePath() {
             }
         }
         else {
-            if (getExecutablePath().includes(path.sep)) {
-                setNewJuliaExePath(getExecutablePath().replace(/^~/, os.homedir()))
+            let fullPath: string | undefined = undefined
+            if (configPath.includes(path.sep)) {
+                fullPath = resolvePath(configPath)
             } else {
                 // resolve full path
-                let fullPath: string | undefined = undefined
                 try {
-                    fullPath = await which(getExecutablePath())
+                    fullPath = await which(configPath)
                 }
                 catch (err) {
+                    console.debug('which failed to get the julia exe path')
+                    console.debug(err)
                 }
 
-                if (fullPath) {
-                    setNewJuliaExePath(fullPath)
+            }
+            if (fullPath) {
+                try {
+                    fullPath = await realpath(fullPath)
                 }
+                catch (err) {
+                    console.debug('realpath failed to resolve the julia exe path')
+                    console.debug(err)
+                }
+                setNewJuliaExePath(fullPath)
             }
         }
     }
