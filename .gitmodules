@@ -52,3 +52,6 @@
 [submodule "scripts/packages/Revise"]
 	path = scripts/packages/Revise
 	url = https://github.com/timholy/Revise.jl.git
+[submodule "scripts/packages/CoverageTools"]
+	path = scripts/packages/CoverageTools
+	url = https://github.com/JuliaCI/CoverageTools.jl.git

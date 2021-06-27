@@ -3,6 +3,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 
 // This method implements the language-julia.openPackageDirectory command
 async function openPackageDirectoryCommand() {
@@ -43,5 +44,5 @@ async function openPackageDirectoryCommand() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand))
+    context.subscriptions.push(registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand))
 }
