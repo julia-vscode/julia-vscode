@@ -8,7 +8,7 @@ import { onSetLanguageClient } from './extension'
 import * as juliaexepath from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
-import { registerCommand } from './utils'
+import { registerCommand, resolvePath } from './utils'
 
 let g_languageClient: vslc.LanguageClient = null
 
@@ -16,6 +16,7 @@ let g_current_environment: vscode.StatusBarItem = null
 
 let g_path_of_current_environment: string = null
 let g_path_of_default_environment: string = null
+let g_resolved_path_of_environment: string = null
 
 export async function getProjectFilePaths(envpath: string) {
     const dlext = process.platform === 'darwin' ? 'dylib' : process.platform === 'win32' ? 'dll' : 'so'
@@ -32,6 +33,7 @@ export async function getProjectFilePaths(envpath: string) {
 
 export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
     g_path_of_current_environment = envpath
+    g_resolved_path_of_environment = resolvePath(envpath)
 
     const section = vscode.workspace.getConfiguration('julia')
 
@@ -60,7 +62,7 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
             vscode.workspace.workspaceFolders[0].uri.fsPath
 
         const jlexepath = await juliaexepath.getJuliaExePath()
-        const res = await exec(`"${jlexepath}" --project=${g_path_of_current_environment} --startup-file=no --history-file=no -e "using Pkg; println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ? realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) : realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))" "${case_adjusted}"`)
+        const res = await exec(`"${jlexepath}" --project=${g_resolved_path_of_environment} --startup-file=no --history-file=no -e "using Pkg; println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ? realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) : realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))" "${case_adjusted}"`)
 
         if (res.stdout.trim() === 'false') {
             vscode.window.showInformationMessage('You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?', 'Change Julia environment')
@@ -178,7 +180,7 @@ async function getEnvPath() {
         const section = vscode.workspace.getConfiguration('julia')
         const envPathConfig = section.get<string>('environmentPath')
         if (envPathConfig) {
-            if (await fs.exists(absEnvPath(envPathConfig))) {
+            if (await fs.exists(absEnvPath(resolvePath(envPathConfig)))) {
                 g_path_of_current_environment = envPathConfig
                 return g_path_of_current_environment
             }
@@ -198,11 +200,11 @@ function absEnvPath(p: string) {
 
 export async function getAbsEnvPath() {
     const envPath = await getEnvPath()
-    return absEnvPath(envPath)
+    return absEnvPath(resolvePath(envPath))
 }
 
 export async function getEnvName() {
-    const envpath = await getEnvPath()
+    const envpath = resolvePath(await getEnvPath())
     return path.basename(envpath)
 }
 
