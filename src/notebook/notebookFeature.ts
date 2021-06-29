@@ -57,15 +57,31 @@ export class JuliaNotebookFeature {
     private async executeCells(cells: vscode.NotebookCell[], notebook: vscode.NotebookDocument, controller: vscode.NotebookController): Promise<void> {
         // First check whether we already have a kernel running for the current notebook document
         if (!this.kernels.has(notebook)) {
-            const kernel = new JuliaKernel(this.context.extensionPath, controller, notebook, this._juliaVersions.get(controller.id), this._outputChannel, this)
-            await this.workspaceFeature.addNotebookKernel(kernel)
-            this.kernels.set(notebook, kernel)
 
-            kernel.onStopped(e => {
-                if (this.kernels.get(notebook) === kernel) {
-                    this.kernels.delete(notebook)
+            // Check whether there is still a running kernel for a closed notebook with the same Uri
+            let foundExistingKernel = false
+            for (const [k, v] of this.kernels) {
+                if (k.isClosed && (k.uri.toString() === notebook.uri.toString())) {
+                    foundExistingKernel = true
+                    v.notebook = notebook
+
+                    this.kernels.delete(k)
+
+                    this.kernels.set(notebook, v)
+
+                    break
                 }
-            })
+            }
+
+            if (!foundExistingKernel) {
+                const kernel = new JuliaKernel(this.context.extensionPath, controller, notebook, this._juliaVersions.get(controller.id), this._outputChannel, this)
+                await this.workspaceFeature.addNotebookKernel(kernel)
+                this.kernels.set(notebook, kernel)
+
+                kernel.onStopped(e => {
+                    this.kernels.delete(kernel.notebook)
+                })
+            }
         }
 
         const currentKernel = this.kernels.get(notebook)
