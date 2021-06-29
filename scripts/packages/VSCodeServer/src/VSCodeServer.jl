@@ -9,6 +9,8 @@ import Dates
 import Profile
 import Logging
 
+include("stdio.jl")
+
 function __init__()
     atreplinit() do repl
         @async try
@@ -67,6 +69,8 @@ include("repl.jl")
 include("display.jl")
 include("profiler.jl")
 include("debugger.jl")
+include("notebookdisplay.jl")
+include("serve_notebook.jl")
 
 function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     if is_dev
