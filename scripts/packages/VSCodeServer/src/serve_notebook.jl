@@ -84,7 +84,6 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
 
     catch err
         Base.display_error(IJuliaCore.orig_stderr[], err, catch_backtrace())
-        readline()
     end
 
 end

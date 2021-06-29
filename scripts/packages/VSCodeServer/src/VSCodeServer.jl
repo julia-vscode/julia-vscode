@@ -23,7 +23,13 @@ end
 
 include("../../JSON/src/JSON.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
-include("../../IJuliaCore/src/IJuliaCore.jl")
+
+module IJuliaCore
+    using ..JSON
+    using Printf
+
+    include("../../IJuliaCore/src/packagedef.jl")
+end
 
 module JSONRPC
     import ..JSON

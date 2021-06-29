@@ -50,7 +50,7 @@ end
 Base.displayable(d::JuliaNotebookInlineDisplay, ::MIME{Symbol("text/markdown")}) = true
 
 function Base.display(d::JuliaNotebookInlineDisplay, x)
-    things_to_show = display_dict(x)
+    things_to_show = IJuliaCore.display_dict(x)
 
     JSONRPC.send_notification(conn_endpoint[], "notebook/display", Dict("items" => [Dict{String,Any}("mimetype" => k, "data" => v) for (k, v) in things_to_show]))
 end
