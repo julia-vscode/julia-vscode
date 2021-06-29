@@ -1,3 +1,4 @@
+import { exists } from 'async-file'
 import { Subject } from 'await-notify'
 import { ChildProcess, spawn } from 'child_process'
 import * as net from 'net'
@@ -112,6 +113,40 @@ export class JuliaKernel {
         }
     }
 
+    private async containsJuliaEnv(folder: string) {
+        return (await exists(path.join(folder, 'Project.toml')) && await exists(path.join(folder, 'Manifest.toml'))) ||
+            (await exists(path.join(folder, 'JuliaProject.toml')) && await exists(path.join(folder, 'JuliaManifest.toml')))
+    }
+
+    private async getAbsEnvPathForNotebook() {
+        if (this.notebook.isUntitled) {
+            // We don't know the location of the notebook, so just use the default env
+            return await getAbsEnvPath()
+        }
+        else {
+            // First, figure out whether the notebook is in the workspace
+            if (this.notebook.uri.scheme==='file' && vscode.workspace.getWorkspaceFolder(this.notebook.uri) !== undefined) {
+                let currentFolder = path.dirname(this.notebook.uri.fsPath)
+
+                // We run this loop until we are looking at a folder that is no longer part of the workspace
+                while (vscode.workspace.getWorkspaceFolder(vscode.Uri.file(currentFolder)) !== undefined) {
+                    if (await this.containsJuliaEnv(currentFolder)) {
+                        return currentFolder
+                    }
+
+                    currentFolder = path.normalize(path.join(currentFolder, '..'))
+                }
+
+                // We did not find anything in the workspace, so return default
+                return await getAbsEnvPath()
+            }
+            else {
+                // Notebook is not inside the workspace, so just use the default env
+                return await getAbsEnvPath()
+            }
+        }
+    }
+
     private async run(token: CancellationToken) {
         const connectedPromise = new Subject()
         const serverListeningPromise = new Subject()
@@ -169,7 +204,7 @@ export class JuliaKernel {
 
         await serverListeningPromise.wait()
 
-        const pkgenvpath = await getAbsEnvPath()
+        const pkgenvpath = await this.getAbsEnvPathForNotebook()
 
         this._kernelProcess = spawn(
             this.juliaExecutable.path,
