@@ -55,3 +55,6 @@
 [submodule "scripts/packages/CoverageTools"]
 	path = scripts/packages/CoverageTools
 	url = https://github.com/JuliaCI/CoverageTools.jl.git
+[submodule "scripts/packages/IJuliaCore"]
+	path = scripts/packages/IJuliaCore
+	url = https://github.com/JuliaLang/IJuliaCore.jl.git

@@ -9,8 +9,6 @@ import Dates
 import Profile
 import Logging
 
-include("stdio.jl")
-
 function __init__()
     atreplinit() do repl
         @async try
@@ -25,6 +23,7 @@ end
 
 include("../../JSON/src/JSON.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
+include("../../IJuliaCore/src/IJuliaCore.jl")
 
 module JSONRPC
     import ..JSON
@@ -133,7 +132,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
             try
                 global_err_handler(err, catch_backtrace(), crashreporting_pipename, "REPL")
             catch err
-                @error "Error handler threw an error." exception=(err, catch_backtrace())
+                @error "Error handler threw an error." exception = (err, catch_backtrace())
             end
         end
     finally

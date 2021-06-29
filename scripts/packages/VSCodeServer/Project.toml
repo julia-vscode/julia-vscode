@@ -4,6 +4,7 @@ uuid = "9f5989ce-84fe-42d4-91ec-6a7a8d53ed0f"
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+IJuliaCore = "ccee42ee-1239-4771-b50a-e8cbc7e05233"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 Mmap = "a63ad114-7e13-5084-954f-fe012c677804"
