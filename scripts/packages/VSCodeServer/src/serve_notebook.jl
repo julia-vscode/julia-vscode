@@ -1,15 +1,3 @@
-const stdio_bytes = Ref(0)
-
-const orig_stdin  = Ref{IO}()
-const orig_stdout = Ref{IO}()
-const orig_stderr = Ref{IO}()
-
-const read_stdout = Ref{Base.PipeEndpoint}()
-const read_stderr = Ref{Base.PipeEndpoint}()
-
-const capture_stdout = true
-const capture_stderr = true
-
 const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NamedTuple{(:code,),Tuple{String}}, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
 function notebook_runcell_request(conn, params::NamedTuple{(:code,),Tuple{String}})
@@ -18,13 +6,13 @@ function notebook_runcell_request(conn, params::NamedTuple{(:code,),Tuple{String
     try
         result = Base.invokelatest(include_string, Main, decoded_msg, "FOO")
 
-        flush_all()
+        IJuliaCore.flush_all()
 
         if result !== nothing
             Base.invokelatest(Base.display, result)
         end
 
-        flush_all()
+        IJuliaCore.flush_all()
 
         return (success = true, error = (message = "", name = "", stack = ""))
     catch err
@@ -47,6 +35,10 @@ function notebook_runcell_request(conn, params::NamedTuple{(:code,),Tuple{String
     end
 end
 
+function io_send_callback(name, data)
+    JSONRPC.send_notification(conn_endpoint[], "streamoutput", Dict{String,Any}("name" => name, "data" => data))
+end
+
 function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     conn = Sockets.connect(pipename)
 
@@ -54,24 +46,27 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
 
     run(conn_endpoint[])
 
-    orig_stdin[]  = Base.stdin
-    orig_stdout[] = Base.stdout
-    orig_stderr[] = Base.stderr
+    IJuliaCore.orig_stdin[]  = Base.stdin
+    IJuliaCore.orig_stdout[] = Base.stdout
+    IJuliaCore.orig_stderr[] = Base.stderr
 
     try
-        if capture_stdout
-            read_stdout[], = Base.redirect_stdout()
-            redirect_stdout(JuliaNotebookStdio(Base.stdout, "stdout"))
+        if IJuliaCore.capture_stdout
+            IJuliaCore.read_stdout[], = Base.redirect_stdout()
+            redirect_stdout(IJuliaCore.IJuliaStdio(Base.stdout, io_send_callback, "stdout"))
         end
-        if capture_stderr
-            read_stderr[], = redirect_stderr()
-            redirect_stderr(JuliaNotebookStdio(Base.stderr, "stderr"))
+        if IJuliaCore.capture_stderr
+            IJuliaCore.read_stderr[], = redirect_stderr()
+            redirect_stderr(IJuliaCore.IJuliaStdio(Base.stderr, io_send_callback, "stderr"))
         end
-        redirect_stdin(JuliaNotebookStdio(Base.stdin, "stdin"))
+        redirect_stdin(IJuliaCore.IJuliaStdio(Base.stdin, io_send_callback, "stdin"))
+
+        logger = Base.CoreLogging.SimpleLogger(Base.stderr)
+        Base.CoreLogging.global_logger(logger)
 
         Base.Multimedia.pushdisplay(JuliaNotebookInlineDisplay())
 
-        watch_stdio()
+        IJuliaCore.watch_stdio(io_send_callback)
 
         msg_dispatcher = JSONRPC.MsgDispatcher()
         msg_dispatcher[notebook_runcell_request_type] = notebook_runcell_request
@@ -79,7 +74,7 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
 
-        println(orig_stdout[], "Julia Kernel started...")
+        println(IJuliaCore.orig_stdout[], "Julia Kernel started...")
 
         while true
             msg = JSONRPC.get_next_message(conn_endpoint[])
@@ -88,8 +83,7 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
         end
 
     catch err
-        Base.display_error(orig_stderr[], err, catch_backtrace())
-        readline()
+        Base.display_error(IJuliaCore.orig_stderr[], err, catch_backtrace())
     end
 
 end
