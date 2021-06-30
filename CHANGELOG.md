@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* Fixed REPL stacktraces file path links for Windows. Paths with tilda symbol now expand to the correct HOMEPATH. Paths with spaces are handled correctly ([#2261](https://github.com/julia-vscode/julia-vscode/pull/2261))
+
 ### Changed
 * `Julia: Connect external REPL` now gives feedback when connected ([#2182](https://github.com/julia-vscode/julia-vscode/pull/2182))
 
