@@ -143,7 +143,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: release-vsix
-          path: *.vsix
+          path: '*.vsix'
 
   buildInsiderVSIX:
     name: Build Insider VSIX
@@ -175,4 +175,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: insider-vsix
-          path: *.vsix
+          path: '*.vsix'
