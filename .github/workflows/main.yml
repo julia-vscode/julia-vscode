@@ -190,8 +190,8 @@ jobs:
           path: .
       - name: Publish package
         env:
-          MARKET_KEY: ${{secrets.vscekey}}
+          MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
           sudo npm install -g vsce
           echo "PACKAGE_FILENAME=$(find . -type f -name "*.vsix")" >> $GITHUB_ENV
-          vsce publish -p ${{env.MARKET_KEY}} --packagePath ${{env.PACKAGE_FILENAME}}
+          vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
