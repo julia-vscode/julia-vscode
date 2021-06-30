@@ -15,7 +15,6 @@ on:
 
 env:
   NODE_VERSION: '12'
-  VSIX_NAME: julialang.Julia.vsix
 
 defaults:
   run:
@@ -23,27 +22,7 @@ defaults:
 
 jobs:
 
-  build-vsix:
-    name: Build VSIX
-    runs-on: ubuntu-latest
-    # if: github.repository == 'julia-vscode/julia-vscode'
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-node@v2
-        with:
-          node-version: ${{env.NODE_VERSION}}
-
-      - run: npm install
-
-      - run: npm run package -- -o ${{env.VSIX_NAME}}
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{env.VSIX_NAME}}
-          path: ${{env.VSIX_NAME}}
-
-  lint:
+  lintExtension:
     name: Lint TypeScript
     runs-on: ubuntu-latest
     # if: github.repository == 'julia-vscode/julia-vscode'
@@ -57,14 +36,14 @@ jobs:
       - run: npm i -D @octokit/plugin-paginate-rest
       - run: npm i -D @octokit/webhooks
 
-      - name: Verify linting is turned on for changed files
-        uses: ./.github/actions/modified-files
-        id: modified-folders
+      # - name: Verify linting is turned on for changed files
+      #   uses: ./.github/actions/modified-files
+      #   id: modified-folders
 
-      - name: Dump
-        run: echo "${{steps.modified-folders.outputs.modifiedRootFolders}}"
+      # - name: Dump
+      #   run: echo "${{steps.modified-folders.outputs.modifiedRootFolders}}"
 
-      - run: npx eslint -c .eslintrc.json --ext .ts src
+      # - run: npx eslint -c .eslintrc.json --ext .ts src
 
       # - name: Run prettier on TypeScript code
       #   run: npx prettier 'src/**/*.ts*' --check
@@ -72,7 +51,7 @@ jobs:
       # - name: Run prettier on JavaScript code
       #   run: npx prettier 'build/**/*.js' --check
 
-  testVSCode:
+  testExtension:
     name: Test VSCode
     runs-on: ${{ matrix.os }}
     strategy:
@@ -110,7 +89,7 @@ jobs:
         if: matrix.os == 'macos-latest' || matrix.os == 'windows-latest'
         run: npm run test
 
-  testJulia:
+  testJuliaPackages:
     name: Test Julia
     runs-on: ${{ matrix.os }}
     strategy:
@@ -142,3 +121,58 @@ jobs:
           julia --project=./scripts/testenvironments/vscodedebugger -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
           julia --project=./scripts/testenvironments/vscodeserver -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
           julia --project=./scripts/testenvironments/chromeprofileformat -e 'using Pkg; Pkg.test("ChromeProfileFormat", coverage=true)'
+
+  buildReleaseVSIX:
+    name: Build VSIX
+    needs: [lintExtension, testExtension, testJuliaPackages]
+    runs-on: ubuntu-latest
+    # if: github.repository == 'julia-vscode/julia-vscode'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{env.NODE_VERSION}}
+
+      - run: npm install
+
+      - run: npm run package
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: release-vsix
+          path: *.vsix
+
+  buildInsiderVSIX:
+    name: Build Insider VSIX
+    needs: [lintExtension, testExtension, testJuliaPackages]
+    runs-on: windows-latest
+    # if: github.repository == 'julia-vscode/julia-vscode'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{env.NODE_VERSION}}
+
+      - run: |
+          $package = Get-Content package.json | ConvertFrom-Json
+          $package.description = "Julia Language Support (Insider)"
+          $package.displayName = "Julia Insider"
+          $package.name ="language-julia-insider"
+          $package.preview = "true"
+          $package | ConvertTo-Json | Out-File package.json
+          Move-Item -Force README-insider.md README.md
+
+      - run: npm install
+
+      - run: npm run package
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: insider-vsix
+          path: *.vsix
