@@ -804,7 +804,7 @@ async function linkHandler(link: any) {
         const exepath = await juliaexepath.getJuliaExePath()
         file = path.join(exepath, '..', '..', 'share', 'julia', 'base', file)
     } else if (file.startsWith('~')) {
-        file = path.join(process.env.HOME, file.slice(1))
+        file = path.join(process.platform === 'win32' ? process.env.HOMEPATH : process.env.HOME, file.slice(1))
     }
     try {
         await openFile(file, line)
@@ -820,7 +820,7 @@ function linkProvider(context: vscode.TerminalLinkContext, token: vscode.Cancell
         return []
     }
 
-    const match = line.match(/(@\s+(?:[^\s]+\s+)?)(.+?):(\d+)/)
+    const match = line.match(/(@\s+(?:[^\s/\\]+\s+)?)(.+?):(\d+)/)
     if (match) {
         return [
             {
