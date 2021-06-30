@@ -114,7 +114,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        julia_version: ['1.0', 1.1, 1.2, 1.3, 1.4, 1.5, 1.6-nightly]
+        julia_version: ['1.0', 1.1, 1.2, 1.3, 1.4, 1.5, 1.6]
     if: github.repository == 'julia-vscode/julia-vscode'
     steps:
       - uses: actions/checkout@v2
