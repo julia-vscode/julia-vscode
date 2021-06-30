@@ -30,11 +30,11 @@ jobs:
       - uses: actions/checkout@v2
 
       - run: npm install
-      - run: npm i -D @actions/core
-      - run: npm i -D @actions/github
-      - run: npm i -D @octokit/core
-      - run: npm i -D @octokit/plugin-paginate-rest
-      - run: npm i -D @octokit/webhooks
+      # - run: npm i -D @actions/core
+      # - run: npm i -D @actions/github
+      # - run: npm i -D @octokit/core
+      # - run: npm i -D @octokit/plugin-paginate-rest
+      # - run: npm i -D @octokit/webhooks
 
       # - name: Verify linting is turned on for changed files
       #   uses: ./.github/actions/modified-files
@@ -43,7 +43,7 @@ jobs:
       # - name: Dump
       #   run: echo "${{steps.modified-folders.outputs.modifiedRootFolders}}"
 
-      # - run: npx eslint -c .eslintrc.json --ext .ts src
+      - run: npx eslint -c .eslintrc.json --ext .ts src
 
       # - name: Run prettier on TypeScript code
       #   run: npx prettier 'src/**/*.ts*' --check
