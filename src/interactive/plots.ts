@@ -56,14 +56,14 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         view.webview.onDidReceiveMessage(msg => {
             // msg.type could be used to determine messages
             switch (msg.type) {
-                case 'toPlot': // switch current plot to plot at index (msg.value)
-                    if (msg.value >= 0 && msg.value <= g_plots.length - 1) {
-                        g_currentPlotIndex = msg.value
-                        updatePlotPane()
-                    }
-                    break
-                default:
-                    console.error(`Unknown message type from WebView: ${msg.type}, value: ${msg.value}`)
+            case 'toPlot': // switch current plot to plot at index (msg.value)
+                if (msg.value >= 0 && msg.value <= g_plots.length - 1) {
+                    g_currentPlotIndex = msg.value
+                    updatePlotPane()
+                }
+                break
+            default:
+                console.error(`Unknown message type from WebView: ${msg.type}, value: ${msg.value}`)
             }
 
         })
@@ -110,15 +110,15 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
     plotToThumbnail(plot: Plot, index: number) {
         let thumbnailHTML: string
         switch (plot.thumbnail_type) {
-            case 'image':
-                thumbnailHTML = `<div class="thumbnail" onclick="toPlot(${index})">
+        case 'image':
+            thumbnailHTML = `<div class="thumbnail" onclick="toPlot(${index})">
                     <img src="${plot.thumbnail_data}" alt="Plot ${index + 1}" />
                 </div>`
-                break
-            default:
-            case 'text': // This is a fallback which shows the index of the plot
-                thumbnailHTML = `<p class="thumbnail" onclick="toPlot(${index})">Plot ${index + 1} </p>`
-                break
+            break
+        default:
+        case 'text': // This is a fallback which shows the index of the plot
+            thumbnailHTML = `<p class="thumbnail" onclick="toPlot(${index})">Plot ${index + 1} </p>`
+            break
         }
         return thumbnailHTML
     }
@@ -164,8 +164,8 @@ function getPlotPaneContent() {
 }
 
 function plotPanelOnMessage(message) {
-    if (message.type == 'thumbnail') {
-        let thumbnailData = message.value
+    if (message.type === 'thumbnail') {
+        const thumbnailData = message.value
         g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
             plotsInfo[g_currentPlotIndex] = {
                 'thumbnail_type': 'image',

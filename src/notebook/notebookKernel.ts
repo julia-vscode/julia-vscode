@@ -163,7 +163,7 @@ export class JuliaKernel {
                 const execution = this._currentExecutionRequest
                 if (execution) {
                     execution.appendOutput(new vscode.NotebookCellOutput(items.map(item => {
-                        if (item.mimetype == 'image/png' || item.mimetype == 'image/jpeg') {
+                        if (item.mimetype === 'image/png' || item.mimetype === 'image/jpeg') {
                             return new vscode.NotebookCellOutputItem(Buffer.from(item.data, 'base64'), item.mimetype)
                         }
                         else {
