@@ -124,7 +124,6 @@ jobs:
 
   buildReleaseVSIX:
     name: Build VSIX
-    needs: [lintExtension, testExtension, testJuliaPackages]
     runs-on: ubuntu-latest
     # if: github.repository == 'julia-vscode/julia-vscode'
     steps:
@@ -147,7 +146,6 @@ jobs:
 
   buildInsiderVSIX:
     name: Build Insider VSIX
-    needs: [lintExtension, testExtension, testJuliaPackages]
     runs-on: windows-latest
     # if: github.repository == 'julia-vscode/julia-vscode'
     steps:
