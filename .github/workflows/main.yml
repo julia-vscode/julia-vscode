@@ -188,10 +188,14 @@ jobs:
         with:
           name: insider-vsix
           path: .
+      - name: Find filename
+        shell: pwsh
+        run: |
+          $filename =  (Get-ChildItem *.vsix)[0].FullName
+          echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Publish package
         env:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
           sudo npm install -g vsce
-          echo "PACKAGE_FILENAME=$(find . -type f -name "*.vsix")" >> $GITHUB_ENV
           vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
