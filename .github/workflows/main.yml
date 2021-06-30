@@ -176,3 +176,21 @@ jobs:
         with:
           name: insider-vsix
           path: '*.vsix'
+
+  deployInsiderMarketplace:
+    name: Deploy Insider to Marketplace
+    needs: [lintExtension, testExtension, testJuliaPackages, buildInsiderVSIX]
+    runs-on: ubuntu-latest
+    environment: insider-channel
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: insider-vsix
+          path: .
+      - name: Publish package
+        env:
+          MARKET_KEY: ${{secrets.vscekey}}
+        run: |
+          sudo npm install -g vsce
+          echo "::set-env name=PACKAGE_FILENAME::$(find . -type f -name "*.vsix")"
+          vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
