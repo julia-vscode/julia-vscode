@@ -80,27 +80,53 @@ end
 
 getfield_safe(x, f, default=UNDEF) = isdefined(x, f) ? getfield(x, f) : default
 
-function treerender(x)
+struct PropertyBox
+    object
+end
+treerender(x::PropertyBox) = invoke(treerender, Tuple{Any,String,String}, x.object, "#properties", wsicon(x))
+
+function treerender(x, typedisplay=typeof(x), icon=wsicon(x))
     fields = fieldnames(typeof(x))
 
     if isempty(fields)
-        treerender(Text(string(typeof(x), "()")))
+        treerender(Text(string(typedisplay, "()")))
     else
-        treerender(LazyTree(string(typeof(x)), wsicon(x), function ()
-            collect([SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields])
-        end))
+        treerender(LazyTree(string(typedisplay), icon,
+            () -> [SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields]
+        ))
     end
 end
 
-function treerender(x::Dict{K,V}) where {K,V}
-    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), wsicon(x), length(keys(x)) == 0, function ()
-        if length(keys(x)) > MAX_PARTITION_LENGTH
-            partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
-        else
-            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in x])
-        end
-    end))
+function treerender(x::AbstractDict{K,V}) where {K,V}
+    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), wsicon(x), length(keys(x)) == 0,
+        () -> pushfirst!(
+            if length(keys(x)) > MAX_PARTITION_LENGTH
+                partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
+            else
+                # collect is necessary because the return type of an array comprehension depends on the iterator,
+                # but we only want Arrays here
+                collect([SubTree(repr(k), wsicon(v), v) for (k, v) in x])
+            end,
+            SubTree("", wsicon(x), PropertyBox(x)),
+        )
+    ))
 end
+
+function treerender(x::AbstractArray{T,N}) where {T,N}
+    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0,
+        function ()
+            out = if length(x) > MAX_PARTITION_LENGTH
+                partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
+            else
+                # collect is necessary because the return type of an array comprehension depends on the iterator,
+                # but we only want Arrays here
+                collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))])
+            end
+            x isa Array ? out : pushfirst!(out, SubTree("", wsicon(x), PropertyBox(x)))
+        end
+    ))
+end
+
 
 function treerender(x::Module)
     treerender(LazyTree(string(x), wsicon(x), function ()
@@ -126,7 +152,8 @@ struct Undef end
 const UNDEF = Undef()
 
 function assign_undefs(xs)
-    xs′ = similar(xs, Any)
+    s = size(xs)
+    xs′ = Array{Any,length(s)}(undef, s...)
     for i in eachindex(xs)
         xs′[i] = isassigned(xs, i) ? xs[i] : UNDEF
     end
@@ -143,19 +170,9 @@ function assign_undefs(xs)
     return xs′
 end
 
-function treerender(x::Array{T,N}) where {T,N}
-    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0, function ()
-        if length(x) > MAX_PARTITION_LENGTH
-            partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
-        else
-            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))])
-        end
-    end))
-end
-
-function treerender(err, bt)
+function treerender(err::Exception, bt)
     st = stacktrace(bt)
-    treerender(LazyTree(string("Internal Error: ", err), wsicon(err), length(st) == 0, () -> [Leaf(sprint(show, x), wsicon(x)) for x in st]))
+    treerender(LazyTree(string("Internal Error: ", sprint(showerror, err)), wsicon(err), length(st) == 0, () -> [Leaf(sprint(show, x), wsicon(x)) for x in st]))
 end
 
 treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
@@ -182,6 +199,8 @@ function partition_by_keys(x, _keys=keys(x); sz=20, maxparts=100)
             end))
         else
             push!(out, LazyTree(head, function ()
+                # collect is necessary because the return type of an array comprehension depends on the iterator,
+                # but we only want Arrays here
                 collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(part, getindex.(Ref(x), assign_undefs(part)))])
             end))
         end
@@ -195,7 +214,7 @@ repl_getvariables_request(conn, params::Nothing) = Base.invokelatest(getvariable
 
 function getvariables()
     M = Main
-    variables = []
+    variables = ReplWorkspaceItem[]
     clear_lazy()
 
     for n in names(M, all=true, imported=true)

@@ -61,19 +61,26 @@ function hideprompt(f)
     r
 end
 
+const HAS_REPL_TRANSFORM = Ref{Bool}(false)
 function hook_repl(repl)
+    if HAS_REPL_TRANSFORM[]
+        return
+    end
+    @debug "installing REPL hook"
     if !isdefined(repl, :interface)
         repl.interface = REPL.setup_interface(repl)
     end
     main_mode = get_main_mode(repl)
 
     if VERSION > v"1.5-"
-        for i in 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
+        for _ in 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
             isdefined(Base, :active_repl_backend) && continue
             sleep(0.5)
         end
         if isdefined(Base, :active_repl_backend)
             push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
+            HAS_REPL_TRANSFORM[] = true
+            @debug "REPL AST transform installed"
             return
         end
     end
@@ -83,6 +90,9 @@ function hook_repl(repl)
             $(evalrepl)(Main, $line, $repl, $main_mode)
         end
     end
+    @debug "legacy REPL hook installed"
+    HAS_REPL_TRANSFORM[] = true
+    return nothing
 end
 
 function transform_backend(ast, repl, main_mode)
@@ -92,8 +102,14 @@ function transform_backend(ast, repl, main_mode)
 end
 
 function evalrepl(m, line, repl, main_mode)
+    did_notify = false
     return try
-        JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+        try
+            JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+            did_notify = true
+        catch err
+            @debug "Could not send repl/starteval notification" exception=(err, catch_backtrace())
+        end
         r = run_with_backend() do
             fix_displays()
             f = () -> repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
@@ -101,6 +117,9 @@ function evalrepl(m, line, repl, main_mode)
         end
         if r isa EvalError
             display_repl_error(stderr, r.err, r.bt)
+            nothing
+        elseif r isa EvalErrorStack
+            display_repl_error(stderr, r)
             nothing
         else
             r
@@ -110,7 +129,13 @@ function evalrepl(m, line, repl, main_mode)
         Base.display_error(stderr, err, catch_backtrace())
         nothing
     finally
-        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+        if did_notify
+            try
+                JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+            catch err
+                @debug "Could not send repl/finisheval notification" exception=(err, catch_backtrace())
+            end
+        end
     end
 end
 
@@ -132,6 +157,16 @@ function display_repl_error(io, err, bt)
     println(io)
 end
 display_repl_error(io, err::LoadError, bt) = display_repl_error(io, err.error, bt)
+
+function display_repl_error(io, stack::EvalErrorStack)
+    printstyled(io, "ERROR: "; bold=true, color=Base.error_color())
+    for (i, (err, bt)) in enumerate(reverse(stack.stack))
+        i !== 1 && print(io, "\ncaused by: ")
+        st = stacktrace(crop_backtrace(bt))
+        showerror(IOContext(io, :limit => true), err, st)
+        println(io)
+    end
+end
 
 function withpath(f, path)
     tls = task_local_storage()

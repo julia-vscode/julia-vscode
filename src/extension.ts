@@ -8,12 +8,15 @@ import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient/node'
+import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
 import { ProfilerResultsProvider } from './interactive/profiler'
 import * as repl from './interactive/repl'
+import { WorkspaceFeature } from './interactive/workspace'
 import * as jlpkgenv from './jlpkgenv'
 import * as juliaexepath from './juliaexepath'
+import { JuliaNotebookFeature } from './notebook/notebookFeature'
 import * as openpackagedirectory from './openpackagedirectory'
 import { JuliaPackageDevFeature } from './packagedevtools'
 import * as packagepath from './packagepath'
@@ -57,9 +60,10 @@ export async function activate(context: vscode.ExtensionContext) {
         })
 
         // Active features from other files
+        const compiledProvider = debugViewProvider.activate(context)
         juliaexepath.activate(context)
         await juliaexepath.getJuliaExePath() // We run this function now and await to make sure we don't run in twice simultaneously later
-        repl.activate(context)
+        repl.activate(context, compiledProvider)
         weave.activate(context)
         documentation.activate(context)
         tasks.activate(context)
@@ -68,7 +72,10 @@ export async function activate(context: vscode.ExtensionContext) {
         openpackagedirectory.activate(context)
         jlpkgenv.activate(context)
 
-        context.subscriptions.push(new JuliaDebugFeature(context))
+        const workspaceFeature = new WorkspaceFeature(context)
+        context.subscriptions.push(workspaceFeature)
+        context.subscriptions.push(new JuliaNotebookFeature(context, workspaceFeature))
+        context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider))
         context.subscriptions.push(new JuliaPackageDevFeature(context))
 
         g_startupNotification = vscode.window.createStatusBarItem()

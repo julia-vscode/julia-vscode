@@ -75,3 +75,16 @@ export function registerCommand(cmd: string, f) {
     }
     return vscode.commands.registerCommand(cmd, fWrapped)
 }
+
+export function resolvePath(p: string) {
+    p = parseEnvVariables(p)
+    p = p.replace(/^~/, os.homedir())
+    p = path.normalize(p)
+    return p
+}
+
+function parseEnvVariables(p: string) {
+    return p.replace(/\${env:(.*?)}/g, (_, variable) => {
+        return process.env[variable] || ''
+    })
+}
