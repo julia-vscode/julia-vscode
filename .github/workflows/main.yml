@@ -23,7 +23,7 @@ defaults:
 jobs:
 
   lintExtension:
-    name: Lint TypeScript
+    name: Lint Extension
     runs-on: ubuntu-latest
     # if: github.repository == 'julia-vscode/julia-vscode'
     steps:
@@ -52,7 +52,7 @@ jobs:
       #   run: npx prettier 'build/**/*.js' --check
 
   testExtension:
-    name: Test VSCode
+    name: Test Extension
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -90,7 +90,7 @@ jobs:
         run: npm run test
 
   testJuliaPackages:
-    name: Test Julia
+    name: Test Julia Packages
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -123,7 +123,7 @@ jobs:
           julia --project=./scripts/testenvironments/chromeprofileformat -e 'using Pkg; Pkg.test("ChromeProfileFormat", coverage=true)'
 
   buildReleaseVSIX:
-    name: Build VSIX
+    name: Build Release VSIX
     runs-on: ubuntu-latest
     # if: github.repository == 'julia-vscode/julia-vscode'
     steps:
@@ -157,7 +157,9 @@ jobs:
         with:
           node-version: ${{env.NODE_VERSION}}
 
-      - run: |
+      - name: Modify package.json
+        shell: pwsh
+        run: |
           $package = Get-Content package.json | ConvertFrom-Json
           $package.description = "Julia Language Support (Insider)"
           $package.displayName = "Julia Insider"
