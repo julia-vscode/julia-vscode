@@ -9,7 +9,10 @@ on:
   push:
     branches:
       - master
+    tags:
+      - 'v*'
   workflow_dispatch:
+
 env:
   NODE_VERSION: '12'
   VSIX_NAME: julialang.Julia.vsix
