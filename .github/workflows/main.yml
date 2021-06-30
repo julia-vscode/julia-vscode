@@ -193,5 +193,5 @@ jobs:
           MARKET_KEY: ${{secrets.vscekey}}
         run: |
           sudo npm install -g vsce
-          echo "::set-env name=PACKAGE_FILENAME::$(find . -type f -name "*.vsix")"
-          vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+          echo "PACKAGE_FILENAME=$(find . -type f -name "*.vsix")" >> $GITHUB_ENV
+          vsce publish -p ${{env.MARKET_KEY}} --packagePath ${{env.PACKAGE_FILENAME}}
