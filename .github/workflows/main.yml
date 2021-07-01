@@ -164,8 +164,8 @@ jobs:
           $package.description = "Julia Language Support (Insider)"
           $package.displayName = "Julia Insider"
           $package.name ="language-julia-insider"
-          $package.preview = "true"
-          $package | ConvertTo-Json | Out-File package.json
+          $package.preview = $TRUE
+          $package | ConvertTo-Json -Depth 100 | Out-File package.json
           Move-Item -Force README-insider.md README.md
 
       - run: npm install
