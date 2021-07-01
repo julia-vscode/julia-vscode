@@ -268,3 +268,51 @@ jobs:
           MARKET_KEY: ${{secrets.OVSXKEY}}
         run: |
           npx ovsx publish $PACKAGE_FILENAME -p $MARKET_KEY
+
+  deployInsiderGitHub:
+    name: Deploy Insider to GitHub Release
+    needs: [lintExtension, testExtension, testJuliaPackages, buildInsiderVSIX]
+    if: startsWith(github.ref, 'refs/tags/')
+    environment: insider-channel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: insider-vsix
+          path: .
+      - name: Find filename
+        shell: pwsh
+        run: |
+          $filename =  (Get-ChildItem *.vsix)[0].FullName
+          echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{env.PACKAGE_FILENAME}}
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deployReleaseGitHub:
+    name: Deploy Release to GitHub Release
+    needs: [lintExtension, testExtension, testJuliaPackages, buildReleaseVSIX]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment: release-channel
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: release-vsix
+          path: .
+      - name: Find filename
+        shell: pwsh
+        run: |
+          $filename =  (Get-ChildItem *.vsix)[0].FullName
+          echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{env.PACKAGE_FILENAME}}
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
