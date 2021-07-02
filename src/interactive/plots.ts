@@ -180,16 +180,23 @@ function getPlotPaneContent() {
   }
 }
 
-function plotPanelOnMessage(message) {
-  if (message.type == "thumbnail") {
-    let thumbnailData = message.value;
-    g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
-      plotsInfo[g_currentPlotIndex] = {
-        thumbnail_type: "image",
-        thumbnail_data: thumbnailData,
-      };
-      return plotsInfo;
-    });
+function plotPanelOnMessage(msg) {
+  switch (msg.type) {
+    case "thumbnail":
+      {
+        let thumbnailData = msg.value;
+        g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
+          plotsInfo[g_currentPlotIndex] = {
+            thumbnail_type: "image",
+            thumbnail_data: thumbnailData,
+          };
+          return plotsInfo;
+        });
+      }
+      break;
+    case "exportPlot":
+      console.log("export");
+      break;
   }
 }
 
@@ -334,6 +341,7 @@ function wrapImagelike(srcString: string) {
     <html style="padding:0;margin:0;">
         <body style="padding:0;margin:0;">
             <div style="max-width: 100%; max-height: 100vh;">
+                <button onclick="exportPlot(${g_currentPlotIndex})">Click</button>
                 <img id="plot-element" style="max-height: 100%; max-width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcString}">
             </div>
         </body>

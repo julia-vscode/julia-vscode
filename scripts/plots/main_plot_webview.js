@@ -4,18 +4,18 @@ function postMessageToHost(type, val) {
     if (type) {
         vscode.postMessage({
             type: type,
-            value: val
+            value: val,
         })
     }
 }
 
 function getPlotElement() {
-    let plot_element = document.getElementById('plot-element')
+    const plot_element = document.getElementById('plot-element')
     if (!plot_element) {
         return document.getElementsByTagName('body')[0]
     }
 
-    let canvas = plot_element.getElementsByTagName('canvas')[0]
+    const canvas = plot_element.getElementsByTagName('canvas')[0]
     if (canvas) {
         return canvas
     } else {
@@ -26,17 +26,24 @@ function getPlotElement() {
 let interval
 function getImage() {
     const plot = getPlotElement()
-    let width = plot.offsetWidth
-    let height = plot.offsetHeight
+    const width = plot.offsetWidth
+    const height = plot.offsetHeight
 
-    html2canvas(plot, { height, width }).then((canvas) => {
-        postMessageToHost('thumbnail', canvas.toDataURL('png'))
-        clearInterval(interval)
-    }, (reason) => {
-        console.error('Error in taking thumbnail: ', reason)
-    })
+    html2canvas(plot, { height, width }).then(
+        (canvas) => {
+            postMessageToHost('thumbnail', canvas.toDataURL('png'))
+            clearInterval(interval)
+        },
+        (reason) => {
+            console.error('Error in taking thumbnail: ', reason)
+        }
+    )
 }
 
 window.addEventListener('load', getImage)
+
+function exportPlot(index) {
+    postMessageToHost('exportPlot', index)
+}
 
 interval = setInterval(getImage, 1000)
