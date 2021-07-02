@@ -542,6 +542,11 @@
                 "when": "editorTextFocus && editorLangId == julia"
             },
             {
+                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
+                "key": "alt+Enter",
+                "when": "editorTextFocus && editorLangId == juliamarkdown"
+            },
+            {
                 "command": "language-julia.interrupt",
                 "key": "Ctrl+C",
                 "when": "terminalFocus && isJuliaREPL && isJuliaEvaluating"
@@ -550,6 +555,11 @@
                 "command": "language-julia.executeCellAndMove",
                 "key": "shift+Enter",
                 "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
+            },
+            {
+                "command": "language-julia.executeCellAndMove",
+                "key": "shift+Enter",
+                "when": "editorTextFocus && editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.clearCurrentInlineResult",
