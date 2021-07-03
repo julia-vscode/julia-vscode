@@ -574,7 +574,8 @@ export function displayPlot(params: { kind: string; data: string }) {
                 <script type="text/javascript">
                     var opt = {
                         mode: "vega-lite",
-                        actions: false
+                        actions: false,
+                        renderer: "svg"
                     }
                     var spec = ${payload}
                     vegaEmbed('#plot-element', spec, opt);
@@ -618,7 +619,8 @@ export function displayPlot(params: { kind: string; data: string }) {
                 <script type="text/javascript">
                     var opt = {
                         mode: "vega",
-                        actions: false
+                        actions: false,
+                        renderer: "svg"
                     }
                     var spec = ${payload}
                     vegaEmbed('#plot-element', spec, opt);
@@ -662,7 +664,8 @@ export function displayPlot(params: { kind: string; data: string }) {
                 <script type="text/javascript">
                     var opt = {
                         mode: "vega",
-                        actions: false
+                        actions: false,
+                        renderer: "svg"
                     }
                     var spec = ${payload}
                     vegaEmbed('#plot-element', spec, opt);
@@ -706,7 +709,8 @@ export function displayPlot(params: { kind: string; data: string }) {
                 <script type="text/javascript">
                     var opt = {
                         mode: "vega",
-                        actions: false
+                        actions: false,
+                        renderer: "svg"
                     }
                     var spec = ${payload}
                     vegaEmbed('#plot-element', spec, opt);

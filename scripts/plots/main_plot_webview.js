@@ -40,6 +40,10 @@ function isPlotly() {
   return document.querySelector("#plot-element .plotly") != null;
 }
 
+function isVega() {
+  return document.querySelector("#plot-element.vega-embed") != null;
+}
+
 /**
  * Fires when a export request is received, sends a message to the host with
  * i.  The plot data url,
@@ -47,20 +51,25 @@ function isPlotly() {
  * @param {number} index
  */
 function handleExportPlotRequest(index) {
+  const EXPORT_PLOT_MESSAGE_TYPE = "exportPlot";
   const plot = getPlotElement();
   if (isPlotly()) {
     Plotly.Snapshot.toImage(plot, { format: "svg" }).once("success", (url) => {
       const svg = decodeURIComponent(url).replace(/data:image\/svg\+xml,/, "");
 
-      postMessageToHost("exportPlot", { svg, index });
+      postMessageToHost(EXPORT_PLOT_MESSAGE_TYPE, { svg, index });
     });
+  } else if (isVega()) {
+    const svg = document.querySelector("#plot-element svg").outerHTML;
+
+    postMessageToHost(EXPORT_PLOT_MESSAGE_TYPE, { svg, index });
   } else {
     const svg = decodeURIComponent(plot.src).replace(
       /data:image\/svg\+xml,/,
       ""
     );
 
-    postMessageToHost("exportPlot", { svg, index });
+    postMessageToHost(EXPORT_PLOT_MESSAGE_TYPE, { svg, index });
   }
 }
 
