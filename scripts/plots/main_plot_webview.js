@@ -81,6 +81,13 @@ function handleExportPlotRequest(index) {
 }
 
 window.addEventListener("load", getImage);
+window.addEventListener("load", () => {
+  // Remove Plotly builtin export button; it's nonfunctional in VSCode and can confuse users.
+  document.querySelector(
+    '[data-title="Download plot as a png"]'
+  ).style.display = "none";
+});
+
 window.addEventListener("message", ({ data }) => {
   if (data.type === "requestExportPlot")
     handleExportPlotRequest(data.body.index);
