@@ -852,22 +852,52 @@ function exportPlot() {
  * Write svg file of the plot to the plots directory.
  * @param plot
  */
-function savePlot(plot: { svg: string; index: number }) {
+function savePlot(plot: {
+  svg?: string;
+  png?: string;
+  gif?: string;
+  index: number;
+}) {
+  const plotName = `plot_${plot.index + 1}`;
+
+  if (plot.svg != null) {
+    const fileName = `${plotName}.svg`;
+    _writePlotFile(fileName, plot.svg);
+  } else if (plot.png != null) {
+    const fileName = `${plotName}.png`;
+    const buffer = Buffer.from(plot.png, "base64");
+    _writePlotFile(fileName, buffer);
+  } else if (plot.gif != null) {
+    const fileName = `${plotName}.gif`;
+    const buffer = Buffer.from(plot.gif, "base64");
+    _writePlotFile(fileName, buffer);
+  }
+}
+
+/**
+ * Write the plot file to disk.
+ * @param fileName
+ * @param data
+ * @param encoding
+ */
+function _writePlotFile(
+  fileName: string,
+  data: string | Buffer,
+) {
   const rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
   const plotsDir: string = vscode.workspace
     .getConfiguration("julia")
     .get("plots.path");
   const plotsDirFullPath = path.join(rootPath, plotsDir);
-  if (plot.svg != null) {
-    const filePath = path.join(plotsDirFullPath, `plot_${plot.index + 1}.svg`);
-    fs.exists(plotsDirFullPath).then((plotsDirExists) => {
-      if (!plotsDirExists) {
-        fs.mkdir(plotsDirFullPath).then(() => {
-          fs.writeFile(filePath, plot.svg);
-        });
-      } else {
-        fs.writeFile(filePath, plot.svg);
-      }
-    });
-  }
+  const fullPath = path.join(plotsDirFullPath, fileName);
+
+  fs.exists(plotsDirFullPath).then((plotsDirExists) => {
+    if (!plotsDirExists) {
+      fs.mkdir(plotsDirFullPath).then(() => {
+        fs.writeFile(fullPath, data);
+      });
+    } else {
+      fs.writeFile(fullPath, data);
+    }
+  });
 }

@@ -64,12 +64,19 @@ function handleExportPlotRequest(index) {
 
     postMessageToHost(EXPORT_PLOT_MESSAGE_TYPE, { svg, index });
   } else {
-    const svg = decodeURIComponent(plot.src).replace(
-      /data:image\/svg\+xml,/,
-      ""
-    );
+    const { src } = plot;
 
-    postMessageToHost(EXPORT_PLOT_MESSAGE_TYPE, { svg, index });
+    const svg = src.includes("image/svg")
+      ? decodeURIComponent(src).replace(/data:image\/svg\+xml,/, "")
+      : null;
+    const png = src.includes("image/png")
+      ? src.replace(/data:image\/png;base64,/, "")
+      : null;
+    const gif = src.includes("image/gif")
+      ? src.replace(/data:image\/gif;base64,/, "")
+      : null;
+
+    postMessageToHost(EXPORT_PLOT_MESSAGE_TYPE, { svg, png, gif, index });
   }
 }
 
