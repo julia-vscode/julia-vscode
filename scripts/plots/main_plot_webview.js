@@ -36,6 +36,10 @@ function getImage() {
   );
 }
 
+function isPlotly() {
+  return document.querySelector("#plot-element .plotly") != null;
+}
+
 /**
  * Fires when a export request is received, sends a message to the host with
  * i.  The plot data url,
@@ -44,9 +48,20 @@ function getImage() {
  */
 function handleExportPlotRequest(index) {
   const plot = getPlotElement();
-  const svg = decodeURIComponent(plot.src).replace(/data:image\/svg\+xml,/, "");
+  if (isPlotly()) {
+    Plotly.Snapshot.toImage(plot, { format: "svg" }).once("success", (url) => {
+      const svg = decodeURIComponent(url).replace(/data:image\/svg\+xml,/, "");
 
-  postMessageToHost("exportPlot", { svg, index });
+      postMessageToHost("exportPlot", { svg, index });
+    });
+  } else {
+    const svg = decodeURIComponent(plot.src).replace(
+      /data:image\/svg\+xml,/,
+      ""
+    );
+
+    postMessageToHost("exportPlot", { svg, index });
+  }
 }
 
 window.addEventListener("load", getImage);
