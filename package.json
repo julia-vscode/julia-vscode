@@ -202,6 +202,11 @@
                 "icon": "$(trash)"
             },
             {
+                "command": "language-julia.export-plot",
+                "title": "Julia: Export Plot",
+                "icon": "$(save-as)"
+            },
+            {
                 "command": "language-julia.plotpane-delete-all",
                 "title": "Julia: Delete All Plots"
             },
@@ -371,6 +376,11 @@
                 },
                 {
                     "when": "jlplotpaneFocus",
+                    "command": "language-julia.export-plot",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-next",
                     "group": "navigation@-1"
                 },
@@ -425,6 +435,10 @@
                 {
                     "when": "false",
                     "command": "language-julia.plotpane-delete"
+                },
+                {
+                    "when": "false",
+                    "command": "language-julia.export-plot"
                 },
                 {
                     "when": "false",
@@ -642,6 +656,10 @@
             {
                 "command": "language-julia.plotpane-delete",
                 "key": "delete",
+                "when": "jlplotpaneFocus"
+            },
+            {
+                "command": "language-julia.export-plot",
                 "when": "jlplotpaneFocus"
             },
             {
@@ -1037,6 +1055,12 @@
                         "Mmap"
                     ],
                     "description": "Functions or modules that are set to compiled mode when setting the defaults.",
+                    "scope": "window"
+                },
+                "julia.plots.path": {
+                    "type": "string",
+                    "default": "__plots__",
+                    "description": "The output directory to save plots to",
                     "scope": "window"
                 }
             }

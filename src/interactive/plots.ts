@@ -1,3 +1,4 @@
+import * as fs from "async-file";
 import * as path from "path";
 import * as vscode from "vscode";
 import * as telemetry from "../telemetry";
@@ -17,6 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
   g_plotNavigatorProvider = new PlotNavigatorProvider(context);
 
   context.subscriptions.push(
+    registerCommand("language-julia.export-plot", exportPlot),
     registerCommand("language-julia.show-plotpane", showPlotPane),
     registerCommand("language-julia.plotpane-previous", plotPanePrev),
     registerCommand("language-julia.plotpane-next", plotPaneNext),
@@ -195,7 +197,7 @@ function plotPanelOnMessage(msg) {
       }
       break;
     case "exportPlot":
-      console.log("export");
+      savePlot(msg.value);
       break;
   }
 }
@@ -341,7 +343,6 @@ function wrapImagelike(srcString: string) {
     <html style="padding:0;margin:0;">
         <body style="padding:0;margin:0;">
             <div style="max-width: 100%; max-height: 100vh;">
-                <button onclick="exportPlot(${g_currentPlotIndex})">Click</button>
                 <img id="plot-element" style="max-height: 100%; max-width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcString}">
             </div>
         </body>
@@ -830,5 +831,39 @@ export function displayPlot(params: { kind: string; data: string }) {
 
   if (vscode.workspace.getConfiguration("julia").get("focusPlotNavigator")) {
     g_plotNavigatorProvider?.showPlotNavigator();
+  }
+}
+
+/**
+ * Send export request(message) to the plot pane.
+ */
+function exportPlot() {
+  g_plotPanel.webview.postMessage({
+    type: "requestExportPlot",
+    body: { index: g_currentPlotIndex },
+  });
+}
+
+/**
+ * Write svg file of the plot to the plots directory.
+ * @param plot
+ */
+function savePlot(plot: { svg: string; index: number }) {
+  const rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+  const plotsDir: string = vscode.workspace
+    .getConfiguration("julia")
+    .get("plots.path");
+  const plotsDirFullPath = path.join(rootPath, plotsDir);
+  if (plot.svg != null) {
+    const filePath = path.join(plotsDirFullPath, `plot_${plot.index + 1}.svg`);
+    fs.exists(plotsDirFullPath).then((plotsDirExists) => {
+      if (!plotsDirExists) {
+        fs.mkdir(plotsDirFullPath).then(() => {
+          fs.writeFile(filePath, plot.svg);
+        });
+      } else {
+        fs.writeFile(filePath, plot.svg);
+      }
+    });
   }
 }
