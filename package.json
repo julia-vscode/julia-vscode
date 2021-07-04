@@ -202,6 +202,11 @@
                 "icon": "$(trash)"
             },
             {
+                "command": "language-julia.copy-plot",
+                "title": "Julia: Copy Plot",
+                "icon": "$(explorer-view-icon)"
+            },
+            {
                 "command": "language-julia.export-plot",
                 "title": "Julia: Export Plot",
                 "icon": "$(save-as)"
@@ -376,6 +381,11 @@
                 },
                 {
                     "when": "jlplotpaneFocus",
+                    "command": "language-julia.copy-plot",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus",
                     "command": "language-julia.export-plot",
                     "group": "navigation@1"
                 },
@@ -435,6 +445,10 @@
                 {
                     "when": "false",
                     "command": "language-julia.plotpane-delete"
+                },
+                {
+                    "when": "false",
+                    "command": "language-julia.copy-plot"
                 },
                 {
                     "when": "false",
@@ -656,6 +670,10 @@
             {
                 "command": "language-julia.plotpane-delete",
                 "key": "delete",
+                "when": "jlplotpaneFocus"
+            },
+            {
+                "command": "language-julia.copy-plot",
                 "when": "jlplotpaneFocus"
             },
             {
@@ -1235,6 +1253,7 @@
         "markdown-it-footnote": "^3.0.3",
         "promised-temp": "^v0.1.0",
         "semver": "^7.3.5",
+        "temp-dir": "^2.0.0",
         "uuidv4": "^6.2.10",
         "vscode-debugadapter": "^1.47.0",
         "vscode-jsonrpc": "^6.0.0",

@@ -44,25 +44,30 @@ function isVega() {
   return document.querySelector("#plot-element.vega-embed") != null;
 }
 
+const EXPORT_PLOT_MESSAGE_TYPE = "exportPlot";
+const COPY_PLOT_MESSAGE_TYPE = "copyPlot";
+const REQUEST_EXPORT_PLOT_TYPE = "requestExportPlot";
+const REQUEST_COPY_PLOT_TYPE = "requestCopyPlot";
+
 /**
  * Fires when a export request is received, sends a message to the host with
  * i.  The plot data url,
  * ii. The index of the plot.
  * @param {number} index
+ * @param { REQUEST_EXPORT_PLOT_TYPE | REQUEST_COPY_PLOT_TYPE} reqType
  */
-function handleExportPlotRequest(index) {
-  const EXPORT_PLOT_MESSAGE_TYPE = "exportPlot";
+function handlePlotRequest(index, reqType) {
   const plot = getPlotElement();
   if (isPlotly()) {
     Plotly.Snapshot.toImage(plot, { format: "svg" }).once("success", (url) => {
       const svg = decodeURIComponent(url).replace(/data:image\/svg\+xml,/, "");
 
-      postMessageToHost(EXPORT_PLOT_MESSAGE_TYPE, { svg, index });
+      postMessageToHost(reqType, { svg, index });
     });
   } else if (isVega()) {
     const svg = document.querySelector("#plot-element svg").outerHTML;
 
-    postMessageToHost(EXPORT_PLOT_MESSAGE_TYPE, { svg, index });
+    postMessageToHost(reqType, { svg, index });
   } else {
     const { src } = plot;
 
@@ -76,7 +81,7 @@ function handleExportPlotRequest(index) {
       ? src.replace(/data:image\/gif;base64,/, "")
       : null;
 
-    postMessageToHost(EXPORT_PLOT_MESSAGE_TYPE, { svg, png, gif, index });
+    postMessageToHost(reqType, { svg, png, gif, index });
   }
 }
 
@@ -89,8 +94,16 @@ window.addEventListener("load", () => {
 });
 
 window.addEventListener("message", ({ data }) => {
-  if (data.type === "requestExportPlot")
-    handleExportPlotRequest(data.body.index);
+  switch (data.type) {
+    case REQUEST_EXPORT_PLOT_TYPE:
+      handlePlotRequest(data.body.index, EXPORT_PLOT_MESSAGE_TYPE);
+      break;
+    case REQUEST_COPY_PLOT_TYPE:
+      handlePlotRequest(data.body.index, COPY_PLOT_MESSAGE_TYPE);
+      break;
+    default:
+      console.error(new Error("Unknown plot request!"));
+  }
 });
 
 interval = setInterval(getImage, 1000);

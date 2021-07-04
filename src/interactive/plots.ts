@@ -1,11 +1,13 @@
 import * as fs from "async-file";
+import { ExecException } from "child_process";
 import * as path from "path";
 import * as vscode from "vscode";
 import * as telemetry from "../telemetry";
-import { registerCommand } from "../utils";
+import { ClipboardManager, registerCommand } from "../utils";
 
 const c_juliaPlotPanelActiveContextKey = "jlplotpaneFocus";
 const g_plots: Array<string> = new Array<string>();
+const g_clipboardManager = new ClipboardManager();
 let g_currentPlotIndex: number = 0;
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined;
 let g_context: vscode.ExtensionContext = null;
@@ -18,7 +20,8 @@ export function activate(context: vscode.ExtensionContext) {
   g_plotNavigatorProvider = new PlotNavigatorProvider(context);
 
   context.subscriptions.push(
-    registerCommand("language-julia.export-plot", exportPlot),
+    registerCommand("language-julia.copy-plot", requestCopyPlot),
+    registerCommand("language-julia.export-plot", requestExportPlot),
     registerCommand("language-julia.show-plotpane", showPlotPane),
     registerCommand("language-julia.plotpane-previous", plotPanePrev),
     registerCommand("language-julia.plotpane-next", plotPaneNext),
@@ -199,6 +202,8 @@ function plotPanelOnMessage(msg) {
     case "exportPlot":
       savePlot(msg.value);
       break;
+    case "copyPlot":
+      copyPlot(msg.value);
   }
 }
 
@@ -841,23 +846,33 @@ export function displayPlot(params: { kind: string; data: string }) {
 /**
  * Send export request(message) to the plot pane.
  */
-function exportPlot() {
+function requestExportPlot() {
   g_plotPanel.webview.postMessage({
     type: "requestExportPlot",
     body: { index: g_currentPlotIndex },
   });
 }
 
-/**
- * Write svg file of the plot to the plots directory.
- * @param plot
- */
-function savePlot(plot: {
+function requestCopyPlot() {
+  g_plotPanel.webview.postMessage({
+    type: "requestCopyPlot",
+    body: { index: g_currentPlotIndex },
+  });
+}
+
+interface ExportedPlot {
   svg?: string;
   png?: string;
   gif?: string;
   index: number;
-}) {
+}
+
+type FileLike = string | Buffer;
+/**
+ * Write svg file of the plot to the plots directory.
+ * @param plot
+ */
+function savePlot(plot: ExportedPlot) {
   const plotName = `plot_${plot.index + 1}`;
 
   if (plot.svg != null) {
@@ -874,16 +889,25 @@ function savePlot(plot: {
   }
 }
 
+function copyPlot(plot: ExportedPlot) {
+  if (plot.svg != null) {
+    copyToClipBoard(plot.svg, true);
+  } else if (plot.png != null) {
+    const buffer = Buffer.from(plot.png, "base64");
+    copyToClipBoard(buffer);
+  } else if (plot.gif != null) {
+    const buffer = Buffer.from(plot.gif, "base64");
+    copyToClipBoard(buffer);
+  }
+}
+
 /**
  * Write the plot file to disk.
  * @param fileName
  * @param data
  * @param encoding
  */
-function _writePlotFile(
-  fileName: string,
-  data: string | Buffer,
-) {
+function _writePlotFile(fileName: string, data: FileLike) {
   const rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
   const plotsDir: string = vscode.workspace
     .getConfiguration("julia")
@@ -900,4 +924,24 @@ function _writePlotFile(
       fs.writeFile(fullPath, data);
     }
   });
+}
+
+function copyToClipBoard(data: FileLike, isSvg: boolean = false) {
+  g_clipboardManager
+    .copyImage(data, isSvg)
+    .then((value: [error: ExecException, stdout: string, stderr: string]) => {
+      const [err, stdout, stderr] = value;
+      if (err) {
+        if (
+          err.code === g_clipboardManager.CommandNotFoundErr &&
+          process.platform === "linux"
+        )
+          vscode.window.showErrorMessage(
+            ClipboardManager.isWayland()
+              ? "wl-clipboard"
+              : "xclip" + " is not installed"
+          );
+        else console.error(stdout + stderr);
+      }
+    });
 }
