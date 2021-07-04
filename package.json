@@ -208,7 +208,7 @@
             },
             {
                 "command": "language-julia.export-plot",
-                "title": "Julia: Export Plot",
+                "title": "Julia: Save Plot",
                 "icon": "$(save-as)"
             },
             {
