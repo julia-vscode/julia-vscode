@@ -96,7 +96,12 @@ function parseEnvVariables(p: string) {
 
 type FileLike = string | Buffer;
 export class ClipboardManager {
-    constructor() {}
+
+    /**
+     * @credits adapted from https://github.com/kufii/img-clipboard to support svgs.
+     * @param context
+     */
+    constructor(private readonly context: vscode.ExtensionContext) {}
   public readonly CommandNotFoundErr = 127;
 
   public static isWayland() {
@@ -109,6 +114,10 @@ export class ClipboardManager {
       return new Promise((done) =>
           exec(cmd, { cwd: __dirname }, (...args) => done(args))
       )
+  }
+
+  private scriptsPaths() {
+      return path.join(this.context.extensionPath, 'scripts', 'clipboard')
   }
 
   private static copyX11(file: FileLike) {
@@ -125,13 +134,15 @@ export class ClipboardManager {
           : ClipboardManager.copyX11(file)
   }
 
-  private static copyOsx(file: FileLike) {
-      return ClipboardManager.run(`./scripts/osx-copy-image "${file}"`)
+  private copyOsx(file: FileLike) {
+      const osxScriptPath = path.join(this.scriptsPaths(), 'osx-copy-image')
+      return ClipboardManager.run(`${osxScriptPath} "${file}"`)
   }
 
-  private static copyWindows(file: FileLike) {
+  private copyWindows(file: FileLike) {
+      const windowsScriptPath = path.join(this.scriptsPaths(), 'file2clip.exe')
       return ClipboardManager.run(
-          `powershell.exe -ExecutionPolicy Bypass Start-Process -NoNewWindow -FilePath ./scripts/file2clip.exe -ArgumentList "${file}"`
+          `powershell.exe -ExecutionPolicy Bypass Start-Process -NoNewWindow -FilePath ${windowsScriptPath} -ArgumentList "${file}"`
       )
   }
 
@@ -140,11 +151,10 @@ export class ClipboardManager {
       Buffer.isBuffer(img) || isSvg
           ? ClipboardManager._writeTempSync(img)
           : img
-      // const file = '';
       return process.platform === 'win32'
-          ? ClipboardManager.copyWindows(file)
+          ? this.copyWindows(file)
           : process.platform === 'darwin'
-              ? ClipboardManager.copyOsx(file)
+              ? this.copyOsx(file)
               : ClipboardManager.copyLinux(file)
   }
   private static _writeTempSync(fileContent: FileLike) {

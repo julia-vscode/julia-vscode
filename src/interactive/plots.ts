@@ -7,10 +7,10 @@ import { ClipboardManager, registerCommand } from '../utils'
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
-const g_clipboardManager = new ClipboardManager()
 let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
 let g_context: vscode.ExtensionContext = null
+const g_clipboardManager = new ClipboardManager(g_context)
 let g_plotNavigatorProvider: PlotNavigatorProvider = null
 let g_screenShotScript: string = ''
 
