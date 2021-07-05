@@ -96,73 +96,75 @@ function parseEnvVariables(p: string) {
 
 type FileLike = string | Buffer;
 export class ClipboardManager {
-
     /**
      * @credits adapted from https://github.com/kufii/img-clipboard to support svgs.
      * @param context
      */
-    constructor(private readonly context: vscode.ExtensionContext) {}
-  public readonly CommandNotFoundErr = 127;
 
-  public static isWayland() {
-      return process.env.XDG_SESSION_TYPE === 'wayland'
-  }
+    constructor(private readonly context: vscode.ExtensionContext) { }
 
-  private static run(
-      cmd: string
-  ): Promise<[error: ExecException, stdout: string, stderr: string]> {
-      return new Promise((done) =>
-          exec(cmd, { cwd: __dirname }, (...args) => done(args))
-      )
-  }
+    public readonly CommandNotFoundErr = 127;
 
-  private scriptsPaths() {
-      return path.join(this.context.extensionPath, 'scripts', 'clipboard')
-  }
+    public static isWayland() {
+        return process.env.XDG_SESSION_TYPE === 'wayland'
+    }
 
-  private static copyX11(file: FileLike) {
-      return ClipboardManager.run(`xclip -sel clip -t image/png -i "${file}"`)
-  }
+    private static run(
+        cmd: string
+    ): Promise<[error: ExecException, stdout: string, stderr: string]> {
+        return new Promise((done) =>
+            exec(cmd, { cwd: __dirname }, (...args) => done(args))
+        )
+    }
 
-  private static copyWayland(file: FileLike) {
-      return ClipboardManager.run(`wl-copy < "${file}"`)
-  }
+    private scriptsPaths() {
+        return path.join(this.context.extensionPath, 'scripts', 'clipboard')
+    }
 
-  private static copyLinux(file: FileLike) {
-      return ClipboardManager.isWayland()
-          ? ClipboardManager.copyWayland(file)
-          : ClipboardManager.copyX11(file)
-  }
+    private static copyX11(file: FileLike) {
+        return ClipboardManager.run(`xclip -sel clip -t image/png -i "${file}"`)
+    }
 
-  private copyOsx(file: FileLike) {
-      const osxScriptPath = path.join(this.scriptsPaths(), 'osx-copy-image')
-      return ClipboardManager.run(`${osxScriptPath} "${file}"`)
-  }
+    private static copyWayland(file: FileLike) {
+        return ClipboardManager.run(`wl-copy < "${file}"`)
+    }
 
-  private copyWindows(file: FileLike) {
-      const windowsScriptPath = path.join(this.scriptsPaths(), 'file2clip.exe')
-      return ClipboardManager.run(
-          `powershell.exe -ExecutionPolicy Bypass Start-Process -NoNewWindow -FilePath ${windowsScriptPath} -ArgumentList "${file}"`
-      )
-  }
+    private static copyLinux(file: FileLike) {
+        return ClipboardManager.isWayland()
+            ? ClipboardManager.copyWayland(file)
+            : ClipboardManager.copyX11(file)
+    }
 
-  copyImage(img: FileLike, isSvg: boolean) {
-      const file =
+    private copyOsx(file: FileLike) {
+        const osxScriptPath = path.join(this.scriptsPaths(), 'osx-copy-image')
+        return ClipboardManager.run(`${osxScriptPath} "${file}"`)
+    }
+
+    private copyWindows(file: FileLike) {
+        const windowsScriptPath = path.join(this.scriptsPaths(), 'file2clip.exe')
+        return ClipboardManager.run(
+            `powershell.exe -ExecutionPolicy Bypass Start-Process -NoNewWindow -FilePath ${windowsScriptPath} -ArgumentList "${file}"`
+        )
+    }
+
+    copyImage(img: FileLike, isSvg: boolean) {
+        const file =
       Buffer.isBuffer(img) || isSvg
           ? ClipboardManager._writeTempSync(img)
           : img
-      return process.platform === 'win32'
-          ? this.copyWindows(file)
-          : process.platform === 'darwin'
-              ? this.copyOsx(file)
-              : ClipboardManager.copyLinux(file)
-  }
-  private static _writeTempSync(fileContent: FileLike) {
-      const tempPath = path.join(tempDirectory, uuid())
+        return process.platform === 'win32'
+            ? this.copyWindows(file)
+            : process.platform === 'darwin'
+                ? this.copyOsx(file)
+                : ClipboardManager.copyLinux(file)
+    }
 
-      mkdirSync(path.dirname(tempPath), { recursive: true })
-      writeFileSync(tempPath, fileContent)
+    private static _writeTempSync(fileContent: FileLike) {
+        const tempPath = path.join(tempDirectory, uuid())
 
-      return tempPath
-  }
+        mkdirSync(path.dirname(tempPath), { recursive: true })
+        writeFileSync(tempPath, fileContent)
+
+        return tempPath
+    }
 }

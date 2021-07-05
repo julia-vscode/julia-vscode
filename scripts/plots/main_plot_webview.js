@@ -50,7 +50,7 @@ const REQUEST_EXPORT_PLOT_TYPE = 'requestExportPlot'
 const REQUEST_COPY_PLOT_TYPE = 'requestCopyPlot'
 
 /**
- * Fires when a export request is received, sends a message to the host with
+ * Fires when a plot request(save/copy) is received, sends a message to the host with
  * i.  The plot data url,
  * ii. The index of the plot.
  * @param {number} index
