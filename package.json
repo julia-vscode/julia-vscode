@@ -207,7 +207,7 @@
                 "icon": "$(explorer-view-icon)"
             },
             {
-                "command": "language-julia.export-plot",
+                "command": "language-julia.save-plot",
                 "title": "Julia: Save Plot",
                 "icon": "$(save-as)"
             },
@@ -386,7 +386,7 @@
                 },
                 {
                     "when": "jlplotpaneFocus",
-                    "command": "language-julia.export-plot",
+                    "command": "language-julia.save-plot",
                     "group": "navigation@1"
                 },
                 {
@@ -452,7 +452,7 @@
                 },
                 {
                     "when": "false",
-                    "command": "language-julia.export-plot"
+                    "command": "language-julia.save-plot"
                 },
                 {
                     "when": "false",
@@ -677,7 +677,7 @@
                 "when": "jlplotpaneFocus"
             },
             {
-                "command": "language-julia.export-plot",
+                "command": "language-julia.save-plot",
                 "when": "jlplotpaneFocus"
             },
             {

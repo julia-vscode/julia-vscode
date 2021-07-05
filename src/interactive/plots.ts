@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         registerCommand('language-julia.copy-plot', requestCopyPlot),
-        registerCommand('language-julia.export-plot', requestExportPlot),
+        registerCommand('language-julia.save-plot', requestExportPlot),
         registerCommand('language-julia.show-plotpane', showPlotPane),
         registerCommand('language-julia.plotpane-previous', plotPanePrev),
         registerCommand('language-julia.plotpane-next', plotPaneNext),
