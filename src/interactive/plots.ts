@@ -359,12 +359,14 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v2+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')))
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaLite}"></script>
                     <script src="${uriVegaEmbed}"></script>
@@ -394,12 +396,14 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v3+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaLite}"></script>
                     <script src="${uriVegaEmbed}"></script>
@@ -429,12 +433,14 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v4+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaLite}"></script>
                     <script src="${uriVegaEmbed}"></script>
@@ -464,11 +470,13 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v3+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')))
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaEmbed}"></script>
                 </head>
@@ -497,11 +505,13 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v4+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js')))
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaEmbed}"></script>
                 </head>
@@ -530,11 +540,13 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v5+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaEmbed}"></script>
                 </head>
