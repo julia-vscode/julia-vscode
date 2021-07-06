@@ -418,6 +418,16 @@ export function displayPlot(params: { kind: string; data: string }) {
         g_currentPlotIndex = g_plots.push(payload) - 1
         showPlotPane()
     } else if (kind === 'application/vnd.vegalite.v2+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'libs',
+                    'svg-pan-zoom',
+                    'svg-pan-zoom.min.js'
+                )
+            )
+        )
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
             vscode.Uri.file(
                 path.join(
@@ -446,6 +456,7 @@ export function displayPlot(params: { kind: string; data: string }) {
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaLite}"></script>
                     <script src="${uriVegaEmbed}"></script>
@@ -473,6 +484,16 @@ export function displayPlot(params: { kind: string; data: string }) {
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     } else if (kind === 'application/vnd.vegalite.v3+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'libs',
+                    'svg-pan-zoom',
+                    'svg-pan-zoom.min.js'
+                )
+            )
+        )
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
             vscode.Uri.file(
                 path.join(
@@ -501,6 +522,7 @@ export function displayPlot(params: { kind: string; data: string }) {
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaLite}"></script>
                     <script src="${uriVegaEmbed}"></script>
@@ -528,6 +550,16 @@ export function displayPlot(params: { kind: string; data: string }) {
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     } else if (kind === 'application/vnd.vegalite.v4+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'libs',
+                    'svg-pan-zoom',
+                    'svg-pan-zoom.min.js'
+                )
+            )
+        )
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
             vscode.Uri.file(
                 path.join(
@@ -556,6 +588,7 @@ export function displayPlot(params: { kind: string; data: string }) {
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaLite}"></script>
                     <script src="${uriVegaEmbed}"></script>
@@ -584,6 +617,16 @@ export function displayPlot(params: { kind: string; data: string }) {
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     } else if (kind === 'application/vnd.vega.v3+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'libs',
+                    'svg-pan-zoom',
+                    'svg-pan-zoom.min.js'
+                )
+            )
+        )
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
             vscode.Uri.file(
                 path.join(
@@ -602,6 +645,7 @@ export function displayPlot(params: { kind: string; data: string }) {
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaEmbed}"></script>
                 </head>
@@ -629,6 +673,16 @@ export function displayPlot(params: { kind: string; data: string }) {
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     } else if (kind === 'application/vnd.vega.v4+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'libs',
+                    'svg-pan-zoom',
+                    'svg-pan-zoom.min.js'
+                )
+            )
+        )
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
             vscode.Uri.file(
                 path.join(
@@ -647,6 +701,7 @@ export function displayPlot(params: { kind: string; data: string }) {
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaEmbed}"></script>
                 </head>
@@ -674,6 +729,16 @@ export function displayPlot(params: { kind: string; data: string }) {
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     } else if (kind === 'application/vnd.vega.v5+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'libs',
+                    'svg-pan-zoom',
+                    'svg-pan-zoom.min.js'
+                )
+            )
+        )
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
             vscode.Uri.file(
                 path.join(
@@ -692,6 +757,7 @@ export function displayPlot(params: { kind: string; data: string }) {
         const plotPaneContent = `
             <html>
                 <head>
+                    <script src="${uriSvgPanZoom}"></script>
                     <script src="${uriVega}"></script>
                     <script src="${uriVegaEmbed}"></script>
                 </head>
@@ -719,6 +785,16 @@ export function displayPlot(params: { kind: string; data: string }) {
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     } else if (kind === 'application/vnd.plotly.v1+json') {
+        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'libs',
+                    'svg-pan-zoom',
+                    'svg-pan-zoom.min.js'
+                )
+            )
+        )
         const uriPlotly = g_plotPanel.webview.asWebviewUri(
             vscode.Uri.file(
                 path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')
@@ -727,6 +803,7 @@ export function displayPlot(params: { kind: string; data: string }) {
         const plotPaneContent = `
         <html>
         <head>
+            <script src="${uriSvgPanZoom}"></script>
             <script src="${uriPlotly}"></script>
         </head>
         <body>
