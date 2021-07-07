@@ -300,15 +300,33 @@ export function plotPaneDelAll() {
 // wrap a source string with an <img> tag that shows the content
 // scaled to fit the plot pane unless the plot pane is bigger than the image
 function wrapImagelike(srcString: string) {
-    const html = `
+    const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath,'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
+
+    const isSvg = srcString.includes('data:image/svg+xml')
+    const svgTag = isSvg ?
+        decodeURIComponent(srcString).replace(/^data.*<\?xml version="1.0" encoding="utf-8"\?>\n/, '')
+        : null
+
+    return `
     <html style="padding:0;margin:0;">
+        <head>
+            <script src="${uriSvgPanZoom}"></script>
+            <style>
+                svg {
+                      max-width: 100%;
+                      position: absolute;
+                      max-height: 100vh;
+                      top: 0;
+                      left: 0;
+                    }
+            </style>
+        </head>
         <body style="padding:0;margin:0;">
             <div style="max-width: 100%; max-height: 100vh;">
-                <img id="plot-element" style="max-height: 100%; max-width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcString}">
+                ${isSvg ? svgTag : `<img id="plot-element" style="max-height: 100%; max-width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcString}">`}
             </div>
         </body>
     </html>`
-    return html
 }
 
 export function displayPlot(params: { kind: string; data: string }) {
@@ -338,6 +356,8 @@ export function displayPlot(params: { kind: string; data: string }) {
     }
 
     if (kind === 'image/svg+xml') {
+        // Enable zoom controller for non `Plotly` plots.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, true)
         const has_xmlns_attribute = payload.includes('xmlns=')
         let plotPaneContent: string
         if (has_xmlns_attribute) {
@@ -369,6 +389,8 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v2+json') {
+        // Enable zoom controller for non `Plotly` plots.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, true)
         const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js')))
@@ -406,6 +428,8 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v3+json') {
+        // Enable zoom controller for non `Plotly` plots.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, true)
         const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')))
@@ -443,6 +467,8 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v4+json') {
+        // Enable zoom controller for non `Plotly` plots.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, true)
         const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')))
@@ -480,6 +506,8 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v3+json') {
+        // Enable zoom controller for non `Plotly` plots.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, true)
         const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')))
@@ -515,6 +543,8 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v4+json') {
+        // Enable zoom controller for non `Plotly` plots.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, true)
         const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js')))
@@ -550,6 +580,8 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v5+json') {
+        // Enable zoom controller for non `Plotly` plots.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, true)
         const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
@@ -585,7 +617,7 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.plotly.v1+json') {
-        // Plot zoom controllers are disabled for Plotly.
+        // Disable zoom controllers for Plotly.
         vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, false)
         const uriPlotly = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')))
         const plotPaneContent = `

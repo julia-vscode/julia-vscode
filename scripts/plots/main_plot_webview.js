@@ -43,8 +43,8 @@ function isPlotly() {
     return document.querySelector('#plot-element .plotly') !== null
 }
 
-function isVega() {
-    return document.querySelector('#plot-element.vega-embed') !== null
+function isSvgTag() {
+    return document.querySelector('svg') !== null
 }
 
 /**
@@ -82,8 +82,8 @@ function handlePlotSaveRequest(index) {
 
             postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, index })
         })
-    } else if (isVega()) {
-        const svg = document.querySelector('#plot-element svg').outerHTML
+    } else if (isSvgTag()) {
+        const svg = document.querySelector('svg').outerHTML
 
         postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, index })
     } else {
@@ -186,13 +186,9 @@ function removePlotlyBuiltinExport() {
 }
 
 function initSvgPanZoom() {
-    let plot = getPlotElement()
+    const svgTag = document.querySelector('svg')
 
-    if (isVega()) {
-        plot = plot.querySelector('svg')
-    }
-
-    g_svgPanZoomController = svgPanZoom(plot, {
+    g_svgPanZoomController = svgPanZoom(svgTag, {
         panEnabled: true,
         zoomEnabled: true,
         dblClickZoomEnabled: true,
