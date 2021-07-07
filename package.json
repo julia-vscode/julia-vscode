@@ -405,17 +405,17 @@
                     "group": "navigation@1"
                 },
                 {
-                    "when": "jlplotpaneFocus",
+                    "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled",
                     "command": "language-julia.zoom-in-plot",
                     "group": "navigation@1"
                 },
                 {
-                    "when": "jlplotpaneFocus",
+                    "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled",
                     "command": "language-julia.zoom-reset-plot",
                     "group": "navigation@1"
                 },
                 {
-                    "when": "jlplotpaneFocus",
+                    "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled",
                     "command": "language-julia.zoom-out-plot",
                     "group": "navigation@2"
                 },
@@ -724,15 +724,15 @@
             },
             {
                 "command": "language-julia.zoom-in-plot",
-                "when": "jlplotpaneFocus"
+                "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled"
             },
             {
                 "command": "language-julia.zoom-reset-plot",
-                "when": "jlplotpaneFocus"
+                "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled"
             },
             {
                 "command": "language-julia.zoom-out-plot",
-                "when": "jlplotpaneFocus"
+                "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled"
             },
             {
                 "command": "language-julia.plotpane-delete-all",

@@ -210,7 +210,9 @@ function initSvgPanZoom() {
 window.addEventListener('load', getImage)
 window.addEventListener('load', () => {
     removePlotlyBuiltinExport()
-    initSvgPanZoom()
+    if (!isPlotly()) {
+        initSvgPanZoom()
+    }
 })
 
 window.addEventListener('message', ({ data }) => {
