@@ -1,6 +1,8 @@
 'use strict'
 
 const vscode = acquireVsCodeApi()
+let interval
+let g_svgPanZoomController
 
 function postMessageToHost(type, value) {
     if (type) {
@@ -21,7 +23,6 @@ function getPlotElement() {
     return canvas ?? plot_element
 }
 
-let interval
 function getImage() {
     const plot = getPlotElement()
     const width = plot.offsetWidth
@@ -46,13 +47,29 @@ function isVega() {
     return document.querySelector('#plot-element.vega-embed') !== null
 }
 
+/**
+ *
+ * @param {string} reqType
+ * @returns
+ */
+function isPlotZoomRequest(reqType) {
+    return [
+        REQUEST_ZOOM_IN_PLOT_TYPE,
+        REQUEST_ZOOM_RESET_PLOT_TYPE,
+        REQUEST_ZOOM_OUT_PLOT_TYPE,
+    ].some((t) => t === reqType)
+}
+
 const SAVE_PLOT_MESSAGE_TYPE = 'savePlot'
 const REQUEST_SAVE_PLOT_TYPE = 'requestSavePlot'
 const REQUEST_COPY_PLOT_TYPE = 'requestCopyPlot'
 const COPY_FAILED_MESSAGE_TYPE = 'copyFailed'
+const REQUEST_ZOOM_IN_PLOT_TYPE = 'requestZoomInPlot'
+const REQUEST_ZOOM_RESET_PLOT_TYPE = 'requestZoomResetPlot'
+const REQUEST_ZOOM_OUT_PLOT_TYPE = 'requestZoomOutPlot'
 
 /**
- * Fires when a plot request(save/copy) is received, sends a message to the host with
+ * Fires when a plot export request(save/copy) is received, sends a message to the host with
  * i.  The plot data url,
  * ii. The index of the plot.
  * @param {number} index
@@ -136,15 +153,74 @@ function handlePlotCopyRequest() {
     }
 }
 
+/**
+ *
+ * @param {number} index
+ * @param { REQUEST_ZOOM_IN_PLOT_TYPE | REQUEST_ZOOM_RESET_PLOT_TYPE | REQUEST_ZOOM_OUT_PLOT_TYPE } reqType
+ */
+function handlePlotZoomRequest(index, reqType) {
+    switch (reqType) {
+    case REQUEST_ZOOM_IN_PLOT_TYPE:
+        g_svgPanZoomController.zoomIn()
+        break
+    case REQUEST_ZOOM_RESET_PLOT_TYPE:
+        g_svgPanZoomController.reset()
+        break
+    case REQUEST_ZOOM_OUT_PLOT_TYPE:
+        g_svgPanZoomController.zoomOut()
+        break
+    default:
+        console.error(new Error('Unknown plot request!'))
+    }
+}
+
+/**
+ * Remove Plotly builtin export button; it's nonfunctional in VSCode and can confuse users.
+ */
+function removePlotlyBuiltinExport() {
+    if (isPlotly()) {
+        document.querySelector(
+            '[data-title="Download plot as a png"]'
+        ).style.display = 'none'
+    }
+}
+
+function initSvgPanZoom() {
+    let plot = getPlotElement()
+
+    if (isVega()) {
+        plot = plot.querySelector('svg')
+    }
+
+    g_svgPanZoomController = svgPanZoom(plot, {
+        panEnabled: true,
+        zoomEnabled: true,
+        dblClickZoomEnabled: true,
+        mouseWheelZoomEnabled: true,
+        preventMouseEventsDefault: true,
+        zoomScaleSensitivity: 0.2,
+        minZoom: 1,
+        maxZoom: 10,
+        fit: true,
+        center: true,
+        refreshRate: 'auto',
+    })
+}
+
 window.addEventListener('load', getImage)
 window.addEventListener('load', () => {
-    // Remove Plotly builtin export button; it's nonfunctional in VSCode and can confuse users.
-    document.querySelector(
-        '[data-title="Download plot as a png"]'
-    ).style.display = 'none'
+    removePlotlyBuiltinExport()
+    initSvgPanZoom()
 })
 
 window.addEventListener('message', ({ data }) => {
+    const { index } = data.body
+
+    if (isPlotZoomRequest(data.type)) {
+        handlePlotZoomRequest(index, data.type)
+        return
+    }
+
     switch (data.type) {
     case REQUEST_SAVE_PLOT_TYPE:
         handlePlotSaveRequest(data.body.index)

@@ -28,6 +28,9 @@ export function activate(context: vscode.ExtensionContext) {
         registerCommand('language-julia.plotpane-last', plotPaneLast),
         registerCommand('language-julia.plotpane-delete', plotPaneDel),
         registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll),
+        registerCommand('language-julia.zoom-in-plot', requestZoomInPlot),
+        registerCommand('language-julia.zoom-reset-plot', requestZoomResetPlot),
+        registerCommand('language-julia.zoom-out-plot', requestZoomOutPlot),
         registerCommand('language-julia.show-plot-navigator', () => g_plotNavigatorProvider.showPlotNavigator()),
         vscode.window.registerWebviewViewProvider('julia-plot-navigator', g_plotNavigatorProvider)
     )
@@ -679,6 +682,27 @@ function requestCopyPlot() {
     g_plotPanel.webview.postMessage({
         type: 'requestCopyPlot',
         body: { index: g_currentPlotIndex },
+    })
+}
+
+function requestZoomInPlot() {
+    g_plotPanel.webview.postMessage({
+        type: 'requestZoomInPlot',
+        body: { index: g_currentPlotIndex }
+    })
+}
+
+function requestZoomResetPlot() {
+    g_plotPanel.webview.postMessage({
+        type: 'requestZoomResetPlot',
+        body: { index: g_currentPlotIndex }
+    })
+}
+
+function requestZoomOutPlot() {
+    g_plotPanel.webview.postMessage({
+        type: 'requestZoomOutPlot',
+        body: {index: g_currentPlotIndex}
     })
 }
 
