@@ -5,6 +5,7 @@ import * as telemetry from '../telemetry'
 import { registerCommand } from '../utils'
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
+const c_juliaZoomPlotControllersEnabled = 'jlZoomPlotControllersEnabled'
 const g_plots: Array<string> = new Array<string>()
 let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
@@ -356,6 +357,12 @@ function wrapImagelike(srcString: string) {
 export function displayPlot(params: { kind: string; data: string }) {
     const kind = params.kind
     const payload = params.data
+    // Plot zoom controllers are enabled by default.
+    vscode.commands.executeCommand(
+        'setContext',
+        c_juliaZoomPlotControllersEnabled,
+        true
+    )
 
     if (kind !== 'application/vnd.dataresource+json') {
         showPlotPane()
@@ -788,15 +795,11 @@ export function displayPlot(params: { kind: string; data: string }) {
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     } else if (kind === 'application/vnd.plotly.v1+json') {
-        const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(
-            vscode.Uri.file(
-                path.join(
-                    g_context.extensionPath,
-                    'libs',
-                    'svg-pan-zoom',
-                    'svg-pan-zoom.min.js'
-                )
-            )
+        // Plot zoom controllers are disabled for Plotly.
+        vscode.commands.executeCommand(
+            'setContext',
+            c_juliaZoomPlotControllersEnabled,
+            false
         )
         const uriPlotly = g_plotPanel.webview.asWebviewUri(
             vscode.Uri.file(
@@ -806,7 +809,6 @@ export function displayPlot(params: { kind: string; data: string }) {
         const plotPaneContent = `
         <html>
         <head>
-            <script src="${uriSvgPanZoom}"></script>
             <script src="${uriPlotly}"></script>
         </head>
         <body>
