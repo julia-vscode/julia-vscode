@@ -1,3 +1,5 @@
+'use strict'
+
 const vscode = acquireVsCodeApi()
 
 function postMessageToHost(type, value) {
@@ -44,9 +46,8 @@ function isVega() {
     return document.querySelector('#plot-element.vega-embed') !== null
 }
 
-const EXPORT_PLOT_MESSAGE_TYPE = 'exportPlot'
-const COPY_PLOT_MESSAGE_TYPE = 'copyPlot'
-const REQUEST_EXPORT_PLOT_TYPE = 'requestExportPlot'
+const SAVE_PLOT_MESSAGE_TYPE = 'savePlot'
+const REQUEST_SAVE_PLOT_TYPE = 'requestSavePlot'
 const REQUEST_COPY_PLOT_TYPE = 'requestCopyPlot'
 
 /**
@@ -54,20 +55,19 @@ const REQUEST_COPY_PLOT_TYPE = 'requestCopyPlot'
  * i.  The plot data url,
  * ii. The index of the plot.
  * @param {number} index
- * @param { REQUEST_EXPORT_PLOT_TYPE | REQUEST_COPY_PLOT_TYPE} reqType
  */
-function handlePlotRequest(index, reqType) {
+function handlePlotSaveRequest(index) {
     const plot = getPlotElement()
     if (isPlotly()) {
         Plotly.Snapshot.toImage(plot, { format: 'svg' }).once('success', (url) => {
             const svg = decodeURIComponent(url).replace(/data:image\/svg\+xml,/, '')
 
-            postMessageToHost(reqType, { svg, index })
+            postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, index })
         })
     } else if (isVega()) {
         const svg = document.querySelector('#plot-element svg').outerHTML
 
-        postMessageToHost(reqType, { svg, index })
+        postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, index })
     } else {
         const { src } = plot
 
@@ -81,7 +81,56 @@ function handlePlotRequest(index, reqType) {
             ? src.replace(/data:image\/gif;base64,/, '')
             : null
 
-        postMessageToHost(reqType, { svg, png, gif, index })
+        postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, png, gif, index })
+    }
+}
+
+function handlePlotCopyRequest() {
+    const plot = document.querySelector('svg') || getPlotElement()
+    const isSvg = document.querySelector('svg') !== null
+
+    const width = plot.offsetWidth
+    const height = plot.offsetHeight
+
+    if (isSvg) {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+
+        const image = new Image()
+        const data = (new XMLSerializer()).serializeToString(plot)
+        const blob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' })
+        const url = window.URL.createObjectURL(blob)
+
+        image.onload = () => {
+            canvas.width = image.naturalWidth
+            canvas.height = image.naturalHeight
+            ctx.drawImage(image, 0, 0)
+            window.URL.revokeObjectURL(url)
+
+            canvas.toBlob((blob) => {
+                navigator.clipboard.write([
+                    new ClipboardItem({
+                        [blob.type]: blob
+                    })
+                ])
+            })
+        }
+        image.src = url
+    } else {
+        html2canvas(plot, { height, width }).then(
+            (canvas) => {
+                canvas.toBlob((blob) => {
+                    navigator.clipboard.write([
+                        new ClipboardItem({
+                            [blob.type]: blob
+                        })
+                    ])
+                })
+            },
+            (reason) => {
+                console.error(new Error(reason))
+            }
+        )
     }
 }
 
@@ -95,11 +144,11 @@ window.addEventListener('load', () => {
 
 window.addEventListener('message', ({ data }) => {
     switch (data.type) {
-    case REQUEST_EXPORT_PLOT_TYPE:
-        handlePlotRequest(data.body.index, EXPORT_PLOT_MESSAGE_TYPE)
+    case REQUEST_SAVE_PLOT_TYPE:
+        handlePlotSaveRequest(data.body.index)
         break
     case REQUEST_COPY_PLOT_TYPE:
-        handlePlotRequest(data.body.index, COPY_PLOT_MESSAGE_TYPE)
+        handlePlotCopyRequest()
         break
     default:
         console.error(new Error('Unknown plot request!'))

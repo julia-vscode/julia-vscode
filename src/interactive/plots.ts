@@ -1,16 +1,14 @@
 import * as fs from 'async-file'
-import { ExecException } from 'child_process'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
-import { ClipboardManager, registerCommand } from '../utils'
+import { registerCommand } from '../utils'
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
 let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
 let g_context: vscode.ExtensionContext = null
-const g_clipboardManager = new ClipboardManager(g_context)
 let g_plotNavigatorProvider: PlotNavigatorProvider = null
 let g_screenShotScript: string = ''
 
@@ -199,11 +197,9 @@ function plotPanelOnMessage(msg) {
             })
         }
         break
-    case 'exportPlot':
+    case 'savePlot':
         savePlot(msg.value)
         break
-    case 'copyPlot':
-        copyPlot(msg.value)
     }
 }
 
@@ -848,7 +844,7 @@ export function displayPlot(params: { kind: string; data: string }) {
  */
 function requestExportPlot() {
     g_plotPanel.webview.postMessage({
-        type: 'requestExportPlot',
+        type: 'requestSavePlot',
         body: { index: g_currentPlotIndex },
     })
 }
@@ -889,17 +885,6 @@ function savePlot(plot: ExportedPlot) {
     }
 }
 
-function copyPlot(plot: ExportedPlot) {
-    if (plot.svg !== null) {
-        copyToClipBoard(plot.svg, true)
-    } else if (plot.png !== null) {
-        const buffer = Buffer.from(plot.png, 'base64')
-        copyToClipBoard(buffer)
-    } else if (plot.gif !== null) {
-        const buffer = Buffer.from(plot.gif, 'base64')
-        copyToClipBoard(buffer)
-    }
-}
 
 /**
  * Write the plot file to disk.
@@ -924,26 +909,4 @@ function _writePlotFile(fileName: string, data: FileLike) {
             fs.writeFile(fullPath, data)
         }
     })
-}
-
-function copyToClipBoard(data: FileLike, isSvg: boolean = false) {
-    g_clipboardManager
-        .copyImage(data, isSvg)
-        .then((value: [error: ExecException, stdout: string, stderr: string]) => {
-            const [err, stdout, stderr] = value
-            if (err) {
-                if (
-                    err.code === g_clipboardManager.CommandNotFoundErr &&
-          process.platform === 'linux'
-                ) {
-                    vscode.window.showErrorMessage(
-                        ClipboardManager.isWayland()
-                            ? 'wl-clipboard'
-                            : 'xclip' + ' is not installed'
-                    )
-                } else {
-                    console.error(stdout + stderr)
-                }
-            }
-        })
 }
