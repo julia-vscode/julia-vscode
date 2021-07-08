@@ -202,6 +202,16 @@
                 "icon": "$(trash)"
             },
             {
+                "command": "language-julia.copy-plot",
+                "title": "Julia: Copy Plot",
+                "icon": "$(explorer-view-icon)"
+            },
+            {
+                "command": "language-julia.save-plot",
+                "title": "Julia: Save Plot",
+                "icon": "$(save-as)"
+            },
+            {
                 "command": "language-julia.plotpane-delete-all",
                 "title": "Julia: Delete All Plots"
             },
@@ -371,6 +381,16 @@
                 },
                 {
                     "when": "jlplotpaneFocus",
+                    "command": "language-julia.copy-plot",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus",
+                    "command": "language-julia.save-plot",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-next",
                     "group": "navigation@-1"
                 },
@@ -425,6 +445,14 @@
                 {
                     "when": "false",
                     "command": "language-julia.plotpane-delete"
+                },
+                {
+                    "when": "false",
+                    "command": "language-julia.copy-plot"
+                },
+                {
+                    "when": "false",
+                    "command": "language-julia.save-plot"
                 },
                 {
                     "when": "false",
@@ -642,6 +670,14 @@
             {
                 "command": "language-julia.plotpane-delete",
                 "key": "delete",
+                "when": "jlplotpaneFocus"
+            },
+            {
+                "command": "language-julia.copy-plot",
+                "when": "jlplotpaneFocus"
+            },
+            {
+                "command": "language-julia.save-plot",
                 "when": "jlplotpaneFocus"
             },
             {
@@ -1037,6 +1073,12 @@
                         "Mmap"
                     ],
                     "description": "Functions or modules that are set to compiled mode when setting the defaults.",
+                    "scope": "window"
+                },
+                "julia.plots.path": {
+                    "type": "string",
+                    "default": "__plots__",
+                    "description": "The output directory to save plots to",
                     "scope": "window"
                 }
             }
