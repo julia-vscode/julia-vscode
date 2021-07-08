@@ -375,16 +375,22 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'image/png') {
+        // Disable zoom controllers for png.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, false)
         const plotPaneContent = wrapImagelike(`data:image/png;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
     else if (kind === 'image/gif') {
+        // Disable zoom controllers for gif.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, false)
         const plotPaneContent = wrapImagelike(`data:image/gif;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
     else if (kind === 'juliavscode/html') {
+        // Disable zoom controllers for html.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, false)
         g_currentPlotIndex = g_plots.push(payload) - 1
         showPlotPane()
     }
@@ -648,6 +654,8 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.dataresource+json') {
+        // Disable zoom controllers for grids.
+        vscode.commands.executeCommand('setContext', c_juliaZoomPlotControllersEnabled, false)
         const grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', { preserveFocus: true, viewColumn: vscode.ViewColumn.Active }, { enableScripts: true, retainContextWhenHidden: true })
 
         const uriAgGrid = grid_panel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid-community.min.noStyle.js')))
