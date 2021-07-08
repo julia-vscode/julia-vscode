@@ -149,7 +149,6 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
           return
       }
 
-      console.log(this.plotsInfo)
       let innerHTML: string
       if (this.plotsInfo.length > 0) {
           innerHTML = `<div>
