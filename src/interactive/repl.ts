@@ -2,6 +2,7 @@ import * as fs from 'async-file'
 import { Subject } from 'await-notify'
 import { assert } from 'console'
 import * as net from 'net'
+import { homedir } from 'os'
 import * as path from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
@@ -804,7 +805,7 @@ async function linkHandler(link: any) {
         const exepath = await juliaexepath.getJuliaExePath()
         file = path.join(exepath, '..', '..', 'share', 'julia', 'base', file)
     } else if (file.startsWith('~')) {
-        file = path.join(process.platform === 'win32' ? process.env.HOMEPATH : process.env.HOME, file.slice(1))
+        file = path.join(homedir(), file.slice(1))
     }
     try {
         await openFile(file, line)
