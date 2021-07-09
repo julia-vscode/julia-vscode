@@ -5,14 +5,35 @@ import { WorkspaceFeature } from '../interactive/workspace';
 import { getJuliaExePaths, JuliaExecutable } from '../juliaexepath';
 import { JuliaKernel } from './notebookKernel';
 
+const JupyterNotebookViewType = 'jupyter-notebook';
+type JupyterNotebookMetadata = Partial<{
+    custom: {
+        metadata: {
+            kernelspec: {
+                display_name: string;
+                language: string;
+                name: string;
+          },
+            language_info: {
+                name: string;
+                version: string;
+                mimetype: string;
+                file_extension: string;
+            }
+        }
+    }
+}>
+
 export class JuliaNotebookFeature {
-    private readonly _controllers: vscode.NotebookController[] = []
+    private readonly _controllers = new Map<vscode.NotebookController, { version: string}>();
     private readonly _juliaVersions = new Map<string, JuliaExecutable>()
     private readonly kernels: Map<vscode.NotebookDocument, JuliaKernel> = new Map<vscode.NotebookDocument, JuliaKernel>()
     private _outputChannel: vscode.OutputChannel
+    private readonly disposables: vscode.Disposable[] = [];
 
     constructor(private context: vscode.ExtensionContext, private workspaceFeature: WorkspaceFeature) {
         this.init()
+        vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
     }
 
     private async init() {
@@ -23,7 +44,6 @@ export class JuliaNotebookFeature {
         // Find the highest installed version per minor version
         for (const i of juliaVersions) {
             const ver = i.getVersion()
-
             const kernelId = `julia-${semver.major(ver)}.${semver.minor(ver)}`
 
             if (this._juliaVersions.has(kernelId)) {
@@ -39,8 +59,8 @@ export class JuliaNotebookFeature {
         // Add one controller per Julia minor version that we found
         for (const [kernelId, juliaVersion] of this._juliaVersions) {
             const ver = juliaVersion.getVersion()
-
-            const controller = vscode.notebooks.createNotebookController(kernelId, 'jupyter-notebook', `Julia ${ver} Kernel`)
+            const displayName = `Julia ${ver} Kernel`;
+            const controller = vscode.notebooks.createNotebookController(kernelId, JupyterNotebookViewType, displayName)
             controller.supportedLanguages = ['julia']
             controller.supportsExecutionOrder = true
             controller.onDidChangeSelectedNotebooks((e) => {
@@ -49,11 +69,39 @@ export class JuliaNotebookFeature {
                 }
             })
             controller.executeHandler = this.executeCells.bind(this)
+            controller.onDidChangeSelectedNotebooks(({ notebook, selected }) => {
+                // If we select our controller, then update the notebook metadata with the kernel information.
+                if (!selected) {
+                    return;
+                }
+                this.updateNotebookWithSelectedKernel(notebook, displayName, ver);
+            }, this, this.disposables)
 
-            this._controllers.push(controller)
+            this._controllers.set(controller, {version: ver })
         }
     }
 
+    private onDidOpenNotebookDocument(e: vscode.NotebookDocument) {
+        if (!this.isJuliaNotebook(e) || this._controllers.size === 0) {
+            return;
+        }
+        // Get metadata from notebook (to get an hint of what version of julia is used)
+        const { name, version } = this.getKernelSpecNameAndVersion(e);
+        let preferredControllerFound = false;
+        this._controllers.forEach((info, controller) => {
+            // If we find a controller that matches the vesion in the notebook metadata, then set
+            // that controller as the preferred controller.
+            if (name.includes(info.version) || version.includes(info.version)) {
+                preferredControllerFound = true;
+                controller.updateNotebookAffinity(e, vscode.NotebookControllerAffinity.Preferred)
+            }
+        })
+        if (!preferredControllerFound) {
+            // We know its a Julia notebook, hence give preference to one of our controllers.
+            const preferredController = Array.from(this._controllers.keys())[0];
+            preferredController.updateNotebookAffinity(e, vscode.NotebookControllerAffinity.Preferred)
+        }
+    }
     private async executeCells(cells: vscode.NotebookCell[], notebook: vscode.NotebookDocument, controller: vscode.NotebookController): Promise<void> {
         // First check whether we already have a kernel running for the current notebook document
         if (!this.kernels.has(notebook)) {
@@ -74,6 +122,38 @@ export class JuliaNotebookFeature {
             await currentKernel.queueCell(cell)
         }
     }
+    private getKernelSpecNameAndVersion(notebook: vscode.NotebookDocument): {name:string; version: string} {
+        const metadata = (notebook.metadata as JupyterNotebookMetadata)?.custom.metadata;
+        const kernelspecName = metadata?.kernelspec?.name || '';
+        const version = metadata?.language_info?.version || '';
+        return this.isJuliaNotebook(notebook) ? { name: kernelspecName, version } : {name:'', version:''}
+    }
+    private updateNotebookWithSelectedKernel(notebook: vscode.NotebookDocument, name: string, version: string) {
+        // Dont edit in place, create a copy of the metadata.
+        const nbmetadata: JupyterNotebookMetadata = JSON.parse(JSON.stringify((notebook.metadata || { custom: { metadata: {}}})));
+        nbmetadata.custom.metadata.kernelspec = {
+            display_name: name,
+            language: 'julia',
+            name: name
+        }
+        nbmetadata.custom.metadata.language_info = {
+            name: name,
+            version: version,
+            mimetype: 'text/julia',
+            file_extension: '.jl'
+        }
+        // TODO: Update the notebook metadata (when its stable).
+    }
+    private isJuliaNotebook(notebook: vscode.NotebookDocument) {
+        if (notebook.notebookType !== JupyterNotebookViewType) {
+            return false;
+        }
+        const metadata = (notebook.metadata as JupyterNotebookMetadata)?.custom.metadata;
+        if (!metadata.kernelspec && metadata.language_info) {
+            return false;
+        }
+        return metadata?.kernelspec?.language?.toLowerCase() === 'julia' || metadata?.language_info?.name?.toLocaleLowerCase() === 'julia';
+    }
 
     public async restart(kernel: JuliaKernel) {
         const newKernel = new JuliaKernel(this.context.extensionPath, kernel.controller, kernel.notebook, kernel.juliaExecutable, this._outputChannel, this)
@@ -91,7 +171,8 @@ export class JuliaNotebookFeature {
 
     public dispose() {
         this.kernels.forEach(i => i.dispose())
-        this._controllers.forEach(i => i.dispose())
+        this.disposables.forEach(i => i.dispose())
+        this._controllers.forEach((_, i) => i.dispose())
         this._outputChannel.dispose()
     }
 }
