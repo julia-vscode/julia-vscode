@@ -13,7 +13,7 @@ type JupyterNotebookMetadata = Partial<{
                 display_name: string;
                 language: string;
                 name: string;
-          },
+            },
             language_info: {
                 name: string;
                 version: string;
@@ -25,7 +25,7 @@ type JupyterNotebookMetadata = Partial<{
 }>
 
 export class JuliaNotebookFeature {
-    private readonly _controllers = new Map<vscode.NotebookController, { version: string}>();
+    private readonly _controllers = new Map<vscode.NotebookController, { version: string }>();
     private readonly _juliaVersions = new Map<string, JuliaExecutable>()
     private readonly kernels: Map<vscode.NotebookDocument, JuliaKernel> = new Map<vscode.NotebookDocument, JuliaKernel>()
     private _outputChannel: vscode.OutputChannel
@@ -59,7 +59,7 @@ export class JuliaNotebookFeature {
         // Add one controller per Julia minor version that we found
         for (const [kernelId, juliaVersion] of this._juliaVersions) {
             const ver = juliaVersion.getVersion()
-            const displayName = `Julia ${ver} Kernel`;
+            const displayName = `Julia ${ver}`;
             const controller = vscode.notebooks.createNotebookController(kernelId, JupyterNotebookViewType, displayName)
             controller.supportedLanguages = ['julia']
             controller.supportsExecutionOrder = true
@@ -77,7 +77,7 @@ export class JuliaNotebookFeature {
                 this.updateNotebookWithSelectedKernel(notebook, displayName, ver);
             }, this, this.disposables)
 
-            this._controllers.set(controller, {version: ver })
+            this._controllers.set(controller, { version: ver })
         }
     }
 
@@ -138,15 +138,15 @@ export class JuliaNotebookFeature {
             await currentKernel.queueCell(cell)
         }
     }
-    private getKernelSpecNameAndVersion(notebook: vscode.NotebookDocument): {name:string; version: string} {
+    private getKernelSpecNameAndVersion(notebook: vscode.NotebookDocument): { name: string; version: string } {
         const metadata = (notebook.metadata as JupyterNotebookMetadata)?.custom.metadata;
         const kernelspecName = metadata?.kernelspec?.name || '';
         const version = metadata?.language_info?.version || '';
-        return this.isJuliaNotebook(notebook) ? { name: kernelspecName, version } : {name:'', version:''}
+        return this.isJuliaNotebook(notebook) ? { name: kernelspecName, version } : { name: '', version: '' }
     }
     private updateNotebookWithSelectedKernel(notebook: vscode.NotebookDocument, name: string, version: string) {
         // Dont edit in place, create a copy of the metadata.
-        const nbmetadata: JupyterNotebookMetadata = JSON.parse(JSON.stringify((notebook.metadata || { custom: { metadata: {}}})));
+        const nbmetadata: JupyterNotebookMetadata = JSON.parse(JSON.stringify((notebook.metadata || { custom: { metadata: {} } })));
         nbmetadata.custom.metadata.kernelspec = {
             display_name: name,
             language: 'julia',
