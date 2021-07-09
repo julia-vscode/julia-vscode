@@ -125,7 +125,7 @@ export class JuliaKernel {
         }
         else {
             // First, figure out whether the notebook is in the workspace
-            if (this.notebook.uri.scheme==='file' && vscode.workspace.getWorkspaceFolder(this.notebook.uri) !== undefined) {
+            if (this.notebook.uri.scheme === 'file' && vscode.workspace.getWorkspaceFolder(this.notebook.uri) !== undefined) {
                 let currentFolder = path.dirname(this.notebook.uri.fsPath)
 
                 // We run this loop until we are looking at a folder that is no longer part of the workspace
@@ -165,6 +165,9 @@ export class JuliaKernel {
                     execution.appendOutput(new vscode.NotebookCellOutput(items.map(item => {
                         if (item.mimetype === 'image/png' || item.mimetype === 'image/jpeg') {
                             return new vscode.NotebookCellOutputItem(Buffer.from(item.data, 'base64'), item.mimetype)
+                        }
+                        else if (item.mimetype.endsWith('+json')) {
+                            return vscode.NotebookCellOutputItem.json(item.data, item.mimetype)
                         }
                         else {
                             return vscode.NotebookCellOutputItem.text(item.data, item.mimetype)
