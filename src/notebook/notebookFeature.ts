@@ -13,7 +13,7 @@ type JupyterNotebookMetadata = Partial<{
                 display_name: string;
                 language: string;
                 name: string;
-          },
+            },
             language_info: {
                 name: string;
                 version: string;
@@ -25,7 +25,7 @@ type JupyterNotebookMetadata = Partial<{
 }>
 
 export class JuliaNotebookFeature {
-    private readonly _controllers = new Map<vscode.NotebookController, { version: string}>();
+    private readonly _controllers: vscode.NotebookController[] = []
     private readonly _juliaVersions = new Map<string, JuliaExecutable>()
     private readonly kernels: Map<vscode.NotebookDocument, JuliaKernel> = new Map<vscode.NotebookDocument, JuliaKernel>()
     private _outputChannel: vscode.OutputChannel
@@ -77,30 +77,23 @@ export class JuliaNotebookFeature {
                 this.updateNotebookWithSelectedKernel(notebook, displayName, ver);
             }, this, this.disposables)
 
-            this._controllers.set(controller, {version: ver })
+            this._controllers.push(controller)
         }
     }
 
     private onDidOpenNotebookDocument(e: vscode.NotebookDocument) {
-        if (!this.isJuliaNotebook(e) || this._controllers.size === 0) {
+        if (!this.isJuliaNotebook(e) || this._controllers.length === 0) {
             return;
         }
         // Get metadata from notebook (to get an hint of what version of julia is used)
-        const { name, version } = this.getKernelSpecNameAndVersion(e);
-        let preferredControllerFound = false;
-        this._controllers.forEach((info, controller) => {
+        const name = this.getKernelSpecName(e);
+        this._controllers.forEach(controller => {
             // If we find a controller that matches the vesion in the notebook metadata, then set
             // that controller as the preferred controller.
-            if (name.includes(info.version) || version.includes(info.version)) {
-                preferredControllerFound = true;
+            if (name === controller.id) {
                 controller.updateNotebookAffinity(e, vscode.NotebookControllerAffinity.Preferred)
             }
         })
-        if (!preferredControllerFound) {
-            // We know its a Julia notebook, hence give preference to one of our controllers.
-            const preferredController = Array.from(this._controllers.keys())[0];
-            preferredController.updateNotebookAffinity(e, vscode.NotebookControllerAffinity.Preferred)
-        }
     }
     private async executeCells(cells: vscode.NotebookCell[], notebook: vscode.NotebookDocument, controller: vscode.NotebookController): Promise<void> {
         // First check whether we already have a kernel running for the current notebook document
@@ -138,15 +131,14 @@ export class JuliaNotebookFeature {
             await currentKernel.queueCell(cell)
         }
     }
-    private getKernelSpecNameAndVersion(notebook: vscode.NotebookDocument): {name:string; version: string} {
+    private getKernelSpecName(notebook: vscode.NotebookDocument): string {
         const metadata = (notebook.metadata as JupyterNotebookMetadata)?.custom.metadata;
         const kernelspecName = metadata?.kernelspec?.name || '';
-        const version = metadata?.language_info?.version || '';
-        return this.isJuliaNotebook(notebook) ? { name: kernelspecName, version } : {name:'', version:''}
+        return this.isJuliaNotebook(notebook) ? kernelspecName : ''
     }
     private updateNotebookWithSelectedKernel(notebook: vscode.NotebookDocument, name: string, version: string) {
         // Dont edit in place, create a copy of the metadata.
-        const nbmetadata: JupyterNotebookMetadata = JSON.parse(JSON.stringify((notebook.metadata || { custom: { metadata: {}}})));
+        const nbmetadata: JupyterNotebookMetadata = JSON.parse(JSON.stringify((notebook.metadata || { custom: { metadata: {} } })));
         nbmetadata.custom.metadata.kernelspec = {
             display_name: name,
             language: 'julia',
@@ -188,7 +180,7 @@ export class JuliaNotebookFeature {
     public dispose() {
         this.kernels.forEach(i => i.dispose())
         this.disposables.forEach(i => i.dispose())
-        this._controllers.forEach((_, i) => i.dispose())
+        this._controllers.forEach(i => i.dispose())
         this._outputChannel.dispose()
     }
 }
