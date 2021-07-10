@@ -43,6 +43,7 @@
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
         "onCommand:language-julia.executeCell",
+        "onCommand:language-julia.executeLastCachedCode",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
         "onCommand:language-julia.moveCellUp",
@@ -212,6 +213,10 @@
             {
                 "command": "language-julia.executeCellAndMove",
                 "title": "Julia: Execute Code Cell in REPL and Move"
+            },
+            {
+                "command": "language-julia.executeLastCachedCode",
+                "title": "Julia: Reexecute Last Cached Code or Cell"
             },
             {
                 "command": "language-julia.moveCellUp",
@@ -933,6 +938,11 @@
                     "default": false,
                     "description": "Print executed code in REPL and append it to the REPL history.",
                     "scope": "window"
+                },
+                "julia.execution.executeLastCodeWithSemicolon": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Execute last code run with a closing semicolon to only print what we explicitely print during the rerun."
                 },
                 "julia.packageServer": {
                     "type": "string",
