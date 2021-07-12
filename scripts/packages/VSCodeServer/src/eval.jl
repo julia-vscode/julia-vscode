@@ -178,12 +178,14 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                         end
                     end
                 else
-                    try
-                        Base.invokelatest(display, InlineDisplay(), res)
-                    catch err
-                        if !(err isa MethodError)
-                            printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                            Base.display_error(stderr, err, catch_backtrace())
+                    if !ends_with_semicolon(source_code)
+                        try
+                            Base.invokelatest(display, InlineDisplay(), res)
+                        catch err
+                            if !(err isa MethodError)
+                                printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                                Base.display_error(stderr, err, catch_backtrace())
+                            end
                         end
                     end
                 end

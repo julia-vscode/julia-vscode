@@ -568,7 +568,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
         if (selection.isEmpty) {
             const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor.document, startpos))
-            range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
+            range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character + 1)
             nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
         } else {
             range = new vscode.Range(selection.start, selection.end)
@@ -604,9 +604,10 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     const section = vscode.workspace.getConfiguration('julia')
     const resultType: string = section.get('execution.resultType')
     const codeInREPL: boolean = section.get('execution.codeInREPL')
+    const isSuppressed: boolean = text.endsWith(';')
 
     let r: results.Result = null
-    if (resultType !== 'REPL') {
+    if (resultType !== 'REPL' && !isSuppressed) {
         r = results.addResult(editor, range, ' ⟳ ', '')
     }
 
@@ -625,7 +626,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         }
     )
 
-    if (resultType !== 'REPL') {
+    if (resultType !== 'REPL' && !isSuppressed) {
         if (result.stackframe) {
             results.clearStackTrace()
             results.setStackTrace(r, result.all, result.stackframe)
