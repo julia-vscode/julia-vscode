@@ -38,10 +38,16 @@ async function main() {
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css', 'libs/fontawesome/solid.min.css')
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css', 'libs/fontawesome/brands.min.css')
 
-    for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer', 'DebugAdapter', 'ChromeProfileFormat', 'IJuliaCore']) {
+    for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer', 'DebugAdapter', 'ChromeProfileFormat']) {
         await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
+
+    for (const pkg of ['IJuliaCore']) {
+        await cp.exec('git checkout main', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
+        await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
+    }
+
 
     for (const pkg of ['CodeTracking', 'CoverageTools', 'FilePathsBase', 'JuliaInterpreter', 'LoweredCodeUtils', 'OrderedCollections', 'PackageCompiler', 'Revise', 'Tokenize', 'URIParser']) {
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
