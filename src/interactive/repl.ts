@@ -438,12 +438,12 @@ async function getBlockRange(params: VersionedTextDocumentPositionParams) {
         return await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
-            vscode.window.showErrorMessage(err)
-            return zeroReturn
+            vscode.window.showErrorMessage(err.message)
         } else {
             console.error(err)
-            throw err
+            vscode.window.showErrorMessage('Error while communicating with the LS. Check Outputs > Julia Language Server for additional information.')
         }
+        return zeroReturn
     }
 }
 
