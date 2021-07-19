@@ -802,6 +802,15 @@
                     "description": "Use an existing custom sysimage when starting the REPL",
                     "scope": "application"
                 },
+                "julia.symbolCacheDownload": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "default": null,
+                    "description": "Download symbol server cache files from GitHub.",
+                    "scope": "application"
+                },
                 "julia.NumThreads": {
                     "type": [
                         "integer",
