@@ -17,7 +17,7 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
 end
 
 try
-    if length(Base.ARGS) != 5
+    if length(Base.ARGS) != 6
         error("Invalid number of arguments passed to julia language server.")
     end
 
@@ -54,7 +54,8 @@ try
         Base.ARGS[1],
         Base.ARGS[4],
         (err, bt)->global_err_handler(err, bt, Base.ARGS[3], "Language Server"),
-        symserver_store_path
+        symserver_store_path,
+        ARGS[6] == "download"
     )
     run(server)
 catch err
