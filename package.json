@@ -892,7 +892,7 @@
                 },
                 "julia.completionmode": {
                     "type": "string",
-                    "default": "import",
+                    "default": "qualify",
                     "description": "Sets the mode for completions.",
                     "enum": [
                         "exportedonly",
@@ -908,7 +908,7 @@
                 },
                 "julia.execution.resultType": {
                     "type": "string",
-                    "default": "REPL",
+                    "default": "both",
                     "description": "Specifies how to show inline execution results",
                     "enum": [
                         "REPL",
