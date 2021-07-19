@@ -532,14 +532,24 @@
         },
         "keybindings": [
             {
-                "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+Enter",
+                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
+                "key": "Shift+Enter",
                 "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
-                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
-                "key": "alt+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "command": "language-julia.executeCodeBlockOrSelection",
+                "key": "Meta+Enter",
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
+            },
+            {
+                "command": "language-julia.executeCell",
+                "key": "Alt+Enter",
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
+            },
+            {
+                "command": "language-julia.executeCellAndMove",
+                "key": "Alt+Shift+Enter",
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.interrupt",
@@ -547,24 +557,19 @@
                 "when": "terminalFocus && isJuliaREPL && isJuliaEvaluating"
             },
             {
-                "command": "language-julia.executeCellAndMove",
-                "key": "shift+Enter",
-                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
-            },
-            {
                 "command": "language-julia.clearCurrentInlineResult",
-                "key": "Ctrl+I Ctrl+D",
+                "key": "Escape",
                 "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && juliaHasInlineResult"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
                 "key": "ctrl+I ctrl+C",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.chooseModule",
                 "key": "Alt+J Alt+M",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.startREPL",
@@ -577,17 +582,30 @@
             {
                 "command": "language-julia.changeCurrentEnvironment",
                 "key": "Alt+J Alt+E",
-                "when": "editorTextFocus && editorLangId == julia"
-            },
-            {
-                "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == juliamarkdown"
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.show-documentation",
                 "key": "alt+J alt+D",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
+            },
+            {
+                "key": "alt+j alt+p",
+                "command": "language-julia.show-plotpane"
+            },
+            {
+                "key": "alt+j alt+w",
+                "command": "REPLVariables.focus"
+            },
+            {
+                "key": "escape",
+                "command": "language-julia.clearCurrentInlineResult",
+                "when": "editorTextFocus && juliaHasInlineResult && !editorHasSelection && !findWidgetVisible && !inSnippetMode && !isInEmbeddedEditor && !markerNavigationVisible && !onTypeRenameInputVisible && !parameterHintsVisible && !renameInputVisible && !suggestWidgetVisible && editorLangId == 'julia'"
+            },
+            {
+                "key": "ctrl+shift+c",
+                "command": "language-julia.interrupt",
+                "when": "isJuliaEvaluating"
             },
             {
                 "command": "language-julia.browse-back-documentation",
