@@ -2,6 +2,9 @@ if VERSION < v"1.0.0"
     error("VS Code julia language server only works with julia 1.0.0+")
 end
 
+using Logging
+global_logger(ConsoleLogger(stderr))
+
 @info "Starting the Julia Language Server"
 
 using InteractiveUtils, Sockets
