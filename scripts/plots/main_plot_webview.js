@@ -49,6 +49,7 @@ function isVega() {
 const SAVE_PLOT_MESSAGE_TYPE = 'savePlot'
 const REQUEST_SAVE_PLOT_TYPE = 'requestSavePlot'
 const REQUEST_COPY_PLOT_TYPE = 'requestCopyPlot'
+const COPY_FAILED_MESSAGE_TYPE = 'copyFailed'
 
 /**
  * Fires when a plot request(save/copy) is received, sends a message to the host with
@@ -97,7 +98,7 @@ function handlePlotCopyRequest() {
         const ctx = canvas.getContext('2d')
 
         const image = new Image()
-        const data = (new XMLSerializer()).serializeToString(plot)
+        const data = new XMLSerializer().serializeToString(plot)
         const blob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' })
         const url = window.URL.createObjectURL(blob)
 
@@ -110,8 +111,8 @@ function handlePlotCopyRequest() {
             canvas.toBlob((blob) => {
                 navigator.clipboard.write([
                     new ClipboardItem({
-                        [blob.type]: blob
-                    })
+                        [blob.type]: blob,
+                    }),
                 ])
             })
         }
@@ -122,12 +123,13 @@ function handlePlotCopyRequest() {
                 canvas.toBlob((blob) => {
                     navigator.clipboard.write([
                         new ClipboardItem({
-                            [blob.type]: blob
-                        })
+                            [blob.type]: blob,
+                        }),
                     ])
                 })
             },
             (reason) => {
+                postMessageToHost(COPY_FAILED_MESSAGE_TYPE)
                 console.error(new Error(reason))
             }
         )

@@ -199,6 +199,8 @@ function plotPanelOnMessage(msg) {
     case 'savePlot':
         savePlot(msg.value)
         break
+    case 'copyFailed':
+        vscode.window.showWarningMessage('Failed to copy plot.')
     }
 }
 
