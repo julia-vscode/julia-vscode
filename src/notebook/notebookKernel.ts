@@ -5,33 +5,16 @@ import * as net from 'net'
 import * as path from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
-import {
-    CancellationToken,
-    createMessageConnection,
-    MessageConnection,
-    NotificationType,
-    RequestType,
-    StreamMessageReader,
-    StreamMessageWriter
-} from 'vscode-jsonrpc/node'
+import { CancellationToken, createMessageConnection, MessageConnection, NotificationType, RequestType, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { getAbsEnvPath } from '../jlpkgenv'
 import { JuliaExecutable } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
 
-const notifyTypeDisplay = new NotificationType<{
-  items: { mimetype: string; data: string }[];
-}>('notebook/display')
-const notifyTypeStreamoutput = new NotificationType<{
-  name: string;
-  data: string;
-}>('streamoutput')
-const requestTypeRunCell = new RequestType<
-  { code: string },
-  { success: boolean; error: { message: string; name: string; stack: string } },
-  void
->('notebook/runcell')
+const notifyTypeDisplay = new NotificationType<{ items: { mimetype: string, data: string }[] }>('notebook/display')
+const notifyTypeStreamoutput = new NotificationType<{ name: string, data: string }>('streamoutput')
+const requestTypeRunCell = new RequestType<{ code: string }, { success: boolean, error: { message: string, name: string, stack: string } }, void>('notebook/runcell')
 
 // function getDisplayPathName(pathValue: string): string {
 //     return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue

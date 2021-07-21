@@ -177,7 +177,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
             if (all) {
                 this._compiledItems.add(id + '.')
             }
-            const removed = this._compiledItems.delete('-' + id)
+            let removed = this._compiledItems.delete('-' + id)
             if (!removed) {
                 this._compiledItems.add(id)
             }
