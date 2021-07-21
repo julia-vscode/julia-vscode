@@ -37,6 +37,8 @@ function getSearchPaths(): string[] {
     let pathsToSearch = []
     if (process.platform === 'win32') {
         pathsToSearch = ['julia.exe',
+            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.3', 'bin', 'julia.exe'),
+            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.2', 'bin', 'julia.exe'),
             path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.1', 'bin', 'julia.exe'),
             path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.0', 'bin', 'julia.exe'),
             path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.4', 'bin', 'julia.exe'),

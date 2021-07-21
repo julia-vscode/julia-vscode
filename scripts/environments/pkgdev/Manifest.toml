@@ -52,15 +52,15 @@ version = "0.9.10"
 
 [[GitHub]]
 deps = ["Base64", "Dates", "HTTP", "JSON", "MbedTLS", "Sockets", "SodiumSeal"]
-git-tree-sha1 = "a4f61fc1b1724e6eec1d9333eac2d4b01d8fcc8f"
+git-tree-sha1 = "9e62f3eae4a2514d1de65cc2ac9d1669032a4595"
 uuid = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
-version = "5.4.0"
+version = "5.6.0"
 
 [[HTTP]]
-deps = ["Base64", "Dates", "IniFile", "MbedTLS", "NetworkOptions", "Sockets", "URIs"]
-git-tree-sha1 = "86ed84701fbfd1142c9786f8e53c595ff5a4def9"
+deps = ["Base64", "Dates", "IniFile", "Logging", "MbedTLS", "NetworkOptions", "Sockets", "URIs"]
+git-tree-sha1 = "c6a1fff2fd4b1da29d3dccaffb1e1001244d844e"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "0.9.10"
+version = "0.9.12"
 
 [[IniFile]]
 deps = ["Test"]
@@ -230,9 +230,9 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Tokenize]]
-git-tree-sha1 = "37018506dc445ad7db288442fbb846105f26c43f"
+git-tree-sha1 = "eee92eda3cc8e104b7e56ff4c1fcf0d78ca37c89"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.17"
+version = "0.5.18"
 
 [[URIs]]
 git-tree-sha1 = "97bbe755a53fe859669cd907f2d96aee8d2c1355"

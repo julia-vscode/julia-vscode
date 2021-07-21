@@ -7,7 +7,7 @@ import { unwatchFile, watchFile } from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn } from 'vscode-languageclient/node'
+import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions } from 'vscode-languageclient/node'
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
@@ -46,7 +46,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         g_context = context
 
-        console.log('Activating extension language-julia')
+        console.debug('Activating extension language-julia')
 
         // Config change
         context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(changeConfig))
@@ -80,6 +80,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
+
+        if (vscode.workspace.getConfiguration('julia').get<boolean>('symbolCacheDownload') === null) {
+            vscode.window.showInformationMessage('The extension will now download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.', 'Open Settings').then(() => {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.symbolCacheDownload')
+            })
+            vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, true)
+        }
 
         // Start language server
         startLanguageServer()
@@ -173,18 +180,23 @@ async function startLanguageServer() {
     try {
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
-        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.')
+        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(() => {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+        })
         vscode.window.showErrorMessage(e)
         g_startupNotification.hide()
         return
     }
 
-    const languageServerDepotPath = path.join(g_context.globalStoragePath, 'lsdepot', 'v1')
+    const storagePath = g_context.globalStorageUri.fsPath
+    const useSymserverDownloads = vscode.workspace.getConfiguration('julia').get('symbolCacheDownload') ? 'download' : 'local'
+
+    const languageServerDepotPath = path.join(storagePath, 'lsdepot', 'v1')
     await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
     const envForLSPath = path.join(g_context.extensionPath, 'scripts', 'environments', 'languageserver')
-    const serverArgsRun = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath]
-    const serverArgsDebug = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, g_context.globalStoragePath]
+    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads]
+    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads]
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -197,7 +209,7 @@ async function startLanguageServer() {
 
     const jlexepath = await juliaexepath.getJuliaExePath()
 
-    const serverOptions = {
+    const serverOptions: ServerOptions = {
         run: { command: jlexepath, args: serverArgsRun, options: spawnOptions },
         debug: { command: jlexepath, args: serverArgsDebug, options: spawnOptions }
     }
@@ -286,7 +298,9 @@ async function startLanguageServer() {
         })
     }
     catch (e) {
-        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.')
+        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(() => {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+        })
         setLanguageClient()
         disposable.dispose()
         g_startupNotification.hide()

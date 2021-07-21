@@ -35,6 +35,7 @@ end
 
 function sendDisplayMsg(kind, data)
     JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,String}("kind" => kind, "data" => data))
+    JSONRPC.flush(conn_endpoint[])
 end
 
 function display(d::InlineDisplay, m::MIME, x)
