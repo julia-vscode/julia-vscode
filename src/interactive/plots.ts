@@ -881,6 +881,8 @@ function savePlot(plot: ExportedPlot) {
         const fileName = `${plotName}.gif`
         const buffer = Buffer.from(plot.gif, 'base64')
         _writePlotFile(fileName, buffer)
+    } else {
+        vscode.window.showWarningMessage('Failed to save plot, supported formats are svg, png, and gif.')
     }
 }
 
@@ -899,14 +901,18 @@ function _writePlotFile(fileName: string, data: FileLike) {
     const plotsDirFullPath = path.join(rootPath, defaultPlotsDir)
     const plotFileFullPath = path.join(plotsDirFullPath, fileName)
 
-    fs.exists(plotsDirFullPath).then(plotsDirExists => {
-        if (!plotsDirExists) {
-            fs.mkdir(plotsDirFullPath)
-        }
-    })
+    try {
+        fs.exists(plotsDirFullPath).then(plotsDirExists => {
+            if (!plotsDirExists) {
+                fs.mkdir(plotsDirFullPath)
+            }
+        })
+        vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(plotFileFullPath) }).then(saveURI => {
+            fs.writeFile(saveURI.fsPath, data)
+        })
+    } catch (e) {
+        console.error(e)
+        vscode.window.showWarningMessage('Failed to save plot.')
 
-    vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(plotFileFullPath) }).then(saveURI => {
-        console.log({path: saveURI.path})
-        fs.writeFile(saveURI.fsPath, data)
-    })
+    }
 }
