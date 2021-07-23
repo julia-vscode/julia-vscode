@@ -64,8 +64,7 @@ export class JuliaKernel {
         const execution = this.controller.createNotebookCellExecution(cell)
         execution.executionOrder = executionOrder
 
-        // TODO For some reason this doesn't work here
-        // await execution.clearOutput()
+        await execution.clearOutput()
 
         this._scheduledExecutionRequests.push(execution)
 
@@ -87,9 +86,6 @@ export class JuliaKernel {
                 else {
                     const runStartTime = Date.now()
                     this._currentExecutionRequest.start(runStartTime)
-
-                    // TODO Ideally we would clear output at scheduling already, but for now do it here
-                    await this._currentExecutionRequest.clearOutput()
 
                     const result = await this._msgConnection.sendRequest(
                         requestTypeRunCell,
