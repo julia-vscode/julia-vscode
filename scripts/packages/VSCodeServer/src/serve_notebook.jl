@@ -16,7 +16,7 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
 
             IJuliaCore.flush_all()
 
-            if result !== nothing
+            if result !== nothing && !ends_with_semicolon(code)
                 Base.invokelatest(Base.display, result)
             end
 
