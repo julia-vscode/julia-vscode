@@ -1,20 +1,29 @@
-const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NamedTuple{(:code,),Tuple{String}}, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
+JSONRPC.@dict_readable struct NotebookRunCellArguments <: JSONRPC.Outbound
+    filename::String
+    line::Int
+    column::Int
+    code::String
+end
 
-function notebook_runcell_request(conn, params::NamedTuple{(:code,),Tuple{String}})
-    decoded_msg = params.code
+const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NotebookRunCellArguments, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
+function notebook_runcell_request(conn, params::NotebookRunCellArguments)
     try
-        result = Base.invokelatest(include_string, Main, decoded_msg, "FOO")
+        code = string('\n'^params.line, ' '^params.column, params.code)
 
-        IJuliaCore.flush_all()
+        withpath(params.filename) do
+            result = Base.invokelatest(include_string, Main, code, params.filename)
 
-        if result !== nothing
-            Base.invokelatest(Base.display, result)
+            IJuliaCore.flush_all()
+
+            if result !== nothing
+                Base.invokelatest(Base.display, result)
+            end
+
+            IJuliaCore.flush_all()
+
+            return (success = true, error = (message = "", name = "", stack = ""))
         end
-
-        IJuliaCore.flush_all()
-
-        return (success = true, error = (message = "", name = "", stack = ""))
     catch err
         bt = catch_backtrace()
 
