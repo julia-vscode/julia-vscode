@@ -24,14 +24,28 @@ try
         error("Invalid number of arguments passed to julia language server.")
     end
 
-    conn = stdout
-    (outRead, outWrite) = redirect_stdout()
-
-    if Base.ARGS[2] == "--debug=yes"
-        ENV["JULIA_DEBUG"] = "all"
-    elseif Base.ARGS[2] != "--debug=no"
+    debug_mode = if Base.ARGS[2] == "--debug=yes"
+        true
+    elseif Base.ARGS[2] == "--debug=no"
+        false
+    else
         error("Invalid argument passed.")
     end
+
+    if debug_mode
+        ENV["JULIA_DEBUG"] = "all"
+    end
+
+    if debug_mode
+        serv = listen(7777)
+        global conn_in = accept(serv)
+        global conn_out = conn_in
+    else
+        global conn_in = stdin
+        global conn_out = stdout
+        (outRead, outWrite) = redirect_stdout()
+    end
+
 
     try
         using LanguageServer, SymbolServer
@@ -52,8 +66,8 @@ try
     @info "Symbol server store is at '$symserver_store_path'."
 
     server = LanguageServerInstance(
-        stdin,
-        conn,
+        conn_in,
+        conn_out,
         Base.ARGS[1],
         Base.ARGS[4],
         (err, bt)->global_err_handler(err, bt, Base.ARGS[3], "Language Server"),

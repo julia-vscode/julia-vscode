@@ -33,6 +33,31 @@
                 "${workspaceFolder}/out/test/**/*.js"
             ],
             "preLaunchTask": "npm: test-compile"
+        },
+        {
+            "name": "Run LSP",
+            "type": "julia",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/languageserver/main.jl",
+            "stopOnEntry": false,
+            "cwd": "${workspaceFolder}/scripts/languageserver",
+            "args": [
+                "", // Environment
+                "--debug=yes",
+                "", // Telemetry pipename
+                "", // Old depot path,
+                "${workspaceFolder}/globalstorage", // Storage path
+                "download" // useSymserverDownloads
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Run Extension and LSP",
+            "configurations": [
+                "Run Extension",
+                "Run LSP"
+            ]
         }
     ]
 }
