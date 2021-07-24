@@ -59,8 +59,13 @@ export class JuliaKernel {
     }
 
     public async queueCell(cell: vscode.NotebookCell): Promise<void> {
-        const executionOrder = ++this._current_request_id
+        // First clear output
+        const clearOutputExecution = this.controller.createNotebookCellExecution(cell)
+        clearOutputExecution.start()
+        await clearOutputExecution.clearOutput()
+        clearOutputExecution.end(undefined)
 
+        // Now create execution object that actually will run the code
         const execution = this.controller.createNotebookCellExecution(cell)
         execution.executionOrder = executionOrder
 
