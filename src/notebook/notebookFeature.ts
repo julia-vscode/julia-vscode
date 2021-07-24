@@ -63,6 +63,8 @@ export class JuliaNotebookFeature {
             const controller = vscode.notebooks.createNotebookController(kernelId, JupyterNotebookViewType, displayName)
             controller.supportedLanguages = ['julia']
             controller.supportsExecutionOrder = true
+            controller.description = 'Julia VS Code extension'
+            controller.detail = juliaVersion.path
             controller.onDidChangeSelectedNotebooks((e) => {
                 if (e.selected && e.notebook) {
                     e.notebook.getCells().filter(cell => cell.kind === vscode.NotebookCellKind.Code).map(cell => vscode.languages.setTextDocumentLanguage(cell.document, 'julia'))
