@@ -35,7 +35,7 @@
             "preLaunchTask": "npm: test-compile"
         },
         {
-            "name": "Run LSP",
+            "name": "Run LS",
             "type": "julia",
             "request": "launch",
             "program": "${workspaceFolder}/scripts/languageserver/main.jl",
@@ -47,16 +47,36 @@
                 "", // Telemetry pipename
                 "", // Old depot path,
                 "${workspaceFolder}/globalstorage", // Storage path
-                "download" // useSymserverDownloads
+                "download", // useSymserverDownloads
+                "--detached=yes"
             ]
+        },
+        {
+            "name": "Run Extension with detached LS",
+            "type": "extensionHost",
+            "request": "launch",
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceRoot}"
+            ],
+            "stopOnEntry": false,
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceRoot}/dist/**/*.js"
+            ],
+            "preLaunchTask": "npm: webpack",
+            "env": {
+                "DEBUG_MODE": "true",
+                "DETACHED_LS": "true"
+            }
         }
     ],
     "compounds": [
         {
             "name": "Run Extension and LSP",
             "configurations": [
-                "Run Extension",
-                "Run LSP"
+                "Run Extension with detached LS",
+                "Run LS"
             ]
         }
     ]

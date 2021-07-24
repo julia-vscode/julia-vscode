@@ -196,7 +196,8 @@ async function startLanguageServer() {
     await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
     const envForLSPath = path.join(g_context.extensionPath, 'scripts', 'environments', 'languageserver')
-    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads]
+    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, '--detached=no']
+    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, '--detached=no']
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -209,13 +210,16 @@ async function startLanguageServer() {
 
     const jlexepath = await juliaexepath.getJuliaExePath()
 
-    const serverOptions: ServerOptions = Boolean(process.env.DEBUG_MODE) ?
+    const serverOptions: ServerOptions = Boolean(process.env.DETACHED_LS) ?
         async () => {
             // TODO Add some loop here that retries in case the LSP is not yet ready
             const conn = net.connect(7777)
             return { reader: conn, writer: conn, detached: true }
         } :
-        { command: jlexepath, args: serverArgsRun, options: spawnOptions }
+        {
+            run: { command: jlexepath, args: serverArgsRun, options: spawnOptions },
+            debug: { command: jlexepath, args: serverArgsDebug, options: spawnOptions }
+        }
 
     const clientOptions: LanguageClientOptions = {
         documentSelector: ['julia', 'juliamarkdown'],
