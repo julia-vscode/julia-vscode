@@ -67,10 +67,7 @@ export class JuliaKernel {
 
         // Now create execution object that actually will run the code
         const execution = this.controller.createNotebookCellExecution(cell)
-        execution.executionOrder = executionOrder
-
-        await execution.clearOutput()
-
+        execution.token.onCancellationRequested(e=>execution.end(undefined))
         this._scheduledExecutionRequests.push(execution)
 
         this._processExecutionRequests.notify()
@@ -86,9 +83,11 @@ export class JuliaKernel {
                 this._currentExecutionRequest = this._scheduledExecutionRequests.shift()
 
                 if (this._currentExecutionRequest.token.isCancellationRequested) {
-                    this._currentExecutionRequest.end(undefined)
                 }
                 else {
+                    const executionOrder = ++this._current_request_id
+                    this._currentExecutionRequest.executionOrder = executionOrder
+
                     const runStartTime = Date.now()
                     this._currentExecutionRequest.start(runStartTime)
 
