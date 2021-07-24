@@ -1048,6 +1048,12 @@
                     ],
                     "description": "Functions or modules that are set to compiled mode when setting the defaults.",
                     "scope": "window"
+                },
+                "julia.notebookController": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable the experimental native Jupyter notebook integration.",
+                    "scope": "application"
                 }
             }
         },

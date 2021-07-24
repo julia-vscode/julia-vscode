@@ -32,8 +32,13 @@ export class JuliaNotebookFeature {
     private readonly disposables: vscode.Disposable[] = [];
 
     constructor(private context: vscode.ExtensionContext, private workspaceFeature: WorkspaceFeature) {
-        this.init()
-        vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
+        const section = vscode.workspace.getConfiguration('julia')
+        const enabled = section ? section.get<boolean>('notebookController', false) : false
+        if (enabled) {
+            this.init()
+
+            vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
+        }
     }
 
     private async init() {
