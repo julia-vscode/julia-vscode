@@ -91,7 +91,7 @@ export class JuliaKernel {
                     // TODO Ideally we would clear output at scheduling already, but for now do it here
                     await this._currentExecutionRequest.clearOutput()
 
-                    const result = await this._msgConnection.sendRequest(requestTypeRunCell, { code: this._currentExecutionRequest.cell.document.getText() })
+                    const result = await this._msgConnection.sendRequest(requestTypeRunCell, { code: this._currentExecutionRequest.cell.document.getText() }, this._currentExecutionRequest.token)
 
                     if (!result.success) {
                         this._currentExecutionRequest.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(result.error)]))

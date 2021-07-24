@@ -23,6 +23,7 @@ end
 
 include("../../JSON/src/JSON.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
+include("../../CancellationTokens/src/CancellationTokens.jl")
 
 module IJuliaCore
     using ..JSON
@@ -33,6 +34,7 @@ end
 
 module JSONRPC
     import ..JSON
+    import ..CancellationTokens
     import UUIDs
 
     include("../../JSONRPC/src/packagedef.jl")
