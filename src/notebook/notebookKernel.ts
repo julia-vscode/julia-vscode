@@ -59,14 +59,15 @@ export class JuliaKernel {
     }
 
     public async queueCell(cell: vscode.NotebookCell): Promise<void> {
-        const executionOrder = ++this._current_request_id
+        // First clear output
+        const clearOutputExecution = this.controller.createNotebookCellExecution(cell)
+        clearOutputExecution.start()
+        await clearOutputExecution.clearOutput()
+        clearOutputExecution.end(undefined)
 
+        // Now create execution object that actually will run the code
         const execution = this.controller.createNotebookCellExecution(cell)
-        execution.executionOrder = executionOrder
-
-        // TODO For some reason this doesn't work here
-        // await execution.clearOutput()
-
+        execution.token.onCancellationRequested(e=>execution.end(undefined))
         this._scheduledExecutionRequests.push(execution)
 
         this._processExecutionRequests.notify()
@@ -82,14 +83,13 @@ export class JuliaKernel {
                 this._currentExecutionRequest = this._scheduledExecutionRequests.shift()
 
                 if (this._currentExecutionRequest.token.isCancellationRequested) {
-                    this._currentExecutionRequest.end(undefined)
                 }
                 else {
+                    const executionOrder = ++this._current_request_id
+                    this._currentExecutionRequest.executionOrder = executionOrder
+
                     const runStartTime = Date.now()
                     this._currentExecutionRequest.start(runStartTime)
-
-                    // TODO Ideally we would clear output at scheduling already, but for now do it here
-                    await this._currentExecutionRequest.clearOutput()
 
                     const result = await this._msgConnection.sendRequest(
                         requestTypeRunCell,
