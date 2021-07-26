@@ -47,10 +47,18 @@ function hideprompt(f)
     # restore prompt
     if applicable(LineEdit.write_prompt, stdout, mode)
         LineEdit.write_prompt(stdout, mode)
+    elseif applicable(LineEdit.write_prompt, stdout, mode, true)
+        LineEdit.write_prompt(stdout, mode, true)
     elseif mode isa LineEdit.PrefixHistoryPrompt || :parent_prompt in fieldnames(typeof(mode))
-        LineEdit.write_prompt(stdout, mode.parent_prompt)
+        if applicable(LineEdit.write_prompt, stdout, mode.parent_prompt)
+            LineEdit.write_prompt(stdout, mode.parent_prompt)
+        elseif applicable(LineEdit.write_prompt, stdout, mode.parent_prompt, true)
+            LineEdit.write_prompt(stdout, mode.parent_prompt, true)
+        else
+            printstyled(stdout, current_prompt, color=:green, bold=true)
+        end
     else
-        printstyled(stdout, current_prompt, color=:green)
+        printstyled(stdout, current_prompt, color=:green, bold=true)
     end
 
     truncate(LineEdit.buffer(mistate), 0)
