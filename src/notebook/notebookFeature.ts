@@ -25,8 +25,7 @@ type JupyterNotebookMetadata = Partial<{
 }>
 
 export class JuliaNotebookFeature {
-    private readonly _controllers = new Map<vscode.NotebookController, { version: string }>();
-    private readonly _juliaVersions = new Map<string, JuliaExecutable>()
+    private readonly _controllers = new Map<vscode.NotebookController, JuliaExecutable>();
     private readonly kernels: Map<vscode.NotebookDocument, JuliaKernel> = new Map<vscode.NotebookDocument, JuliaKernel>()
     private _outputChannel: vscode.OutputChannel
     private readonly disposables: vscode.Disposable[] = [];
@@ -46,25 +45,11 @@ export class JuliaNotebookFeature {
 
         const juliaVersions = await getJuliaExePaths()
 
-        // Find the highest installed version per minor version
-        for (const i of juliaVersions) {
-            const ver = i.getVersion()
-            const kernelId = `julia-${semver.major(ver)}.${semver.minor(ver)}`
-
-            if (this._juliaVersions.has(kernelId)) {
-                if (semver.gt(i.getVersion(), this._juliaVersions.get(kernelId).getVersion())) {
-                    this._juliaVersions.set(kernelId, i)
-                }
-            }
-            else {
-                this._juliaVersions.set(kernelId, i)
-            }
-        }
-
-        // Add one controller per Julia minor version that we found
-        for (const [kernelId, juliaVersion] of this._juliaVersions) {
+        for (const juliaVersion of juliaVersions) {
             const ver = juliaVersion.getVersion()
+            const kernelId = `julia-vscode-${ver.major}.${ver.minor}.${ver.patch}`
             const displayName = `Julia ${ver}`;
+
             const controller = vscode.notebooks.createNotebookController(kernelId, JupyterNotebookViewType, displayName)
             controller.supportedLanguages = ['julia']
             controller.supportsExecutionOrder = true
@@ -81,34 +66,95 @@ export class JuliaNotebookFeature {
                 if (!selected) {
                     return;
                 }
-                this.updateNotebookWithSelectedKernel(notebook, displayName, ver);
+                this.updateNotebookWithSelectedKernel(notebook, ver);
             }, this, this.disposables)
 
-            this._controllers.set(controller, { version: ver })
+            this._controllers.set(controller, juliaVersion)
         }
     }
 
     private onDidOpenNotebookDocument(e: vscode.NotebookDocument) {
         if (!this.isJuliaNotebook(e) || this._controllers.size === 0) {
-            return;
+            return
         }
         // Get metadata from notebook (to get an hint of what version of julia is used)
-        const { name, version } = this.getKernelSpecNameAndVersion(e);
-        let preferredControllerFound = false;
-        this._controllers.forEach((info, controller) => {
-            // If we find a controller that matches the vesion in the notebook metadata, then set
-            // that controller as the preferred controller.
-            if (name.includes(info.version) || version.includes(info.version)) {
-                preferredControllerFound = true;
+        const version = this.getNotebookLanguageVersion(e)
+
+        // Find all controllers where the Julia version matches the Julia version in the
+        // notebook exactly. If there are multiple controllers, put official release first,
+        // and prefer x64 builds
+        const perfectMatchVersions = Array.from(this._controllers.entries()).
+            filter(([_, juliaExec]) => juliaExec.getVersion() === semver.parse(version)).
+            sort(([_, a], [__, b]) => {
+                if (a.officialChannel !== b.officialChannel) {
+                    // First, we give preference to official releases, rather than linked juliaup channels
+                    return a.officialChannel ? -1 : 1
+                }
+                else if (a.arch !== b.arch) {
+                    // Next we give preference to x64 builds
+                    if (a.arch === 'x64') {
+                        return -1
+                    }
+                    else if (b.arch === 'x64') {
+                        return 1
+                    }
+                    else {
+                        return 0
+                    }
+                }
+                else {
+                    return 0
+                }
+            }
+            )
+
+        if (perfectMatchVersions.length > 0) {
+            const [controller, _] = perfectMatchVersions[0]
+
+            controller.updateNotebookAffinity(e, vscode.NotebookControllerAffinity.Preferred)
+        }
+        else {
+            // Find all controllers where the major and minor version match. Put newer patch versions first,
+            // and then have the same preference ordering that we had above
+            const minorMatchVersions = Array.from(this._controllers.entries()).filter(([_, juliaExec]) => {
+                const v1 = juliaExec.getVersion()
+                const v2 = semver.parse(version)
+                return v1.major === v2.major && v1.minor === v2.minor
+            }).sort(([_, a], [__, b]) => {
+                const aVer = a.getVersion()
+                const bVer = b.getVersion()
+                if (aVer.patch !== bVer.patch) {
+                    return b.getVersion().patch - a.getVersion().patch
+                }
+                else if (a.officialChannel !== b.officialChannel) {
+                    // First, we give preference to official releases, rather than linked juliaup channels
+                    return a.officialChannel ? -1 : 1
+                }
+                else if (a.arch !== b.arch) {
+                    // Next we give preference to x64 builds
+                    if (a.arch === 'x64') {
+                        return -1
+                    }
+                    else if (b.arch === 'x64') {
+                        return 1
+                    }
+                    else {
+                        return 0
+                    }
+                }
+                else {
+                    return 0
+                }
+            })
+
+            if (minorMatchVersions.length > 0) {
+                const [controller, _] = minorMatchVersions[0]
+
                 controller.updateNotebookAffinity(e, vscode.NotebookControllerAffinity.Preferred)
             }
-        })
-        if (!preferredControllerFound) {
-            // We know its a Julia notebook, hence give preference to one of our controllers.
-            const preferredController = Array.from(this._controllers.keys())[0];
-            preferredController.updateNotebookAffinity(e, vscode.NotebookControllerAffinity.Preferred)
         }
     }
+
     private async executeCells(cells: vscode.NotebookCell[], notebook: vscode.NotebookDocument, controller: vscode.NotebookController): Promise<void> {
         // First check whether we already have a kernel running for the current notebook document
         if (!this.kernels.has(notebook)) {
@@ -129,7 +175,7 @@ export class JuliaNotebookFeature {
             }
 
             if (!foundExistingKernel) {
-                const kernel = new JuliaKernel(this.context.extensionPath, controller, notebook, this._juliaVersions.get(controller.id), this._outputChannel, this)
+                const kernel = new JuliaKernel(this.context.extensionPath, controller, notebook, this._controllers.get(controller), this._outputChannel, this)
                 await this.workspaceFeature.addNotebookKernel(kernel)
                 this.kernels.set(notebook, kernel)
 
@@ -145,37 +191,36 @@ export class JuliaNotebookFeature {
             await currentKernel.queueCell(cell)
         }
     }
-    private getKernelSpecNameAndVersion(notebook: vscode.NotebookDocument): { name: string; version: string } {
-        const metadata = (notebook.metadata as JupyterNotebookMetadata)?.custom.metadata;
-        const kernelspecName = metadata?.kernelspec?.name || '';
-        const version = metadata?.language_info?.version || '';
-        return this.isJuliaNotebook(notebook) ? { name: kernelspecName, version } : { name: '', version: '' }
+
+    private getNotebookLanguageVersion(notebook: vscode.NotebookDocument): string {
+        const metadata = (notebook.metadata as JupyterNotebookMetadata)?.custom.metadata
+        const version = metadata?.language_info?.version || ''
+        return this.isJuliaNotebook(notebook) ? version : ''
     }
-    private updateNotebookWithSelectedKernel(notebook: vscode.NotebookDocument, name: string, version: string) {
+
+    private updateNotebookWithSelectedKernel(notebook: vscode.NotebookDocument, version: semver.SemVer) {
         // Dont edit in place, create a copy of the metadata.
         const nbmetadata: JupyterNotebookMetadata = JSON.parse(JSON.stringify((notebook.metadata || { custom: { metadata: {} } })));
         nbmetadata.custom.metadata.kernelspec = {
-            display_name: name,
+            display_name: `Julia ${version}`,
             language: 'julia',
-            name: name
+            name: `julia-${version.major}.${version.minor}`
         }
         nbmetadata.custom.metadata.language_info = {
-            name: name,
-            version: version,
-            mimetype: 'text/julia',
+            name: 'julia',
+            version: `${version}`,
+            mimetype: 'application/julia',
             file_extension: '.jl'
         }
         // TODO: Update the notebook metadata (when its stable).
     }
+
     private isJuliaNotebook(notebook: vscode.NotebookDocument) {
         if (notebook.notebookType !== JupyterNotebookViewType) {
             return false;
         }
-        const metadata = (notebook.metadata as JupyterNotebookMetadata)?.custom.metadata;
-        if (!metadata.kernelspec && metadata.language_info) {
-            return false;
-        }
-        return metadata?.kernelspec?.language?.toLowerCase() === 'julia' || metadata?.language_info?.name?.toLocaleLowerCase() === 'julia';
+
+        return (notebook.metadata as JupyterNotebookMetadata)?.custom.metadata?.language_info?.name?.toLocaleLowerCase() === 'julia'
     }
 
     public async restart(kernel: JuliaKernel) {
