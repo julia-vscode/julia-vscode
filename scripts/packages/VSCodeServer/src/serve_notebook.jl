@@ -92,7 +92,14 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
         end
 
     catch err
-        Base.display_error(IJuliaCore.orig_stderr[], err, catch_backtrace())
+        bt = catch_backtrace()
+        Base.display_error(IJuliaCore.orig_stderr[], err, bt)
+        try
+            global_err_handler(err, bt, crashreporting_pipename, "Notebook")
+        catch err
+            @error "Error handler threw an error." exception = (err, bt)
+        end
+
     end
 
 end
