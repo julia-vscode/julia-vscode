@@ -4,7 +4,7 @@ import * as child_process from 'child_process'
 import * as os from 'os'
 import * as path from 'path'
 import * as process from 'process'
-import { valid } from 'semver'
+import { parse } from 'semver'
 import * as vscode from 'vscode'
 import * as which from 'which'
 import { onDidChangeConfig } from './extension'
@@ -14,7 +14,7 @@ import { resolvePath } from './utils'
 let actualJuliaExePath: JuliaExecutable = null
 
 async function setNewJuliaExePath(newPath: string) {
-    actualJuliaExePath = new JuliaExecutable('', newPath)
+    actualJuliaExePath = new JuliaExecutable('', newPath, undefined, undefined, true)
 
     const env = {
         JULIA_LANGUAGESERVER: '1'
@@ -86,11 +86,11 @@ function getSearchPaths(): string[] {
     return pathsToSearch
 }
 export class JuliaExecutable {
-    constructor(public version: string, public path: string) {
+    constructor(public version: string, public path: string, public arch: string | undefined, public channel: string | undefined, public officialChannel: boolean) {
     }
 
     public getVersion() {
-        return valid(this.version)
+        return parse(this.version)
     }
 }
 let cachedJuliaExePaths: Promise<JuliaExecutable[]> | undefined
@@ -121,7 +121,7 @@ export async function getJuliaExePaths(): Promise<JuliaExecutable[]> {
                     if (actualJuliaExePath.path === filePath && !actualJuliaExePath.version) {
                         actualJuliaExePath.version = version
                     }
-                    executables.push(new JuliaExecutable(version, path.join(bindir, path.basename(filePath))))
+                    executables.push(new JuliaExecutable(version, path.join(bindir, path.basename(filePath)), undefined, undefined, true))
                 } catch (ex) {
                     return
                 }
