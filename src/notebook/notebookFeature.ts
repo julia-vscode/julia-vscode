@@ -134,7 +134,9 @@ export class JuliaNotebookFeature {
                 this.kernels.set(notebook, kernel)
 
                 kernel.onStopped(e => {
-                    this.kernels.delete(kernel.notebook)
+                    if (this.kernels.get(kernel.notebook) === kernel) {
+                        this.kernels.delete(kernel.notebook)
+                    }
                 })
             }
         }
@@ -180,7 +182,7 @@ export class JuliaNotebookFeature {
 
     public async restart(kernel: JuliaKernel) {
         const newKernel = new JuliaKernel(this.context.extensionPath, kernel.controller, kernel.notebook, kernel.juliaExecutable, this._outputChannel, this)
-        kernel.onStopped(e => {
+        newKernel.onStopped(e => {
             if (this.kernels.get(newKernel.notebook) === newKernel) {
                 this.kernels.delete(newKernel.notebook)
             }
