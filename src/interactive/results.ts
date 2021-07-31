@@ -432,6 +432,8 @@ export async function openFile(path: string, line: number = undefined) {
     if (path.indexOf('Untitled') === 0) {
         // can't open an untitled file like this:
         // uri = vscode.Uri.parse('untitled:' + path)
+        // watch: https://github.com/microsoft/vscode/issues/117985
+        return vscode.window.showWarningMessage('can\'t open unsaved editor.')
     } else {
         uri = vscode.Uri.file(path)
     }
