@@ -376,6 +376,19 @@ function clearProgress() {
     }
 }
 
+function display(params: { kind: string, data: any }) {
+    if (params.kind === 'application/vnd.julia-vscode.trace') {
+        displayTrace(params)
+    } else {
+        plots.displayPlot(params)
+    }
+}
+
+function displayTrace(params: { kind: string, data: any }) {
+    results.clearStackTrace()
+    results.setStackFrameHighlight('', params.data)
+}
+
 async function executeFile(uri?: vscode.Uri | string) {
     telemetry.traceEvent('command-executeFile')
 
@@ -854,7 +867,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider) {
             g_languageClient = languageClient
         }),
         onInit(connection => {
-            connection.onNotification(notifyTypeDisplay, plots.displayPlot)
+            connection.onNotification(notifyTypeDisplay, display)
             connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
             connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
             connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))

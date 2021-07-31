@@ -34,11 +34,11 @@ function with_no_default_display(f)
 end
 
 function sendDisplayMsg(kind, data)
-    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,String}("kind" => kind, "data" => data))
+    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data))
     JSONRPC.flush(conn_endpoint[])
 end
 
-function display(d::InlineDisplay, m::MIME, x)
+function Base.display(d::InlineDisplay, m::MIME, x)
     if !PLOT_PANE_ENABLED[]
         with_no_default_display(() -> display(m, x))
     else
@@ -58,7 +58,7 @@ Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
 
 Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
-function display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
+function Base.display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
     payload = String(repr(m, x))
     sendDisplayMsg(string(m), payload)
 end
@@ -82,6 +82,33 @@ const DISPLAYABLE_MIMES = [
     "image/gif"
 ]
 
+"""
+    TRACE_MIME = "application/vnd.julia-vscode.trace"
+
+Trace format is:
+```
+[
+    Dict(
+        "msg" => ""::AbstractString,
+        "path" => ""::AbstractString,
+        "line" => 0::Int
+    ),
+    ...
+]
+```
+or everything JSON-compatible with that (so e.g. a struct with those fields).
+
+User type needs to implement e.g.
+```
+Base.showable(::MIME"application/vnd.julia-vscode.trace", ::YourType) = true
+Base.show(::IO, ::MIME"application/vnd.julia-vscode.trace", t::YourType) = t.trace
+```
+where `show` *returns* a trace of the above format.
+"""
+const TRACE_MIME = "application/vnd.julia-vscode.trace"
+Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(TRACE_MIME)}) = true
+Base.Multimedia.display(::InlineDisplay, m::MIME{Symbol(TRACE_MIME)}, trace) = sendDisplayMsg(TRACE_MIME, show(IOBuffer(), m, trace))
+
 function can_display(x)
     for mime in DISPLAYABLE_MIMES
         if showable(mime, x)
@@ -103,6 +130,9 @@ function can_display(x)
 end
 
 function Base.display(d::InlineDisplay, x)
+    if showable(TRACE_MIME, x)
+        return display(d, TRACE_MIME, x)
+    end
     if PLOT_PANE_ENABLED[]
         for mime in DISPLAYABLE_MIMES
             if showable(mime, x)
