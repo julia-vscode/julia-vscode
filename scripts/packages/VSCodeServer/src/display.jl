@@ -130,22 +130,17 @@ function can_display(x)
 end
 
 function Base.display(d::InlineDisplay, x)
-    try
-        if showable(DIAGNOSTIC_MIME, x)
-            return display(d, DIAGNOSTIC_MIME, x)
-        end
-        if PLOT_PANE_ENABLED[]
-            for mime in DISPLAYABLE_MIMES
-                if showable(mime, x)
-                    return display(d, mime, x)
-                end
+    if showable(DIAGNOSTIC_MIME, x)
+        return display(d, DIAGNOSTIC_MIME, x)
+    end
+    if PLOT_PANE_ENABLED[]
+        for mime in DISPLAYABLE_MIMES
+            if showable(mime, x)
+                return display(d, mime, x)
             end
-        else
-            return with_no_default_display(() -> display(x))
         end
-    catch err
-        @error "Error in display machinery. This most likely is an error in a user- or package-defined `show` method." exception=(err, catch_backtrace())
-        rethrow(err)
+    else
+        return with_no_default_display(() -> display(x))
     end
 
     throw(MethodError(display, (d, x)))
@@ -158,7 +153,7 @@ function _display(d::InlineDisplay, x)
         try
             display(d, x)
         catch err
-            if err isa MethodError
+            if err isa MethodError && err.f === display
                 @warn "Cannot display values of type $(typeof(x)) in VS Code."
             else
                 rethrow(err)
