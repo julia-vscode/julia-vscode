@@ -377,16 +377,60 @@ function clearProgress() {
 }
 
 function display(params: { kind: string, data: any }) {
-    if (params.kind === 'application/vnd.julia-vscode.trace') {
-        displayTrace(params)
+    if (params.kind === 'application/vnd.julia-vscode.diagnostics') {
+        displayDiagnostics(params)
     } else {
         plots.displayPlot(params)
     }
 }
 
-function displayTrace(params: { kind: string, data: any }) {
-    results.clearStackTrace()
-    results.setStackFrameHighlight('', params.data)
+interface diagnosticData {
+    msg: string,
+    path: string,
+    line: number,
+    severity: number,
+    relatedInformation: {msg: string, path: string, line: number}[]
+}
+const g_trace_diagnostics: Map<string, vscode.DiagnosticCollection> = new Map()
+function displayDiagnostics(params: { kind: string, data: { source: string, items: diagnosticData[] } }) {
+    const source = params.data.source
+
+    if (g_trace_diagnostics.has(source)) {
+        g_trace_diagnostics.get(source).clear()
+    } else {
+        g_trace_diagnostics.set(source, vscode.languages.createDiagnosticCollection('Julia Diagnostics: ' + source))
+    }
+
+    const diagnostics = params.data.items.map((frame): [vscode.Uri, vscode.Diagnostic[]] => {
+        const diagnostic = new vscode.Diagnostic(
+            new vscode.Range(frame.line - 1, 0, frame.line - 1, 99999),
+            frame.msg,
+            frame.severity === undefined ? vscode.DiagnosticSeverity.Warning : frame.severity
+        )
+        diagnostic.relatedInformation = frame.relatedInformation.map(stackframe => {
+            return new vscode.DiagnosticRelatedInformation(
+                new vscode.Location(vscode.Uri.file(stackframe.path), new vscode.Range(stackframe.line - 1, 0, stackframe.line - 1, 99999)),
+                stackframe.msg
+            )
+        })
+        diagnostic.source = source
+
+        return [
+            vscode.Uri.file(frame.path),
+            [
+                diagnostic
+            ]
+        ]
+    })
+    g_trace_diagnostics.get(source).set(diagnostics)
+}
+
+function clearDiagnostics() {
+    for (const [source, diagnostics] of g_trace_diagnostics) {
+        diagnostics.clear()
+        diagnostics.dispose()
+        g_trace_diagnostics.delete(source)
+    }
 }
 
 async function executeFile(uri?: vscode.Uri | string) {
@@ -945,6 +989,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider) {
         registerCommand('language-julia.cdHere', cdToHere),
         registerCommand('language-julia.activateHere', activateHere),
         registerCommand('language-julia.activateFromDir', activateFromDir),
+        registerCommand('language-julia.clearDiagnostics', clearDiagnostics),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')

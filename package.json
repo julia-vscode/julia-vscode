@@ -269,6 +269,10 @@
                 "title": "Julia: Activate Parent Environment"
             },
             {
+                "command": "language-julia.clearDiagnostics",
+                "title": "Julia: Clear Runtime Diagnostics"
+            },
+            {
                 "command": "language-julia.switchToInterpreted",
                 "title": "Remove from compiled modules/functions",
                 "icon": "$(remove)"

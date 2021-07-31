@@ -83,7 +83,7 @@ const DISPLAYABLE_MIMES = [
 ]
 
 """
-    TRACE_MIME = "application/vnd.julia-vscode.trace"
+    DIAGNOSTIC_MIME = "application/vnd.julia-vscode.diagnostics"
 
 Trace format is:
 ```
@@ -100,14 +100,14 @@ or everything JSON-compatible with that (so e.g. a struct with those fields).
 
 User type needs to implement e.g.
 ```
-Base.showable(::MIME"application/vnd.julia-vscode.trace", ::YourType) = true
-Base.show(::IO, ::MIME"application/vnd.julia-vscode.trace", t::YourType) = t.trace
+Base.showable(::MIME"application/vnd.julia-vscode.diagnostics", ::YourType) = true
+Base.show(::IO, ::MIME"application/vnd.julia-vscode.diagnostics", t::YourType) = t.trace
 ```
 where `show` *returns* a trace of the above format.
 """
-const TRACE_MIME = "application/vnd.julia-vscode.trace"
-Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(TRACE_MIME)}) = true
-Base.Multimedia.display(::InlineDisplay, m::MIME{Symbol(TRACE_MIME)}, trace) = sendDisplayMsg(TRACE_MIME, show(IOBuffer(), m, trace))
+const DIAGNOSTIC_MIME = "application/vnd.julia-vscode.diagnostics"
+Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(DIAGNOSTIC_MIME)}) = true
+Base.Multimedia.display(::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIME)}, diagnostics) = sendDisplayMsg(DIAGNOSTIC_MIME, show(IOBuffer(), m, diagnostics))
 
 function can_display(x)
     for mime in DISPLAYABLE_MIMES
@@ -130,8 +130,8 @@ function can_display(x)
 end
 
 function Base.display(d::InlineDisplay, x)
-    if showable(TRACE_MIME, x)
-        return display(d, TRACE_MIME, x)
+    if showable(DIAGNOSTIC_MIME, x)
+        return display(d, DIAGNOSTIC_MIME, x)
     end
     if PLOT_PANE_ENABLED[]
         for mime in DISPLAYABLE_MIMES
