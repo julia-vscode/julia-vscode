@@ -130,17 +130,21 @@ function can_display(x)
 end
 
 function Base.display(d::InlineDisplay, x)
-    if showable(DIAGNOSTIC_MIME, x)
-        return display(d, DIAGNOSTIC_MIME, x)
-    end
-    if PLOT_PANE_ENABLED[]
-        for mime in DISPLAYABLE_MIMES
-            if showable(mime, x)
-                return display(d, mime, x)
-            end
+    try
+        if showable(DIAGNOSTIC_MIME, x)
+            return display(d, DIAGNOSTIC_MIME, x)
         end
-    else
-        return with_no_default_display(() -> display(x))
+        if PLOT_PANE_ENABLED[]
+            for mime in DISPLAYABLE_MIMES
+                if showable(mime, x)
+                    return display(d, mime, x)
+                end
+            end
+        else
+            return with_no_default_display(() -> display(x))
+        end
+    catch err
+        @error "Error in display machinery. This most likely is an error in a user- or package-defined `show` method." exception=(err, catch_backtrace())
     end
 
     throw(MethodError(display, (d, x)))
