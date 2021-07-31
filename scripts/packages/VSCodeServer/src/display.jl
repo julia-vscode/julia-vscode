@@ -145,6 +145,7 @@ function Base.display(d::InlineDisplay, x)
         end
     catch err
         @error "Error in display machinery. This most likely is an error in a user- or package-defined `show` method." exception=(err, catch_backtrace())
+        rethrow(err)
     end
 
     throw(MethodError(display, (d, x)))
