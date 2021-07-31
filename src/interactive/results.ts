@@ -382,7 +382,7 @@ export function refreshResults(editors: vscode.TextEditor[]) {
                 if (highlight.result) {
                     highlight.result.draw()
                 } else {
-                    const result = addErrorResult(stackFrameHighlights.err, frame, editor)
+                    const result = addErrorResult(frame.msg || stackFrameHighlights.err, frame, editor)
                     if (result) {
                         highlight.result = result
                     }
