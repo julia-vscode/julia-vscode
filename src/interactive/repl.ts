@@ -387,9 +387,15 @@ function display(params: { kind: string, data: any }) {
 interface diagnosticData {
     msg: string,
     path: string,
-    line: number,
+    line?: number,
+    range?: number[][],
     severity: number,
-    relatedInformation: {msg: string, path: string, line: number}[]
+    relatedInformation: {
+        msg: string,
+        path: string,
+        line?: number,
+        range?: number[][]
+    }[]
 }
 const g_trace_diagnostics: Map<string, vscode.DiagnosticCollection> = new Map()
 function displayDiagnostics(params: { kind: string, data: { source: string, items: diagnosticData[] } }) {
@@ -398,7 +404,7 @@ function displayDiagnostics(params: { kind: string, data: { source: string, item
     if (g_trace_diagnostics.has(source)) {
         g_trace_diagnostics.get(source).clear()
     } else {
-        g_trace_diagnostics.set(source, vscode.languages.createDiagnosticCollection('Julia Diagnostics: ' + source))
+        g_trace_diagnostics.set(source, vscode.languages.createDiagnosticCollection('Julia Runtime Diagnostics: ' + source))
     }
 
     const items = params.data.items
@@ -407,14 +413,20 @@ function displayDiagnostics(params: { kind: string, data: { source: string, item
     }
 
     const diagnostics = items.map((frame): [vscode.Uri, vscode.Diagnostic[]] => {
+        const range = frame.range ?
+            new vscode.Range(frame.range[0][0] - 1, frame.range[0][1], frame.range[1][0] - 1, frame.range[1][1]) :
+            new vscode.Range(frame.line - 1, 0, frame.line - 1, 99999)
         const diagnostic = new vscode.Diagnostic(
-            new vscode.Range(frame.line - 1, 0, frame.line - 1, 99999),
+            range,
             frame.msg,
             frame.severity === undefined ? vscode.DiagnosticSeverity.Warning : frame.severity
         )
         diagnostic.relatedInformation = frame.relatedInformation.map(stackframe => {
+            const range = stackframe.range ?
+                new vscode.Range(stackframe.range[0][0] - 1, stackframe.range[0][1], stackframe.range[1][0] - 1, stackframe.range[1][1]) :
+                new vscode.Range(stackframe.line - 1, 0, stackframe.line - 1, 99999)
             return new vscode.DiagnosticRelatedInformation(
-                new vscode.Location(vscode.Uri.file(stackframe.path), new vscode.Range(stackframe.line - 1, 0, stackframe.line - 1, 99999)),
+                new vscode.Location(vscode.Uri.file(stackframe.path), range),
                 stackframe.msg
             )
         })
@@ -974,6 +986,12 @@ export function activate(context: vscode.ExtensionContext, compiledProvider) {
                 } catch (err) {
                     console.warn(err)
                 }
+            } else if (event.affectsConfiguration('julia.showRuntimeDiagnostics')) {
+                try {
+                    g_connection.sendNotification('repl/toggleDiagnostics', { enable: vscode.workspace.getConfiguration('julia').get('showRuntimeDiagnostics') })
+                } catch (err) {
+                    console.warn(err)
+                }
             }
         }),
         vscode.window.onDidChangeActiveTerminal(terminal => {
@@ -1010,8 +1028,8 @@ export function activate(context: vscode.ExtensionContext, compiledProvider) {
         registerCommand('language-julia.cdHere', cdToHere),
         registerCommand('language-julia.activateHere', activateHere),
         registerCommand('language-julia.activateFromDir', activateFromDir),
-        registerCommand('language-julia.clearDiagnostics', clearDiagnostics),
-        registerCommand('language-julia.clearDiagnostic', clearDiagnostic),
+        registerCommand('language-julia.clearRuntimeDiagnostics', clearDiagnostics),
+        registerCommand('language-julia.clearRuntimeDiagnostic', clearDiagnostic),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')

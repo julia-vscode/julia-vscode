@@ -269,11 +269,11 @@
                 "title": "Julia: Activate Parent Environment"
             },
             {
-                "command": "language-julia.clearDiagnostics",
+                "command": "language-julia.clearRuntimeDiagnostics",
                 "title": "Julia: Clear Runtime Diagnostics"
             },
             {
-                "command": "language-julia.clearDiagnostic",
+                "command": "language-julia.clearRuntimeDiagnostic",
                 "title": "Julia: Clear Runtime Diagnostic"
             },
             {
@@ -779,6 +779,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Display plots within VS Code. Might require a restart of the Julia process."
+                },
+                "julia.showRuntimeDiagnostics": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Enable display of runtime diagnostics. These diagnostics are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.diagnostics` MIME type."
                 },
                 "julia.focusPlotNavigator": {
                     "type": "boolean",

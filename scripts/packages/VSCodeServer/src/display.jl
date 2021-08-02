@@ -1,10 +1,15 @@
 struct InlineDisplay <: AbstractDisplay end
 
 const PLOT_PANE_ENABLED = Ref(true)
+const DIAGNOSTICS_ENABLED = Ref(true)
 const PROGRESS_ENABLED = Ref(true)
 
 function toggle_plot_pane(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     PLOT_PANE_ENABLED[] = params.enable
+end
+
+function toggle_diagnostics(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    DIAGNOSTICS_ENABLED[] = params.enable
 end
 
 function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
@@ -85,28 +90,36 @@ const DISPLAYABLE_MIMES = [
 """
     DIAGNOSTIC_MIME = "application/vnd.julia-vscode.diagnostics"
 
-Trace format is:
+User type needs to implement a `show` method that returns a named tuple or dictionary like the following
 ```
-[
-    Dict(
-        "msg" => ""::AbstractString,
-        "path" => ""::AbstractString,
-        "line" => 0::Int
-    ),
-    ...
-]
+Base.show(io::IO, ::MIME"application/vnd.julia-vscode.diagnostics", t::YourType) = (
+    source = ""
+    items = [
+        (
+            msg = "foo",
+            path = "/some/absolute/path.jl",
+            line = 1 # 1 based
+            range = [[1, 2], [1, 4]] # or [[start_line, start_char], [end_line, end_char]],
+            severity = 1, # optional; 0: Error, 1: Warning, 2: Information, 3: Hint
+            relatedInformation = [
+                (
+                    msg = "foobar",
+                    path = "/some/other/absolute/path.jl",
+                    line = 1,
+                    range = [[1, 2], [1, 4]] # or [[start_line, start_char], [end_line, end_char]],
+                )
+            ] # optional
+        ),
+        ...
+    ]
+)
 ```
-or everything JSON-compatible with that (so e.g. a struct with those fields).
+One of `line` or `range` needs to be specified for each item and relatedInformation.
 
-User type needs to implement e.g.
-```
-Base.showable(::MIME"application/vnd.julia-vscode.diagnostics", ::YourType) = true
-Base.show(::IO, ::MIME"application/vnd.julia-vscode.diagnostics", t::YourType) = t.trace
-```
-where `show` *returns* a trace of the above format.
+Anything printed to `io` is discarded.
 """
 const DIAGNOSTIC_MIME = "application/vnd.julia-vscode.diagnostics"
-Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(DIAGNOSTIC_MIME)}) = true
+Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(DIAGNOSTIC_MIME)}) = DIAGNOSTICS_ENABLED[]
 Base.Multimedia.display(::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIME)}, diagnostics) = sendDisplayMsg(DIAGNOSTIC_MIME, show(IOBuffer(), m, diagnostics))
 
 function can_display(x)
@@ -130,7 +143,7 @@ function can_display(x)
 end
 
 function Base.display(d::InlineDisplay, x)
-    if showable(DIAGNOSTIC_MIME, x)
+    if DIAGNOSTICS_ENABLED[] && showable(DIAGNOSTIC_MIME, x)
         return display(d, DIAGNOSTIC_MIME, x)
     end
     if PLOT_PANE_ENABLED[]
