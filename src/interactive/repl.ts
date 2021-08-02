@@ -446,7 +446,7 @@ function clearDiagnostics() {
     g_trace_diagnostics.forEach((_, source) => _clearDiagnostic(source))
 }
 
-function clearDiagnostic() {
+function clearDiagnosticsByProvider() {
     const sources = Array(...g_trace_diagnostics.keys())
     vscode.window.showQuickPick(sources, {
         // canPickMany: true, // not work nicely with keyboard shortcuts
@@ -1029,7 +1029,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider) {
         registerCommand('language-julia.activateHere', activateHere),
         registerCommand('language-julia.activateFromDir', activateFromDir),
         registerCommand('language-julia.clearRuntimeDiagnostics', clearDiagnostics),
-        registerCommand('language-julia.clearRuntimeDiagnostic', clearDiagnostic),
+        registerCommand('language-julia.clearRuntimeDiagnosticsByProvider', clearDiagnosticsByProvider),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')

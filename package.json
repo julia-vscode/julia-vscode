@@ -273,8 +273,8 @@
                 "title": "Julia: Clear Runtime Diagnostics"
             },
             {
-                "command": "language-julia.clearRuntimeDiagnostic",
-                "title": "Julia: Clear Runtime Diagnostic"
+                "command": "language-julia.clearRuntimeDiagnosticsByProvider",
+                "title": "Julia: Clear Runtime Diagnostics by Provider"
             },
             {
                 "command": "language-julia.switchToInterpreted",
