@@ -390,7 +390,7 @@ interface diagnosticData {
     line?: number,
     range?: number[][],
     severity: number,
-    relatedInformation: {
+    relatedInformation?: {
         msg: string,
         path: string,
         line?: number,
@@ -421,15 +421,17 @@ function displayDiagnostics(params: { kind: string, data: { source: string, item
             frame.msg,
             frame.severity === undefined ? vscode.DiagnosticSeverity.Warning : frame.severity
         )
-        diagnostic.relatedInformation = frame.relatedInformation.map(stackframe => {
-            const range = stackframe.range ?
-                new vscode.Range(stackframe.range[0][0] - 1, stackframe.range[0][1], stackframe.range[1][0] - 1, stackframe.range[1][1]) :
-                new vscode.Range(stackframe.line - 1, 0, stackframe.line - 1, 99999)
-            return new vscode.DiagnosticRelatedInformation(
-                new vscode.Location(vscode.Uri.file(stackframe.path), range),
-                stackframe.msg
-            )
-        })
+        if (frame.relatedInformation) {
+            diagnostic.relatedInformation = frame.relatedInformation.map(stackframe => {
+                const range = stackframe.range ?
+                    new vscode.Range(stackframe.range[0][0] - 1, stackframe.range[0][1], stackframe.range[1][0] - 1, stackframe.range[1][1]) :
+                    new vscode.Range(stackframe.line - 1, 0, stackframe.line - 1, 99999)
+                return new vscode.DiagnosticRelatedInformation(
+                    new vscode.Location(vscode.Uri.file(stackframe.path), range),
+                    stackframe.msg
+                )
+            })
+        }
         diagnostic.source = source
 
         return [
