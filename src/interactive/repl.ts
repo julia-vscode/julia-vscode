@@ -401,7 +401,12 @@ function displayDiagnostics(params: { kind: string, data: { source: string, item
         g_trace_diagnostics.set(source, vscode.languages.createDiagnosticCollection('Julia Diagnostics: ' + source))
     }
 
-    const diagnostics = params.data.items.map((frame): [vscode.Uri, vscode.Diagnostic[]] => {
+    const items = params.data.items
+    if (items.length === 0) {
+        return _clearDiagnostic(source)
+    }
+
+    const diagnostics = items.map((frame): [vscode.Uri, vscode.Diagnostic[]] => {
         const diagnostic = new vscode.Diagnostic(
             new vscode.Range(frame.line - 1, 0, frame.line - 1, 99999),
             frame.msg,
@@ -426,11 +431,26 @@ function displayDiagnostics(params: { kind: string, data: { source: string, item
 }
 
 function clearDiagnostics() {
-    for (const [source, diagnostics] of g_trace_diagnostics) {
-        diagnostics.clear()
-        diagnostics.dispose()
-        g_trace_diagnostics.delete(source)
-    }
+    g_trace_diagnostics.forEach((_, source) => _clearDiagnostic(source))
+}
+
+function clearDiagnostic() {
+    const sources = Array(...g_trace_diagnostics.keys())
+    vscode.window.showQuickPick(sources, {
+        // canPickMany: true, // not work nicely with keyboard shortcuts
+        title: 'Select sources of diagnostics to filter them out.'
+    }).then(source => {
+        if (source) {
+            _clearDiagnostic(source)
+        }
+    })
+}
+
+function _clearDiagnostic(source: string) {
+    const diagnostics = g_trace_diagnostics.get(source)
+    diagnostics.clear()
+    diagnostics.dispose()
+    g_trace_diagnostics.delete(source)
 }
 
 async function executeFile(uri?: vscode.Uri | string) {
@@ -924,6 +944,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider) {
         }),
         onExit(() => {
             results.removeAll()
+            clearDiagnostics()
             setContext('isJuliaEvaluating', false)
             setContext('hasJuliaREPL', false)
         }),
@@ -990,6 +1011,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider) {
         registerCommand('language-julia.activateHere', activateHere),
         registerCommand('language-julia.activateFromDir', activateFromDir),
         registerCommand('language-julia.clearDiagnostics', clearDiagnostics),
+        registerCommand('language-julia.clearDiagnostic', clearDiagnostic),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')

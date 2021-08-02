@@ -273,6 +273,10 @@
                 "title": "Julia: Clear Runtime Diagnostics"
             },
             {
+                "command": "language-julia.clearDiagnostic",
+                "title": "Julia: Clear Runtime Diagnostic"
+            },
+            {
                 "command": "language-julia.switchToInterpreted",
                 "title": "Remove from compiled modules/functions",
                 "icon": "$(remove)"
