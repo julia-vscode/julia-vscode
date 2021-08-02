@@ -114,7 +114,7 @@ Base.show(io::IO, ::MIME"application/vnd.julia-vscode.diagnostics", t::YourType)
     ]
 )
 ```
-One of `line` or `range` needs to be specified for each item and relatedInformation.
+One of `line` or `range` needs to be specified for each item and `relatedInformation`.
 
 Anything printed to `io` is discarded.
 """
