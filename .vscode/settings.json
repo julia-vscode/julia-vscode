@@ -14,12 +14,10 @@
     "typescript.tsdk": "./node_modules/typescript/lib",
     "git.detectSubmodulesLimit": 30,
     "editor.formatOnPaste": true,
-    "editor.formatOnSave": true,
     "editor.formatOnType": true,
     "files.trimTrailingWhitespace": true,
     "files.trimFinalNewlines": true,
     "files.insertFinalNewline": true,
-    "eslint.enable": true,
     "eslint.format.enable": true,
     "editor.codeActionsOnSave": {
         "source.organizeImports": true,
