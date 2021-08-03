@@ -58,9 +58,6 @@
 [submodule "scripts/packages/Crayons"]
 	path = scripts/packages/Crayons
 	url = https://github.com/KristofferC/Crayons.jl.git
-[submodule "scripts/packages/DataAPI"]
-	path = scripts/packages/DataAPI
-	url = https://github.com/JuliaData/DataAPI.jl.git
 [submodule "scripts/packages/DataStructures"]
 	path = scripts/packages/DataStructures
 	url = https://github.com/JuliaCollections/DataStructures.jl.git
