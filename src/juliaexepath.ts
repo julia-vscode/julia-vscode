@@ -139,20 +139,14 @@ export async function getJuliaExePath() {
         if (configPath === null) {
             for (const p of getSearchPaths()) {
                 try {
-                    const res = await exec(`"${p}" --startup-file=no --history-file=no -e "println(Sys.BINDIR)"`)
-                    if (p === 'julia' || p === 'julia.exe') {
-                        // use full path
-                        setNewJuliaExePath(path.join(res.stdout.trim(), p))
-                    } else {
-                        setNewJuliaExePath(p)
-                    }
+                    const fullPath = await which(p)
+                    setNewJuliaExePath(fullPath)
                     break
                 }
                 catch (e) {
                 }
             }
-        }
-        else {
+        } else {
             let fullPath: string | undefined = undefined
             if (configPath.includes(path.sep)) {
                 fullPath = resolvePath(configPath)
