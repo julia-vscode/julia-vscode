@@ -1,199 +1,205 @@
-import { realpath } from 'async-file'
-import { exec } from 'child-process-promise'
-import * as child_process from 'child_process'
+import { exists } from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
 import * as process from 'process'
+import { execFile } from 'promisify-child-process'
 import { parse } from 'semver'
+import stringArgv from 'string-argv'
 import * as vscode from 'vscode'
-import * as which from 'which'
 import { onDidChangeConfig } from './extension'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
-import { resolvePath } from './utils'
 
-let actualJuliaExePath: JuliaExecutable = null
-
-async function setNewJuliaExePath(newPath: string) {
-    actualJuliaExePath = new JuliaExecutable('', newPath, undefined, undefined, true)
-
-    const env = {
-        JULIA_LANGUAGESERVER: '1'
-    }
-
-    child_process.exec(`"${newPath}" --version`, { env: env }, (error, stdout, stderr) => {
-        if (error) {
-            actualJuliaExePath = null
-            return
-        }
-        const version = stdout.trim()
-        setCurrentJuliaVersion(version)
-
-        traceEvent('configured-new-julia-binary')
-    })
-}
-
-function getSearchPaths(): string[] {
-    const homedir = os.homedir()
-    let pathsToSearch = []
-    if (process.platform === 'win32') {
-        pathsToSearch = ['julia.exe',
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.3', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.2', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.1', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.0', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.4', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.3', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.2', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.1', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.0', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.2', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.1', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.0', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.3.1', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.3.0', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.2.0', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.1.1', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.1.0', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.0.6', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.0.5', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.0.4', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.0.3', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.0.2', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.0.1', 'bin', 'julia.exe'),
-            path.join(homedir, 'AppData', 'Local', 'Julia-1.0.0', 'bin', 'julia.exe')
-        ]
-    }
-    else if (process.platform === 'darwin') {
-        pathsToSearch = ['julia',
-            path.join(homedir, 'Applications', 'Julia-1.6.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join('/', 'Applications', 'Julia-1.6.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join(homedir, 'Applications', 'Julia-1.5.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join('/', 'Applications', 'Julia-1.5.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join(homedir, 'Applications', 'Julia-1.4.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join('/', 'Applications', 'Julia-1.4.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join(homedir, 'Applications', 'Julia-1.3.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join('/', 'Applications', 'Julia-1.3.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join(homedir, 'Applications', 'Julia-1.2.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join('/', 'Applications', 'Julia-1.2.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join(homedir, 'Applications', 'Julia-1.1.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join('/', 'Applications', 'Julia-1.1.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join(homedir, 'Applications', 'Julia-1.0.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
-            path.join('/', 'Applications', 'Julia-1.0.app', 'Contents', 'Resources', 'julia', 'bin', 'julia')]
-    }
-    else {
-        pathsToSearch = ['julia']
-    }
-    return pathsToSearch
-}
 export class JuliaExecutable {
-    constructor(public version: string, public path: string, public arch: string | undefined, public channel: string | undefined, public officialChannel: boolean) {
+    private _baseRootFolderPath: string | undefined
+
+    constructor(public version: string, public file: string, public args: string[], public arch: string | undefined, public channel: string | undefined, public officialChannel: boolean) {
     }
 
     public getVersion() {
         return parse(this.version)
     }
-}
-let cachedJuliaExePaths: Promise<JuliaExecutable[]> | undefined
-export async function getJuliaExePaths(): Promise<JuliaExecutable[]> {
-    await getJuliaExePath()
-    // If user has changed the julia executable, fetch all over again, possible user installed or changed something.
-    if (Array.isArray(cachedJuliaExePaths) && actualJuliaExePath.path && actualJuliaExePath.version) {
-        return [...cachedJuliaExePaths, actualJuliaExePath]
-    }
 
-    const getExecutables = async () => {
-        const searchPaths = getSearchPaths()
-        if (actualJuliaExePath.path && !actualJuliaExePath.version) {
-            searchPaths.push(actualJuliaExePath.path)
+    public async getBaseRootFolderPathAsync() {
+        if (!this._baseRootFolderPath) {
+            const result = await execFile(
+                this.file,
+                [
+                    ...this.args,
+                    '--startup-file=no',
+                    '--history-file=no',
+                    '-e',
+                    '"println(Sys.BINDIR)"'
+                ]
+            )
+
+            this._baseRootFolderPath = path.normalize(path.join(result.stdout.toString().trim(), '..', '..', 'share', 'julia', 'base'))
         }
-        const executables: JuliaExecutable[] = []
-        await Promise.all(searchPaths
-            .filter(filePath => path.isAbsolute(filePath))
-            .map(async (filePath) => {
-                try {
-                    const res = await exec(`"${filePath}" --startup-file=no --history-file=no -e "println(VERSION);println(Sys.BINDIR)"`)
-                    const output = res.stdout.trim()
-                    if (!output) {
-                        return
-                    }
-                    const [version, bindir] = output.split('\n').map(item => item.trim())
-                    // Update version of the main executable.
-                    if (actualJuliaExePath.path === filePath && !actualJuliaExePath.version) {
-                        actualJuliaExePath.version = version
-                    }
-                    executables.push(new JuliaExecutable(version, path.join(bindir, path.basename(filePath)), undefined, undefined, true))
-                } catch (ex) {
-                    return
-                }
-            }))
-        // Remove duplicates.
-        return Array.from(new Map(executables.map(item => [item.path, item])).values())
+
+        return this._baseRootFolderPath
     }
 
-    cachedJuliaExePaths = getExecutables()
-    return cachedJuliaExePaths
+    public getCommand() {
+        // TODO Properly escape things
+        return [this.file, ...this.args].join(' ')
+    }
 }
-export async function getJuliaExePath() {
-    if (actualJuliaExePath === null) {
-        const configPath = getExecutablePath()
-        if (configPath === null) {
-            for (const p of getSearchPaths()) {
-                try {
-                    const res = await exec(`"${p}" --startup-file=no --history-file=no -e "println(Sys.BINDIR)"`)
-                    if (p === 'julia' || p === 'julia.exe') {
-                        // use full path
-                        setNewJuliaExePath(path.join(res.stdout.trim(), p))
-                    } else {
-                        setNewJuliaExePath(p)
-                    }
-                    break
+
+export class JuliaExecutablesFeature {
+    private actualJuliaExePath: JuliaExecutable | undefined
+    private cachedJuliaExePaths: JuliaExecutable[] | undefined
+
+    constructor(private context: vscode.ExtensionContext) {
+        this.context.subscriptions.push(
+            onDidChangeConfig(event => {
+                if (event.affectsConfiguration('julia.executablePath')) {
+                    this.actualJuliaExePath = undefined
+                    this.cachedJuliaExePaths = undefined
                 }
-                catch (e) {
-                }
+            })
+        )
+    }
+
+    public dispose() {
+    }
+
+    async tryJuliaExePathAsync(newPath: string) {
+        try {
+            let parsedPath = newPath
+            let parsedArgs = []
+
+            if (!await exists(newPath)) {
+                const argv = stringArgv(newPath)
+
+                parsedPath = argv[0]
+                parsedArgs = argv.slice(1)
             }
+
+            const { stdout, } = await execFile(parsedPath, [...parsedArgs, '--version'])
+
+            const versionStringFromJulai = stdout.toString().trim()
+
+            const versionPrefix = `julia version `
+            if (!versionStringFromJulai.startsWith(versionPrefix)) {
+                return undefined
+            }
+
+            return new JuliaExecutable(versionStringFromJulai.slice(versionPrefix.length), parsedPath, parsedArgs, undefined, undefined, true)
+        }
+        catch {
+            return undefined
+        }
+    }
+
+    async tryAndSetNewJuliaExePathAsync(newPath: string) {
+        const newJuliaExecutable = await this.tryJuliaExePathAsync(newPath)
+
+        if (newJuliaExecutable) {
+            this.actualJuliaExePath = newJuliaExecutable
+            setCurrentJuliaVersion(this.actualJuliaExePath.version)
+            traceEvent('configured-new-julia-binary')
+
+            return true
         }
         else {
-            let fullPath: string | undefined = undefined
-            if (configPath.includes(path.sep)) {
-                fullPath = resolvePath(configPath)
-            } else {
-                // resolve full path
-                try {
-                    fullPath = await which(configPath)
-                }
-                catch (err) {
-                    console.debug('which failed to get the julia exe path')
-                    console.debug(err)
-                }
-
-            }
-            if (fullPath) {
-                try {
-                    fullPath = await realpath(fullPath)
-                }
-                catch (err) {
-                    console.debug('realpath failed to resolve the julia exe path')
-                    console.debug(err)
-                }
-                setNewJuliaExePath(fullPath)
-            }
+            return false
         }
     }
-    return actualJuliaExePath.path
-}
 
-function getExecutablePath() {
-    const section = vscode.workspace.getConfiguration('julia')
-    const jlpath = section ? section.get('executablePath', null) : null
-    return jlpath === '' ? null : jlpath
-}
+    getSearchPaths(): string[] {
+        const homedir = os.homedir()
+        let pathsToSearch = []
+        if (process.platform === 'win32') {
+            pathsToSearch = ['julia.exe',
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.3', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.4', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.3', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia 1.5.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia', 'Julia-1.4.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.3.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.3.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.2.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.1.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.1.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.0.6', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.0.5', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.0.4', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.0.3', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.0.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.0.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Julia-1.0.0', 'bin', 'julia.exe')
+            ]
+        }
+        else if (process.platform === 'darwin') {
+            pathsToSearch = ['julia',
+                path.join(homedir, 'Applications', 'Julia-1.6.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.6.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join(homedir, 'Applications', 'Julia-1.5.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.5.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join(homedir, 'Applications', 'Julia-1.4.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.4.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join(homedir, 'Applications', 'Julia-1.3.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.3.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join(homedir, 'Applications', 'Julia-1.2.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.2.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join(homedir, 'Applications', 'Julia-1.1.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.1.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join(homedir, 'Applications', 'Julia-1.0.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.0.app', 'Contents', 'Resources', 'julia', 'bin', 'julia')]
+        }
+        else {
+            pathsToSearch = ['julia']
+        }
+        return pathsToSearch
+    }
 
-export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(
-        onDidChangeConfig(event => {
-            if (event.affectsConfiguration('julia.executablePath')) {
-                actualJuliaExePath = null
+    public async getJuliaExePathsAsync(): Promise<JuliaExecutable[]> {
+        if (!this.cachedJuliaExePaths) {
+            const searchPaths = this.getSearchPaths()
+
+            const executables: JuliaExecutable[] = []
+            executables.push(await this.getActiveJuliaExecutableAsync())
+            await Promise.all(searchPaths.map(async (filePath) => {
+                const newJuliaExecutable = await this.tryJuliaExePathAsync(filePath)
+
+                if (newJuliaExecutable) {
+                    executables.push(newJuliaExecutable)
+                }
+            }))
+
+            // Remove duplicates.
+            this.cachedJuliaExePaths = [...new Set(executables)]
+            return this.cachedJuliaExePaths
+        }
+
+        return this.cachedJuliaExePaths
+    }
+
+    public async getActiveJuliaExecutableAsync() {
+        if (!this.actualJuliaExePath) {
+            const configPath = this.getExecutablePath()
+            if (!configPath) {
+                for (const p of this.getSearchPaths()) {
+                    if (await this.tryAndSetNewJuliaExePathAsync(p)) {
+                        break
+                    }
+                }
             }
-        })
-    )
+            else {
+                await this.tryAndSetNewJuliaExePathAsync(configPath)
+            }
+        }
+        return this.actualJuliaExePath
+    }
+
+    getExecutablePath() {
+        const jlpath = vscode.workspace.getConfiguration('julia').get<string>('executablePath')
+        return jlpath === '' ? undefined : jlpath
+    }
 }

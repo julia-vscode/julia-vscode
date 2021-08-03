@@ -1,11 +1,11 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { getJuliaExePath } from './juliaexepath'
+import { JuliaExecutablesFeature } from './juliaexepath'
 import * as telemetry from './telemetry'
 import { registerCommand } from './utils'
 
 export class JuliaPackageDevFeature {
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private context: vscode.ExtensionContext, private juliaExecutablesFeature: JuliaExecutablesFeature) {
         this.context.subscriptions.push(registerCommand('language-julia.tagNewPackageVersion', () => this.tagNewPackageVersion()))
     }
 
@@ -23,13 +23,14 @@ export class JuliaPackageDevFeature {
             const accessToken = bar.accessToken
             const account = bar.account.label
 
-            const exepath = await getJuliaExePath()
+            const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
             const newTerm = vscode.window.createTerminal(
                 {
                     name: 'Julia: Tag a new package version',
-                    shellPath: exepath,
+                    shellPath: juliaExecutable.file,
                     shellArgs: [
+                        ...juliaExecutable.args,
                         path.join(this.context.extensionPath, 'scripts', 'packagedev', 'tagnewpackageversion.jl'),
                         accessToken,
                         account,
