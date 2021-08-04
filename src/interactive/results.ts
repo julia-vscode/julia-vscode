@@ -427,7 +427,7 @@ function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: v
 // goto frame utilties
 
 export async function openFile(path: string, line: number | undefined = undefined) {
-    const newLine = line ?? 1
+    const newLine = line || 1
     const start = new vscode.Position(newLine - 1, 0)
     const end = new vscode.Position(newLine - 1, 0)
     const range = new vscode.Range(start, end)
