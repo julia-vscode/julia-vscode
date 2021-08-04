@@ -212,7 +212,7 @@ export class JuliaKernel {
                 else if (name === 'stderr') {
                     const execution = this._currentExecutionRequest
                     if (execution) {
-                        execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stdout(data)])])
+                        execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stderr(data)])])
                     }
                 }
                 else {
