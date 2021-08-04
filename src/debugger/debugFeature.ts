@@ -107,7 +107,7 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
             config.name = 'Launch Julia'
         }
 
-        if (!config.program && config.request !== 'attach') {
+        if (!config.program && config.request !== 'attach' && vscode.window.activeTextEditor) {
             config.program = vscode.window.activeTextEditor.document.fileName
         }
 
