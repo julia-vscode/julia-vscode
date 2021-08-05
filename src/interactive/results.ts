@@ -471,4 +471,6 @@ function findFrameIndex(frame: Frame) {
     })
 }
 
-const gotoFrame = (frame: Frame) => openFile(frame.path, frame.line)
+function gotoFrame(frame: Frame) {
+    return openFile(frame.path, frame.line)
+}
