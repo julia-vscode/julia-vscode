@@ -58,3 +58,6 @@
 [submodule "scripts/packages/IJuliaCore"]
 	path = scripts/packages/IJuliaCore
 	url = https://github.com/JuliaLang/IJuliaCore.jl.git
+[submodule "scripts/packages/URIs"]
+	path = scripts/packages/URIs
+	url = https://github.com/JuliaWeb/URIs.jl.git
