@@ -120,11 +120,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
 
         rendered_result = nothing
         f = () -> hideprompt() do
-            if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-                let mode = get(ENV, "JULIA_REVISE", "auto")
-                    mode == "auto" && Main.Revise.revise()
-                end
-            end
+            revise()
+
             if show_code
                 add_code_to_repl_history(source_code)
 

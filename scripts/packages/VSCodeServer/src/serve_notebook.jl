@@ -12,6 +12,8 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
         code = string('\n'^params.line, ' '^params.column, params.code)
 
         withpath(params.filename) do
+            revise()
+
             args = VERSION >= v"1.5" ? (REPL.softscope, Main, code, params.filename) : (Main, code, params.filename)
             result = Base.invokelatest(include_string, args...)
 
