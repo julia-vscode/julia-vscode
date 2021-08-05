@@ -270,14 +270,14 @@ export class JuliaDebugSession extends LoggingDebugSession {
         // await this._configurationDone.wait(1000);
         await this._configurationDone.wait()
 
-        this._launchedWithoutDebug = args.noDebug
+        this._launchedWithoutDebug = args.noDebug ?? false
 
         if (args.noDebug) {
             this._connection.sendNotification(notifyTypeRun, { program: args.program })
         }
         else {
             this._connection.sendNotification(notifyTypeDebug, {
-                stopOnEntry: args.stopOnEntry,
+                stopOnEntry: args.stopOnEntry ?? false,
                 program: args.program,
                 compiledModulesOrFunctions: args.compiledModulesOrFunctions,
                 compiledMode: args.compiledMode
