@@ -7,6 +7,7 @@ import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, Te
 import { DebugProtocol } from 'vscode-debugprotocol'
 import { createMessageConnection, Disposable, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { replStartDebugger } from '../interactive/repl'
+import { JuliaExecutable } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, notifyTypeSetCompiledItems, notifyTypeSetCompiledMode, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepInTargets, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables } from './debugProtocol'
@@ -55,7 +56,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
      * Creates a new debug adapter that is used for one debug session.
      * We configure the default implementation of a debug adapter here.
      */
-    public constructor(private context: vscode.ExtensionContext, private juliaPath: string) {
+    public constructor(private context: vscode.ExtensionContext, private juliaExecutable: JuliaExecutable) {
         super('julia-debug.txt')
 
         // this debugger uses zero-based lines and columns
@@ -231,8 +232,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
         this._debuggeeTerminal = vscode.window.createTerminal({
             name: args.noDebug ? 'Julia Session' : 'Julia Debugger',
-            shellPath: this.juliaPath,
+            shellPath: this.juliaExecutable.file,
             shellArgs: [
+                ...this.juliaExecutable.args,
                 '--color=yes',
                 '--startup-file=no',
                 '--history-file=no',

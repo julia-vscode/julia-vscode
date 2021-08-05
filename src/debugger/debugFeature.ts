@@ -1,13 +1,13 @@
 import * as vscode from 'vscode'
 import * as jlpkgenv from '../jlpkgenv'
-import { getJuliaExePath } from '../juliaexepath'
+import { JuliaExecutablesFeature } from '../juliaexepath'
 import { registerCommand } from '../utils'
 import { JuliaDebugSession } from './juliaDebug'
 
 export class JuliaDebugFeature {
-    constructor(private context: vscode.ExtensionContext, compiledProvider) {
+    constructor(private context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature) {
         const provider = new JuliaDebugConfigurationProvider(compiledProvider)
-        const factory = new InlineDebugAdapterFactory(this.context)
+        const factory = new InlineDebugAdapterFactory(this.context, juliaExecutablesFeature)
 
         compiledProvider.onDidChangeTreeData(() => {
             if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
@@ -143,11 +143,11 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
 
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
 
-    constructor(private context: vscode.ExtensionContext) { }
+    constructor(private context: vscode.ExtensionContext, private juliaExecutablesFeature: JuliaExecutablesFeature) { }
 
     createDebugAdapterDescriptor(_session: vscode.DebugSession): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
         return (async () => {
-            return new vscode.DebugAdapterInlineImplementation(<any>new JuliaDebugSession(this.context, await getJuliaExePath()))
+            return new vscode.DebugAdapterInlineImplementation(<any>new JuliaDebugSession(this.context, await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()))
         })()
     }
 }

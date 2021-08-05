@@ -2,7 +2,7 @@
 import * as semver from 'semver';
 import * as vscode from 'vscode';
 import { WorkspaceFeature } from '../interactive/workspace';
-import { getJuliaExePaths, JuliaExecutable } from '../juliaexepath';
+import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath';
 import { JuliaKernel } from './notebookKernel';
 
 const JupyterNotebookViewType = 'jupyter-notebook';
@@ -30,7 +30,7 @@ export class JuliaNotebookFeature {
     private _outputChannel: vscode.OutputChannel
     private readonly disposables: vscode.Disposable[] = [];
 
-    constructor(private context: vscode.ExtensionContext, private workspaceFeature: WorkspaceFeature) {
+    constructor(private context: vscode.ExtensionContext, private juliaExecutableFeature: JuliaExecutablesFeature, private workspaceFeature: WorkspaceFeature) {
         const section = vscode.workspace.getConfiguration('julia')
         const enabled = section ? section.get<boolean>('notebookController', false) : false
         if (enabled) {
@@ -43,7 +43,7 @@ export class JuliaNotebookFeature {
     private async init() {
         this._outputChannel = vscode.window.createOutputChannel('Julia Notebook Kernels')
 
-        const juliaVersions = await getJuliaExePaths()
+        const juliaVersions = await this.juliaExecutableFeature.getJuliaExePathsAsync()
 
         for (const juliaVersion of juliaVersions) {
             const ver = juliaVersion.getVersion()
@@ -54,7 +54,7 @@ export class JuliaNotebookFeature {
             controller.supportedLanguages = ['julia']
             controller.supportsExecutionOrder = true
             controller.description = 'Julia VS Code extension'
-            controller.detail = juliaVersion.path
+            controller.detail = juliaVersion.getCommand()
             controller.onDidChangeSelectedNotebooks((e) => {
                 if (e.selected && e.notebook) {
                     e.notebook.getCells().filter(cell => cell.kind === vscode.NotebookCellKind.Code).map(cell => vscode.languages.setTextDocumentLanguage(cell.document, 'julia'))
