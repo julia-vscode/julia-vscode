@@ -193,6 +193,16 @@
                 "title": "Julia: Show First Plot"
             },
             {
+                "command": "language-julia.plotpane-enable",
+                "title": "Julia: Enable Plot Pane",
+                "icon": "$(circle-large-outline)"
+            },
+            {
+                "command": "language-julia.plotpane-disable",
+                "title": "Julia: Disable Plot Pane",
+                "icon": "$(pass-filled)"
+            },
+            {
                 "command": "language-julia.plotpane-last",
                 "title": "Julia: Show Last Plot"
             },
@@ -380,6 +390,16 @@
                     "group": "navigation@-2"
                 },
                 {
+                    "when": "jlplotpaneFocus && config.julia.usePlotPane",
+                    "command": "language-julia.plotpane-disable",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus && !config.julia.usePlotPane",
+                    "command": "language-julia.plotpane-enable",
+                    "group": "navigation@1"
+                },
+                {
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete-all"
                 },
@@ -415,32 +435,6 @@
                     "command": "language-julia.debugEditorContents",
                     "when": "resourceLangId == julia",
                     "group": "Julia@30"
-                }
-            ],
-            "commandPalette": [
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-delete-all"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-delete"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-next"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-first"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-last"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-previous"
                 }
             ],
             "view/item/context": [

@@ -19,6 +19,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         registerCommand('language-julia.show-plotpane', showPlotPane),
+        registerCommand('language-julia.plotpane-enable', enablePlotPane),
+        registerCommand('language-julia.plotpane-disable', disablePlotPane),
         registerCommand('language-julia.plotpane-previous', plotPanePrev),
         registerCommand('language-julia.plotpane-next', plotPaneNext),
         registerCommand('language-julia.plotpane-first', plotPaneFirst),
@@ -216,6 +218,16 @@ export function showPlotPane() {
         g_plotPanel.webview.html = getPlotPaneContent()
     }
     g_plotPanel.reveal(undefined, true)
+}
+
+function enablePlotPane() {
+    const conf = vscode.workspace.getConfiguration('julia')
+    conf.update('usePlotPane', true, true)
+}
+
+function disablePlotPane() {
+    const conf = vscode.workspace.getConfiguration('julia')
+    conf.update('usePlotPane', false, true)
 }
 
 function updatePlotPane() {
