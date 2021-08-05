@@ -93,7 +93,7 @@ const DISPLAYABLE_MIMES = [
 User type needs to implement a `show` method that returns a named tuple or dictionary like the following
 ```
 Base.show(io::IO, ::MIME"application/vnd.julia-vscode.diagnostics", t::YourType) = (
-    source = ""
+    source = "Name of my diagnostic tool"
     items = [
         (
             msg = "foo",
