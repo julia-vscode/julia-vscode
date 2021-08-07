@@ -24,6 +24,7 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
+import { TestFeature } from './testing/testFeature'
 import { registerCommand } from './utils'
 import * as weave from './weave'
 
@@ -80,6 +81,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature))
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature))
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
+        context.subscriptions.push(new TestFeature(context))
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
