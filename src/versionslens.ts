@@ -6,6 +6,7 @@ import { registerCommand } from './utils'
 
 export function activate(context: vscode.ExtensionContext) {
     VersionLens.register(context)
+    VersionDiagnostics.register()
 }
 
 namespace VersionLens {
@@ -46,7 +47,7 @@ namespace VersionLens {
         console.log({ deps })
     }
 
-    function parseProjectTomlDocument(document: vscode.TextDocument) {
+    export function parseProjectTomlDocument(document: vscode.TextDocument) {
         const documentText = document.getText()
         const { deps } = toml.parse(documentText) as ProjectToml
         return deps
@@ -65,5 +66,28 @@ namespace VersionLens {
                 document.positionAt(lastPosition)
             )
         })
+    }
+}
+
+namespace VersionDiagnostics {
+    let Diagnostics: vscode.DiagnosticCollection
+
+    export function register() {
+        Diagnostics = vscode.languages.createDiagnosticCollection('versions')
+        init()
+    }
+
+    async function init() {
+        const files = await findProjectTomlFiles()
+        files.forEach(f =>
+            Diagnostics.set(
+                vscode.Uri.file(f.fsPath),
+                [new vscode.Diagnostic(new vscode.Range(0, 0, 0, 12), 'unjustified error')]
+            )
+        )
+    }
+
+    function findProjectTomlFiles() {
+        return vscode.workspace.findFiles('**/Project.toml')
     }
 }
