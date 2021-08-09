@@ -94,6 +94,10 @@
         ],
         "commands": [
             {
+              "command": "language-julia.updateDependency",
+              "title": "Julia: Update Dependencies"
+            },
+            {
                 "command": "language-julia.refreshLanguageServer",
                 "title": "Julia: Re-Index Language Server Cache"
             },

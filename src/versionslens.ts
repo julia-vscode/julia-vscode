@@ -1,5 +1,6 @@
 import * as toml from '@iarna/toml'
 import * as vscode from 'vscode'
+import { registerCommand } from './utils'
 
 
 
@@ -9,6 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 namespace VersionLens {
     const UUID_LENGTH = 36
+    const updateDependencyCommand = 'language-julia.updateDependency'
 
     type uuid = string
     type TomlDependencies = { [packageName: string]: uuid }
@@ -28,14 +30,20 @@ namespace VersionLens {
             { pattern: '**/Project.toml', language: 'toml' },
             { provideCodeLenses: provideCodeLenses },
         ))
+
+        context.subscriptions.push(registerCommand(updateDependencyCommand, onClick))
     }
 
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
         const deps = parseProjectTomlDocument(document)
         const ranges = getPositions(document, deps)
         return ranges.map(range =>
-            new vscode.CodeLens(range, { title: 'It works', command: '', tooltip: 'It works' })
+            new vscode.CodeLens(range, { title: 'It works', command: updateDependencyCommand, tooltip: 'It works' , arguments: [deps]})
         )
+    }
+
+    function onClick(deps: TomlDependencies) {
+        console.log({ deps })
     }
 
     function parseProjectTomlDocument(document: vscode.TextDocument) {
