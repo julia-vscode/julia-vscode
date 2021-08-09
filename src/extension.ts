@@ -25,6 +25,7 @@ import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
 import { registerCommand, setContext } from './utils'
+import * as versionslens from './versionslens'
 import * as weave from './weave'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
@@ -83,6 +84,7 @@ export async function activate(context: vscode.ExtensionContext) {
         packagepath.activate(context, g_juliaExecutablesFeature)
         openpackagedirectory.activate(context)
         jlpkgenv.activate(context, g_juliaExecutablesFeature)
+        versionslens.activate(context)
 
         const workspaceFeature = new WorkspaceFeature(context)
         context.subscriptions.push(workspaceFeature)
