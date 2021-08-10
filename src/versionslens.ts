@@ -12,6 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
 namespace VersionLens {
     const UUID_LENGTH = 36
     const updateDependencyCommand = 'language-julia.updateDependency'
+    const tooltip = new vscode.MarkdownString('`It works`')
 
     type uuid = string
     type TomlDependencies = { [packageName: string]: uuid }
@@ -26,34 +27,63 @@ namespace VersionLens {
         version?: string;
     }
 
+    /**
+     * Register codelens, {@link updateDependencyCommand}, and hoverProvider for Project.toml versions.
+     */
     export function register(context: vscode.ExtensionContext) {
+        const projectTomlSelector = {pattern: '**/Project.toml', language: 'toml'}
         context.subscriptions.push(vscode.languages.registerCodeLensProvider(
-            { pattern: '**/Project.toml', language: 'toml' },
-            { provideCodeLenses: provideCodeLenses },
+            projectTomlSelector,
+            { provideCodeLenses },
         ))
+        context.subscriptions.push(registerCommand(updateDependencyCommand, updateDependency))
 
-        context.subscriptions.push(registerCommand(updateDependencyCommand, onClick))
+        context.subscriptions.push(vscode.languages.registerHoverProvider(
+            projectTomlSelector,
+            { provideHover }
+        ))
     }
 
+    /**
+     * See {@link vscode.CodeLensProvider}.
+     */
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
-        const deps = parseProjectTomlDocument(document)
-        const ranges = getPositions(document, deps)
+        const deps = getProjectTomlDeps(document)
+        const ranges = getDepsPositions(document, deps)
         return ranges.map(range =>
             new vscode.CodeLens(range, { title: 'It works', command: updateDependencyCommand, tooltip: 'It works' , arguments: [deps]})
         )
     }
 
-    function onClick(deps: TomlDependencies) {
+    /**
+     * See {@link vscode.HoverProvider}.
+     */
+    function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
+        const deps = getProjectTomlDeps(document)
+        const ranges = getDepsPositions(document, deps)
+
+        for (const range of ranges) {
+            if (range.contains(position)) {
+                const line = document.lineAt(position.line)
+                return new vscode.Hover(
+                    tooltip,
+                    new vscode.Range(line.range.start, line.range.end))
+            }
+        }
+    }
+
+
+    function updateDependency(deps: TomlDependencies) {
         console.log({ deps })
     }
 
-    export function parseProjectTomlDocument(document: vscode.TextDocument) {
+    export function getProjectTomlDeps(document: vscode.TextDocument) {
         const documentText = document.getText()
         const { deps } = toml.parse(documentText) as ProjectToml
         return deps
     }
 
-    function getPositions(document: vscode.TextDocument, deps: TomlDependencies) {
+    function getDepsPositions(document: vscode.TextDocument, deps: TomlDependencies) {
         const documentText = document.getText()
 
         const UUIDs = Object.values(deps)
