@@ -207,7 +207,11 @@ export function activate(context: vscode.ExtensionContext) {
         // public commands
         registerCommand('language-julia.clearAllInlineResults', removeAll),
         registerCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
-        registerCommand('language-julia.clearCurrentInlineResult', () => removeCurrent(vscode.window.activeTextEditor)),
+        registerCommand('language-julia.clearCurrentInlineResult', () => {
+            if (vscode.window.activeTextEditor) {
+                removeCurrent(vscode.window.activeTextEditor)
+            }
+        }),
 
         // internal commands
         registerCommand('language-julia.openFile', (locationArg: { path: string, line: number }) => {
@@ -424,10 +428,10 @@ function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: v
 
 // goto frame utilties
 
-export async function openFile(path: string, line: number = undefined) {
-    line = line || 1
-    const start = new vscode.Position(line - 1, 0)
-    const end = new vscode.Position(line - 1, 0)
+export async function openFile(path: string, line: number | undefined = undefined) {
+    const newLine = line || 1
+    const start = new vscode.Position(newLine - 1, 0)
+    const end = new vscode.Position(newLine - 1, 0)
     const range = new vscode.Range(start, end)
 
     let uri: vscode.Uri
@@ -469,4 +473,6 @@ function findFrameIndex(frame: Frame) {
     })
 }
 
-const gotoFrame = (frame: Frame) => openFile(frame.path, frame.line)
+function gotoFrame(frame: Frame) {
+    return openFile(frame.path, frame.line)
+}
