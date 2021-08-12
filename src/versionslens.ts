@@ -9,7 +9,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 namespace VersionLens {
-    const UUID_LENGTH = 36
     const updateDependencyCommand = 'language-julia.updateDependency'
     const tooltip = new vscode.MarkdownString('`It works`')
     const nameTooltip = new vscode.MarkdownString('`Name works`')
@@ -50,7 +49,7 @@ namespace VersionLens {
      * See {@link vscode.CodeLensProvider}.
      */
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
-        const {deps} = getProjectTomlFields(document)
+        const { deps } = getProjectTomlFields(document)
         const ranges = getDepsRange(document, deps)
         return ranges.map(range =>
             new vscode.CodeLens(range, { title: 'It works', command: updateDependencyCommand, tooltip: 'It works' , arguments: [deps]})
@@ -61,8 +60,10 @@ namespace VersionLens {
      * See {@link vscode.HoverProvider}.
      */
     function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
-        const { deps, name, uuid, version } = getProjectTomlFields(document)
+        const { deps, name, uuid, version, extras } = getProjectTomlFields(document)
+
         const depsRanges = getDepsRange(document, deps)
+        const extrasRanges = getDepsRange(document, extras)
         const nameRange = getNameRange(document, name)
         const uuidRange = getUuidRange(document, uuid)
         const versionRage = getVersionRange(document, version)
@@ -97,6 +98,15 @@ namespace VersionLens {
                     new vscode.Range(line.range.start, line.range.end))
             }
         }
+
+        for (const range of extrasRanges) {
+            if (range.contains(position)) {
+                const line = document.lineAt(position.line)
+                return new vscode.Hover(
+                    tooltip,
+                    new vscode.Range(line.range.start, line.range.end))
+            }
+        }
     }
 
 
@@ -110,24 +120,26 @@ namespace VersionLens {
     }
 
     function getDepsRange(document: vscode.TextDocument, deps: TomlDependencies) {
-        const documentText = document.getText()
 
-        const UUIDs = Object.values(deps)
-        return UUIDs.map(UUID => {
-            const startPosition = documentText.indexOf(UUID)
-            const lastPosition = startPosition + UUID_LENGTH
+        const documentText = document.getText()
+        const depsNames = Object.keys(deps)
+
+        return depsNames.map(depName => {
+            const depRegexp = RegExp(`${depName}[ ]*=[ ]*("|')${deps[depName]}("|')`)
+            const depPosition = documentText.match(depRegexp)
+            const depLength = depPosition[0]?.length
 
             return new vscode.Range(
-                document.positionAt(startPosition),
-                document.positionAt(lastPosition)
+                document.positionAt(depPosition?.index),
+                document.positionAt(depPosition?.index  + depLength)
             )
         })
     }
 
     function getNameRange(document: vscode.TextDocument, name: string) {
         const documentText = document.getText()
-        const nameLineRegex = RegExp(`name[ ]*=[ ]*("|')${name}("|')`)
-        const namePosition = documentText.match(nameLineRegex)
+        const nameLineRegexp = RegExp(`name[ ]*=[ ]*("|')${name}("|')`)
+        const namePosition = documentText.match(nameLineRegexp)
         const nameLength = namePosition[0]?.length
 
         return new vscode.Range(
@@ -138,20 +150,21 @@ namespace VersionLens {
 
     function getUuidRange(document: vscode.TextDocument, uuid: string) {
         const documentText = document.getText()
-        const uuidLineRegex = RegExp(`uuid[ ]*=[ ]*("|')${uuid}("|')`)
-        const uuidPosition = documentText.match(uuidLineRegex)
+        const uuidLineRegexp = RegExp(`uuid[ ]*=[ ]*("|')${uuid}("|')`)
+        const uuidPosition = documentText.match(uuidLineRegexp)
+        const uuidLength = uuidPosition[0]?.length
 
         return new vscode.Range(
             document.positionAt(uuidPosition?.index),
-            document.positionAt(uuidPosition?.index + UUID_LENGTH)
+            document.positionAt(uuidPosition?.index + uuidLength)
         )
     }
 
 
     function getVersionRange(document: vscode.TextDocument, version: string) {
         const documentText = document.getText()
-        const versionLineRegex = RegExp(`version[ ]*=[ ]*("|')${version}("|')`)
-        const versionPosition = documentText.match(versionLineRegex)
+        const versionLineRegexp = RegExp(`version[ ]*=[ ]*("|')${version}("|')`)
+        const versionPosition = documentText.match(versionLineRegexp)
         const versionLength = versionPosition[0]?.length
 
 
