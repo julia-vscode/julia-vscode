@@ -14,6 +14,7 @@ namespace VersionLens {
     const tooltip = new vscode.MarkdownString('`It works`')
     const nameTooltip = new vscode.MarkdownString('`Name works`')
     const uuidTooltip = new vscode.MarkdownString('`uuid works`')
+    const versionTooltip = new vscode.MarkdownString('`version works`')
 
     type uuid = string
     type TomlDependencies = { [packageName: string]: uuid }
@@ -50,7 +51,7 @@ namespace VersionLens {
      */
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
         const {deps} = getProjectTomlFields(document)
-        const ranges = getDepsPositions(document, deps)
+        const ranges = getDepsRange(document, deps)
         return ranges.map(range =>
             new vscode.CodeLens(range, { title: 'It works', command: updateDependencyCommand, tooltip: 'It works' , arguments: [deps]})
         )
@@ -60,10 +61,11 @@ namespace VersionLens {
      * See {@link vscode.HoverProvider}.
      */
     function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
-        const { deps, name, uuid } = getProjectTomlFields(document)
-        const depsRanges = getDepsPositions(document, deps)
-        const nameRange = getNamePosition(document, name)
-        const uuidRange = getUuidPosition(document, uuid)
+        const { deps, name, uuid, version } = getProjectTomlFields(document)
+        const depsRanges = getDepsRange(document, deps)
+        const nameRange = getNameRange(document, name)
+        const uuidRange = getUuidRange(document, uuid)
+        const versionRage = getVersionRange(document, version)
 
         if (uuidRange.contains(position)) {
             return new vscode.Hover(
@@ -71,6 +73,14 @@ namespace VersionLens {
                 uuidRange
             )
         }
+
+        if (versionRage.contains(position)) {
+            return new vscode.Hover(
+                versionTooltip,
+                versionRage
+            )
+        }
+
 
         if (nameRange.contains(position)) {
             return new vscode.Hover(
@@ -99,7 +109,7 @@ namespace VersionLens {
         return toml.parse(documentText) as ProjectToml
     }
 
-    function getDepsPositions(document: vscode.TextDocument, deps: TomlDependencies) {
+    function getDepsRange(document: vscode.TextDocument, deps: TomlDependencies) {
         const documentText = document.getText()
 
         const UUIDs = Object.values(deps)
@@ -114,7 +124,7 @@ namespace VersionLens {
         })
     }
 
-    function getNamePosition(document: vscode.TextDocument, name: string) {
+    function getNameRange(document: vscode.TextDocument, name: string) {
         const documentText = document.getText()
         const nameLineRegex = RegExp(`name[ ]*=[ ]*("|')${name}("|')`)
         const namePosition = documentText.match(nameLineRegex)
@@ -126,7 +136,7 @@ namespace VersionLens {
         )
     }
 
-    function getUuidPosition(document: vscode.TextDocument, uuid: string) {
+    function getUuidRange(document: vscode.TextDocument, uuid: string) {
         const documentText = document.getText()
         const uuidLineRegex = RegExp(`uuid[ ]*=[ ]*("|')${uuid}("|')`)
         const uuidPosition = documentText.match(uuidLineRegex)
@@ -134,6 +144,20 @@ namespace VersionLens {
         return new vscode.Range(
             document.positionAt(uuidPosition?.index),
             document.positionAt(uuidPosition?.index + UUID_LENGTH)
+        )
+    }
+
+
+    function getVersionRange(document: vscode.TextDocument, version: string) {
+        const documentText = document.getText()
+        const versionLineRegex = RegExp(`version[ ]*=[ ]*("|')${version}("|')`)
+        const versionPosition = documentText.match(versionLineRegex)
+        const versionLength = versionPosition[0]?.length
+
+
+        return new vscode.Range(
+            document.positionAt(versionPosition?.index),
+            document.positionAt(versionPosition?.index + versionLength)
         )
     }
 }
