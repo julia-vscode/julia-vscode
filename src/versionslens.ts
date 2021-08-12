@@ -16,9 +16,11 @@ namespace VersionLens {
     const nameTooltip = new vscode.MarkdownString('`name works`')
     const uuidTooltip = new vscode.MarkdownString('`uuid works`')
     const versionTooltip = new vscode.MarkdownString('`version works`')
+    const sectionTooltip = new vscode.MarkdownString('`section works`')
 
     type uuid = string
     type TomlDependencies = { [packageName: string]: uuid }
+    type ProjectTomlSection = 'deps' | 'extras' | 'compat' | 'targets'
     type ProjectToml = {
         authors?: string[];
         compat?: TomlDependencies;
@@ -52,7 +54,7 @@ namespace VersionLens {
      */
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
         const { deps } = getProjectTomlFields(document)
-        const ranges = getDepsRange(document, deps, 'deps')
+        const ranges = getSectionFieldsRanges(document, deps, 'deps')
         return ranges.map(range =>
             new vscode.CodeLens(range, { title: 'update', command: updateDependencyCommand, arguments: [deps]})
         )
@@ -84,7 +86,6 @@ namespace VersionLens {
             }
         }
 
-
         if (version) {
             const versionRage = getVersionRange(document, version)
             if (versionRage.contains(position)) {
@@ -97,7 +98,7 @@ namespace VersionLens {
         }
 
         if (deps) {
-            const depsRanges = getDepsRange(document, deps, 'deps')
+            const depsRanges = getSectionFieldsRanges(document, deps, 'deps')
             for (const range of depsRanges) {
                 if (range.contains(position)) {
                     return new vscode.Hover(
@@ -108,9 +109,8 @@ namespace VersionLens {
             }
         }
 
-
         if (extras) {
-            const extrasRanges = getDepsRange(document, extras, 'extras')
+            const extrasRanges = getSectionFieldsRanges(document, extras, 'extras')
             for (const range of extrasRanges) {
                 if (range.contains(position)) {
                     return new vscode.Hover(
@@ -122,7 +122,7 @@ namespace VersionLens {
         }
 
         if (compat) {
-            const compatRanges = getDepsRange(document, compat, 'compat')
+            const compatRanges = getSectionFieldsRanges(document, compat, 'compat')
             for (const range of compatRanges) {
                 if (range.contains(position)) {
                     return new vscode.Hover(
@@ -133,37 +133,44 @@ namespace VersionLens {
             }
         }
 
+        const sectionsRanges = getSectionsHeadersRanges(document)
+        for (const range of sectionsRanges) {
+            if (range.contains(position)) {
+                return new vscode.Hover(
+                    sectionTooltip,
+                    range
+                )
+            }
+        }
     }
-
 
     function updateDependency(deps: TomlDependencies) {
         console.log({ deps })
     }
 
-    export function getProjectTomlFields(document: vscode.TextDocument) {
+    function getProjectTomlFields(document: vscode.TextDocument) {
         const documentText = document.getText()
         return toml.parse(documentText) as ProjectToml
     }
 
-    function getDepsRange(document: vscode.TextDocument, deps: TomlDependencies, section: 'deps' | 'extras' | 'compat') {
+    function getSectionsHeadersRanges(document: vscode.TextDocument) {
+        const sectionsNames: Array<ProjectTomlSection> = ['deps', 'compat', 'extras', 'targets']
         const documentText = document.getText()
 
-        const sectionRegExp = RegExp(`\\[${section}\\]((\r\n|\r|\n)|.)*(\r\n|\r|\n)\\[`)
-        const matchedSection = documentText.match(sectionRegExp)
-        const sectionStart = matchedSection?.index
-        const sectionText = matchedSection[0]
+        return sectionsNames
+            .map(sectionName => {
+                const sectionRegExp = RegExp(`\\[${sectionName}\\]`)
+                const matchedSection = documentText.match(sectionRegExp)
+                const sectionLength = matchedSection?.index ? matchedSection[0].length : 0
 
-        const depsNames = Object.keys(deps)
-        return depsNames.map(depName => {
-            const depRegexp = RegExp(`${depName}[ ]*=[ ]*("|')${deps[depName]}("|')`)
-            const depPosition = sectionText.match(depRegexp)
-            const depLength = depPosition[0]?.length
-
-            return new vscode.Range(
-                document.positionAt(depPosition?.index + sectionStart),
-                document.positionAt(depPosition?.index  + depLength + sectionStart)
-            )
-        })
+                if (sectionLength !== 0) {
+                    return new vscode.Range(
+                        document.positionAt(matchedSection.index),
+                        document.positionAt(matchedSection.index + sectionLength)
+                    )
+                }
+            })
+            .filter(name => name !== undefined)
     }
 
     function getNameRange(document: vscode.TextDocument, name: string) {
@@ -178,6 +185,27 @@ namespace VersionLens {
         )
     }
 
+    function getSectionFieldsRanges(document: vscode.TextDocument, fields: TomlDependencies, section: ProjectTomlSection) {
+        const documentText = document.getText()
+
+        const sectionFieldsRegExp = RegExp(`\\[${section}\\]((\r\n|\r|\n)|.)*(\r\n|\r|\n)(\\[|(\r\n|\r|\n))`)
+        const matchedSectionField = documentText.match(sectionFieldsRegExp)
+        const sectionFieldStart = matchedSectionField?.index
+        const sectionFieldText = matchedSectionField[0]
+
+        const depsNames = Object.keys(fields)
+        return depsNames.map(depName => {
+            const fieldRegexp = RegExp(`${depName}[ ]*=[ ]*("|')${fields[depName]}("|')`)
+            const fieldPosition = sectionFieldText.match(fieldRegexp)
+            const fieldLength = fieldPosition[0]?.length
+
+            return new vscode.Range(
+                document.positionAt(fieldPosition?.index + sectionFieldStart),
+                document.positionAt(fieldPosition?.index  + fieldLength + sectionFieldStart)
+            )
+        })
+    }
+
     function getUuidRange(document: vscode.TextDocument, uuid: string) {
         const documentText = document.getText()
         const uuidLineRegexp = RegExp(`uuid[ ]*=[ ]*("|')${uuid}("|')`)
@@ -189,7 +217,6 @@ namespace VersionLens {
             document.positionAt(uuidPosition?.index + uuidLength)
         )
     }
-
 
     function getVersionRange(document: vscode.TextDocument, version: string) {
         const documentText = document.getText()
