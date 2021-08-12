@@ -10,8 +10,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 namespace VersionLens {
     const updateDependencyCommand = 'language-julia.updateDependency'
-    const tooltip = new vscode.MarkdownString('`It works`')
-    const nameTooltip = new vscode.MarkdownString('`Name works`')
+    const depsTooltip = new vscode.MarkdownString('`dep works`')
+    const extrasTooltip = new vscode.MarkdownString('`extra works`')
+    const nameTooltip = new vscode.MarkdownString('`name works`')
     const uuidTooltip = new vscode.MarkdownString('`uuid works`')
     const versionTooltip = new vscode.MarkdownString('`version works`')
 
@@ -50,7 +51,7 @@ namespace VersionLens {
      */
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
         const { deps } = getProjectTomlFields(document)
-        const ranges = getDepsRange(document, deps)
+        const ranges = getDepsRange(document, deps, 'deps')
         return ranges.map(range =>
             new vscode.CodeLens(range, { title: 'It works', command: updateDependencyCommand, tooltip: 'It works' , arguments: [deps]})
         )
@@ -62,8 +63,8 @@ namespace VersionLens {
     function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
         const { deps, name, uuid, version, extras } = getProjectTomlFields(document)
 
-        const depsRanges = getDepsRange(document, deps)
-        const extrasRanges = getDepsRange(document, extras)
+        const depsRanges = getDepsRange(document, deps, 'deps')
+        const extrasRanges = getDepsRange(document, extras, 'extras')
         const nameRange = getNameRange(document, name)
         const uuidRange = getUuidRange(document, uuid)
         const versionRage = getVersionRange(document, version)
@@ -93,7 +94,7 @@ namespace VersionLens {
         for (const range of depsRanges) {
             if (range.contains(position)) {
                 return new vscode.Hover(
-                    tooltip,
+                    depsTooltip,
                     range
                 )
             }
@@ -102,7 +103,7 @@ namespace VersionLens {
         for (const range of extrasRanges) {
             if (range.contains(position)) {
                 return new vscode.Hover(
-                    tooltip,
+                    extrasTooltip,
                     range
                 )
             }
@@ -119,18 +120,23 @@ namespace VersionLens {
         return toml.parse(documentText) as ProjectToml
     }
 
-    function getDepsRange(document: vscode.TextDocument, deps: TomlDependencies) {
+    function getDepsRange(document: vscode.TextDocument, deps: TomlDependencies, section: 'deps' | 'extras') {
         const documentText = document.getText()
-        const depsNames = Object.keys(deps)
 
+        const sectionRegExp = RegExp(`\\[${section}\\]((\r\n|\r|\n)|.)*(\r\n|\r|\n)\\[`)
+        const matchedSection = documentText.match(sectionRegExp)
+        const sectionStart = matchedSection?.index
+        const sectionText = matchedSection[0]
+
+        const depsNames = Object.keys(deps)
         return depsNames.map(depName => {
             const depRegexp = RegExp(`${depName}[ ]*=[ ]*("|')${deps[depName]}("|')`)
-            const depPosition = documentText.match(depRegexp)
+            const depPosition = sectionText.match(depRegexp)
             const depLength = depPosition[0]?.length
 
             return new vscode.Range(
-                document.positionAt(depPosition?.index),
-                document.positionAt(depPosition?.index  + depLength)
+                document.positionAt(depPosition?.index + sectionStart),
+                document.positionAt(depPosition?.index  + depLength + sectionStart)
             )
         })
     }
