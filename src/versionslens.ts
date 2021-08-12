@@ -12,6 +12,7 @@ namespace VersionLens {
     const UUID_LENGTH = 36
     const updateDependencyCommand = 'language-julia.updateDependency'
     const tooltip = new vscode.MarkdownString('`It works`')
+    const nameTooltip = new vscode.MarkdownString('`Name works`')
 
     type uuid = string
     type TomlDependencies = { [packageName: string]: uuid }
@@ -59,9 +60,18 @@ namespace VersionLens {
      */
     function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
         const deps = getProjectTomlDeps(document)
-        const ranges = getDepsPositions(document, deps)
+        const name = getProjectTomlName(document)
+        const depsRanges = getDepsPositions(document, deps)
+        const nameRange = getNamePosition(document, name)
 
-        for (const range of ranges) {
+        if (nameRange.contains(position)) {
+            return new vscode.Hover(
+                nameTooltip,
+                nameRange
+            )
+        }
+
+        for (const range of depsRanges) {
             if (range.contains(position)) {
                 const line = document.lineAt(position.line)
                 return new vscode.Hover(
@@ -82,6 +92,15 @@ namespace VersionLens {
         return deps
     }
 
+    function getProjectTomlName(document: vscode.TextDocument) {
+        console.log('getProjectName')
+        const documentText = document.getText()
+        const { name } = toml.parse(documentText) as ProjectToml
+
+        console.log(name)
+        return name
+    }
+
     function getDepsPositions(document: vscode.TextDocument, deps: TomlDependencies) {
         const documentText = document.getText()
 
@@ -95,5 +114,17 @@ namespace VersionLens {
                 document.positionAt(lastPosition)
             )
         })
+    }
+
+    function getNamePosition(document: vscode.TextDocument, name: string) {
+        const documentText = document.getText()
+        const nameLineRegex = RegExp(`name = ("|')${name}("|')`)
+        const namePosition = documentText.match(nameLineRegex)
+        const nameLength = namePosition[0]?.length
+
+        return new vscode.Range(
+            document.positionAt(namePosition?.index),
+            document.positionAt(namePosition?.index + nameLength)
+        )
     }
 }
