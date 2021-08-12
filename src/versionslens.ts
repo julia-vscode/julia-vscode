@@ -54,7 +54,7 @@ namespace VersionLens {
         const { deps } = getProjectTomlFields(document)
         const ranges = getDepsRange(document, deps, 'deps')
         return ranges.map(range =>
-            new vscode.CodeLens(range, { title: 'It works', command: updateDependencyCommand, tooltip: 'It works' , arguments: [deps]})
+            new vscode.CodeLens(range, { title: 'update', command: updateDependencyCommand, arguments: [deps]})
         )
     }
 
@@ -64,61 +64,75 @@ namespace VersionLens {
     function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
         const { deps, name, uuid, version, extras, compat } = getProjectTomlFields(document)
 
-        const depsRanges = getDepsRange(document, deps, 'deps')
-        const extrasRanges = getDepsRange(document, extras, 'extras')
-        const compatRanges = getDepsRange(document, compat, 'compat')
-        const nameRange = getNameRange(document, name)
-        const uuidRange = getUuidRange(document, uuid)
-        const versionRage = getVersionRange(document, version)
-
-        if (uuidRange.contains(position)) {
-            return new vscode.Hover(
-                uuidTooltip,
-                uuidRange
-            )
-        }
-
-        if (versionRage.contains(position)) {
-            return new vscode.Hover(
-                versionTooltip,
-                versionRage
-            )
-        }
-
-
-        if (nameRange.contains(position)) {
-            return new vscode.Hover(
-                nameTooltip,
-                nameRange
-            )
-        }
-
-        for (const range of depsRanges) {
-            if (range.contains(position)) {
+        if (uuid) {
+            const uuidRange = getUuidRange(document, uuid)
+            if (uuidRange.contains(position)) {
                 return new vscode.Hover(
-                    depsTooltip,
-                    range
+                    uuidTooltip,
+                    uuidRange
                 )
             }
         }
 
-        for (const range of extrasRanges) {
-            if (range.contains(position)) {
+        if (name) {
+            const nameRange = getNameRange(document, name)
+            if (nameRange.contains(position)) {
                 return new vscode.Hover(
-                    extrasTooltip,
-                    range
+                    nameTooltip,
+                    nameRange
                 )
             }
         }
 
-        for (const range of compatRanges) {
-            if (range.contains(position)) {
+
+        if (version) {
+            const versionRage = getVersionRange(document, version)
+            if (versionRage.contains(position)) {
                 return new vscode.Hover(
-                    compatTooltip,
-                    range
+                    versionTooltip,
+                    versionRage
                 )
             }
+
         }
+
+        if (deps) {
+            const depsRanges = getDepsRange(document, deps, 'deps')
+            for (const range of depsRanges) {
+                if (range.contains(position)) {
+                    return new vscode.Hover(
+                        depsTooltip,
+                        range
+                    )
+                }
+            }
+        }
+
+
+        if (extras) {
+            const extrasRanges = getDepsRange(document, extras, 'extras')
+            for (const range of extrasRanges) {
+                if (range.contains(position)) {
+                    return new vscode.Hover(
+                        extrasTooltip,
+                        range
+                    )
+                }
+            }
+        }
+
+        if (compat) {
+            const compatRanges = getDepsRange(document, compat, 'compat')
+            for (const range of compatRanges) {
+                if (range.contains(position)) {
+                    return new vscode.Hover(
+                        compatTooltip,
+                        range
+                    )
+                }
+            }
+        }
+
     }
 
 
@@ -132,7 +146,6 @@ namespace VersionLens {
     }
 
     function getDepsRange(document: vscode.TextDocument, deps: TomlDependencies, section: 'deps' | 'extras' | 'compat') {
-        if(deps === null) { return }
         const documentText = document.getText()
 
         const sectionRegExp = RegExp(`\\[${section}\\]((\r\n|\r|\n)|.)*(\r\n|\r|\n)\\[`)
