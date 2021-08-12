@@ -92,19 +92,19 @@ namespace VersionLens {
 
         for (const range of depsRanges) {
             if (range.contains(position)) {
-                const line = document.lineAt(position.line)
                 return new vscode.Hover(
                     tooltip,
-                    new vscode.Range(line.range.start, line.range.end))
+                    range
+                )
             }
         }
 
         for (const range of extrasRanges) {
             if (range.contains(position)) {
-                const line = document.lineAt(position.line)
                 return new vscode.Hover(
                     tooltip,
-                    new vscode.Range(line.range.start, line.range.end))
+                    range
+                )
             }
         }
     }
@@ -120,7 +120,6 @@ namespace VersionLens {
     }
 
     function getDepsRange(document: vscode.TextDocument, deps: TomlDependencies) {
-
         const documentText = document.getText()
         const depsNames = Object.keys(deps)
 
