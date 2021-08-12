@@ -13,6 +13,7 @@ namespace VersionLens {
     const updateDependencyCommand = 'language-julia.updateDependency'
     const tooltip = new vscode.MarkdownString('`It works`')
     const nameTooltip = new vscode.MarkdownString('`Name works`')
+    const uuidTooltip = new vscode.MarkdownString('`uuid works`')
 
     type uuid = string
     type TomlDependencies = { [packageName: string]: uuid }
@@ -48,7 +49,7 @@ namespace VersionLens {
      * See {@link vscode.CodeLensProvider}.
      */
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
-        const deps = getProjectTomlDeps(document)
+        const {deps} = getProjectTomlFields(document)
         const ranges = getDepsPositions(document, deps)
         return ranges.map(range =>
             new vscode.CodeLens(range, { title: 'It works', command: updateDependencyCommand, tooltip: 'It works' , arguments: [deps]})
@@ -59,10 +60,17 @@ namespace VersionLens {
      * See {@link vscode.HoverProvider}.
      */
     function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
-        const deps = getProjectTomlDeps(document)
-        const name = getProjectTomlName(document)
+        const { deps, name, uuid } = getProjectTomlFields(document)
         const depsRanges = getDepsPositions(document, deps)
         const nameRange = getNamePosition(document, name)
+        const uuidRange = getUuidPosition(document, uuid)
+
+        if (uuidRange.contains(position)) {
+            return new vscode.Hover(
+                uuidTooltip,
+                uuidRange
+            )
+        }
 
         if (nameRange.contains(position)) {
             return new vscode.Hover(
@@ -86,19 +94,9 @@ namespace VersionLens {
         console.log({ deps })
     }
 
-    export function getProjectTomlDeps(document: vscode.TextDocument) {
+    export function getProjectTomlFields(document: vscode.TextDocument) {
         const documentText = document.getText()
-        const { deps } = toml.parse(documentText) as ProjectToml
-        return deps
-    }
-
-    function getProjectTomlName(document: vscode.TextDocument) {
-        console.log('getProjectName')
-        const documentText = document.getText()
-        const { name } = toml.parse(documentText) as ProjectToml
-
-        console.log(name)
-        return name
+        return toml.parse(documentText) as ProjectToml
     }
 
     function getDepsPositions(document: vscode.TextDocument, deps: TomlDependencies) {
@@ -118,13 +116,24 @@ namespace VersionLens {
 
     function getNamePosition(document: vscode.TextDocument, name: string) {
         const documentText = document.getText()
-        const nameLineRegex = RegExp(`name = ("|')${name}("|')`)
+        const nameLineRegex = RegExp(`name[ ]*=[ ]*("|')${name}("|')`)
         const namePosition = documentText.match(nameLineRegex)
         const nameLength = namePosition[0]?.length
 
         return new vscode.Range(
             document.positionAt(namePosition?.index),
             document.positionAt(namePosition?.index + nameLength)
+        )
+    }
+
+    function getUuidPosition(document: vscode.TextDocument, uuid: string) {
+        const documentText = document.getText()
+        const uuidLineRegex = RegExp(`uuid[ ]*=[ ]*("|')${uuid}("|')`)
+        const uuidPosition = documentText.match(uuidLineRegex)
+
+        return new vscode.Range(
+            document.positionAt(uuidPosition?.index),
+            document.positionAt(uuidPosition?.index + UUID_LENGTH)
         )
     }
 }
