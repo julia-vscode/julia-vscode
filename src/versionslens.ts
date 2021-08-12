@@ -12,6 +12,7 @@ namespace VersionLens {
     const updateDependencyCommand = 'language-julia.updateDependency'
     const depsTooltip = new vscode.MarkdownString('`dep works`')
     const extrasTooltip = new vscode.MarkdownString('`extra works`')
+    const compatTooltip = new vscode.MarkdownString('`compat works`')
     const nameTooltip = new vscode.MarkdownString('`name works`')
     const uuidTooltip = new vscode.MarkdownString('`uuid works`')
     const versionTooltip = new vscode.MarkdownString('`version works`')
@@ -61,10 +62,11 @@ namespace VersionLens {
      * See {@link vscode.HoverProvider}.
      */
     function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
-        const { deps, name, uuid, version, extras } = getProjectTomlFields(document)
+        const { deps, name, uuid, version, extras, compat } = getProjectTomlFields(document)
 
         const depsRanges = getDepsRange(document, deps, 'deps')
         const extrasRanges = getDepsRange(document, extras, 'extras')
+        const compatRanges = getDepsRange(document, compat, 'compat')
         const nameRange = getNameRange(document, name)
         const uuidRange = getUuidRange(document, uuid)
         const versionRage = getVersionRange(document, version)
@@ -108,6 +110,15 @@ namespace VersionLens {
                 )
             }
         }
+
+        for (const range of compatRanges) {
+            if (range.contains(position)) {
+                return new vscode.Hover(
+                    compatTooltip,
+                    range
+                )
+            }
+        }
     }
 
 
@@ -120,7 +131,8 @@ namespace VersionLens {
         return toml.parse(documentText) as ProjectToml
     }
 
-    function getDepsRange(document: vscode.TextDocument, deps: TomlDependencies, section: 'deps' | 'extras') {
+    function getDepsRange(document: vscode.TextDocument, deps: TomlDependencies, section: 'deps' | 'extras' | 'compat') {
+        if(deps === null) { return }
         const documentText = document.getText()
 
         const sectionRegExp = RegExp(`\\[${section}\\]((\r\n|\r|\n)|.)*(\r\n|\r|\n)\\[`)
