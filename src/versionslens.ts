@@ -206,11 +206,11 @@ namespace Tooltips {
     \nThe \`name\` field is mandatory for packages. See [Pkg docs](http://pkgdocs.julialang.org/v1/toml-files/#The-name-field).
     `)
     export const uuid = new vscode.MarkdownString(dedent`
-    \`uuid\` is a string with a [universally unique identifier](https://en.wikipedia.org/wiki/Universally_unique_identifier) for the package/project.
+    A string with a [universally unique identifier](https://en.wikipedia.org/wiki/Universally_unique_identifier) for the package/project.
     \nThe \`uuid\` field is mandatory for packages. See [Pkg docs](http://pkgdocs.julialang.org/v1/toml-files/#The-uuid-field).
     `)
     export const version = new vscode.MarkdownString(dedent`
-    \`version\` is a string with the version number for the package/project.
+    A string with the version number for the package/project.
     Julia uses [Semantic Versioning (SemVer)](https://semver.org/).
     See [Pkg docs](http://pkgdocs.julialang.org/v1/toml-files/#The-version-field).
     \n**Note that Pkg.jl deviates from the SemVer specification when it comes to versions pre-1.0.0.
