@@ -96,8 +96,8 @@ namespace VersionLens {
             if (hover) { return hover }
         }
 
-        const sectionsRanges = getSectionsHeadersRanges(document)
-        for (const [sectionName, range] of sectionsRanges) {
+        const sectionsHeadersRanges = getSectionsHeadersRanges(document)
+        for (const [sectionName, range] of sectionsHeadersRanges) {
             if (range.contains(position)) {
                 return new vscode.Hover(
                     Tooltips.sectionsHeaders[sectionName],
@@ -140,9 +140,10 @@ namespace VersionLens {
     }
 
     function getSectionFieldsRanges(document: vscode.TextDocument, section: ProjectTomlSection, fields: TomlDependencies,) {
+        const NEWLINE_DELIMITER = '(\r\n|\r|\n)'
         const documentText = document.getText()
 
-        const sectionFieldsRegExp = RegExp(`\\[${section}\\]((\r\n|\r|\n)|.)*(\r\n|\r|\n)(\\[|(\r\n|\r|\n))`)
+        const sectionFieldsRegExp = RegExp(`\\[${section}\\](${NEWLINE_DELIMITER}|.)*${NEWLINE_DELIMITER}(\\[|${NEWLINE_DELIMITER})`)
         const matchedSectionField = documentText.match(sectionFieldsRegExp)
         const sectionFieldStart = matchedSectionField?.index
         const sectionFieldText = matchedSectionField[0]
