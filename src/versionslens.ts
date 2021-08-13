@@ -10,13 +10,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 namespace VersionLens {
     const updateDependencyCommand = 'language-julia.updateDependency'
-    const depsTooltip = new vscode.MarkdownString('`dep works`')
-    const extrasTooltip = new vscode.MarkdownString('`extra works`')
-    const compatTooltip = new vscode.MarkdownString('`compat works`')
-    const nameTooltip = new vscode.MarkdownString('`name works`')
-    const uuidTooltip = new vscode.MarkdownString('`uuid works`')
-    const versionTooltip = new vscode.MarkdownString('`version works`')
-    const sectionTooltip = new vscode.MarkdownString('`section works`')
 
     type uuid = string
     type TomlDependencies = { [packageName: string]: uuid }
@@ -70,7 +63,7 @@ namespace VersionLens {
             const uuidRange = getUuidRange(document, uuid)
             if (uuidRange.contains(position)) {
                 return new vscode.Hover(
-                    uuidTooltip,
+                    Tooltips.uuid,
                     uuidRange
                 )
             }
@@ -80,7 +73,7 @@ namespace VersionLens {
             const nameRange = getNameRange(document, name)
             if (nameRange.contains(position)) {
                 return new vscode.Hover(
-                    nameTooltip,
+                    Tooltips.name,
                     nameRange
                 )
             }
@@ -90,7 +83,7 @@ namespace VersionLens {
             const versionRage = getVersionRange(document, version)
             if (versionRage.contains(position)) {
                 return new vscode.Hover(
-                    versionTooltip,
+                    Tooltips.version,
                     versionRage
                 )
             }
@@ -102,7 +95,7 @@ namespace VersionLens {
             for (const range of depsRanges) {
                 if (range.contains(position)) {
                     return new vscode.Hover(
-                        depsTooltip,
+                        Tooltips.deps,
                         range
                     )
                 }
@@ -114,7 +107,7 @@ namespace VersionLens {
             for (const range of extrasRanges) {
                 if (range.contains(position)) {
                     return new vscode.Hover(
-                        extrasTooltip,
+                        Tooltips.extras,
                         range
                     )
                 }
@@ -126,7 +119,7 @@ namespace VersionLens {
             for (const range of compatRanges) {
                 if (range.contains(position)) {
                     return new vscode.Hover(
-                        compatTooltip,
+                        Tooltips.compat,
                         range
                     )
                 }
@@ -134,10 +127,10 @@ namespace VersionLens {
         }
 
         const sectionsRanges = getSectionsHeadersRanges(document)
-        for (const range of sectionsRanges) {
+        for (const [sectionName, range] of sectionsRanges) {
             if (range.contains(position)) {
                 return new vscode.Hover(
-                    sectionTooltip,
+                    Tooltips.sectionsHeaders[sectionName],
                     range
                 )
             }
@@ -164,13 +157,16 @@ namespace VersionLens {
                 const sectionLength = matchedSection?.index ? matchedSection[0].length : 0
 
                 if (sectionLength !== 0) {
-                    return new vscode.Range(
-                        document.positionAt(matchedSection.index),
-                        document.positionAt(matchedSection.index + sectionLength)
-                    )
+                    return [
+                        sectionName,
+                        new vscode.Range(
+                            document.positionAt(matchedSection.index),
+                            document.positionAt(matchedSection.index + sectionLength)
+                        )
+                    ] as [ProjectTomlSection, vscode.Range]
                 }
             })
-            .filter(name => name !== undefined)
+            .filter(range => range !== undefined)
     }
 
     function getNameRange(document: vscode.TextDocument, name: string) {
@@ -224,7 +220,6 @@ namespace VersionLens {
         const versionPosition = documentText.match(versionLineRegexp)
         const versionLength = versionPosition[0]?.length
 
-
         return new vscode.Range(
             document.positionAt(versionPosition?.index),
             document.positionAt(versionPosition?.index + versionLength)
@@ -232,31 +227,74 @@ namespace VersionLens {
     }
 }
 
-function dedent(callSite, ...args) {
-    function format(str) {
-        let size = -1
-
-        return str.replace(/\n(\s+)/g, (m, m1) => {
-
-            if (size < 0)
-            {size = m1.replace(/\t/g, '    ').length}
-
-            return '\n' + m1.slice(Math.min(m1.length, size))
-        })
+namespace Tooltips {
+    export const name = new vscode.MarkdownString(dedent`
+    The name of the package/project.
+    The \`name\` can contain word characters \`[a-zA-Z0-9_]\`, but can not start with a number.
+    For packages it is recommended to follow [the package naming guidelines](http://pkgdocs.julialang.org/v1/creating-packages/#Package-naming-guidelines).
+    \nThe \`name\` field is mandatory for packages. See [Pkg docs](http://pkgdocs.julialang.org/v1/toml-files/#The-name-field).
+    `)
+    export const uuid = new vscode.MarkdownString(dedent`
+    \`uuid\` is a string with a [universally unique identifier](https://en.wikipedia.org/wiki/Universally_unique_identifier) for the package/project.
+    \nThe \`uuid\` field is mandatory for packages. See [Pkg docs](http://pkgdocs.julialang.org/v1/toml-files/#The-uuid-field).
+    `)
+    export const version = new vscode.MarkdownString(dedent`
+    \`version\` is a string with the version number for the package/project.
+    Julia uses [Semantic Versioning (SemVer)](https://semver.org/).
+    See [Pkg docs](http://pkgdocs.julialang.org/v1/toml-files/#The-version-field).
+    \n**Note that Pkg.jl deviates from the SemVer specification when it comes to versions pre-1.0.0.
+    See the section on [pre-1.0 behavior](http://pkgdocs.julialang.org/v1/compatibility/#compat-pre-1.0) for more details.**
+    `)
+    export const sectionsHeaders = {
+        deps: new vscode.MarkdownString(dedent`
+        All dependencies of the package/project.
+        Each dependency is listed as a name-uuid pair.
+        Typically it is not needed to manually add entries to the \`[deps]\` section; this is instead handled by \`Pkg\` operations such as \`add\`.
+        See [Pkg docs](http://pkgdocs.julialang.org/v1/toml-files/#The-[deps]-section).
+        `),
+        compat: new vscode.MarkdownString(dedent`
+        Compatibility constraints for the dependencies listed under \`[deps]\`.
+        See [Pkg docs](http://pkgdocs.julialang.org/v1/compatibility/#Compatibility).
+        `),
+        extras: new vscode.MarkdownString(dedent`
+        Test-specific dependencies in Julia \`1.0\` and \`1.1\`.
+        See [Pkg docs](http://pkgdocs.julialang.org/v1/creating-packages/#Test-specific-dependencies-in-Julia-1.0-and-1.1).
+        `),
+        targets: new vscode.MarkdownString(dedent`
+        Test-specific dependencies in Julia \`1.0\` and \`1.1\`.
+        See [Pkg docs](http://pkgdocs.julialang.org/v1/creating-packages/#Test-specific-dependencies-in-Julia-1.0-and-1.1).
+        `)
     }
+    export const deps = new vscode.MarkdownString('`dep works`')
+    export const extras = new vscode.MarkdownString('`extra works`')
+    export const compat = new vscode.MarkdownString('`compat works`')
 
-    if (typeof callSite === 'string') {
-        return format(callSite)
+    function dedent(callSite, ...args) {
+        function format(str) {
+            let size = -1
+
+            return str.replace(/\n(\s+)/g, (m, m1) => {
+
+                if (size < 0)
+                {size = m1.replace(/\t/g, '    ').length}
+
+                return '\n' + m1.slice(Math.min(m1.length, size))
+            })
+        }
+
+        if (typeof callSite === 'string') {
+            return format(callSite)
+        }
+
+        if (typeof callSite === 'function') {
+            return (...args) => format(callSite(...args))
+        }
+
+        const output = callSite
+            .slice(0, args.length + 1)
+            .map((text, i) => (i === 0 ? '' : args[i - 1]) + text)
+            .join('')
+
+        return format(output)
     }
-
-    if (typeof callSite === 'function') {
-        return (...args) => format(callSite(...args))
-    }
-
-    const output = callSite
-        .slice(0, args.length + 1)
-        .map((text, i) => (i === 0 ? '' : args[i - 1]) + text)
-        .join('')
-
-    return format(output)
 }
