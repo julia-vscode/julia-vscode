@@ -14,6 +14,7 @@ namespace VersionLens {
     type uuid = string
     type TomlDependencies = { [packageName: string]: uuid }
     type ProjectTomlSection = 'deps' | 'extras' | 'compat' | 'targets'
+    type ProjectTomlKey = 'name' | 'version' | 'uuid'
     type ProjectToml = {
         authors?: string[];
         compat?: TomlDependencies;
@@ -47,7 +48,7 @@ namespace VersionLens {
      */
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
         const { deps } = getProjectTomlFields(document)
-        const ranges = getSectionFieldsRanges(document, deps, 'deps')
+        const ranges = getSectionFieldsRanges(document, 'deps', deps)
         return ranges.map(range =>
             new vscode.CodeLens(range, { title: 'update', command: updateDependencyCommand, arguments: [deps]})
         )
@@ -60,70 +61,39 @@ namespace VersionLens {
         const { deps, name, uuid, version, extras, compat } = getProjectTomlFields(document)
 
         if (uuid) {
-            const uuidRange = getUuidRange(document, uuid)
-            if (uuidRange.contains(position)) {
-                return new vscode.Hover(
-                    Tooltips.uuid,
-                    uuidRange
-                )
-            }
+            const uuidRange = getFieldRange(document, 'uuid', uuid)
+            const hover = fieldHover('uuid', uuidRange, position)
+            if (hover) { return hover }
         }
 
         if (name) {
-            const nameRange = getNameRange(document, name)
-            if (nameRange.contains(position)) {
-                return new vscode.Hover(
-                    Tooltips.name,
-                    nameRange
-                )
-            }
+            const nameRange = getFieldRange(document, 'name', name)
+            const hover = fieldHover('name', nameRange, position)
+            if (hover) { return hover }
         }
 
         if (version) {
-            const versionRage = getVersionRange(document, version)
-            if (versionRage.contains(position)) {
-                return new vscode.Hover(
-                    Tooltips.version,
-                    versionRage
-                )
-            }
-
+            const versionRange = getFieldRange(document, 'version', version)
+            const hover = fieldHover('version', versionRange, position)
+            if (hover) { return hover }
         }
 
         if (deps) {
-            const depsRanges = getSectionFieldsRanges(document, deps, 'deps')
-            for (const range of depsRanges) {
-                if (range.contains(position)) {
-                    return new vscode.Hover(
-                        Tooltips.deps,
-                        range
-                    )
-                }
-            }
+            const depsRanges = getSectionFieldsRanges(document, 'deps', deps)
+            const hover = sectionHover('deps', depsRanges, position)
+            if (hover) { return hover }
         }
 
         if (extras) {
-            const extrasRanges = getSectionFieldsRanges(document, extras, 'extras')
-            for (const range of extrasRanges) {
-                if (range.contains(position)) {
-                    return new vscode.Hover(
-                        Tooltips.extras,
-                        range
-                    )
-                }
-            }
+            const extrasRanges = getSectionFieldsRanges(document, 'extras', extras)
+            const hover = sectionHover('extras', extrasRanges, position)
+            if (hover) { return hover }
         }
 
         if (compat) {
-            const compatRanges = getSectionFieldsRanges(document, compat, 'compat')
-            for (const range of compatRanges) {
-                if (range.contains(position)) {
-                    return new vscode.Hover(
-                        Tooltips.compat,
-                        range
-                    )
-                }
-            }
+            const compatRanges = getSectionFieldsRanges(document, 'compat', compat)
+            const hover = sectionHover('compat', compatRanges, position)
+            if (hover) { return hover }
         }
 
         const sectionsRanges = getSectionsHeadersRanges(document)
@@ -169,19 +139,7 @@ namespace VersionLens {
             .filter(range => range !== undefined)
     }
 
-    function getNameRange(document: vscode.TextDocument, name: string) {
-        const documentText = document.getText()
-        const nameLineRegexp = RegExp(`name[ ]*=[ ]*("|')${name}("|')`)
-        const namePosition = documentText.match(nameLineRegexp)
-        const nameLength = namePosition[0]?.length
-
-        return new vscode.Range(
-            document.positionAt(namePosition?.index),
-            document.positionAt(namePosition?.index + nameLength)
-        )
-    }
-
-    function getSectionFieldsRanges(document: vscode.TextDocument, fields: TomlDependencies, section: ProjectTomlSection) {
+    function getSectionFieldsRanges(document: vscode.TextDocument, section: ProjectTomlSection, fields: TomlDependencies,) {
         const documentText = document.getText()
 
         const sectionFieldsRegExp = RegExp(`\\[${section}\\]((\r\n|\r|\n)|.)*(\r\n|\r|\n)(\\[|(\r\n|\r|\n))`)
@@ -202,28 +160,41 @@ namespace VersionLens {
         })
     }
 
-    function getUuidRange(document: vscode.TextDocument, uuid: string) {
+    function getFieldRange(document: vscode.TextDocument, key: ProjectTomlKey, value: string) {
         const documentText = document.getText()
-        const uuidLineRegexp = RegExp(`uuid[ ]*=[ ]*("|')${uuid}("|')`)
-        const uuidPosition = documentText.match(uuidLineRegexp)
-        const uuidLength = uuidPosition[0]?.length
+        const fieldRegExp = RegExp(`${key}[ ]*=[ ]*("|')${value}("|')`)
+        const matchedField = documentText.match(fieldRegExp)
+        const fieldLength = matchedField?.length ? matchedField[0]?.length : 0
 
-        return new vscode.Range(
-            document.positionAt(uuidPosition?.index),
-            document.positionAt(uuidPosition?.index + uuidLength)
-        )
+        if (fieldLength !== 0) {
+            return new vscode.Range(
+                document.positionAt(matchedField.index),
+                document.positionAt(matchedField.index + fieldLength)
+            )
+        } else {
+            // Return empty range
+            return new vscode.Range(document.positionAt(-1), document.positionAt(-1))
+        }
     }
 
-    function getVersionRange(document: vscode.TextDocument, version: string) {
-        const documentText = document.getText()
-        const versionLineRegexp = RegExp(`version[ ]*=[ ]*("|')${version}("|')`)
-        const versionPosition = documentText.match(versionLineRegexp)
-        const versionLength = versionPosition[0]?.length
+    function fieldHover(key: ProjectTomlKey, range: vscode.Range, position: vscode.Position) {
+        if (range.contains(position)) {
+            return new vscode.Hover(
+                Tooltips[key],
+                range
+            )
+        }
+    }
 
-        return new vscode.Range(
-            document.positionAt(versionPosition?.index),
-            document.positionAt(versionPosition?.index + versionLength)
-        )
+    function sectionHover(key: ProjectTomlSection, ranges: vscode.Range[], position: vscode.Position) {
+        for (const range of ranges) {
+            if (range.contains(position)) {
+                return new vscode.Hover(
+                    Tooltips[key],
+                    range
+                )
+            }
+        }
     }
 }
 
