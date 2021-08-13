@@ -88,6 +88,7 @@ include("profiler.jl")
 include("debugger.jl")
 include("notebookdisplay.jl")
 include("serve_notebook.jl")
+include("verionslens.jl")
 
 function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     if is_dev
@@ -138,6 +139,7 @@ function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractS
         msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request
         msg_dispatcher[repl_gettabledata_request_type] = get_table_data
         msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
+        msg_dispatcher[lens_request_type] = lens_request
 
         @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
             msg = JSONRPC.get_next_message(conn_endpoint[])

@@ -1,14 +1,15 @@
 import * as toml from '@iarna/toml'
 import * as vscode from 'vscode'
+import * as rpc from 'vscode-jsonrpc'
 import { registerCommand } from '../utils'
+import { g_connection } from './repl'
 
 export function activate(context: vscode.ExtensionContext) {
     VersionLens.register(context)
 }
-
 namespace VersionLens {
+    const requestTypeLens = new rpc.RequestType<{ name: string }, boolean, void>('lens')
     const updateDependencyCommand = 'language-julia.updateDependency'
-
     type uuid = string
     type TomlDependencies = { [packageName: string]: uuid }
     type ProjectTomlSection = 'deps' | 'extras' | 'compat' | 'targets'
@@ -105,7 +106,13 @@ namespace VersionLens {
         }
     }
 
-    function updateDependency(deps: TomlDependencies) {
+    async function updateDependency(deps: TomlDependencies) {
+        // We will need to start a connection if none is available
+        try {
+            await g_connection.sendRequest(requestTypeLens, {name: 'filename'})
+        } catch (e) {
+            console.error(e)
+        }
         console.log({ deps })
     }
 
