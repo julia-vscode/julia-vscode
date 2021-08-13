@@ -1,8 +1,6 @@
 import * as toml from '@iarna/toml'
 import * as vscode from 'vscode'
-import { registerCommand } from './utils'
-
-
+import { registerCommand } from '../utils'
 
 export function activate(context: vscode.ExtensionContext) {
     VersionLens.register(context)
