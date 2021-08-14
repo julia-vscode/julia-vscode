@@ -11,14 +11,14 @@ namespace VersionLens {
     const requestTypeLens = new rpc.RequestType<{ name: string }, boolean, void>('lens')
     const updateDependencyCommand = 'language-julia.updateDependency'
     type uuid = string
-    type TomlDependencies = { [packageName: string]: uuid }
+    type TomlDependency = { [packageName: string]: uuid }
     type ProjectTomlSection = 'deps' | 'extras' | 'compat' | 'targets'
     type ProjectTomlKey = 'name' | 'version' | 'uuid'
     type ProjectToml = {
         authors?: string[];
-        compat?: TomlDependencies;
-        deps?: TomlDependencies;
-        extras?: TomlDependencies;
+        compat?: TomlDependency;
+        deps?: TomlDependency;
+        extras?: TomlDependency;
         name: string;
         targets?: object;
         uuid?: uuid;
@@ -29,7 +29,8 @@ namespace VersionLens {
      * Register codelens, {@link updateDependencyCommand}, and hoverProvider for Project.toml versions.
      */
     export function register(context: vscode.ExtensionContext) {
-        const projectTomlSelector = {pattern: '**/Project.toml', language: 'toml'}
+        const projectTomlSelector = { pattern: '**/Project.toml', language: 'toml' }
+
         context.subscriptions.push(vscode.languages.registerCodeLensProvider(
             projectTomlSelector,
             { provideCodeLenses },
@@ -48,8 +49,8 @@ namespace VersionLens {
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
         const { deps } = getProjectTomlFields(document)
         const ranges = getSectionFieldsRanges(document, 'deps', deps)
-        return ranges.map(range =>
-            new vscode.CodeLens(range, { title: 'update', command: updateDependencyCommand, arguments: [deps]})
+        return ranges.map(([dependency, range]) =>
+            new vscode.CodeLens(range, { title: 'update', command: updateDependencyCommand, arguments: [dependency]})
         )
     }
 
@@ -106,14 +107,14 @@ namespace VersionLens {
         }
     }
 
-    async function updateDependency(deps: TomlDependencies) {
+    async function updateDependency(dependency: TomlDependency) {
         if (g_repl_connection === undefined) {
             // If there's no active repl, start one.
             await startREPL(false)
         }
         await g_repl_connection.sendRequest(requestTypeLens, {name: 'filename'})
 
-        console.log({ deps })
+        console.log({ dependency: dependency })
     }
 
     function getProjectTomlFields(document: vscode.TextDocument) {
@@ -129,7 +130,7 @@ namespace VersionLens {
             .map(sectionName => {
                 const sectionRegExp = RegExp(`\\[${sectionName}\\]`)
                 const matchedSection = documentText.match(sectionRegExp)
-                const sectionLength = matchedSection?.index ? matchedSection[0].length : 0
+                const sectionLength = matchedSection?.length ? matchedSection[0].length : 0
 
                 if (sectionLength !== 0) {
                     return [
@@ -144,7 +145,7 @@ namespace VersionLens {
             .filter(range => range !== undefined)
     }
 
-    function getSectionFieldsRanges(document: vscode.TextDocument, section: ProjectTomlSection, fields: TomlDependencies,) {
+    function getSectionFieldsRanges(document: vscode.TextDocument, section: ProjectTomlSection, fields: TomlDependency,) {
         const NEWLINE_DELIMITER = '(\r\n|\r|\n)'
         const documentText = document.getText()
 
@@ -159,10 +160,13 @@ namespace VersionLens {
             const fieldPosition = sectionFieldText.match(fieldRegexp)
             const fieldLength = fieldPosition[0]?.length
 
-            return new vscode.Range(
-                document.positionAt(fieldPosition?.index + sectionFieldStart),
-                document.positionAt(fieldPosition?.index  + fieldLength + sectionFieldStart)
-            )
+            return [
+                { [depName]: fields[depName] },
+                new vscode.Range(
+                    document.positionAt(fieldPosition?.index + sectionFieldStart),
+                    document.positionAt(fieldPosition?.index  + fieldLength + sectionFieldStart)
+                )
+            ] as [TomlDependency, vscode.Range]
         })
     }
 
@@ -192,8 +196,8 @@ namespace VersionLens {
         }
     }
 
-    function sectionHover(key: ProjectTomlSection, ranges: vscode.Range[], position: vscode.Position) {
-        for (const range of ranges) {
+    function sectionHover(key: ProjectTomlSection, depsRanges: [TomlDependency, vscode.Range][], position: vscode.Position) {
+        for (const [_, range] of depsRanges) {
             if (range.contains(position)) {
                 return new vscode.Hover(
                     Tooltips[key],
