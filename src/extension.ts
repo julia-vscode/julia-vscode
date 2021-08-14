@@ -85,8 +85,10 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(g_startupNotification)
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('symbolCacheDownload') === null) {
-            vscode.window.showInformationMessage('The extension will now download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.', 'Open Settings').then(() => {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.symbolCacheDownload')
+            vscode.window.showInformationMessage('The extension will now download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.', 'Open Settings').then(val => {
+                if (val) {
+                    vscode.commands.executeCommand('workbench.action.openSettings', 'julia.symbolCacheDownload')
+                }
             })
             vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, true)
         }
@@ -184,8 +186,10 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     try {
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
-        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(() => {
-            vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(val => {
+            if (val) {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+            }
         })
         vscode.window.showErrorMessage(e)
         g_startupNotification.hide()
@@ -308,8 +312,10 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         })
     }
     catch (e) {
-        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(() => {
-            vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(val => {
+            if (val) {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+            }
         })
         setLanguageClient()
         disposable.dispose()
