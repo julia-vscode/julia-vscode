@@ -8,6 +8,7 @@ import stringArgv from 'string-argv'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
+import { resolvePath } from './utils'
 
 export class JuliaExecutable {
     private _baseRootFolderPath: string | undefined
@@ -64,14 +65,24 @@ export class JuliaExecutablesFeature {
 
     async tryJuliaExePathAsync(newPath: string) {
         try {
-            let parsedPath = newPath
+            let parsedPath = ''
             let parsedArgs = []
 
-            if (!await exists(newPath)) {
-                const argv = stringArgv(newPath)
+            if (path.isAbsolute(newPath) && await exists(newPath)) {
+                parsedPath = newPath
+            }
+            else {
+                const resolvedPath = resolvePath(newPath, false)
 
-                parsedPath = argv[0]
-                parsedArgs = argv.slice(1)
+                if (path.isAbsolute(resolvedPath) && await exists(resolvedPath)) {
+                    parsedPath = resolvedPath
+                }
+                else {
+                    const argv = stringArgv(newPath)
+
+                    parsedPath = argv[0]
+                    parsedArgs = argv.slice(1)
+                }
             }
 
             const { stdout, } = await execFile(parsedPath, [...parsedArgs, '--version'])
