@@ -143,10 +143,9 @@ LazilyInitializedFields.@lazy struct PkgEntry
 end
 
 registry_info(pkg::PkgEntry) = init_package_info!(pkg)
-    
 function init_package_info!(pkg::PkgEntry)
     # Already uncompressed the info for this package, return early
-    LazilyInitializedFields.@isinit(pkg.info)                          && return pkg.info
+    LazilyInitializedFields.@isinit(pkg.info)  && return pkg.info
     path = pkg.registry_path
 
     d_p = parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Package.toml"))
@@ -419,6 +418,18 @@ return []
     return collect(keys(versions_info))
 end
 get_available_versions(r::RegistryInstance, uuid::String) = get_available_versions(r, UUID(uuid))
+
+function get_latest_version(r::RegistryInstance, uuid::UUID)
+    all_versions = get_available_versions(r, uuid)
+    if length(all_versions) === 0
+        return ""
+    end
+
+    latest_version = last(sort(all_versions))
+
+    return string(latest_version)
+end
+get_latest_version(r::RegistryInstance, uuid::String) = get_latest_version(r, UUID(uuid))
 
 # Dict interface
 
