@@ -147,10 +147,24 @@ namespace VersionLens {
     }
 
     function getSectionFieldsRanges(document: vscode.TextDocument, section: ProjectTomlSection, fields: TomlDependency,) {
+        /*
+        * ┌──────►Match the section header, e.g., [deps].
+        * │ ┌────►Match a newline or any character, zero or more times until──┐
+        * │ │ ┌───────────────────────────────────────────────────────────────┘
+        * │ │ │
+        * │ │ └┐►Match a newline followed by the beginning of another section, i.e., `[`, or EOF.
+        * │ │  └─────────────────────────────────────────────────┐
+        * │ └────────────────────────┐                           │
+        * │        ┌────────────────┬┴─────────────────────────┬─┴───────────────────────────────────────────┐
+        * └────────┤\\[${section}\\]│ (${NEWLINE_DELIMITER}|.)*│${NEWLINE_DELIMITER}(\\[|${NEwLINE_DELIMITER}│
+        *          └────────────────┴──────────────────────────┴─────────────────────────────────────────────┘
+        */
         const NEWLINE_DELIMITER = '(\r\n|\r|\n)'
-        const documentText = document.getText()
+        const sectionFieldsRegExp = RegExp(
+            `\\[${section}\\](${NEWLINE_DELIMITER}|.)*${NEWLINE_DELIMITER}(\\[|${NEWLINE_DELIMITER})`
+        )
 
-        const sectionFieldsRegExp = RegExp(`\\[${section}\\](${NEWLINE_DELIMITER}|.)*${NEWLINE_DELIMITER}(\\[|${NEWLINE_DELIMITER})`)
+        const documentText = document.getText()
         const matchedSectionField = documentText.match(sectionFieldsRegExp)
         const sectionFieldStart = matchedSectionField?.index
         const sectionFieldText = matchedSectionField[0]
