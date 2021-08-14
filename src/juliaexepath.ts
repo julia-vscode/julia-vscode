@@ -84,17 +84,16 @@ export class JuliaExecutablesFeature {
                     parsedArgs = argv.slice(1)
                 }
             }
-
             const { stdout, } = await execFile(parsedPath, [...parsedArgs, '--version'])
 
-            const versionStringFromJulai = stdout.toString().trim()
+            const versionStringFromJulia = stdout.toString().trim()
 
             const versionPrefix = `julia version `
-            if (!versionStringFromJulai.startsWith(versionPrefix)) {
+            if (!versionStringFromJulia.startsWith(versionPrefix)) {
                 return undefined
             }
 
-            return new JuliaExecutable(versionStringFromJulai.slice(versionPrefix.length), parsedPath, parsedArgs, undefined, undefined, true)
+            return new JuliaExecutable(versionStringFromJulia.slice(versionPrefix.length), parsedPath, parsedArgs, undefined, undefined, true)
         }
         catch {
             return undefined
