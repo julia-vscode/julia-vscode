@@ -76,3 +76,9 @@
 [submodule "scripts/packages/Revise"]
 	path = scripts/packages/Revise
 	url = https://github.com/timholy/Revise.jl
+[submodule "scripts/packages/Tar"]
+	path = scripts/packages/Tar
+	url = https://github.com/JuliaIO/Tar.jl.git
+[submodule "scripts/packages/LazilyInitializedFields"]
+	path = scripts/packages/LazilyInitializedFields
+	url = https://github.com/KristofferC/LazilyInitializedFields.jl
