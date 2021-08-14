@@ -111,7 +111,7 @@ function parseSessionArgs(name: string) {
     return name
 }
 
-async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
+export async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (isConnected()) {
         if (g_terminal && showTerminal) {
             g_terminal.show(preserveFocus)

@@ -2,7 +2,7 @@ import * as toml from '@iarna/toml'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { registerCommand } from '../utils'
-import { g_connection } from './repl'
+import { g_connection as g_repl_connection, startREPL } from './repl'
 
 export function activate(context: vscode.ExtensionContext) {
     VersionLens.register(context)
@@ -107,12 +107,12 @@ namespace VersionLens {
     }
 
     async function updateDependency(deps: TomlDependencies) {
-        // We will need to start a connection if none is available
-        try {
-            await g_connection.sendRequest(requestTypeLens, {name: 'filename'})
-        } catch (e) {
-            console.error(e)
+        if (g_repl_connection === undefined) {
+            // If there's no active repl, start one.
+            await startREPL(false)
         }
+        await g_repl_connection.sendRequest(requestTypeLens, {name: 'filename'})
+
         console.log({ deps })
     }
 
