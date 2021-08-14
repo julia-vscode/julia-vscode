@@ -8,6 +8,7 @@ import stringArgv from 'string-argv'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
+import { resolvePath } from './utils'
 
 export class JuliaExecutable {
     private _baseRootFolderPath: string | undefined
@@ -64,26 +65,35 @@ export class JuliaExecutablesFeature {
 
     async tryJuliaExePathAsync(newPath: string) {
         try {
-            let parsedPath = newPath
+            let parsedPath = ''
             let parsedArgs = []
 
-            if (!await exists(newPath)) {
-                const argv = stringArgv(newPath)
-
-                parsedPath = argv[0]
-                parsedArgs = argv.slice(1)
+            if (path.isAbsolute(newPath) && await exists(newPath)) {
+                parsedPath = newPath
             }
+            else {
+                const resolvedPath = resolvePath(newPath, false)
 
+                if (path.isAbsolute(resolvedPath) && await exists(resolvedPath)) {
+                    parsedPath = resolvedPath
+                }
+                else {
+                    const argv = stringArgv(newPath)
+
+                    parsedPath = argv[0]
+                    parsedArgs = argv.slice(1)
+                }
+            }
             const { stdout, } = await execFile(parsedPath, [...parsedArgs, '--version'])
 
-            const versionStringFromJulai = stdout.toString().trim()
+            const versionStringFromJulia = stdout.toString().trim()
 
             const versionPrefix = `julia version `
-            if (!versionStringFromJulai.startsWith(versionPrefix)) {
+            if (!versionStringFromJulia.startsWith(versionPrefix)) {
                 return undefined
             }
 
-            return new JuliaExecutable(versionStringFromJulai.slice(versionPrefix.length), parsedPath, parsedArgs, undefined, undefined, true)
+            return new JuliaExecutable(versionStringFromJulia.slice(versionPrefix.length), parsedPath, parsedArgs, undefined, undefined, true)
         }
         catch {
             return undefined

@@ -212,7 +212,11 @@ function absEnvPath(p: string) {
     if (path.isAbsolute(p)) {
         return p
     } else {
-        return path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, p)
+        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+            return path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, p)
+        } else {
+            return path.join(os.homedir(), p)
+        }
     }
 }
 
