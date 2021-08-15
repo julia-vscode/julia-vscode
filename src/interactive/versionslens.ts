@@ -7,44 +7,67 @@ import { g_connection as g_repl_connection, startREPL } from './repl'
 export function activate(context: vscode.ExtensionContext) {
     VersionLens.register(context)
 }
+
+type uuid = string
+type TomlDependency = { [packageName: string]: uuid }
+type ProjectTomlSection = 'deps' | 'extras' | 'compat' | 'targets'
+type ProjectTomlKey = 'name' | 'version' | 'uuid'
+type ProjectToml = {
+    authors?: string[];
+    compat?: TomlDependency;
+    deps?: TomlDependency;
+    extras?: TomlDependency;
+    name: string;
+    targets?: object;
+    uuid?: uuid;
+    version?: string;
+}
+
 namespace VersionLens {
+    const projectTomlSelector = { pattern: '**/Project.toml', language: 'toml' }
     const requestTypeLens = new rpc.RequestType<{ name: string, uuid: string }, {
         latest_version: string, url: string, registry: string
     }, void>('lens')
     const updateDependencyCommand = 'language-julia.updateDependency'
     const VersionLensQueryRegistriesCommand = 'language-julia.versionsLensQueryRegistries'
-    const c_juliaVersionLensRegistriesReady = 'jlVersionLensRegistriesReady'
-    type uuid = string
-    type TomlDependency = { [packageName: string]: uuid }
-    type ProjectTomlSection = 'deps' | 'extras' | 'compat' | 'targets'
-    type ProjectTomlKey = 'name' | 'version' | 'uuid'
-    type ProjectToml = {
-        authors?: string[];
-        compat?: TomlDependency;
-        deps?: TomlDependency;
-        extras?: TomlDependency;
-        name: string;
-        targets?: object;
-        uuid?: uuid;
-        version?: string;
-    }
+    let g_juliaVersionLensRegistriesReady = false
+    let g_juliaVersionLensRegistriesLoading = false
 
     /**
      * Register codelens, {@link updateDependencyCommand}, and hoverProvider for Project.toml versions.
      */
     export function register(context: vscode.ExtensionContext) {
-        const projectTomlSelector = { pattern: '**/Project.toml', language: 'toml' }
+        registerGeneralLenses(context)
+        registerSectionsFieldsLenses(context)
 
         context.subscriptions.push(vscode.languages.registerCodeLensProvider(
             projectTomlSelector,
             { provideCodeLenses },
         ))
+
         context.subscriptions.push(registerCommand(updateDependencyCommand, updateDependency))
         context.subscriptions.push(registerCommand(VersionLensQueryRegistriesCommand, queryRegistries))
+    }
 
+    function registerSectionsFieldsLenses(context:vscode.ExtensionContext) {
         context.subscriptions.push(vscode.languages.registerHoverProvider(
             projectTomlSelector,
-            { provideHover }
+            { provideHover: provideDepsFieldsHover }
+        ))
+        context.subscriptions.push(vscode.languages.registerHoverProvider(
+            projectTomlSelector,
+            { provideHover: provideCompatFieldsHover }
+        ))
+        context.subscriptions.push(vscode.languages.registerHoverProvider(
+            projectTomlSelector,
+            { provideHover: provideExtrasFieldsHover }
+        ))
+    }
+
+    function registerGeneralLenses(context: vscode.ExtensionContext) {
+        context.subscriptions.push(vscode.languages.registerHoverProvider(
+            projectTomlSelector,
+            { provideHover: provideFieldsAndHeadersHover }
         ))
     }
 
@@ -62,8 +85,8 @@ namespace VersionLens {
     /**
      * See {@link vscode.HoverProvider}.
      */
-    function provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
-        const { deps, name, uuid, version, extras, compat } = getProjectTomlFields(document)
+    function provideFieldsAndHeadersHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
+        const { name, uuid, version } = getProjectTomlFields(document)
 
         if (uuid) {
             const uuidRange = getFieldRange(document, 'uuid', uuid)
@@ -83,24 +106,6 @@ namespace VersionLens {
             if (hover) { return hover }
         }
 
-        if (deps) {
-            const depsRanges = getSectionFieldsRanges(document, 'deps', deps)
-            const hover = sectionHover('deps', depsRanges, position)
-            if (hover) { return hover }
-        }
-
-        if (extras) {
-            const extrasRanges = getSectionFieldsRanges(document, 'extras', extras)
-            const hover = sectionHover('extras', extrasRanges, position)
-            if (hover) { return hover }
-        }
-
-        if (compat) {
-            const compatRanges = getSectionFieldsRanges(document, 'compat', compat)
-            const hover = sectionHover('compat', compatRanges, position)
-            if (hover) { return hover }
-        }
-
         const sectionsHeadersRanges = getSectionsHeadersRanges(document)
         for (const [sectionName, range] of sectionsHeadersRanges) {
             if (range.contains(position)) {
@@ -109,6 +114,34 @@ namespace VersionLens {
                     range
                 )
             }
+        }
+    }
+
+    function provideDepsFieldsHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
+        const { deps } = getProjectTomlFields(document)
+
+        if (deps) {
+            const depsRanges = getSectionFieldsRanges(document, 'deps', deps)
+            return sectionHover('deps', depsRanges, position)
+        }
+    }
+
+
+    function provideExtrasFieldsHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
+        const {  extras } = getProjectTomlFields(document)
+
+        if (extras) {
+            const extrasRanges = getSectionFieldsRanges(document, 'extras', extras)
+            return sectionHover('extras', extrasRanges, position)
+        }
+    }
+
+    function provideCompatFieldsHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken) {
+        const { compat } = getProjectTomlFields(document)
+
+        if (compat) {
+            const compatRanges = getSectionFieldsRanges(document, 'compat', compat)
+            return sectionHover('compat', compatRanges, position)
         }
     }
 
@@ -125,10 +158,12 @@ namespace VersionLens {
 
     async function queryRegistries() {
         if (g_repl_connection === undefined) {
+            g_juliaVersionLensRegistriesLoading = true
             await startREPL(false)
+            g_juliaVersionLensRegistriesLoading = false
         }
 
-        vscode.commands.executeCommand('setContext', c_juliaVersionLensRegistriesReady, true)
+        g_juliaVersionLensRegistriesReady = true
     }
 
     function getProjectTomlFields(document: vscode.TextDocument) {
@@ -224,13 +259,36 @@ namespace VersionLens {
         }
     }
 
-    function sectionHover(key: ProjectTomlSection, depsRanges: [TomlDependency, vscode.Range][], position: vscode.Position) {
-        for (const [_, range] of depsRanges) {
-            if (range.contains(position)) {
-                return new vscode.Hover(
-                    Tooltips[key],
-                    range
-                )
+    async function sectionHover(key: ProjectTomlSection, depsRanges: [TomlDependency, vscode.Range][], position: vscode.Position) {
+        if (!(g_juliaVersionLensRegistriesLoading || g_juliaVersionLensRegistriesReady)) {
+            for (const [_, range] of depsRanges) {
+                if (range.contains(position)) {
+                    return new vscode.Hover(Tooltips.queryRegistriesHint, range)
+                }
+            }
+        }
+
+        if (g_juliaVersionLensRegistriesLoading) {
+            for (const [_, range] of depsRanges) {
+                if (range.contains(position)) {
+                    return new vscode.Hover('loading...', range)
+                }
+            }
+        }
+
+        if (g_juliaVersionLensRegistriesReady) {
+            for (const [dependency, range] of depsRanges) {
+                if (range.contains(position)) {
+                    const depName = Object.keys(dependency)[0]
+                    const { latest_version, url, registry } = await g_repl_connection.sendRequest(
+                        requestTypeLens, { name: depName, uuid: dependency[depName] }
+                    )
+
+                    return new vscode.Hover(
+                        Tooltips.DependencyHover(depName, latest_version, url, registry),
+                        range
+                    )
+                }
             }
         }
     }
@@ -274,9 +332,21 @@ namespace Tooltips {
         See [Pkg docs](http://pkgdocs.julialang.org/v1/creating-packages/#Test-specific-dependencies-in-Julia-1.0-and-1.1).
         `)
     }
-    export const deps = new vscode.MarkdownString('`dep works`')
-    export const extras = new vscode.MarkdownString('`extra works`')
-    export const compat = new vscode.MarkdownString('`compat works`')
+    export const queryRegistriesHint = new vscode.MarkdownString(
+        'To get packages information, click on the `$(versions)` icon in the editor title bar.',
+        true
+    )
+
+    /**
+     * @constructor
+     */
+    export function DependencyHover(name: string, latestVersion: string, url: string, registry: string) {
+        return new vscode.MarkdownString(dedent`
+        - ${name} in the \`${registry}\` registry.
+        - The latest version is \`${latestVersion}\`.
+        - More on [the package Homepage](${url}).
+        `)
+    }
 
     function dedent(callSite, ...args) {
         function format(str) {
