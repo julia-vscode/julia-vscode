@@ -415,6 +415,11 @@
                 "command": "language-julia.stopKernel",
                 "title": "Stop",
                 "icon": "$(debug-stop)"
+            },
+            {
+                "command": "language-julia.versionsLensQueryRegistries",
+                "title": "Query Registries for Packages Information",
+                "icon": "$(versions)"
             }
         ],
         "menus": {
@@ -524,6 +529,12 @@
                     "command": "language-julia.activateFromDir",
                     "group": "julia",
                     "when": "editorLangId == julia || editorLangId == juliamarkdown"
+
+                },
+                {
+                    "command": "language-julia.versionsLensQueryRegistries",
+                    "when": "resourceFilename == Project.toml",
+                    "group": "navigation@-1"
                 }
             ],
             "editor/title/run": [

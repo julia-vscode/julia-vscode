@@ -12,6 +12,8 @@ namespace VersionLens {
         latest_version: string, url: string, registry: string
     }, void>('lens')
     const updateDependencyCommand = 'language-julia.updateDependency'
+    const VersionLensQueryRegistriesCommand = 'language-julia.versionsLensQueryRegistries'
+    const c_juliaVersionLensRegistriesReady = 'jlVersionLensRegistriesReady'
     type uuid = string
     type TomlDependency = { [packageName: string]: uuid }
     type ProjectTomlSection = 'deps' | 'extras' | 'compat' | 'targets'
@@ -38,6 +40,7 @@ namespace VersionLens {
             { provideCodeLenses },
         ))
         context.subscriptions.push(registerCommand(updateDependencyCommand, updateDependency))
+        context.subscriptions.push(registerCommand(VersionLensQueryRegistriesCommand, queryRegistries))
 
         context.subscriptions.push(vscode.languages.registerHoverProvider(
             projectTomlSelector,
@@ -118,6 +121,14 @@ namespace VersionLens {
         const depName = Object.keys(dependency)[0]
         const metadata = await g_repl_connection.sendRequest(requestTypeLens, {name: depName, uuid: dependency[depName]})
         console.log({ metadata })
+    }
+
+    async function queryRegistries() {
+        if (g_repl_connection === undefined) {
+            await startREPL(false)
+        }
+
+        vscode.commands.executeCommand('setContext', c_juliaVersionLensRegistriesReady, true)
     }
 
     function getProjectTomlFields(document: vscode.TextDocument) {
