@@ -27,7 +27,7 @@ namespace VersionLens {
     const projectTomlSelector = { pattern: '**/Project.toml', language: 'toml' }
     const requestTypeLens = new rpc.RequestType<{ name: string, uuid: string }, {
         latest_version: string, url: string, registry: string
-    }, void>('lens')
+    }, void>('lens/pkgVersions')
     const updateDependencyCommand = 'language-julia.updateDependency'
     const VersionLensQueryRegistriesCommand = 'language-julia.versionsLensQueryRegistries'
     let g_juliaVersionLensRegistriesReady = false

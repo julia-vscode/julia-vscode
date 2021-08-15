@@ -25,4 +25,4 @@ function lens_request(conn, params::LensParams)
     return LensResponse(metadata.latest_version, metadata.url, metadata.registry)
 end
 
-const lens_request_type = JSONRPC.RequestType("lens", LensParams, LensResponse)
+const lens_request_type = JSONRPC.RequestType("lens/pkgVersions", LensParams, LensResponse)
