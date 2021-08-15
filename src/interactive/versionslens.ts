@@ -1,4 +1,5 @@
 import * as toml from '@iarna/toml'
+import * as cp from 'child-process-promise'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { registerCommand } from '../utils'
@@ -25,16 +26,20 @@ type ProjectToml = {
 
 namespace VersionLens {
     const projectTomlSelector = { pattern: '**/Project.toml', language: 'toml' }
+
     const requestTypeLens = new rpc.RequestType<{ name: string, uuid: string }, {
         latest_version: string, url: string, registry: string
     }, void>('lens/pkgVersions')
-    const updateDependencyCommand = 'language-julia.updateDependency'
+    // const requestTypeUpdateAllPackages = new rpc.RequestType<{}, boolean, void>('lens/updateAllPackages')
+
+    const updateAllDependenciesCommand = 'language-julia.updateAllDependencies'
     const VersionLensQueryRegistriesCommand = 'language-julia.versionsLensQueryRegistries'
+
     let g_juliaVersionLensRegistriesReady = false
     let g_juliaVersionLensRegistriesLoading = false
 
     /**
-     * Register codelens, {@link updateDependencyCommand}, and hoverProvider for Project.toml versions.
+     * Register codelens, {@link updateAllDependenciesCommand}, and hoverProvider for Project.toml versions.
      */
     export function register(context: vscode.ExtensionContext) {
         registerGeneralLenses(context)
@@ -45,7 +50,7 @@ namespace VersionLens {
             { provideCodeLenses },
         ))
 
-        context.subscriptions.push(registerCommand(updateDependencyCommand, updateDependency))
+        context.subscriptions.push(registerCommand(updateAllDependenciesCommand, updateAllDependencies))
         context.subscriptions.push(registerCommand(VersionLensQueryRegistriesCommand, queryRegistries))
     }
 
@@ -75,11 +80,15 @@ namespace VersionLens {
      * See {@link vscode.CodeLensProvider}.
      */
     function provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
-        const { deps } = getProjectTomlFields(document)
-        const ranges = getSectionFieldsRanges(document, 'deps', deps)
-        return ranges.map(([dependency, range]) =>
-            new vscode.CodeLens(range, { title: 'update', command: updateDependencyCommand, arguments: [dependency]})
-        )
+        const [_, depsHeaderRange] = getSectionsHeadersRanges(document)
+            .filter(([sectionName, _]) => sectionName === 'deps')[0]
+
+        return [
+            new vscode.CodeLens(
+                depsHeaderRange,
+                { title: 'Update all packages', command: updateAllDependenciesCommand }
+            )
+        ]
     }
 
     /**
@@ -145,15 +154,16 @@ namespace VersionLens {
         }
     }
 
-    async function updateDependency(dependency: TomlDependency) {
-        if (g_repl_connection === undefined) {
-            // If there's no active repl, start one.
-            await startREPL(false)
-        }
+    async function updateAllDependencies() {
+        const projectRoot = vscode.workspace.workspaceFolders[0]
+        vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Updating packages' }, async (progress) => {
+            // The output for this command somehow is piped into stderr not stdout
+            // We can't use stderr to detect failures.
+            const { stderr } = await cp.exec('julia --project=. -e "using Pkg; Pkg.update()"', { cwd: projectRoot.uri.fsPath })
 
-        const depName = Object.keys(dependency)[0]
-        const metadata = await g_repl_connection.sendRequest(requestTypeLens, {name: depName, uuid: dependency[depName]})
-        console.log({ metadata })
+            progress.report({ increment: 100})
+            vscode.window.showInformationMessage(`Pkg finished operation.\n${stderr}`)
+        })
     }
 
     async function queryRegistries() {

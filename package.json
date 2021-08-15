@@ -94,7 +94,7 @@
         ],
         "commands": [
             {
-              "command": "language-julia.updateDependency",
+              "command": "language-julia.updateAllDependencies",
               "title": "Julia: Update Dependencies"
             },
             {
