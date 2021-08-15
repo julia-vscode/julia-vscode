@@ -6,6 +6,10 @@ import { registerCommand } from '../utils'
 import { g_connection as g_repl_connection, startREPL } from './repl'
 
 export function activate(context: vscode.ExtensionContext) {
+    if (!vscode.workspace.getConfiguration('julia').get('versionsLens.enabled')) {
+        return
+    }
+
     VersionLens.register(context)
 }
 

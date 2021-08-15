@@ -817,6 +817,12 @@
             "type": "object",
             "title": "Julia",
             "properties": {
+                "julia.versionsLens.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Packages information for Project.toml files, require window reload.",
+                    "scope": "resource"
+                },
                 "julia.executablePath": {
                     "type": "string",
                     "default": "",
