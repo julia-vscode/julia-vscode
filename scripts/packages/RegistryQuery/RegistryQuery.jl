@@ -432,12 +432,12 @@ get_latest_version(r::RegistryInstance, uuid::String) = get_latest_version(r, UU
 
 
 struct PkgMetadata
-    latest_version::String
-    url::String
-    registry::String
+    latest_version::Union{String,Nothing}
+    url::Union{String,Nothing}
+    registry::Union{String,Nothing}
 end
 
-const emptyPkgMetadata = PkgMetadata("", "", "@stdlib")
+const emptyPkgMetadata = PkgMetadata(nothing, nothing, nothing)
 
 function get_pkg_metadata(r::RegistryInstance, uuid::UUID)::PkgMetadata
     info = get_pkg_info(r, uuid)
