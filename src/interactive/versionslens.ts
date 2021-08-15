@@ -271,7 +271,7 @@ namespace VersionLens {
         if (g_juliaVersionLensRegistriesLoading) {
             for (const [_, range] of depsRanges) {
                 if (range.contains(position)) {
-                    return new vscode.Hover('loading...', range)
+                    return new vscode.Hover('Getting packages data...', range)
                 }
             }
         }
@@ -341,6 +341,13 @@ namespace Tooltips {
      * @constructor
      */
     export function DependencyHover(name: string, latestVersion: string, url: string, registry: string) {
+        if (latestVersion === null) {
+            return new vscode.MarkdownString(dedent`
+            - \`${registry}\` module.
+            - See [Standard Library docs](https://juliafs.readthedocs.io/en/stable/stdlib/index.html).
+            `)
+        }
+
         return new vscode.MarkdownString(dedent`
         - ${name} in the \`${registry}\` registry.
         - The latest version is \`${latestVersion}\`.
