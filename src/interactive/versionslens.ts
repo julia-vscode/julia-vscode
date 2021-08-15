@@ -8,7 +8,9 @@ export function activate(context: vscode.ExtensionContext) {
     VersionLens.register(context)
 }
 namespace VersionLens {
-    const requestTypeLens = new rpc.RequestType<{ name: string, uuid: string }, string, void>('lens')
+    const requestTypeLens = new rpc.RequestType<{ name: string, uuid: string }, {
+        latest_version: string, url: string, registry: string
+    }, void>('lens')
     const updateDependencyCommand = 'language-julia.updateDependency'
     type uuid = string
     type TomlDependency = { [packageName: string]: uuid }
@@ -114,8 +116,8 @@ namespace VersionLens {
         }
 
         const depName = Object.keys(dependency)[0]
-        const latestVersion = await g_repl_connection.sendRequest(requestTypeLens, {name: depName, uuid: dependency[depName]})
-        console.log({latestVersion})
+        const metadata = await g_repl_connection.sendRequest(requestTypeLens, {name: depName, uuid: dependency[depName]})
+        console.log({ metadata })
     }
 
     function getProjectTomlFields(document: vscode.TextDocument) {

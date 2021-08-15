@@ -145,7 +145,7 @@ end
 registry_info(pkg::PkgEntry) = init_package_info!(pkg)
 function init_package_info!(pkg::PkgEntry)
     # Already uncompressed the info for this package, return early
-    LazilyInitializedFields.@isinit(pkg.info)  && return pkg.info
+    LazilyInitializedFields.@isinit(pkg.info)                                               && return pkg.info
     path = pkg.registry_path
 
     d_p = parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Package.toml"))
@@ -381,14 +381,14 @@ function reachable_registries(; depots::Union{String,Vector{String}}=Base.DEPOT_
         end
 
         for candidate in candidate_registries
-            # candidate can be either a folder or a TOML file
+    # candidate can be either a folder or a TOML file
 if isfile(joinpath(candidate, "Registry.toml")) || isfile(candidate)
                 push!(registries, RegistryInstance(candidate))
             end
         end
     end
     return registries
-end
+    end
 
 function get_pkg_info(r::RegistryInstance, uuid::Base.UUID)
     pkg = search_uuid(r, uuid)
@@ -400,24 +400,23 @@ function get_pkg_info(r::RegistryInstance, uuid::Base.UUID)
 end
 
 function get_verions_info(r::RegistryInstance, uuid::Base.UUID)
-    info = get_pkg_info(r, uuid) # initialize lazy fields
+    info = get_pkg_info(r, uuid)
     if info === nothing
         return nothing
     end
 
-    initialize_uncompressed!(info)
+    initialize_uncompressed!(info) # initialize lazy fields
     return info.version_info
 end
 
 function get_available_versions(r::RegistryInstance, uuid::UUID)::Vector{VersionNumber}
     versions_info = get_verions_info(r, uuid)
     if versions_info === nothing
-return []
+        return []
     end
 
     return collect(keys(versions_info))
 end
-get_available_versions(r::RegistryInstance, uuid::String) = get_available_versions(r, UUID(uuid))
 
 function get_latest_version(r::RegistryInstance, uuid::UUID)
     all_versions = get_available_versions(r, uuid)
@@ -430,6 +429,26 @@ function get_latest_version(r::RegistryInstance, uuid::UUID)
     return string(latest_version)
 end
 get_latest_version(r::RegistryInstance, uuid::String) = get_latest_version(r, UUID(uuid))
+
+
+struct PkgMetadata
+    latest_version::String
+    url::String
+    registry::String
+end
+
+const emptyPkgMetadata = PkgMetadata("", "", "@stdlib")
+
+function get_pkg_metadata(r::RegistryInstance, uuid::UUID)::PkgMetadata
+    info = get_pkg_info(r, uuid)
+    if info === nothing
+        return emptyPkgMetadata
+    end
+
+    latest_version = get_latest_version(r, uuid)
+    return PkgMetadata(latest_version, info.repo, r.name)
+end
+get_pkg_metadata(r::RegistryInstance, uuid::String) = get_pkg_metadata(r, UUID(uuid))
 
 # Dict interface
 
