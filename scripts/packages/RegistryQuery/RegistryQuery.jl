@@ -145,7 +145,7 @@ end
 registry_info(pkg::PkgEntry) = init_package_info!(pkg)
 function init_package_info!(pkg::PkgEntry)
     # Already uncompressed the info for this package, return early
-    LazilyInitializedFields.@isinit(pkg.info)                                               && return pkg.info
+    LazilyInitializedFields.@isinit(pkg.info)  && return pkg.info
     path = pkg.registry_path
 
     d_p = parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Package.toml"))
@@ -448,7 +448,6 @@ function get_pkg_metadata(r::RegistryInstance, uuid::UUID)::PkgMetadata
     latest_version = get_latest_version(r, uuid)
     return PkgMetadata(latest_version, info.repo, r.name)
 end
-get_pkg_metadata(r::RegistryInstance, uuid::String) = get_pkg_metadata(r, UUID(uuid))
 
 # Dict interface
 

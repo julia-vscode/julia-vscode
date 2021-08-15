@@ -14,7 +14,14 @@ end
 
 regiestries = RegistryQuery.reachable_registries()
 function lens_request(conn, params::LensParams)
-    metadata =  RegistryQuery.get_pkg_metadata(regiestries[1], params.uuid)
+    uuid = nothing
+    try
+        uuid = UUID(params.uuid)
+    catch
+        uuid = RegistryQuery.uuids_from_name(regiestries[1], params.name)[1]
+    end
+
+    metadata =  RegistryQuery.get_pkg_metadata(regiestries[1], uuid)
     return LensResponse(metadata.latest_version, metadata.url, metadata.registry)
 end
 
