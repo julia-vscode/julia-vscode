@@ -24,6 +24,13 @@ type ProjectToml = {
     version?: string;
 }
 
+enum UpgradeLevel {
+    major = 'UPLEVEL_MAJOR',
+    minor = 'UPLEVEL_MINOR',
+    patch = 'UPLEVEL_PATCH',
+    fixed = 'UPLEVEL_FIXED'
+}
+
 namespace VersionLens {
     const projectTomlSelector = { pattern: '**/Project.toml', language: 'toml' }
 
@@ -37,6 +44,7 @@ namespace VersionLens {
 
     let g_juliaVersionLensRegistriesReady = false
     let g_juliaVersionLensRegistriesLoading = false
+    let g_isUpdatingPackagesLock = false
 
     /**
      * Register codelens, {@link updateAllDependenciesCommand}, and hoverProvider for Project.toml versions.
@@ -86,7 +94,19 @@ namespace VersionLens {
         return [
             new vscode.CodeLens(
                 depsHeaderRange,
-                { title: 'Update all packages', command: updateAllDependenciesCommand }
+                { title: 'Update all packages (Major)', command: updateAllDependenciesCommand, arguments: [UpgradeLevel.major] }
+            ),
+            new vscode.CodeLens(
+                depsHeaderRange,
+                { title: 'Update all packages (Minor)', command: updateAllDependenciesCommand, arguments: [UpgradeLevel.minor] }
+            ),
+            new vscode.CodeLens(
+                depsHeaderRange,
+                { title: 'Update all packages (Patch)', command: updateAllDependenciesCommand, arguments: [UpgradeLevel.patch] }
+            ),
+            new vscode.CodeLens(
+                depsHeaderRange,
+                { title: 'Update all packages (Fixed)', command: updateAllDependenciesCommand, arguments: [UpgradeLevel.fixed] }
             )
         ]
     }
@@ -154,15 +174,29 @@ namespace VersionLens {
         }
     }
 
-    async function updateAllDependencies() {
+    async function updateAllDependencies(level: UpgradeLevel) {
+        if (g_isUpdatingPackagesLock) {
+            // If there's an update operation running, show warning and ignore the request.
+            vscode.window.showWarningMessage('Another operation is running, wait until it finishes.')
+            return
+        }
+
+        // Acquire the updating status lock
+        g_isUpdatingPackagesLock = true
         const projectRoot = vscode.workspace.workspaceFolders[0]
+        const updateCommand = `julia --project=. -e "using Pkg; Pkg.update(;level=Pkg.${level})"`
+
         vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Updating packages' }, async (progress) => {
             // The output for this command somehow is piped into stderr not stdout
             // We can't use stderr to detect failures.
-            const { stderr } = await cp.exec('julia --project=. -e "using Pkg; Pkg.update()"', { cwd: projectRoot.uri.fsPath })
-
-            progress.report({ increment: 100})
+            const { stderr } = await cp.exec(updateCommand, { cwd: projectRoot.uri.fsPath })
+            // This line will only get executed if the execution is done, so remove the progress notification
+            progress.report({ increment: 100 })
+            // Show the result of the operation.
+            // We can't say whether the operation succeeded or not because the output is piped into stderr in both cases.
             vscode.window.showInformationMessage(`Pkg finished operation.\n${stderr}`)
+            // Release the updating status lock
+            g_isUpdatingPackagesLock = false
         })
     }
 
