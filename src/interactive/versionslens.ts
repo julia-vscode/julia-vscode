@@ -37,21 +37,21 @@ namespace VersionLens {
     const requestTypeLens = new rpc.RequestType<{ name: string, uuid: string }, {
         latest_version: string, url: string, registry: string
     }, void>('lens/pkgVersions')
-    // const requestTypeUpdateAllPackages = new rpc.RequestType<{}, boolean, void>('lens/updateAllPackages')
 
     const updateAllDependenciesCommand = 'language-julia.updateAllDependencies'
-    const VersionLensQueryRegistriesCommand = 'language-julia.versionsLensQueryRegistries'
+    const queryRegistriesCommand = 'language-julia.versionsLensQueryRegistries'
 
     let g_juliaVersionLensRegistriesReady = false
     let g_juliaVersionLensRegistriesLoading = false
     let g_isUpdatingPackagesLock = false
 
     /**
-     * Register codelens, {@link updateAllDependenciesCommand}, and hoverProvider for Project.toml versions.
+     * Register codelens, {@link updateAllDependenciesCommand}, {@link queryRegistriesCommand},
+     *  {@link registerSectionsFieldsHovers}, and {@link registerGeneralHovers} for Project.toml.
      */
     export function register(context: vscode.ExtensionContext) {
-        registerGeneralLenses(context)
-        registerSectionsFieldsLenses(context)
+        registerGeneralHovers(context)
+        registerSectionsFieldsHovers(context)
 
         context.subscriptions.push(vscode.languages.registerCodeLensProvider(
             projectTomlSelector,
@@ -59,10 +59,27 @@ namespace VersionLens {
         ))
 
         context.subscriptions.push(registerCommand(updateAllDependenciesCommand, updateAllDependencies))
-        context.subscriptions.push(registerCommand(VersionLensQueryRegistriesCommand, queryRegistries))
+        context.subscriptions.push(registerCommand(queryRegistriesCommand, queryRegistries))
     }
 
-    function registerSectionsFieldsLenses(context:vscode.ExtensionContext) {
+    /**
+     * Register hover provider for the fields inside different {@link ProjectTomlSection} sections, e.g.,
+     * ```toml
+     * [deps]
+     * SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce" # <- registered for this
+     * ```
+     */
+    function registerSectionsFieldsHovers(context: vscode.ExtensionContext) {
+        /*
+         * - The hover provides had to be split into multiple ones; hovering over
+         *   the fields in the [deps] section will always return, then the other
+         *   hover are unreachable.
+         * - The [deps] fields will always return if the registries aren't
+         *   initialized, i.e., the user hasn't clicked the versions icon.
+         * - The hover now are (aware) of the status of the registry query, the
+         *   registry query can be one of (hasn't been queried yet|loading|return
+         *   the package info).
+         */
         context.subscriptions.push(vscode.languages.registerHoverProvider(
             projectTomlSelector,
             { provideHover: provideDepsFieldsHover }
@@ -77,7 +94,19 @@ namespace VersionLens {
         ))
     }
 
-    function registerGeneralLenses(context: vscode.ExtensionContext) {
+    /**
+     * Register hover provider for {@link ProjectTomlKey}, and {@link ProjectTomlSection} headers.
+     * ```toml
+     * name = "Tar"  # <- registered for this
+     * uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"  # <- registered for this
+     * version = "1.10.0"  # <- registered for this
+
+     * [deps]  # <- registered for this
+     * ArgTools = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
+     * SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+     * ```
+     */
+    function registerGeneralHovers(context: vscode.ExtensionContext) {
         context.subscriptions.push(vscode.languages.registerHoverProvider(
             projectTomlSelector,
             { provideHover: provideFieldsAndHeadersHover }
