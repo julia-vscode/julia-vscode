@@ -12,6 +12,7 @@ import { resolvePath } from './utils'
 
 export class JuliaExecutable {
     private _baseRootFolderPath: string | undefined
+    private _fullPath: string | undefined
 
     constructor(public version: string, public file: string, public args: string[], public arch: string | undefined, public channel: string | undefined, public officialChannel: boolean) {
     }
@@ -37,6 +38,27 @@ export class JuliaExecutable {
         }
 
         return this._baseRootFolderPath
+    }
+
+    // TODO This is a faulyt implementation because it won't work when the config value is not
+    // just a simple file path like thing, in particular it won't work with any combined commands
+    public async getFAULTYFullPathAsync() {
+        if (!this._fullPath) {
+            const result = await execFile(
+                this.file,
+                [
+                    ...this.args,
+                    '--startup-file=no',
+                    '--history-file=no',
+                    '-e',
+                    'println(Sys.BINDIR)'
+                ]
+            )
+
+            this._fullPath = path.normalize(path.join(result.stdout.toString().trim(), process.platform === 'win32' ? 'julia.exe' : 'julia'))
+        }
+
+        return this._fullPath
     }
 
     public getCommand() {
