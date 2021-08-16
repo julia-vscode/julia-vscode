@@ -10,6 +10,18 @@ import { onDidChangeConfig } from './extension'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
 import { resolvePath } from './utils'
 
+interface JuliaupChannelInfo {
+    Name: string,
+    File: string,
+    Args: string[],
+    Version: string,
+    Arch: string,
+}
+interface JuliaupApiGetinfoReturn {
+    DefaultChannel?: JuliaupChannelInfo,
+    OtherChannels: JuliaupChannelInfo[],
+}
+
 export class JuliaExecutable {
     private _baseRootFolderPath: string | undefined
     private _fullPath: string | undefined
@@ -191,23 +203,69 @@ export class JuliaExecutablesFeature {
         return pathsToSearch
     }
 
+    async tryJuliaup() {
+        const juliaupCommand = vscode.workspace.getConfiguration('julia').get<string>('juliaupCommand', '')
+
+        if (juliaupCommand === '') {
+            return false
+        }
+
+        try {
+            const { stdout, } = await execFile(juliaupCommand, ['api', 'getconfig1'])
+
+            const apiResult = stdout.toString().trim()
+
+            const parsedResult: JuliaupApiGetinfoReturn = JSON.parse(apiResult)
+
+            if (parsedResult.DefaultChannel) {
+                this.actualJuliaExePath = new JuliaExecutable(
+                    parsedResult.DefaultChannel.Version,
+                    parsedResult.DefaultChannel.File,
+                    parsedResult.DefaultChannel.Args,
+                    parsedResult.DefaultChannel.Arch,
+                    parsedResult.DefaultChannel.Name,
+                    true
+                )
+
+                this.cachedJuliaExePaths = parsedResult.OtherChannels.map(i => new JuliaExecutable(
+                    i.Version,
+                    i.File,
+                    i.Args,
+                    i.Arch,
+                    i.Name,
+                    true
+                ))
+
+                return true
+            }
+            else {
+                return false
+            }
+        }
+        catch {
+            return false
+        }
+    }
+
     public async getJuliaExePathsAsync(): Promise<JuliaExecutable[]> {
         if (!this.cachedJuliaExePaths) {
-            const searchPaths = this.getSearchPaths()
+            if (!await this.tryJuliaup()) {
+                const searchPaths = this.getSearchPaths()
 
-            const executables: JuliaExecutable[] = []
-            executables.push(await this.getActiveJuliaExecutableAsync())
-            await Promise.all(searchPaths.map(async (filePath) => {
-                const newJuliaExecutable = await this.tryJuliaExePathAsync(filePath)
+                const executables: JuliaExecutable[] = []
+                executables.push(await this.getActiveJuliaExecutableAsync())
+                await Promise.all(searchPaths.map(async (filePath) => {
+                    const newJuliaExecutable = await this.tryJuliaExePathAsync(filePath)
 
-                if (newJuliaExecutable) {
-                    executables.push(newJuliaExecutable)
-                }
-            }))
+                    if (newJuliaExecutable) {
+                        executables.push(newJuliaExecutable)
+                    }
+                }))
 
-            // Remove duplicates.
-            this.cachedJuliaExePaths = [...new Set(executables)]
-            return this.cachedJuliaExePaths
+                // Remove duplicates.
+                this.cachedJuliaExePaths = [...new Set(executables)]
+                return this.cachedJuliaExePaths
+            }
         }
 
         return this.cachedJuliaExePaths
@@ -215,16 +273,18 @@ export class JuliaExecutablesFeature {
 
     public async getActiveJuliaExecutableAsync() {
         if (!this.actualJuliaExePath) {
-            const configPath = this.getExecutablePath()
-            if (!configPath) {
-                for (const p of this.getSearchPaths()) {
-                    if (await this.tryAndSetNewJuliaExePathAsync(p)) {
-                        break
+            if (!await this.tryJuliaup()) {
+                const configPath = this.getExecutablePath()
+                if (!configPath) {
+                    for (const p of this.getSearchPaths()) {
+                        if (await this.tryAndSetNewJuliaExePathAsync(p)) {
+                            break
+                        }
                     }
                 }
-            }
-            else {
-                await this.tryAndSetNewJuliaExePathAsync(configPath)
+                else {
+                    await this.tryAndSetNewJuliaExePathAsync(configPath)
+                }
             }
         }
         return this.actualJuliaExePath
