@@ -10,7 +10,7 @@ This [VS Code](https://code.visualstudio.com) extension provides support for the
 1. Install Julia for your platform: https://julialang.org/downloads/
 2. Install VS Code for your platform: https://code.visualstudio.com/download
     At the end of this step you should be able to start VS Code.
-3. Install the Julia VS Code extension:
+3. Choose `Install` in the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=julialang.language-julia); or manually install with:
     1. Start VS Code.
     2. Inside VS Code, go to the extensions view either by
         executing the ``View: Show Extensions`` command (click View->Command Palette...)
