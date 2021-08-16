@@ -276,8 +276,8 @@ namespace VersionLens {
         * ┌──────►Match the section header, e.g., [deps].
         * │ ┌────►Match a newline or any character, zero or more times until──┐
         * │ │ ┌───────────────────────────────────────────────────────────────┘
-        * │ │ │
-        * │ │ └┐►Match a newline followed by the beginning of another section, i.e., `[`, or EOF.
+        * │ │ └┐► Match a newline followed by the beginning of another section, i.e., `[`, or EOF.
+        * │ │  │  **note `RegExp` doesn't support `\Z` matcher**.
         * │ │  └─────────────────────────────────────────────────┐
         * │ └────────────────────────┐                           │
         * │        ┌────────────────┬┴─────────────────────────┬─┴───────────────────────────────────────────┐
