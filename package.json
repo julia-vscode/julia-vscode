@@ -6,7 +6,7 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.58.1"
+        "vscode": "^1.59.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -658,7 +658,7 @@
                     "type": "string",
                     "default": "",
                     "description": "Points to the julia executable.",
-                    "scope": "machine"
+                    "scope": "machine-overridable"
                 },
                 "julia.lint.run": {
                     "type": "boolean",
