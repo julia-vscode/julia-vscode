@@ -9,8 +9,10 @@ end
 JSONRPC.@dict_readable struct LensResponse <: JSONRPC.Outbound
     latest_version::Union{String,Nothing}
     url::Union{String,Nothing}
-    registry::String
+    registry::Union{String,Nothing}
 end
+LensResponse(m::RegistryQuery.PkgMetadata) = LensResponse(m.latest_version, m.url, m.registry)
+
 
 registries = RegistryQuery.reachable_registries()
 function lens_request(conn, params::LensParams)
@@ -23,12 +25,14 @@ function lens_request(conn, params::LensParams)
         end
 
         metadata =  RegistryQuery.get_pkg_metadata(registry, uuid)
-
-        if metadata.latest_version !== nothing
-            return LensResponse(metadata.latest_version, metadata.url, metadata.registry)
+        # If the pakcage is knwown, return, i.e., don't query other registries.
+        if metadata !== RegistryQuery.UnknownPkgMetadata
+            return LensResponse(metadata)
         end
-        return LensResponse(nothing, nothing, "@stdlib")
     end
+
+    # If the package isn't found in all registries, return unknown package.
+    return LensResponse(RegistryQuery.UnknownPkgMetadata)
 end
 
 const lens_request_type = JSONRPC.RequestType("lens/pkgVersions", LensParams, LensResponse)

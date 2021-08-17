@@ -418,18 +418,20 @@ namespace Tooltips {
      * @constructor
      */
     export function DependencyHover(name: string, latestVersion: string, url: string, registry: string) {
-        if (latestVersion === null) {
+        if (isStdLibModule(registry)) {
             return new vscode.MarkdownString(dedent`
-            - \`${registry}\` module.
+            - \`@stdlib\` module.
             - See [Standard Library docs](https://juliafs.readthedocs.io/en/stable/stdlib/index.html).
             `)
+        } else if (latestVersion !== null) {
+            return new vscode.MarkdownString(dedent`
+            - ${name} in the \`${registry}\` registry.
+            - The latest version is \`${latestVersion}\`.
+            - More on [the package Homepage](${url}).
+            `)
+        } else {
+            return new vscode.MarkdownString('Unknown package!')
         }
-
-        return new vscode.MarkdownString(dedent`
-        - ${name} in the \`${registry}\` registry.
-        - The latest version is \`${latestVersion}\`.
-        - More on [the package Homepage](${url}).
-        `)
     }
 
     function dedent(callSite, ...args) {
@@ -460,4 +462,8 @@ namespace Tooltips {
 
         return format(output)
     }
+}
+
+function isStdLibModule(registry: string) {
+    return registry === '@stdlib'
 }

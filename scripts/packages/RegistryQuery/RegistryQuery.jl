@@ -4,6 +4,7 @@
 
 module RegistryQuery
 using Base: UUID, SHA1, TOML
+using Pkg
 
 include("Versions.jl")
 include("../LazilyInitializedFields/src/LazilyInitializedFields.jl")
@@ -437,12 +438,20 @@ struct PkgMetadata
     registry::Union{String,Nothing}
 end
 
-const emptyPkgMetadata = PkgMetadata(nothing, nothing, nothing)
+const stdlibs = (isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.stdlibs)()
+const UnknownPkgMetadata = PkgMetadata(nothing, nothing, nothing)
+const StdlibMoudleMetadata = PkgMetadata(nothing, nothing, "@stdlib")
 
 function get_pkg_metadata(r::RegistryInstance, uuid::UUID)::PkgMetadata
+    stdlib_module_from_uuid = get(stdlibs, uuid, nothing)
+
+    if stdlib_module_from_uuid !== nothing
+        return  StdlibMoudleMetadata
+    end
+
     info = get_pkg_info(r, uuid)
     if info === nothing
-        return emptyPkgMetadata
+        return UnknownPkgMetadata
     end
 
     latest_version = get_latest_version(r, uuid)
