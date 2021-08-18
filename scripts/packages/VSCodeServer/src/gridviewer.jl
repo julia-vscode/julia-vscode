@@ -43,6 +43,7 @@ function JSON_print_escaped(io, val::Missing)
     print(io, "null")
 end
 
+julia_type_to_schema_type(::Type{Union{}}) = "string"
 julia_type_to_schema_type(::Type{T}) where {T} = "string"
 julia_type_to_schema_type(::Type{T}) where {T <: AbstractFloat} = "number"
 julia_type_to_schema_type(::Type{T}) where {T <: Integer} = "integer"
