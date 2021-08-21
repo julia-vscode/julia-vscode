@@ -32,12 +32,10 @@ export class JuliaNotebookFeature {
 
     constructor(private context: vscode.ExtensionContext, private juliaExecutableFeature: JuliaExecutablesFeature, private workspaceFeature: WorkspaceFeature) {
         const section = vscode.workspace.getConfiguration('julia')
-        const enabled = section ? section.get<boolean>('notebookController', false) : false
-        if (enabled) {
-            this.init()
 
-            vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
-        }
+        this.init()
+
+        vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
     }
 
     private async init() {
