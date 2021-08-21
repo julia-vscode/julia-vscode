@@ -214,7 +214,10 @@ export class JuliaNotebookFeature {
             mimetype: 'application/julia',
             file_extension: '.jl'
         }
-        // TODO: Update the notebook metadata (when its stable).
+
+        const edit = new vscode.WorkspaceEdit()
+        edit.replaceNotebookMetadata(notebook.uri, nbmetadata)
+        vscode.workspace.applyEdit(edit)
     }
 
     private isJuliaNotebook(notebook: vscode.NotebookDocument) {
