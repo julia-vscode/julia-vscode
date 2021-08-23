@@ -104,7 +104,7 @@ version = "1.3.4-DEV"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.8.19"
+version = "0.8.21"
 
 [[LanguageServer]]
 deps = ["CSTParser", "DocumentFormat", "JSON", "JSONRPC", "Markdown", "Pkg", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
@@ -143,7 +143,7 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 deps = ["JuliaInterpreter"]
 path = "../../packages/LoweredCodeUtils"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "2.1.0"
+version = "2.1.2"
 
 [[Markdown]]
 deps = ["Base64"]
@@ -216,7 +216,7 @@ version = "1.1.3"
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
 path = "../../packages/Revise"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "3.1.18"
+version = "3.1.19"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
