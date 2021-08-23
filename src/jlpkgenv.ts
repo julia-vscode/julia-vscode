@@ -186,7 +186,7 @@ async function getDefaultEnvPath() {
             [
                 '--startup-file=no',
                 '--history-file=no',
-                '-e "using Pkg; println(dirname(Pkg.Types.Context().env.project_file))"'
+                '-e', 'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))'
             ])
         g_path_of_default_environment = res.stdout.toString().trim()
     }
