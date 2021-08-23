@@ -38,7 +38,6 @@ class JuliaTaskProvider {
             const result: vscode.Task[] = []
 
             const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
-            const fullPath = await juliaExecutable.getFAULTYFullPathAsync()
             const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
             if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
@@ -51,8 +50,9 @@ class JuliaTaskProvider {
                     `Run tests`,
                     'julia',
                     new vscode.ProcessExecution(
-                        fullPath,
+                        juliaExecutable.file,
                         [
+                            ...juliaExecutable.args,
                             '--color=yes',
                             `--project=${pkgenvpath}`,
                             '-e',
@@ -77,8 +77,9 @@ class JuliaTaskProvider {
                     `Run tests with coverage`,
                     'julia',
                     new vscode.ProcessExecution(
-                        fullPath,
+                        juliaExecutable.file,
                         [
+                            ...juliaExecutable.args,
                             '--color=yes',
                             `--project=${pkgenvpath}`,
                             path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_test.jl'),
@@ -111,8 +112,9 @@ class JuliaTaskProvider {
                 `Build custom sysimage for current environment (experimental)`,
                 'julia',
                 new vscode.ProcessExecution(
-                    fullPath,
+                    juliaExecutable.file,
                     [
+                        ...juliaExecutable.args,
                         '--color=yes',
                         `--project=${path.join(this.context.extensionPath, 'scripts', 'environments', 'sysimagecompile')}`,
                         '--startup-file=no',
@@ -137,8 +139,9 @@ class JuliaTaskProvider {
                     `Run build`,
                     'julia',
                     new vscode.ProcessExecution(
-                        fullPath,
+                        juliaExecutable.file,
                         [
+                            ...juliaExecutable.args,
                             '--color=yes',
                             `--project=${pkgenvpath}`,
                             '-e',
@@ -162,8 +165,9 @@ class JuliaTaskProvider {
                     `Run benchmark`,
                     'julia',
                     new vscode.ProcessExecution(
-                        fullPath,
+                        juliaExecutable.file,
                         [
+                            ...juliaExecutable.args,
                             '--color=yes',
                             `--project=${pkgenvpath}`,
                             '-e',
@@ -187,8 +191,9 @@ class JuliaTaskProvider {
                     `Build documentation`,
                     'julia',
                     new vscode.ProcessExecution(
-                        fullPath,
+                        juliaExecutable.file,
                         [
+                            ...juliaExecutable.args,
                             `--project=${pkgenvpath}`,
                             '--color=yes',
                             path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_docbuild.jl'),
