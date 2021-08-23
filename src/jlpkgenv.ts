@@ -71,8 +71,9 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                 `--project=${g_resolved_path_of_environment}`,
                 '--startup-file=no',
                 '--history-file=no',
-                '-e "using Pkg; println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ? realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) : realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))"',
-                `"${case_adjusted}"`
+                '-e',
+                'using Pkg; println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ? realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) : realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))',
+                `${case_adjusted}`
             ]
         )
 
