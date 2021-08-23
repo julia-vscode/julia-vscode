@@ -124,17 +124,17 @@ function evalrepl(m, line, repl, main_mode)
             PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
         end
         if r isa EvalError
-            display_repl_error(stderr, r.err, r.bt)
+            display_repl_error(stdout, r.err, r.bt)
             nothing
         elseif r isa EvalErrorStack
-            display_repl_error(stderr, r)
+            display_repl_error(stdout, r)
             nothing
         else
             r
         end
     catch err
         # This is for internal errors only.
-        Base.display_error(stderr, err, catch_backtrace())
+        Base.display_error(stdout, err, catch_backtrace())
         nothing
     finally
         if did_notify

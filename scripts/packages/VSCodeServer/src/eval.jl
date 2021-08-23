@@ -163,15 +163,15 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                 end
 
                 if show_error && res isa EvalError || res isa EvalErrorStack
-                    Base.display_error(stderr, res)
+                    Base.display_error(stdout, res)
                 elseif show_result
                     if res isa EvalError || res isa EvalErrorStack
-                        Base.display_error(stderr, res)
+                        Base.display_error(stdout, res)
                     elseif res !== nothing && !ends_with_semicolon(source_code)
                         try
                             Base.invokelatest(display, res)
                         catch err
-                            Base.display_error(stderr, err, catch_backtrace())
+                            Base.display_error(stdout, err, catch_backtrace())
                         end
                     end
                 else
@@ -179,8 +179,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                         Base.invokelatest(display, InlineDisplay(), res)
                     catch err
                         if !(err isa MethodError)
-                            printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
-                            Base.display_error(stderr, err, catch_backtrace())
+                            printstyled(stdout, "Display Error: ", color = Base.error_color(), bold = true)
+                            Base.display_error(stdout, err, catch_backtrace())
                         end
                     end
                 end
