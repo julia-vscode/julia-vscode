@@ -122,9 +122,12 @@ export async function activate(context: vscode.ExtensionContext) {
             async getEnvironment() {
                 return await jlpkgenv.getAbsEnvPath()
             },
-            // TODO This is breaking, not sure how to handle that?
             async getJuliaExecutable() {
                 return await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+            },
+            async getJuliaPath() {
+                console.warn('Julia extension for VSCode: `getJuliaPath` API is deprecated.')
+                return (await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()).file
             },
             getPkgServer() {
                 return vscode.workspace.getConfiguration('julia').get('packageServer')
