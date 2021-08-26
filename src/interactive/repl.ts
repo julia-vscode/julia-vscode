@@ -680,6 +680,24 @@ function executeSelectionCopyPaste() {
     executeCodeCopyPaste(text, selection.isEmpty)
 }
 
+export async function executeInREPL(code: string, { filename = 'code', line = 0, column = 0, mod = 'Main', showCodeInREPL = true, showResultInREPL = true, showErrorInREPL = false, softscope = true }): Promise<ReturnResult> {
+    await startREPL(true)
+    return await g_connection.sendRequest(
+        requestTypeReplRunCode,
+        {
+            filename,
+            line,
+            column,
+            code,
+            mod,
+            showCodeInREPL,
+            showResultInREPL,
+            showErrorInREPL,
+            softscope
+        }
+    )
+}
+
 const interrupts = []
 let last_interrupt_index = -1
 function interrupt() {
