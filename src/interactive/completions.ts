@@ -6,27 +6,16 @@ import { Disposable, MessageConnection } from 'vscode-jsonrpc'
 import { getModuleForEditor } from './modules'
 import { onExit, onInit } from './repl'
 
-function makeTimeout() {
-    return new Promise<undefined>(resolve => {
-        setTimeout(() => {
-            return resolve(undefined)
-        }, 1000)
-    })
-}
-
-const selector = {
-    language: 'julia'
-}
+const selector = [
+    { language: 'julia', scheme: 'untitled' },
+    { language: 'julia', scheme: 'file' }
+]
 const completionTriggerCharacters = [
     '\.', // property/field completion
     '[', // dict completion
 ]
-const signatureHelpTriggerCharacters = ['(', ',']
-const signatureHelpRetriggerCharacters = ['.']
-
 export function activate(context: vscode.ExtensionContext) {
     let completionSubscription: undefined | Disposable = undefined
-    let signatureHelpSubscription: undefined | Disposable = undefined
     context.subscriptions.push(
         onInit(conn => {
             completionSubscription = vscode.languages.registerCompletionItemProvider(
@@ -34,18 +23,9 @@ export function activate(context: vscode.ExtensionContext) {
                 completionItemProvider(conn),
                 ...completionTriggerCharacters
             )
-            signatureHelpSubscription = vscode.languages.registerSignatureHelpProvider(
-                selector,
-                signatureHelpProvider(conn),
-                {
-                    triggerCharacters: signatureHelpTriggerCharacters,
-                    retriggerCharacters: signatureHelpRetriggerCharacters
-                }
-            )
         }),
-        onExit(hadError => {
+        onExit(() => {
             if (completionSubscription) { completionSubscription.dispose() }
-            if (signatureHelpSubscription) { signatureHelpSubscription.dispose() }
         })
     )
 }
@@ -53,18 +33,15 @@ export function activate(context: vscode.ExtensionContext) {
 const requestTypeGetCompletionItems = new rpc.RequestType<
     { line: string, mod: string }, // input type
     vscode.CompletionItem[], // return type
-    void, void
->('repl/getcompletions')
-
-// const requestTypeResolveCompletionItem = new rpc.RequestType<
-//     vscode.CompletionItem, // input type
-//     vscode.CompletionItem, // return type
-//     void, void
-// >('repl/resolvecompletion')
+    void
+    >('repl/getcompletions')
 
 function completionItemProvider(conn: MessageConnection): vscode.CompletionItemProvider {
     return {
         provideCompletionItems: async (document, position, token, context) => {
+            if (!vscode.workspace.getConfiguration('julia.runtimeCompletions')) {
+                return
+            }
             const startPosition = new vscode.Position(position.line, 0)
             const lineRange = new vscode.Range(startPosition, position)
             const line = document.getText(lineRange)
@@ -73,31 +50,6 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
                 items: await conn.sendRequest(requestTypeGetCompletionItems, { line, mod }),
                 isIncomplete: true
             }
-        },
-        // resolveCompletionItem: (item, token) => {
-        //     return undefined
-        // }
-    }
-}
-
-const requestTypeGetSignatureHelp = new rpc.RequestType<
-    { sig: string, mod: string, context: vscode.SignatureHelpContext }, // input type
-    vscode.SignatureHelp, // return type
-    void, void
->('repl/getsignaturehelp')
-
-// TODO: use LS for target signature range retrieval
-function signatureHelpProvider(conn: MessageConnection): vscode.SignatureHelpProvider {
-    return {
-        provideSignatureHelp: async (document, position, token, context) => {
-            const startPosition = new vscode.Position(position.line, 0)
-            const lineRange = new vscode.Range(startPosition, position)
-            const sig = document.getText(lineRange)
-            const mod = await getModuleForEditor(document, position)
-            return Promise.race([
-                conn.sendRequest(requestTypeGetSignatureHelp, { sig, mod, context }),
-                makeTimeout()
-            ])
-        },
+        }
     }
 }

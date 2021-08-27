@@ -1054,6 +1054,12 @@
                     "default": false,
                     "description": "Enable the experimental native Jupyter notebook integration.",
                     "scope": "application"
+                },
+                "julia.runtimeCompletions": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Request runtime completions from the integrated REPL.",
+                    "scope": "application"
                 }
             }
         },

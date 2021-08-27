@@ -798,7 +798,8 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
 }
 
 async function linkHandler(link: any) {
-    let { file, line } = link.data
+    let file = link.data.file
+    const line = link.data.line
 
     if (file.startsWith('.')) {
         // Base file
