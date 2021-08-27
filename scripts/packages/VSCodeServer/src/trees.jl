@@ -30,9 +30,9 @@ const MAX_PARTITION_LENGTH = 20
 
 treeid() = (ID[] += 1)
 
-pluralize(n::Int, one, more = one) = string(n, " ", n == 1 ? one : more)
-pluralize(::Tuple{}, one, more = one) = string(0, " ", more)
-pluralize(n, one, more = one) = string(length(n) > 1 ? join(n, '×') : first(n), " ", prod(n) == 1 ? one : more)
+pluralize(n::Int, one, more=one) = string(n, " ", n == 1 ? one : more)
+pluralize(::Tuple{}, one, more=one) = string(0, " ", more)
+pluralize(n, one, more=one) = string(length(n) > 1 ? join(n, '×') : first(n), " ", prod(n) == 1 ? one : more)
 
 function treerender(x::LazyTree)
     id = treeid()
@@ -78,33 +78,59 @@ function treerender(x::Leaf)
     )
 end
 
-getfield_safe(x, f, default = UNDEF) = isdefined(x, f) ? getfield(x, f) : default
+getfield_safe(x, f, default=UNDEF) = isdefined(x, f) ? getfield(x, f) : default
 
-function treerender(x)
+struct PropertyBox
+    object
+end
+treerender(x::PropertyBox) = invoke(treerender, Tuple{Any,String,String}, x.object, "#properties", wsicon(x))
+
+function treerender(x, typedisplay=typeof(x), icon=wsicon(x))
     fields = fieldnames(typeof(x))
 
     if isempty(fields)
-        treerender(Text(string(typeof(x), "()")))
+        treerender(Text(string(typedisplay, "()")))
     else
-        treerender(LazyTree(string(typeof(x)), wsicon(x), function ()
-            collect([SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields])
-        end))
+        treerender(LazyTree(string(typedisplay), icon,
+            () -> [SubTree(string(f), wsicon(getfield_safe(x, f)), getfield_safe(x, f)) for f in fields]
+        ))
     end
 end
 
 function treerender(x::AbstractDict{K,V}) where {K,V}
-    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), wsicon(x), length(keys(x)) == 0, function ()
-        if length(keys(x)) > MAX_PARTITION_LENGTH
-            partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
-        else
-            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in x])
-        end
-    end))
+    treerender(LazyTree(string(nameof(typeof(x)), "{$(K), $(V)} with $(pluralize(length(keys(x)), "element", "elements"))"), wsicon(x), length(keys(x)) == 0,
+        () -> pushfirst!(
+            if length(keys(x)) > MAX_PARTITION_LENGTH
+                partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
+            else
+                # collect is necessary because the return type of an array comprehension depends on the iterator,
+                # but we only want Arrays here
+                collect([SubTree(repr(k), wsicon(v), v) for (k, v) in x])
+            end,
+            SubTree("", wsicon(x), PropertyBox(x)),
+        )
+    ))
 end
+
+function treerender(x::AbstractArray{T,N}) where {T,N}
+    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0,
+        function ()
+            out = if length(x) > MAX_PARTITION_LENGTH
+                partition_by_keys(x, sz=MAX_PARTITION_LENGTH)
+            else
+                # collect is necessary because the return type of an array comprehension depends on the iterator,
+                # but we only want Arrays here
+                collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))])
+            end
+            x isa Array ? out : pushfirst!(out, SubTree("", wsicon(x), PropertyBox(x)))
+        end
+    ))
+end
+
 
 function treerender(x::Module)
     treerender(LazyTree(string(x), wsicon(x), function ()
-        ns = names(x, all = true)
+        ns = names(x, all=true)
         out = []
         for n in ns
             isdefined(x, n) || continue
@@ -126,46 +152,55 @@ struct Undef end
 const UNDEF = Undef()
 
 function assign_undefs(xs)
-    xs′ = similar(xs, Any)
+    s = size(xs)
+    xs′ = Array{Any,length(s)}(undef, s...)
     for i in eachindex(xs)
         xs′[i] = isassigned(xs, i) ? xs[i] : UNDEF
     end
+
+    # make sure not to leave any unassigned locations around even when
+    # `similar` (i.e. `size`) and `eachindex` disagree; `prod(size(x)) ==
+    # length(eachindex(x))` should hold, but doesn't always
+    for i in eachindex(xs′)
+        if !isassigned(xs′, i)
+            xs′[i] = UNDEF
+        end
+    end
+
     return xs′
 end
 
-function treerender(x::AbstractArray{T,N}) where {T,N}
-    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0, function ()
-        if length(x) > MAX_PARTITION_LENGTH
-            partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
-        else
-            collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))])
-        end
-    end))
+function treerender(err::Exception, bt)
+    st = stacktrace(bt)
+    treerender(LazyTree(string("Internal Error: ", sprint(showerror, err)), wsicon(err), length(st) == 0, () -> [Leaf(sprint(show, x), wsicon(x)) for x in st]))
 end
 
-treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base = 16, pad = Sys.WORD_SIZE >> 2)), wsicon(x)))
+treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), limit=100), wsicon(x)))
+treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base=16, pad=Sys.WORD_SIZE >> 2)), wsicon(x)))
 treerender(x::Text) = treerender(Leaf(x.content, wsicon(x)))
-treerender(x::Function) = treerender(Leaf(strlimit(string(x), limit = 100), wsicon(x)))
-treerender(x::Type) = treerender(Leaf(strlimit(string(x), limit = 100), wsicon(x)))
+treerender(x::Function) = treerender(Leaf(strlimit(string(x), limit=100), wsicon(x)))
+treerender(x::Type) = treerender(Leaf(strlimit(string(x), limit=100), wsicon(x)))
 treerender(x::Undef) = treerender(Leaf("#undef", wsicon(x)))
+treerender(x::StackTraces.StackFrame) = treerender(Leaf(string(x), wsicon(x)))
 
-function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
+function partition_by_keys(x, _keys=keys(x); sz=20, maxparts=100)
     partitions = Iterators.partition(_keys, max(sz, length(_keys) ÷ maxparts))
     out = []
     for part in partitions
         head = string(repr(first(part)), " ... ", repr(last(part)))
         if length(part) > sz
             push!(out, LazyTree(head, function ()
-                partition_by_keys(x, collect(part), sz = sz, maxparts = maxparts)
+                partition_by_keys(x, collect(part), sz=sz, maxparts=maxparts)
             end))
         else
             push!(out, LazyTree(head, function ()
+                # collect is necessary because the return type of an array comprehension depends on the iterator,
+                # but we only want Arrays here
                 collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(part, getindex.(Ref(x), assign_undefs(part)))])
             end))
         end
@@ -179,10 +214,10 @@ repl_getvariables_request(conn, params::Nothing) = Base.invokelatest(getvariable
 
 function getvariables()
     M = Main
-    variables = []
+    variables = ReplWorkspaceItem[]
     clear_lazy()
 
-    for n in names(M, all = true, imported = true)
+    for n in names(M, all=true, imported=true)
         !isdefined(M, n) && continue
         Base.isdeprecated(M, n) && continue
 
@@ -198,15 +233,18 @@ function getvariables()
             tree.canshow = can_display(x)
             push!(variables, tree)
         catch err
-            printstyled("Internal Error: ", bold = true, color = Base.error_color())
-            Base.display_error(err, catch_backtrace())
+            # FIXME: This should end up in the tree view as an "error child".
+            # Ref: https://github.com/julia-vscode/julia-vscode/issues/1491
+            #
+            # printstyled("Internal Error: ", bold=true, color=Base.error_color())
+            # Base.display_error(err, catch_backtrace())
         end
     end
 
     return variables
 end
 
-function clear_lazy(ids = [])
+function clear_lazy(ids=[])
     if isempty(ids)
         empty!(TREES)
     else
@@ -230,7 +268,7 @@ wsicon(::Undef) = "question"
 
 # handle lazy clicks
 
-repl_getlazy_request(conn, id::Int) = Base.invokelatest(get_lazy, id)
+repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}) = Base.invokelatest(get_lazy, params.id)
 
 function get_lazy(id::Int)
     try
@@ -241,8 +279,7 @@ function get_lazy(id::Int)
             return [treerender(Text("[out of date result]"))]
         end
     catch err
-        printstyled("Internal Error: ", bold = true, color = Base.error_color())
-        Base.display_error(err, catch_backtrace())
-        return []
+        # show internal error in workspace:
+        return [treerender(err, catch_backtrace())]
     end
 end

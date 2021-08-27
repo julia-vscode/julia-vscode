@@ -3,8 +3,7 @@
     // tweak these settings to include/exclude folders in explorer or search results
     "files.exclude": {
         "dist": true,
-        "out": true,
-        "libs": true,
+        "out": true
     },
     "search.exclude": {
         "dist": true,
@@ -13,14 +12,12 @@
     },
     // we want to use the TS server from our node_modules folder to control its version
     "typescript.tsdk": "./node_modules/typescript/lib",
-    "git.detectSubmodulesLimit": 20,
+    "git.detectSubmodulesLimit": 30,
     "editor.formatOnPaste": true,
-    "editor.formatOnSave": true,
     "editor.formatOnType": true,
     "files.trimTrailingWhitespace": true,
     "files.trimFinalNewlines": true,
     "files.insertFinalNewline": true,
-    "eslint.enable": true,
     "eslint.format.enable": true,
     "editor.codeActionsOnSave": {
         "source.organizeImports": true,

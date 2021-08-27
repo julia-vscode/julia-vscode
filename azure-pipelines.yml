@@ -30,7 +30,7 @@ stages:
 
     - task: NodeTool@0
       inputs:
-        versionSpec: '8.x'
+        versionSpec: '12.x'
       displayName: 'Install Node.js'
 
     - bash: |
@@ -67,6 +67,8 @@ stages:
           JULIA_VERSION: '1.4'
         Julia 1.5:
           JULIA_VERSION: '1.5'
+        Julia 1.6:
+          JULIA_VERSION: '1.6'
 
     steps:
 
@@ -112,6 +114,8 @@ stages:
           JULIA_VERSION: '1.4'
         Julia 1.5:
           JULIA_VERSION: '1.5'
+        Julia 1.6:
+          JULIA_VERSION: '1.6'
 
     steps:
 
@@ -158,6 +162,8 @@ stages:
           JULIA_VERSION: '1.4'
         Julia 1.5:
           JULIA_VERSION: '1.5'
+        Julia 1.6:
+          JULIA_VERSION: '1.6'
 
     steps:
 
@@ -208,7 +214,7 @@ stages:
 
     - task: NodeTool@0
       inputs:
-        versionSpec: '8.x'
+        versionSpec: '14.x'
       displayName: 'Install Node.js'
 
     - bash: |
@@ -240,7 +246,7 @@ stages:
 
     - task: NodeTool@0
       inputs:
-        versionSpec: '8.x'
+        versionSpec: '14.x'
       displayName: 'Install Node.js'
 
     - task: FileTransform@2
@@ -274,7 +280,7 @@ stages:
         publishLocation: 'Container'
 
 - stage: DeployInsiderMarketplace
-  displayName: 'Deploy Insider to Marketplace'
+  displayName: 'Deploy Insider'
   dependsOn: [Package]
   jobs:
   - deployment: DeployInsider
@@ -291,11 +297,13 @@ stages:
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
             env:
               MARKET_KEY: $(vscekey)
+              OPENVSX_KEY: $(ovsxkey)
 
 - stage: DeployProductionMarketplace
-  displayName: 'Deploy Release to Marketplace'
+  displayName: 'Deploy Release'
   dependsOn: [Package]
   jobs:
   - deployment: DeployProduction
@@ -312,9 +320,10 @@ stages:
               sudo npm install -g vsce
               PACKAGE_FILENAME=$(find $(Pipeline.Workspace) -type f -name "*.vsix")
               vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
+              npx ovsx publish $PACKAGE_FILENAME -p $OPENVSX_KEY
             env:
               MARKET_KEY: $(vscekey)
-
+              OPENVSX_KEY: $(ovsxkey)
 
 - stage: DeployGithub
   displayName: 'Deploy to GitHub'
@@ -347,3 +356,17 @@ stages:
               isPreRelease: true
               addChangeLog: false
               assets: $(Pipeline.Workspace)/insider/*.vsix
+
+- stage: ReleaseGithub
+  displayName: 'Mark GitHub release'
+  dependsOn: [DeployGithub, DeployProductionMarketplace]
+  jobs:
+  - job: BuildAndTest
+    steps:
+    - task: GitHubRelease@1
+      inputs:
+        gitHubConnection: 'release'
+        repositoryName: '$(Build.Repository.Name)'
+        action: 'edit'
+        tag: '$(Build.SourceBranchName)'
+        isPreRelease: false
