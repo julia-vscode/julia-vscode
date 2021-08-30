@@ -42,14 +42,36 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
             if (!vscode.workspace.getConfiguration('julia.runtimeCompletions')) {
                 return
             }
-            const startPosition = new vscode.Position(position.line, 0)
-            const lineRange = new vscode.Range(startPosition, position)
-            const line = document.getText(lineRange)
-            const mod: string = await getModuleForEditor(document, position)
-            return {
-                items: await conn.sendRequest(requestTypeGetCompletionItems, { line, mod }),
-                isIncomplete: true
-            }
+            const completionPromise = (async () => {
+                const startPosition = new vscode.Position(position.line, 0)
+                const lineRange = new vscode.Range(startPosition, position)
+                const line = document.getText(lineRange)
+                const mod: string = await getModuleForEditor(document, position)
+                return {
+                    items: await conn.sendRequest(requestTypeGetCompletionItems, { line, mod }),
+                    isIncomplete: true
+                }
+            })()
+
+            const cancelPromise: Promise<vscode.CompletionList> = new Promise(resolve => {
+                token.onCancellationRequested(() => resolve({
+                    items: [],
+                    isIncomplete: true
+                }))
+                setTimeout(() => {
+                    if (!token.isCancellationRequested) {
+                        resolve({
+                            items: [],
+                            isIncomplete: true
+                        })
+                    }
+                }, 1000)
+            })
+
+            return Promise.race([
+                completionPromise,
+                cancelPromise
+            ])
         }
     }
 }
