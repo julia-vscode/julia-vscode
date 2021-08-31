@@ -6,7 +6,6 @@ module RegistryQuery
 using Base: UUID, SHA1, TOML
 using Pkg
 
-include("Versions.jl")
 include("../LazilyInitializedFields/src/LazilyInitializedFields.jl")
 include("../Tar/src/Tar.jl")
 
@@ -41,7 +40,7 @@ custom_isfile(in_memory_registry::Union{Dict,Nothing}, folder::AbstractString, f
 LazilyInitializedFields.@lazy mutable struct VersionInfo
     git_tree_sha1::Base.SHA1
     yanked::Bool
-    @lazy uncompressed_compat::Union{Dict{UUID,Versions.VersionSpec}}
+    @lazy uncompressed_compat::Union{Dict{UUID,Pkg.Types.VersionSpec}}
 end
 VersionInfo(git_tree_sha1::Base.SHA1, yanked::Bool) = VersionInfo(git_tree_sha1, yanked, LazilyInitializedFields.uninit)
 
@@ -55,16 +54,16 @@ struct PkgInfo
     version_info::Dict{VersionNumber,VersionInfo}
 
     # Compat.toml
-    compat::Dict{Versions.VersionRange,Dict{String,Versions.VersionSpec}}
+    compat::Dict{Pkg.Types.VersionRange,Dict{String,Pkg.Types.VersionSpec}}
 
     # Deps.toml
-    deps::Dict{Versions.VersionRange,Dict{String,UUID}}
+    deps::Dict{Pkg.Types.VersionRange,Dict{String,UUID}}
 end
 
 isyanked(pkg::PkgInfo, v::VersionNumber) = pkg.version_info[v].yanked
 treehash(pkg::PkgInfo, v::VersionNumber) = pkg.version_info[v].git_tree_sha1
 
-function uncompress(compressed::Dict{Versions.VersionRange,Dict{String,T}}, vsorted::Vector{VersionNumber}) where {T}
+function uncompress(compressed::Dict{Pkg.Types.VersionRange,Dict{String,T}}, vsorted::Vector{VersionNumber}) where {T}
     @assert issorted(vsorted)
     uncompressed = Dict{VersionNumber,Dict{String,T}}()
     for v in vsorted
@@ -112,14 +111,14 @@ function initialize_uncompressed!(pkg::PkgInfo, versions=keys(pkg.version_info))
 
     for v in versions
         vinfo = pkg.version_info[v]
-        compat = Dict{UUID,Versions.VersionSpec}()
+        compat = Dict{UUID,Pkg.Types.VersionSpec}()
         uncompressed_deps_v = uncompressed_deps[v]
         # Everything depends on Julia
         uncompressed_deps_v["julia"] = JULIA_UUID
         uncompressed_compat_v = uncompressed_compat[v]
         for (pkg, uuid) in uncompressed_deps_v
             vspec = get(uncompressed_compat_v, pkg, nothing)
-            compat[uuid] = vspec === nothing ? Versions.VersionSpec() : vspec
+            compat[uuid] = vspec === nothing ? Pkg.Types.VersionSpec() : vspec
         end
         LazilyInitializedFields.@init! vinfo.uncompressed_compat = compat
     end
@@ -166,10 +165,10 @@ function init_package_info!(pkg::PkgEntry)
         parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Compat.toml")) : Dict{String,Any}()
     # The Compat.toml file might have string or vector values
     compat_data_toml = convert(Dict{String,Dict{String,Union{String,Vector{String}}}}, compat_data_toml)
-    compat = Dict{Versions.VersionRange,Dict{String,Versions.VersionSpec}}()
+    compat = Dict{Pkg.Types.VersionRange,Dict{String,Pkg.Types.VersionSpec}}()
     for (v, data) in compat_data_toml
-        vr = Versions.VersionRange(v)
-        d = Dict{String,Versions.VersionSpec}(dep => Versions.VersionSpec(vr_dep) for (dep, vr_dep) in data)
+        vr = Pkg.Types.VersionRange(v)
+        d = Dict{String,Pkg.Types.VersionSpec}(dep => Pkg.Types.VersionSpec(vr_dep) for (dep, vr_dep) in data)
         compat[vr] = d
     end
 
@@ -178,14 +177,14 @@ function init_package_info!(pkg::PkgEntry)
         parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Deps.toml")) : Dict{String,Any}()
     # But the Deps.toml only have strings as values
     deps_data_toml = convert(Dict{String,Dict{String,String}}, deps_data_toml)
-    deps = Dict{Versions.VersionRange,Dict{String,UUID}}()
+    deps = Dict{Pkg.Types.VersionRange,Dict{String,UUID}}()
     for (v, data) in deps_data_toml
-        vr = Versions.VersionRange(v)
+    vr = Pkg.Types.VersionRange(v)
         d = Dict{String,UUID}(dep => UUID(uuid) for (dep, uuid) in data)
         deps[vr] = d
     end
     # All packages depend on julia
-    deps[Versions.VersionRange()] = Dict("julia" => JULIA_UUID)
+    deps[Pkg.Types.VersionRange()] = Dict("julia" => JULIA_UUID)
 
     LazilyInitializedFields.@init! pkg.info = PkgInfo(repo, subdir, version_info, compat, deps)
 
