@@ -1,5 +1,5 @@
 import * as toml from '@iarna/toml'
-import * as cp from 'child-process-promise'
+import * as cp from 'child_process'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { registerCommand } from '../utils'
@@ -41,6 +41,8 @@ namespace VersionLens {
     const requestTypeLens = new rpc.RequestType<{ name: string, uuid: string }, {
         latest_version: string, url: string, registry: string
     }, void>('lens/pkgVersions')
+
+    const updatePackagesOutputChannel = vscode.window.createOutputChannel('Julia Update Packages')
 
     const updateAllDependenciesCommand = 'language-julia.updateAllDependencies'
     const queryRegistriesCommand = 'language-julia.versionsLensQueryRegistries'
@@ -207,6 +209,42 @@ namespace VersionLens {
         }
     }
 
+    /**
+     * Execute `Pkg.update` and display its output while executing in an output channel.
+     */
+    async function _executeUpdateCommand(level: UpgradeLevel) {
+        const projectRoot = vscode.workspace.workspaceFolders[0]
+        const updateCommand = `julia --project=. -e "using Pkg; Pkg.update(;level=Pkg.${level})"`
+
+        return new Promise<void>((resolve, reject) => {
+            const childProcess = cp.spawn(updateCommand, { cwd: projectRoot.uri.fsPath, shell: true })
+
+            childProcess.stderr.setEncoding('utf8')
+            childProcess.stderr.on('data', (data) => {
+                // display the process output while executing in an output channel.
+                updatePackagesOutputChannel.append(data)
+            })
+
+            updatePackagesOutputChannel.show()
+
+            childProcess
+                .on('exit', (code) => {
+                    if (code !== 0) {
+                        vscode.window.showErrorMessage('Failed to update packages!')
+                    } else {
+                        updatePackagesOutputChannel.appendLine('Done')
+                        vscode.window.showInformationMessage('Finished updating packages successfully!')
+                    }
+                })
+                .on('error', reject)
+                .on('close', () => {
+                    // The promise will resolve when the process closes,
+                    // awaiting `_executeUpdateCommand` can be used to control the progress bar
+                    resolve()
+                })
+        })
+    }
+
     async function updateAllDependencies(level: UpgradeLevel) {
         if (g_isUpdatingPackagesLock) {
             // If there's an update operation running, show warning and ignore the request.
@@ -214,22 +252,16 @@ namespace VersionLens {
             return
         }
 
-        // Acquire the updating status lock
-        g_isUpdatingPackagesLock = true
-        const projectRoot = vscode.workspace.workspaceFolders[0]
-        const updateCommand = `julia --project=. -e "using Pkg; Pkg.update(;level=Pkg.${level})"`
-
         vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Updating packages' }, async (progress) => {
-            // The output for this command somehow is piped into stderr not stdout
-            // We can't use stderr to detect failures.
-            const { stderr } = await cp.exec(updateCommand, { cwd: projectRoot.uri.fsPath })
-            // This line will only get executed if the execution is done, so remove the progress notification
-            progress.report({ increment: 100 })
-            // Show the result of the operation.
-            // We can't say whether the operation succeeded or not because the output is piped into stderr in both cases.
-            vscode.window.showInformationMessage(`Pkg finished operation.\n${stderr}`)
-            // Release the updating status lock
-            g_isUpdatingPackagesLock = false
+            // Acquire the updating status lock
+            g_isUpdatingPackagesLock = true
+            try {
+                await _executeUpdateCommand(level)
+            } finally {
+                // When the command finishes remove the progress bar and release the updating status lock
+                progress.report({ increment: 100 })
+                g_isUpdatingPackagesLock = false
+            }
         })
     }
 
