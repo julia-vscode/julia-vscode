@@ -6,12 +6,7 @@ module RegistryQuery
 using Base: UUID, SHA1, TOML
 using Pkg
 
-include("../LazilyInitializedFields/src/LazilyInitializedFields.jl")
 include("../Tar/src/Tar.jl")
-
-# The content of a registry is assumed to be constant during the
-# lifetime of a `Registry`. Create a new `Registry` if you want to have
-# a new view on the current registry.
 
 function to_tar_path_format(file::AbstractString)
     @static if Sys.iswindows()
@@ -37,12 +32,12 @@ custom_isfile(in_memory_registry::Union{Dict,Nothing}, folder::AbstractString, f
     in_memory_registry === nothing ? isfile(joinpath(folder, file)) : haskey(in_memory_registry, to_tar_path_format(file))
 
 # Info about each version of a package
-LazilyInitializedFields.@lazy mutable struct VersionInfo
+mutable struct VersionInfo
     git_tree_sha1::Base.SHA1
     yanked::Bool
-    @lazy uncompressed_compat::Union{Dict{UUID,Pkg.Types.VersionSpec}}
+    uncompressed_compat::Union{Dict{UUID,Pkg.Types.VersionSpec},Nothing}
 end
-VersionInfo(git_tree_sha1::Base.SHA1, yanked::Bool) = VersionInfo(git_tree_sha1, yanked, LazilyInitializedFields.uninit)
+VersionInfo(git_tree_sha1::Base.SHA1, yanked::Bool) = VersionInfo(git_tree_sha1, yanked, nothing)
 
 # This is the information that exists in e.g. General/A/ACME
 struct PkgInfo
@@ -102,7 +97,7 @@ const JULIA_UUID = UUID("1222c4b2-2114-5bfd-aeef-88e4692bbb3e")
 function initialize_uncompressed!(pkg::PkgInfo, versions=keys(pkg.version_info))
     # Only valid to call this with existing versions of the package
     # Remove all versions we have already uncompressed
-    versions = filter!(v -> !LazilyInitializedFields.isinit(pkg.version_info[v], :uncompressed_compat), collect(versions))
+    versions = filter!(v -> pkg.version_info[v] !== nothing, collect(versions))
 
     sort!(versions)
 
@@ -120,7 +115,7 @@ function initialize_uncompressed!(pkg::PkgInfo, versions=keys(pkg.version_info))
             vspec = get(uncompressed_compat_v, pkg, nothing)
             compat[uuid] = vspec === nothing ? Pkg.Types.VersionSpec() : vspec
         end
-        LazilyInitializedFields.@init! vinfo.uncompressed_compat = compat
+        vinfo.uncompressed_compat = compat
     end
     return pkg
 end
@@ -129,8 +124,8 @@ function compat_info(pkg::PkgInfo)
     initialize_uncompressed!(pkg)
     return Dict(v => info.uncompressed_compat for (v, info) in pkg.version_info)
 end
-    
-LazilyInitializedFields.@lazy struct PkgEntry
+
+mutable struct PkgEntry
     # Registry.toml:
     path::String
     registry_path::String
@@ -139,13 +134,13 @@ LazilyInitializedFields.@lazy struct PkgEntry
 
     in_memory_registry::Union{Dict{String,String},Nothing}
     # Version.toml / (Compat.toml / Deps.toml):
-    @lazy info::PkgInfo
+    info::Union{PkgInfo,Nothing}
 end
 
 registry_info(pkg::PkgEntry) = init_package_info!(pkg)
 function init_package_info!(pkg::PkgEntry)
     # Already uncompressed the info for this package, return early
-    LazilyInitializedFields.@isinit(pkg.info)  && return pkg.info
+    pkg.info !== nothing && return pkg.info
     path = pkg.registry_path
 
     d_p = parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Package.toml"))
@@ -186,7 +181,7 @@ function init_package_info!(pkg::PkgEntry)
     # All packages depend on julia
     deps[Pkg.Types.VersionRange()] = Dict("julia" => JULIA_UUID)
 
-    LazilyInitializedFields.@init! pkg.info = PkgInfo(repo, subdir, version_info, compat, deps)
+    pkg.info = PkgInfo(repo, subdir, version_info, compat, deps)
 
     return pkg.info
 end
@@ -278,7 +273,7 @@ function RegistryInstance(path::AbstractString)
         info::Dict{String,Any}
         name = info["name"]::String
         pkgpath = info["path"]::String
-        pkg = PkgEntry(pkgpath, path, name, uuid, in_memory_registry, LazilyInitializedFields.uninit)
+        pkg = PkgEntry(pkgpath, path, name, uuid, in_memory_registry, nothing)
     pkgs[uuid] = pkg
     end
     reg = RegistryInstance(
@@ -405,7 +400,7 @@ function get_verions_info(r::RegistryInstance, uuid::Base.UUID)
         return nothing
     end
 
-    initialize_uncompressed!(info) # initialize lazy fields
+    initialize_uncompressed!(info) # uncompress lazy fields
     return info.version_info
 end
 
