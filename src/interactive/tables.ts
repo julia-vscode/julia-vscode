@@ -100,7 +100,11 @@ export function displayTable(payload, context, isLazy = false) {
                     datasource: {
                         getRows,
                         rowCount: payload.rowCount
-                    }
+                    },
+                    components: {
+                        rowNumberRenderer: RowNumberRenderer
+                    },
+                    onGridReady: event => event.columnApi.autoSizeColumn('__row__', false),
                 };
                 const eGridDiv = document.querySelector('#myGrid');
                 new agGrid.Grid(eGridDiv, gridOptions);
@@ -112,7 +116,11 @@ export function displayTable(payload, context, isLazy = false) {
                 const payload = ${payload};
                 const gridOptions = {
                     columnDefs: payload.coldefs,
-                    rowData: payload.data
+                    rowData: payload.data,
+                    components: {
+                        rowNumberRenderer: RowNumberRenderer
+                    },
+                    onGridReady: event => event.columnApi.autoSizeColumn('__row__', false),
                 };
                 const eGridDiv = document.querySelector('#myGrid');
                 new agGrid.Grid(eGridDiv, gridOptions);
@@ -120,17 +128,51 @@ export function displayTable(payload, context, isLazy = false) {
         `
     }
 
-
     panel.webview.html = `
-            <html>
-                <head>
-                    <script src="${uriAgGrid}"></script>
-                    <link rel="stylesheet" href="${uriAgGridCSS}">
-                    <link rel="stylesheet" href="${uriAgGridThemeCSS}">
-                </head>
+        <html>
+            <head>
+                <script src="${uriAgGrid}"></script>
+                <link rel="stylesheet" href="${uriAgGridCSS}">
+                <link rel="stylesheet" href="${uriAgGridThemeCSS}">
+                <style type="text/css">
+                .subtle {
+                    opacity: 0.4;
+                    transition: opacity .2s ease-in-out;
+                }
+                .ag-row-hover .subtle {
+                    opacity: 1;
+                }
+                .ag-root-wrapper {
+                    border: 0;
+                }
+                #myGrid {
+                    --ag-header-background-color: var(--vscode-panelSectionHeader-background);
+                    --ag-background-color: var(--vscode-panel-background);
+                    --ag-odd-row-background-color: rgba(120, 120, 120, 0.03);
+                    --ag-row-hover-color: var(--vscode-list-hoverBackground);
+                    --ag-header-foreground-color: var(--vscode-foreground);
+                    --ag-foreground-color: var(--vscode-foreground);
+                    --ag-row-border-color: var(--vscode-panel-border);
+                    --ag-border-color: var(--vscode-panel-border);
+                }
+                </style>
+            </head>
             <body style="padding:0;">
                 <div id="myGrid" style="height: 100vh; width: 100vw;" class="ag-theme-balham${theme}"></div>
             </body>
+            <script type="text/javascript">
+                function RowNumberRenderer() {}
+
+                RowNumberRenderer.prototype.init = function (params) {
+                    this.eGui = document.createElement('span');
+                    this.eGui.classList.add('subtle');
+                    this.eGui.innerHTML = params.rowIndex + 1;
+                };
+
+                RowNumberRenderer.prototype.getGui = function() {
+                    return this.eGui;
+                };
+            </script>
             ${script}
         </html>
         `

@@ -140,7 +140,7 @@ function _showtable(table)
 
     async = tablelength === nothing || tablelength*length(names) > 10_000
 
-    coldefs = [
+    coldefs = Any[
         (
             headerName = string(n),
             headerTooltip = string(types[i]),
@@ -152,10 +152,21 @@ function _showtable(table)
                         types[i] <: Union{Missing, T where T <: Number} ? "agNumberColumnFilter" : true
         ) for (i, n) in enumerate(names)
     ]
+    pushfirst!(coldefs, (
+        headerName = "Row",
+        editable = false,
+        headerTooltip = "",
+        field = "__row__",
+        sortable = !async,
+        type = "numericColumn",
+        cellRenderer = "rowNumberRenderer",
+        resizable = true,
+        filter = false
+    ))
 
     if async
         id = uuid4()
-        TABLES[id] = (schema, table, tablelength)
+        TABLES[id] = (schema, rows, tablelength)
         payload = (
             coldefs = coldefs,
             rowCount = tablelength,
