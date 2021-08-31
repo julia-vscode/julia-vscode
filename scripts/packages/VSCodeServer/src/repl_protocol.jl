@@ -56,3 +56,4 @@ const cd_notification_type = JSONRPC.NotificationType("repl/cd", NamedTuple{(:ur
 const activate_project_notification_type = JSONRPC.NotificationType("repl/activateProject", NamedTuple{(:uri,),Tuple{String}})
 const repl_getdebugitems_request_type = JSONRPC.RequestType("repl/getDebugItems", NamedTuple{(:juliaAccessor,),Tuple{String}}, Vector{DebugConfigTreeItem})
 const repl_gettabledata_request_type = JSONRPC.RequestType("repl/getTableData", NamedTuple{(:id,:startRow,:endRow),Tuple{String, Int, Int}}, Any)
+const repl_clearlazytable_notification_type = JSONRPC.NotificationType("repl/clearLazyTable", NamedTuple{(:id,),Tuple{String}})

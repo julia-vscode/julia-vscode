@@ -300,7 +300,7 @@ export function displayPlot(params: { kind: string, data: string }) {
     const kind = params.kind
     const payload = params.data
 
-    if (kind !== 'application/vnd.dataresource+json') {
+    if (!(kind.startsWith('application/vnd.dataresource'))) {
         showPlotPane()
         // We need to show the pane before accessing the webview to avoid "undefined" issue in webview.
         g_screenShotScript = `<script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'html2canvas', 'html2canvas.min.js')))}"></script>

@@ -3,16 +3,16 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { g_connection } from './repl'
 
-const requestTypeGetTableData = new rpc.RequestType < {
+const requestTypeGetTableData = new rpc.RequestType<{
     id: string,
     startRow: Number,
     endRow: Number
-}, string, void> ('repl/getTableData')
+}, string, void>('repl/getTableData')
+const clearLazyTable = new rpc.NotificationType<{
+    id: string
+}>('repl/clearLazyTable')
 
 export function displayTable(payload, context, isLazy = false) {
-    console.log(payload)
-
-
     const panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', {
         preserveFocus: true,
         viewColumn: vscode.ViewColumn.Active
@@ -31,6 +31,15 @@ export function displayTable(payload, context, isLazy = false) {
     if (isLazy) {
         const jPayload = JSON.parse(payload)
         const objectId = jPayload.id
+
+        panel.onDidDispose(() => {
+            g_connection.sendNotification(
+                clearLazyTable,
+                {
+                    id: objectId
+                }
+            )
+        })
 
         panel.webview.onDidReceiveMessage(async (message) => {
             if (message.type === 'getRows') {
@@ -75,7 +84,6 @@ export function displayTable(payload, context, isLazy = false) {
                 }
                 window.addEventListener('message', event => {
                     const message = event.data
-                    console.log(message)
 
                     if (message.type === 'getRows') {
                         const callback = requests[message.id]
@@ -97,6 +105,8 @@ export function displayTable(payload, context, isLazy = false) {
                     cacheBlockSize: 1000,
                     maxBlocksInCache: 100,
                     rowModelType: 'infinite',
+                    rowSelection: 'multiple',
+                    enableCellTextSelection: true, // to ensure copy events work as expected; text selection is disabled with user-select: none
                     datasource: {
                         getRows,
                         rowCount: payload.rowCount
@@ -117,6 +127,8 @@ export function displayTable(payload, context, isLazy = false) {
                 const gridOptions = {
                     columnDefs: payload.coldefs,
                     rowData: payload.data,
+                    rowSelection: 'multiple',
+                    enableCellTextSelection: true,
                     components: {
                         rowNumberRenderer: RowNumberRenderer
                     },
@@ -135,15 +147,23 @@ export function displayTable(payload, context, isLazy = false) {
                 <link rel="stylesheet" href="${uriAgGridCSS}">
                 <link rel="stylesheet" href="${uriAgGridThemeCSS}">
                 <style type="text/css">
-                .subtle {
-                    opacity: 0.4;
-                    transition: opacity .2s ease-in-out;
+                .row-number {
+                    opacity: 0.3;
+                    transition: opacity .1s ease-in-out;
+                    font-family: var(--vscode-editor-font-family);
+                    user-select: none;
                 }
-                .ag-row-hover .subtle {
+                .ag-row-hover .row-number {
                     opacity: 1;
                 }
+                .ag-cell-value {
+                    -moz-user-select: none!important;
+                    -webkit-user-select: none!important;
+                    -ms-user-select: none!important;
+                    user-select: none!important;
+                }
                 .ag-root-wrapper {
-                    border: 0;
+                    border: 0!important;
                 }
                 #myGrid {
                     --ag-header-background-color: var(--vscode-panelSectionHeader-background);
@@ -154,6 +174,8 @@ export function displayTable(payload, context, isLazy = false) {
                     --ag-foreground-color: var(--vscode-foreground);
                     --ag-row-border-color: var(--vscode-panel-border);
                     --ag-border-color: var(--vscode-panel-border);
+                    --ag-range-selection-border-color: var(--vscode-inputValidation-infoBorder);
+                    --ag-selected-row-background-color: var(--vscode-editor-selectionBackground);
                 }
                 </style>
             </head>
@@ -165,7 +187,7 @@ export function displayTable(payload, context, isLazy = false) {
 
                 RowNumberRenderer.prototype.init = function (params) {
                     this.eGui = document.createElement('span');
-                    this.eGui.classList.add('subtle');
+                    this.eGui.classList.add('row-number');
                     this.eGui.innerHTML = params.rowIndex + 1;
                 };
 
@@ -174,6 +196,14 @@ export function displayTable(payload, context, isLazy = false) {
                 };
             </script>
             ${script}
+            <script type="text/javascript">
+                eGridDiv.addEventListener('copy', ev => {
+                    const nodes = gridOptions.api.getSelectedNodes()
+                    const text = nodes.map(n => Object.values(n.data).join('\\t')).join('\\n')
+                    ev.clipboardData.setData('text/plain', text);
+                    ev.preventDefault();
+                })
+            </script>
         </html>
         `
 }

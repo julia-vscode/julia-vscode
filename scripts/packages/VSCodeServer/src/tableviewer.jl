@@ -152,6 +152,7 @@ function _showtable(table)
                         types[i] <: Union{Missing, T where T <: Number} ? "agNumberColumnFilter" : true
         ) for (i, n) in enumerate(names)
     ]
+
     pushfirst!(coldefs, (
         headerName = "Row",
         editable = false,
@@ -184,7 +185,7 @@ function _showtable(table)
 end
 
 function get_table_data(conn, params::NamedTuple{(:id,:startRow,:endRow),Tuple{String, Int, Int}})
-    schema, table, numRows = TABLES[UUID(params.id)]
+    schema, table, numRows = get(TABLES, UUID(params.id), (nothing, nothing, nothing))
     if table === nothing
         return (
             error = "Error.",
@@ -195,4 +196,8 @@ function get_table_data(conn, params::NamedTuple{(:id,:startRow,:endRow),Tuple{S
             lastRow = numRows
         )
     end
+end
+
+function clear_lazy_table(conn, params::NamedTuple{(:id,), Tuple{String}})
+    delete!(TABLES, UUID(params.id))
 end

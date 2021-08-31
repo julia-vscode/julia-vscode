@@ -123,6 +123,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[activate_project_notification_type] = activate_uri
         msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request
         msg_dispatcher[repl_gettabledata_request_type] = get_table_data
+        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
 
         @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
             msg = JSONRPC.get_next_message(conn_endpoint[])
