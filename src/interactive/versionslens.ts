@@ -225,15 +225,17 @@ namespace VersionLens {
                 updatePackagesOutputChannel.append(data)
             })
 
-            updatePackagesOutputChannel.show()
+            const showLogButtonText = 'Show Log'
 
             childProcess
                 .on('exit', (code) => {
                     if (code !== 0) {
-                        vscode.window.showErrorMessage('Failed to update packages!')
+                        vscode.window.showErrorMessage('Failed to update packages!', showLogButtonText)
+                            .then(() => updatePackagesOutputChannel.show())
                     } else {
                         updatePackagesOutputChannel.appendLine('Done')
-                        vscode.window.showInformationMessage('Finished updating packages successfully!')
+                        vscode.window.showInformationMessage('Finished updating packages successfully!', showLogButtonText)
+                            .then(() => updatePackagesOutputChannel.show())
                     }
                 })
                 .on('error', reject)
