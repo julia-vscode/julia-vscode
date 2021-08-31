@@ -122,9 +122,12 @@ export async function activate(context: vscode.ExtensionContext) {
             async getEnvironment() {
                 return await jlpkgenv.getAbsEnvPath()
             },
-            // TODO This is breaking, not sure how to handle that?
             async getJuliaExecutable() {
                 return await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+            },
+            async getJuliaPath() {
+                console.warn('Julia extension for VSCode: `getJuliaPath` API is deprecated.')
+                return (await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()).file
             },
             getPkgServer() {
                 return vscode.workspace.getConfiguration('julia').get('packageServer')
@@ -178,6 +181,17 @@ function changeConfig(event: vscode.ConfigurationChangeEvent) {
     }
 }
 
+const supportedSchemes = [
+    'file',
+    'untitled',
+    'vscode-notebook-cell'
+]
+
+const supportedLanguages = [
+    'julia',
+    'juliamarkdown'
+]
+
 async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature) {
     g_startupNotification.text = 'Starting Julia Language Server…'
     g_startupNotification.show()
@@ -229,8 +243,19 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             debug: { command: juliaExecutable.file, args: [...juliaExecutable.args, ...serverArgsDebug], options: spawnOptions }
         }
 
+    const selector = []
+    for (const scheme of supportedSchemes) {
+        for (const language of supportedLanguages) {
+            selector.push({
+                language,
+                scheme
+            })
+        }
+    }
+
+
     const clientOptions: LanguageClientOptions = {
-        documentSelector: ['julia', 'juliamarkdown'],
+        documentSelector: selector,
         synchronize: {
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
         },
