@@ -82,6 +82,7 @@ export function displayTable(payload, context, isLazy = false) {
                         failure: failCallback
                     }
                 }
+                let didResize = false
                 window.addEventListener('message', event => {
                     const message = event.data
 
@@ -92,6 +93,10 @@ export function displayTable(payload, context, isLazy = false) {
                                 callback.failure()
                             } else {
                                 callback.success(message.data.rows, message.data.lastRow)
+                                if (!didResize) {
+                                    didResize = true
+                                    gridOptions.columnApi.autoSizeAllColumns()
+                                }
                             }
                             delete requests[message.id]
                         }
@@ -114,7 +119,7 @@ export function displayTable(payload, context, isLazy = false) {
                     components: {
                         rowNumberRenderer: RowNumberRenderer
                     },
-                    onGridReady: event => event.columnApi.autoSizeColumn('__row__', false),
+                    onFirstDataRendered: event => setTimeout(event.columnApi.autoSizeAllColumns(undefined, false), 200)
                 };
                 const eGridDiv = document.querySelector('#myGrid');
                 new agGrid.Grid(eGridDiv, gridOptions);
@@ -132,7 +137,7 @@ export function displayTable(payload, context, isLazy = false) {
                     components: {
                         rowNumberRenderer: RowNumberRenderer
                     },
-                    onGridReady: event => event.columnApi.autoSizeColumn('__row__', false),
+                    onFirstDataRendered: event => event.columnApi.autoSizeAllColumns()
                 };
                 const eGridDiv = document.querySelector('#myGrid');
                 new agGrid.Grid(eGridDiv, gridOptions);
