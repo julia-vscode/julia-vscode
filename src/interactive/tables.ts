@@ -33,32 +33,67 @@ export function displayTable(payload, context, isLazy = false) {
         const objectId = jPayload.id
 
         panel.onDidDispose(() => {
-            g_connection.sendNotification(
-                clearLazyTable,
-                {
-                    id: objectId
-                }
-            )
+            try {
+                g_connection.sendNotification(
+                    clearLazyTable,
+                    {
+                        id: objectId
+                    }
+                )
+            } catch (err) {
+                console.debug('Could not dispose of lazy table object on the Julia side: ', err)
+            }
         })
 
         panel.webview.onDidReceiveMessage(async (message) => {
             if (message.type === 'getRows') {
-                const data = await g_connection.sendRequest(
-                    requestTypeGetTableData,
-                    {
-                        id: objectId,
-                        startRow: message.content.startRow,
-                        endRow: message.content.endRow
+                let response
+                try {
+                    const data = await g_connection.sendRequest(
+                        requestTypeGetTableData,
+                        {
+                            id: objectId,
+                            startRow: message.content.startRow,
+                            endRow: message.content.endRow
+                        }
+                    )
+                    response = {
+                        type: 'getRows',
+                        id: message.id,
+                        data: data
                     }
-                )
+                } catch (err) {
+                    console.debug('Error while processing message: ', err)
 
-                panel.webview.postMessage({
-                    type: 'getRows',
-                    id: message.id,
-                    data: data
-                })
+                    let warning: Thenable<string | undefined>
+                    const button = 'Close table'
+                    if (g_connection) {
+                        warning = vscode.window.showWarningMessage('Could not fetch table data. The object might have been deleted or modified.', button)
+                    } else {
+                        warning = vscode.window.showWarningMessage('Could not fetch table data. The Julia process is no longer available.', button)
+                    }
+
+                    warning.then(r => {
+                        if (r === button) {
+                            panel.dispose()
+                        }
+                    })
+
+                    response = {
+                        type: 'getRows',
+                        id: message.id,
+                        data: {
+                            error: true
+                        }
+                    }
+                }
+                try {
+                    panel.webview.postMessage(response)
+                } catch (err) {
+                    console.debug('Error while processing message: ', err)
+                }
             } else {
-                console.error('invalid message received: ', message)
+                console.debug('invalid message received: ', message)
             }
         })
         script = `
@@ -169,6 +204,9 @@ export function displayTable(payload, context, isLazy = false) {
                 }
                 .ag-root-wrapper {
                     border: 0!important;
+                }
+                .ag-ltr .ag-cell.ag-cell {
+                    border-right: 1px solid var(--ag-border-color);
                 }
                 #myGrid {
                     --ag-header-background-color: var(--vscode-panelSectionHeader-background);

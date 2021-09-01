@@ -43,7 +43,9 @@ function table2json(schema, rows; requested = nothing)
     rowwriter = JSON.Writer.CompactContext(io)
     JSON.begin_array(rowwriter)
     ser = JSON.StandardSerialization()
+    lastrow = 0
     for (i, row) in enumerate(rows)
+        lastrow = i
         if requested !== nothing && (i < first(requested) || i > last(requested))
             continue
         end
@@ -62,7 +64,7 @@ function table2json(schema, rows; requested = nothing)
         JSON.end_object(columnwriter)
     end
     JSON.end_array(rowwriter)
-    String(take!(io))
+    String(take!(io)), lastrow
 end
 
 const tables_uuid = UUIDs.UUID("bd369af6-aec1-5ad0-b16a-f7cc5008161c")
@@ -101,8 +103,7 @@ function get_tables_jl(pkg)
     end
 end
 
-# const TABLES = Dict{UUID, Tuple{Any, WeakRef}}()
-const TABLES = Dict{UUID, Tuple{Any, Any, Union{Nothing, Int}}}()
+const TABLES = Dict{UUID, Tuple{Any, Any}}()
 function _showtable(table)
     rows = _rows(table)
     it_sz = Base.IteratorSize(rows)
@@ -167,7 +168,7 @@ function _showtable(table)
 
     if async
         id = uuid4()
-        TABLES[id] = (schema, rows, tablelength)
+        TABLES[id] = (schema, rows)
         payload = (
             coldefs = coldefs,
             rowCount = tablelength,
@@ -185,15 +186,20 @@ function _showtable(table)
 end
 
 function get_table_data(conn, params::NamedTuple{(:id,:startRow,:endRow),Tuple{String, Int, Int}})
-    schema, table, numRows = get(TABLES, UUID(params.id), (nothing, nothing, nothing))
+    schema, table = get(TABLES, UUID(params.id), (nothing, nothing, nothing))
     if table === nothing
-        return (
-            error = "Error.",
-        )
+        return JSONRPC.JSONRPCError(-32600, "Table not found.", nothing)
     else
+        data, lastrow = try
+            data, lastrow = Base.invokelatest(table2json, schema, table; requested = (params.startRow + 1):(params.endRow + 1))
+            JSON.JSONText(data), lastrow
+        catch err
+            @debug "Error getting table data." exception=(err, catch_backtrace())
+            return JSONRPC.JSONRPCError(-32600, "Could not iterate over table.", nothing)
+        end
         return (
-            rows = JSON.JSONText(Base.invokelatest(table2json, schema, table; requested = (params.startRow + 1):(params.endRow + 1))),
-            lastRow = numRows
+            rows = data,
+            lastRow = lastrow
         )
     end
 end
