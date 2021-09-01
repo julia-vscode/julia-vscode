@@ -38,6 +38,7 @@ function _is_javascript_safe(x::AbstractFloat)
     min_safe_float < x < max_safe_float
 end
 
+json_sprint(x) = sprint(print, x)
 function table2json(schema, rows; requested = nothing)
     io = IOBuffer()
     rowwriter = JSON.Writer.CompactContext(io)
@@ -58,7 +59,7 @@ function table2json(schema, rows; requested = nothing)
             elseif val === nothing || val === missing
                 JSON.show_pair(columnwriter, ser, name, repr(val))
             else
-                JSON.show_pair(columnwriter, ser, name, sprint(print, val))
+                JSON.show_pair(columnwriter, ser, name, json_sprint(val))
             end
         end
         JSON.end_object(columnwriter)
@@ -66,8 +67,6 @@ function table2json(schema, rows; requested = nothing)
     JSON.end_array(rowwriter)
     String(take!(io)), lastrow
 end
-
-const tables_uuid = UUIDs.UUID("bd369af6-aec1-5ad0-b16a-f7cc5008161c")
 
 _eachcolumn = (f, schema, row) -> begin
     props = propertynames(row)
@@ -83,6 +82,8 @@ _eachcolumn = (f, schema, row) -> begin
 end
 _rows = table -> if table isa Matrix
     (table[i, :] for i in 1:size(table, 1))
+elseif _isiterabletable(table)
+    _getiterator(table)
 else
     table
 end
@@ -91,8 +92,15 @@ _Schema = (names, types) -> (
     names = names,
     types = types
 )
+_table = identity
+_istable = x -> x isa AbstractVecOrMat
+_isiterabletable = x -> false
+_getiterator = x -> false
 
-function get_tables_jl(pkg)
+const tables_uuid = UUIDs.UUID("bd369af6-aec1-5ad0-b16a-f7cc5008161c")
+const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
+const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
+function on_pkg_load(pkg)
     if pkg.uuid == tables_uuid
         Tables = Base.require(pkg)
 
@@ -100,6 +108,23 @@ function get_tables_jl(pkg)
         global _schema = Tables.schema
         global _rows = Tables.rows
         global _Schema = Tables.Schema
+        global _table = Tables.table
+        global _istable = Tables.istable
+    elseif pkg.uuid == tabletraits_uuid
+        TableTraits = Base.require(pkg)
+
+        global _isiterabletable = TableTraits.isiterabletable
+        global _getiterator = TableTraits.getiterator
+    elseif pkg.uuid == datavalues_uuid
+        DataValues = Base.require(pkg)
+
+        eval(
+            quote
+                function json_sprint(val::$(DataValues.DataValue))
+                    $(DataValues.isna)(val) ? "null" : json_sprint(val[])
+                end
+            end
+        )
     end
 end
 
@@ -176,14 +201,19 @@ function _showtable(table)
         )
         sendDisplayMsg("application/vnd.dataresource+lazy", JSON.json(payload))
     else
+        data, _ = table2json(schema, rows)
         payload = (
             coldefs = coldefs,
-            data = JSON.JSONText(table2json(schema, rows)),
+            data = JSON.JSONText(data),
         )
         sendDisplayMsg("application/vnd.dataresource+json", JSON.json(payload))
     end
 
 end
+
+showtable(table::AbstractMatrix) = _showtable(_table(table))
+showtable(table::AbstractVector) = _showtable(_table(table[:, :]))
+showtable(table) = _showtable(table)
 
 function get_table_data(conn, params::NamedTuple{(:id,:startRow,:endRow),Tuple{String, Int, Int}})
     schema, table = get(TABLES, UUID(params.id), (nothing, nothing, nothing))

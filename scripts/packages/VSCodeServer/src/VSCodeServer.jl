@@ -18,8 +18,7 @@ function __init__()
         end
     end
 
-    push!(Base.package_callbacks, pkgload)
-    push!(Base.package_callbacks, get_tables_jl)
+    push!(Base.package_callbacks, on_pkg_load)
 end
 
 include("../../JSON/src/JSON.jl")
