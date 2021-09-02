@@ -47,8 +47,14 @@ function table2json(schema, rows; requested = nothing)
     lastrow = 0
     for (i, row) in enumerate(rows)
         lastrow = i
-        if requested !== nothing && (i < first(requested) || i > last(requested))
-            continue
+        if requested !== nothing
+            if i < first(requested)
+                continue
+            end
+            if i > last(requested)
+                lastrow = -1
+                break
+            end
         end
         JSON.delimit(rowwriter)
         columnwriter = JSON.Writer.CompactContext(io)
@@ -128,7 +134,8 @@ function on_pkg_load(pkg)
     end
 end
 
-const TABLES = Dict{UUID, Tuple{Any, Any}}()
+const MAX_SYNC_TABLE_ELEMENTS = 100_000
+const TABLES = Dict{UUID, Tuple{Any, Any, Int}}()
 function _showtable(table)
     rows = _rows(table)
     it_sz = Base.IteratorSize(rows)
@@ -164,7 +171,7 @@ function _showtable(table)
         types = schema.types
     end
 
-    async = tablelength === nothing || tablelength*length(names) > 10_000
+    async = tablelength === nothing || tablelength*length(names) > MAX_SYNC_TABLE_ELEMENTS
 
     coldefs = Any[
         (
@@ -199,7 +206,7 @@ function _showtable(table)
 
     if async
         id = uuid4()
-        TABLES[id] = (schema, rows)
+        TABLES[id] = (schema, rows, tablelength)
         payload = (
             coldefs = coldefs,
             rowCount = tablelength,
@@ -222,13 +229,13 @@ showtable(table::AbstractVector) = _showtable(_table(table[:, :]))
 showtable(table) = _showtable(table)
 
 function get_table_data(conn, params::NamedTuple{(:id,:startRow,:endRow),Tuple{String, Int, Int}})
-    schema, table = get(TABLES, UUID(params.id), (nothing, nothing, nothing))
+    schema, table, rowCount = get(TABLES, UUID(params.id), (nothing, nothing, nothing))
     if table === nothing
         return JSONRPC.JSONRPCError(-32600, "Table not found.", nothing)
     else
         data, lastrow = try
             data, lastrow = Base.invokelatest(table2json, schema, table; requested = (params.startRow + 1):(params.endRow + 1))
-            JSON.JSONText(data), lastrow
+            JSON.JSONText(data), lastrow == -1 ? rowCount : lastrow
         catch err
             @debug "Error getting table data." exception=(err, catch_backtrace())
             return JSONRPC.JSONRPCError(-32600, "Could not iterate over table.", nothing)

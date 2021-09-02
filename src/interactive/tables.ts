@@ -139,10 +139,13 @@ export function displayTable(payload, context, isLazy = false) {
                         console.error('invalid message received: ', message)
                     }
                 })
+
+                // make sure the block size scales with col number
+                cacheBlockSize = Math.max(Math.round(2000/payload.coldefs.length), 50);
                 const gridOptions = {
                     columnDefs: payload.coldefs,
                     maxConcurrentDatasourceRequests: 1,
-                    cacheBlockSize: 1000,
+                    cacheBlockSize: cacheBlockSize,
                     maxBlocksInCache: 100,
                     rowModelType: 'infinite',
                     rowSelection: 'multiple',
