@@ -75,12 +75,12 @@ class NotebookNode extends SessionNode {
 
 class REPLNode extends SessionNode {
     private variablesNodes: VariableNode[]
+    private onEvalHook: vscode.Disposable
 
     constructor(public connection: rpc.MessageConnection, private treeProvider: REPLTreeDataProvider) {
         super()
 
-        onFinishEval(this.updateReplVariables.bind(this))
-
+        this.onEvalHook = onFinishEval(() => this.updateReplVariables())
 
         this.updateReplVariables()
     }
@@ -89,9 +89,13 @@ class REPLNode extends SessionNode {
         return this.connection
     }
 
+    public dispose() {
+        this.onEvalHook?.dispose()
+    }
+
     async updateReplVariables() {
-        const variables = await this.connection.sendRequest(requestTypeGetVariables, undefined)
-        this.variablesNodes = variables.map(i => new VariableNode(this, i))
+        const variables: WorkspaceVariable[] = await this.getConnection().sendRequest(requestTypeGetVariables, undefined)
+        this.variablesNodes = variables.map(v => new VariableNode(this, v))
 
         this.treeProvider.refresh()
     }
@@ -107,7 +111,7 @@ class VariableNode extends AbstractWorkspaceNode {
     }
 
     public async getChildren() {
-        const children = await this.parentREPL.getConnection().sendRequest(requestTypeGetLazy, { id: this.workspaceVariable.id })
+        const children: WorkspaceVariable[] = await this.parentREPL.getConnection().sendRequest(requestTypeGetLazy, { id: this.workspaceVariable.id })
 
         return children.map(i => new VariableNode(this.parentREPL, i))
     }
@@ -130,12 +134,12 @@ export class WorkspaceFeature {
             // registries
             vscode.window.registerTreeDataProvider('REPLVariables', this._REPLTreeDataProvider),
             // listeners
-            onInit(this.openREPL.bind(this)),
-            onExit(this.closeREPL.bind(this)),
+            onInit(conn => this.openREPL(conn)),
+            onExit(err => this.closeREPL(err)),
             // commands
-            registerCommand('language-julia.showInVSCode', this.showInVSCode.bind(this)),
-            registerCommand('language-julia.stopKernel', this.stopKernel.bind(this)),
-            registerCommand('language-julia.restartKernel', this.restartKernel.bind(this))
+            registerCommand('language-julia.showInVSCode', (node: VariableNode) => this.showInVSCode(node)),
+            registerCommand('language-julia.stopKernel', (node: NotebookNode) => this.stopKernel(node)),
+            registerCommand('language-julia.restartKernel', (node: NotebookNode) => this.restartKernel(node))
         )
     }
 
@@ -143,7 +147,8 @@ export class WorkspaceFeature {
         this._REPLNode = new REPLNode(connection, this._REPLTreeDataProvider)
     }
 
-    private closeREPL(e) {
+    private closeREPL(err) {
+        this._REPLNode.dispose()
         this._REPLNode = null
         this._REPLTreeDataProvider.refresh()
     }
