@@ -234,7 +234,7 @@ export class JuliaExecutablesFeature {
                     i.Arch,
                     i.Name,
                     true
-                ))
+                )).concat(this.actualJuliaExePath)
 
                 return true
             }
