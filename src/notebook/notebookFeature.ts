@@ -29,19 +29,19 @@ export class JuliaNotebookFeature {
     private readonly kernels: Map<vscode.NotebookDocument, JuliaKernel> = new Map<vscode.NotebookDocument, JuliaKernel>()
     private _outputChannel: vscode.OutputChannel
     private readonly disposables: vscode.Disposable[] = [];
+    private vscodeIpynbApi = undefined;
 
     constructor(private context: vscode.ExtensionContext, private juliaExecutableFeature: JuliaExecutablesFeature, private workspaceFeature: WorkspaceFeature) {
-        const section = vscode.workspace.getConfiguration('julia')
-        const enabled = section ? section.get<boolean>('notebookController', false) : false
-        if (enabled) {
-            this.init()
+        this.init()
 
-            vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
-        }
+        vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
     }
 
     private async init() {
         this._outputChannel = vscode.window.createOutputChannel('Julia Notebook Kernels')
+
+        const ext = vscode.extensions.getExtension('vscode.ipynb')
+        this.vscodeIpynbApi = await ext?.activate()
 
         const juliaVersions = await this.juliaExecutableFeature.getJuliaExePathsAsync()
 
@@ -202,19 +202,14 @@ export class JuliaNotebookFeature {
 
     private updateNotebookWithSelectedKernel(notebook: vscode.NotebookDocument, version: semver.SemVer) {
         // Dont edit in place, create a copy of the metadata.
-        const nbmetadata: JupyterNotebookMetadata = JSON.parse(JSON.stringify((notebook.metadata || { custom: { metadata: {} } })));
-        nbmetadata.custom.metadata.kernelspec = {
+        const kernelspec = {
             display_name: `Julia ${version}`,
             language: 'julia',
             name: `julia-${version.major}.${version.minor}`
         }
-        nbmetadata.custom.metadata.language_info = {
-            name: 'julia',
-            version: `${version}`,
-            mimetype: 'application/julia',
-            file_extension: '.jl'
+        if (this.vscodeIpynbApi) {
+            this.vscodeIpynbApi.setKernelSpec(notebook.uri, kernelspec)
         }
-        // TODO: Update the notebook metadata (when its stable).
     }
 
     private isJuliaNotebook(notebook: vscode.NotebookDocument) {
