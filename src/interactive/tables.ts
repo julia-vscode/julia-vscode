@@ -151,10 +151,12 @@ export function displayTable(payload, context, isLazy = false) {
                         getRows,
                         rowCount: payload.rowCount
                     },
+                    onFirstDataRendered: event => setTimeout(event.columnApi.autoSizeAllColumns(undefined, false), 200),
                     components: {
                         rowNumberRenderer: RowNumberRenderer
                     },
-                    onFirstDataRendered: event => setTimeout(event.columnApi.autoSizeAllColumns(undefined, false), 200)
+                    onSortChanged: event => refreshRowRenderer(event),
+                    onFilterChanged: event => refreshRowRenderer(event)
                 };
                 const eGridDiv = document.querySelector('#myGrid');
                 new agGrid.Grid(eGridDiv, gridOptions);
@@ -169,10 +171,12 @@ export function displayTable(payload, context, isLazy = false) {
                     rowData: payload.data,
                     rowSelection: 'multiple',
                     enableCellTextSelection: true,
+                    onFirstDataRendered: event => event.columnApi.autoSizeAllColumns(),
                     components: {
                         rowNumberRenderer: RowNumberRenderer
                     },
-                    onFirstDataRendered: event => event.columnApi.autoSizeAllColumns()
+                    onSortChanged: event => refreshRowRenderer(event),
+                    onFilterChanged: event => refreshRowRenderer(event)
                 };
                 const eGridDiv = document.querySelector('#myGrid');
                 new agGrid.Grid(eGridDiv, gridOptions);
@@ -193,9 +197,17 @@ export function displayTable(payload, context, isLazy = false) {
                     font-family: var(--vscode-editor-font-family);
                     user-select: none;
                 }
-                .ag-row-hover .row-number {
+                .ag-row-hover .row-number, .ag-row-selected .row-number {
                     opacity: 1;
                 }
+                .row-number-cell {
+                    background-color: var(--ag-header-background-color);
+                }
+                .row-number-cell .ag-cell-value {
+                    flex-grow: 1;
+                    text-align: right;
+                }
+
                 .ag-cell-value {
                     -moz-user-select: none!important;
                     -webkit-user-select: none!important;
@@ -208,6 +220,23 @@ export function displayTable(payload, context, isLazy = false) {
                 .ag-ltr .ag-cell.ag-cell {
                     border-right: 1px solid var(--ag-border-color);
                 }
+                .ag-menu {
+                    border-radius: 0!important;
+                }
+                .ag-picker-field-wrapper {
+                    border-radius: 0!important;
+                }
+                .ag-picker-field-wrapper:focus {
+                    box-shadow: none!important;
+                    border: 1px solid var(--ag-input-focus-border-color);
+                }
+
+                input:focus {
+                    box-shadow: none!important;
+                }
+                input {
+                    padding: 4px!important;
+                }
                 #myGrid {
                     --ag-header-background-color: var(--vscode-panelSectionHeader-background);
                     --ag-background-color: var(--vscode-panel-background);
@@ -219,6 +248,8 @@ export function displayTable(payload, context, isLazy = false) {
                     --ag-border-color: var(--vscode-panel-border);
                     --ag-range-selection-border-color: var(--vscode-inputValidation-infoBorder);
                     --ag-selected-row-background-color: var(--vscode-editor-selectionBackground);
+                    --ag-input-focus-border-color: var(--vscode-inputValidation-infoBorder);
+                    --ag-input-border-color: var(--vscode-editorWidget-border);
                 }
                 </style>
             </head>
@@ -236,6 +267,13 @@ export function displayTable(payload, context, isLazy = false) {
 
                 RowNumberRenderer.prototype.getGui = function() {
                     return this.eGui;
+                };
+
+                function refreshRowRenderer(event) {
+                    setTimeout(event.api.refreshCells({
+                        columns: ['__row__'],
+                        force: true
+                    }), 0)
                 };
             </script>
             ${script}

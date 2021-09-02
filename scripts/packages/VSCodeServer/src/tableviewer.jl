@@ -184,11 +184,17 @@ function _showtable(table)
         editable = false,
         headerTooltip = "",
         field = "__row__",
-        sortable = !async,
+        sortable = false,
         type = "numericColumn",
         cellRenderer = "rowNumberRenderer",
         resizable = true,
-        filter = false
+        filter = false,
+        pinned = "left",
+        lockPinned = true,
+        suppressNavigable = true,
+        lockPosition = true,
+        suppressMovable = true,
+        cellClass = "row-number-cell"
     ))
 
     if async
