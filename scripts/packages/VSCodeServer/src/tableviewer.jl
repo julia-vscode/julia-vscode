@@ -181,7 +181,7 @@ function _showtable(table)
             headerName = string(n),
             headerTooltip = string(types[i]),
             field = row_name_fixer(n),
-            sortable = true,
+            sortable = !async,
             resizable = true,
             type = types[i] <: Union{Missing, T where T <: Number} ? "numericColumn" : nothing,
             filter = types[i] <: Union{Missing, T where T <: Union{Dates.Date, Dates.DateTime}} ? "agDateColumnFilter" :

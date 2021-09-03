@@ -228,7 +228,7 @@
             {
                 "command": "language-julia.showInVSCode",
                 "title": "Open in VS Code",
-                "icon": "$(open-preview)"
+                "icon": "$(preview)"
             },
             {
                 "command": "language-julia.clearAllInlineResults",
