@@ -1,9 +1,9 @@
 /* eslint-disable semi */
-import * as semver from 'semver';
-import * as vscode from 'vscode';
-import { WorkspaceFeature } from '../interactive/workspace';
-import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath';
-import { JuliaKernel } from './notebookKernel';
+import * as semver from 'semver'
+import * as vscode from 'vscode'
+import { WorkspaceFeature } from '../interactive/workspace'
+import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
+import { JuliaKernel } from './notebookKernel'
 
 const JupyterNotebookViewType = 'jupyter-notebook';
 type JupyterNotebookMetadata = Partial<{
@@ -206,6 +206,9 @@ export class JuliaNotebookFeature {
             display_name: `Julia ${version}`,
             language: 'julia',
             name: `julia-${version.major}.${version.minor}`
+        }
+        if (notebook.metadata?.custom?.metadata?.language_info?.name) {
+            notebook.metadata.custom.metadata.language_info.name = 'julia'
         }
         if (this.vscodeIpynbApi) {
             this.vscodeIpynbApi.setKernelSpec(notebook.uri, kernelspec)
