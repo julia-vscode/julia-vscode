@@ -29,7 +29,7 @@ export class JuliaExecutable {
                     '--startup-file=no',
                     '--history-file=no',
                     '-e',
-                    '"println(Sys.BINDIR)"'
+                    'println(Sys.BINDIR)'
                 ]
             )
 
