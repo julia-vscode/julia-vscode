@@ -6,7 +6,7 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.58.1"
+        "vscode": "^1.60.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
