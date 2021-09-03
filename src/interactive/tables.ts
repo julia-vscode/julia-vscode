@@ -6,7 +6,9 @@ import { g_connection } from './repl'
 const requestTypeGetTableData = new rpc.RequestType<{
     id: string,
     startRow: Number,
-    endRow: Number
+    endRow: Number,
+    filterModel: any,
+    sortModel: any
 }, string, void>('repl/getTableData')
 const clearLazyTable = new rpc.NotificationType<{
     id: string
@@ -54,7 +56,9 @@ export function displayTable(payload, context, isLazy = false) {
                         {
                             id: objectId,
                             startRow: message.content.startRow,
-                            endRow: message.content.endRow
+                            endRow: message.content.endRow,
+                            filterModel: message.content.filterModel,
+                            sortModel: message.content.sortModel
                         }
                     )
                     response = {
@@ -103,13 +107,13 @@ export function displayTable(payload, context, isLazy = false) {
                 const requests = {}
                 const payload = ${payload};
 
-                function getRows({startRow, endRow, context, successCallback, failCallback}) {
+                function getRows({startRow, endRow, filterModel, sortModel, successCallback, failCallback}) {
                     const id  = Math.random()
                     vscodeAPI.postMessage({
                         type: 'getRows',
                         id: id,
                         content: {
-                            startRow, endRow
+                            startRow, endRow, filterModel, sortModel
                         }
                     })
                     requests[id] = {
@@ -141,7 +145,7 @@ export function displayTable(payload, context, isLazy = false) {
                 })
 
                 // make sure the block size scales with col number
-                cacheBlockSize = Math.max(Math.round(2000/payload.coldefs.length), 50);
+                const cacheBlockSize = Math.max(Math.round(2000/payload.coldefs.length), 50);
                 const gridOptions = {
                     columnDefs: payload.coldefs,
                     maxConcurrentDatasourceRequests: 1,
@@ -194,66 +198,61 @@ export function displayTable(payload, context, isLazy = false) {
                 <link rel="stylesheet" href="${uriAgGridCSS}">
                 <link rel="stylesheet" href="${uriAgGridThemeCSS}">
                 <style type="text/css">
-                .row-number {
-                    opacity: 0.3;
-                    transition: opacity .1s ease-in-out;
-                    font-family: var(--vscode-editor-font-family);
-                    user-select: none;
-                }
-                .ag-row-hover .row-number, .ag-row-selected .row-number {
-                    opacity: 1;
-                }
-                .row-number-cell {
-                    background-color: var(--ag-header-background-color);
-                }
-                .row-number-cell .ag-cell-value {
-                    flex-grow: 1;
-                    text-align: right;
-                }
+                    .row-number {
+                        user-select: none;
+                        font-weight: bold;
+                    }
+                    .row-number-cell {
+                        background-color: var(--ag-header-background-color);
+                    }
+                    .row-number-cell .ag-cell-value {
+                        flex-grow: 1;
+                        text-align: right;
+                    }
 
-                .ag-cell-value {
-                    -moz-user-select: none!important;
-                    -webkit-user-select: none!important;
-                    -ms-user-select: none!important;
-                    user-select: none!important;
-                }
-                .ag-root-wrapper {
-                    border: 0!important;
-                }
-                .ag-ltr .ag-cell.ag-cell {
-                    border-right: 1px solid var(--ag-border-color);
-                }
-                .ag-menu {
-                    border-radius: 0!important;
-                }
-                .ag-picker-field-wrapper {
-                    border-radius: 0!important;
-                }
-                .ag-picker-field-wrapper:focus {
-                    box-shadow: none!important;
-                    border: 1px solid var(--ag-input-focus-border-color);
-                }
+                    .ag-cell-value {
+                        -moz-user-select: none!important;
+                        -webkit-user-select: none!important;
+                        -ms-user-select: none!important;
+                        user-select: none!important;
+                    }
+                    .ag-root-wrapper {
+                        border: 0!important;
+                    }
+                    .ag-ltr .ag-cell.ag-cell {
+                        border-right: 1px solid var(--ag-border-color);
+                    }
+                    .ag-menu {
+                        border-radius: 0!important;
+                    }
+                    .ag-picker-field-wrapper {
+                        border-radius: 0!important;
+                    }
+                    .ag-picker-field-wrapper:focus {
+                        box-shadow: none!important;
+                        border: 1px solid var(--ag-input-focus-border-color);
+                    }
 
-                input:focus {
-                    box-shadow: none!important;
-                }
-                input {
-                    padding: 4px!important;
-                }
-                #myGrid {
-                    --ag-header-background-color: var(--vscode-panelSectionHeader-background);
-                    --ag-background-color: var(--vscode-panel-background);
-                    --ag-odd-row-background-color: rgba(120, 120, 120, 0.03);
-                    --ag-row-hover-color: var(--vscode-list-hoverBackground);
-                    --ag-header-foreground-color: var(--vscode-foreground);
-                    --ag-foreground-color: var(--vscode-foreground);
-                    --ag-row-border-color: var(--vscode-panel-border);
-                    --ag-border-color: var(--vscode-panel-border);
-                    --ag-range-selection-border-color: var(--vscode-inputValidation-infoBorder);
-                    --ag-selected-row-background-color: var(--vscode-editor-selectionBackground);
-                    --ag-input-focus-border-color: var(--vscode-inputValidation-infoBorder);
-                    --ag-input-border-color: var(--vscode-editorWidget-border);
-                }
+                    input:focus {
+                        box-shadow: none!important;
+                    }
+                    input {
+                        padding: 4px!important;
+                    }
+                    #myGrid {
+                        --ag-header-background-color: var(--vscode-panelSectionHeader-background);
+                        --ag-background-color: var(--vscode-panel-background);
+                        --ag-odd-row-background-color: rgba(120, 120, 120, 0.03);
+                        --ag-row-hover-color: var(--vscode-list-hoverBackground);
+                        --ag-header-foreground-color: var(--vscode-foreground);
+                        --ag-foreground-color: var(--vscode-foreground);
+                        --ag-row-border-color: var(--vscode-panel-border);
+                        --ag-border-color: var(--vscode-panel-border);
+                        --ag-range-selection-border-color: var(--vscode-inputValidation-infoBorder);
+                        --ag-selected-row-background-color: var(--vscode-editor-selectionBackground);
+                        --ag-input-focus-border-color: var(--vscode-inputValidation-infoBorder);
+                        --ag-input-border-color: var(--vscode-editorWidget-border);
+                    }
                 </style>
             </head>
             <body style="padding:0;">

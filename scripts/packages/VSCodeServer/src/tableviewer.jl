@@ -1,4 +1,4 @@
-using UUIDs
+using UUIDs, Dates
 
 struct IteratorAndFirst{F, T}
     first::F
@@ -38,6 +38,8 @@ function _is_javascript_safe(x::AbstractFloat)
     min_safe_float < x < max_safe_float
 end
 
+row_name_fixer(name) = replace(string(name), '.' => '_')
+
 json_sprint(x) = sprint(print, x)
 function table2json(schema, rows; requested = nothing)
     io = IOBuffer()
@@ -60,6 +62,7 @@ function table2json(schema, rows; requested = nothing)
         columnwriter = JSON.Writer.CompactContext(io)
         JSON.begin_object(columnwriter)
         _eachcolumn(schema, row) do val, _, name
+            name = row_name_fixer(name)
             if val isa Real && isfinite(val) && _is_javascript_safe(val)
                 JSON.show_pair(columnwriter, ser, name, val)
             elseif val === nothing || val === missing
@@ -177,11 +180,11 @@ function _showtable(table)
         (
             headerName = string(n),
             headerTooltip = string(types[i]),
-            field = string(n),
-            sortable = !async,
+            field = row_name_fixer(n),
+            sortable = true,
             resizable = true,
             type = types[i] <: Union{Missing, T where T <: Number} ? "numericColumn" : nothing,
-            filter = async ? false : types[i] <: Union{Missing, T where T <: Dates.Date} ? "agDateColumnFilter" :
+            filter = types[i] <: Union{Missing, T where T <: Union{Dates.Date, Dates.DateTime}} ? "agDateColumnFilter" :
                         types[i] <: Union{Missing, T where T <: Number} ? "agNumberColumnFilter" : true
         ) for (i, n) in enumerate(names)
     ]
@@ -228,8 +231,149 @@ showtable(table::AbstractMatrix) = _showtable(_table(table))
 showtable(table::AbstractVector) = _showtable(_table(table[:, :]))
 showtable(table) = _showtable(table)
 
-function get_table_data(conn, params::NamedTuple{(:id,:startRow,:endRow),Tuple{String, Int, Int}})
+
+const COL_START_CHAR = length("column")
+function col_access(row, col)
+    m = match(r"^Column(\d+)$", col)
+    if m === nothing
+        getproperty(row, Symbol(col))
+    else
+        row[parse(Int, m[1])]
+    end
+end
+
+function generate_sorter(params)
+    lts = []
+    for sortspec in params
+        let id = sortspec["colId"]
+            if sortspec["sort"] == "asc"
+                push!(lts, (r -> col_access(r, id), (r1, r2) -> col_access(r1, id) < col_access(r2, id)))
+            else
+                push!(lts, (r -> col_access(r, id), (r1, r2) -> !(col_access(r1, id) < col_access(r2, id))))
+            end
+        end
+    end
+    function (row1, row2)
+        lt = false
+        for (accessor, ltf) in lts
+            if ltf(row1, row2)
+                return true
+            end
+            if accessor(row1) != accessor(row2)
+                return false
+            end
+        end
+        return lt
+    end
+end
+
+const filterMapping = Dict{String, Function}(
+    "equals" => ==,
+    "notEqual" => !=,
+    "lessThan" => <,
+    "lessThanOrEqual" => <=,
+    "greaterThan" => >,
+    "greaterThanOrEqual" => >=,
+)
+
+function generate_filter(params, col)
+    filter_type = params["filterType"]
+    if filter_type == "number"
+        generate_number_filter(params, col)
+    elseif filter_type == "text"
+        generate_text_filter(params, col)
+    elseif filter_type == "date"
+        generate_date_filter(params, col)
+    else
+        (args...) -> true
+    end
+end
+
+function generate_number_filter(params, col)
+    row -> filterMapping[params["type"]](col_access(row, col), params["filter"])
+end
+
+function regex_escape(s::AbstractString)
+    res = replace(s, r"([()[\]{}?*+\-|^\$\\.&~#\s=!<>|:])" => s"\\\1")
+    replace(res, "\0" => "\\0")
+end
+
+function generate_string_filter(params, col)
+    filtervalue = regex_escape(params["filter"])
+    op = params["type"]
+    if op == "equals"
+        matcher = Regex("^" * filtervalue * "\$", "i")
+        row -> occursin(matcher, col_access(row, col))
+    elseif op == "notEqual"
+        matcher = Regex("^" * filtervalue * "\$", "i")
+        row -> !occursin(matcher, col_access(row, col))
+    elseif op == "startsWith"
+        matcher = Regex("^" * filtervalue, "i")
+        row -> occursin(matcher, col_access(row, col))
+    elseif op == "endsWith"
+        matcher = Regex(filtervalue * "\$", "i")
+        row -> occursin(matcher, col_access(row, col))
+    elseif op == "contains"
+        matcher = Regex(filtervalue, "i")
+        row -> occursin(matcher, col_access(row, col))
+    elseif op == "notContains"
+        matcher = Regex(filtervalue, "i")
+        row -> !occursin(matcher, col_access(row, col))
+    end
+end
+
+function generate_date_filter(params, col)
+    format = dateformat"y-m-d H:M:S"
+    dateFrom = Date(params["dateFrom"], format)
+
+    op = params["type"]
+
+    if op == "inRange"
+        dateTo = Date(params["dateTo"], format)
+
+        row -> >(col_access(row, col), dateFrom) && <(col_access(row, col), dateTo)
+    else
+        row -> filterMapping[op](col_access(row, col), dateFrom)
+    end
+end
+
+function generate_bool(op, cond1, cond2, col)
+    let f1 = generate_filter(cond1, col), f2 = generate_filter(cond2, col)
+        if op == "AND"
+            (args...) -> f1(args...) && f2(args...)
+        else
+            (args...) -> f1(args...) || f2(args...)
+        end
+    end
+end
+
+function generate_filterer(filters::Dict)
+    funcs = Function[]
+    for (col, filter) in filters
+        op = get(filter, "operator", "")
+        if op in ("AND", "OR")
+            push!(funcs, generate_bool(op, filter["condition1"], filter["condition2"], col))
+        else
+            push!(funcs, generate_filter(filter, col))
+        end
+    end
+    return funcs
+end
+
+function get_table_data(conn, params::GetTableDataRequest)
     schema, table, rowCount = get(TABLES, UUID(params.id), (nothing, nothing, nothing))
+    if !isempty(params.filterModel)
+        filt = generate_filterer(params.filterModel)
+        table = Base.Iterators.filter(r -> all(f -> f(r), filt), table)
+    end
+    if !isempty(params.sortModel)
+        if applicable(sort, table)
+            sorter = generate_sorter(params.sortModel)
+            table = Base.invokelatest(sort, table, lt = sorter)
+        else
+            @warn "This table is not sortable."
+        end
+    end
     if table === nothing
         return JSONRPC.JSONRPCError(-32600, "Table not found.", nothing)
     else
