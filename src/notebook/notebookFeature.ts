@@ -207,8 +207,13 @@ export class JuliaNotebookFeature {
             language: 'julia',
             name: `julia-${version.major}.${version.minor}`
         }
-        if (notebook.metadata?.custom?.metadata?.language_info?.name) {
-            notebook.metadata.custom.metadata.language_info.name = 'julia'
+        if (notebook.metadata?.custom?.metadata) {
+            notebook.metadata.custom.metadata.language_info = {
+                name: 'julia',
+                version: `${version}`,
+                mimetype: 'application/julia',
+                file_extension: '.jl'
+            }
         }
         if (this.vscodeIpynbApi) {
             this.vscodeIpynbApi.setKernelSpec(notebook.uri, kernelspec)
