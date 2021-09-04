@@ -27,6 +27,7 @@ include("../../CodeTracking/src/CodeTracking.jl")
 module IJuliaCore
     using ..JSON
     using Printf
+    import Base64
 
     include("../../IJuliaCore/src/packagedef.jl")
 end

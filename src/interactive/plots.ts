@@ -299,9 +299,7 @@ function wrapImagelike(srcString: string) {
     const html = `
     <html style="padding:0;margin:0;">
         <body style="padding:0;margin:0;">
-            <div style="max-width: 100%; max-height: 100vh;">
-                <img id="plot-element" style="max-height: 100%; max-width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcString}">
-            </div>
+            <img id="plot-element" style="max-height: 100vh; max-width: 100vw; display:block; margin: auto;" src="${srcString}">
         </body>
     </html>`
     return html

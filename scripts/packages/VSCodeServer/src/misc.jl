@@ -149,3 +149,12 @@ function activate_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
     hideprompt(() -> Pkg.activate(params.uri))
     return nothing
 end
+
+# Revise.revise, if loaded
+function revise()
+    if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
+        let mode = get(ENV, "JULIA_REVISE", "auto")
+            mode == "auto" && Main.Revise.revise()
+        end
+    end
+end

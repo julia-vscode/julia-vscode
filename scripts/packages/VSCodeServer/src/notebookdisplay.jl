@@ -31,5 +31,5 @@ end
 function Base.display(::JuliaNotebookInlineDisplay, x)
     things_to_show = IJuliaCore.display_dict(x)
 
-    JSONRPC.send_notification(conn_endpoint[], "notebook/display", Dict("items" => [Dict{String,Any}("mimetype" => k, "data" => v) for (k, v) in things_to_show]))
+    JSONRPC.send_notification(conn_endpoint[], "notebook/display", Dict("items" => reverse([Dict{String,Any}("mimetype" => k, "data" => v) for (k, v) in things_to_show])))
 end
