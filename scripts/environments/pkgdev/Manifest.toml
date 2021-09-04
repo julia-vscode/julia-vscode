@@ -52,15 +52,15 @@ version = "0.9.10"
 
 [[GitHub]]
 deps = ["Base64", "Dates", "HTTP", "JSON", "MbedTLS", "Sockets", "SodiumSeal"]
-git-tree-sha1 = "9e62f3eae4a2514d1de65cc2ac9d1669032a4595"
+git-tree-sha1 = "c8594dff1ed76e232d8063b2a2555335900af6f3"
 uuid = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
-version = "5.6.0"
+version = "5.7.0"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "Logging", "MbedTLS", "NetworkOptions", "Sockets", "URIs"]
-git-tree-sha1 = "44e3b40da000eab4ccb1aecdc4801c040026aeb5"
+git-tree-sha1 = "60ed5f1643927479f845b0135bb369b031b541fa"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "0.9.13"
+version = "0.9.14"
 
 [[IniFile]]
 deps = ["Test"]
@@ -146,9 +146,9 @@ uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
 [[Parsers]]
 deps = ["Dates"]
-git-tree-sha1 = "477bf42b4d1496b454c10cce46645bb5b8a0cf2c"
+git-tree-sha1 = "438d35d2d95ae2c5e8780b330592b6de8494e779"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.0.2"
+version = "2.0.3"
 
 [[Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -230,9 +230,9 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Tokenize]]
-git-tree-sha1 = "eee92eda3cc8e104b7e56ff4c1fcf0d78ca37c89"
+git-tree-sha1 = "0952c9cee34988092d73a5708780b3917166a0dd"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.18"
+version = "0.5.21"
 
 [[URIs]]
 git-tree-sha1 = "97bbe755a53fe859669cd907f2d96aee8d2c1355"

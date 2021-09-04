@@ -1,6 +1,5 @@
-# Julia
-
-[![Build Status](https://dev.azure.com/julia-vscode/julia-vscode/_apis/build/status/julia-vscode.julia-vscode?branchName=master)](https://dev.azure.com/julia-vscode/julia-vscode/_build/latest?definitionId=1&branchName=master)
+# Julia 
+[![Build and Test](https://github.com/julia-vscode/julia-vscode/actions/workflows/main.yml/badge.svg)](https://github.com/julia-vscode/julia-vscode/actions/workflows/main.yml)
 
 This [VS Code](https://code.visualstudio.com) extension provides support for the [Julia programming language](http://julialang.org/).
 
