@@ -16,9 +16,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[CSTParser]]
 deps = ["Tokenize"]
-git-tree-sha1 = "9723e1c07c1727082e169ca50789644a552fb023"
+git-tree-sha1 = "b2667530e42347b10c10ba6623cfebc09ac5c7b6"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.2.3"
+version = "3.2.4"
 
 [[DataAPI]]
 git-tree-sha1 = "ee400abb2298bd13bfc3df1c412ed228061a2385"
@@ -52,15 +52,15 @@ version = "0.9.10"
 
 [[GitHub]]
 deps = ["Base64", "Dates", "HTTP", "JSON", "MbedTLS", "Sockets", "SodiumSeal"]
-git-tree-sha1 = "9e62f3eae4a2514d1de65cc2ac9d1669032a4595"
+git-tree-sha1 = "c8594dff1ed76e232d8063b2a2555335900af6f3"
 uuid = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
-version = "5.6.0"
+version = "5.7.0"
 
 [[HTTP]]
 deps = ["Base64", "Dates", "IniFile", "Logging", "MbedTLS", "NetworkOptions", "Sockets", "URIs"]
-git-tree-sha1 = "c6a1fff2fd4b1da29d3dccaffb1e1001244d844e"
+git-tree-sha1 = "60ed5f1643927479f845b0135bb369b031b541fa"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "0.9.12"
+version = "0.9.14"
 
 [[IniFile]]
 deps = ["Test"]
@@ -85,9 +85,9 @@ version = "1.3.0"
 
 [[JSON]]
 deps = ["Dates", "Mmap", "Parsers", "Unicode"]
-git-tree-sha1 = "81690084b6198a2e1da36fcfda16eeca9f9f24e4"
+git-tree-sha1 = "8076680b162ada2a031f707ac7b4953e30667a37"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
-version = "0.21.1"
+version = "0.21.2"
 
 [[LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -146,9 +146,9 @@ uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
 [[Parsers]]
 deps = ["Dates"]
-git-tree-sha1 = "c8abc88faa3f7a3950832ac5d6e690881590d6dc"
+git-tree-sha1 = "438d35d2d95ae2c5e8780b330592b6de8494e779"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "1.1.0"
+version = "2.0.3"
 
 [[Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -217,9 +217,9 @@ version = "1.0.1"
 
 [[Tables]]
 deps = ["DataAPI", "DataValueInterfaces", "IteratorInterfaceExtensions", "LinearAlgebra", "TableTraits", "Test"]
-git-tree-sha1 = "8ed4a3ea724dac32670b062be3ef1c1de6773ae8"
+git-tree-sha1 = "d0c690d37c73aeb5ca063056283fde5585a41710"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "1.4.4"
+version = "1.5.0"
 
 [[Tar]]
 deps = ["ArgTools", "SHA"]
@@ -230,9 +230,9 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Tokenize]]
-git-tree-sha1 = "eee92eda3cc8e104b7e56ff4c1fcf0d78ca37c89"
+git-tree-sha1 = "0952c9cee34988092d73a5708780b3917166a0dd"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.18"
+version = "0.5.21"
 
 [[URIs]]
 git-tree-sha1 = "97bbe755a53fe859669cd907f2d96aee8d2c1355"

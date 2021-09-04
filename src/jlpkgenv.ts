@@ -1,11 +1,11 @@
 import * as fs from 'async-file'
-import { exec } from 'child-process-promise'
 import * as os from 'os'
 import * as path from 'path'
+import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from './extension'
-import * as juliaexepath from './juliaexepath'
+import { JuliaExecutablesFeature } from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
 import { registerCommand, resolvePath } from './utils'
@@ -17,6 +17,8 @@ let g_current_environment: vscode.StatusBarItem = null
 let g_path_of_current_environment: string = null
 let g_path_of_default_environment: string = null
 let g_resolved_path_of_environment: string = null
+
+let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
 
 export async function getProjectFilePaths(envpath: string) {
     const dlext = process.platform === 'darwin' ? 'dylib' : process.platform === 'win32' ? 'dll' : 'so'
@@ -61,16 +63,40 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
             vscode.workspace.workspaceFolders[0].uri.fsPath.charAt(0).toUpperCase() + vscode.workspace.workspaceFolders[0].uri.fsPath.slice(1) :
             vscode.workspace.workspaceFolders[0].uri.fsPath
 
-        const jlexepath = await juliaexepath.getJuliaExePath()
-        const res = await exec(`"${jlexepath}" --project=${g_resolved_path_of_environment} --startup-file=no --history-file=no -e "using Pkg; println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ? realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) : realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))" "${case_adjusted}"`)
+        const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        const res = await execFile(
+            juliaExecutable.file,
+            [
+                ...juliaExecutable.args,
+                `--project=${g_resolved_path_of_environment}`,
+                '--startup-file=no',
+                '--history-file=no',
+                '-e',
+                `using Pkg;
+                try
+                    println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ?
+                        realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) :
+                        realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))
+                catch err
+                    println(stderr, err)
+                    println(false)
+                end`,
+                `${case_adjusted}`
+            ]
+        )
 
-        if (res.stdout.trim() === 'false') {
-            vscode.window.showInformationMessage('You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?', 'Change Julia environment')
-                .then(env_choice => {
-                    if (env_choice === 'Change Julia environment') {
-                        changeJuliaEnvironment()
-                    }
-                })
+        if (res.stdout.toString().trim() === 'false') {
+            const err = res.stderr.toString().trim
+            if (err) {
+                vscode.window.showWarningMessage(`Error while parsing your current environment: \n${err}`)
+            } else {
+                vscode.window.showInformationMessage('You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?', 'Change Julia environment')
+                    .then(env_choice => {
+                        if (env_choice === 'Change Julia environment') {
+                            changeJuliaEnvironment()
+                        }
+                    })
+            }
         }
     }
 
@@ -168,9 +194,15 @@ async function getDefaultEnvPath() {
             }
         }
 
-        const jlexepath = await juliaexepath.getJuliaExePath()
-        const res = await exec(`"${jlexepath}" --startup-file=no --history-file=no -e "using Pkg; println(dirname(Pkg.Types.Context().env.project_file))"`)
-        g_path_of_default_environment = res.stdout.trim()
+        const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        const res = await execFile(
+            juliaExecutable.file,
+            [
+                '--startup-file=no',
+                '--history-file=no',
+                '-e', 'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))'
+            ])
+        g_path_of_default_environment = res.stdout.toString().trim()
     }
     return g_path_of_default_environment
 }
@@ -194,7 +226,11 @@ function absEnvPath(p: string) {
     if (path.isAbsolute(p)) {
         return p
     } else {
-        return path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, p)
+        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+            return path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, p)
+        } else {
+            return path.join(os.homedir(), p)
+        }
     }
 }
 
@@ -208,7 +244,8 @@ export async function getEnvName() {
     return path.basename(envpath)
 }
 
-export async function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature) {
+    g_juliaExecutablesFeature = juliaExecutablesFeature
     context.subscriptions.push(onSetLanguageClient(languageClient => {
         g_languageClient = languageClient
     }))

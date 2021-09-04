@@ -300,7 +300,7 @@ export function plotPaneDelAll() {
 // wrap a source string with an <img> tag that shows the content
 // scaled to fit the plot pane unless the plot pane is bigger than the image
 function wrapImagelike(srcString: string) {
-    const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath,'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
+    const uriSvgPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
 
     const isSvg = srcString.includes('data:image/svg+xml')
     const svgTag = isSvg ?
@@ -322,9 +322,7 @@ function wrapImagelike(srcString: string) {
             </style>
         </head>
         <body style="padding:0;margin:0;">
-            <div style="max-width: 100%; max-height: 100vh;">
-                ${isSvg ? svgTag : `<img id="plot-element" style="max-height: 100%; max-width: 100%; object-fit: scale-down; object-position: 0 0;" src="${srcString}">`}
-            </div>
+            ${isSvg ? svgTag : `<img id= "plot-element" style = "max-height: 100vh; max-width: 100vw; display:block; margin: auto;" src = "${srcString}" >`}
         </body>
     </html>`
 }

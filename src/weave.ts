@@ -3,12 +3,11 @@ import { ChildProcess, spawn } from 'child_process'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
-import * as juliaexepath from './juliaexepath'
+import { JuliaExecutablesFeature } from './juliaexepath'
 import * as telemetry from './telemetry'
 import { registerCommand } from './utils'
 
 const tempfs = require('promised-temp').track()
-const kill = require('async-child-process').kill
 
 let g_context: vscode.ExtensionContext = null
 
@@ -16,6 +15,8 @@ let g_lastWeaveContent: string = null
 let g_weaveOutputChannel: vscode.OutputChannel = null
 let g_weaveChildProcess: ChildProcess = null
 let g_weaveNextChildProcess: ChildProcess = null
+
+let g_juliaExecutablesFeature: JuliaExecutablesFeature
 
 async function weave_core(column, selected_format: string = undefined) {
     let source_filename: string
@@ -46,13 +47,13 @@ async function weave_core(column, selected_format: string = undefined) {
 
     if (g_weaveChildProcess !== null) {
         try {
-            await kill(g_weaveChildProcess)
+            g_weaveChildProcess.kill()
         }
         catch (e) {
         }
     }
 
-    const jlexepath = await juliaexepath.getJuliaExePath()
+    const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
     const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
     const args = [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]
@@ -64,7 +65,7 @@ async function weave_core(column, selected_format: string = undefined) {
     console.log(args)
 
     if (g_weaveNextChildProcess === null) {
-        g_weaveNextChildProcess = spawn(jlexepath, args)
+        g_weaveNextChildProcess = spawn(juliaExecutable.file, [...juliaExecutable.args, ...args])
     }
     g_weaveChildProcess = g_weaveNextChildProcess
 
@@ -79,7 +80,7 @@ async function weave_core(column, selected_format: string = undefined) {
         g_weaveOutputChannel.append(String('Weaving ' + source_filename + ' to ' + output_filename + '\n'))
     }
 
-    g_weaveNextChildProcess = spawn(jlexepath, args)
+    g_weaveNextChildProcess = spawn(juliaExecutable.file, [...juliaExecutable.args, ...args])
 
     g_weaveChildProcess.stdout.on('data', function (data) {
         g_weaveOutputChannel.append(String(data))
@@ -170,8 +171,9 @@ async function save() {
     }
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature) {
     g_context = context
+    g_juliaExecutablesFeature = juliaExecutablesFeature
 
     context.subscriptions.push(registerCommand('language-julia.weave-open-preview', open_preview))
     context.subscriptions.push(registerCommand('language-julia.weave-open-preview-side', open_preview_side))

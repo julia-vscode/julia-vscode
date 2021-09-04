@@ -1,8 +1,8 @@
-import * as cp from 'child-process-promise'
 import * as download from 'download'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import * as process from 'process'
+import * as cp from 'promisify-child-process'
 import * as semver from 'semver'
 
 async function our_download(url: string, destination: string) {
@@ -51,10 +51,10 @@ async function main() {
     }
 
 
-    for (const pkg of ['CodeTracking', 'CoverageTools', 'FilePathsBase', 'JuliaInterpreter', 'LoweredCodeUtils', 'OrderedCollections', 'PackageCompiler', 'Revise', 'Tokenize', 'URIParser']) {
+    for (const pkg of ['CodeTracking', 'CoverageTools', 'FilePathsBase', 'JuliaInterpreter', 'LoweredCodeUtils', 'OrderedCollections', 'PackageCompiler', 'Revise', 'Tokenize', 'URIParser', 'URIs']) {
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
 
-        const newestTag = tags.stdout.split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))[0]
+        const newestTag = tags.stdout.toString().split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))[0]
 
         await cp.exec(`git checkout ${newestTag.original}`, { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
