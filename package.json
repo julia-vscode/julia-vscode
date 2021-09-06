@@ -61,7 +61,10 @@
         "workspaceContains:test/runtests.jl",
         "workspaceContains:benchmark/benchmarks.jl",
         "workspaceContains:docs/make.jl",
-        "onNotebook:jupyter-notebook"
+        "onNotebook:jupyter-notebook",
+        "onView:julia-explorer.REPLVariables",
+        "onView:julia-explorer.julia-documentation",
+        "onView:julia-explorer.julia-plot-navigator"
     ],
     "main": "./dist/extension",
     "contributes": {
@@ -215,21 +218,6 @@
                 "command": "language-julia.copy-plot",
                 "title": "Julia: Copy Plot",
                 "icon": "$(explorer-view-icon)"
-            },
-            {
-                "command": "language-julia.zoom-in-plot",
-                "title": "Julia: Zoom in Plot",
-                "icon": "$(zoom-in)"
-            },
-            {
-                "command": "language-julia.zoom-reset-plot",
-                "title": "Julia: Zoom Reset Plot",
-                "icon": "$(home)"
-            },
-            {
-                "command": "language-julia.zoom-out-plot",
-                "title": "Julia: Zoom out Plot",
-                "icon": "$(zoom-out)"
             },
             {
                 "command": "language-julia.save-plot",
@@ -414,52 +402,38 @@
                 },
                 {
                     "when": "jlplotpaneFocus",
-                    "command": "language-julia.copy-plot",
-                    "group": "navigation@1"
-                },
-                {
-                    "when": "jlplotpaneFocus",
                     "command": "language-julia.save-plot",
-                    "group": "navigation@1"
-                },
-                {
-                    "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled",
-                    "command": "language-julia.zoom-in-plot",
-                    "group": "navigation@1"
-                },
-                {
-                    "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled",
-                    "command": "language-julia.zoom-reset-plot",
-                    "group": "navigation@1"
-                },
-                {
-                    "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled",
-                    "command": "language-julia.zoom-out-plot",
-                    "group": "navigation@2"
-                },
-                {
-                    "when": "jlplotpaneFocus",
-                    "command": "language-julia.plotpane-next",
                     "group": "navigation@-1"
                 },
                 {
                     "when": "jlplotpaneFocus",
-                    "command": "language-julia.plotpane-previous",
+                    "command": "language-julia.plotpane-next",
                     "group": "navigation@-2"
+                },
+                {
+                    "when": "jlplotpaneFocus",
+                    "command": "language-julia.plotpane-previous",
+                    "group": "navigation@-3"
+                },
+                {
+                    "when": "jlplotpaneFocus",
+                    "command": "language-julia.copy-plot",
+                    "group": "1-julia@0"
                 },
                 {
                     "when": "jlplotpaneFocus && config.julia.usePlotPane",
                     "command": "language-julia.plotpane-disable",
-                    "group": "navigation@1"
+                    "group": "1-julia@1"
                 },
                 {
                     "when": "jlplotpaneFocus && !config.julia.usePlotPane",
                     "command": "language-julia.plotpane-enable",
-                    "group": "navigation@1"
+                    "group": "1-julia@1"
                 },
                 {
                     "when": "jlplotpaneFocus",
-                    "command": "language-julia.plotpane-delete-all"
+                    "command": "language-julia.plotpane-delete-all",
+                    "group": "1-julia@2"
                 },
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
@@ -467,15 +441,18 @@
                 },
                 {
                     "command": "language-julia.cdHere",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "editorLangId == julia"
                 },
                 {
                     "command": "language-julia.activateHere",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "editorLangId == julia"
                 },
                 {
                     "command": "language-julia.activateFromDir",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "editorLangId == julia"
                 }
             ],
             "editor/title/run": [
@@ -703,18 +680,6 @@
             {
                 "command": "language-julia.save-plot",
                 "when": "jlplotpaneFocus"
-            },
-            {
-                "command": "language-julia.zoom-in-plot",
-                "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled"
-            },
-            {
-                "command": "language-julia.zoom-reset-plot",
-                "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled"
-            },
-            {
-                "command": "language-julia.zoom-out-plot",
-                "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled"
             },
             {
                 "command": "language-julia.plotpane-delete-all",
