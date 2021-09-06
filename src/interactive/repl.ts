@@ -11,7 +11,7 @@ import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
-import * as juliaexepath from '../juliaexepath'
+import { JuliaExecutablesFeature } from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerCommand, setContext } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
@@ -28,6 +28,8 @@ let g_compiledProvider = null
 let g_terminal: vscode.Terminal = null
 
 export let g_connection: rpc.MessageConnection = undefined
+
+let g_juliaExecutablesFeature: JuliaExecutablesFeature
 
 function startREPLCommand() {
     telemetry.traceEvent('command-startrepl')
@@ -92,7 +94,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
         const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
-        const exepath = await juliaexepath.getJuliaExePath()
+        const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
         let jlarg1: string[]
         const pkgenvpath = await jlpkgenv.getAbsEnvPath()
@@ -123,7 +125,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             const tmuxArgs = [
                 <string>config.get('persistentSession.shellExecutionArgument'),
                 // create a new tmux session, set remain-on-exit to true, and attach; if the session already exists we just attach to the existing session
-                `tmux new -d -s ${sessionName} ${exepath} ${jlarg1.concat(getArgs()).join(' ')} && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
+                `tmux new -d -s ${sessionName} ${juliaExecutable.file} ${[...juliaExecutable.args, ...jlarg1, ...getArgs()].join(' ')} && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
                 tmux send-keys -t ${sessionName}.left ^A ^K ^H '${connectJuliaCode}' ENTER && tmux attach -t ${sessionName}`
             ]
 
@@ -136,8 +138,8 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         } else {
             g_terminal = vscode.window.createTerminal({
                 name: 'Julia REPL',
-                shellPath: exepath,
-                shellArgs: jlarg1.concat(getArgs()),
+                shellPath: juliaExecutable.file,
+                shellArgs: [...juliaExecutable.args, ...jlarg1, ...getArgs()],
                 env: env
             })
         }
@@ -568,7 +570,9 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
         if (selection.isEmpty) {
             const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor.document, startpos))
-            range = new vscode.Range(currentBlock[0].line, currentBlock[0].character, currentBlock[1].line, currentBlock[1].character)
+            const blockStartPos = editor.document.validatePosition(new vscode.Position(currentBlock[0].line, currentBlock[0].character))
+            const lineEndPos = editor.document.validatePosition(new vscode.Position(currentBlock[1].line, Infinity))
+            range = new vscode.Range(blockStartPos, lineEndPos)
             nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
         } else {
             range = new vscode.Range(selection.start, selection.end)
@@ -676,6 +680,24 @@ function executeSelectionCopyPaste() {
         }
     }
     executeCodeCopyPaste(text, selection.isEmpty)
+}
+
+export async function executeInREPL(code: string, { filename = 'code', line = 0, column = 0, mod = 'Main', showCodeInREPL = true, showResultInREPL = true, showErrorInREPL = false, softscope = true }): Promise<ReturnResult> {
+    await startREPL(true)
+    return await g_connection.sendRequest(
+        requestTypeReplRunCode,
+        {
+            filename,
+            line,
+            column,
+            code,
+            mod,
+            showCodeInREPL,
+            showResultInREPL,
+            showErrorInREPL,
+            softscope
+        }
+    )
 }
 
 const interrupts = []
@@ -802,8 +824,8 @@ async function linkHandler(link: any) {
 
     if (file.startsWith('.')) {
         // Base file
-        const exepath = await juliaexepath.getJuliaExePath()
-        file = path.join(exepath, '..', '..', 'share', 'julia', 'base', file)
+        const exepath = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        file = path.join(await exepath.getBaseRootFolderPathAsync(), file)
     } else if (file.startsWith('~')) {
         file = path.join(homedir(), file.slice(1))
     }
@@ -843,8 +865,9 @@ export async function replStartDebugger(pipename: string) {
     g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
 }
 
-export function activate(context: vscode.ExtensionContext, compiledProvider) {
+export function activate(context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature) {
     g_context = context
+    g_juliaExecutablesFeature = juliaExecutablesFeature
 
     g_compiledProvider = compiledProvider
 

@@ -237,8 +237,9 @@ export class JuliaKernel {
         const cwdPath = await this.getCwdPathForNotebook()
 
         this._kernelProcess = spawn(
-            this.juliaExecutable.path,
+            this.juliaExecutable.file,
             [
+                ...this.juliaExecutable.args,
                 '--color=yes',
                 `--project=${pkgenvpath}`,
                 '--startup-file=no',
