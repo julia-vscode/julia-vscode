@@ -378,6 +378,97 @@ function clearProgress() {
     }
 }
 
+function display(params: { kind: string, data: any }) {
+    if (params.kind === 'application/vnd.julia-vscode.diagnostics') {
+        displayDiagnostics(params)
+    } else {
+        plots.displayPlot(params)
+    }
+}
+
+interface diagnosticData {
+    msg: string,
+    path: string,
+    line?: number,
+    range?: number[][],
+    severity: number,
+    relatedInformation?: {
+        msg: string,
+        path: string,
+        line?: number,
+        range?: number[][]
+    }[]
+}
+const g_trace_diagnostics: Map<string, vscode.DiagnosticCollection> = new Map()
+function displayDiagnostics(params: { kind: string, data: { source: string, items: diagnosticData[] } }) {
+    const source = params.data.source
+
+    if (g_trace_diagnostics.has(source)) {
+        g_trace_diagnostics.get(source).clear()
+    } else {
+        g_trace_diagnostics.set(source, vscode.languages.createDiagnosticCollection('Julia Runtime Diagnostics: ' + source))
+    }
+
+    const items = params.data.items
+    if (items.length === 0) {
+        return _clearDiagnostic(source)
+    }
+
+    const diagnostics = items.map((frame): [vscode.Uri, vscode.Diagnostic[]] => {
+        const range = frame.range ?
+            new vscode.Range(frame.range[0][0] - 1, frame.range[0][1], frame.range[1][0] - 1, frame.range[1][1]) :
+            new vscode.Range(frame.line - 1, 0, frame.line - 1, 99999)
+        const diagnostic = new vscode.Diagnostic(
+            range,
+            frame.msg,
+            frame.severity === undefined ? vscode.DiagnosticSeverity.Warning : frame.severity
+        )
+        if (frame.relatedInformation) {
+            diagnostic.relatedInformation = frame.relatedInformation.map(stackframe => {
+                const range = stackframe.range ?
+                    new vscode.Range(stackframe.range[0][0] - 1, stackframe.range[0][1], stackframe.range[1][0] - 1, stackframe.range[1][1]) :
+                    new vscode.Range(stackframe.line - 1, 0, stackframe.line - 1, 99999)
+                return new vscode.DiagnosticRelatedInformation(
+                    new vscode.Location(vscode.Uri.file(stackframe.path), range),
+                    stackframe.msg
+                )
+            })
+        }
+        diagnostic.source = source
+
+        return [
+            vscode.Uri.file(frame.path),
+            [
+                diagnostic
+            ]
+        ]
+    })
+    g_trace_diagnostics.get(source).set(diagnostics)
+}
+
+function clearDiagnostics() {
+    g_trace_diagnostics.forEach((_, source) => _clearDiagnostic(source))
+}
+
+function clearDiagnosticsByProvider() {
+    const sources = Array(...g_trace_diagnostics.keys())
+    vscode.window.showQuickPick(sources, {
+        // canPickMany: true, // not work nicely with keyboard shortcuts
+        title: 'Select sources of diagnostics to filter them out.'
+    }).then(source => {
+        if (source) {
+            _clearDiagnostic(source)
+        }
+    })
+}
+
+function _clearDiagnostic(source: string) {
+    const diagnostics = g_trace_diagnostics.get(source)
+    diagnostics.clear()
+    diagnostics.dispose()
+    g_trace_diagnostics.delete(source)
+}
+
 async function executeFile(uri?: vscode.Uri | string) {
     telemetry.traceEvent('command-executeFile')
 
@@ -877,7 +968,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
             g_languageClient = languageClient
         }),
         onInit(connection => {
-            connection.onNotification(notifyTypeDisplay, plots.displayPlot)
+            connection.onNotification(notifyTypeDisplay, display)
             connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
             connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
             connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
@@ -890,6 +981,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         }),
         onExit(() => {
             results.removeAll()
+            clearDiagnostics()
             setContext('isJuliaEvaluating', false)
             setContext('hasJuliaREPL', false)
         }),
@@ -916,6 +1008,12 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
             } else if (event.affectsConfiguration('julia.useProgressFrontend')) {
                 try {
                     g_connection.sendNotification('repl/toggleProgress', { enable: vscode.workspace.getConfiguration('julia').get('useProgressFrontend') })
+                } catch (err) {
+                    console.warn(err)
+                }
+            } else if (event.affectsConfiguration('julia.showRuntimeDiagnostics')) {
+                try {
+                    g_connection.sendNotification('repl/toggleDiagnostics', { enable: vscode.workspace.getConfiguration('julia').get('showRuntimeDiagnostics') })
                 } catch (err) {
                     console.warn(err)
                 }
@@ -955,6 +1053,8 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.cdHere', cdToHere),
         registerCommand('language-julia.activateHere', activateHere),
         registerCommand('language-julia.activateFromDir', activateFromDir),
+        registerCommand('language-julia.clearRuntimeDiagnostics', clearDiagnostics),
+        registerCommand('language-julia.clearRuntimeDiagnosticsByProvider', clearDiagnosticsByProvider),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
