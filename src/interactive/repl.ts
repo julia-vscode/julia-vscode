@@ -488,8 +488,7 @@ async function executeFile(uri?: vscode.Uri | string) {
         path = uri.fsPath
         const readBytes = await vscode.workspace.fs.readFile(uri)
         code = Buffer.from(readBytes).toString('utf8')
-    }
-    else {
+    }  else {
         if (!editor) {
             return
         }
@@ -1047,6 +1046,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
         registerCommand('language-julia.moveCellUp', moveCellUp),
         registerCommand('language-julia.moveCellDown', moveCellDown),
+        registerCommand('language-julia.executeActiveFile', () => executeFile()),
         registerCommand('language-julia.executeFile', executeFile),
         registerCommand('language-julia.interrupt', interrupt),
         registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
