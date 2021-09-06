@@ -380,7 +380,7 @@ function clearProgress() {
 
 function display(params: { kind: string, data: any }) {
     if (params.kind === 'application/vnd.julia-vscode.diagnostics') {
-        displayDiagnostics(params)
+        displayDiagnostics(params.data)
     } else {
         plots.displayPlot(params)
     }
@@ -400,8 +400,8 @@ interface diagnosticData {
     }[]
 }
 const g_trace_diagnostics: Map<string, vscode.DiagnosticCollection> = new Map()
-function displayDiagnostics(params: { kind: string, data: { source: string, items: diagnosticData[] } }) {
-    const source = params.data.source
+function displayDiagnostics(data: { source: string, items: diagnosticData[] }) {
+    const source = data.source
 
     if (g_trace_diagnostics.has(source)) {
         g_trace_diagnostics.get(source).clear()
@@ -409,7 +409,7 @@ function displayDiagnostics(params: { kind: string, data: { source: string, item
         g_trace_diagnostics.set(source, vscode.languages.createDiagnosticCollection('Julia Runtime Diagnostics: ' + source))
     }
 
-    const items = params.data.items
+    const items = data.items
     if (items.length === 0) {
         return _clearDiagnostic(source)
     }
