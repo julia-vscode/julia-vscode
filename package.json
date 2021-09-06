@@ -2,11 +2,11 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.3.17",
+    "version": "1.3.34",
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.58.1"
+        "vscode": "^1.60.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -193,6 +193,16 @@
                 "title": "Julia: Show First Plot"
             },
             {
+                "command": "language-julia.plotpane-enable",
+                "title": "Julia: Enable Plot Pane",
+                "icon": "$(circle-large-outline)"
+            },
+            {
+                "command": "language-julia.plotpane-disable",
+                "title": "Julia: Disable Plot Pane",
+                "icon": "$(pass-filled)"
+            },
+            {
                 "command": "language-julia.plotpane-last",
                 "title": "Julia: Show Last Plot"
             },
@@ -200,6 +210,31 @@
                 "command": "language-julia.plotpane-delete",
                 "title": "Julia: Delete plot",
                 "icon": "$(trash)"
+            },
+            {
+                "command": "language-julia.copy-plot",
+                "title": "Julia: Copy Plot",
+                "icon": "$(explorer-view-icon)"
+            },
+            {
+                "command": "language-julia.zoom-in-plot",
+                "title": "Julia: Zoom in Plot",
+                "icon": "$(zoom-in)"
+            },
+            {
+                "command": "language-julia.zoom-reset-plot",
+                "title": "Julia: Zoom Reset Plot",
+                "icon": "$(home)"
+            },
+            {
+                "command": "language-julia.zoom-out-plot",
+                "title": "Julia: Zoom out Plot",
+                "icon": "$(zoom-out)"
+            },
+            {
+                "command": "language-julia.save-plot",
+                "title": "Julia: Save Plot",
+                "icon": "$(save-as)"
             },
             {
                 "command": "language-julia.plotpane-delete-all",
@@ -267,6 +302,14 @@
             {
                 "command": "language-julia.activateFromDir",
                 "title": "Julia: Activate Parent Environment"
+            },
+            {
+                "command": "language-julia.clearRuntimeDiagnostics",
+                "title": "Julia: Clear Runtime Diagnostics"
+            },
+            {
+                "command": "language-julia.clearRuntimeDiagnosticsByProvider",
+                "title": "Julia: Clear Runtime Diagnostics by Provider"
             },
             {
                 "command": "language-julia.switchToInterpreted",
@@ -371,6 +414,31 @@
                 },
                 {
                     "when": "jlplotpaneFocus",
+                    "command": "language-julia.copy-plot",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus",
+                    "command": "language-julia.save-plot",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled",
+                    "command": "language-julia.zoom-in-plot",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled",
+                    "command": "language-julia.zoom-reset-plot",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled",
+                    "command": "language-julia.zoom-out-plot",
+                    "group": "navigation@2"
+                },
+                {
+                    "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-next",
                     "group": "navigation@-1"
                 },
@@ -378,6 +446,16 @@
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-previous",
                     "group": "navigation@-2"
+                },
+                {
+                    "when": "jlplotpaneFocus && config.julia.usePlotPane",
+                    "command": "language-julia.plotpane-disable",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "jlplotpaneFocus && !config.julia.usePlotPane",
+                    "command": "language-julia.plotpane-enable",
+                    "group": "navigation@1"
                 },
                 {
                     "when": "jlplotpaneFocus",
@@ -415,32 +493,6 @@
                     "command": "language-julia.debugEditorContents",
                     "when": "resourceLangId == julia",
                     "group": "Julia@30"
-                }
-            ],
-            "commandPalette": [
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-delete-all"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-delete"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-next"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-first"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-last"
-                },
-                {
-                    "when": "false",
-                    "command": "language-julia.plotpane-previous"
                 }
             ],
             "view/item/context": [
@@ -663,6 +715,26 @@
                 "when": "jlplotpaneFocus"
             },
             {
+                "command": "language-julia.copy-plot",
+                "when": "jlplotpaneFocus"
+            },
+            {
+                "command": "language-julia.save-plot",
+                "when": "jlplotpaneFocus"
+            },
+            {
+                "command": "language-julia.zoom-in-plot",
+                "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled"
+            },
+            {
+                "command": "language-julia.zoom-reset-plot",
+                "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled"
+            },
+            {
+                "command": "language-julia.zoom-out-plot",
+                "when": "jlplotpaneFocus && jlZoomPlotControllersEnabled"
+            },
+            {
                 "command": "language-julia.plotpane-delete-all",
                 "key": "shift+delete",
                 "when": "jlplotpaneFocus"
@@ -676,7 +748,7 @@
                     "type": "string",
                     "default": "",
                     "description": "Points to the julia executable.",
-                    "scope": "machine"
+                    "scope": "machine-overridable"
                 },
                 "julia.lint.run": {
                     "type": "boolean",
@@ -790,6 +862,11 @@
                     "default": true,
                     "description": "Display plots within VS Code. Might require a restart of the Julia process."
                 },
+                "julia.showRuntimeDiagnostics": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Enable display of runtime diagnostics. These diagnostics are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.diagnostics` MIME type."
+                },
                 "julia.focusPlotNavigator": {
                     "type": "boolean",
                     "default": false,
@@ -818,6 +895,15 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Use an existing custom sysimage when starting the REPL",
+                    "scope": "application"
+                },
+                "julia.symbolCacheDownload": {
+                    "type": [
+                        "boolean",
+                        "null"
+                    ],
+                    "default": null,
+                    "description": "Download symbol server cache files from GitHub.",
                     "scope": "application"
                 },
                 "julia.NumThreads": {
@@ -910,7 +996,7 @@
                 },
                 "julia.completionmode": {
                     "type": "string",
-                    "default": "import",
+                    "default": "qualify",
                     "description": "Sets the mode for completions.",
                     "enum": [
                         "exportedonly",
@@ -926,7 +1012,7 @@
                 },
                 "julia.execution.resultType": {
                     "type": "string",
-                    "default": "REPL",
+                    "default": "both",
                     "description": "Specifies how to show inline execution results",
                     "enum": [
                         "REPL",
@@ -1057,6 +1143,17 @@
                     ],
                     "description": "Functions or modules that are set to compiled mode when setting the defaults.",
                     "scope": "window"
+                },
+                "julia.plots.path": {
+                    "type": "string",
+                    "description": "The output directory to save plots to",
+                    "scope": "window"
+                },
+                "julia.notebookController": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable the experimental native Jupyter notebook integration.",
+                    "scope": "application"
                 }
             }
         },
@@ -1222,37 +1319,36 @@
     "dependencies": {
         "@traptitech/markdown-it-katex": "^3.4.3",
         "applicationinsights": "^1.8.10",
-        "async-child-process": "^v1.1.1",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
-        "child-process-promise": "^v2.2.1",
-        "markdown-it": "^12.1.0",
+        "markdown-it": "^12.2.0",
         "markdown-it-footnote": "^3.0.3",
         "promised-temp": "^v0.1.0",
+        "promisify-child-process": "^4.1.1",
         "semver": "^7.3.5",
-        "uuidv4": "^6.2.11",
-        "vscode-debugadapter": "^1.47.0",
+        "string-argv": "^0.3.1",
+        "uuidv4": "^6.2.12",
+        "vscode-debugadapter": "^1.49.0",
         "vscode-jsonrpc": "^6.0.0",
         "vscode-languageclient": "^7.0.0",
         "which": "^2.0.2"
     },
     "devDependencies": {
-        "@types/child-process-promise": "^2.2.2",
         "@types/download": "^8.0.1",
-        "@types/markdown-it": "^12.0.3",
+        "@types/markdown-it": "^12.2.1",
         "@types/mocha": "^8.2.3",
-        "@types/node": "^14.17.5",
-        "@types/semver": "^7.3.7",
-        "@types/vscode": "^1.58.1",
-        "@typescript-eslint/parser": "^4.28.3",
+        "@types/node": "^14.17.14",
+        "@types/semver": "^7.3.8",
+        "@types/vscode": "^1.60.0",
+        "@typescript-eslint/parser": "^4.30.0",
         "download": "^6.2.5",
-        "eslint": "^7.30.0",
+        "eslint": "^7.32.0",
         "mocha": "^8.4.0",
-        "ts-loader": "^9.2.3",
-        "typescript": "^4.3.5",
-        "vsce": "^1.95.1",
+        "ts-loader": "^9.2.5",
+        "typescript": "^4.4.2",
+        "vsce": "^1.96.3",
         "vscode-test": "^1.6.1",
-        "webpack": "^5.45.1",
-        "webpack-cli": "^4.7.2"
+        "webpack": "^5.52.0",
+        "webpack-cli": "^4.8.0"
     }
 }

@@ -14,7 +14,7 @@ import { JuliaNotebookFeature } from './notebookFeature'
 
 const notifyTypeDisplay = new NotificationType<{ items: { mimetype: string, data: string }[] }>('notebook/display')
 const notifyTypeStreamoutput = new NotificationType<{ name: string, data: string }>('streamoutput')
-const requestTypeRunCell = new RequestType<{ code: string }, { success: boolean, error: { message: string, name: string, stack: string } }, void>('notebook/runcell')
+const requestTypeRunCell = new RequestType<{ filename: string, line:number, column: number, code: string }, { success: boolean, error: { message: string, name: string, stack: string } }, void>('notebook/runcell')
 
 // function getDisplayPathName(pathValue: string): string {
 //     return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue
@@ -59,14 +59,15 @@ export class JuliaKernel {
     }
 
     public async queueCell(cell: vscode.NotebookCell): Promise<void> {
-        const executionOrder = ++this._current_request_id
+        // First clear output
+        const clearOutputExecution = this.controller.createNotebookCellExecution(cell)
+        clearOutputExecution.start()
+        await clearOutputExecution.clearOutput()
+        clearOutputExecution.end(undefined)
 
+        // Now create execution object that actually will run the code
         const execution = this.controller.createNotebookCellExecution(cell)
-        execution.executionOrder = executionOrder
-
-        // TODO For some reason this doesn't work here
-        // await execution.clearOutput()
-
+        execution.token.onCancellationRequested(e=>execution.end(undefined))
         this._scheduledExecutionRequests.push(execution)
 
         this._processExecutionRequests.notify()
@@ -82,16 +83,23 @@ export class JuliaKernel {
                 this._currentExecutionRequest = this._scheduledExecutionRequests.shift()
 
                 if (this._currentExecutionRequest.token.isCancellationRequested) {
-                    this._currentExecutionRequest.end(undefined)
                 }
                 else {
+                    const executionOrder = ++this._current_request_id
+                    this._currentExecutionRequest.executionOrder = executionOrder
+
                     const runStartTime = Date.now()
                     this._currentExecutionRequest.start(runStartTime)
 
-                    // TODO Ideally we would clear output at scheduling already, but for now do it here
-                    await this._currentExecutionRequest.clearOutput()
-
-                    const result = await this._msgConnection.sendRequest(requestTypeRunCell, { code: this._currentExecutionRequest.cell.document.getText() })
+                    const result = await this._msgConnection.sendRequest(
+                        requestTypeRunCell,
+                        {
+                            filename: this.notebook.uri.fsPath,
+                            line: 0,
+                            column: 0,
+                            code: this._currentExecutionRequest.cell.document.getText()
+                        }
+                    )
 
                     if (!result.success) {
                         this._currentExecutionRequest.appendOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(result.error)]))
@@ -144,6 +152,24 @@ export class JuliaKernel {
                 // Notebook is not inside the workspace, so just use the default env
                 return await getAbsEnvPath()
             }
+        }
+    }
+
+    private async getCwdPathForNotebook() {
+        if (this.notebook.isUntitled) {
+            if (vscode.workspace.workspaceFolders.length > 0) {
+                return vscode.workspace.workspaceFolders[0].uri.fsPath
+            }
+            else {
+                return await this.getAbsEnvPathForNotebook()
+            }
+        }
+
+        if (this.notebook.uri.scheme === 'file') {
+            return path.dirname(this.notebook.uri.fsPath)
+        }
+        else {
+            return await getAbsEnvPath()
         }
     }
 
@@ -208,10 +234,12 @@ export class JuliaKernel {
         await serverListeningPromise.wait()
 
         const pkgenvpath = await this.getAbsEnvPathForNotebook()
+        const cwdPath = await this.getCwdPathForNotebook()
 
         this._kernelProcess = spawn(
-            this.juliaExecutable.path,
+            this.juliaExecutable.file,
             [
+                ...this.juliaExecutable.args,
                 '--color=yes',
                 `--project=${pkgenvpath}`,
                 '--startup-file=no',
@@ -219,7 +247,10 @@ export class JuliaKernel {
                 path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
                 pn,
                 getCrashReportingPipename()
-            ]
+            ],
+            {
+                cwd: cwdPath
+            }
         )
 
         const outputChannel = this.outputChannel

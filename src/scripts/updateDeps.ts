@@ -1,8 +1,8 @@
-import * as cp from 'child-process-promise'
 import * as download from 'download'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import * as process from 'process'
+import * as cp from 'promisify-child-process'
 import * as semver from 'semver'
 
 async function our_download(url: string, destination: string) {
@@ -38,6 +38,8 @@ async function main() {
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css', 'libs/fontawesome/solid.min.css')
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css', 'libs/fontawesome/brands.min.css')
 
+    await our_download('https://raw.githubusercontent.com/bumbu/svg-pan-zoom/master/dist/svg-pan-zoom.min.js', 'libs/svg-pan-zoom/svg-pan-zoom.min.js')
+
     for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'DocumentFormat', 'StaticLint', 'SymbolServer', 'DebugAdapter', 'ChromeProfileFormat']) {
         await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
@@ -49,10 +51,10 @@ async function main() {
     }
 
 
-    for (const pkg of ['CodeTracking', 'CoverageTools', 'FilePathsBase', 'JuliaInterpreter', 'LoweredCodeUtils', 'OrderedCollections', 'PackageCompiler', 'Revise', 'Tokenize', 'URIParser']) {
+    for (const pkg of ['CodeTracking', 'CoverageTools', 'FilePathsBase', 'JuliaInterpreter', 'LoweredCodeUtils', 'OrderedCollections', 'PackageCompiler', 'Revise', 'Tokenize', 'URIParser', 'URIs']) {
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
 
-        const newestTag = tags.stdout.split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))[0]
+        const newestTag = tags.stdout.toString().split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))[0]
 
         await cp.exec(`git checkout ${newestTag.original}`, { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }

@@ -120,11 +120,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
 
         rendered_result = nothing
         f = () -> hideprompt() do
-            if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
-                let mode = get(ENV, "JULIA_REVISE", "auto")
-                    mode == "auto" && Main.Revise.revise()
-                end
-            end
+            revise()
+
             if show_code
                 add_code_to_repl_history(source_code)
 
@@ -179,13 +176,19 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     end
                 else
                     try
-                        Base.invokelatest(display, InlineDisplay(), res)
+                        if !ends_with_semicolon(source_code)
+                            Base.invokelatest(display, InlineDisplay(), res)
+                        end
                     catch err
-                        if !(err isa MethodError)
+                        if !(err isa MethodError && err.f === display)
                             printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
                             Base.display_error(stderr, err, catch_backtrace())
                         end
                     end
+                end
+
+                if !(res isa EvalError) && ends_with_semicolon(source_code)
+                    res = nothing
                 end
 
                 rendered_result = safe_render(res)

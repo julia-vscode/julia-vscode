@@ -2,6 +2,9 @@ if VERSION < v"1.0.0"
     error("VS Code julia language server only works with julia 1.0.0+")
 end
 
+using Logging
+global_logger(ConsoleLogger(stderr))
+
 @info "Starting the Julia Language Server"
 
 using InteractiveUtils, Sockets
@@ -17,18 +20,40 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
 end
 
 try
-    if length(Base.ARGS) != 5
+    if length(Base.ARGS) != 7
         error("Invalid number of arguments passed to julia language server.")
     end
 
-    conn = stdout
-    (outRead, outWrite) = redirect_stdout()
-
-    if Base.ARGS[2] == "--debug=yes"
-        ENV["JULIA_DEBUG"] = "all"
-    elseif Base.ARGS[2] != "--debug=no"
+    debug_mode = if Base.ARGS[2] == "--debug=yes"
+        true
+    elseif Base.ARGS[2] == "--debug=no"
+        false
+    else
         error("Invalid argument passed.")
     end
+
+    detached_mode = if Base.ARGS[7] == "--detached=yes"
+        true
+    elseif Base.ARGS[7] == "--detached=no"
+        false
+    else
+        error("Invalid argumentpassed.")
+    end
+
+    if debug_mode
+        ENV["JULIA_DEBUG"] = "all"
+    end
+
+    if detached_mode
+        serv = listen(7777)
+        global conn_in = accept(serv)
+        global conn_out = conn_in
+    else
+        global conn_in = stdin
+        global conn_out = stdout
+        (outRead, outWrite) = redirect_stdout()
+    end
+
 
     try
         using LanguageServer, SymbolServer
@@ -49,12 +74,13 @@ try
     @info "Symbol server store is at '$symserver_store_path'."
 
     server = LanguageServerInstance(
-        stdin,
-        conn,
+        conn_in,
+        conn_out,
         Base.ARGS[1],
         Base.ARGS[4],
-        (err, bt)->global_err_handler(err, bt, Base.ARGS[3], "Language Server"),
-        symserver_store_path
+        (err, bt) -> global_err_handler(err, bt, Base.ARGS[3], "Language Server"),
+        symserver_store_path,
+        ARGS[6] == "download"
     )
     run(server)
 catch err

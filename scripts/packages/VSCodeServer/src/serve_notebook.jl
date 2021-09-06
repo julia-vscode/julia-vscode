@@ -1,20 +1,32 @@
-const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NamedTuple{(:code,),Tuple{String}}, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
+JSONRPC.@dict_readable struct NotebookRunCellArguments <: JSONRPC.Outbound
+    filename::String
+    line::Int
+    column::Int
+    code::String
+end
 
-function notebook_runcell_request(conn, params::NamedTuple{(:code,),Tuple{String}})
-    decoded_msg = params.code
+const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NotebookRunCellArguments, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
+function notebook_runcell_request(conn, params::NotebookRunCellArguments)
     try
-        result = Base.invokelatest(include_string, Main, decoded_msg, "FOO")
+        code = string('\n'^params.line, ' '^params.column, params.code)
 
-        IJuliaCore.flush_all()
+        withpath(params.filename) do
+            revise()
 
-        if result !== nothing
-            Base.invokelatest(Base.display, result)
+            args = VERSION >= v"1.5" ? (REPL.softscope, Main, code, params.filename) : (Main, code, params.filename)
+            result = Base.invokelatest(include_string, args...)
+
+            IJuliaCore.flush_all()
+
+            if result !== nothing && !ends_with_semicolon(code)
+                Base.invokelatest(Base.display, result)
+            end
+
+            IJuliaCore.flush_all()
+
+            return (success = true, error = (message = "", name = "", stack = ""))
         end
-
-        IJuliaCore.flush_all()
-
-        return (success = true, error = (message = "", name = "", stack = ""))
     catch err
         bt = catch_backtrace()
 
@@ -83,7 +95,14 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
         end
 
     catch err
-        Base.display_error(IJuliaCore.orig_stderr[], err, catch_backtrace())
+        bt = catch_backtrace()
+        Base.display_error(IJuliaCore.orig_stderr[], err, bt)
+        try
+            global_err_handler(err, bt, crashreporting_pipename, "Notebook")
+        catch err
+            @error "Error handler threw an error." exception = (err, bt)
+        end
+
     end
 
 end
