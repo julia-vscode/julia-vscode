@@ -37,6 +37,7 @@
         "onCommand:language-julia.stopREPL",
         "onCommand:language-julia.executeCodeBlockOrSelection",
         "onCommand:language-julia.executeFile",
+        "onCommand:language-julia.executeActiveFile",
         "onCommand:language-julia.toggleLinter",
         "onCommand:language-julia.weave-open-preview",
         "onCommand:language-julia.weave-open-preview-side",
@@ -130,6 +131,11 @@
             {
                 "command": "language-julia.executeFile",
                 "title": "Julia: Execute File in REPL",
+                "icon": "$(play)"
+            },
+            {
+                "command": "language-julia.executeActiveFile",
+                "title": "Julia: Execute active File in REPL",
                 "icon": "$(play)"
             },
             {
@@ -480,7 +486,7 @@
             ],
             "editor/title/run": [
                 {
-                    "command": "language-julia.executeFile",
+                    "command": "language-julia.executeActiveFile",
                     "when": "resourceLangId == julia",
                     "group": "Julia@10"
                 },
