@@ -61,7 +61,10 @@
         "workspaceContains:test/runtests.jl",
         "workspaceContains:benchmark/benchmarks.jl",
         "workspaceContains:docs/make.jl",
-        "onNotebook:jupyter-notebook"
+        "onNotebook:jupyter-notebook",
+        "onView:julia-explorer.REPLVariables",
+        "onView:julia-explorer.julia-documentation",
+        "onView:julia-explorer.julia-plot-navigator"
     ],
     "main": "./dist/extension",
     "contributes": {
