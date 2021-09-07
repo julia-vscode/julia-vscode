@@ -59,6 +59,7 @@ const repl_startdebugger_notification_type = JSONRPC.NotificationType("repl/star
 const repl_showprofileresult_notification_type = JSONRPC.NotificationType("repl/showprofileresult", NamedTuple{(:content,),Tuple{String}})
 const repl_showprofileresult_file_notification_type = JSONRPC.NotificationType("repl/showprofileresult_file", NamedTuple{(:filename,),Tuple{String}})
 const repl_toggle_plot_pane_notification_type = JSONRPC.NotificationType("repl/togglePlotPane", NamedTuple{(:enable,),Tuple{Bool}})
+const repl_toggle_diagnostics_notification_type = JSONRPC.NotificationType("repl/toggleDiagnostics", NamedTuple{(:enable,),Tuple{Bool}})
 const repl_toggle_progress_notification_type = JSONRPC.NotificationType("repl/toggleProgress", Bool)
 const cd_notification_type = JSONRPC.NotificationType("repl/cd", NamedTuple{(:uri,),Tuple{String}})
 const activate_project_notification_type = JSONRPC.NotificationType("repl/activateProject", NamedTuple{(:uri,),Tuple{String}})

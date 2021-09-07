@@ -1,10 +1,15 @@
 struct InlineDisplay <: AbstractDisplay end
 
 const PLOT_PANE_ENABLED = Ref(true)
+const DIAGNOSTICS_ENABLED = Ref(true)
 const PROGRESS_ENABLED = Ref(true)
 
 function toggle_plot_pane(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     PLOT_PANE_ENABLED[] = params.enable
+end
+
+function toggle_diagnostics(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    DIAGNOSTICS_ENABLED[] = params.enable
 end
 
 function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
@@ -34,11 +39,11 @@ function with_no_default_display(f)
 end
 
 function sendDisplayMsg(kind, data)
-    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,String}("kind" => kind, "data" => data))
+    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data))
     JSONRPC.flush(conn_endpoint[])
 end
 
-function display(d::InlineDisplay, m::MIME, x)
+function Base.display(d::InlineDisplay, m::MIME, x)
     if !PLOT_PANE_ENABLED[]
         with_no_default_display(() -> display(m, x))
     else
@@ -58,7 +63,7 @@ Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
 
 Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
-function display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
+function Base.display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
     payload = String(repr(m, x))
     sendDisplayMsg(string(m), payload)
 end
@@ -82,6 +87,41 @@ const DISPLAYABLE_MIMES = [
     "image/gif"
 ]
 
+"""
+    DIAGNOSTIC_MIME = "application/vnd.julia-vscode.diagnostics"
+
+User type needs to implement a `show` method that returns a named tuple or dictionary like the following
+```
+Base.show(io::IO, ::MIME"application/vnd.julia-vscode.diagnostics", t::YourType) = (
+    source = "Name of my diagnostic tool"
+    items = [
+        (
+            msg = "foo",
+            path = "/some/absolute/path.jl",
+            line = 1 # 1 based
+            range = [[1, 2], [1, 4]] # or [[start_line, start_char], [end_line, end_char]],
+            severity = 1, # optional; 0: Error, 1: Warning, 2: Information, 3: Hint
+            relatedInformation = [
+                (
+                    msg = "foobar",
+                    path = "/some/other/absolute/path.jl",
+                    line = 1,
+                    range = [[1, 2], [1, 4]] # or [[start_line, start_char], [end_line, end_char]],
+                )
+            ] # optional
+        ),
+        ...
+    ]
+)
+```
+One of `line` or `range` needs to be specified for each item and `relatedInformation`.
+
+Anything printed to `io` is discarded.
+"""
+const DIAGNOSTIC_MIME = "application/vnd.julia-vscode.diagnostics"
+Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(DIAGNOSTIC_MIME)}) = DIAGNOSTICS_ENABLED[]
+Base.Multimedia.display(::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIME)}, diagnostics) = sendDisplayMsg(DIAGNOSTIC_MIME, show(IOBuffer(), m, diagnostics))
+
 function can_display(x)
     for mime in DISPLAYABLE_MIMES
         if showable(mime, x)
@@ -103,6 +143,9 @@ function can_display(x)
 end
 
 function Base.display(d::InlineDisplay, x)
+    if DIAGNOSTICS_ENABLED[] && showable(DIAGNOSTIC_MIME, x)
+        return display(d, DIAGNOSTIC_MIME, x)
+    end
     if PLOT_PANE_ENABLED[]
         for mime in DISPLAYABLE_MIMES
             if showable(mime, x)
@@ -123,7 +166,7 @@ function _display(d::InlineDisplay, x)
         try
             display(d, x)
         catch err
-            if err isa MethodError
+            if err isa MethodError && err.f === display
                 @warn "Cannot display values of type $(typeof(x)) in VS Code."
             else
                 rethrow(err)

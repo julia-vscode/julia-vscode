@@ -118,7 +118,7 @@ export async function activate(context: vscode.ExtensionContext) {
         )
 
         const api = {
-            version: 3,
+            version: 4,
             async getEnvironment() {
                 return await jlpkgenv.getAbsEnvPath()
             },
@@ -131,7 +131,8 @@ export async function activate(context: vscode.ExtensionContext) {
             },
             getPkgServer() {
                 return vscode.workspace.getConfiguration('julia').get('packageServer')
-            }
+            },
+            executeInREPL: repl.executeInREPL
         }
 
         return api
