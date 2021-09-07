@@ -82,14 +82,6 @@ const DISPLAYABLE_MIMES = [
     "image/gif"
 ]
 
-function is_table_like(x)
-    if showable("application/vnd.dataresource+json", x)
-        return true
-    end
-
-    return Base.invokelatest(_istable, x) || x isa AbstractVector || x isa AbstractMatrix
-end
-
 function can_display(x)
     for mime in DISPLAYABLE_MIMES
         if showable(mime, x)
@@ -97,7 +89,17 @@ function can_display(x)
         end
     end
 
-    return is_table_like(x)
+    if showable("application/vnd.dataresource+json", x)
+        return true
+    end
+
+    istable = Base.invokelatest(_isiterabletable, x)
+
+    if istable === missing || istable === true || x isa AbstractVector || x isa AbstractMatrix
+        return true
+    end
+
+    return false
 end
 
 function Base.display(d::InlineDisplay, x)
@@ -141,9 +143,7 @@ function repl_showingrid_notification(conn, params::NamedTuple{(:code,),Tuple{St
 end
 
 function internal_vscodedisplay(x)
-    if is_table_like(x)
-        showtable(x)
-    else
+    if !try_display_table(x)
         _display(InlineDisplay(), x)
     end
 end

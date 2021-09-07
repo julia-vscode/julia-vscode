@@ -77,65 +77,7 @@ function table2json(schema, rows; requested = nothing)
     String(take!(io)), lastrow
 end
 
-_eachcolumn = (f, schema, row) -> begin
-    props = propertynames(row)
-    if isempty(props)
-        for (i, el) in enumerate(row)
-            f(el, i, Symbol("Column", i))
-        end
-    else
-        for (i, nm) in enumerate(props)
-            f(getproperty(row, nm), i, nm)
-        end
-    end
-end
-_rows = table -> if table isa Matrix
-    (table[i, :] for i in 1:size(table, 1))
-elseif _isiterabletable(table)
-    _getiterator(table)
-else
-    table
-end
-_schema = table -> nothing
-_Schema = (names, types) -> (
-    names = names,
-    types = types
-)
-_table = identity
-_istable = x -> x isa AbstractVecOrMat
-_isiterabletable = x -> false
-_getiterator = x -> false
 
-const tables_uuid = UUIDs.UUID("bd369af6-aec1-5ad0-b16a-f7cc5008161c")
-const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
-const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
-function on_pkg_load(pkg)
-    if pkg.uuid == tables_uuid
-        Tables = Base.require(pkg)
-
-        global _eachcolumn = Tables.eachcolumn
-        global _schema = Tables.schema
-        global _rows = Tables.rows
-        global _Schema = Tables.Schema
-        global _table = Tables.table
-        global _istable = Tables.istable
-    elseif pkg.uuid == tabletraits_uuid
-        TableTraits = Base.require(pkg)
-
-        global _isiterabletable = TableTraits.isiterabletable
-        global _getiterator = TableTraits.getiterator
-    elseif pkg.uuid == datavalues_uuid
-        DataValues = Base.require(pkg)
-
-        eval(
-            quote
-                function json_sprint(val::$(DataValues.DataValue))
-                    $(DataValues.isna)(val) ? "null" : json_sprint(val[])
-                end
-            end
-        )
-    end
-end
 
 const MAX_SYNC_TABLE_ELEMENTS = 100_000
 const TABLES = Dict{UUID, Tuple{Any, Any, Int}}()
@@ -393,4 +335,40 @@ end
 
 function clear_lazy_table(conn, params::NamedTuple{(:id,), Tuple{String}})
     delete!(TABLES, UUID(params.id))
+end
+
+function try_display_table(x)
+    if showable("application/vnd.dataresource+json", x)
+        _display(InlineDisplay(), x)
+        return true
+    end
+
+    if _isiterabletable(x) === true &&
+        buffer = IOBuffer()
+        io = IOContext(buffer, :compact => true)
+        printdataresource(io, _getiterator(x))
+        buffer_asstring = CachedDataResourceString(String(take!(buffer)))
+        _display(InlineDisplay(), buffer_asstring)
+        return true
+    elseif _isiterabletable(x) === missing
+        try
+            buffer = IOBuffer()
+            io = IOContext(buffer, :compact => true)
+            printdataresource(io, _getiterator(x))
+            buffer_asstring = CachedDataResourceString(String(take!(buffer)))
+            _display(InlineDisplay(), buffer_asstring)
+            return true
+        catch err
+            return false
+        end
+    elseif x isa AbstractVector || x isa AbstractMatrix
+        buffer = IOBuffer()
+        io = IOContext(buffer, :compact => true)
+        print_array_as_dataresource(io, _getiterator(x))
+        buffer_asstring = CachedDataResourceString(String(take!(buffer)))
+        _display(InlineDisplay(), buffer_asstring)
+        return true
+    else
+        return false
+    end
 end
