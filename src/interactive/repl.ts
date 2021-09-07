@@ -34,7 +34,7 @@ let g_juliaExecutablesFeature: JuliaExecutablesFeature
 function startREPLCommand() {
     telemetry.traceEvent('command-startrepl')
 
-    startREPL(false)
+    startREPL(false, true)
 }
 
 function is_remote_env(): boolean {
@@ -63,6 +63,9 @@ function isConnected() {
 
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (isConnected()) {
+        if (g_terminal && showTerminal) {
+            g_terminal.show(preserveFocus)
+        }
         return
     }
 
