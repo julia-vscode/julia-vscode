@@ -201,22 +201,22 @@ export class JuliaNotebookFeature {
     }
 
     private updateNotebookWithSelectedKernel(notebook: vscode.NotebookDocument, version: semver.SemVer) {
-        // Dont edit in place, create a copy of the metadata.
-        const kernelspec = {
-            display_name: `Julia ${version}`,
-            language: 'julia',
-            name: `julia-${version.major}.${version.minor}`
-        }
-        if (notebook.metadata?.custom?.metadata) {
-            notebook.metadata.custom.metadata.language_info = {
+        const metadata = {
+            kernelspec: {
+                display_name: `Julia ${version}`,
+                language: 'julia',
+                name: `julia-${version.major}.${version.minor}`
+            },
+            language_info: {
                 name: 'julia',
                 version: `${version}`,
                 mimetype: 'application/julia',
                 file_extension: '.jl'
             }
         }
+
         if (this.vscodeIpynbApi) {
-            this.vscodeIpynbApi.setKernelSpec(notebook.uri, kernelspec)
+            this.vscodeIpynbApi.setNotebookMetadata(notebook.uri, metadata)
         }
     }
 
