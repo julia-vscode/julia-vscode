@@ -86,7 +86,7 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
         )
 
         if (res.stdout.toString().trim() === 'false') {
-            const err = res.stderr.toString().trim
+            const err = res.stderr.toString().trim()
             if (err) {
                 vscode.window.showWarningMessage(`Error while parsing your current environment: \n${err}`)
             } else {

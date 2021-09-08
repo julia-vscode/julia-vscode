@@ -184,7 +184,8 @@ export class JuliaExecutablesFeature {
             }))
 
             // Remove duplicates.
-            this.cachedJuliaExePaths = [...new Set(executables)]
+            this.cachedJuliaExePaths = executables.filter((v, i, a) => a.findIndex(t => (JSON.stringify(t) === JSON.stringify(v))) === i)
+
             return this.cachedJuliaExePaths
         }
 
