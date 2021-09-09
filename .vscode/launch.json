@@ -41,6 +41,7 @@
             "program": "${workspaceFolder}/scripts/languageserver/main.jl",
             "stopOnEntry": false,
             "cwd": "${workspaceFolder}/scripts/languageserver",
+            "juliaEnv": "${workspaceFolder}/scripts/environments/languageserver",
             "args": [
                 "", // Environment
                 "--debug=yes",

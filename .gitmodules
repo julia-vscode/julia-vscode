@@ -28,7 +28,7 @@
 [submodule "scripts/packages/CodeTracking"]
 	path = scripts/packages/CodeTracking
 	url = https://github.com/timholy/CodeTracking.jl.git
-[submodule "scripts/tasks/sysimageenv/PackageCompiler"]
+[submodule "scripts/packages/PackageCompiler"]
 	path = scripts/packages/PackageCompiler
 	url = https://github.com/JuliaLang/PackageCompiler.jl.git
 [submodule "scripts/packages/JSONRPC"]
