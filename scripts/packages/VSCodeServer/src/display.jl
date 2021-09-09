@@ -87,7 +87,13 @@ function is_table_like(x)
         return true
     end
 
-    return Base.invokelatest(_istable, x) || x isa AbstractVector || x isa AbstractMatrix
+    istable = Base.invokelatest(_isiterabletable, x)
+
+    if istable === missing || istable === true || x isa AbstractVector || x isa AbstractMatrix
+        return true
+    end
+
+    return false
 end
 
 function can_display(x)

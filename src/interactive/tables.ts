@@ -31,8 +31,7 @@ export function displayTable(payload, context, isLazy = false) {
     let script
 
     if (isLazy) {
-        const jPayload = JSON.parse(payload)
-        const objectId = jPayload.id
+        const objectId = JSON.parse(payload).id
 
         panel.onDidDispose(() => {
             try {
@@ -106,6 +105,34 @@ export function displayTable(payload, context, isLazy = false) {
 
                 const requests = {}
                 const payload = ${payload};
+                const coldefs = payload.schema.fields.map(f => {
+                    return {
+                        field: f.name,
+                        headerName: f.name,
+                        type: f.ag_type,
+                        headerTooltip: f.type,
+                        filter: f.ag_filter,
+                        sortable: f.ag_sortable,
+                        resizable: true
+                    }
+                });
+                coldefs.unshift({
+                    headerName: 'Row',
+                    editable: false,
+                    headerTooltip: '',
+                    field: '__row__',
+                    sortable: false,
+                    type: 'numericColumn',
+                    cellRenderer: 'rowNumberRenderer',
+                    resizable: true,
+                    filter: false,
+                    pinned: 'left',
+                    lockPinned: true,
+                    suppressNavigable: true,
+                    lockPosition: true,
+                    suppressMovable: true,
+                    cellClass: 'row-number-cell'
+                })
 
                 function getRows({startRow, endRow, filterModel, sortModel, successCallback, failCallback}) {
                     const id  = Math.random()
@@ -145,9 +172,9 @@ export function displayTable(payload, context, isLazy = false) {
                 })
 
                 // make sure the block size scales with col number
-                const cacheBlockSize = Math.max(Math.round(2000/payload.coldefs.length), 50);
+                const cacheBlockSize = Math.max(Math.round(2000/coldefs.length), 50);
                 const gridOptions = {
-                    columnDefs: payload.coldefs,
+                    columnDefs: coldefs,
                     maxConcurrentDatasourceRequests: 1,
                     cacheBlockSize: cacheBlockSize,
                     maxBlocksInCache: 100,
@@ -173,8 +200,37 @@ export function displayTable(payload, context, isLazy = false) {
         script = `
             <script type="text/javascript">
                 const payload = ${payload};
+
+                const coldefs = payload.schema.fields.map(f => {
+                    return {
+                        field: f.name,
+                        headerName: f.name,
+                        type: f.ag_type,
+                        headerTooltip: f.type,
+                        filter: f.ag_filter,
+                        sortable: true,
+                        resizable: true
+                    }
+                });
+                coldefs.unshift({
+                    headerName: 'Row',
+                    editable: false,
+                    headerTooltip: '',
+                    field: '__row__',
+                    sortable: false,
+                    type: 'numericColumn',
+                    cellRenderer: 'rowNumberRenderer',
+                    resizable: true,
+                    filter: false,
+                    pinned: 'left',
+                    lockPinned: true,
+                    suppressNavigable: true,
+                    lockPosition: true,
+                    suppressMovable: true,
+                    cellClass: 'row-number-cell'
+                })
                 const gridOptions = {
-                    columnDefs: payload.coldefs,
+                    columnDefs: coldefs,
                     rowData: payload.data,
                     rowSelection: 'multiple',
                     enableCellTextSelection: true,
