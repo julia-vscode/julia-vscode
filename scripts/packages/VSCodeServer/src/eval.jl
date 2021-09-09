@@ -180,7 +180,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                             Base.invokelatest(display, InlineDisplay(), res)
                         end
                     catch err
-                        if !(err isa MethodError)
+                        if !(err isa MethodError && err.f === display)
                             printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
                             Base.display_error(stderr, err, catch_backtrace())
                         end
