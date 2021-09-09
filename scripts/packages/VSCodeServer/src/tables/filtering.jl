@@ -1,10 +1,7 @@
 const FILTER_CACHE = Dict{UUID, Tuple{UInt64, Any}}()
 const SORTED_CACHE = Dict{UUID, UInt64}()
 
-col_access(row, col) = begin
-    @debug "co_access" row col
-    row[col]
-end
+col_access(row, col) = row[col]
 
 function generate_sorter(params, fixed_col_names)
     lts = []
