@@ -343,9 +343,9 @@ function wrapImagelike(srcString: string) {
     const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
 
     const isSvg = srcString.includes('data:image/svg+xml')
-    let svgTag
+    let svgTag = ''
     if (isSvg) {
-        svgTag = decodeURIComponent(srcString).replace(/^data.*<\?xml version="1.0" encoding="utf-8"\?>\n/, '')
+        svgTag = decodeURIComponent(srcString).replace(/^data.*<\?xml version="1\.\d" encoding=".+?"\?>\n/i, '')
         svgTag = `<div id="plot-element">${svgTag}</div>`
     }
 
