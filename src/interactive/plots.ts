@@ -345,7 +345,7 @@ function wrapImagelike(srcString: string) {
     const isSvg = srcString.includes('data:image/svg+xml')
     let svgTag = ''
     if (isSvg) {
-        svgTag = decodeURIComponent(srcString).replace(/^data.*<\?xml version="1\.\d" encoding=".+?"\?>\n/i, '')
+        svgTag = decodeURIComponent(srcString).replace(/^data.*<\?xml version="1\.0" encoding="utf-8"\?>\n/i, '')
         svgTag = `<div id="plot-element">${svgTag}</div>`
     }
 
