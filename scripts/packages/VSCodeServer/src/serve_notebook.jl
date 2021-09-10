@@ -51,14 +51,14 @@ function io_send_callback(name, data)
     JSONRPC.send_notification(conn_endpoint[], "streamoutput", Dict{String,Any}("name" => name, "data" => data))
 end
 
-function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,Nothing} = nothing)
     conn = Sockets.connect(pipename)
 
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
 
     run(conn_endpoint[])
 
-    IJuliaCore.orig_stdin[]  = Base.stdin
+    IJuliaCore.orig_stdin[] = Base.stdin
     IJuliaCore.orig_stdout[] = Base.stdout
     IJuliaCore.orig_stderr[] = Base.stderr
 

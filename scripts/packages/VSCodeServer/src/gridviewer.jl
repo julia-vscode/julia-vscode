@@ -45,13 +45,13 @@ end
 
 julia_type_to_schema_type(::Type{Union{}}) = "string"
 julia_type_to_schema_type(::Type{T}) where {T} = "string"
-julia_type_to_schema_type(::Type{T}) where {T <: AbstractFloat} = "number"
-julia_type_to_schema_type(::Type{T}) where {T <: Integer} = "integer"
-julia_type_to_schema_type(::Type{T}) where {T <: Bool} = "boolean"
-julia_type_to_schema_type(::Type{T}) where {T <: Dates.Time} = "time"
-julia_type_to_schema_type(::Type{T}) where {T <: Dates.Date} = "date"
-julia_type_to_schema_type(::Type{T}) where {T <: Dates.DateTime} = "datetime"
-julia_type_to_schema_type(::Type{T}) where {T <: AbstractString} = "string"
+julia_type_to_schema_type(::Type{T}) where {T<:AbstractFloat} = "number"
+julia_type_to_schema_type(::Type{T}) where {T<:Integer} = "integer"
+julia_type_to_schema_type(::Type{T}) where {T<:Bool} = "boolean"
+julia_type_to_schema_type(::Type{T}) where {T<:Dates.Time} = "time"
+julia_type_to_schema_type(::Type{T}) where {T<:Dates.Date} = "date"
+julia_type_to_schema_type(::Type{T}) where {T<:Dates.DateTime} = "datetime"
+julia_type_to_schema_type(::Type{T}) where {T<:AbstractString} = "string"
 
 function printdataresource(io::IO, source)
     if Base.IteratorEltype(source) isa Base.EltypeUnknown
@@ -95,7 +95,7 @@ function printdataresource(io::IO, source)
         end
 
         print(io, "{")
-        for col in 1:length(col_names)
+        for col = 1:length(col_names)
             if col > 1
                 print(io, ",")
             end
@@ -110,7 +110,7 @@ function printdataresource(io::IO, source)
     print(io, "]}")
 end
 
-function print_array_as_dataresource(io::IO, source::T) where {EL,T <: AbstractVector{EL}}
+function print_array_as_dataresource(io::IO, source::T) where {EL,T<:AbstractVector{EL}}
     print(io, "{")
 
     JSON_print_escaped(io, "schema")
@@ -149,7 +149,7 @@ function print_array_as_dataresource(io::IO, source::T) where {EL,T <: AbstractV
     print(io, "]}")
 end
 
-function print_array_as_dataresource(io::IO, source::T) where {EL,T <: AbstractMatrix{EL}}
+function print_array_as_dataresource(io::IO, source::T) where {EL,T<:AbstractMatrix{EL}}
     nrow, ncol = size(source)
 
     print(io, "{")
@@ -178,13 +178,13 @@ function print_array_as_dataresource(io::IO, source::T) where {EL,T <: AbstractM
     JSON_print_escaped(io, "data")
     print(io, ":[")
 
-    for row_i in 1:nrow
+    for row_i = 1:nrow
         if row_i > 1
             print(io, ",")
         end
 
         print(io, "{")
-        for col_i in 1:ncol
+        for col_i = 1:ncol
             if col_i > 1
                 print(io, ",")
             end

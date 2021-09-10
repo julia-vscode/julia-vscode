@@ -84,7 +84,7 @@ const DISPLAYABLE_MIMES = [
     # "text/html",
     "image/svg+xml",
     "image/png",
-    "image/gif"
+    "image/gif",
 ]
 
 """
@@ -192,12 +192,12 @@ function pkgload(pkg)
 
         eval(
             quote
-            function JSON_print_escaped(io, val::$(x.DataValue))
-                $(x.isna)(val) ? print(io, "null") : JSON_print_escaped(io, val[])
-            end
+                function JSON_print_escaped(io, val::$(x.DataValue))
+                    $(x.isna)(val) ? print(io, "null") : JSON_print_escaped(io, val[])
+                end
 
-            julia_type_to_schema_type(::Type{T}) where {S,T <: $(x.DataValue){S}} = julia_type_to_schema_type(S)
-        end
+                julia_type_to_schema_type(::Type{T}) where {S,T<:$(x.DataValue){S}} = julia_type_to_schema_type(S)
+            end
         )
     end
 end

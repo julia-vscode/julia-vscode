@@ -51,7 +51,7 @@ end
 
 # https://github.com/JuliaDebug/Debugger.jl/blob/4cf99c662ab89da0fe7380c1e81461e2428e8b00/src/limitio.jl
 
-mutable struct LimitIO{IO_t <: IO} <: IO
+mutable struct LimitIO{IO_t<:IO} <: IO
     io::IO_t
     maxbytes::Int
     n::Int
@@ -65,7 +65,7 @@ function Base.write(io::LimitIO, v::UInt8)
     io.n += write(io.io, v)
 end
 
-function sprintlimited(args...; func=show, limit::Int=30, ellipsis::AbstractString="…", color=false)
+function sprintlimited(args...; func = show, limit::Int = 30, ellipsis::AbstractString = "…", color = false)
     io = IOBuffer()
     ioctx = IOContext(LimitIO(io, limit - length(ellipsis)), :limit => true, :color => color, :displaysize => (30, 64))
 
@@ -84,7 +84,7 @@ function sprintlimited(args...; func=show, limit::Int=30, ellipsis::AbstractStri
     return color ? str : remove_ansi_control_chars(str)
 end
 
-function strlimit(str; limit::Int=30, ellipsis::AbstractString="…")
+function strlimit(str; limit::Int = 30, ellipsis::AbstractString = "…")
     will_append = length(str) > limit
 
     io = IOBuffer()
@@ -108,7 +108,7 @@ function remove_ansi_control_chars(str::String)
 end
 
 function ends_with_semicolon(x)
-    return REPL.ends_with_semicolon(split(x, '\n', keepempty=false)[end])
+    return REPL.ends_with_semicolon(split(x, '\n', keepempty = false)[end])
 end
 
 const splitlines = Base.Fix2(split, '\n')
