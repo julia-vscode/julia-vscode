@@ -337,6 +337,21 @@ export function plotPaneDelAll() {
     }
 }
 
+const plotElementStyle = `
+#plot-element {
+    max-height: 100vh;
+    max-width: 100vw;
+    display: block;
+    position: absolute;
+    cursor: all-scroll !important;
+}
+
+#plot-element > svg {
+    max-height: 100%;
+    max-width: 100%;
+}
+`
+
 // wrap a source string with an <img> tag that shows the content
 // scaled to fit the plot pane unless the plot pane is bigger than the image
 function wrapImagelike(srcString: string) {
@@ -354,16 +369,7 @@ function wrapImagelike(srcString: string) {
         <head>
             <script src="${uriPanZoom}"></script>
             <style>
-                #plot-element {
-                    max-height: 100vh;
-                    max-width: 100vw;
-                    display:block;
-                    position: absolute;
-                }
-                #plot-element > svg {
-                    max-height: 100%;
-                    max-width: 100%;
-                }
+            ${plotElementStyle}
             </style>
         </head>
         <body style="padding:0;margin:0;">
@@ -445,6 +451,7 @@ export function displayPlot(params: { kind: string; data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -482,6 +489,7 @@ export function displayPlot(params: { kind: string; data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -519,6 +527,7 @@ export function displayPlot(params: { kind: string; data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -554,6 +563,7 @@ export function displayPlot(params: { kind: string; data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -589,6 +599,7 @@ export function displayPlot(params: { kind: string; data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -624,6 +635,7 @@ export function displayPlot(params: { kind: string; data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
