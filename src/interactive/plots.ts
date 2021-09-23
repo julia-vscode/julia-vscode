@@ -343,6 +343,9 @@ const plotElementStyle = `
     max-width: 100vw;
     display: block;
     position: absolute;
+}
+
+#plot-element.pan-zoom {
     cursor: all-scroll !important;
 }
 

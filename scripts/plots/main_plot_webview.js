@@ -171,18 +171,48 @@ function initPanZoom() {
     if (panzoom) {
         const plot = getPlotElement()
         const instance = panzoom(plot, {
-            smoothScroll: false
+            smoothScroll: false,
+            // disable keyboard event handling
+            filterKey() {
+                return true
+            },
+            beforeMouseDown(ev) {
+                return !ev.altKey
+            },
+            beforeWheel(ev) {
+                return !ev.altKey
+            }
         })
         const resetZoomAndPan = ev => {
+            if (ev && !ev.altKey) {
+                return
+            }
             instance.moveTo(0, 0)
             instance.zoomAbs(0, 0, 1)
             if (ev) {
                 ev.stopPropagation()
             }
         }
-        plot.addEventListener('dblclick', resetZoomAndPan)
+        plot.addEventListener('dblclick', ev => {
+            resetZoomAndPan(ev)
+            ev.stopPropagation()
+        })
         document.addEventListener('dblclick', resetZoomAndPan)
         document.body.addEventListener('dblclick', resetZoomAndPan)
+
+        let isMove = false
+        document.body.addEventListener('keydown', ev => {
+            if (ev.altKey) {
+                isMove = true
+                plot.classList.add('pan-zoom')
+            }
+        })
+        document.body.addEventListener('keyup', ev => {
+            if (isMove) {
+                isMove = false
+                plot.classList.remove('pan-zoom')
+            }
+        })
     }
 }
 
