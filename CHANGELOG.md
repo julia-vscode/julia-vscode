@@ -5,6 +5,23 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixes
+* `InteractiveUtils` is now properly loaded in notebooks ([#2457](https://github.com/julia-vscode/julia-vscode/pull/2457))
+
+## [1.4.3] - 2021-09-15
+### Changed
+* Cursor now changes to indicate that plots are zoomable/panable ([#2445](https://github.com/julia-vscode/julia-vscode/pull/2445))
+* Notebook metadata is now properly saved. We've therefore enabled the pure-Julia notebook provider by default and removed the `julia.notebookController` setting ([#2424](https://github.com/julia-vscode/julia-vscode/pull/2424))
+
+## [1.4.2] - 2021-09-10
+### Fixed
+* Vega and VegaLite plots are now zoomable/panable ([#2443](https://github.com/julia-vscode/julia-vscode/pull/2443))
+
+## [1.4.1] - 2021-09-10
+### Fixed
+* SVG output is now properly rendered in all cases ([2442](https://github.com/julia-vscode/julia-vscode/pull/2442))
+
+## [1.4.0] - 2021-09-08
 ### Added
 * Export Plot(save/copy) buttons to plot pane([#2267](https://github.com/julia-vscode/julia-vscode/pull/2267))
 * Interactive(zoomable/pannable) Plots [#2273](https://github.com/julia-vscode/julia-vscode/pull/2273)
