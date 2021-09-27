@@ -15,7 +15,10 @@ const clearLazyTable = new rpc.NotificationType<{
 }>('repl/clearLazyTable')
 
 export function displayTable(payload, context, isLazy = false) {
-    const panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', {
+    const parsedPayload = JSON.parse(payload)
+    const title = parsedPayload.name
+
+    const panel = vscode.window.createWebviewPanel('jlgrid', title ? 'Julia Table: ' + title : 'Julia Table', {
         preserveFocus: true,
         viewColumn: vscode.ViewColumn.Active
     }, {
@@ -31,7 +34,7 @@ export function displayTable(payload, context, isLazy = false) {
     let script
 
     if (isLazy) {
-        const objectId = JSON.parse(payload).id
+        const objectId = parsedPayload.id
 
         panel.onDidDispose(() => {
             try {

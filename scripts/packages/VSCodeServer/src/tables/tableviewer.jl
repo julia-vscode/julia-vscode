@@ -41,10 +41,12 @@ ag_filter_type(::Type{T}) where {T <: Number} = "agNumberColumnFilter"
 ag_filter_type(::Type{T}) where {T <: Union{Dates.Date, Dates.DateTime}} = "agDateColumnFilter"
 
 # for small tables only
-function print_table(io::IO, source, col_names, fixed_col_names, col_types)
+function print_table(io::IO, source, col_names, fixed_col_names, col_types, title = "")
     ctx = JSON.Writer.CompactContext(io)
 
     JSON.begin_object(ctx)
+
+    JSON.show_pair(ctx, JSON.StandardSerialization(), "name", title)
 
     JSON.show_key(ctx, "schema")
     print_schema(ctx, col_names, fixed_col_names, col_types, filterable = true)
@@ -165,7 +167,7 @@ const MAX_CACHE_TABLE_ELEMENTS = 100_000_000
 # (column_names, column_types, table_iterator, table_length, table_indexable)
 const TABLES = Dict{UUID, Tuple{Any, Any, Any, Int, Bool}}()
 
-function showtable(table::T) where T
+function showtable(table::T, title = "") where T
     if showable("application/vnd.dataresource+json", table)
         return _display(InlineDisplay(), table)
     end
@@ -220,12 +222,13 @@ function showtable(table::T) where T
         payload = (
             schema = schema,
             rowCount = tablelength,
+            name = title,
             id = string(id)
         )
         sendDisplayMsg("application/vnd.dataresource+lazy", JSON.json(payload))
     else
         io = IOBuffer()
-        print_table(io, iter, col_names, fixed_col_names, col_types)
+        print_table(io, iter, col_names, fixed_col_names, col_types, title)
         sendDisplayMsg("application/vnd.dataresource+json", String(take!(io)))
     end
 end

@@ -183,19 +183,19 @@ function repl_showingrid_notification(conn, params::NamedTuple{(:code,),Tuple{St
     try
         var = Base.invokelatest(Base.include_string, Main, params.code)
 
-        Base.invokelatest(internal_vscodedisplay, var)
+        Base.invokelatest(internal_vscodedisplay, var, params.code)
     catch err
         Base.display_error(err, catch_backtrace())
     end
 end
 
-function internal_vscodedisplay(x)
+function internal_vscodedisplay(x, title::AbstractString = "")
     if is_table_like(x)
-        showtable(x)
+        showtable(x, title)
     else
         _display(InlineDisplay(), x)
     end
 end
 
-vscodedisplay(x) = internal_vscodedisplay(x)
-vscodedisplay() = i -> vscodedisplay(i)
+vscodedisplay(x, title::AbstractString = "") = internal_vscodedisplay(x, title)
+vscodedisplay(title::AbstractString) = i -> vscodedisplay(i, title)
