@@ -802,19 +802,22 @@ function savePlot(plot: ExportedPlot) {
  * @param data
  * @param encoding
  */
-function _writePlotFile(fileName: string, data: FileLike) {
-    const rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath
-    const defaultPlotsDir: string = vscode.workspace
-        .getConfiguration('julia')
-        .get('plots.path') ?? '' // If the default `plots.path` isn't in `settings.json` use the root.
-    let plotsDirFullPath = path.join(rootPath, defaultPlotsDir)
+async function _writePlotFile(fileName: string, data: FileLike) {
+    const rootPath = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0 ?
+        vscode.workspace.workspaceFolders[0].uri?.fsPath : null
+    // If the default `plots.path` isn't in `settings.json` use the root:
+    const defaultPlotsDir: string = vscode.workspace.getConfiguration('julia').get('plots.path') ?? ''
+
+    let plotsDirFullPath: string = null
+    if (rootPath) {
+        plotsDirFullPath = path.join(rootPath, defaultPlotsDir)
+    }
 
     try {
-        fs.exists(plotsDirFullPath).then(success => {
-            if (!success) {
-                plotsDirFullPath = homedir()
-            }
-        })
+        const isFile = plotsDirFullPath && await fs.exists(plotsDirFullPath)
+        if (!isFile) {
+            plotsDirFullPath = homedir()
+        }
         const plotFileFullPath = path.join(plotsDirFullPath, fileName)
         vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(plotFileFullPath) }).then(saveURI => {
             if (saveURI) {
