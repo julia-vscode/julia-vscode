@@ -2,11 +2,11 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.4.0",
+    "version": "1.4.3",
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.60.0"
+        "vscode": "^1.60.1"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -1101,12 +1101,6 @@
                     "type": "string",
                     "description": "The output directory to save plots to",
                     "scope": "window"
-                },
-                "julia.notebookController": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Enable the experimental native Jupyter notebook integration.",
-                    "scope": "application"
                 }
             }
         },

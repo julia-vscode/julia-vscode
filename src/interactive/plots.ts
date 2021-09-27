@@ -337,15 +337,33 @@ export function plotPaneDelAll() {
     }
 }
 
+const plotElementStyle = `
+#plot-element {
+    max-height: 100vh;
+    max-width: 100vw;
+    display: block;
+    position: absolute;
+}
+
+#plot-element.pan-zoom {
+    cursor: all-scroll !important;
+}
+
+#plot-element > svg {
+    max-height: 100%;
+    max-width: 100%;
+}
+`
+
 // wrap a source string with an <img> tag that shows the content
 // scaled to fit the plot pane unless the plot pane is bigger than the image
 function wrapImagelike(srcString: string) {
     const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
 
     const isSvg = srcString.includes('data:image/svg+xml')
-    let svgTag
+    let svgTag = ''
     if (isSvg) {
-        svgTag = decodeURIComponent(srcString).replace(/^data.*<\?xml version="1.0" encoding="utf-8"\?>\n/, '')
+        svgTag = decodeURIComponent(srcString).replace(/^data.*<\?xml version="1\.0" encoding="utf-8"\?>\n/i, '')
         svgTag = `<div id="plot-element">${svgTag}</div>`
     }
 
@@ -354,16 +372,7 @@ function wrapImagelike(srcString: string) {
         <head>
             <script src="${uriPanZoom}"></script>
             <style>
-                #plot-element {
-                    max-height: 100vh;
-                    max-width: 100vw;
-                    display:block;
-                    position: absolute;
-                }
-                #plot-element > svg {
-                    max-height: 100%;
-                    max-width: 100%;
-                }
+            ${plotElementStyle}
             </style>
         </head>
         <body style="padding:0;margin:0;">
@@ -446,6 +455,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -461,7 +471,7 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v3+json') {
-        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
@@ -483,6 +493,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -498,7 +509,7 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v4+json') {
-        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'svg-pan-zoom', 'svg-pan-zoom.min.js')))
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
@@ -520,6 +531,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -555,6 +567,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -590,6 +603,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
@@ -625,6 +639,7 @@ export function displayPlot(params: { kind: string, data: string }) {
                         font-size: x-small;
                         font-style: italic;
                     }
+                    ${plotElementStyle}
                 </style>
                 <script type="text/javascript">
                     var opt = {
