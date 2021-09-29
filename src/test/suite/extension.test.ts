@@ -12,6 +12,7 @@ suite('Indentation', () => {
         assert.strictEqual(ext.increaseIndentPattern.test("for i = 1:5"), true)
         assert.strictEqual(ext.increaseIndentPattern.test("  for i = 1:5"), true)
         assert.strictEqual(ext.increaseIndentPattern.test("for i = 1:inds[end]"), true)
+        assert.strictEqual(ext.increaseIndentPattern.test("for i in inds[2:end]"), true)
         assert.strictEqual(ext.increaseIndentPattern.test("for i = 1:inds[end ]"), true)
         assert.strictEqual(ext.increaseIndentPattern.test("for i = 1:inds[end] "), true)
         assert.strictEqual(ext.increaseIndentPattern.test("for i = 1:inds[end]  # comment"), true)
@@ -19,6 +20,7 @@ suite('Indentation', () => {
         // Should not indent next line
         assert.strictEqual(ext.increaseIndentPattern.test("for i = 1:5; end"), false)
         assert.strictEqual(ext.increaseIndentPattern.test("for i = 1:inds[end]; end"), false)
+        assert.strictEqual(ext.increaseIndentPattern.test("for i in inds[2:end]; end"), false)
         assert.strictEqual(ext.increaseIndentPattern.test("for i = 1:5; end "), false)
         assert.strictEqual(ext.increaseIndentPattern.test("for i = 1:5; end  # comment"), false)
         assert.strictEqual(ext.increaseIndentPattern.test("  for i = 1:5; end  # comment"), false)
