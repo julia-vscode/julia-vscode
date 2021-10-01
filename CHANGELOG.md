@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * `InteractiveUtils` is now properly loaded in notebooks ([#2457](https://github.com/julia-vscode/julia-vscode/pull/2457))
 
+### Changed
+* system image building now excludes development packages (e.g. added by `dev`).
+
+### Added
+* Allow customising precompile statements and execution files for system image building based on a `vscode-compileenv.toml` file inside the project root folder.
+
 ## [1.4.3] - 2021-09-15
 ### Changed
 * Cursor now changes to indicate that plots are zoomable/panable ([#2445](https://github.com/julia-vscode/julia-vscode/pull/2445))
