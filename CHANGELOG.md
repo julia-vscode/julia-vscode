@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * system image building now excludes development packages (e.g. added by `dev`).
 
 ### Added
-* Allow customising precompile statements and execution files for system image building based on a `vscode-compileenv.toml` file inside the project root folder.
+* Allow customising precompile statements and execution files for system image building based on a `./.vscode/JuliaSysimage.toml` file inside the project root folder.
 
 ## [1.4.3] - 2021-09-15
 ### Changed
