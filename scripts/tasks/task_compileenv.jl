@@ -2,7 +2,7 @@ import Pkg, Libdl, PackageCompiler
 import TOML
 
 
-const config_fname = "vscode-compileenv.toml"
+const config_fname = "./.vscode/JuliaSysimage.toml"
 
 """
     find_dev_packages(envdir::AbstractString)
@@ -25,15 +25,15 @@ end
 """
     read_configuration(envdir)
 
-Read the configuration file `vscode-compileenv.toml` from the environment directory.
+Read the configuration file `JuliaSysimage.toml` from the .vscode directory of the environment.
 
 This file should look like:
 
 ```
 [sysimage]
-excluded_packages=[]   # Additional packages to be exlucded in the system image
-precompile_statements_file=[]  # Precompile statements file to be used
-precompile_execution_file=[] # Precompile execution file to be used
+exclude=[]   # Additional packages to be exlucded in the system image
+statements_files=[]  # Precompile statements files to be used, relative to the project folder
+execution_files=[] # Precompile execution files to be used, relative to the project folder
 ```
 
 Please see `PackageCompiler.jl` package's documention for the use of the last two options.
@@ -48,9 +48,9 @@ function read_configuration(envdir)
     !isfile(fname) && return output
 
     parsed = get(TOML.parse(read(fname, String)), "sysimage", Dict{Any, Any}())
-    output[:precompile_execution_file] = String[joinpath(envdir, x) for x in get(parsed, "precompile_execution_file", String[])]
-    output[:precompile_statements_file] = String[joinpath(envdir, x) for x in get(parsed, "precompile_statements_file", String[])]
-    output[:excluded_packages] = Symbol.(get(parsed, "excluded_packages", Symbol[]))
+    output[:precompile_execution_file] = String[joinpath(envdir, x) for x in get(parsed, "execution_files", String[])]
+    output[:precompile_statements_file] = String[joinpath(envdir, x) for x in get(parsed, "statements_files", String[])]
+    output[:excluded_packages] = Symbol.(get(parsed, "exclude", Symbol[]))
 
     output
 end
@@ -73,6 +73,8 @@ precompile_statements = config[:precompile_statements_file]
 precompile_execution = config[:precompile_execution_file]
 
 @info "Now building a custom sysimage for the environment '$env_to_precompile', excluding dev packages '$dev_packages'."
+used_pkg_string = join(String.(used_packages), "\n      - ")
+@info "Included packages: \n      - $(used_pkg_string)"
 @info "Precompile statement files: $precompile_statements"
 @info "Precompile execution files: $precompile_execution"
 
