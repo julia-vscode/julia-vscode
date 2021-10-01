@@ -27,7 +27,7 @@ end
 
 Read the configuration file `vscode-compileenv.toml` from the environment directory.
 
-This file has the format:
+This file should look like:
 
 ```
 [sysimage]
