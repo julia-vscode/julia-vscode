@@ -7,7 +7,7 @@ const config_fname = "vscode-compileenv.toml"
 """
     find_dev_packages(envdir::AbstractString)
 
-Locate the packages that are in `dev` mode for a given project environment
+Locate the packages that are in `dev` mode for a given project environment.
 """
 function find_dev_packages(envdir::AbstractString)
     fname = joinpath(envdir, "Manifest.toml")
