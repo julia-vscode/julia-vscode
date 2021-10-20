@@ -61,6 +61,30 @@ function isConnected() {
     return Boolean(g_connection)
 }
 
+function sanitize(str: string) {
+    str = str.toLowerCase()
+    const unclean = /[^0-9a-zA-Z_-]+/
+    while (str.match(unclean)) {
+        str = str.replace(unclean,'-')
+    }
+    return str
+}
+function parseSessionArgs(name: string) {
+    if (name.match(/\$\[workspace\]/)){
+        const ed = vscode.window.activeTextEditor
+        if (ed) {
+            const folder = vscode.workspace.getWorkspaceFolder(ed.document.uri)
+            if (folder) {
+                return name.replace('$[workspace]', sanitize(folder.name))
+            } else {
+                return name.replace('$[workspace]', '')
+            }
+        }
+    }
+
+    return name
+}
+
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (isConnected()) {
         if (g_terminal && showTerminal) {
@@ -124,7 +148,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         if (Boolean(config.get('persistentSession.enabled'))) {
             const shellPath: string = config.get('persistentSession.shell')
             const connectJuliaCode = juliaConnector(pipename)
-            const sessionName = config.get('persistentSession.tmuxSessionName')
+            const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
             const tmuxArgs = [
                 <string>config.get('persistentSession.shellExecutionArgument'),
                 // create a new tmux session, set remain-on-exit to true, and attach; if the session already exists we just attach to the existing session
