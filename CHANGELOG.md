@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * `InteractiveUtils` is now properly loaded in notebooks ([#2457](https://github.com/julia-vscode/julia-vscode/pull/2457))
 
+### Changed
+* tmux session names can now include `$[workspace]` which will be replaced with
+  the name of the current file's workspace when the REPL is first opened. (This
+  allows for multiple persistent sessions across different VSCode windows).
+
 ## [1.4.3] - 2021-09-15
 ### Changed
 * Cursor now changes to indicate that plots are zoomable/panable ([#2445](https://github.com/julia-vscode/julia-vscode/pull/2445))
