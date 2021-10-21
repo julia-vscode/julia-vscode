@@ -62,12 +62,7 @@ function isConnected() {
 }
 
 function sanitize(str: string) {
-    str = str.toLowerCase()
-    const unclean = /[^0-9a-zA-Z_-]+/
-    while (str.match(unclean)) {
-        str = str.replace(unclean,'-')
-    }
-    return str
+    return str.toLowerCase().replace(/[^\p{L}\p{N}_-]+/ug, '-')
 }
 function parseSessionArgs(name: string) {
     if (name.match(/\$\[workspace\]/)){
