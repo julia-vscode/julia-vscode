@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * tmux session names can now include `$[workspace]` which will be replaced with
   the name of the current file's workspace when the REPL is first opened. (This
-  allows for multiple persistent sessions across different VSCode windows).
+  allows for multiple persistent sessions across different VSCode windows). ([#2504](https://github.com/julia-vscode/julia-vscode/pull/2504))
 
 ## [1.4.3] - 2021-09-15
 ### Changed
