@@ -1092,6 +1092,12 @@
                     "description": "Functions or modules that are set to compiled mode when setting the defaults.",
                     "scope": "window"
                 },
+                "julia.runtimeCompletions": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Request runtime completions from the integrated REPL.",
+                    "scope": "application"
+                },
                 "julia.plots.path": {
                     "type": "string",
                     "description": "The output directory to save plots to",
