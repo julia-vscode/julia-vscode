@@ -82,6 +82,14 @@ JSONRPC.@dict_readable mutable struct DebugConfigTreeItem <: JSONRPC.Outbound
     juliaAccessor::String
 end
 
+JSONRPC.@dict_readable mutable struct GetTableDataRequest <: JSONRPC.Outbound
+    id::String
+    startRow::Int
+    endRow::Int
+    filterModel::Any
+    sortModel::Any
+end
+
 const repl_runcode_request_type = JSONRPC.RequestType("repl/runcode", ReplRunCodeRequestParams, ReplRunCodeRequestReturn)
 const repl_interrupt_notification_type = JSONRPC.NotificationType("repl/interrupt", Nothing)
 const repl_getvariables_request_type = JSONRPC.RequestType("repl/getvariables", Nothing, Vector{ReplWorkspaceItem})
@@ -98,6 +106,9 @@ const repl_toggle_progress_notification_type = JSONRPC.NotificationType("repl/to
 const cd_notification_type = JSONRPC.NotificationType("repl/cd", NamedTuple{(:uri,),Tuple{String}})
 const activate_project_notification_type = JSONRPC.NotificationType("repl/activateProject", NamedTuple{(:uri,),Tuple{String}})
 const repl_getdebugitems_request_type = JSONRPC.RequestType("repl/getDebugItems", NamedTuple{(:juliaAccessor,),Tuple{String}}, Vector{DebugConfigTreeItem})
+
+const repl_gettabledata_request_type = JSONRPC.RequestType("repl/getTableData", GetTableDataRequest, Any)
+const repl_clearlazytable_notification_type = JSONRPC.NotificationType("repl/clearLazyTable", NamedTuple{(:id,),Tuple{String}})
 
 const repl_getcompletions_request_type = JSONRPC.RequestType("repl/getcompletions", GetCompletionsRequestParams, Vector)
 const repl_resolvecompletion_request_type = JSONRPC.RequestType("repl/resolvecompletion", Dict, Dict)
