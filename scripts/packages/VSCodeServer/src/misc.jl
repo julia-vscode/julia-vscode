@@ -108,7 +108,10 @@ function remove_ansi_control_chars(str::String)
 end
 
 function ends_with_semicolon(x)
-    return REPL.ends_with_semicolon(split(x, '\n', keepempty = false)[end])
+    lines = split(x, '\n', keepempty=false)
+    return length(lines) > 0 ?
+        REPL.ends_with_semicolon(last(lines)) :
+        false
 end
 
 const splitlines = Base.Fix2(split, '\n')

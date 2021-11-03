@@ -14,6 +14,7 @@ import { switchEnvToPath } from '../jlpkgenv'
 import { JuliaExecutablesFeature } from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerCommand, setContext } from '../utils'
+import * as completions from './completions'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -59,6 +60,25 @@ function get_editor(): string {
 
 function isConnected() {
     return Boolean(g_connection)
+}
+
+function sanitize(str: string) {
+    return str.toLowerCase().replace(/[^\p{L}\p{N}_-]+/ug, '-')
+}
+function parseSessionArgs(name: string) {
+    if (name.match(/\$\[workspace\]/)){
+        const ed = vscode.window.activeTextEditor
+        if (ed) {
+            const folder = vscode.workspace.getWorkspaceFolder(ed.document.uri)
+            if (folder) {
+                return name.replace('$[workspace]', sanitize(folder.name))
+            } else {
+                return name.replace('$[workspace]', '')
+            }
+        }
+    }
+
+    return name
 }
 
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
@@ -124,11 +144,12 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         if (Boolean(config.get('persistentSession.enabled'))) {
             const shellPath: string = config.get('persistentSession.shell')
             const connectJuliaCode = juliaConnector(pipename)
-            const sessionName = config.get('persistentSession.tmuxSessionName')
-            const tmuxArgs = [
+            const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
+            const juliaAndArgs = `${juliaExecutable.file} ${[...juliaExecutable.args, ...jlarg1, ...getArgs()].join(' ')}`.replace('"', '\\"')
+            const tmuxArgs: string[] = [
                 <string>config.get('persistentSession.shellExecutionArgument'),
                 // create a new tmux session, set remain-on-exit to true, and attach; if the session already exists we just attach to the existing session
-                `tmux new -d -s ${sessionName} ${juliaExecutable.file} ${[...juliaExecutable.args, ...jlarg1, ...getArgs()].join(' ')} && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
+                `tmux new -d -s ${sessionName} "${juliaAndArgs}" && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
                 tmux send-keys -t ${sessionName}.left ^A ^K ^H '${connectJuliaCode}' ENTER && tmux attach -t ${sessionName}`
             ]
 
@@ -526,11 +547,8 @@ async function getBlockRange(params: VersionedTextDocumentPositionParams) {
         vscode.window.showErrorMessage('No LS running or start. Check your settings.')
         return zeroReturn
     }
-
-    await g_languageClient.onReady()
-
     try {
-        return await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+        return await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err.message)
@@ -559,23 +577,30 @@ const g_cellDelimiters = [
     /^#(\s?)%%/
 ]
 
-function isCellBorder(s: string) {
+function isCellBorder(s: string, isStart: boolean, isJmd: boolean) {
+    if (isJmd) {
+        if (isStart) {
+            return /^```julia/.test(s)
+        } else {
+            return /^```(?!\w)/.test(s)
+        }
+    }
     return g_cellDelimiters.some(regex => regex.test(s))
 }
 
-function _nextCellBorder(doc, line_num: number, direction: number) {
+function _nextCellBorder(doc, line: number, direction: number, isStart: boolean, isJmd: boolean) {
     assert(direction === 1 || direction === -1)
-    while (0 <= line_num && line_num < doc.lineCount) {
-        if (isCellBorder(doc.lineAt(line_num).text)) {
+    while (0 <= line && line < doc.lineCount) {
+        if (isCellBorder(doc.lineAt(line).text, isStart, isJmd)) {
             break
         }
-        line_num += direction
+        line += direction
     }
-    return line_num
+    return line
 }
 
-const nextCellBorder = (doc, line_num) => _nextCellBorder(doc, line_num, +1)
-const prevCellBorder = (doc, line_num) => _nextCellBorder(doc, line_num, -1)
+const nextCellBorder = (doc, line, isStart, isJmd) => _nextCellBorder(doc, line, +1, isStart, isJmd)
+const prevCellBorder = (doc, line, isStart, isJmd) => _nextCellBorder(doc, line, -1, isStart, isJmd)
 
 function validateMoveAndReveal(editor: vscode.TextEditor, startpos: vscode.Position, endpos: vscode.Position) {
     const doc = editor.document
@@ -591,8 +616,9 @@ async function moveCellDown() {
     if (ed === undefined) {
         return
     }
+    const isJmd = ed.document.languageId === 'juliamarkdown'
     const currline = ed.selection.active.line
-    const newpos = new vscode.Position(nextCellBorder(ed.document, currline + 1) + 1, 0)
+    const newpos = new vscode.Position(nextCellBorder(ed.document, currline + 1, true, isJmd) + 1, 0)
     validateMoveAndReveal(ed, newpos, newpos)
 }
 
@@ -602,16 +628,37 @@ async function moveCellUp() {
     if (ed === undefined) {
         return
     }
+    const isJmd = ed.document.languageId === 'juliamarkdown'
     const currline = ed.selection.active.line
-    const newpos = new vscode.Position(Math.max(0, prevCellBorder(ed.document, currline) - 1), 0)
+
+    let newpos: vscode.Position
+    if (isJmd) {
+        const prevEnd = Math.max(0, prevCellBorder(ed.document, currline, false, isJmd))
+        const prevStart = Math.max(0, prevCellBorder(ed.document, currline, true, isJmd))
+
+        if (prevEnd <= prevStart) {
+            newpos = new vscode.Position(Math.max(0, prevCellBorder(ed.document, prevStart - 1, true, isJmd) + 1), 0)
+        } else {
+            newpos = new vscode.Position(prevStart + 1, 0)
+        }
+    } else {
+        newpos = new vscode.Position(Math.max(0, prevCellBorder(ed.document, currline, true, isJmd) - 1), 0)
+    }
     validateMoveAndReveal(ed, newpos, newpos)
 }
 
 function currentCellRange(editor: vscode.TextEditor) {
     const doc = editor.document
     const currline = editor.selection.active.line
-    const startline = prevCellBorder(doc, currline) + 1
-    const endline = nextCellBorder(doc, currline + 1) - 1
+    const isJmd = doc.languageId === 'juliamarkdown'
+    const startline = prevCellBorder(doc, currline, true, isJmd) + 1
+    if (isJmd && startline === 0) {
+        return null
+    }
+    const endline = nextCellBorder(doc, startline + 1, false, isJmd) - 1
+    if (startline > currline || endline < currline) {
+        return null
+    }
     const startpos = doc.validatePosition(new vscode.Position(startline, 0))
     const endpos = doc.validatePosition(new vscode.Position(endline, doc.lineAt(endline).text.length))
     return new vscode.Range(startpos, endpos)
@@ -628,6 +675,9 @@ async function executeCell(shouldMove: boolean = false) {
     const doc = ed.document
     const selection = ed.selection
     const cellrange = currentCellRange(ed)
+    if (cellrange === null) {
+        return
+    }
     const code = doc.getText(cellrange)
 
     const module: string = await modules.getModuleForEditor(ed.document, cellrange.start)
@@ -635,7 +685,8 @@ async function executeCell(shouldMove: boolean = false) {
     await startREPL(true, false)
 
     if (shouldMove && ed.selection === selection) {
-        const nextpos = new vscode.Position(cellrange.end.line + 2, 0)
+        const isJmd = doc.languageId === 'juliamarkdown'
+        const nextpos = new vscode.Position(nextCellBorder(doc, cellrange.end.line + 1, true, isJmd) + 1, 0)
         validateMoveAndReveal(ed, nextpos, nextpos)
     }
 
@@ -706,28 +757,35 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     if (resultType !== 'REPL') {
         r = results.addResult(editor, range, ' ⟳ ', '')
     }
+    try {
+        const result: ReturnResult = await g_connection.sendRequest(
+            requestTypeReplRunCode,
+            {
+                filename: editor.document.fileName,
+                line: range.start.line,
+                column: range.start.character,
+                code: text,
+                mod: module,
+                showCodeInREPL: codeInREPL,
+                showResultInREPL: resultType === 'REPL' || resultType === 'both',
+                showErrorInREPL: resultType.indexOf('error') > -1,
+                softscope: true
+            }
+        )
 
-    const result: ReturnResult = await g_connection.sendRequest(
-        requestTypeReplRunCode,
-        {
-            filename: editor.document.fileName,
-            line: range.start.line,
-            column: range.start.character,
-            code: text,
-            mod: module,
-            showCodeInREPL: codeInREPL,
-            showResultInREPL: resultType === 'REPL' || resultType === 'both',
-            showErrorInREPL: resultType.indexOf('error') > -1,
-            softscope: true
+        if (resultType !== 'REPL') {
+            if (r.destroyed) {
+                r = results.addResult(editor, range, '', '')
+            }
+            if (result.stackframe) {
+                results.clearStackTrace()
+                results.setStackTrace(r, result.all, result.stackframe)
+            }
+            r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, Boolean(result.stackframe)))
         }
-    )
-
-    if (resultType !== 'REPL') {
-        if (result.stackframe) {
-            results.clearStackTrace()
-            results.setStackTrace(r, result.all, result.stackframe)
-        }
-        r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, Boolean(result.stackframe)))
+    } catch (err) {
+        r.remove(true)
+        telemetry.handleNewCrashReportFromException(err, 'Extension')
     }
 }
 
@@ -913,7 +971,8 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
 }
 
 async function linkHandler(link: any) {
-    let { file, line } = link.data
+    let file = link.data.file
+    const line = link.data.line
 
     if (file.startsWith('.')) {
         // Base file
@@ -1070,4 +1129,5 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
     results.activate(context)
     plots.activate(context)
     modules.activate(context)
+    completions.activate(context)
 }

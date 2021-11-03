@@ -3,7 +3,7 @@ module VSCodeServer
 export vscodedisplay, @enter, @run
 export view_profile, @profview
 
-using REPL, Sockets, Base64, Pkg, UUIDs
+using REPL, Sockets, Base64, Pkg, UUIDs, Dates, Profile
 import Base: display, redisplay
 import Dates
 import Profile
@@ -18,7 +18,7 @@ function __init__()
         end
     end
 
-    push!(Base.package_callbacks, pkgload)
+    push!(Base.package_callbacks, on_pkg_load)
 end
 
 include("../../JSON/src/JSON.jl")
@@ -67,11 +67,12 @@ include("../../../error_handler.jl")
 include("repl_protocol.jl")
 include("misc.jl")
 include("trees.jl")
-include("gridviewer.jl")
 include("module.jl")
 include("progress.jl")
 include("eval.jl")
+include("completions.jl")
 include("repl.jl")
+include("./tables/tableviewer.jl")
 include("display.jl")
 include("profiler.jl")
 include("debugger.jl")
@@ -115,6 +116,9 @@ function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractS
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
         msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request
         msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
+        msg_dispatcher[repl_getcompletions_request_type] = repl_getcompletions_request
+        msg_dispatcher[repl_resolvecompletion_request_type] = repl_resolvecompletion_request
+        msg_dispatcher[repl_startdebugger_notification_type] = (conn, params) -> repl_startdebugger_request(conn, params, crashreporting_pipename)
         msg_dispatcher[repl_startdebugger_notification_type] = (conn, params) -> repl_startdebugger_request(conn, params, crashreporting_pipename)
         msg_dispatcher[repl_toggle_plot_pane_notification_type] = toggle_plot_pane
         msg_dispatcher[repl_toggle_diagnostics_notification_type] = toggle_diagnostics
@@ -122,6 +126,8 @@ function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractS
         msg_dispatcher[cd_notification_type] = cd_to_uri
         msg_dispatcher[activate_project_notification_type] = activate_uri
         msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request
+        msg_dispatcher[repl_gettabledata_request_type] = get_table_data
+        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
 
         @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
             msg = JSONRPC.get_next_message(conn_endpoint[])

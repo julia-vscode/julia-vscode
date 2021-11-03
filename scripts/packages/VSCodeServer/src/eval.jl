@@ -23,29 +23,22 @@ function run_with_backend(f, args...)
 end
 
 function start_eval_backend()
-    global EVAL_BACKEND_TASK[] = @async begin
-        Base.sigatomic_begin()
-        while true
-            try
-                f, args = take!(EVAL_CHANNEL_IN)
-                Base.sigatomic_end()
-                IS_BACKEND_WORKING[] = true
-                res = try
-                    Base.invokelatest(f, args...)
-                catch err
-                    @static if isdefined(Base, :catch_stack)
-                        EvalErrorStack(Base.catch_stack())
-                    else
-                        EvalError(err, catch_backtrace())
-                    end
-                end
-                IS_BACKEND_WORKING[] = false
-                Base.sigatomic_begin()
-                put!(EVAL_CHANNEL_OUT, wrap(res))
-            catch err
-                put!(EVAL_CHANNEL_OUT, wrap(err))
-            finally
-                IS_BACKEND_WORKING[] = false
+  global EVAL_BACKEND_TASK[] = @async begin
+    Base.sigatomic_begin()
+    while true
+      try
+        f, args = take!(EVAL_CHANNEL_IN)
+        Base.sigatomic_end()
+        IS_BACKEND_WORKING[] = true
+        res = try
+            Base.invokelatest(f, args...)
+        catch err
+            @static if isdefined(Base, :catch_stack) && !Base.isdeprecated(Base, :catch_stack)
+                EvalErrorStack(Base.catch_stack())
+            elseif isdefined(Base, :current_exceptions)
+                EvalErrorStack(Base.current_exceptions(current_task()))
+            else
+                EvalError(err, catch_backtrace())
             end
         end
         Base.sigatomic_end()
@@ -153,8 +146,10 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     global ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
                     @eval Main ans = Main.VSCodeServer.ans
                 catch err
-                    @static if isdefined(Base, :catch_stack)
+                    @static if isdefined(Base, :catch_stack) && !Base.isdeprecated(Base, :catch_stack)
                         EvalErrorStack(Base.catch_stack())
+                    elseif isdefined(Base, :current_exceptions)
+                        EvalErrorStack(Base.current_exceptions(current_task()))
                     else
                         EvalError(err, catch_backtrace())
                     end
