@@ -569,12 +569,12 @@
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
                 "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
+                "when": "editorTextFocus && editorLangId == julia || editorLangId == juliamarkdown && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
                 "key": "alt+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.interrupt",
@@ -584,7 +584,7 @@
             {
                 "command": "language-julia.executeCellAndMove",
                 "key": "shift+Enter",
-                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
+                "when": "editorTextFocus && editorLangId == julia || editorLangId == juliamarkdown && activeEditor != workbench.editor.notebook"
             },
             {
                 "command": "language-julia.clearCurrentInlineResult",
@@ -594,12 +594,12 @@
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
                 "key": "ctrl+I ctrl+C",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.chooseModule",
                 "key": "Alt+J Alt+M",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.startREPL",
@@ -612,17 +612,12 @@
             {
                 "command": "language-julia.changeCurrentEnvironment",
                 "key": "Alt+J Alt+E",
-                "when": "editorTextFocus && editorLangId == julia"
-            },
-            {
-                "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == juliamarkdown"
+                "when": "editorTextFocus && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.show-documentation",
                 "key": "alt+J alt+D",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.browse-back-documentation",
@@ -1007,7 +1002,7 @@
                     "type": "boolean",
                     "default": false,
                     "scope": "machine-overridable",
-                    "markdownDescription": "Experimental: Starts the interactive Julia session in a persistent `tmux` session. Note that `tmux` must be available in the shell defined below."
+                    "markdownDescription": "Experimental: Starts the interactive Julia session in a persistent `tmux` session. Note that `tmux` must be available in the shell defined below. If present the string `$[workspace]` will be replaced with the current file's workspace when the REPL is first opened."
                 },
                 "julia.persistentSession.shell": {
                     "type": "string",
