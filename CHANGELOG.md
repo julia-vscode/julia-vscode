@@ -14,9 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 * Allow customising precompile statements and execution files for system image building based on a `./.vscode/JuliaSysimage.toml` file inside the project root folder.
-* tmux session names can now include `$[workspace]` which will be replaced with
-  the name of the current file's workspace when the REPL is first opened. (This
-  allows for multiple persistent sessions across different VSCode windows). ([#2504](https://github.com/julia-vscode/julia-vscode/pull/2504))
+* tmux session names can now include `$[workspace]` which will be replaced with the name of the current file's workspace when the REPL is first opened. (This allows for multiple persistent sessions across different VSCode windows). ([#2504](https://github.com/julia-vscode/julia-vscode/pull/2504))
 * `vscodedisplay` now takes an additional `title` argument, which will be displayed in the tab title for tables ([#2415](https://github.com/julia-vscode/julia-vscode/pull/2415))
 
 ## [1.4.3] - 2021-09-15
@@ -42,7 +40,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * `executablePath` is now once again `machine-overridable` thanks to the introduction of *trusted workspaces* ([#2379](https://github.com/julia-vscode/julia-vscode/pull/2379))
-* Improved integrated table viewer by adding lazy loading for big tables and better defaults ([#2415](https://github.com/julia-vscode/julia-vscode/pull/2415))
 
 ### Fixed
 * Julia paths are now properly deduplicated ([#2428](https://github.com/julia-vscode/julia-vscode/pull/2428))
