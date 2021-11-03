@@ -6,12 +6,186 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
+* `InteractiveUtils` is now properly loaded in notebooks ([#2457](https://github.com/julia-vscode/julia-vscode/pull/2457))
+
+### Changed
+* system image building now excludes development packages (e.g. added by `dev`).
+
+### Added
+* Allow customising precompile statements and execution files for system image building based on a `./.vscode/JuliaSysimage.toml` file inside the project root folder.
+* tmux session names can now include `$[workspace]` which will be replaced with
+  the name of the current file's workspace when the REPL is first opened. (This
+  allows for multiple persistent sessions across different VSCode windows). ([#2504](https://github.com/julia-vscode/julia-vscode/pull/2504))
+
+## [1.4.3] - 2021-09-15
+### Changed
+* Cursor now changes to indicate that plots are zoomable/panable ([#2445](https://github.com/julia-vscode/julia-vscode/pull/2445))
+* Notebook metadata is now properly saved. We've therefore enabled the pure-Julia notebook provider by default and removed the `julia.notebookController` setting ([#2424](https://github.com/julia-vscode/julia-vscode/pull/2424))
+
+## [1.4.2] - 2021-09-10
+### Fixed
+* Vega and VegaLite plots are now zoomable/panable ([#2443](https://github.com/julia-vscode/julia-vscode/pull/2443))
+
+## [1.4.1] - 2021-09-10
+### Fixed
+* SVG output is now properly rendered in all cases ([2442](https://github.com/julia-vscode/julia-vscode/pull/2442))
+
+## [1.4.0] - 2021-09-08
+### Added
+* Export Plot(save/copy) buttons to plot pane([#2267](https://github.com/julia-vscode/julia-vscode/pull/2267))
+* Interactive(zoomable/pannable) Plots [#2273](https://github.com/julia-vscode/julia-vscode/pull/2273)
+* Add `executeInREPL` to exported API ([#2402](https://github.com/julia-vscode/julia-vscode/pull/2402))
+* Added a menu item for enabling/disabling the plot pane ([#2346](https://github.com/julia-vscode/julia-vscode/pull/2346))
+* Added support for the custom `application/vnd.julia-vscode.trace` MIME type to display custom runtime diagnostics (e.g. JET.jl output) in the editor ([#2329](https://github.com/julia-vscode/julia-vscode/pull/2329))
+
+### Changed
+* `executablePath` is now once again `machine-overridable` thanks to the introduction of *trusted workspaces* ([#2379](https://github.com/julia-vscode/julia-vscode/pull/2379))
+
+### Fixed
+* Julia paths are now properly deduplicated ([#2428](https://github.com/julia-vscode/julia-vscode/pull/2428))
+* The extension is now activated when Julia specific toolbar items are shown ([#2430](https://github.com/julia-vscode/julia-vscode/pull/2430))
+* The play button to run the current file now uses the editor content instead of the file content ([#2431](https://github.com/julia-vscode/julia-vscode/pull/2431))
+* Indentation will behave correctly when `end` appears in a for loop definition, e.g. `for i in nums[2:end]` ([#2459](https://github.com/julia-vscode/julia-vscode/pull/2459))
+
+## [1.3.34] - 2021-09-03
+### Changed
+* Improved error handling for finding the environment path ([#2408](https://github.com/julia-vscode/julia-vscode/pull/2408))
+* Limit supported file schemes ([#2410](https://github.com/julia-vscode/julia-vscode/pull/2410))
+* Inline evaluation of code blocks ending with a semicolon now don't produce any output ([#2409](https://github.com/julia-vscode/julia-vscode/pull/2409))
+* Revert the workaround from 1.3.30 and require VSCode v1.60.0 ([#2394](https://github.com/julia-vscode/julia-vscode/pull/2394))
+
+## [1.3.33] - 2021-08-26
+### Changed
+* Update vendored plotly to v2.3.1 ([#2376](https://github.com/julia-vscode/julia-vscode/pull/2376))
+* Reintroduced `getJuliaPath` to exported API ([#2399](https://github.com/julia-vscode/julia-vscode/pull/2399))
+
+### Fixed
+* Images in the plot pane are now correctly down-sized to fit the plot pane again ([#2362](https://github.com/julia-vscode/julia-vscode/pull/2362))
+
+## [1.3.32] - 2021-08-23
+### Fixed
+* Fixed more argument handling issues when starting Julia processes ([#2372](https://github.com/julia-vscode/julia-vscode/pull/2395))
+
+## [1.3.31] - 2021-08-23
+### Changed
+* Mention marketplace link in readme ([#2368](https://github.com/julia-vscode/julia-vscode/pull/2368))
+
+### Fixed
+* Resolved ambiguity in gridviewer code ([#2382](https://github.com/julia-vscode/julia-vscode/pull/2382))
+* Improved argument handling when starting Julia processes ([#2372](https://github.com/julia-vscode/julia-vscode/pull/2372))
+
+## [1.3.30] - 2021-08-15
+### Fixed
+* Work around an upstream error related to `stat`ing the executable in VSCode tasks ([#2371](https://github.com/julia-vscode/julia-vscode/pull/2371))
+
+## [1.3.29] - 2021-08-14
+### Fixed
+* Correctness fix for finding the Julia executable ([#2364](https://github.com/julia-vscode/julia-vscode/pull/2364))
+* Fix logic for "Open Settings" button in notifications ([#2354](https://github.com/julia-vscode/julia-vscode/pull/2354))
+* Reduced bundle size ([#2357](https://github.com/julia-vscode/julia-vscode/pull/2357))
+
+## [1.3.28] - 2021-08-06
+### Changed
+* Improved code for searching the Julia executable ([#2341](https://github.com/julia-vscode/julia-vscode/pull/2341))
+* Add Revise.jl support for notebook evaluation ([#2347](https://github.com/julia-vscode/julia-vscode/pull/2347))
+
+### Fixed
+* Notebook execution now correctly uses the same softscope transforms as in Jupyter or the REPL ([#2327](https://github.com/julia-vscode/julia-vscode/pull/2327))
+* Internal strict typing improvements ([#2342](https://github.com/julia-vscode/julia-vscode/pull/2342))
+
+## [1.3.27] - 2021-07-29
+### Changed
+* Improved notebook kernel selection strategy ([#2315](https://github.com/julia-vscode/julia-vscode/pull/2315))
+
+### Fixed
+* Notebook restart logic ([#2322](https://github.com/julia-vscode/julia-vscode/pull/2322))
+
+## [1.3.26] - 2021-07-27
+### Changed
+* Updated dependencies.
+
+## [1.3.23] - 2021-07-26
+### Fixed
+* REPL prompt hiding logic for inline execution is now more correct ([#2316](https://github.com/julia-vscode/julia-vscode/pull/2316))
+
+## [1.3.20] - 2021-07-25
+### Changed
+* Native notebook support is now hidden behind the `notebookController` setting because of upstream issues ([#2307](https://github.com/julia-vscode/julia-vscode/pull/2307))
+* Better labels for notebook kernels ([#2309](https://github.com/julia-vscode/julia-vscode/pull/2309))
+* Notebook cell output is now cleared during re-execution ([#2306](https://github.com/julia-vscode/julia-vscode/pull/2306))
+
+## [1.3.20] - 2021-07-23
+### Fixed
+* File path is now correctly set for notebooks ([#2305](https://github.com/julia-vscode/julia-vscode/pull/2305))
+
+## [1.3.18] - 2021-07-22
+### Changed
+* `display` calls that go to alternative displays (like the plot pane) are now more responsive ([#2301](https://github.com/julia-vscode/julia-vscode/pull/2301))
+* Download of SymbolServer cache files is now configurable ([#2298](https://github.com/julia-vscode/julia-vscode/pull/2298))
+* Improved error message when LS fails to start ([#2295](https://github.com/julia-vscode/julia-vscode/pull/2295))
+* Changed the default values of the `completionmode` and `execution.resultType` settings ([#2297](https://github.com/julia-vscode/julia-vscode/pull/2297))
+
+### Fixed
+* All logging messages now go to `stderr`, which fixes communication issues on some Julia 1.7 pre-release versions ([#2302](https://github.com/julia-vscode/julia-vscode/pull/2302))
+
+
+## [1.3.17] - 2021-07-17
+### Changed
+* Updated dependencies and required VSCode version to v1.58.1
+
+## [1.3.15] - 2021-07-17
+### Changed
+* Improve Julia notbeook kernel name ([#2275](https://github.com/julia-vscode/julia-vscode/pull/2275))
+
+## [1.3.14] - 2021-07-17
+### Added
+* Support for preferred kernels ([#2271](https://github.com/julia-vscode/julia-vscode/pull/2271))
+
+### Chaged
+* Notebook kernels are now reused after a notebook was closed ([#2257](https://github.com/julia-vscode/julia-vscode/pull/2257))
+* Improved notebook display logic ([#2260](https://github.com/julia-vscode/julia-vscode/pull/2260))
+* Rely on `os.homedir()` instead of custom ENV logic ([#2263](https://github.com/julia-vscode/julia-vscode/pull/2263))
+* Added broadcasting to the list of interpreted Base functions ([#2290](https://github.com/julia-vscode/julia-vscode/pull/2290))
+
+## [1.3.13] - 2021-07-01
+### Changed
+* Moved to GitHub actions for CI and release pipelines.
+
+## [1.3.2] - 2021-06-30
+### Fixed
 * Fixed REPL stacktraces file path links for Windows. Paths with tilda symbol now expand to the correct HOMEPATH. Paths with spaces are handled correctly ([#2261](https://github.com/julia-vscode/julia-vscode/pull/2261))
 
+## [1.3.0] - 2021-06-29
+### Added
+* Native notebook support ([#2217](https://github.com/julia-vscode/julia-vscode/pull/2217) and others)
+
+### Changed
+* Environment variables are now resolved in the `julia.environmentPath` and `julia.executablePath` settings ([#2153](https://github.com/julia-vscode/julia-vscode/pull/2153))
+
+### Fixed
+* Julia 1.6 paths on Windows are now correct ([#2251](https://github.com/julia-vscode/julia-vscode/pull/2251))
+* Fixed various packaging issues ([#2229](https://github.com/julia-vscode/julia-vscode/pull/2229))
+
+## [1.2.5] - 2021-06-18
+### Fixed
+* Compiled modules/mode/functions are now set properly in the out-of-process deubugger ([#2226](https://github.com/julia-vscode/julia-vscode/pull/2226))
+* Improved plot navigator robustness ([#2221](https://github.com/julia-vscode/julia-vscode/pull/2221))
+
+## [1.2.4] - 2021-06-09
+### Changed
+* Update various dependencies
+
+## [1.2.3] - 2021-06-07
+### Fixed
+* Various debugging related issues ([#39](https://github.com/julia-vscode/DebugAdapter.jl/pull/39), [#2190](https://github.com/julia-vscode/julia-vscode/pull/2190))
+* Plot assets are now correctly loaded ([#2200](https://github.com/julia-vscode/julia-vscode/pull/2200))
+
+## [1.2.2] - 2021-06-01
 ### Changed
 * `Julia: Connect external REPL` now gives feedback when connected ([#2182](https://github.com/julia-vscode/julia-vscode/pull/2182))
 
 ### Fixed
+* Tilde-expansion now properly works in terminal links ([#2185](https://github.com/julia-vscode/julia-vscode/pull/2185))
 * REPL hooks are now properly installed when connecting to already running processes ([#2182](https://github.com/julia-vscode/julia-vscode/pull/2182))
 * `tmux` integration and connecting to an external process now properly work on Windows ([#2182](https://github.com/julia-vscode/julia-vscode/pull/2182))
 

@@ -33,6 +33,9 @@ let g_watchedEnvironmentFile: string = null
 let g_startupNotification: vscode.StatusBarItem = null
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
 
+export let increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b(\s*|\s*#.*)$)|(?:[^\[]*\].*)$).*$/
+export let decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
+
 export async function activate(context: vscode.ExtensionContext) {
     if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
         vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
@@ -56,8 +59,8 @@ export async function activate(context: vscode.ExtensionContext) {
         // Language settings
         vscode.languages.setLanguageConfiguration('julia', {
             indentationRules: {
-                increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b[^\]]*)|(?:[^\[]*\].*)$).*$/,
-                decreaseIndentPattern: /^\s*(end|else|elseif|catch|finally)\b.*$/
+                increaseIndentPattern: increaseIndentPattern,
+                decreaseIndentPattern: decreaseIndentPattern
             }
         })
 
@@ -118,7 +121,7 @@ export async function activate(context: vscode.ExtensionContext) {
         )
 
         const api = {
-            version: 3,
+            version: 4,
             async getEnvironment() {
                 return await jlpkgenv.getAbsEnvPath()
             },
@@ -131,7 +134,8 @@ export async function activate(context: vscode.ExtensionContext) {
             },
             getPkgServer() {
                 return vscode.workspace.getConfiguration('julia').get('packageServer')
-            }
+            },
+            executeInREPL: repl.executeInREPL
         }
 
         return api
@@ -180,6 +184,17 @@ function changeConfig(event: vscode.ConfigurationChangeEvent) {
         restartLanguageServer()
     }
 }
+
+const supportedSchemes = [
+    'file',
+    'untitled',
+    'vscode-notebook-cell'
+]
+
+const supportedLanguages = [
+    'julia',
+    'juliamarkdown'
+]
 
 async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature) {
     g_startupNotification.text = 'Starting Julia Language Server…'
@@ -232,8 +247,19 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             debug: { command: juliaExecutable.file, args: [...juliaExecutable.args, ...serverArgsDebug], options: spawnOptions }
         }
 
+    const selector = []
+    for (const scheme of supportedSchemes) {
+        for (const language of supportedLanguages) {
+            selector.push({
+                language,
+                scheme
+            })
+        }
+    }
+
+
     const clientOptions: LanguageClientOptions = {
-        documentSelector: ['julia', 'juliamarkdown'],
+        documentSelector: selector,
         synchronize: {
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
         },

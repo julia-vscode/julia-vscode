@@ -72,18 +72,31 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                 '--startup-file=no',
                 '--history-file=no',
                 '-e',
-                'using Pkg; println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ? realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) : realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))',
+                `using Pkg;
+                try
+                    println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ?
+                        realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) :
+                        realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))
+                catch err
+                    println(stderr, err)
+                    println(false)
+                end`,
                 `${case_adjusted}`
             ]
         )
 
         if (res.stdout.toString().trim() === 'false') {
-            vscode.window.showInformationMessage('You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?', 'Change Julia environment')
-                .then(env_choice => {
-                    if (env_choice === 'Change Julia environment') {
-                        changeJuliaEnvironment()
-                    }
-                })
+            const err = res.stderr.toString().trim()
+            if (err) {
+                vscode.window.showWarningMessage(`Error while parsing your current environment: \n${err}`)
+            } else {
+                vscode.window.showInformationMessage('You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?', 'Change Julia environment')
+                    .then(env_choice => {
+                        if (env_choice === 'Change Julia environment') {
+                            changeJuliaEnvironment()
+                        }
+                    })
+            }
         }
     }
 

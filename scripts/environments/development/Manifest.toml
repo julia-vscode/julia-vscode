@@ -179,7 +179,7 @@ version = "1.4.1"
 deps = ["Libdl", "Pkg", "UUIDs"]
 path = "../../packages/PackageCompiler"
 uuid = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
-version = "1.3.0"
+version = "1.4.1"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]

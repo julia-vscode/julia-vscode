@@ -33,8 +33,10 @@ function start_eval_backend()
         res = try
             Base.invokelatest(f, args...)
         catch err
-            @static if isdefined(Base, :catch_stack)
+            @static if isdefined(Base, :catch_stack) && !Base.isdeprecated(Base, :catch_stack)
                 EvalErrorStack(Base.catch_stack())
+            elseif isdefined(Base, :current_exceptions)
+                EvalErrorStack(Base.current_exceptions(current_task()))
             else
                 EvalError(err, catch_backtrace())
             end
@@ -153,8 +155,10 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     global ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope=params.softscope)
                     @eval Main ans = Main.VSCodeServer.ans
                 catch err
-                    @static if isdefined(Base, :catch_stack)
+                    @static if isdefined(Base, :catch_stack) && !Base.isdeprecated(Base, :catch_stack)
                         EvalErrorStack(Base.catch_stack())
+                    elseif isdefined(Base, :current_exceptions)
+                        EvalErrorStack(Base.current_exceptions(current_task()))
                     else
                         EvalError(err, catch_backtrace())
                     end
@@ -176,13 +180,19 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     end
                 else
                     try
-                        Base.invokelatest(display, InlineDisplay(), res)
+                        if !ends_with_semicolon(source_code)
+                            Base.invokelatest(display, InlineDisplay(), res)
+                        end
                     catch err
-                        if !(err isa MethodError)
+                        if !(err isa MethodError && err.f === display)
                             printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
                             Base.display_error(stderr, err, catch_backtrace())
                         end
                     end
+                end
+
+                if !(res isa EvalError) && ends_with_semicolon(source_code)
+                    res = nothing
                 end
 
                 rendered_result = safe_render(res)
