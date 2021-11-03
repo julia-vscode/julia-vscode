@@ -14,6 +14,7 @@ import { switchEnvToPath } from '../jlpkgenv'
 import { JuliaExecutablesFeature } from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerCommand, setContext } from '../utils'
+import * as completions from './completions'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
@@ -546,11 +547,8 @@ async function getBlockRange(params: VersionedTextDocumentPositionParams) {
         vscode.window.showErrorMessage('No LS running or start. Check your settings.')
         return zeroReturn
     }
-
-    await g_languageClient.onReady()
-
     try {
-        return await g_languageClient.sendRequest('julia/getCurrentBlockRange', params)
+        return await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err.message)
@@ -973,7 +971,8 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
 }
 
 async function linkHandler(link: any) {
-    let { file, line } = link.data
+    let file = link.data.file
+    const line = link.data.line
 
     if (file.startsWith('.')) {
         // Base file
@@ -1130,4 +1129,5 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
     results.activate(context)
     plots.activate(context)
     modules.activate(context)
+    completions.activate(context)
 }
