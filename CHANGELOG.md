@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * `InteractiveUtils` is now properly loaded in notebooks ([#2457](https://github.com/julia-vscode/julia-vscode/pull/2457))
 
 ### Changed
+* system image building now excludes development packages (e.g. added by `dev`).
+
+### Added
+* Allow customising precompile statements and execution files for system image building based on a `./.vscode/JuliaSysimage.toml` file inside the project root folder.
 * tmux session names can now include `$[workspace]` which will be replaced with
   the name of the current file's workspace when the REPL is first opened. (This
   allows for multiple persistent sessions across different VSCode windows). ([#2504](https://github.com/julia-vscode/julia-vscode/pull/2504))
