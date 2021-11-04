@@ -23,22 +23,31 @@ function run_with_backend(f, args...)
 end
 
 function start_eval_backend()
-  global EVAL_BACKEND_TASK[] = @async begin
-    Base.sigatomic_begin()
-    while true
-      try
-        f, args = take!(EVAL_CHANNEL_IN)
-        Base.sigatomic_end()
-        IS_BACKEND_WORKING[] = true
-        res = try
-            Base.invokelatest(f, args...)
-        catch err
-            @static if isdefined(Base, :catch_stack) && !Base.isdeprecated(Base, :catch_stack)
-                EvalErrorStack(Base.catch_stack())
-            elseif isdefined(Base, :current_exceptions)
-                EvalErrorStack(Base.current_exceptions(current_task()))
-            else
-                EvalError(err, catch_backtrace())
+    global EVAL_BACKEND_TASK[] = @async begin
+        Base.sigatomic_begin()
+        while true
+            try
+                f, args = take!(EVAL_CHANNEL_IN)
+                Base.sigatomic_end()
+                IS_BACKEND_WORKING[] = true
+                res = try
+                    Base.invokelatest(f, args...)
+                catch err
+                    @static if isdefined(Base, :catch_stack) && !Base.isdeprecated(Base, :catch_stack)
+                        EvalErrorStack(Base.catch_stack())
+                    elseif isdefined(Base, :current_exceptions)
+                        EvalErrorStack(Base.current_exceptions(current_task()))
+                    else
+                        EvalError(err, catch_backtrace())
+                    end
+                end
+                IS_BACKEND_WORKING[] = false
+                Base.sigatomic_begin()
+                put!(EVAL_CHANNEL_OUT, wrap(res))
+            catch err
+                put!(EVAL_CHANNEL_OUT, wrap(err))
+            finally
+                IS_BACKEND_WORKING[] = false
             end
         end
         Base.sigatomic_end()
