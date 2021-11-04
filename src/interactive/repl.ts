@@ -4,6 +4,7 @@ import { assert } from 'console'
 import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
+import { exec } from 'promisify-child-process'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
@@ -201,12 +202,39 @@ async function connectREPL() {
     }
 }
 
-function killREPL() {
+async function killREPL() {
+    const config = vscode.workspace.getConfiguration('julia')
+    if (Boolean(config.get('persistentSession.enabled'))) {
+        vscode.window.showInformationMessage('This is a persistent tmux session. Do you want to close it?', 'Yes', 'No').then(async (ok) => {
+            try {
+                if (ok === 'Yes') {
+                    const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
+                    await exec(`tmux kill-session -t ${sessionName}`)
+                }
+            } catch (err) {
+                vscode.window.showErrorMessage('Failed to close tmux session.')
+            }
+        })
+    }
     if (isConnected()) {
         g_connection.end()
     }
     if (g_terminal) {
         g_terminal.dispose()
+    }
+}
+
+function disconnectREPL() {
+    const config = vscode.workspace.getConfiguration('julia')
+    if (Boolean(config.get('persistentSession.enabled'))) {
+        if (isConnected()) {
+            g_connection.end()
+        }
+        if (g_terminal) {
+            g_terminal.dispose()
+        }
+    } else {
+        vscode.window.showInformationMessage('Persistent sessions are not enabled.')
     }
 }
 
@@ -1101,6 +1129,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.startREPL', startREPLCommand),
         registerCommand('language-julia.connectREPL', connectREPL),
         registerCommand('language-julia.stopREPL', killREPL),
+        registerCommand('language-julia.disconnectREPL', disconnectREPL),
         registerCommand('language-julia.selectBlock', selectJuliaBlock),
         registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
         registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),

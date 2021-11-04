@@ -124,6 +124,10 @@
                 "title": "Julia: Stop REPL"
             },
             {
+                "command": "language-julia.disconnectREPL",
+                "title": "Julia: Disconnect external REPL"
+            },
+            {
                 "command": "language-julia.executeCodeBlockOrSelection",
                 "title": "Julia: Execute Code in REPL"
             },
