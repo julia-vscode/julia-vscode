@@ -6,14 +6,14 @@ function repl_startdebugger_request(conn, params::NamedTuple{(:debugPipename,),T
             socket = Sockets.connect(debug_pipename)
             try
                 DebugAdapter.startdebug(socket, function (err, bt)
-                    if is_disconnected_exception(err)
-                        @debug "connection closed"
-                    else
-                        printstyled(stderr, "Error while running the debugger", color=:red, bold=true)
-                        printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color=:red)
-                        Base.display_error(stderr, err, bt)
-                    end
-                end)
+                        if is_disconnected_exception(err)
+                            @debug "connection closed"
+                        else
+                            printstyled(stderr, "Error while running the debugger", color = :red, bold = true)
+                            printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color = :red)
+                            Base.display_error(stderr, err, bt)
+                        end
+                    end)
             finally
                 close(socket)
             end
@@ -24,7 +24,7 @@ function repl_startdebugger_request(conn, params::NamedTuple{(:debugPipename,),T
 end
 
 function remove_lln!(ex::Expr)
-    for i in length(ex.args):-1:1
+    for i = length(ex.args):-1:1
         if ex.args[i] isa LineNumberNode
             deleteat!(ex.args, i)
         elseif ex.args[i] isa Expr

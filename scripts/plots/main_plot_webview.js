@@ -1,8 +1,6 @@
 'use strict'
 
 const vscode = acquireVsCodeApi()
-let interval
-let g_svgPanZoomController
 
 function postMessageToHost(type, value) {
     if (type) {
@@ -16,7 +14,7 @@ function postMessageToHost(type, value) {
 function getPlotElement() {
     const plot_element = document.getElementById('plot-element')
     if (!plot_element) {
-        return document.getElementsByTagName('body')[0]
+        return document.body
     }
 
     const canvas = plot_element.getElementsByTagName('canvas')[0]
@@ -27,16 +25,21 @@ function getImage() {
     const plot = getPlotElement()
     const width = plot.offsetWidth
     const height = plot.offsetHeight
-
-    html2canvas(plot, { height, width }).then(
-        (canvas) => {
-            postMessageToHost('thumbnail', canvas.toDataURL('png'))
-            clearInterval(interval)
-        },
-        (reason) => {
-            console.error('Error in taking thumbnail: ', reason)
-        }
-    )
+    if (width > 0 && height > 0) {
+        html2canvas(plot, { height, width }).then(
+            (canvas) => {
+                postMessageToHost('thumbnail', canvas.toDataURL('png'))
+                if (interval) {
+                    clearInterval(interval)
+                }
+            },
+            (reason) => {
+                console.error('Error in generating thumbnail: ', reason)
+            }
+        )
+    } else {
+        console.error('Plot element has zero height or width. Cannot generate thumbnail.')
+    }
 }
 
 function isPlotly() {
@@ -47,26 +50,12 @@ function isSvgTag() {
     return document.querySelector('svg') !== null
 }
 
-/**
- *
- * @param {string} reqType
- * @returns
- */
-function isPlotZoomRequest(reqType) {
-    return [
-        REQUEST_ZOOM_IN_PLOT_TYPE,
-        REQUEST_ZOOM_RESET_PLOT_TYPE,
-        REQUEST_ZOOM_OUT_PLOT_TYPE,
-    ].some((t) => t === reqType)
-}
 
 const SAVE_PLOT_MESSAGE_TYPE = 'savePlot'
 const REQUEST_SAVE_PLOT_TYPE = 'requestSavePlot'
 const REQUEST_COPY_PLOT_TYPE = 'requestCopyPlot'
 const COPY_FAILED_MESSAGE_TYPE = 'copyFailed'
-const REQUEST_ZOOM_IN_PLOT_TYPE = 'requestZoomInPlot'
-const REQUEST_ZOOM_RESET_PLOT_TYPE = 'requestZoomResetPlot'
-const REQUEST_ZOOM_OUT_PLOT_TYPE = 'requestZoomOutPlot'
+const COPY_SUCCESS_MESSAGE_TYPE = 'copySuccess'
 
 /**
  * Fires when a plot export request(save/copy) is received, sends a message to the host with
@@ -110,6 +99,11 @@ function handlePlotCopyRequest() {
     const width = plot.offsetWidth
     const height = plot.offsetHeight
 
+    if (!document.hasFocus()) {
+        postMessageToHost(COPY_FAILED_MESSAGE_TYPE, 'Plot pane does not have focus.')
+        return
+    }
+
     if (isSvg) {
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
@@ -130,7 +124,11 @@ function handlePlotCopyRequest() {
                     new ClipboardItem({
                         [blob.type]: blob,
                     }),
-                ])
+                ]).then(() => {
+                    postMessageToHost(COPY_SUCCESS_MESSAGE_TYPE)
+                }).catch(err => {
+                    postMessageToHost(COPY_FAILED_MESSAGE_TYPE, err)
+                })
             })
         }
         image.src = url
@@ -142,37 +140,21 @@ function handlePlotCopyRequest() {
                         new ClipboardItem({
                             [blob.type]: blob,
                         }),
-                    ])
+                    ]).then(() => {
+                        postMessageToHost(COPY_SUCCESS_MESSAGE_TYPE)
+                    }).catch(err => {
+                        postMessageToHost(COPY_FAILED_MESSAGE_TYPE, err)
+                    })
                 })
             },
             (reason) => {
-                postMessageToHost(COPY_FAILED_MESSAGE_TYPE)
+                postMessageToHost(COPY_FAILED_MESSAGE_TYPE, reason)
                 console.error(new Error(reason))
             }
         )
     }
 }
 
-/**
- *
- * @param {number} index
- * @param { REQUEST_ZOOM_IN_PLOT_TYPE | REQUEST_ZOOM_RESET_PLOT_TYPE | REQUEST_ZOOM_OUT_PLOT_TYPE } reqType
- */
-function handlePlotZoomRequest(index, reqType) {
-    switch (reqType) {
-    case REQUEST_ZOOM_IN_PLOT_TYPE:
-        g_svgPanZoomController.zoomIn()
-        break
-    case REQUEST_ZOOM_RESET_PLOT_TYPE:
-        g_svgPanZoomController.reset()
-        break
-    case REQUEST_ZOOM_OUT_PLOT_TYPE:
-        g_svgPanZoomController.zoomOut()
-        break
-    default:
-        console.error(new Error('Unknown plot request!'))
-    }
-}
 
 /**
  * Remove Plotly builtin export button; it's nonfunctional in VSCode and can confuse users.
@@ -185,40 +167,62 @@ function removePlotlyBuiltinExport() {
     }
 }
 
-function initSvgPanZoom() {
-    const svgTag = document.querySelector('svg')
+function initPanZoom() {
+    if (panzoom) {
+        const plot = getPlotElement()
+        const instance = panzoom(plot, {
+            smoothScroll: false,
+            // disable keyboard event handling
+            filterKey() {
+                return true
+            },
+            beforeMouseDown(ev) {
+                return !ev.altKey
+            },
+            beforeWheel(ev) {
+                return !ev.altKey
+            }
+        })
+        const resetZoomAndPan = ev => {
+            if (ev && !ev.altKey) {
+                return
+            }
+            instance.moveTo(0, 0)
+            instance.zoomAbs(0, 0, 1)
+            if (ev) {
+                ev.stopPropagation()
+            }
+        }
+        plot.addEventListener('dblclick', ev => {
+            resetZoomAndPan(ev)
+            ev.stopPropagation()
+        })
+        document.addEventListener('dblclick', resetZoomAndPan)
+        document.body.addEventListener('dblclick', resetZoomAndPan)
 
-    g_svgPanZoomController = svgPanZoom(svgTag, {
-        panEnabled: true,
-        zoomEnabled: true,
-        dblClickZoomEnabled: true,
-        mouseWheelZoomEnabled: true,
-        preventMouseEventsDefault: true,
-        zoomScaleSensitivity: 0.2,
-        minZoom: 1,
-        maxZoom: 10,
-        fit: true,
-        center: true,
-        refreshRate: 'auto',
-    })
+        let isMove = false
+        document.body.addEventListener('keydown', ev => {
+            if (ev.altKey) {
+                isMove = true
+                plot.classList.add('pan-zoom')
+            }
+        })
+        document.body.addEventListener('keyup', ev => {
+            if (isMove) {
+                isMove = false
+                plot.classList.remove('pan-zoom')
+            }
+        })
+    }
 }
 
-window.addEventListener('load', getImage)
 window.addEventListener('load', () => {
     removePlotlyBuiltinExport()
-    if (!isPlotly()) {
-        initSvgPanZoom()
-    }
+    initPanZoom()
+    getImage()
 })
 
 window.addEventListener('message', ({ data }) => {
-    const { index } = data.body
-
-    if (isPlotZoomRequest(data.type)) {
-        handlePlotZoomRequest(index, data.type)
-        return
-    }
-
     switch (data.type) {
     case REQUEST_SAVE_PLOT_TYPE:
         handlePlotSaveRequest(data.body.index)
@@ -231,4 +235,4 @@ window.addEventListener('message', ({ data }) => {
     }
 })
 
-interval = setInterval(getImage, 1000)
+const interval = setInterval(getImage, 1000)
