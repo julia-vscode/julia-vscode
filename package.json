@@ -65,7 +65,11 @@
         "onNotebook:jupyter-notebook",
         "onView:julia-explorer.REPLVariables",
         "onView:julia-explorer.julia-documentation",
-        "onView:julia-explorer.julia-plot-navigator"
+        "onView:julia-explorer.julia-plot-navigator",
+        "workspaceContains:*.jl",
+        "workspaceContains:*/*.jl",
+        "workspaceContains:*/*/*.jl",
+        "workspaceContains:*/*/*/*.jl"
     ],
     "main": "./dist/extension",
     "contributes": {
@@ -1058,7 +1062,8 @@
                 {
                     "id": "julia-explorer",
                     "title": "Julia",
-                    "icon": "images/julia-dots-outline.svg"
+                    "icon": "images/julia-dots-outline.svg",
+                    "when": "julia.isActive"
                 }
             ]
         },
@@ -1067,24 +1072,28 @@
                 {
                     "type": "tree",
                     "id": "REPLVariables",
-                    "name": "Workspace"
+                    "name": "Workspace",
+                    "when": "julia.isActive"
                 },
                 {
                     "type": "webview",
                     "id": "julia-documentation",
-                    "name": "Documentation"
+                    "name": "Documentation",
+                    "when": "julia.isActive"
                 },
                 {
                     "type": "webview",
                     "id": "julia-plot-navigator",
-                    "name": "Plot Navigator"
+                    "name": "Plot Navigator",
+                    "when": "julia.isActive"
                 }
             ],
             "debug": [
                 {
                     "type": "tree",
                     "id": "debugger-compiled",
-                    "name": "Julia: Compiled Code"
+                    "name": "Julia: Compiled Code",
+                    "when": "julia.isActive"
                 }
             ]
         },
