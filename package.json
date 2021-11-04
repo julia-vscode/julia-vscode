@@ -577,7 +577,7 @@
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelection",
-                "key": "Meta+Enter",
+                "key": "Ctrl+Enter",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
@@ -602,7 +602,7 @@
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
-                "key": "ctrl+I ctrl+C",
+                "key": "Ctrl+I Ctrl+C",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
@@ -625,15 +625,15 @@
             },
             {
                 "command": "language-julia.show-documentation",
-                "key": "alt+J alt+D",
+                "key": "Alt+J Alt+D",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
-                "key": "alt+j alt+p",
+                "key": "Alt+J Alt+P",
                 "command": "language-julia.show-plotpane"
             },
             {
-                "key": "alt+j alt+w",
+                "key": "Alt+J Alt+W",
                 "command": "REPLVariables.focus"
             },
             {
@@ -642,7 +642,7 @@
                 "when": "editorTextFocus && juliaHasInlineResult && !editorHasSelection && !findWidgetVisible && !inSnippetMode && !isInEmbeddedEditor && !markerNavigationVisible && !onTypeRenameInputVisible && !parameterHintsVisible && !renameInputVisible && !suggestWidgetVisible && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
-                "key": "ctrl+shift+c",
+                "key": "Ctrl+Shift+C",
                 "command": "language-julia.interrupt",
                 "when": "isJuliaEvaluating"
             },
