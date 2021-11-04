@@ -25,40 +25,40 @@ include("../../JSON/src/JSON.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
 
 module IJuliaCore
-    using ..JSON
-    using Printf
-    import Base64
+using ..JSON
+using Printf
+import Base64
 
-    include("../../IJuliaCore/src/packagedef.jl")
+include("../../IJuliaCore/src/packagedef.jl")
 end
 
 module JSONRPC
-    import ..JSON
-    import UUIDs
+import ..JSON
+import UUIDs
 
-    include("../../JSONRPC/src/packagedef.jl")
+include("../../JSONRPC/src/packagedef.jl")
 end
 
 module JuliaInterpreter
-    using ..CodeTracking
+using ..CodeTracking
 
-    include("../../JuliaInterpreter/src/packagedef.jl")
+include("../../JuliaInterpreter/src/packagedef.jl")
 end
 
 module DebugAdapter
-    import ..JuliaInterpreter
-    import ..JSON
-    import ..JSONRPC
-    import ..JSONRPC: @dict_readable, Outbound
+import ..JuliaInterpreter
+import ..JSON
+import ..JSONRPC
+import ..JSONRPC: @dict_readable, Outbound
 
-    include("../../DebugAdapter/src/packagedef.jl")
+include("../../DebugAdapter/src/packagedef.jl")
 end
 
 module ChromeProfileFormat
-    import ..JSON
-    import Profile
+import ..JSON
+import Profile
 
-    include("../../ChromeProfileFormat/src/core.jl")
+include("../../ChromeProfileFormat/src/core.jl")
 end
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
@@ -91,7 +91,7 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     end
 end
 
-function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractString,Nothing} = nothing)
     if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
         hook_repl(Base.active_repl)
     end

@@ -84,7 +84,7 @@ const DISPLAYABLE_MIMES = [
     # "text/html",
     "image/svg+xml",
     "image/png",
-    "image/gif"
+    "image/gif",
 ]
 
 """
