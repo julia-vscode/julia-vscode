@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Improved tmux session handling: `Julia: Stop REPL` now shows a prompt for closing the tmux session; also added a `Julia: Disconnect external REPL` command ([#2532](https://github.com/julia-vscode/julia-vscode/pull/2532))
 * Julia keybindings now work properly in Weave files ([#2467](https://github.com/julia-vscode/julia-vscode/pull/2467))
 * Plot pane interaction now requires the user to hold Alt/Option to avoid conflicts in plot's own mouse event handling ([#2450](https://github.com/julia-vscode/julia-vscode/pull/2450))
+* Changed default keybindings for inline/cell evaluation to more closely match the notebook experience ([#2296](https://github.com/julia-vscode/julia-vscode/pull/2296))
 
 ### Added
 * Allow customising precompile statements and execution files for system image building based on a `./.vscode/JuliaSysimage.toml` file inside the project root folder ([#2488](https://github.com/julia-vscode/julia-vscode/pull/2488)).
