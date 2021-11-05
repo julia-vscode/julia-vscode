@@ -158,7 +158,7 @@ export class Result {
 
         for (const change of e.contentChanges) {
             const intersect = change.range.intersection(this.range)
-            if (intersect !== undefined && !(intersect.isEmpty && change.text === '\n')) {
+            if (intersect !== undefined && !(intersect.isEmpty && change.text === '\n' || change.text === '\r\n' || change.text === '')) {
                 return false
             }
 
