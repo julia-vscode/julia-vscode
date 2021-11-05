@@ -199,3 +199,6 @@ end
 
 vscodedisplay(x, title::AbstractString = "") = internal_vscodedisplay(x, title)
 vscodedisplay(title::AbstractString) = i -> vscodedisplay(i, title)
+macro vscodedisplay(x)
+    :(vscodedisplay($(esc(x)), $(string(x))))
+end
