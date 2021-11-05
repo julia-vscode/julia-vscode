@@ -198,8 +198,9 @@ const supportedLanguages = [
 ]
 
 async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature) {
-    g_startupNotification.text = 'Starting Julia Language Server…'
+    g_startupNotification.text = 'Julia: Starting Language Server…'
     g_startupNotification.show()
+
 
     let jlEnvPath = ''
     try {
@@ -356,7 +357,13 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
 function refreshLanguageServer(languageClient: LanguageClient = g_languageClient) {
     if (!languageClient) { return }
-    languageClient.sendNotification('julia/refreshLanguageServer')
+    try {
+        languageClient.sendNotification('julia/refreshLanguageServer')
+    } catch (err) {
+        vscode.window.showErrorMessage('Failed to refresh the language server cache.', {
+            detail: err
+        })
+    }
 }
 
 function restartLanguageServer(languageClient: LanguageClient = g_languageClient) {

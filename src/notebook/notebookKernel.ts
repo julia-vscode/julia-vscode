@@ -242,7 +242,6 @@ export class JuliaKernel {
                 ...this.juliaExecutable.args,
                 '--color=yes',
                 `--project=${pkgenvpath}`,
-                '--startup-file=no',
                 '--history-file=no',
                 path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
                 pn,

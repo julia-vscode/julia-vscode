@@ -391,7 +391,7 @@ async function updateProgress(progress: Progress) {
 function progressMessage(prog: Progress, started = null) {
     let message = prog.name
     const parenthezise = message.trim().length > 0
-    if (!isNaN(prog.fraction) && 0 <= prog.fraction && prog.fraction <= 1) {
+    if (isFinite(prog.fraction) && 0 <= prog.fraction && prog.fraction <= 1) {
         if (parenthezise) {
             message += ' ('
         }
@@ -399,7 +399,9 @@ function progressMessage(prog: Progress, started = null) {
         if (started !== null) {
             const elapsed = ((new Date()).valueOf() - started) / 1000
             const remaining = (1 / prog.fraction - 1) * elapsed
-            message += ` - ${formattedTimePeriod(remaining)} remaining`
+            if (isFinite(remaining)) {
+                message += ` - ${formattedTimePeriod(remaining)} remaining`
+            }
         }
         if (parenthezise) {
             message += ')'
