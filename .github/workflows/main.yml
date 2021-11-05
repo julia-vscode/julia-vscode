@@ -196,7 +196,7 @@ jobs:
         env:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
-          sudo npm install -g vsce
+          npm install -g vsce
           vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
 
   deployInsiderOVSXMarketplace:
@@ -241,7 +241,7 @@ jobs:
         env:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
-          sudo npm install -g vsce
+          npm install -g vsce
           vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
 
   deployReleaseOVSXMarketplace:
