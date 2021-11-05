@@ -1,6 +1,6 @@
 module VSCodeServer
 
-export vscodedisplay, @enter, @run
+export vscodedisplay, @vscodedisplay, @enter, @run
 export view_profile, @profview
 
 using REPL, Sockets, Base64, Pkg, UUIDs, Dates, Profile
