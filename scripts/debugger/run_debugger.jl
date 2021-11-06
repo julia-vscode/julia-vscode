@@ -6,4 +6,6 @@ popfirst!(LOAD_PATH)
 
 Base.load_julia_startup()
 
+printstyled("> Debugging...\n\n", bold = true)
+
 VSCodeDebugger.startdebugger()
