@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Julia keybindings now work properly in Weave files ([#2467](https://github.com/julia-vscode/julia-vscode/pull/2467))
 * Plot pane interaction now requires the user to hold Alt/Option to avoid conflicts in plot's own mouse event handling ([#2450](https://github.com/julia-vscode/julia-vscode/pull/2450))
 * Changed default keybindings for inline/cell evaluation to more closely match the notebook experience ([#2296](https://github.com/julia-vscode/julia-vscode/pull/2296))
+* Code formatting is now powered by the excellent [JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl), which should be much more reliable and configurable than the previous formatter ([#2335](https://github.com/julia-vscode/julia-vscode/pull/2334), [#972](https://github.com/julia-vscode/LanguageServer.jl/pull/972))
 
 ### Added
 * Allow customising precompile statements and execution files for system image building based on a `./.vscode/JuliaSysimage.toml` file inside the project root folder ([#2488](https://github.com/julia-vscode/julia-vscode/pull/2488)).
