@@ -105,8 +105,7 @@ export async function init(context: vscode.ExtensionContext) {
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
     if (name.startsWith('LSPrecompileFailure')) {
-        vscode.window.showErrorMessage(`The Julia Language Server failed to precompile.
-        We've received a crash report about this, but please check the FAQ and the local output.`, 'Open FAQ', 'Open Logs').then(choice => {
+        vscode.window.showErrorMessage('The Julia Language Server failed to precompile. Please check the FAQ and the local output.', 'Open FAQ', 'Open Logs').then(choice => {
             if (choice === 'Open Logs') {
                 vscode.commands.executeCommand('language-julia.showLanguageServerOutput')
             } else if (choice === 'Open FAQ') {
