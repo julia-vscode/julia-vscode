@@ -618,7 +618,7 @@ function isCellBorder(s: string, isStart: boolean, isJmd: boolean) {
     return g_cellDelimiters.some(regex => regex.test(s))
 }
 
-function _nextCellBorder(doc, line: number, direction: number, isStart: boolean, isJmd: boolean) {
+function _nextCellBorder(doc: vscode.TextDocument, line: number, direction: number, isStart: boolean, isJmd: boolean) {
     assert(direction === 1 || direction === -1)
     while (0 <= line && line < doc.lineCount) {
         if (isCellBorder(doc.lineAt(line).text, isStart, isJmd)) {
@@ -1140,7 +1140,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.moveCellUp', moveCellUp),
         registerCommand('language-julia.moveCellDown', moveCellDown),
         registerCommand('language-julia.executeActiveFile', () => executeFile()),
-        registerCommand('language-julia.executeFile', executeFile),
+        registerCommand('language-julia.executeFile', uri => executeFile(uri)),
         registerCommand('language-julia.interrupt', interrupt),
         registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
         registerCommand('language-julia.cdHere', cdToHere),

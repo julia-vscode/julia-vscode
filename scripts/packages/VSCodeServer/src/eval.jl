@@ -96,6 +96,29 @@ function add_code_to_repl_history(code)
     end
 end
 
+is_jmd(file) = splitext(file)[2] == ".jmd" # this is very conservative (unnamed files could also be jmd's)
+function de_jmdify(code)
+    io = IOBuffer()
+    in_jl = false
+    for line in eachline(IOBuffer(code))
+        if occursin(r"^```julia", line)
+            in_jl = true
+            continue
+        end
+        if in_jl
+            # possible that this is too early, but eh...
+            if occursin(r"^```", line)
+                in_jl = false
+                continue
+            end
+            println(io, line)
+        else
+            println(io)
+        end
+    end
+    return String(take!(io))
+end
+
 ans = nothing
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
     return run_with_backend() do
@@ -106,6 +129,10 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
         code_column = params.column
         source_code = params.code
         mod = params.mod
+
+        if is_jmd(source_filename)
+            source_code = de_jmdify(source_code)
+        end
 
         resolved_mod = try
             module_from_string(mod)
