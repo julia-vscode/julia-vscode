@@ -37,7 +37,7 @@ try
     elseif Base.ARGS[7] == "--detached=no"
         false
     else
-        error("Invalid argumentpassed.")
+        error("Invalid argument passed.")
     end
 
     if debug_mode
@@ -59,6 +59,11 @@ try
         using LanguageServer, SymbolServer
     catch err
         if err isa ErrorException && startswith(err.msg, "Failed to precompile")
+            println(stderr, """\n
+            The Language Server failed to precompile.
+            Please make sure you have permissions to write to the LS depot path at
+            \t$(ENV["JULIA_DEPOT_PATH"])
+            """)
             throw(LSPrecompileFailure(err.msg))
         else
             rethrow(err)
