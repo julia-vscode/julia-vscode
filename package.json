@@ -885,6 +885,12 @@
                     "description": "Download symbol server cache files from GitHub.",
                     "scope": "application"
                 },
+                "julia.symbolserverUpstream": {
+                    "type": "string",
+                    "default": "https://www.julia-vscode.org/symbolcache",
+                    "description": "Symbol server cache download URL.",
+                    "scope": "application"
+                },
                 "julia.NumThreads": {
                     "type": [
                         "integer",
