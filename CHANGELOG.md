@@ -51,6 +51,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Quickaction for removing unused function argument names ([#981](https://github.com/julia-vscode/LanguageServer.jl/pull/981))
 * Some runtime-based auto-completions are provided (e.g. for field names and indexing) ([#1507](https://github.com/julia-vscode/julia-vscode/pull/1507))
 
+### Changed
+* The plot pane now prefers png over svg plots for performance reasons ([#2475](https://github.com/julia-vscode/julia-vscode/pull/2475))
+
 ## [1.4.3] - 2021-09-15
 ### Changed
 * Cursor now changes to indicate that plots are zoomable/panable ([#2445](https://github.com/julia-vscode/julia-vscode/pull/2445))
