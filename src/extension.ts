@@ -218,13 +218,14 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     const storagePath = g_context.globalStorageUri.fsPath
     const useSymserverDownloads = vscode.workspace.getConfiguration('julia').get('symbolCacheDownload') ? 'download' : 'local'
+    const symserverUpstream = vscode.workspace.getConfiguration('julia').get<string>('symbolserverUpstream')
 
     const languageServerDepotPath = path.join(storagePath, 'lsdepot', 'v1')
     await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
     const envForLSPath = path.join(g_context.extensionPath, 'scripts', 'environments', 'languageserver')
-    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, '--detached=no']
-    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, '--detached=no']
+    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
+    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
