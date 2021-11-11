@@ -5,8 +5,21 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.5.4] - 2021-11-11
+### Changed
+* The plot pane now prefers png over svg plots for performance reasons ([#2475](https://github.com/julia-vscode/julia-vscode/pull/2475))
+
+## [1.5.3] - 2021-11-11
 ### Fixed
 * `Execute File` now works properly for Weave files ([#2540](https://github.com/julia-vscode/julia-vscode/pull/2540))
+* `"`s are now correctly escaped in the Julia command ([#2546](https://github.com/julia-vscode/julia-vscode/pull/2546))
+
+### Changed
+* Improved messaging around LS startup failures ([#2542](https://github.com/julia-vscode/julia-vscode/pull/2542))
+* Added a setting for the symbol cache server ([#2547](https://github.com/julia-vscode/julia-vscode/pull/2547))
+* Improvements to SymbolServer cache and download responsiveness and performance ([#243](https://github.com/julia-vscode/SymbolServer.jl/pull/243), [#244](https://github.com/julia-vscode/SymbolServer.jl/pull/244))
+
 
 ## [1.5.2] - 2021-11-06
 ### Changed
@@ -50,9 +63,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * `@vscodedisplay` will automatically put the input expression as the table viewer tab title ([#2533](https://github.com/julia-vscode/julia-vscode/pull/2533))
 * Quickaction for removing unused function argument names ([#981](https://github.com/julia-vscode/LanguageServer.jl/pull/981))
 * Some runtime-based auto-completions are provided (e.g. for field names and indexing) ([#1507](https://github.com/julia-vscode/julia-vscode/pull/1507))
-
-### Changed
-* The plot pane now prefers png over svg plots for performance reasons ([#2475](https://github.com/julia-vscode/julia-vscode/pull/2475))
 
 ## [1.4.3] - 2021-09-15
 ### Changed
