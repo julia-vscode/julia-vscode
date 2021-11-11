@@ -2,6 +2,8 @@ if VERSION < v"1.0.0"
     error("VS Code julia language server only works with julia 1.0.0+")
 end
 
+@debug "Julia started at $(round(Int, time()))"
+
 using Logging
 global_logger(ConsoleLogger(stderr))
 
@@ -70,6 +72,8 @@ try
         end
     end
 
+    @debug "LanguageServer.jl loaded at $(round(Int, time()))"
+
     symserver_store_path = joinpath(ARGS[5], "symbolstorev5")
 
     if !ispath(symserver_store_path)
@@ -88,6 +92,7 @@ try
         ARGS[6] == "download",
         Base.ARGS[7]
     )
+    @info "Starting LS at $(round(Int, time()))"
     run(server)
 catch err
     global_err_handler(err, catch_backtrace(), Base.ARGS[3], "Language Server")
