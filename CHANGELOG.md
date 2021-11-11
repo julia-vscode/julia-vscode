@@ -6,7 +6,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
+* `Execute File` now works properly for Weave files ([#2540](https://github.com/julia-vscode/julia-vscode/pull/2540))
+
+## [1.5.2] - 2021-11-06
+### Changed
+* Debugging or running a file in a new process now uses only one terminal ([#2539](https://github.com/julia-vscode/julia-vscode/pull/2539))
+
+## [1.5.0] - 2021-11-05
+### Fixed
 * `InteractiveUtils` is now properly loaded in notebooks ([#2457](https://github.com/julia-vscode/julia-vscode/pull/2457))
+* Runtime diagnostics are now displayed in the REPL in some circumstances ([#2536](https://github.com/julia-vscode/julia-vscode/pull/2536))
+* Progress ETA will no longer show NaN or Inf sometimes ([#2536](https://github.com/julia-vscode/julia-vscode/pull/2536))
+* Notebook kernels now load the user's startup.jl ([#2536](https://github.com/julia-vscode/julia-vscode/pull/2536))
+* `JULIA_NUM_THREADS` and `JULIA_EDITOR` are now correctly set for existing tmux sessions ([#2534](https://github.com/julia-vscode/julia-vscode/pull/2534))
+* Inline results now behave properly with CRLF linendings and aren't as easily invalidated by unrelated changes ([#2535](https://github.com/julia-vscode/julia-vscode/pull/2535))
+* The error message as now once again properly displayed in notebooks ([#2509](https://github.com/julia-vscode/julia-vscode/pull/2509))
+* Fixed various parser issues ([#313](https://github.com/julia-vscode/CSTParser.jl/pull/313), [#315](https://github.com/julia-vscode/CSTParser.jl/pull/315))
+* Fixed an erroneous method call error annotation ([#307](https://github.com/julia-vscode/StaticLint.jl/pull/307))
+* Fixed a stack overflow in the linter ([#308](https://github.com/julia-vscode/StaticLint.jl/pull/308))
+* Fixed a method error in the auto-completion code ([#983](https://github.com/julia-vscode/LanguageServer.jl/pull/983))
+* Functors are now correctly displayed in the outline ([#990](https://github.com/julia-vscode/LanguageServer.jl/pull/990), [#995](https://github.com/julia-vscode/LanguageServer.jl/pull/995))
+* Fixed an issue with runtime diagnostics crashing the language server ([#996](https://github.com/julia-vscode/LanguageServer.jl/pull/996))
+* Various fixes related to inline evaluation ([#2467](https://github.com/julia-vscode/julia-vscode/pull/2467))
+* Improved auto-indentation behaviour ([#2459](https://github.com/julia-vscode/julia-vscode/pull/2459))
+
+### Changed
+* Improved table viewer UX; added filtering and sorting as well as asynchronous loading of big tables ([#2415](https://github.com/julia-vscode/julia-vscode/pull/2415))
+* System image building now excludes development packages (e.g. added by `dev`) ([#2488](https://github.com/julia-vscode/julia-vscode/pull/2488)).
+* Extension views are now hidden until the extension is activated ([#2530](https://github.com/julia-vscode/julia-vscode/pull/2530))
+* Reduced invalidation in CSTParser.jl, which might improve performance ([#312](https://github.com/julia-vscode/CSTParser.jl/pull/312))
+* Majorly improvements to symbol cache loading performance and responsiveness ([#240](https://github.com/julia-vscode/SymbolServer.jl/pull/240), [#241](https://github.com/julia-vscode/SymbolServer.jl/pull/241))
+* Language server initialization is now reported much more granularly ([#994](https://github.com/julia-vscode/LanguageServer.jl/pull/994))
+* Improved tmux session handling: `Julia: Stop REPL` now shows a prompt for closing the tmux session; also added a `Julia: Disconnect external REPL` command ([#2532](https://github.com/julia-vscode/julia-vscode/pull/2532))
+* Julia keybindings now work properly in Weave files ([#2467](https://github.com/julia-vscode/julia-vscode/pull/2467))
+* Plot pane interaction now requires the user to hold Alt/Option to avoid conflicts in plot's own mouse event handling ([#2450](https://github.com/julia-vscode/julia-vscode/pull/2450))
+* Changed default keybindings for inline/cell evaluation to more closely match the notebook experience ([#2296](https://github.com/julia-vscode/julia-vscode/pull/2296))
+* Code formatting is now powered by the excellent [JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl), which should be much more reliable and configurable than the previous formatter ([#2335](https://github.com/julia-vscode/julia-vscode/pull/2334), [#972](https://github.com/julia-vscode/LanguageServer.jl/pull/972))
+
+### Added
+* Allow customising precompile statements and execution files for system image building based on a `./.vscode/JuliaSysimage.toml` file inside the project root folder ([#2488](https://github.com/julia-vscode/julia-vscode/pull/2488)).
+* tmux session names can now include `$[workspace]` which will be replaced with the name of the current file's workspace when the REPL is first opened. (This allows for multiple persistent sessions across different VSCode windows). ([#2504](https://github.com/julia-vscode/julia-vscode/pull/2504))
+* `vscodedisplay` now takes an additional `title` argument, which will be displayed in the tab title for tables ([#2415](https://github.com/julia-vscode/julia-vscode/pull/2415))
+* `@vscodedisplay` will automatically put the input expression as the table viewer tab title ([#2533](https://github.com/julia-vscode/julia-vscode/pull/2533))
+* Quickaction for removing unused function argument names ([#981](https://github.com/julia-vscode/LanguageServer.jl/pull/981))
+* Some runtime-based auto-completions are provided (e.g. for field names and indexing) ([#1507](https://github.com/julia-vscode/julia-vscode/pull/1507))
 
 ### Changed
 * The plot pane now prefers png over svg plots for performance reasons ([#2475](https://github.com/julia-vscode/julia-vscode/pull/2475))
@@ -39,6 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Julia paths are now properly deduplicated ([#2428](https://github.com/julia-vscode/julia-vscode/pull/2428))
 * The extension is now activated when Julia specific toolbar items are shown ([#2430](https://github.com/julia-vscode/julia-vscode/pull/2430))
 * The play button to run the current file now uses the editor content instead of the file content ([#2431](https://github.com/julia-vscode/julia-vscode/pull/2431))
+* Indentation will behave correctly when `end` appears in a for loop definition, e.g. `for i in nums[2:end]` ([#2459](https://github.com/julia-vscode/julia-vscode/pull/2459))
 
 ## [1.3.34] - 2021-09-03
 ### Changed

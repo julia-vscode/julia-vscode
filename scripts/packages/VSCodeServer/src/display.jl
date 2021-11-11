@@ -84,7 +84,7 @@ const DISPLAYABLE_MIMES = [
     # "text/html",
     "image/png",
     "image/svg+xml",
-    "image/gif"
+    "image/gif",
 ]
 
 """
@@ -122,13 +122,7 @@ const DIAGNOSTIC_MIME = "application/vnd.julia-vscode.diagnostics"
 Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(DIAGNOSTIC_MIME)}) = DIAGNOSTICS_ENABLED[]
 Base.Multimedia.display(::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIME)}, diagnostics) = sendDisplayMsg(DIAGNOSTIC_MIME, show(IOBuffer(), m, diagnostics))
 
-function can_display(x)
-    for mime in DISPLAYABLE_MIMES
-        if showable(mime, x)
-            return true
-        end
-    end
-
+function is_table_like(x)
     if showable("application/vnd.dataresource+json", x)
         return true
     end
@@ -140,6 +134,16 @@ function can_display(x)
     end
 
     return false
+end
+
+function can_display(x)
+    for mime in DISPLAYABLE_MIMES
+        if showable(mime, x)
+            return true
+        end
+    end
+
+    return is_table_like(x)
 end
 
 function Base.display(d::InlineDisplay, x)
@@ -175,72 +179,26 @@ function _display(d::InlineDisplay, x)
     end
 end
 
-const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
-const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
-
-global _isiterabletable = i -> false
-global _getiterator = i -> i
-
-function pkgload(pkg)
-    if pkg.uuid == tabletraits_uuid
-        x = Base.require(pkg)
-
-        global _isiterabletable = x.isiterabletable
-        global _getiterator = x.getiterator
-    elseif pkg.uuid == datavalues_uuid
-        x = Base.require(pkg)
-
-        eval(
-            quote
-            function JSON_print_escaped(io, val::$(x.DataValue))
-                $(x.isna)(val) ? print(io, "null") : JSON_print_escaped(io, val[])
-            end
-
-            julia_type_to_schema_type(::Type{T}) where {S,T <: $(x.DataValue){S}} = julia_type_to_schema_type(S)
-        end
-        )
-    end
-end
-
 function repl_showingrid_notification(conn, params::NamedTuple{(:code,),Tuple{String}})
     try
         var = Base.invokelatest(Base.include_string, Main, params.code)
 
-        Base.invokelatest(internal_vscodedisplay, var)
+        Base.invokelatest(internal_vscodedisplay, var, params.code)
     catch err
         Base.display_error(err, catch_backtrace())
     end
 end
 
-function internal_vscodedisplay(x)
-    if showable("application/vnd.dataresource+json", x)
-        _display(InlineDisplay(), x)
-    elseif _isiterabletable(x) === true
-        buffer = IOBuffer()
-        io = IOContext(buffer, :compact => true)
-        printdataresource(io, _getiterator(x))
-        buffer_asstring = CachedDataResourceString(String(take!(buffer)))
-        _display(InlineDisplay(), buffer_asstring)
-    elseif _isiterabletable(x) === missing
-        try
-            buffer = IOBuffer()
-            io = IOContext(buffer, :compact => true)
-            printdataresource(io, _getiterator(x))
-            buffer_asstring = CachedDataResourceString(String(take!(buffer)))
-            _display(InlineDisplay(), buffer_asstring)
-        catch err
-            _display(InlineDisplay(), x)
-        end
-    elseif x isa AbstractVector || x isa AbstractMatrix
-        buffer = IOBuffer()
-        io = IOContext(buffer, :compact => true)
-        print_array_as_dataresource(io, _getiterator(x))
-        buffer_asstring = CachedDataResourceString(String(take!(buffer)))
-        _display(InlineDisplay(), buffer_asstring)
+function internal_vscodedisplay(x, title::AbstractString = "")
+    if is_table_like(x)
+        showtable(x, title)
     else
         _display(InlineDisplay(), x)
     end
 end
 
-vscodedisplay(x) = internal_vscodedisplay(x)
-vscodedisplay() = i -> vscodedisplay(i)
+vscodedisplay(x, title::AbstractString = "") = internal_vscodedisplay(x, title)
+vscodedisplay(title::AbstractString) = i -> vscodedisplay(i, title)
+macro vscodedisplay(x)
+    :(vscodedisplay($(esc(x)), $(string(x))))
+end

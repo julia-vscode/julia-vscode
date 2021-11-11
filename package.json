@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.4.3",
+    "version": "1.5.3",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -65,7 +65,11 @@
         "onNotebook:jupyter-notebook",
         "onView:julia-explorer.REPLVariables",
         "onView:julia-explorer.julia-documentation",
-        "onView:julia-explorer.julia-plot-navigator"
+        "onView:julia-explorer.julia-plot-navigator",
+        "workspaceContains:*.jl",
+        "workspaceContains:*/*.jl",
+        "workspaceContains:*/*/*.jl",
+        "workspaceContains:*/*/*/*.jl"
     ],
     "main": "./dist/extension",
     "contributes": {
@@ -118,6 +122,10 @@
             {
                 "command": "language-julia.stopREPL",
                 "title": "Julia: Stop REPL"
+            },
+            {
+                "command": "language-julia.disconnectREPL",
+                "title": "Julia: Disconnect external REPL"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelection",
@@ -257,7 +265,7 @@
             {
                 "command": "language-julia.showInVSCode",
                 "title": "Open in VS Code",
-                "icon": "$(open-preview)"
+                "icon": "$(preview)"
             },
             {
                 "command": "language-julia.clearAllInlineResults",
@@ -567,14 +575,24 @@
         },
         "keybindings": [
             {
-                "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+Enter",
+                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
+                "key": "Shift+Enter",
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+            },
+            {
+                "command": "language-julia.executeCodeBlockOrSelection",
+                "key": "Ctrl+Enter",
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+            },
+            {
+                "command": "language-julia.executeCell",
+                "key": "Alt+Enter",
                 "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
             },
             {
-                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
-                "key": "alt+Enter",
-                "when": "editorTextFocus && editorLangId == julia"
+                "command": "language-julia.executeCellAndMove",
+                "key": "Alt+Shift+Enter",
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.interrupt",
@@ -582,24 +600,19 @@
                 "when": "terminalFocus && isJuliaREPL && isJuliaEvaluating"
             },
             {
-                "command": "language-julia.executeCellAndMove",
-                "key": "shift+Enter",
-                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
-            },
-            {
                 "command": "language-julia.clearCurrentInlineResult",
-                "key": "Ctrl+I Ctrl+D",
+                "key": "Escape",
                 "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && juliaHasInlineResult"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
-                "key": "ctrl+I ctrl+C",
-                "when": "editorTextFocus && editorLangId == julia"
+                "key": "Ctrl+I Ctrl+C",
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.chooseModule",
                 "key": "Alt+J Alt+M",
-                "when": "editorTextFocus && editorLangId == julia"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.startREPL",
@@ -612,17 +625,30 @@
             {
                 "command": "language-julia.changeCurrentEnvironment",
                 "key": "Alt+J Alt+E",
-                "when": "editorTextFocus && editorLangId == julia"
-            },
-            {
-                "command": "language-julia.executeJuliaCodeInREPL",
-                "key": "ctrl+Enter",
-                "when": "editorTextFocus && editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.show-documentation",
-                "key": "alt+J alt+D",
-                "when": "editorTextFocus && editorLangId == julia"
+                "key": "Alt+J Alt+D",
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+            },
+            {
+                "key": "Alt+J Alt+P",
+                "command": "language-julia.show-plotpane"
+            },
+            {
+                "key": "Alt+J Alt+W",
+                "command": "REPLVariables.focus"
+            },
+            {
+                "key": "escape",
+                "command": "language-julia.clearCurrentInlineResult",
+                "when": "editorTextFocus && juliaHasInlineResult && !editorHasSelection && !findWidgetVisible && !inSnippetMode && !isInEmbeddedEditor && !markerNavigationVisible && !onTypeRenameInputVisible && !parameterHintsVisible && !renameInputVisible && !suggestWidgetVisible && editorLangId == julia || editorLangId == juliamarkdown"
+            },
+            {
+                "key": "Ctrl+Shift+C",
+                "command": "language-julia.interrupt",
+                "when": "isJuliaEvaluating"
             },
             {
                 "command": "language-julia.browse-back-documentation",
@@ -859,6 +885,12 @@
                     "description": "Download symbol server cache files from GitHub.",
                     "scope": "application"
                 },
+                "julia.symbolserverUpstream": {
+                    "type": "string",
+                    "default": "https://www.julia-vscode.org/symbolcache",
+                    "description": "Symbol server cache download URL.",
+                    "scope": "application"
+                },
                 "julia.NumThreads": {
                     "type": [
                         "integer",
@@ -875,77 +907,6 @@
                     ],
                     "default": null,
                     "markdownDescription": "Command to open files from the REPL (via setting the `JULIA_EDITOR` environment variable). Defaults to `code`/`code-insiders` if unset."
-                },
-                "julia.format.indent": {
-                    "type": "integer",
-                    "default": 4,
-                    "description": "Indent size for formatting.",
-                    "scope": "window"
-                },
-                "julia.format.indents": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Format file indents.",
-                    "scope": "window"
-                },
-                "julia.format.ops": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Format whitespace around operators.",
-                    "scope": "window"
-                },
-                "julia.format.tuples": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Format tuples.",
-                    "scope": "window"
-                },
-                "julia.format.curly": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Format braces.",
-                    "scope": "window"
-                },
-                "julia.format.calls": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Format function calls.",
-                    "scope": "window"
-                },
-                "julia.format.iterOps": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Format loop iterators.",
-                    "scope": "window"
-                },
-                "julia.format.comments": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Format comments.",
-                    "scope": "window"
-                },
-                "julia.format.docs": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Format inline documentation.",
-                    "scope": "window"
-                },
-                "julia.format.keywords": {
-                    "type": "bool",
-                    "default": true,
-                    "description": "Ensure single spacing following keywords.",
-                    "scope": "window"
-                },
-                "julia.format.kwarg": {
-                    "type": "string",
-                    "default": "none",
-                    "description": "Format whitespace around function keyword arguments.",
-                    "enum": [
-                        "none",
-                        "single",
-                        "off"
-                    ],
-                    "scope": "window"
                 },
                 "julia.completionmode": {
                     "type": "string",
@@ -1007,7 +968,7 @@
                     "type": "boolean",
                     "default": false,
                     "scope": "machine-overridable",
-                    "markdownDescription": "Experimental: Starts the interactive Julia session in a persistent `tmux` session. Note that `tmux` must be available in the shell defined below."
+                    "markdownDescription": "Experimental: Starts the interactive Julia session in a persistent `tmux` session. Note that `tmux` must be available in the shell defined below. If present the string `$[workspace]` will be replaced with the current file's workspace when the REPL is first opened."
                 },
                 "julia.persistentSession.shell": {
                     "type": "string",
@@ -1097,6 +1058,12 @@
                     "description": "Functions or modules that are set to compiled mode when setting the defaults.",
                     "scope": "window"
                 },
+                "julia.runtimeCompletions": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Request runtime completions from the integrated REPL.",
+                    "scope": "application"
+                },
                 "julia.plots.path": {
                     "type": "string",
                     "description": "The output directory to save plots to",
@@ -1128,7 +1095,8 @@
                 {
                     "id": "julia-explorer",
                     "title": "Julia",
-                    "icon": "images/julia-dots-outline.svg"
+                    "icon": "images/julia-dots-outline.svg",
+                    "when": "julia.isActive"
                 }
             ]
         },
@@ -1137,24 +1105,28 @@
                 {
                     "type": "tree",
                     "id": "REPLVariables",
-                    "name": "Workspace"
+                    "name": "Workspace",
+                    "when": "julia.isActive"
                 },
                 {
                     "type": "webview",
                     "id": "julia-documentation",
-                    "name": "Documentation"
+                    "name": "Documentation",
+                    "when": "julia.isActive"
                 },
                 {
                     "type": "webview",
                     "id": "julia-plot-navigator",
-                    "name": "Plot Navigator"
+                    "name": "Plot Navigator",
+                    "when": "julia.isActive"
                 }
             ],
             "debug": [
                 {
                     "type": "tree",
                     "id": "debugger-compiled",
-                    "name": "Julia: Compiled Code"
+                    "name": "Julia: Compiled Code",
+                    "when": "julia.isActive"
                 }
             ]
         },

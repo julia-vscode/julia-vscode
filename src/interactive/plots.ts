@@ -4,7 +4,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
 import { registerCommand } from '../utils'
-
+import { displayTable } from './tables'
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
@@ -381,10 +381,11 @@ function wrapImagelike(srcString: string) {
     </html>`
 }
 
-export function displayPlot(params: { kind: string; data: string }) {
+export function displayPlot(params: { kind: string, data: string }) {
     const kind = params.kind
     const payload = params.data
-    if (kind !== 'application/vnd.dataresource+json') {
+
+    if (!(kind.startsWith('application/vnd.dataresource'))) {
         showPlotPane()
         // We need to show the pane before accessing the webview to avoid "undefined" issue in webview.
         g_screenShotScript = `<script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'html2canvas', 'html2canvas.min.js')))}"></script>
@@ -683,57 +684,10 @@ export function displayPlot(params: { kind: string; data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.dataresource+json') {
-        const grid_panel = vscode.window.createWebviewPanel('jlgrid', 'Julia Table', { preserveFocus: true, viewColumn: vscode.ViewColumn.Active }, { enableScripts: true, retainContextWhenHidden: true })
-
-        const uriAgGrid = grid_panel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid-community.min.noStyle.js')))
-        const uriAgGridCSS = grid_panel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css')))
-        const uriAgGridTheme = grid_panel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'ag-grid', 'ag-theme-balham.css')))
-        const grid_content = `
-            <html>
-                <head>
-                    <script src="${uriAgGrid}"></script>
-                    <style> html, body { margin: 0; padding: 0; height: 100%; } </style>
-                    <link rel="stylesheet" href="${uriAgGridCSS}">
-                    <link rel="stylesheet" href="${uriAgGridTheme}">
-                </head>
-            <body>
-                <div id="myGrid" style="height: 100%; width: 100%;" class="ag-theme-balham"></div>
-            </body>
-            <script type="text/javascript">
-                var payload = ${payload};
-                var gridOptions = {
-                    onGridReady: event => event.api.sizeColumnsToFit(),
-                    onGridSizeChanged: event => event.api.sizeColumnsToFit(),
-                    defaultColDef: {
-                        resizable: true,
-                        filter: true,
-                        sortable: true
-                    },
-                    columnDefs: payload.schema.fields.map(function(x) {
-                        if (x.type == "number" || x.type == "integer") {
-                            return {
-                                field: x.name,
-                                type: "numericColumn",
-                                filter: "agNumberColumnFilter"
-                            };
-                        } else if (x.type == "date") {
-                            return {
-                                field: x.name,
-                                filter: "agDateColumnFilter"
-                            };
-                        } else {
-                            return {field: x.name};
-                        };
-                    }),
-                rowData: payload.data
-                };
-                var eGridDiv = document.querySelector('#myGrid');
-                new agGrid.Grid(eGridDiv, gridOptions);
-            </script>
-        </html>
-        `
-
-        grid_panel.webview.html = grid_content
+        return displayTable(payload, g_context, false)
+    }
+    else if (kind === 'application/vnd.dataresource+lazy') {
+        return displayTable(payload, g_context, true)
     }
     else {
         throw new Error()

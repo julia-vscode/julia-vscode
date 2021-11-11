@@ -34,6 +34,7 @@ function startdebugger()
     try
         @debug "Trying to connect to debug adapter."
         socket = Sockets.connect(pipenames[1])
+        printstyled("Done!\n\n", bold = true)
         try
             DebugAdapter.startdebug(socket, (err, bt)->global_err_handler(err, bt, pipenames[2], "Debugger"))
         finally

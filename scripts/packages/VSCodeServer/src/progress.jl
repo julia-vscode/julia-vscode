@@ -1,7 +1,7 @@
 struct VSCodeLogger <: Logging.AbstractLogger end
 
 function Logging.handle_message(j::VSCodeLogger, level, message, _module,
-                                group, id, file, line; kwargs...)
+    group, id, file, line; kwargs...)
     isprogress = try_process_progress(level, message, _module, group, id, file, line; kwargs...) do progress
         JSONRPC.send_notification(conn_endpoint[], "repl/updateProgress", progress)
         JSONRPC.flush(conn_endpoint[])
@@ -15,9 +15,9 @@ function Logging.handle_message(j::VSCodeLogger, level, message, _module,
     # Pass through non-progress log messages to the global logger iff the global logger would handle it:
     if (Base.invokelatest(Logging.min_enabled_level, previous_logger) <= Logging.LogLevel(level) ||
         Base.CoreLogging.env_override_minlevel(group, _module)) &&
-        Base.invokelatest(Logging.shouldlog, previous_logger, level, _module, group, id)
+       Base.invokelatest(Logging.shouldlog, previous_logger, level, _module, group, id)
         Logging.handle_message(previous_logger, level, message, _module,
-                        group, id, file, line; kwargs...)
+            group, id, file, line; kwargs...)
     end
     return nothing
 end

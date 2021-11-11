@@ -2,6 +2,8 @@ if VERSION < v"1.0.0"
     error("VS Code julia language server only works with julia 1.0.0+")
 end
 
+@debug "Julia started at $(round(Int, time()))"
+
 using Logging
 global_logger(ConsoleLogger(stderr))
 
@@ -20,7 +22,7 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
 end
 
 try
-    if length(Base.ARGS) != 7
+    if length(Base.ARGS) != 8
         error("Invalid number of arguments passed to julia language server.")
     end
 
@@ -32,12 +34,12 @@ try
         error("Invalid argument passed.")
     end
 
-    detached_mode = if Base.ARGS[7] == "--detached=yes"
+    detached_mode = if Base.ARGS[8] == "--detached=yes"
         true
-    elseif Base.ARGS[7] == "--detached=no"
+    elseif Base.ARGS[8] == "--detached=no"
         false
     else
-        error("Invalid argumentpassed.")
+        error("Invalid argument passed.")
     end
 
     if debug_mode
@@ -59,11 +61,18 @@ try
         using LanguageServer, SymbolServer
     catch err
         if err isa ErrorException && startswith(err.msg, "Failed to precompile")
+            println(stderr, """\n
+            The Language Server failed to precompile.
+            Please make sure you have permissions to write to the LS depot path at
+            \t$(ENV["JULIA_DEPOT_PATH"])
+            """)
             throw(LSPrecompileFailure(err.msg))
         else
             rethrow(err)
         end
     end
+
+    @debug "LanguageServer.jl loaded at $(round(Int, time()))"
 
     symserver_store_path = joinpath(ARGS[5], "symbolstorev5")
 
@@ -80,8 +89,10 @@ try
         Base.ARGS[4],
         (err, bt) -> global_err_handler(err, bt, Base.ARGS[3], "Language Server"),
         symserver_store_path,
-        ARGS[6] == "download"
+        ARGS[6] == "download",
+        Base.ARGS[7]
     )
+    @info "Starting LS at $(round(Int, time()))"
     run(server)
 catch err
     global_err_handler(err, catch_backtrace(), Base.ARGS[3], "Language Server")
