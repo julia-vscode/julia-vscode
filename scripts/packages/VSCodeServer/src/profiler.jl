@@ -1,11 +1,14 @@
 # TODO Instead of saving to a file, send content via this message
-function view_profile(data::Union{Nothing,Vector{UInt}} = nothing, period::Union{Nothing,UInt64} = nothing; kwargs...)
+function view_profile(data::Union{Nothing,Vector{UInt}} = copy(Profile.fetch()), period::Union{Nothing,UInt64} = nothing; kwargs...)
+    if data !== nothing && isempty(data)
+        @info "No profile data collected."
+        return
+    end
     filename = string(tempname(), ".cpuprofile")
 
     ChromeProfileFormat.save_cpuprofile(filename, data, period, kwargs...)
 
     JSONRPC.send(conn_endpoint[], repl_showprofileresult_file_notification_type, (; filename = filename))
-    # JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (;content=content))
 end
 
 
