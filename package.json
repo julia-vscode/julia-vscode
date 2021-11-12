@@ -451,22 +451,22 @@
                 },
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
-                    "when": "editorLangId == julia"
+                    "when": "editorLangId == julia || editorLangId == juliamarkdown"
                 },
                 {
                     "command": "language-julia.cdHere",
                     "group": "julia",
-                    "when": "editorLangId == julia"
+                    "when": "editorLangId == julia || editorLangId == juliamarkdown"
                 },
                 {
                     "command": "language-julia.activateHere",
                     "group": "julia",
-                    "when": "editorLangId == julia"
+                    "when": "editorLangId == julia || editorLangId == juliamarkdown"
                 },
                 {
                     "command": "language-julia.activateFromDir",
                     "group": "julia",
-                    "when": "editorLangId == julia"
+                    "when": "editorLangId == julia || editorLangId == juliamarkdown"
                 }
             ],
             "editor/title/run": [
@@ -568,7 +568,7 @@
             "editor/context": [
                 {
                     "command": "language-julia.show-documentation",
-                    "when": "editorLangId == julia",
+                    "when": "editorLangId == julia || editorLangId == juliamarkdown",
                     "group": "z_commands"
                 }
             ]
@@ -587,7 +587,7 @@
             {
                 "command": "language-julia.executeCell",
                 "key": "Alt+Enter",
-                "when": "editorTextFocus && editorLangId == julia && activeEditor != workbench.editor.notebook"
+                "when": "editorTextFocus &&activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.executeCellAndMove",
@@ -602,7 +602,7 @@
             {
                 "command": "language-julia.clearCurrentInlineResult",
                 "key": "Escape",
-                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && editorLangId == julia && juliaHasInlineResult"
+                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && juliaHasInlineResult && editorLangId == julia || editorLangId == juliamarkdown"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
