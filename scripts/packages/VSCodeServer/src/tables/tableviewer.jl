@@ -52,7 +52,7 @@ function print_table(io::IO, source, col_names, fixed_col_names, col_types, titl
     print_schema(ctx, col_names, fixed_col_names, col_types, filterable = true)
 
     JSON.show_key(ctx, "data")
-    print_body(ctx, source, col_names, fixed_col_names)
+    print_body(ctx, source, fixed_col_names)
 
     JSON.end_object(ctx)
 end
@@ -81,7 +81,7 @@ function print_schema(ctx, col_names, fixed_col_names, col_types; filterable = f
     JSON.end_object(ctx)
 end
 
-function print_body(ctx, source, col_names, fixed_col_names; first = 1, last = typemax(Int64))
+function print_body(ctx, source, fixed_col_names; first = 1, last = typemax(Int64))
     JSON.begin_array(ctx)
     i = 0
     for row in source
@@ -91,7 +91,7 @@ function print_body(ctx, source, col_names, fixed_col_names; first = 1, last = t
 
         JSON.delimit(ctx)
         JSON.begin_object(ctx)
-        for col in 1:length(col_names)
+        for col = 1:length(fixed_col_names)
             print_el(ctx, fixed_col_names[col], row[col])
         end
         JSON.end_object(ctx)
@@ -99,25 +99,26 @@ function print_body(ctx, source, col_names, fixed_col_names; first = 1, last = t
     JSON.end_array(ctx)
 end
 
-function print_body(ctx, source::AbstractVector, col_names, fixed_col_names; first = 1, last = typemax(Int64))
-    JSON.begin_array(ctx)
-    for row in source
-        JSON.delimit(ctx)
-        JSON.begin_object(ctx)
-        print_el(ctx, fixed_col_names[1], row)
-        JSON.end_object(ctx)
-    end
-    JSON.end_array(ctx)
-end
+function print_body(ctx, source::AbstractVector{T}, fixed_col_names; first = 1, last = typemax(Int64)) where T
+    has_multiple_cols = T <: Union{AbstractVector, NamedTuple, Tuple}
+    checked = has_multiple_cols
 
-function print_body(ctx, source::AbstractVector{T}, col_names, fixed_col_names; first = 1, last = typemax(Int64)) where T <: AbstractVector
     JSON.begin_array(ctx)
     for row in source
+        if !checked
+            checked = true
+            has_multiple_cols = hasmethod(length, row) && length(row) > 1
+        end
         JSON.delimit(ctx)
         JSON.begin_object(ctx)
-        for col in 1:length(row)
-            print_el(ctx, fixed_col_names[col], row[col])
+        if has_multiple_cols
+            for col in 1:length(row)
+                print_el(ctx, fixed_col_names[col], row[col])
+            end
+        else
+            print_el(ctx, fixed_col_names[1], row)
         end
+
         JSON.end_object(ctx)
     end
     JSON.end_array(ctx)
@@ -174,7 +175,7 @@ function showtable(table::T, title = "") where T
 
     iter =  _getiterator(table)
 
-    if T <: AbstractVector
+    if T <: AbstractVector && !(eltype(T) <: Union{AbstractVector, NamedTuple, Tuple})
         col_names = ["1"]
         col_types = [eltype(T)]
     elseif T <: AbstractMatrix
@@ -269,9 +270,9 @@ function get_table_data(conn, params::GetTableDataRequest)
     ctx = JSON.Writer.CompactContext(io)
     if indexable
         part = isempty(table) ? table : @view table[min(params.startRow + 1, end):min(params.endRow + 1, end)]
-        Base.invokelatest(print_body, ctx, part, col_names, fixed_col_names)
+        Base.invokelatest(print_body, ctx, part, fixed_col_names)
     else
-        Base.invokelatest(print_body, ctx, table, col_names, fixed_col_names; first = params.startRow + 1, last = params.endRow + 1)
+        Base.invokelatest(print_body, ctx, table, fixed_col_names; first = params.startRow + 1, last = params.endRow + 1)
     end
 
     return (
