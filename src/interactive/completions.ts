@@ -39,7 +39,7 @@ const requestTypeGetCompletionItems = new rpc.RequestType<
 function completionItemProvider(conn: MessageConnection): vscode.CompletionItemProvider {
     return {
         provideCompletionItems: async (document, position, token, context) => {
-            if (!vscode.workspace.getConfiguration('julia.runtimeCompletions')) {
+            if (!vscode.workspace.getConfiguration('julia').get('runtimeCompletions')) {
                 return
             }
             const completionPromise = (async () => {
