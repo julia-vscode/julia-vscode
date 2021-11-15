@@ -5,6 +5,13 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* Runtime completions can now be properly disabled ([#2551](https://github.com/julia-vscode/julia-vscode/pull/2551))
+* Code execution keybindings are now consistent for Weave files ([#2551](https://github.com/julia-vscode/julia-vscode/pull/2551))
+* Introduced a helpful warning when `@profview` failed to collect any traces ([#2551](https://github.com/julia-vscode/julia-vscode/pull/2551))
+* The REPL is now terminated when VS Code is closed, which should work around issues introduced by the `terminal.integrated.enablePersistentSessions` setting ([#2551](https://github.com/julia-vscode/julia-vscode/pull/2551))
+* Fixed various issues with the integrated table viewer ([#2551](https://github.com/julia-vscode/julia-vscode/pull/2551))
+* It's now once again possible to use the `Run/Debug in New Process` commands concurrently ([#2551](https://github.com/julia-vscode/julia-vscode/pull/2551))
 
 ## [1.5.4] - 2021-11-11
 ### Changed

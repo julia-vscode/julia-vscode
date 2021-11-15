@@ -1162,3 +1162,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
     modules.activate(context)
     completions.activate(context)
 }
+
+export function deactivate() {
+    killREPL()
+}

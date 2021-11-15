@@ -148,7 +148,9 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {
+    repl.deactivate()
+}
 
 const g_onSetLanguageClient = new vscode.EventEmitter<LanguageClient>()
 export const onSetLanguageClient = g_onSetLanguageClient.event

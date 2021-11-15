@@ -11,7 +11,7 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
     mod = module_from_string(mod)
 
     cs = try
-        first(completions(line, lastindex(line), mod))
+        first(Base.invokelatest(completions, line, lastindex(line), mod))
     catch err
         @debug "completion error" exception=(err, catch_backtrace())
         # might error when e.g. type inference fails
@@ -40,7 +40,7 @@ completion_label(c) = completion_text(c)
 completion_label(c::DictCompletion) = rstrip(completion_text(c), (']', '"'))
 
 completion_detail(c::PropertyCompletion) = begin
-    isdefined(c.value, c.property) || return ""
+    hasproperty(c.value, c.property) || return ""
     t = typeof(getproperty(c.value, c.property))
     string(t)
 end

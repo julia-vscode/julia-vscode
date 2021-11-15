@@ -18,7 +18,7 @@ function _is_javascript_safe(x::AbstractFloat)
 end
 
 # ag-grid special cases `.` in fieldnames; we need to special case that here
-row_name_fixer(name) = replace(string(name), '.' => '_')
+col_name_fixer(name) = replace(string(name), '.' => '_')
 
 # loading DataValues will add an overload for this
 json_sprint(x) = sprint(print, x)
@@ -52,7 +52,7 @@ function print_table(io::IO, source, col_names, fixed_col_names, col_types, titl
     print_schema(ctx, col_names, fixed_col_names, col_types, filterable = true)
 
     JSON.show_key(ctx, "data")
-    print_body(ctx, source, col_names, fixed_col_names)
+    print_body(ctx, source, fixed_col_names)
 
     JSON.end_object(ctx)
 end
@@ -81,7 +81,7 @@ function print_schema(ctx, col_names, fixed_col_names, col_types; filterable = f
     JSON.end_object(ctx)
 end
 
-function print_body(ctx, source, col_names, fixed_col_names; first = 1, last = typemax(Int64))
+function print_body(ctx, source, fixed_col_names; first = 1, last = typemax(Int64))
     JSON.begin_array(ctx)
     i = 0
     for row in source
@@ -91,31 +91,7 @@ function print_body(ctx, source, col_names, fixed_col_names; first = 1, last = t
 
         JSON.delimit(ctx)
         JSON.begin_object(ctx)
-        for col in 1:length(col_names)
-            print_el(ctx, fixed_col_names[col], row[col])
-        end
-        JSON.end_object(ctx)
-    end
-    JSON.end_array(ctx)
-end
-
-function print_body(ctx, source::AbstractVector, col_names, fixed_col_names; first = 1, last = typemax(Int64))
-    JSON.begin_array(ctx)
-    for row in source
-        JSON.delimit(ctx)
-        JSON.begin_object(ctx)
-        print_el(ctx, fixed_col_names[1], row)
-        JSON.end_object(ctx)
-    end
-    JSON.end_array(ctx)
-end
-
-function print_body(ctx, source::AbstractVector{T}, col_names, fixed_col_names; first = 1, last = typemax(Int64)) where T <: AbstractVector
-    JSON.begin_array(ctx)
-    for row in source
-        JSON.delimit(ctx)
-        JSON.begin_object(ctx)
-        for col in 1:length(row)
+        for col = 1:length(fixed_col_names)
             print_el(ctx, fixed_col_names[col], row[col])
         end
         JSON.end_object(ctx)
@@ -160,12 +136,15 @@ end
 
 # these assume that table elements are reasonably small
 const MAX_SYNC_TABLE_ELEMENTS = 100_000
-const MAX_CACHE_TABLE_ELEMENTS = 100_000_000
+const MAX_CACHE_TABLE_ELEMENTS = 10_000_000
 
 # make a copy of medium size tables (MAX_SYNC_TABLE_ELEMENTS < #el < MAX_CACHE_TABLE_ELEMENTS)
 # store a reference for big tables
 # (column_names, column_types, table_iterator, table_length, table_indexable)
 const TABLES = Dict{UUID, Tuple{Any, Any, Any, Int, Bool}}()
+
+# special-case vectors for a few known eltypes
+showtable(table::AbstractVector{<:Union{Number, AbstractString, Date, DateTime, Time, AbstractVector}}, title = "") = showtable(reshape(table, :, 1), title)
 
 function showtable(table::T, title = "") where T
     if showable("application/vnd.dataresource+json", table)
@@ -174,10 +153,7 @@ function showtable(table::T, title = "") where T
 
     iter =  _getiterator(table)
 
-    if T <: AbstractVector
-        col_names = ["1"]
-        col_types = [eltype(T)]
-    elseif T <: AbstractMatrix
+    if T <: AbstractMatrix
         col_names = [string(i) for i in 1:size(table, 2)]
         col_types = [eltype(table) for _ in 1:size(table, 2)]
         # transform matrix to iterator over its rows
@@ -190,11 +166,15 @@ function showtable(table::T, title = "") where T
         col_names = String.(fieldnames(eltype(iter)))
         col_types = [fieldtype(eltype(iter), i) for i = 1:length(col_names)]
     end
-    fixed_col_names = row_name_fixer.(col_names)
+    fixed_col_names = col_name_fixer.(col_names)
+
+    if length(fixed_col_names) == 0
+        throw(ErrorException("Input table does not seem to have columns."))
+    end
 
     if Base.haslength(iter)
         tablelength = length(iter)
-        els = tablelength*length(col_names)
+        els = tablelength * length(col_names)
         async = els > MAX_SYNC_TABLE_ELEMENTS
         should_copy = els < MAX_CACHE_TABLE_ELEMENTS
         indexable = els < MAX_CACHE_TABLE_ELEMENTS
@@ -269,9 +249,9 @@ function get_table_data(conn, params::GetTableDataRequest)
     ctx = JSON.Writer.CompactContext(io)
     if indexable
         part = isempty(table) ? table : @view table[min(params.startRow + 1, end):min(params.endRow + 1, end)]
-        Base.invokelatest(print_body, ctx, part, col_names, fixed_col_names)
+        Base.invokelatest(print_body, ctx, part, fixed_col_names)
     else
-        Base.invokelatest(print_body, ctx, table, col_names, fixed_col_names; first = params.startRow + 1, last = params.endRow + 1)
+        Base.invokelatest(print_body, ctx, table, fixed_col_names; first = params.startRow + 1, last = params.endRow + 1)
     end
 
     return (
