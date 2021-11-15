@@ -1,6 +1,6 @@
 import { Subject } from 'await-notify'
 import * as net from 'net'
-import { join } from 'path'
+import { basename, join } from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, TerminatedEvent } from 'vscode-debugadapter'
@@ -224,11 +224,13 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
         const task = new vscode.Task(
             {
-                type: 'julia-proc'
+                type: 'julia-proc',
+                id: uuid()
             },
             vscode.TaskScope.Workspace,
-            'Julia debugger',
-            'julia',
+            `Debug ${basename(args.program)}`,
+            'Julia',
+
             new vscode.ProcessExecution(
                 this.juliaExecutable.file,
                 [
@@ -288,11 +290,12 @@ export class JuliaDebugSession extends LoggingDebugSession {
     protected async runRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
         const task = new vscode.Task(
             {
-                type: 'julia-proc'
+                type: 'julia-proc',
+                id: uuid()
             },
             vscode.TaskScope.Workspace,
-            'Julia process',
-            'julia',
+            `Run ${basename(args.program)}`,
+            'Julia',
             new vscode.ProcessExecution(
                 this.juliaExecutable.file,
                 [
