@@ -46,7 +46,7 @@ function generate_filter(params, col)
     if filter_type == "number"
         generate_number_filter(params, col)
     elseif filter_type == "text"
-        generate_text_filter(params, col)
+        generate_string_filter(params, col)
     elseif filter_type == "date"
         generate_date_filter(params, col)
     else
@@ -68,22 +68,22 @@ function generate_string_filter(params, col)
     op = params["type"]
     if op == "equals"
         matcher = Regex("^" * filtervalue * "\$", "i")
-        row -> occursin(matcher, col_access(row, col))
+        row -> occursin(matcher, string(col_access(row, col)))
     elseif op == "notEqual"
         matcher = Regex("^" * filtervalue * "\$", "i")
-        row -> !occursin(matcher, col_access(row, col))
+        row -> !occursin(matcher, string(col_access(row, col)))
     elseif op == "startsWith"
         matcher = Regex("^" * filtervalue, "i")
-        row -> occursin(matcher, col_access(row, col))
+        row -> occursin(matcher, string(col_access(row, col)))
     elseif op == "endsWith"
         matcher = Regex(filtervalue * "\$", "i")
-        row -> occursin(matcher, col_access(row, col))
+        row -> occursin(matcher, string(col_access(row, col)))
     elseif op == "contains"
         matcher = Regex(filtervalue, "i")
-        row -> occursin(matcher, col_access(row, col))
+        row -> occursin(matcher, string(col_access(row, col)))
     elseif op == "notContains"
         matcher = Regex(filtervalue, "i")
-        row -> !occursin(matcher, col_access(row, col))
+        row -> !occursin(matcher, string(col_access(row, col)))
     end
 end
 

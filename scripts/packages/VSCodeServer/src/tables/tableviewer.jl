@@ -18,7 +18,7 @@ function _is_javascript_safe(x::AbstractFloat)
 end
 
 # ag-grid special cases `.` in fieldnames; we need to special case that here
-row_name_fixer(name) = replace(string(name), '.' => '_')
+col_name_fixer(name) = replace(string(name), '.' => '_')
 
 # loading DataValues will add an overload for this
 json_sprint(x) = sprint(print, x)
@@ -99,31 +99,6 @@ function print_body(ctx, source, fixed_col_names; first = 1, last = typemax(Int6
     JSON.end_array(ctx)
 end
 
-function print_body(ctx, source::AbstractVector{T}, fixed_col_names; first = 1, last = typemax(Int64)) where T
-    has_multiple_cols = T <: Union{AbstractVector, NamedTuple, Tuple}
-    checked = has_multiple_cols
-
-    JSON.begin_array(ctx)
-    for row in source
-        if !checked
-            checked = true
-            has_multiple_cols = hasmethod(length, row) && length(row) > 1
-        end
-        JSON.delimit(ctx)
-        JSON.begin_object(ctx)
-        if has_multiple_cols
-            for col in 1:length(row)
-                print_el(ctx, fixed_col_names[col], row[col])
-            end
-        else
-            print_el(ctx, fixed_col_names[1], row)
-        end
-
-        JSON.end_object(ctx)
-    end
-    JSON.end_array(ctx)
-end
-
 function print_el(ctx, name, val)
     ser = JSON.StandardSerialization()
     if val isa Real && isfinite(val) && _is_javascript_safe(val)
@@ -161,12 +136,15 @@ end
 
 # these assume that table elements are reasonably small
 const MAX_SYNC_TABLE_ELEMENTS = 100_000
-const MAX_CACHE_TABLE_ELEMENTS = 100_000_000
+const MAX_CACHE_TABLE_ELEMENTS = 10_000_000
 
 # make a copy of medium size tables (MAX_SYNC_TABLE_ELEMENTS < #el < MAX_CACHE_TABLE_ELEMENTS)
 # store a reference for big tables
 # (column_names, column_types, table_iterator, table_length, table_indexable)
 const TABLES = Dict{UUID, Tuple{Any, Any, Any, Int, Bool}}()
+
+# special-case vectors for a few known eltypes
+showtable(table::AbstractVector{<:Union{Number, AbstractString, Date, DateTime, Time, AbstractVector}}, title = "") = showtable(reshape(table, :, 1), title)
 
 function showtable(table::T, title = "") where T
     if showable("application/vnd.dataresource+json", table)
@@ -175,10 +153,7 @@ function showtable(table::T, title = "") where T
 
     iter =  _getiterator(table)
 
-    if T <: AbstractVector && !(eltype(T) <: Union{AbstractVector, NamedTuple, Tuple})
-        col_names = ["1"]
-        col_types = [eltype(T)]
-    elseif T <: AbstractMatrix
+    if T <: AbstractMatrix
         col_names = [string(i) for i in 1:size(table, 2)]
         col_types = [eltype(table) for _ in 1:size(table, 2)]
         # transform matrix to iterator over its rows
@@ -191,11 +166,15 @@ function showtable(table::T, title = "") where T
         col_names = String.(fieldnames(eltype(iter)))
         col_types = [fieldtype(eltype(iter), i) for i = 1:length(col_names)]
     end
-    fixed_col_names = row_name_fixer.(col_names)
+    fixed_col_names = col_name_fixer.(col_names)
+
+    if length(fixed_col_names) == 0
+        throw(ErrorException("Input table does not seem to have columns."))
+    end
 
     if Base.haslength(iter)
         tablelength = length(iter)
-        els = tablelength*length(col_names)
+        els = tablelength * length(col_names)
         async = els > MAX_SYNC_TABLE_ELEMENTS
         should_copy = els < MAX_CACHE_TABLE_ELEMENTS
         indexable = els < MAX_CACHE_TABLE_ELEMENTS
