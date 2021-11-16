@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.5.5] - 2021-11-16
 ### Fixed
 * Runtime completions can now be properly disabled ([#2551](https://github.com/julia-vscode/julia-vscode/pull/2551))
 * Code execution keybindings are now consistent for Weave files ([#2551](https://github.com/julia-vscode/julia-vscode/pull/2551))
