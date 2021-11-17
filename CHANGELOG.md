@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+* Cell delimiters for Julia files are now configurable and include `#-` by default ([#2567](https://github.com/julia-vscode/julia-vscode/pull/2567))
 
 ## [1.5.5] - 2021-11-16
 ### Fixed
