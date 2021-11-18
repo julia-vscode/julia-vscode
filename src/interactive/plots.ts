@@ -343,6 +343,7 @@ const plotElementStyle = `
     max-width: 100vw;
     display: block;
     position: absolute;
+    image-rendering: pixelated;
 }
 
 #plot-element.pan-zoom {
