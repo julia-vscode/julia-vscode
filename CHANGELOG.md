@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+* Use pixelated rendering mode for images in the plot pane, in the same way VS Code renders images. ([#2570](https://github.com/julia-vscode/julia-vscode/pull/2570))
 
 ## [1.5.5] - 2021-11-16
 ### Fixed
