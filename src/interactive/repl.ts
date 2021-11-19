@@ -602,7 +602,7 @@ async function selectJuliaBlock() {
     validateMoveAndReveal(editor, start_pos, end_pos)
 }
 
-const g_cellDelimiters = [
+let g_cellDelimiters = [
     /^##(?!#)/,
     /^#(\s?)%%/
 ]
@@ -1041,6 +1041,13 @@ function linkProvider(context: vscode.TerminalLinkContext, token: vscode.Cancell
     return []
 }
 
+function updateCellDelimiters() {
+    const delims: string[] = vscode.workspace.getConfiguration('julia').get('cellDelimiters')
+    if (delims) {
+        g_cellDelimiters = delims.map(s => RegExp(s))
+    }
+}
+
 export async function replStartDebugger(pipename: string) {
     await startREPL(true)
 
@@ -1108,6 +1115,8 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
                 } catch (err) {
                     console.warn(err)
                 }
+            } else if (event.affectsConfiguration('julia.cellDelimiters')) {
+                updateCellDelimiters()
             }
         }),
         vscode.window.onDidChangeActiveTerminal(terminal => {
@@ -1156,6 +1165,8 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         shellSkipCommands.push('language-julia.interrupt')
         terminalConfig.update('commandsToSkipShell', shellSkipCommands, true)
     }
+
+    updateCellDelimiters()
 
     results.activate(context)
     plots.activate(context)

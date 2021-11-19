@@ -924,6 +924,15 @@
                     ],
                     "scope": "window"
                 },
+                "julia.cellDelimiters": {
+                    "type": "array",
+                    "default": [
+                        "^##(?!#)",
+                        "^#(\\s?)%%",
+                        "^#-"
+                    ],
+                    "description": "Cell delimiter regular expressions for Julia files."
+                },
                 "julia.execution.resultType": {
                     "type": "string",
                     "default": "both",
