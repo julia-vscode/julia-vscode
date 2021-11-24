@@ -5,9 +5,16 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* Code execution in Julia markdown files should now work as intended ([#2584](https://github.com/julia-vscode/julia-vscode/pull/2484))
+
+## [1.5.6] - 2021-11-20
 ### Changed
 * Cell delimiters for Julia files are now configurable and include `#-` by default ([#2567](https://github.com/julia-vscode/julia-vscode/pull/2567))
 * Use pixelated rendering mode for images in the plot pane, in the same way VS Code renders images. ([#2570](https://github.com/julia-vscode/julia-vscode/pull/2570))
+
+### Fixed
+* Package tagging should now work again.
 
 ## [1.5.5] - 2021-11-16
 ### Fixed

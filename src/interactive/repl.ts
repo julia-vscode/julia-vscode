@@ -523,6 +523,29 @@ function _clearDiagnostic(source: string) {
     g_trace_diagnostics.delete(source)
 }
 
+function stripMarkdown(code: string) {
+    let out = ''
+    let isJulia = false
+    for (const line of code.split('\n')) {
+        if (/^```julia/.test(line)) {
+            isJulia = true
+            out += '\n'
+            continue
+        }
+        if (isJulia) {
+            if (/^```/.test(line)) {
+                isJulia = false
+                out += '\n'
+                continue
+            }
+            out += line + '\n'
+        } else {
+            out += '\n'
+        }
+    }
+    return out
+}
+
 async function executeFile(uri?: vscode.Uri | string) {
     telemetry.traceEvent('command-executeFile')
 
@@ -538,10 +561,13 @@ async function executeFile(uri?: vscode.Uri | string) {
         uri = vscode.Uri.parse(uri)
     }
 
+    let isJMD = false
+
     if (uri && uri instanceof vscode.Uri) {
         path = uri.fsPath
         const readBytes = await vscode.workspace.fs.readFile(uri)
         code = Buffer.from(readBytes).toString('utf8')
+        isJMD = path.endsWith('.jmd')
     }  else {
         if (!editor) {
             return
@@ -551,6 +577,12 @@ async function executeFile(uri?: vscode.Uri | string) {
 
         const pos = editor.document.validatePosition(new vscode.Position(0, 1)) // xref: https://github.com/julia-vscode/julia-vscode/issues/1500
         module = await modules.getModuleForEditor(editor.document, pos)
+        isJMD = editor.document.languageId === 'juliamarkdown'
+    }
+
+    // strip out non-code-block condent for JMD files:
+    if (isJMD) {
+        code = stripMarkdown(code)
     }
 
     await g_connection.sendRequest(
