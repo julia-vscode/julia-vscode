@@ -21,7 +21,7 @@ function getPlotElement() {
     return canvas ?? plot_element
 }
 
-function getImage() {
+function postThumbnailToNavigator() {
     const plot = getPlotElement()
     const width = plot.offsetWidth
     const height = plot.offsetHeight
@@ -183,6 +183,16 @@ function initPanZoom() {
                 return !ev.altKey
             }
         })
+
+        instance.on('zoom', function (instance) {
+            const { scale } = instance.getTransform()
+            if (scale > 2) {
+                plot.classList.add('pixelated')
+            } else {
+                plot.classList.remove('pixelated')
+            }
+        })
+
         const resetZoomAndPan = ev => {
             if (ev && !ev.altKey) {
                 return
@@ -219,7 +229,7 @@ function initPanZoom() {
 window.addEventListener('load', () => {
     removePlotlyBuiltinExport()
     initPanZoom()
-    getImage()
+    postThumbnailToNavigator()
 })
 
 window.addEventListener('message', ({ data }) => {
@@ -235,4 +245,4 @@ window.addEventListener('message', ({ data }) => {
     }
 })
 
-const interval = setInterval(getImage, 1000)
+const interval = setInterval(postThumbnailToNavigator, 1000)
