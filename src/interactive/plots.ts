@@ -343,6 +343,10 @@ const plotElementStyle = `
     max-width: 100vw;
     display: block;
     position: absolute;
+    image-rendering: auto;
+}
+
+#plot-element.pixelated {
     image-rendering: pixelated;
 }
 

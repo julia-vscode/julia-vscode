@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Code execution in Julia markdown files should now work as intended ([#2584](https://github.com/julia-vscode/julia-vscode/pull/2484))
 
+### Changed
+* Pixelated rendering mode is only active when zooming into an image now ([#2602](https://github.com/julia-vscode/julia-vscode/pull/2602))
+
 ## [1.5.6] - 2021-11-20
 ### Changed
 * Cell delimiters for Julia files are now configurable and include `#-` by default ([#2567](https://github.com/julia-vscode/julia-vscode/pull/2567))
