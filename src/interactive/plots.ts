@@ -12,7 +12,6 @@ let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
 let g_context: vscode.ExtensionContext = null
 let g_plotNavigatorProvider: PlotNavigatorProvider = null
-let g_screenShotScript: string = ''
 
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
@@ -166,12 +165,40 @@ function invalidator() {
     return `<script>(function(){${Math.random()}})()</script>`
 }
 
-function getPlotPaneContent() {
+function getPlotPaneContent(webview: vscode.Webview) {
     if (g_plots.length === 0) {
         return `<html></html>`
-    }
-    else {
-        return g_plots[g_currentPlotIndex] + g_screenShotScript + invalidator()
+    } else {
+        const screenShotScript = `<script src="${webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'libs',
+                    'html2canvas',
+                    'html2canvas.min.js'
+                )
+            )
+        )}"></script><script src="${webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'libs',
+                    'panzoom',
+                    'panzoom.min.js'
+                )
+            )
+        )}"></script><script src="${webview.asWebviewUri(
+            vscode.Uri.file(
+                path.join(
+                    g_context.extensionPath,
+                    'scripts',
+                    'plots',
+                    'main_plot_webview.js'
+                )
+            )
+        )}"></script>`
+
+        return g_plots[g_currentPlotIndex] + screenShotScript + invalidator()
     }
 }
 
@@ -221,10 +248,11 @@ export function showPlotPane() {
                 enableScripts: true
             }
         )
-        g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
+        const viewStateListener = g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
             g_context.globalState.update('juliaPlotPanelViewColumn', webviewPanel.viewColumn)
         })
-        g_plotPanel.webview.html = getPlotPaneContent()
+
+        g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
         vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true)
 
         const configListener = vscode.workspace.onDidChangeConfiguration(config => {
@@ -235,6 +263,7 @@ export function showPlotPane() {
         // Reset when the current panel is closed
         g_plotPanel.onDidDispose(() => {
             configListener.dispose()
+            viewStateListener.dispose()
             g_plotPanel = undefined
             vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, false)
         }, null, g_context.subscriptions)
@@ -244,13 +273,11 @@ export function showPlotPane() {
         }, null, g_context.subscriptions)
 
         g_plotPanel.webview.onDidReceiveMessage(plotPanelOnMessage)
-
-    }
-    else {
+    } else {
         g_plotPanel.title = plotTitle
-        g_plotPanel.webview.html = getPlotPaneContent()
+        g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
+        g_plotPanel.reveal(g_plotPanel.viewColumn, true)
     }
-    g_plotPanel.reveal(undefined, true)
 }
 
 function makeTitle() {
@@ -346,7 +373,7 @@ const plotElementStyle = `
     image-rendering: auto;
 }
 
-#plot-element.pixelated {
+img#plot-element.pixelated {
     image-rendering: pixelated;
 }
 
@@ -355,16 +382,14 @@ const plotElementStyle = `
 }
 
 #plot-element > svg {
-    max-height: 100%;
-    max-width: 100%;
+    height: 100%;
+    width: 100%;
 }
 `
 
 // wrap a source string with an <img> tag that shows the content
 // scaled to fit the plot pane unless the plot pane is bigger than the image
 function wrapImagelike(srcString: string) {
-    const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
-
     const isSvg = srcString.includes('data:image/svg+xml')
     let svgTag = ''
     if (isSvg) {
@@ -375,7 +400,6 @@ function wrapImagelike(srcString: string) {
     return `
     <html style="padding:0;margin:0;">
         <head>
-            <script src="${uriPanZoom}"></script>
             <style>
             ${plotElementStyle}
             </style>
@@ -391,11 +415,6 @@ export function displayPlot(params: { kind: string, data: string }) {
     const payload = params.data
 
     if (!(kind.startsWith('application/vnd.dataresource'))) {
-        showPlotPane()
-        // We need to show the pane before accessing the webview to avoid "undefined" issue in webview.
-        g_screenShotScript = `<script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'html2canvas', 'html2canvas.min.js')))}"></script>
-        <script src="${g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'scripts', 'plots', 'main_plot_webview.js')))}"></script>`
-
         // We display a text thumbnail first just in case that JavaScript errors in the webview or did not successfully send out message and corrupt thumbnail indices.
         g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
             plotsInfo.push({
@@ -714,7 +733,7 @@ function requestExportPlot() {
 }
 
 async function requestCopyPlot() {
-    g_plotPanel.reveal()
+    g_plotPanel.reveal(g_plotPanel.viewColumn, false)
     g_plotPanel.webview.postMessage({
         type: 'requestCopyPlot',
         body: { index: g_currentPlotIndex },
