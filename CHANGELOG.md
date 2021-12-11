@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Code execution in Julia markdown files should now work as intended ([#2584](https://github.com/julia-vscode/julia-vscode/pull/2484))
 * Plot pane is now properly confined to its view column ([#2611](https://github.com/julia-vscode/julia-vscode/pull/2611))
+* System image building now supports the new manifest format ([#2617](https://github.com/julia-vscode/julia-vscode/pull/2617))
 
 ### Changed
 * Pixelated rendering mode is only active when zooming into an image now ([#2602](https://github.com/julia-vscode/julia-vscode/pull/2602))
