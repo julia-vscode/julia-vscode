@@ -14,8 +14,12 @@ function find_dev_packages(envdir::AbstractString)
     !isfile(fname) && return Symbol[]
     devpkgs = Symbol[]
     parsed = TOML.parse(read(fname, String))
-    for key in keys(parsed)
-        sub = parsed[key]
+    deps = if parse(VersionNumber, get(parsed, "manifest_format", "1.0")) >= v"2.0"
+        parsed["deps"]
+    else
+        parsed
+    end
+    for (key, sub) in deps
         "path" in keys(sub[1]) && push!(devpkgs, Symbol(key))
     end
     devpkgs
