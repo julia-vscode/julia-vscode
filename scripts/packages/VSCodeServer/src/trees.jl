@@ -187,6 +187,7 @@ treerender(x::Function) = treerender(Leaf(strlimit(string(x), limit = 100), wsic
 treerender(x::Type) = treerender(Leaf(strlimit(string(x), limit = 100), wsicon(x)))
 treerender(x::Undef) = treerender(Leaf("#undef", wsicon(x)))
 treerender(x::StackTraces.StackFrame) = treerender(Leaf(string(x), wsicon(x)))
+treerender(x::Enum) = treerender(Leaf(sprint(show, MIME"text/plain"(), x), wsicon(x)))
 
 function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
     partitions = Iterators.partition(_keys, max(sz, length(_keys) ÷ maxparts))
@@ -263,6 +264,7 @@ wsicon(::AbstractString) = "symbol-string"
 wsicon(::AbstractArray) = "symbol-array"
 wsicon(::Type) = "symbol-structure"
 wsicon(::AbstractDict) = "symbol-enum"
+wsicon(::Enum) = "symbol-enum"
 wsicon(::Exception) = "warning"
 wsicon(::Undef) = "question"
 
