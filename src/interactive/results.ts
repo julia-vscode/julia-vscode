@@ -311,7 +311,7 @@ export function clearStackTrace() {
 export function setStackFrameHighlight(
     err: string,
     frames: Frame[],
-    editors: vscode.TextEditor[] = vscode.window.visibleTextEditors
+    editors: readonly vscode.TextEditor[] = vscode.window.visibleTextEditors
 ) {
     stackFrameHighlights.err = err
     frames.forEach(frame => {
@@ -371,7 +371,7 @@ function attachGotoFrameCommandLinks(transformed: string, frame: Frame) {
     ].join(' ')
 }
 
-export function refreshResults(editors: vscode.TextEditor[]) {
+export function refreshResults(editors: readonly vscode.TextEditor[]) {
     results.forEach(result => {
         editors.forEach(editor => {
             if (result.document === editor.document) {
