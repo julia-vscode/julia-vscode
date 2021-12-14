@@ -212,7 +212,7 @@ export class JuliaKernel {
                 else if (name === 'stderr') {
                     const execution = this._currentExecutionRequest
                     if (execution) {
-                        execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stdout(data)])])
+                        execution.appendOutput([new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.stderr(data)])])
                     }
                 }
                 else {
@@ -242,7 +242,6 @@ export class JuliaKernel {
                 ...this.juliaExecutable.args,
                 '--color=yes',
                 `--project=${pkgenvpath}`,
-                '--startup-file=no',
                 '--history-file=no',
                 path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
                 pn,

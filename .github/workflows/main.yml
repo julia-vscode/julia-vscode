@@ -113,7 +113,6 @@ jobs:
           julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.resolve()'
           julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("CSTParser", coverage=true)'
           julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("JSONRPC", coverage=true)'
-          julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("DocumentFormat", coverage=true)'
           julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
           julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
           julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
@@ -197,7 +196,7 @@ jobs:
         env:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
-          sudo npm install -g vsce
+          npm install -g vsce
           vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
 
   deployInsiderOVSXMarketplace:
@@ -242,7 +241,7 @@ jobs:
         env:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
-          sudo npm install -g vsce
+          npm install -g vsce
           vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
 
   deployReleaseOVSXMarketplace:

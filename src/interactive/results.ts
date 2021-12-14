@@ -158,7 +158,7 @@ export class Result {
 
         for (const change of e.contentChanges) {
             const intersect = change.range.intersection(this.range)
-            if (intersect !== undefined && !(intersect.isEmpty && change.text === '\n')) {
+            if (intersect !== undefined && !(intersect.isEmpty && change.text === '\n' || change.text === '\r\n' || change.text === '')) {
                 return false
             }
 
@@ -311,7 +311,7 @@ export function clearStackTrace() {
 export function setStackFrameHighlight(
     err: string,
     frames: Frame[],
-    editors: vscode.TextEditor[] = vscode.window.visibleTextEditors
+    editors: readonly vscode.TextEditor[] = vscode.window.visibleTextEditors
 ) {
     stackFrameHighlights.err = err
     frames.forEach(frame => {
@@ -371,7 +371,7 @@ function attachGotoFrameCommandLinks(transformed: string, frame: Frame) {
     ].join(' ')
 }
 
-export function refreshResults(editors: vscode.TextEditor[]) {
+export function refreshResults(editors: readonly vscode.TextEditor[]) {
     results.forEach(result => {
         editors.forEach(editor => {
             if (result.document === editor.document) {

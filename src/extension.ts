@@ -24,7 +24,7 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
-import { registerCommand } from './utils'
+import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 
 let g_languageClient: LanguageClient = null
@@ -32,6 +32,9 @@ let g_context: vscode.ExtensionContext = null
 let g_watchedEnvironmentFile: string = null
 let g_startupNotification: vscode.StatusBarItem = null
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
+
+export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b(\s*|\s*#.*)$)|(?:[^\[]*\].*)$).*$/
+export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
 
 export async function activate(context: vscode.ExtensionContext) {
     if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
@@ -41,6 +44,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     await telemetry.init(context)
     try {
+        setContext('julia.isActive', true)
 
         telemetry.traceEvent('activate')
 
@@ -56,8 +60,8 @@ export async function activate(context: vscode.ExtensionContext) {
         // Language settings
         vscode.languages.setLanguageConfiguration('julia', {
             indentationRules: {
-                increaseIndentPattern: /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b[^\]]*)|(?:[^\[]*\].*)$).*$/,
-                decreaseIndentPattern: /^\s*(end|else|elseif|catch|finally)\b.*$/
+                increaseIndentPattern: increaseIndentPattern,
+                decreaseIndentPattern: decreaseIndentPattern
             }
         })
 
@@ -144,7 +148,9 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {
+    repl.deactivate()
+}
 
 const g_onSetLanguageClient = new vscode.EventEmitter<LanguageClient>()
 export const onSetLanguageClient = g_onSetLanguageClient.event
@@ -194,8 +200,9 @@ const supportedLanguages = [
 ]
 
 async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature) {
-    g_startupNotification.text = 'Starting Julia Language Server…'
+    g_startupNotification.text = 'Julia: Starting Language Server…'
     g_startupNotification.show()
+
 
     let jlEnvPath = ''
     try {
@@ -213,13 +220,14 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     const storagePath = g_context.globalStorageUri.fsPath
     const useSymserverDownloads = vscode.workspace.getConfiguration('julia').get('symbolCacheDownload') ? 'download' : 'local'
+    const symserverUpstream = vscode.workspace.getConfiguration('julia').get<string>('symbolserverUpstream')
 
     const languageServerDepotPath = path.join(storagePath, 'lsdepot', 'v1')
     await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
     const envForLSPath = path.join(g_context.extensionPath, 'scripts', 'environments', 'languageserver')
-    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, '--detached=no']
-    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, '--detached=no']
+    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
+    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -352,7 +360,13 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
 function refreshLanguageServer(languageClient: LanguageClient = g_languageClient) {
     if (!languageClient) { return }
-    languageClient.sendNotification('julia/refreshLanguageServer')
+    try {
+        languageClient.sendNotification('julia/refreshLanguageServer')
+    } catch (err) {
+        vscode.window.showErrorMessage('Failed to refresh the language server cache.', {
+            detail: err
+        })
+    }
 }
 
 function restartLanguageServer(languageClient: LanguageClient = g_languageClient) {

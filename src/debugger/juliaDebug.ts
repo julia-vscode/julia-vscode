@@ -1,11 +1,11 @@
 import { Subject } from 'await-notify'
 import * as net from 'net'
-import { join } from 'path'
+import { basename, join } from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, TerminatedEvent } from 'vscode-debugadapter'
 import { DebugProtocol } from 'vscode-debugprotocol'
-import { createMessageConnection, Disposable, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
+import { createMessageConnection, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { replStartDebugger } from '../interactive/repl'
 import { JuliaExecutable } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
@@ -43,9 +43,9 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 export class JuliaDebugSession extends LoggingDebugSession {
     private _configurationDone = new Subject();
 
-    private _debuggeeTerminal: vscode.Terminal
+    // private _debuggeeTerminal: vscode.Terminal
+    private _task: vscode.TaskExecution
     private _connection: MessageConnection
-    private _debuggeeWrapperSocket: net.Socket
 
     private _launchMode: boolean
     private _launchedWithoutDebug: boolean
@@ -193,12 +193,14 @@ export class JuliaDebugSession extends LoggingDebugSession {
         // make sure to 'Stop' the buffered logging if 'trace' is not set
         logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false)
 
+        if (args.noDebug) {
+            return this.runRequest(response, args)
+        }
+
         const connectedPromise = new Subject()
         const serverListeningPromise = new Subject()
-        const serverForWrapperPromise = new Subject()
 
         const pn = generatePipeName(uuid(), 'vsc-jl-dbg')
-        const pnForWrapper = generatePipeName(uuid(), 'vsc-jl-dbgw')
 
         const server = net.createServer(socket => {
             this._connection = createMessageConnection(
@@ -214,50 +216,49 @@ export class JuliaDebugSession extends LoggingDebugSession {
             connectedPromise.notify()
         })
 
-        const serverForWrapper = net.createServer(socket => {
-            this._debuggeeWrapperSocket = socket
-        })
-
-        serverForWrapper.listen(pnForWrapper, () => {
-            serverForWrapperPromise.notify()
-        })
-
-        await serverForWrapperPromise.wait()
-
         server.listen(pn, () => {
             serverListeningPromise.notify()
         })
 
         await serverListeningPromise.wait()
 
-        this._debuggeeTerminal = vscode.window.createTerminal({
-            name: args.noDebug ? 'Julia Session' : 'Julia Debugger',
-            shellPath: this.juliaExecutable.file,
-            shellArgs: [
-                ...this.juliaExecutable.args,
-                '--color=yes',
-                '--startup-file=no',
-                '--history-file=no',
-                join(this.context.extensionPath, 'scripts', 'debugger', 'launch_wrapper.jl'),
-                pn,
-                pnForWrapper,
-                args.cwd,
-                args.juliaEnv,
-                getCrashReportingPipename()
-            ],
-            env: {
-                JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : '',
-                JULIA_NUM_THREADS: inferJuliaNumThreads()
+        const task = new vscode.Task(
+            {
+                type: 'julia-proc',
+                id: uuid()
+            },
+            vscode.TaskScope.Workspace,
+            `Debug ${basename(args.program)}`,
+            'Julia',
+
+            new vscode.ProcessExecution(
+                this.juliaExecutable.file,
+                [
+                    ...this.juliaExecutable.args,
+                    '--color=yes',
+                    '--startup-file=no',
+                    '--history-file=no',
+                    `--project=${args.juliaEnv}`,
+                    join(this.context.extensionPath, 'scripts', 'debugger', 'run_debugger.jl'),
+                    pn,
+                    getCrashReportingPipename()
+                ],
+                {
+                    env: {
+                        JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : '',
+                        JULIA_NUM_THREADS: inferJuliaNumThreads()
+                    },
+                    cwd: args.cwd
+                }
+            )
+        )
+        this._task = await vscode.tasks.executeTask(task)
+
+        vscode.tasks.onDidEndTask(tee => {
+            if (tee.execution === this._task) {
+                this.sendEvent(new TerminatedEvent())
             }
         })
-        this._debuggeeTerminal.show(false)
-        const disposables: Array<Disposable> = []
-        vscode.window.onDidCloseTerminal((terminal) => {
-            if (terminal === this._debuggeeTerminal) {
-                this.sendEvent(new TerminatedEvent())
-                disposables.forEach(d => d.dispose())
-            }
-        }, this, disposables)
 
         await connectedPromise.wait()
 
@@ -274,8 +275,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
         if (args.noDebug) {
             this._connection.sendNotification(notifyTypeRun, { program: args.program })
-        }
-        else {
+        } else {
             this._connection.sendNotification(notifyTypeDebug, {
                 stopOnEntry: args.stopOnEntry ?? false,
                 program: args.program,
@@ -287,9 +287,45 @@ export class JuliaDebugSession extends LoggingDebugSession {
         this.sendResponse(response)
     }
 
+    protected async runRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
+        const task = new vscode.Task(
+            {
+                type: 'julia-proc',
+                id: uuid()
+            },
+            vscode.TaskScope.Workspace,
+            `Run ${basename(args.program)}`,
+            'Julia',
+            new vscode.ProcessExecution(
+                this.juliaExecutable.file,
+                [
+                    ...this.juliaExecutable.args,
+                    '--color=yes',
+                    `--project=${args.juliaEnv}`,
+                    args.program
+                ],
+                {
+                    env: {
+                        JULIA_NUM_THREADS: inferJuliaNumThreads()
+                    },
+                    cwd: args.cwd
+                }
+            )
+        )
+        this._task = await vscode.tasks.executeTask(task)
+
+        vscode.tasks.onDidEndTask(tee => {
+            if (tee.execution === this._task) {
+                this.sendEvent(new TerminatedEvent())
+            }
+        })
+
+        this.sendResponse(response)
+    }
+
     protected async terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments) {
         if (this._launchedWithoutDebug) {
-            this._debuggeeWrapperSocket.write('TERMINATE\n')
+            this._task.terminate()
             this.sendEvent(new TerminatedEvent())
         }
         else {
@@ -301,7 +337,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
     protected async disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments) {
         if (this._launchMode) {
             if (!this._no_need_for_force_kill) {
-                this._debuggeeWrapperSocket.write('TERMINATE\n')
+                this._task.terminate()
             }
         }
         else {
