@@ -236,12 +236,10 @@ export class JuliaExecutablesFeature {
 
                 // Remove duplicates.
                 this.cachedJuliaExePaths = executables.filter((v, i, a) => a.findIndex(t => (JSON.stringify(t) === JSON.stringify(v))) === i)
-
-                return this.cachedJuliaExePaths
             }
-
-            return this.cachedJuliaExePaths
         }
+
+        return this.cachedJuliaExePaths
     }
 
     public async getActiveJuliaExecutableAsync() {
