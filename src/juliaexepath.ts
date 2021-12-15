@@ -182,14 +182,8 @@ export class JuliaExecutablesFeature {
     }
 
     async tryJuliaup() {
-        const juliaupCommand = vscode.workspace.getConfiguration('julia').get<string>('juliaupCommand', '')
-
-        if (juliaupCommand === '') {
-            return false
-        }
-
         try {
-            const { stdout, } = await execFile(juliaupCommand, ['api', 'getconfig1'])
+            const { stdout, } = await execFile('juliaup', ['api', 'getconfig1'])
 
             const apiResult = stdout.toString().trim()
 

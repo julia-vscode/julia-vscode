@@ -729,11 +729,6 @@
                     "description": "Points to the julia executable.",
                     "scope": "machine-overridable"
                 },
-                "julia.juliaupCommand": {
-                    "type": "string",
-                    "default": "juliaup",
-                    "scope": "machine"
-                },
                 "julia.lint.run": {
                     "type": "boolean",
                     "default": true,
