@@ -47,8 +47,8 @@ export class JuliaNotebookFeature {
 
         for (const juliaVersion of juliaVersions) {
             const ver = juliaVersion.getVersion()
-            const kernelId = `julia-vscode-${ver.major}.${ver.minor}.${ver.patch}`
-            const displayName = `Julia ${ver}`;
+            const kernelId = juliaVersion.channel ? `julia-vscode-${juliaVersion.channel}` : `julia-vscode-${ver.major}.${ver.minor}.${ver.patch}`
+            const displayName = juliaVersion.channel ? `Julia ${juliaVersion.channel} channel` : `Julia ${ver}`;
 
             const controller = vscode.notebooks.createNotebookController(kernelId, JupyterNotebookViewType, displayName)
             controller.supportedLanguages = ['julia']
