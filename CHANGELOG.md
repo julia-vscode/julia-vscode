@@ -5,6 +5,12 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* Plot pane position is now stable and interactive plots now render properly if the plot pane wasn't opened previously ([#2662](https://github.com/julia-vscode/julia-vscode/pull/2662))
+
+## [1.5.8] - 2021-12-21
+### Fixed
+* `juliaup` integration now works properly ([#2374](https://github.com/julia-vscode/julia-vscode/pull/2374))
 
 ## [1.5.7] - 2021-12-14
 ### Fixed
