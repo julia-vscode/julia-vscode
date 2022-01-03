@@ -264,6 +264,15 @@ export class JuliaExecutablesFeature {
                     await this.tryAndSetNewJuliaExePathAsync(configPath)
                 }
             }
+            // Even when Juliaup reports a version, we still want the configuration setting
+            // to have higher priority
+            else {
+                const configPath = this.getExecutablePath()
+
+                if (configPath) {
+                    await this.tryAndSetNewJuliaExePathAsync(configPath)
+                }
+            }
         }
         return this.actualJuliaExePath
     }
