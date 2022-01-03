@@ -894,11 +894,12 @@
                 "julia.NumThreads": {
                     "type": [
                         "integer",
+                        "string",
                         "null"
                     ],
                     "default": null,
                     "scope": "machine-overridable",
-                    "description": "Number of threads to use for Julia processes."
+                    "markdownDescription": "Number of threads to use for Julia processes. A value of `auto` works on Julia versions that allow for `--threads=auto`."
                 },
                 "julia.editor": {
                     "type": [
