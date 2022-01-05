@@ -333,16 +333,18 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         })
     }
 
-    const disposable = registerCommand('language-julia.showLanguageServerOutput', () => {
-        languageClient.outputChannel.show(true)
-    })
+    g_context.subscriptions.push(registerCommand('language-julia.showLanguageServerOutput', () => {
+        if (g_languageClient) {
+            g_languageClient.outputChannel.show(true)
+        }
+    }))
+
     try {
         // Push the disposable to the context's subscriptions so that the  client can be deactivated on extension deactivation
         g_context.subscriptions.push(languageClient.start())
         g_startupNotification.command = 'language-julia.showLanguageServerOutput'
         setLanguageClient(languageClient)
         languageClient.onReady().finally(() => {
-            disposable.dispose()
             g_startupNotification.hide()
         })
     }
@@ -353,7 +355,6 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             }
         })
         setLanguageClient()
-        disposable.dispose()
         g_startupNotification.hide()
     }
 }
