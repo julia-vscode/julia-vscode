@@ -567,8 +567,8 @@
             ],
             "editor/context": [
                 {
-                    "command": "language-julia.executeJuliaCodeInREPL",
-                    "when": "editorLangId == julia",
+                    "command": "language-julia.executeCodeBlockOrSelection",
+                    "when": "editorLangId == julia || editorLangId == juliamarkdown",
                     "group": "z_commands"
                 },
                 {
