@@ -567,6 +567,11 @@
             ],
             "editor/context": [
                 {
+                    "command": "language-julia.executeJuliaCodeInREPL",
+                    "when": "editorLangId == julia",
+                    "group": "z_commands"
+                },
+                {
                     "command": "language-julia.show-documentation",
                     "when": "editorLangId == julia || editorLangId == juliamarkdown",
                     "group": "z_commands"
