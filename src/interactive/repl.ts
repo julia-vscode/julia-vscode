@@ -19,7 +19,6 @@ import * as completions from './completions'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
 import * as plots from './plots'
-import { showProfileResult, showProfileResultFile } from './profiler'
 import * as results from './results'
 import { Frame, openFile } from './results'
 
@@ -294,8 +293,8 @@ const notifyTypeReplStartDebugger = new rpc.NotificationType<{ debugPipename: st
 const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
-const notifyTypeShowProfilerResult = new rpc.NotificationType<{ content: string }>('repl/showprofileresult')
-const notifyTypeShowProfilerResultFile = new rpc.NotificationType<{ filename: string }>('repl/showprofileresult_file')
+const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: any }>('repl/showprofileresult')
+// const notifyTypeShowProfilerResultFile = new rpc.NotificationType<{ filename: string }>('repl/showprofileresult_file')
 
 interface Progress {
     id: { value: number },
@@ -1086,7 +1085,7 @@ export async function replStartDebugger(pipename: string) {
     g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
 }
 
-export function activate(context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature) {
+export function activate(context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, profilerFeature) {
     g_context = context
     g_juliaExecutablesFeature = juliaExecutablesFeature
 
@@ -1103,8 +1102,8 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
             connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
             connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
             connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
-            connection.onNotification(notifyTypeShowProfilerResult, showProfileResult)
-            connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
+            connection.onNotification(notifyTypeShowProfilerResult, (data) => profilerFeature.showTrace(data.trace))
+            // connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
             connection.onNotification(notifyTypeProgress, updateProgress)
             setContext('isJuliaEvaluating', false)
             setContext('hasJuliaREPL', true)

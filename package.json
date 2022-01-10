@@ -178,6 +178,10 @@
                 "title": "Julia: Show Documentation Pane"
             },
             {
+                "command": "language-julia.openProfiler",
+                "title": "Julia: Show Profiler"
+            },
+            {
                 "command": "language-julia.show-plot-navigator",
                 "title": "Julia: Show Plot Navigator"
             },

@@ -1,16 +1,38 @@
-# TODO Instead of saving to a file, send content via this message
-function view_profile(data::Union{Nothing,Vector{UInt}} = copy(Profile.fetch()), period::Union{Nothing,UInt64} = nothing; kwargs...)
-    if data !== nothing && isempty(data)
-        @info "No profile data collected."
-        return
+using FlameGraphs
+
+function view_profile(period::Union{Nothing,UInt64} = nothing; kwargs...)
+    # if data !== nothing && isempty(data)
+    #     @info "No profile data collected."
+    #     return
+    # end
+    @info "view_profile called"
+
+    d = Dict()
+    for thread in ["all"] #["all", 1:Threads.nthreads()...]
+        d[thread] = tojson(flamegraph())
     end
-    filename = string(tempname(), ".cpuprofile")
 
-    ChromeProfileFormat.save_cpuprofile(filename, data, period, kwargs...)
+    @info "dict prepared"
 
-    JSONRPC.send(conn_endpoint[], repl_showprofileresult_file_notification_type, (; filename = filename))
+    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace = d))
+    @info "dict sent"
 end
 
+function tojson(node, root = false)
+    name = string(node.data.sf.file)
+
+    Dict(
+        :meta => Dict(
+            :func => node.data.sf.func,
+            :file => basename(name),
+            :path => name,
+            :line => node.data.sf.line,
+            :count => root ? sum(length(c.data.span) for c in node) : length(node.data.span),
+            :flags => node.data.status
+        ),
+        :children => [tojson(c) for c in node]
+    )
+end
 
 """
     @profview f(args...)
