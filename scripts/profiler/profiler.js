@@ -119,8 +119,8 @@ class ProfileViewer {
       const fontFamily = style.fontFamily
       const fontSize = style.fontSize
 
-      this.fontConfig = fontSize + ' ' + fontFamily
-      this.borderColor = style.color
+      this.fontConfig = (fontSize ?? '12px') + ' ' + (fontFamily ?? 'sans-serif')
+      this.borderColor = style.color ?? '#000'
 
       this.canvasCtx.font = this.fontConfig
       this.canvasCtx.textBaseline = 'middle'
@@ -128,12 +128,16 @@ class ProfileViewer {
       const textMetrics = this.canvasCtx.measureText(
           'ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz'
       )
-      this.boxHeight =
+      this.boxHeight = Math.max(
+          24,
           Math.ceil(
-              textMetrics.fontBoundingBoxDescent +
-                textMetrics.fontBoundingBoxAscent +
-                2 * this.padding
+              (textMetrics.fontBoundingBoxDescent ??
+                textMetrics.actualBoundingBoxDescent) +
+              (textMetrics.fontBoundingBoxAscent ??
+                textMetrics.actualBoundingBoxAscent) +
+              2 * this.padding
           )
+      )
       if (this.activeNode) {
           this.redraw()
       }
@@ -291,7 +295,7 @@ class ProfileViewer {
             z-index: 2;
             display: none;
             position: absolute;
-            background-color: inherit;
+            background-color: #ddd;
             border: 1px solid black;
             padding: 5px 10px;
             pointer-events: none;
