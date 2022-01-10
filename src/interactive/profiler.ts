@@ -86,20 +86,20 @@ export class ProfilerFeature {
 
     showPanel() {
         this.createPanel()
-
         this.panel.title = this.makeTitle()
 
-        this.panel.reveal(this.panel.viewColumn, true)
-
         if (this.profileCount > 0) {
-            this.showTrace(this.profiles[this.currentProfileIndex])
+            this.panel.webview.postMessage(
+                this.profiles[this.currentProfileIndex]
+            )
         }
+        this.panel.reveal(this.panel.viewColumn, true)
     }
 
     showTrace(trace: ProfilerFrame) {
-        this.createPanel()
-
-        this.panel.webview.postMessage(trace)
+        this.profiles.push(trace)
+        this.currentProfileIndex = this.profiles.length - 1
+        this.showPanel()
     }
 
     getContent() {
@@ -162,10 +162,10 @@ export class ProfilerFeature {
                 font-size: 1em;
             }
 
-            .__profiler-filter {
+            #profiler-container .__profiler-filter {
                 border-bottom: 1px solid var(--vscode-panel-border);
             }
-            .__profiler-tooltip {
+            #profiler-container .__profiler-tooltip {
                 background-color: var(--vscode-editorHoverWidget-background);
                 border: 1px solid var(--vscode-editorHoverWidget-border);
                 font-size: 1em !important;
@@ -218,7 +218,7 @@ export class ProfilerFeature {
     }
 
     makeTitle() {
-        return `Profiler (${this.currentProfileIndex}/${this.profileCount})`
+        return `Profiler (${this.currentProfileIndex + 1}/${this.profileCount})`
     }
 
     dispose() {
