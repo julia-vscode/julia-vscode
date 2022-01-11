@@ -30,7 +30,7 @@ function tojson(node, root = false)
             :count => root ? sum(length(c.data.span) for c in node) : length(node.data.span),
             :flags => node.data.status
         ),
-        :children => [tojson(c) for c in node]
+        :children => sort!([tojson(c) for c in node], by = node -> node[:meta][:count], rev = true)
     )
 end
 
