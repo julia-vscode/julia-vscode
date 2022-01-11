@@ -10,6 +10,8 @@ class ProfileViewer {
   canvasCtx;
   canvasHeight;
   canvasWidth;
+  canvasHeightCSS;
+  canvasWidthCSS;
   hoverCanvas;
   hoverCanvasCtx;
   filterContainer;
@@ -32,8 +34,7 @@ class ProfileViewer {
 
   isMouseMove = false;
 
-  // XXX: DPI awareness
-  scale = 1;
+  scale = window.devicePixelRatio;
   borderWidth = 2;
   padding = 5;
   fontConfig = '10px sans-serif';
@@ -119,7 +120,7 @@ class ProfileViewer {
       const fontFamily = style.fontFamily
       const fontSize = style.fontSize
 
-      this.fontConfig = (fontSize ?? '12px') + ' ' + (fontFamily ?? 'sans-serif')
+      this.fontConfig = parseInt(fontSize ?? '12px', 10)*this.scale + 'px ' + (fontFamily ?? 'sans-serif')
       this.borderColor = style.color ?? '#000'
 
       this.canvasCtx.font = this.fontConfig
@@ -129,13 +130,13 @@ class ProfileViewer {
           'ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz'
       )
       this.boxHeight = Math.max(
-          24,
+          20,
           Math.ceil(
-              (textMetrics.fontBoundingBoxDescent ??
-                textMetrics.actualBoundingBoxDescent) +
-              (textMetrics.fontBoundingBoxAscent ??
-                textMetrics.actualBoundingBoxAscent) +
-              2 * this.padding
+              ((textMetrics.fontBoundingBoxDescent ??
+          textMetrics.actualBoundingBoxDescent) +
+          (textMetrics.fontBoundingBoxAscent ??
+            textMetrics.actualBoundingBoxAscent) +
+          2 * this.padding)*this.scale
           )
       )
       if (this.activeNode) {
@@ -210,20 +211,24 @@ class ProfileViewer {
                       this.canvasHeight
                   )
 
-                  const didDraw = this.drawHover(this.activeNode, mouseX, mouseY)
+                  const didDraw = this.drawHover(
+                      this.activeNode,
+                      this.scale * mouseX,
+                      this.scale * mouseY
+                  )
 
                   if (didDraw) {
-                      if (mouseX > this.canvasWidth / 2) {
+                      if (mouseX > this.canvasWidthCSS / 2) {
                           this.tooltipElement.style.right =
-                this.canvasWidth - mouseX + 10 + 'px'
+                this.canvasWidthCSS - mouseX + 10 + 'px'
                           this.tooltipElement.style.left = 'unset'
                       } else {
                           this.tooltipElement.style.right = 'unset'
                           this.tooltipElement.style.left = mouseX + 10 + 'px'
                       }
-                      if (mouseY > this.canvasHeight / 2) {
+                      if (mouseY > this.canvasHeightCSS / 2) {
                           this.tooltipElement.style.bottom =
-                this.canvasHeight - mouseY + 10 + 'px'
+                this.canvasHeightCSS - mouseY + 10 + 'px'
 
                           this.tooltipElement.style.top = 'unset'
                       } else {
@@ -246,8 +251,8 @@ class ProfileViewer {
           }
           this.getOffset()
 
-          const mouseX = ev.clientX - this.offsetX
-          const mouseY = ev.clientY - this.offsetY
+          const mouseX = this.scale * (ev.clientX - this.offsetX)
+          const mouseY = this.scale * (ev.clientY - this.offsetY)
 
           if (ev.ctrlKey) {
               this.runOnNodeAtMousePosition(
@@ -285,11 +290,13 @@ class ProfileViewer {
           .__profiler-canvas {
             z-index: 0;
             position: absolute;
+            width: 100%;
           }
           .__profiler-hover-canvas {
             z-index: 1;
             position: absolute;
             pointer-events: none;
+            width: 100%;
           }
           .__profiler-tooltip {
             z-index: 2;
@@ -300,10 +307,13 @@ class ProfileViewer {
             padding: 5px 10px;
             pointer-events: none;
             max-width: 45%;
+            overflow: hidden;
           }
-          .__profiler-tooltip tr > td:first-child {
-            font-weight: bold;
-            padding-right: 1em;
+          .__profiler-tooltip > div {
+            line-break: anywhere;
+          }
+          .__profiler-tooltip .fname {
+              margin-left: 0.5em;
           }
           .__profiler-filter {
             height: 30px;
@@ -324,27 +334,35 @@ class ProfileViewer {
   createTooltip() {
       this.tooltipElement = document.createElement('div')
       this.tooltipElement.classList.add('__profiler-tooltip')
-      const table = document.createElement('table')
-
-      const rows = ['Count', 'Function', 'File', 'Flags']
 
       this.tooltip = {}
 
+      this.tooltip.count = document.createElement('span')
+      this.tooltip.percentage = document.createElement('span')
+      this.tooltip.function = document.createElement('code')
+      this.tooltip.function.classList.add('fname')
+      this.tooltip.file = document.createElement('a')
+      this.tooltip.flags = document.createElement('span')
+
+      const rows = [
+          [
+              this.tooltip.count,
+              document.createTextNode(' ('),
+              this.tooltip.percentage,
+              document.createTextNode('%) '),
+              this.tooltip.function,
+          ],
+          [this.tooltip.file],
+          [this.tooltip.flags],
+      ]
+
       for (const row of rows) {
-          const tr = document.createElement('tr')
-          const title = document.createElement('td')
-          title.innerText = row
-          const value = document.createElement('td')
-
-          this.tooltip[row.toLowerCase()] = value
-
-          tr.appendChild(title)
-          tr.appendChild(value)
-
-          table.appendChild(tr)
+          const rowContainer = document.createElement('div')
+          for (const col of row) {
+              rowContainer.appendChild(col)
+          }
+          this.tooltipElement.appendChild(rowContainer)
       }
-
-      this.tooltipElement.append(table)
 
       this.tooltip['ctrlClickHint'] = document.createElement('small')
 
@@ -403,8 +421,19 @@ class ProfileViewer {
               for (const entry of entries) {
                   if (entry.target === this.container) {
                       window.requestAnimationFrame(() => {
-                          this.canvasWidth = entry.contentRect.width
-                          this.canvasHeight = entry.contentRect.height - 30
+                          if (window.devicePixelRatio !== this.scale) {
+                              this.scale = window.devicePixelRatio
+                              this.getStyles()
+                          }
+                          this.canvasWidth = Math.round(
+                              entry.contentRect.width * this.scale
+                          )
+                          this.canvasHeight = Math.round(
+                              (entry.contentRect.height - 30) * this.scale
+                          )
+
+                          this.canvasWidthCSS = entry.contentRect.width
+                          this.canvasHeightCSS = entry.contentRect.height
 
                           this.canvas.width = this.canvasWidth
                           this.canvas.height = this.canvasHeight
@@ -448,7 +477,7 @@ class ProfileViewer {
 
   // hash of function named, used to seed PRNG
   nodeHash(node) {
-      const hashString = node.meta.func + node.meta.file + node.meta.line
+      const hashString = node.meta.file + node.meta.line
       let hash = 0
       for (let i = 0; i < hashString.length; i++) {
           const char = hashString.charCodeAt(i)
@@ -584,6 +613,7 @@ class ProfileViewer {
       this.tooltip.function.innerText = node.meta.func
       this.tooltip.file.innerText = node.meta.file + ':' + node.meta.line
       this.tooltip.count.innerText = node.meta.count
+      this.tooltip.percentage.innerText = (100*node.meta.count/this.activeNode.meta.count).toFixed()
 
       let flags = ''
 
@@ -599,8 +629,8 @@ class ProfileViewer {
       if (node.meta.flags & 0x10) {
           flags += ' task'
       }
-      if (flags === '') {
-          flags = 'none'
+      if (flags !== '') {
+          flags = 'Flags: ' + flags
       }
       this.tooltip.flags.innerText = flags
 
@@ -612,18 +642,18 @@ class ProfileViewer {
   drawHoverNode(node) {
       this.hoverCanvasCtx.fillStyle = this.borderColor
       this.hoverCanvasCtx.fillRect(
-          this.scale * node.pos.x,
-          this.scale * node.pos.y + this.borderWidth,
-          Math.max(1, this.scale * node.pos.width),
-          this.scale * node.pos.height - this.borderWidth
+          node.pos.x,
+          node.pos.y + this.borderWidth,
+          Math.max(1, node.pos.width),
+          node.pos.height - this.borderWidth
       )
-      const innerWidth = this.scale * node.pos.width - this.borderWidth * 2
+      const innerWidth = node.pos.width - this.borderWidth * 2
       if (innerWidth > 1) {
           this.hoverCanvasCtx.clearRect(
-              this.scale * node.pos.x + this.borderWidth,
-              this.scale * node.pos.y + 2 * this.borderWidth,
+              node.pos.x + this.borderWidth,
+              node.pos.y + 2 * this.borderWidth,
               innerWidth,
-              this.scale * node.pos.height - this.borderWidth * 3
+              node.pos.height - this.borderWidth * 3
           )
       }
 
