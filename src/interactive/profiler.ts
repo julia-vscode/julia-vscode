@@ -28,7 +28,19 @@ export class ProfilerFeature {
 
         this.context.subscriptions.push(
             registerCommand('language-julia.openProfiler', () => {
-                this.showPanel()
+                this.show()
+            }),
+            registerCommand('language-julia.nextProfile', () => {
+                this.next()
+            }),
+            registerCommand('language-julia.previousProfile', () => {
+                this.previous()
+            }),
+            registerCommand('language-julia.deleteProfile', () => {
+                this.delete()
+            }),
+            registerCommand('language-julia.deleteAllProfiles', () => {
+                this.deleteAll()
             })
         )
     }
@@ -45,10 +57,11 @@ export class ProfilerFeature {
                 viewColumn: this.context.globalState.get(
                     'juliaProfilerViewColumn',
                     vscode.ViewColumn.Beside
-                ),
+                )
             },
             {
                 enableScripts: true,
+                retainContextWhenHidden: true
             }
         )
 
@@ -84,7 +97,7 @@ export class ProfilerFeature {
         })
     }
 
-    showPanel() {
+    show() {
         this.createPanel()
         this.panel.title = this.makeTitle()
 
@@ -99,7 +112,7 @@ export class ProfilerFeature {
     showTrace(trace: ProfilerFrame) {
         this.profiles.push(trace)
         this.currentProfileIndex = this.profiles.length - 1
-        this.showPanel()
+        this.show()
     }
 
     getContent() {
@@ -202,15 +215,27 @@ export class ProfilerFeature {
     previous() {
         if (this.currentProfileIndex > 0) {
             this.currentProfileIndex -= 1
-            this.showPanel()
+            this.show()
         }
     }
 
     next() {
         if (this.currentProfileIndex < this.profiles.length - 1) {
             this.currentProfileIndex += 1
-            this.showPanel()
+            this.show()
         }
+    }
+
+    delete() {
+        this.profiles.splice(this.currentProfileIndex, 1)
+        this.currentProfileIndex = Math.min(this.currentProfileIndex + 1, this.profiles.length - 1)
+        this.show()
+    }
+
+    deleteAll() {
+        this.profiles = []
+        this.currentProfileIndex = 0
+        this.show()
     }
 
     get profileCount() {
