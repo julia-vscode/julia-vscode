@@ -15,13 +15,44 @@ interface ProfilerFrame {
     children: ProfilerFrame[];
 }
 
+interface InlineTraceElement {
+    path: string;
+    line: number;
+    fraction: number;
+    count: number;
+    flags: number;
+}
+
+function flagString(flags: number) {
+    let flagString = ''
+    if (flags & 0x01) {
+        flagString += 'GC'
+    }
+    if (flags & 0x02) {
+        flagString += ' dispatch'
+    }
+    if (flags & 0x08) {
+        flagString += ' compilation'
+    }
+    if (flags & 0x10) {
+        flagString += ' task'
+    }
+    if (flagString !== '') {
+        flagString = 'Flags: ' + flagString
+    }
+    return flagString
+}
+
 const profilerContextKey = 'jlProfilerFocus'
 export class ProfilerFeature {
     context: vscode.ExtensionContext;
     panel: vscode.WebviewPanel;
 
-    profiles: ProfilerFrame[] = []
-    currentProfileIndex: number = 0
+    profiles: ProfilerFrame[] = [];
+    inlineTrace: InlineTraceElement[] = [];
+    decoration: vscode.TextEditorDecorationType;
+    inlineMaxWidth: number = 100;
+    currentProfileIndex: number = 0;
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
@@ -41,8 +72,96 @@ export class ProfilerFeature {
             }),
             registerCommand('language-julia.deleteAllProfiles', () => {
                 this.deleteAll()
-            })
+            }),
+            vscode.window.onDidChangeVisibleTextEditors((editors) =>
+                this.refreshInlineTrace(editors)
+            )
         )
+    }
+
+    clearInlineTrace() {
+        this.inlineTrace = []
+        if (this.decoration) {
+            this.decoration.dispose()
+        }
+        this.decoration = undefined
+    }
+
+    setInlineTrace(profile: ProfilerFrame) {
+        this.clearInlineTrace()
+
+        this.decoration = vscode.window.createTextEditorDecorationType({
+            rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+            isWholeLine: true
+        })
+
+        const root = profile['all']
+        this.buildInlineTraceElements(root, root.meta.count)
+
+        this.refreshInlineTrace(vscode.window.visibleTextEditors)
+    }
+
+    buildInlineTraceElements(node: ProfilerFrame, parentCount: number) {
+        this.inlineTrace.push({
+            path: node.meta.path,
+            line: node.meta.line,
+            count: node.meta.count,
+            fraction: node.meta.count / parentCount,
+            flags: node.meta.flags
+        })
+
+        for (const child of node.children) {
+            this.buildInlineTraceElements(child, node.meta.count)
+        }
+    }
+
+    inlineTraceColor(highlight: InlineTraceElement) {
+        if (highlight.flags & 0x01) {
+            return 'rgba(204, 103, 103, 0.2)'
+        }
+        if (highlight.flags & 0x02) {
+            return 'rgba(204, 153, 68, 0.2)'
+        }
+        return 'rgba(64, 99, 221, 0.2)'
+    }
+
+    refreshInlineTrace(editors: readonly vscode.TextEditor[]) {
+        const edHighlights = {}
+        for (const highlight of this.inlineTrace) {
+            for (const editor of editors) {
+                const uri = editor.document.uri.toString()
+                if (
+                    uri === vscode.Uri.file(highlight.path).toString()
+                ) {
+                    if (edHighlights[uri]) {
+                        edHighlights[uri].push({
+                            range: new vscode.Range(
+                                new vscode.Position(highlight.line - 1, 0),
+                                new vscode.Position(highlight.line - 1, 0)
+                            ),
+                            hoverMessage: `${highlight.count} samples (${(highlight.fraction * 100).toFixed(1)} % of parent) ${flagString(highlight.flags)}`,
+                            renderOptions: {
+                                before: {
+                                    contentText: ' ',
+                                    backgroundColor: this.inlineTraceColor(highlight),
+                                    width: highlight.fraction * 20 + 'em',
+                                    textDecoration: 'none; white-space: pre; position: absolute;' // :grimacing:
+                                }
+                            }
+                        })
+                    } else {
+                        edHighlights[uri] = []
+                    }
+                }
+            }
+        }
+
+        for (const editor of editors) {
+            const uri = editor.document.uri.toString()
+            if (edHighlights[uri]) {
+                editor.setDecorations(this.decoration, edHighlights[uri])
+            }
+        }
     }
 
     createPanel() {
@@ -57,23 +176,25 @@ export class ProfilerFeature {
                 viewColumn: this.context.globalState.get(
                     'juliaProfilerViewColumn',
                     vscode.ViewColumn.Beside
-                )
+                ),
             },
             {
                 enableScripts: true,
-                retainContextWhenHidden: true
+                retainContextWhenHidden: true,
             }
         )
 
         this.panel.webview.html = this.getContent()
 
-        const messageHandler = this.panel.webview.onDidReceiveMessage((message: {type: string, node: ProfilerFrame}) => {
-            if (message.type === 'open') {
-                openFile(message.node.meta.path, message.node.meta.line)
-            } else {
-                console.error('unknown message type received in profiler pane')
+        const messageHandler = this.panel.webview.onDidReceiveMessage(
+            (message: { type: string; node: ProfilerFrame }) => {
+                if (message.type === 'open') {
+                    openFile(message.node.meta.path, message.node.meta.line)
+                } else {
+                    console.error('unknown message type received in profiler pane')
+                }
             }
-        })
+        )
 
         const viewStateListener = this.panel.onDidChangeViewState(
             ({ webviewPanel }) => {
@@ -94,6 +215,7 @@ export class ProfilerFeature {
             messageHandler.dispose()
             vscode.commands.executeCommand('setContext', profilerContextKey, false)
             this.panel = undefined
+            this.clearInlineTrace()
         })
     }
 
@@ -102,9 +224,9 @@ export class ProfilerFeature {
         this.panel.title = this.makeTitle()
 
         if (this.profileCount > 0) {
-            this.panel.webview.postMessage(
-                this.profiles[this.currentProfileIndex]
-            )
+            const profile = this.profiles[this.currentProfileIndex]
+            this.panel.webview.postMessage(profile)
+            this.setInlineTrace(profile)
         }
         this.panel.reveal(this.panel.viewColumn, true)
     }
@@ -128,9 +250,9 @@ export class ProfilerFeature {
         )
 
         return `
-<html>
-    <head>
-        <style>
+        <html>
+        <head>
+            <style>
             body {
                 width: 100vw;
                 height: 100vh;
@@ -183,33 +305,34 @@ export class ProfilerFeature {
                 border: 1px solid var(--vscode-editorHoverWidget-border);
                 font-size: 1em !important;
             }
-        </style>
-        <script src="${profilerURL}"></script>
-    </head>
+            </style>
+            <script src="${profilerURL}"></script>
+        </head>
 
-    <body>
-        <div id="profiler-container"></div>
-        <script type="text/javascript">
-            const vscode = acquireVsCodeApi();
+        <body>
+            <div id="profiler-container"></div>
+            <script type="text/javascript">
+                const vscode = acquireVsCodeApi();
 
-            const container = document.getElementById("profiler-container");
+                const container = document.getElementById("profiler-container");
 
-            prof = new ProfileViewer(container);
-            prof.registerCtrlClickHandler((node) => {
-                console.log(node);
-                vscode.postMessage({
-                    type: "open",
-                    node: node
+                prof = new ProfileViewer(container);
+                prof.registerCtrlClickHandler((node) => {
+                    console.log(node);
+                    vscode.postMessage({
+                        type: "open",
+                        node: node
+                    });
                 });
-            });
 
-            window.addEventListener("message", (event) => {
-                console.log(event);
-                prof.setData(event.data);
-            });
-        </script>
-    </body>
-    `
+                window.addEventListener("message", (event) => {
+                    console.log(event);
+                    prof.setData(event.data);
+                });
+            </script>
+        </body>
+        </html>
+        `
     }
 
     previous() {
@@ -228,7 +351,10 @@ export class ProfilerFeature {
 
     delete() {
         this.profiles.splice(this.currentProfileIndex, 1)
-        this.currentProfileIndex = Math.min(this.currentProfileIndex + 1, this.profiles.length - 1)
+        this.currentProfileIndex = Math.min(
+            this.currentProfileIndex + 1,
+            this.profiles.length - 1
+        )
         this.show()
     }
 
