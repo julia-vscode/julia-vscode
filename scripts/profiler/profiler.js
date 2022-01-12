@@ -42,6 +42,9 @@ class ProfileViewer {
 
     boxHeight = 24;
 
+    ctrlClickHandler;
+    threadSelectorHandler;
+
     destroyed = false;
 
     constructor(element, data = null) {
@@ -287,45 +290,45 @@ class ProfileViewer {
             this.stylesheet = document.createElement('style')
             this.stylesheet.setAttribute('id', '__profiler-stylesheet')
             this.stylesheet.innerText = `
-                                                .__profiler-canvas {
-                                                    z-index: 0;
-                                                    position: absolute;
-                                                    width: 100%;
-                                                }
-                                                .__profiler-hover-canvas {
-                                                    z-index: 1;
-                                                    position: absolute;
-                                                    pointer-events: none;
-                                                    width: 100%;
-                                                }
-                                                .__profiler-tooltip {
-                                                    z-index: 2;
-                                                    display: none;
-                                                    position: absolute;
-                                                    background-color: #ddd;
-                                                    border: 1px solid black;
-                                                    padding: 5px 10px;
-                                                    pointer-events: none;
-                                                    max-width: 45%;
-                                                    overflow: hidden;
-                                                }
-                                                .__profiler-tooltip > div {
-                                                    line-break: anywhere;
-                                                }
-                                                .__profiler-tooltip .fname {
-                                                    margin-left: 0.5em;
-                                                }
-                                                .__profiler-filter {
-                                                    height: 30px;
-                                                    padding: 2px 16px;
-                                                    margin: 0;
-                                                    box-sizing: border-box;
-                                                    border-bottom: 1px solid #444;
-                                                }
-                                                .__profiler-reset {
-                                                    float: right;
-                                                }
-                                                `
+                .__profiler-canvas {
+                    z-index: 0;
+                    position: absolute;
+                    width: 100%;
+                }
+                .__profiler-hover-canvas {
+                    z-index: 1;
+                    position: absolute;
+                    pointer-events: none;
+                    width: 100%;
+                }
+                .__profiler-tooltip {
+                    z-index: 2;
+                    display: none;
+                    position: absolute;
+                    background-color: #ddd;
+                    border: 1px solid black;
+                    padding: 5px 10px;
+                    pointer-events: none;
+                    max-width: 45%;
+                    overflow: hidden;
+                }
+                .__profiler-tooltip > div {
+                    line-break: anywhere;
+                }
+                .__profiler-tooltip .fname {
+                    margin-left: 0.5em;
+                }
+                .__profiler-filter {
+                    height: 30px;
+                    padding: 2px 16px;
+                    margin: 0;
+                    box-sizing: border-box;
+                    border-bottom: 1px solid #444;
+                }
+                .__profiler-reset {
+                    float: right;
+                }
+            `
 
             document.head.appendChild(this.stylesheet)
         }
@@ -385,6 +388,9 @@ class ProfileViewer {
 
         this.filterInput.addEventListener('change', (ev) => {
             this.currentThread = ev.target.value
+            if (this.threadSelectorHandler) {
+                this.threadSelectorHandler(this.currentThread)
+            }
             this.resetView()
         })
 
@@ -708,5 +714,9 @@ class ProfileViewer {
 
     registerCtrlClickHandler(f) {
         this.ctrlClickHandler = f
+    }
+
+    registerThreadSelectorHandler(f) {
+        this.threadSelectorHandler = f
     }
 }
