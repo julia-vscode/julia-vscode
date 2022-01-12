@@ -133,25 +133,24 @@ export class ProfilerFeature {
                 if (
                     uri === vscode.Uri.file(highlight.path).toString()
                 ) {
-                    if (edHighlights[uri]) {
-                        edHighlights[uri].push({
-                            range: new vscode.Range(
-                                new vscode.Position(highlight.line - 1, 0),
-                                new vscode.Position(highlight.line - 1, 0)
-                            ),
-                            hoverMessage: `${highlight.count} samples (${(highlight.fraction * 100).toFixed(1)} % of parent) ${flagString(highlight.flags)}`,
-                            renderOptions: {
-                                before: {
-                                    contentText: ' ',
-                                    backgroundColor: this.inlineTraceColor(highlight),
-                                    width: highlight.fraction * 20 + 'em',
-                                    textDecoration: 'none; white-space: pre; position: absolute;' // :grimacing:
-                                }
-                            }
-                        })
-                    } else {
+                    if (edHighlights[uri] === undefined) {
                         edHighlights[uri] = []
                     }
+                    edHighlights[uri].push({
+                        range: new vscode.Range(
+                            new vscode.Position(highlight.line - 1, 0),
+                            new vscode.Position(highlight.line - 1, 0)
+                        ),
+                        hoverMessage: `${highlight.count} samples (${(highlight.fraction * 100).toFixed(1)} % of parent) ${flagString(highlight.flags)}`,
+                        renderOptions: {
+                            before: {
+                                contentText: ' ',
+                                backgroundColor: this.inlineTraceColor(highlight),
+                                width: highlight.fraction * 20 + 'em',
+                                textDecoration: 'none; white-space: pre; position: absolute; pointer-events: none' // :grimacing:
+                            }
+                        }
+                    })
                 }
             }
         }
