@@ -38,7 +38,7 @@ function flagString(flags: number) {
         out += ' task'
     }
     if (out !== '') {
-        out = '- Flags: ' + out
+        out = '\n\n Flags: ' + out
     }
     return out
 }
@@ -144,8 +144,8 @@ export class ProfilerFeature {
                     const flags = (edHighlights[uri][line]?.flags ?? 0) | highlight.flags
 
                     const hoverMessage = branchCount > 1 ?
-                        `${count} samples (compund, ${branchCount} separate branches, ${(fraction * 100).toFixed(1)} % of parent) ${flagString(flags)}` :
-                        `${count} samples (${(fraction * 100).toFixed(1)} % of parent) ${flagString(flags)}`
+                        `${count} samples (compound, ${branchCount} branches, on average ${(fraction * 100).toFixed()} % of parent) ${flagString(flags)}` :
+                        `${count} samples (${(fraction * 100).toFixed()} % of parent) ${flagString(flags)}`
                     edHighlights[uri][line] = {
                         count,
                         fraction,
