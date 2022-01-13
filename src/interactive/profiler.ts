@@ -24,23 +24,23 @@ interface InlineTraceElement {
 }
 
 function flagString(flags: number) {
-    let flagString = ''
+    let out = ''
     if (flags & 0x01) {
-        flagString += 'GC'
+        out += 'GC'
     }
     if (flags & 0x02) {
-        flagString += ' dispatch'
+        out += ' dispatch'
     }
     if (flags & 0x08) {
-        flagString += ' compilation'
+        out += ' compilation'
     }
     if (flags & 0x10) {
-        flagString += ' task'
+        out += ' task'
     }
-    if (flagString !== '') {
-        flagString = 'Flags: ' + flagString
+    if (out !== '') {
+        out = '- Flags: ' + out
     }
-    return flagString
+    return out
 }
 
 const profilerContextKey = 'jlProfilerFocus'
@@ -115,17 +115,18 @@ export class ProfilerFeature {
         }
     }
 
-    inlineTraceColor(highlight: InlineTraceElement) {
-        if (highlight.flags & 0x01) {
+    inlineTraceColor(highlight: InlineTraceElement | number) {
+        const flags = (typeof highlight === 'number') ? highlight : highlight.flags
+        if (flags & 0x01) {
             return 'rgba(204, 103, 103, 0.2)'
         }
-        if (highlight.flags & 0x02) {
+        if (flags & 0x02) {
             return 'rgba(204, 153, 68, 0.2)'
         }
         return 'rgba(64, 99, 221, 0.2)'
     }
 
-    refreshInlineTrace(editors: readonly vscode.TextEditor[]) {
+    collateTrace(editors: readonly vscode.TextEditor[]) {
         const edHighlights = {}
         for (const highlight of this.inlineTrace) {
             for (const editor of editors) {
@@ -134,31 +135,54 @@ export class ProfilerFeature {
                     uri === vscode.Uri.file(highlight.path).toString()
                 ) {
                     if (edHighlights[uri] === undefined) {
-                        edHighlights[uri] = []
+                        edHighlights[uri] = {}
                     }
-                    edHighlights[uri].push({
+                    const line = Math.max(0, highlight.line - 1)
+                    const branchCount = (edHighlights[uri][line]?.branchCount ?? 0) + 1
+                    const count = (edHighlights[uri][line]?.count ?? 0) + highlight.count
+                    const fraction = ((edHighlights[uri][line]?.fraction ?? 0) * (branchCount - 1) + highlight.fraction)/branchCount
+                    const flags = (edHighlights[uri][line]?.flags ?? 0) | highlight.flags
+
+                    const hoverMessage = branchCount > 1 ?
+                        `${count} samples (compund, ${branchCount} separate branches, ${(fraction * 100).toFixed(1)} % of parent) ${flagString(flags)}` :
+                        `${count} samples (${(fraction * 100).toFixed(1)} % of parent) ${flagString(flags)}`
+                    edHighlights[uri][line] = {
+                        count,
+                        fraction,
+                        flags,
+                        branchCount,
                         range: new vscode.Range(
-                            new vscode.Position(highlight.line - 1, 0),
-                            new vscode.Position(highlight.line - 1, 0)
+                            new vscode.Position(line, 0),
+                            new vscode.Position(line, 0)
                         ),
-                        hoverMessage: `${highlight.count} samples (${(highlight.fraction * 100).toFixed(1)} % of parent) ${flagString(highlight.flags)}`,
+                        hoverMessage,
                         renderOptions: {
                             before: {
                                 contentText: ' ',
-                                backgroundColor: this.inlineTraceColor(highlight),
-                                width: highlight.fraction * 20 + 'em',
+                                backgroundColor: this.inlineTraceColor(flags),
+                                width: fraction * 20 + 'em',
                                 textDecoration: 'none; white-space: pre; position: absolute; pointer-events: none' // :grimacing:
                             }
                         }
-                    })
+                    }
                 }
             }
         }
 
+        return edHighlights
+    }
+
+    refreshInlineTrace(editors: readonly vscode.TextEditor[]) {
+        if (editors.length === 0) {
+            return
+        }
+        const edHighlights = this.collateTrace(editors)
+
         for (const editor of editors) {
             const uri = editor.document.uri.toString()
             if (edHighlights[uri]) {
-                editor.setDecorations(this.decoration, edHighlights[uri])
+                const highlights: {range: vscode.Range, hoverMessage: string, renderOptions}[] = Object.values(edHighlights[uri])
+                editor.setDecorations(this.decoration, highlights)
             }
         }
     }
