@@ -527,12 +527,13 @@ class ProfileViewer {
         } else { //default
             ({ r, g, b } = this.modifyNodeColorByHash(64, 99, 221, hash))
         }
-        if (node.meta.flags & 0x10) {
-            a = 0.3
+        if (node.meta.flags & 0x20) {
+            a = 0.5
         }
         return {
             fill: 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')',
             stroke: 'rgba(' + 0.8 * r + ',' + 0.8 * g + ',' + 0.8 * b + ',' + a + ')',
+            text: 'rgba(255, 255, 255, ' + Math.max(0.6, a) + ')'
         }
     }
 
@@ -545,9 +546,9 @@ class ProfileViewer {
 
         if (y + this.boxHeight >= 0) {
             const hash = this.nodeHash(node)
-            const { fill, stroke } = this.nodeColors(node, hash)
+            const { fill, stroke, text } = this.nodeColors(node, hash)
 
-            this.drawNode(node.meta.func, fill, stroke, width, x, y)
+            this.drawNode(node.meta.func, fill, stroke, text, width, x, y)
         }
         node.pos = {
             x,
@@ -567,7 +568,7 @@ class ProfileViewer {
         }
     }
 
-    drawNode(text, color, bColor, width, x, y) {
+    drawNode(text, color, bColor, textColor, width, x, y) {
         if (width < 1) {
             width = 1
         }
@@ -609,7 +610,7 @@ class ProfileViewer {
             )
             this.canvasCtx.closePath()
             this.canvasCtx.clip()
-            this.canvasCtx.fillStyle = '#fff'
+            this.canvasCtx.fillStyle = textColor
             this.canvasCtx.fillText(text, x + this.padding, y + this.boxHeight / 2)
             this.canvasCtx.restore()
         }
