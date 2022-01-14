@@ -53,6 +53,7 @@ export class ProfilerFeature {
     decoration: vscode.TextEditorDecorationType;
     inlineMaxWidth: number = 100;
     currentProfileIndex: number = 0;
+    selectedThread: string = 'all'
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
@@ -95,7 +96,7 @@ export class ProfilerFeature {
             isWholeLine: true
         })
 
-        const root = profile['all']
+        const root = profile[this.selectedThread]
         this.buildInlineTraceElements(root, root.meta.count)
 
         this.refreshInlineTrace(vscode.window.visibleTextEditors)
@@ -210,9 +211,12 @@ export class ProfilerFeature {
         this.panel.webview.html = this.getContent()
 
         const messageHandler = this.panel.webview.onDidReceiveMessage(
-            (message: { type: string; node: ProfilerFrame }) => {
+            (message: { type: string, node?: ProfilerFrame, thread?: string }) => {
                 if (message.type === 'open') {
                     openFile(message.node.meta.path, message.node.meta.line)
+                } else if (message.type === 'threadChange') {
+                    this.selectedThread = message.thread
+                    this.setInlineTrace(this.profiles[this.currentProfileIndex])
                 } else {
                     console.error('unknown message type received in profiler pane')
                 }
@@ -341,10 +345,15 @@ export class ProfilerFeature {
 
                 prof = new ProfileViewer(container);
                 prof.registerCtrlClickHandler((node) => {
-                    console.log(node);
                     vscode.postMessage({
                         type: "open",
                         node: node
+                    });
+                });
+                prof.registerThreadSelectorHandler((thread) => {
+                    vscode.postMessage({
+                        type: "threadChange",
+                        thread: thread
                     });
                 });
 

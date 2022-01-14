@@ -1,7 +1,17 @@
-function view_profile(; C = false, kwargs...)
+function view_profile(; C = false, threads = nothing, kwargs...)
     d = Dict()
-    for thread in ["all"] #["all", 1:Threads.nthreads()...]
-        graph = @time stackframetree(kwargs...)
+    if threads === nothing
+        if VERSION >= v"1.8.0-DEV.460"
+            threads = ["all", 1:Threads.nthreads()...]
+        else
+            threads = ["all"]
+        end
+    end
+    data = Profile.fetch()
+    lidict = Profile.getdict(unique(data))
+    data_u64 = convert(Vector{UInt64}, data)
+    for thread in threads
+        graph = stackframetree(data_u64, lidict; thread = thread, kwargs...)
         d[thread] = dicttree(Dict(
             :meta => Dict(
                 :func => "root",
@@ -18,16 +28,16 @@ function view_profile(; C = false, kwargs...)
     JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace = d))
 end
 
-function stackframetree(; combine = true, recur = :off)
-    data=Profile.fetch()
-    lidict = Profile.getdict(unique(data))
-
-    data_u64 = convert(Vector{UInt64}, data)
-
+function stackframetree(data_u64, lidict; thread = nothing, combine = true, recur = :off)
     root = combine ? Profile.StackFrameTree{Profile.StackFrame}() : Profile.StackFrameTree{UInt64}()
-    root = Profile.tree!(root, data_u64, lidict, true, recur)
+    if VERSION >= v"1.8.0-DEV.460"
+        thread = thread == "all" ? (1:Threads.nthreads()) : thread
+        root, _ = Profile.tree!(root, data_u64, lidict, true, recur, thread)
+    else
+        root = Profile.tree!(root, data_u64, lidict, true, recur)
+    end
 
-    root.count = sum(pr->pr.second.count, root.down)
+    root.count = sum(pr -> pr.second.count, root.down)
 
     return root
 end
