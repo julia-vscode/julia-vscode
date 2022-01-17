@@ -92,6 +92,10 @@ class ProfileViewer {
             console.error('This profile viewer is destroyed.')
             return
         }
+        if (!data) {
+            this.clear()
+            return
+        }
         this.data = data
         const threads = Object.keys(this.data)
         threads.sort((a, b) => {
@@ -116,6 +120,15 @@ class ProfileViewer {
 
         this.updateFilter()
         this.redraw()
+    }
+
+    clear() {
+        this.threads = ['all']
+        this.currentThread = this.threads[0]
+        this.activeNode = undefined
+
+        this.canvasCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
+        this.hoverCanvasCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
     }
 
     getStyles() {
@@ -509,25 +522,30 @@ class ProfileViewer {
     modifyNodeColorByHash(r, g, b, hash, range = 70) {
         const rng = this.mulberry32(hash)
 
-        r = Math.min(255, Math.max(0, r + (rng() - 0.5) * range)).toFixed()
-        g = Math.min(255, Math.max(0, g + (rng() - 0.5) * range)).toFixed()
-        b = Math.min(255, Math.max(0, b + (rng() - 0.5) * range)).toFixed()
+        if (r === g && g === b) {
+            r = g = b = Math.min(255, Math.max(0, r + (rng() - 0.5) * range)).toFixed()
+        } else {
+            r = Math.min(255, Math.max(0, r + (rng() - 0.5) * range)).toFixed()
+            g = Math.min(255, Math.max(0, g + (rng() - 0.5) * range)).toFixed()
+            b = Math.min(255, Math.max(0, b + (rng() - 0.5) * range)).toFixed()
+        }
+
         return { r, g, b }
     }
 
     nodeColors(node, hash) {
         let r, g, b
         let a = 1
-        if (node.meta.flags & 0x01) { // gc
+        if (node.meta.flags & 0x01) { // runtime-dispatch
             ({ r, g, b } = this.modifyNodeColorByHash(204, 103, 103, hash, 20))
-        } else if (node.meta.flags & 0x08) { // compilation?
-            ({ r, g, b } = this.modifyNodeColorByHash(204, 53, 53, hash, 20))
-        } else if (node.meta.flags & 0x02) { // dispatch
+        } else if (node.meta.flags & 0x02) { // gc
             ({ r, g, b } = this.modifyNodeColorByHash(204, 153, 68, hash, 20))
-        } else { //default
+        } else if (node.meta.flags & 0x08) { // compilation?
+            ({ r, g, b } = this.modifyNodeColorByHash(100, 100, 100, hash, 60))
+        } else { // default
             ({ r, g, b } = this.modifyNodeColorByHash(64, 99, 221, hash))
         }
-        if (node.meta.flags & 0x20) {
+        if (node.meta.flags & 0x10) { // C frame
             a = 0.5
         }
         return {
@@ -625,10 +643,10 @@ class ProfileViewer {
         let flags = ''
 
         if (node.meta.flags & 0x01) {
-            flags += 'GC'
+            flags += 'runtime-dispatch'
         }
         if (node.meta.flags & 0x02) {
-            flags += ' dispatch'
+            flags += ' GC'
         }
         if (node.meta.flags & 0x08) {
             flags += ' compilation'

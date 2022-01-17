@@ -199,7 +199,7 @@ export class ProfilerFeature {
                 preserveFocus: false,
                 viewColumn: this.context.globalState.get(
                     'juliaProfilerViewColumn',
-                    vscode.ViewColumn.Beside
+                    vscode.ViewColumn.Two
                 ),
             },
             {
@@ -213,7 +213,7 @@ export class ProfilerFeature {
         const messageHandler = this.panel.webview.onDidReceiveMessage(
             (message: { type: string, node?: ProfilerFrame, thread?: string }) => {
                 if (message.type === 'open') {
-                    openFile(message.node.meta.path, message.node.meta.line)
+                    openFile(message.node.meta.path, message.node.meta.line, vscode.ViewColumn.One)
                 } else if (message.type === 'threadChange') {
                     this.selectedThread = message.thread
                     this.setInlineTrace(this.profiles[this.currentProfileIndex])
@@ -247,6 +247,7 @@ export class ProfilerFeature {
     }
 
     show() {
+        this.selectedThread = 'all'
         this.createPanel()
         this.panel.title = this.makeTitle()
 
@@ -254,8 +255,13 @@ export class ProfilerFeature {
             const profile = this.profiles[this.currentProfileIndex]
             this.panel.webview.postMessage(profile)
             this.setInlineTrace(profile)
+        } else {
+            this.panel.webview.postMessage(null)
+            this.clearInlineTrace()
         }
-        this.panel.reveal(this.panel.viewColumn, true)
+        if (!this.panel.visible) {
+            this.panel.reveal(this.panel.viewColumn, true)
+        }
     }
 
     showTrace(trace: ProfilerFrame) {
@@ -358,7 +364,6 @@ export class ProfilerFeature {
                 });
 
                 window.addEventListener("message", (event) => {
-                    console.log(event);
                     prof.setData(event.data);
                 });
             </script>
