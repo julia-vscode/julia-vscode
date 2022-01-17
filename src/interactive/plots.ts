@@ -240,8 +240,8 @@ export function showPlotPane() {
             'jlplotpane',
             plotTitle,
             {
-                preserveFocus: false, // true would be preferable, but is buggy when used with a specific viewColumn
-                viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Beside)
+                preserveFocus: true,
+                viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Two)
             },
             {
                 enableScripts: true
@@ -250,6 +250,7 @@ export function showPlotPane() {
 
         const viewStateListener = g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
             g_context.globalState.update('juliaPlotPanelViewColumn', webviewPanel.viewColumn)
+            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active)
         })
 
         g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
@@ -268,16 +269,16 @@ export function showPlotPane() {
             vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, false)
         }, null, g_context.subscriptions)
 
-        g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
-            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active)
-        }, null, g_context.subscriptions)
-
         g_plotPanel.webview.onDidReceiveMessage(plotPanelOnMessage)
-        g_plotPanel.reveal(g_plotPanel.viewColumn, true)
+        if (!g_plotPanel.visible) {
+            g_plotPanel.reveal(g_plotPanel.viewColumn, true)
+        }
     } else {
         g_plotPanel.title = plotTitle
         g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
-        g_plotPanel.reveal(g_plotPanel.viewColumn, true)
+        if (!g_plotPanel.visible) {
+            g_plotPanel.reveal(g_plotPanel.viewColumn, true)
+        }
     }
 }
 
