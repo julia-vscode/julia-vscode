@@ -5,8 +5,15 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.5.10] - 2022-01-17
+### Fixed
+* Fix plot pane location and focus issue, again (hopefully for real this time) ([#2676](https://github.com/julia-vscode/julia-vscode/pull/2676))
+
+## [1.5.9] - 2022-01-05
 ### Fixed
 * Plot pane position is now stable and interactive plots now render properly if the plot pane wasn't opened previously ([#2662](https://github.com/julia-vscode/julia-vscode/pull/2662))
+* Fixed various issues with finding the Julia binary ([#2647](https://github.com/julia-vscode/julia-vscode/pull/2647), [#2642](https://github.com/julia-vscode/julia-vscode/pull/2642), [#2658](https://github.com/julia-vscode/julia-vscode/pull/2658))
+* Fixed a command registration issue if the Julia binary changes while the language server is starting ([#2663](https://github.com/julia-vscode/julia-vscode/pull/2663))
 
 ## [1.5.8] - 2021-12-21
 ### Fixed
