@@ -640,24 +640,25 @@ class ProfileViewer {
         this.tooltip.count.innerText = node.meta.count
         this.tooltip.percentage.innerText = (100*node.meta.count/this.activeNode.meta.count).toFixed()
 
-        let flags = ''
+        const flags = []
 
         if (node.meta.flags & 0x01) {
-            flags += 'runtime-dispatch'
+            flags.push('runtime-dispatch')
         }
         if (node.meta.flags & 0x02) {
-            flags += ' GC'
+            flags.push('GC')
         }
         if (node.meta.flags & 0x08) {
-            flags += ' compilation'
+            flags.push('compilation')
         }
         if (node.meta.flags & 0x10) {
-            flags += ' task'
+            flags.push('task')
         }
-        if (flags !== '') {
-            flags = 'Flags: ' + flags
+        let flagString = ''
+        if (flags.length > 0) {
+            flagString = 'Flags: ' + flags.join(', ')
         }
-        this.tooltip.flags.innerText = flags
+        this.tooltip.flags.innerText = flagString
 
         if (this.ctrlClickHandler) {
             this.tooltip['ctrlClickHint'].innerText = 'Ctrl+Click to open this file'
