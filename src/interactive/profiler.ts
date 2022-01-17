@@ -53,7 +53,7 @@ export class ProfilerFeature {
     decoration: vscode.TextEditorDecorationType;
     inlineMaxWidth: number = 100;
     currentProfileIndex: number = 0;
-    selectedThread: string = 'all'
+    selectedThread: string = 'all';
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
@@ -93,7 +93,7 @@ export class ProfilerFeature {
 
         this.decoration = vscode.window.createTextEditorDecorationType({
             rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-            isWholeLine: true
+            isWholeLine: true,
         })
 
         const root = profile[this.selectedThread]
@@ -108,7 +108,7 @@ export class ProfilerFeature {
             line: node.meta.line,
             count: node.meta.count,
             fraction: node.meta.count / parentCount,
-            flags: node.meta.flags
+            flags: node.meta.flags,
         })
 
         for (const child of node.children) {
@@ -117,7 +117,7 @@ export class ProfilerFeature {
     }
 
     inlineTraceColor(highlight: InlineTraceElement | number) {
-        const flags = (typeof highlight === 'number') ? highlight : highlight.flags
+        const flags = typeof highlight === 'number' ? highlight : highlight.flags
         if (flags & 0x01) {
             return 'rgba(204, 103, 103, 0.2)'
         }
@@ -132,21 +132,27 @@ export class ProfilerFeature {
         for (const highlight of this.inlineTrace) {
             for (const editor of editors) {
                 const uri = editor.document.uri.toString()
-                if (
-                    uri === vscode.Uri.file(highlight.path).toString()
-                ) {
+                if (uri === vscode.Uri.file(highlight.path).toString()) {
                     if (edHighlights[uri] === undefined) {
                         edHighlights[uri] = {}
                     }
                     const line = Math.max(0, highlight.line - 1)
                     const branchCount = (edHighlights[uri][line]?.branchCount ?? 0) + 1
                     const count = (edHighlights[uri][line]?.count ?? 0) + highlight.count
-                    const fraction = ((edHighlights[uri][line]?.fraction ?? 0) * (branchCount - 1) + highlight.fraction)/branchCount
+                    const fraction =
+                        ((edHighlights[uri][line]?.fraction ?? 0) * (branchCount - 1) +
+                        highlight.fraction) /
+                        branchCount
                     const flags = (edHighlights[uri][line]?.flags ?? 0) | highlight.flags
 
-                    const hoverMessage = branchCount > 1 ?
-                        `${count} samples (compound, ${branchCount} branches, on average ${(fraction * 100).toFixed()} % of parent) ${flagString(flags)}` :
-                        `${count} samples (${(fraction * 100).toFixed()} % of parent) ${flagString(flags)}`
+                    const hoverMessage =
+                        branchCount > 1
+                            ? `${count} samples (compound, ${branchCount} branches, on average ${(
+                                fraction * 100
+                            ).toFixed()} % of parent) ${flagString(flags)}`
+                            : `${count} samples (${(
+                                fraction * 100
+                            ).toFixed()} % of parent) ${flagString(flags)}`
                     edHighlights[uri][line] = {
                         count,
                         fraction,
@@ -162,9 +168,10 @@ export class ProfilerFeature {
                                 contentText: ' ',
                                 backgroundColor: this.inlineTraceColor(flags),
                                 width: fraction * 20 + 'em',
-                                textDecoration: 'none; white-space: pre; position: absolute; pointer-events: none' // :grimacing:
-                            }
-                        }
+                                textDecoration:
+                                                'none; white-space: pre; position: absolute; pointer-events: none', // :grimacing:
+                            },
+                        },
                     }
                 }
             }
@@ -182,7 +189,11 @@ export class ProfilerFeature {
         for (const editor of editors) {
             const uri = editor.document.uri.toString()
             if (edHighlights[uri]) {
-                const highlights: {range: vscode.Range, hoverMessage: string, renderOptions}[] = Object.values(edHighlights[uri])
+                const highlights: {
+                                    range: vscode.Range;
+                                    hoverMessage: string;
+                                    renderOptions;
+                                }[] = Object.values(edHighlights[uri])
                 editor.setDecorations(this.decoration, highlights)
             }
         }
@@ -196,7 +207,7 @@ export class ProfilerFeature {
             'jlprofilerpane',
             this.makeTitle(),
             {
-                preserveFocus: false,
+                preserveFocus: true,
                 viewColumn: this.context.globalState.get(
                     'juliaProfilerViewColumn',
                     vscode.ViewColumn.Two
@@ -211,9 +222,15 @@ export class ProfilerFeature {
         this.panel.webview.html = this.getContent()
 
         const messageHandler = this.panel.webview.onDidReceiveMessage(
-            (message: { type: string, node?: ProfilerFrame, thread?: string }) => {
+            (message: { type: string; node?: ProfilerFrame; thread?: string }) => {
                 if (message.type === 'open') {
-                    openFile(message.node.meta.path, message.node.meta.line, vscode.ViewColumn.One)
+                    openFile(
+                        message.node.meta.path,
+                        message.node.meta.line,
+                        this.panel.viewColumn === vscode.ViewColumn.Two
+                            ? vscode.ViewColumn.One
+                            : vscode.ViewColumn.Beside
+                    )
                 } else if (message.type === 'threadChange') {
                     this.selectedThread = message.thread
                     this.setInlineTrace(this.profiles[this.currentProfileIndex])
