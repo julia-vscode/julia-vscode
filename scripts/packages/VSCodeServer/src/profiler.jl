@@ -1,11 +1,10 @@
-function view_profile(; C = false, threads = nothing, kwargs...)
+function view_profile(; C = false, kwargs...)
     d = Dict()
-    if threads === nothing
-        if VERSION >= v"1.8.0-DEV.460"
-            threads = ["all", 1:Threads.nthreads()...]
-        else
-            threads = ["all"]
-        end
+
+    if VERSION >= v"1.8.0-DEV.460"
+        threads = ["all", 1:Threads.nthreads()...]
+    else
+        threads = ["all"]
     end
     data = Profile.fetch()
     lidict = Profile.getdict(unique(data))
@@ -48,7 +47,7 @@ const gc_event         = UInt8(2^1)
 const repl             = UInt8(2^2)
 const compilation      = UInt8(2^3)
 const task_event       = UInt8(2^4)
-const is_c             = UInt8(2^5)
+# const              = UInt8(2^5)
 # const              = UInt8(2^6)
 # const              = UInt8(2^7)
 # const              = UInt8(2^8)
@@ -70,13 +69,21 @@ function status(sf::Profile.StackFrame)
     if !sf.from_c && occursin("task.jl", String(sf.file))
         st |= task_event
     end
-    if sf.from_c
-        st |= is_c
+    return st
+end
+
+function status(node::Profile.StackFrameTree, C::Bool)
+    st = status(node.frame)
+    C && return st
+    # If we're suppressing C frames, check all C-frame children
+    for child in values(node.down)
+        child.frame.from_c || continue
+        st |= status(child, C)
     end
     return st
 end
 
-function add_child(graph, node)
+function add_child(graph, node, C::Bool)
     name = string(node.frame.file)
     func = String(node.frame.func)
 
@@ -91,7 +98,7 @@ function add_child(graph, node)
             :path => fullpath(name),
             :line => node.frame.line,
             :count => node.count,
-            :flags => status(node.frame)
+            :flags => status(node, C)
         ),
         :children => []
     )
@@ -104,7 +111,7 @@ function dicttree(graph, node::Profile.StackFrameTree; C = false)
     for child_node in sort!(collect(values(node.down)); rev = true, by = node -> node.count)
         # child not a hidden frame
         if C || !child_node.frame.from_c
-            child = add_child(graph, child_node)
+            child = add_child(graph, child_node, C)
             dicttree(child, child_node; C = C)
         else
             dicttree(graph, child_node)
@@ -115,9 +122,11 @@ function dicttree(graph, node::Profile.StackFrameTree; C = false)
 end
 
 """
-    @profview f(args...)
+    @profview f(args...) [C = false]
 
 Clear the Profile buffer, profile `f(args...)`, and view the result graphically.
+
+The default of `C = false` will only show Julia frames in the profile graph.
 """
 macro profview(ex, args...)
     return quote
