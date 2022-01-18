@@ -292,9 +292,10 @@ export class ProfilerFeature {
             vscode.Uri.file(
                 path.join(
                     this.context.extensionPath,
-                    'scripts',
-                    'profiler',
-                    'profiler.js'
+                    'libs',
+                    'jl-profile',
+                    'dist',
+                    'profile-viewer.js'
                 )
             )
         )
@@ -356,7 +357,6 @@ export class ProfilerFeature {
                 font-size: 1em !important;
             }
             </style>
-            <script src="${profilerURL}"></script>
         </head>
 
         <body>
@@ -366,23 +366,25 @@ export class ProfilerFeature {
 
                 const container = document.getElementById("profiler-container");
 
-                prof = new ProfileViewer(container);
-                prof.registerCtrlClickHandler((node) => {
-                    vscode.postMessage({
-                        type: "open",
-                        node: node
+                import('${profilerURL}').then(({ProfileViewer}) => {
+                    prof = new ProfileViewer(container);
+                    prof.registerCtrlClickHandler((node) => {
+                        vscode.postMessage({
+                            type: "open",
+                            node: node
+                        });
                     });
-                });
-                prof.registerThreadSelectorHandler((thread) => {
-                    vscode.postMessage({
-                        type: "threadChange",
-                        thread: thread
+                    prof.registerThreadSelectorHandler((thread) => {
+                        vscode.postMessage({
+                            type: "threadChange",
+                            thread: thread
+                        });
                     });
-                });
 
-                window.addEventListener("message", (event) => {
-                    prof.setData(event.data);
-                });
+                    window.addEventListener("message", (event) => {
+                        prof.setData(event.data);
+                    });
+                })
             </script>
         </body>
         </html>

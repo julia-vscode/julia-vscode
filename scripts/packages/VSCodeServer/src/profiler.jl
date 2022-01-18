@@ -12,14 +12,12 @@ function view_profile(; C = false, kwargs...)
     for thread in threads
         graph = stackframetree(data_u64, lidict; thread = thread, kwargs...)
         d[thread] = dicttree(Dict(
-            :meta => Dict(
-                :func => "root",
-                :file => "",
-                :path => "",
-                :line => 0,
-                :count => graph.count,
-                :flags => 0x0
-            ),
+            :func => "root",
+            :file => "",
+            :path => "",
+            :line => 0,
+            :count => graph.count,
+            :flags => 0x0,
             :children => []
         ), graph; C = C, kwargs...)
     end
@@ -92,14 +90,12 @@ function add_child(graph, node, C::Bool)
     end
 
     d = Dict(
-        :meta => Dict(
-            :func => func,
-            :file => basename(name),
-            :path => fullpath(name),
-            :line => node.frame.line,
-            :count => node.count,
-            :flags => status(node, C)
-        ),
+        :func => func,
+        :file => basename(name),
+        :path => fullpath(name),
+        :line => node.frame.line,
+        :count => node.count,
+        :flags => status(node, C),
         :children => []
     )
     push!(graph[:children], d)
