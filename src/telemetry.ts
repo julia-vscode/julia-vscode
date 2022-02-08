@@ -2,6 +2,7 @@ import * as appInsights from 'applicationinsights'
 import * as fs from 'async-file'
 import * as net from 'net'
 import * as path from 'path'
+import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
 import { generatePipeName } from './utils'
@@ -103,6 +104,15 @@ export async function init(context: vscode.ExtensionContext) {
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
+    if (name.startsWith('LSPrecompileFailure')) {
+        vscode.window.showErrorMessage('The Julia Language Server failed to precompile. Please check the FAQ and the local output.', 'Open FAQ', 'Open Logs').then(choice => {
+            if (choice === 'Open Logs') {
+                vscode.commands.executeCommand('language-julia.showLanguageServerOutput')
+            } else if (choice === 'Open FAQ') {
+                vscode.commands.executeCommand('vscode.open', vscode.Uri.parse('https://www.julia-vscode.org/docs/stable/faq'))
+            }
+        })
+    }
     crashReporterQueue.push({
         exception: {
             name: name,
@@ -140,7 +150,7 @@ export function handleNewCrashReportFromException(exception: Error, cloudRole: s
 
 export function startLsCrashServer() {
 
-    g_jlcrashreportingpipename = generatePipeName(process.pid.toString(), 'vsc-jl-cr')
+    g_jlcrashreportingpipename = generatePipeName(uuid(), 'vsc-jl-cr')
 
     const server = net.createServer(function (connection) {
         let accumulatingBuffer = Buffer.alloc(0)
@@ -196,13 +206,17 @@ async function showCrashReporterUIConsent() {
     else {
         crashReporterUIVisible = true
         try {
-            const choice = await vscode.window.showInformationMessage('The Julia language extension crashed. Do you want to send more information about the problem to the development team? Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more how we use crash reports, what data will be transmitted and how to permanently hide this notification.', 'Yes, send a crash report', 'Yes, always send a crash report')
-
-            if (choice === 'Yes, always send a crash report') {
+            const agree = 'Yes'
+            const agreeAlways = 'Yes, always'
+            const disagree = 'No, never'
+            const choice = await vscode.window.showInformationMessage('The Julia language extension crashed. Do you want to send more information about the problem to the development team? Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use crash reports and what data will be transmitted.', agree, agreeAlways, disagree)
+            if (choice === disagree) {
+                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', false, true)
+            }
+            if (choice === agreeAlways) {
                 vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, true)
             }
-
-            if (choice === 'Yes, send a crash report' || choice === 'Yes, always send a crash report') {
+            if (choice === agree || choice === agreeAlways) {
                 sendCrashReportQueue()
             }
         }
