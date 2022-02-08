@@ -733,7 +733,7 @@ async function executeCell(shouldMove: boolean = false) {
     if (ed === undefined) {
         return
     }
-
+    await ed.document.save()
     const doc = ed.document
     const selection = ed.selection
     const cellrange = currentCellRange(ed)
@@ -763,7 +763,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     if (editor === undefined) {
         return
     }
-
+    await editor.document.save()
     const selections = editor.selections.slice()
 
     await startREPL(true, false)
