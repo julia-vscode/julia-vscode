@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+* Add restart REPL command and always stop persistent session option([#2720](https://github.com/julia-vscode/julia-vscode/pull/2720))
+
 ## [1.5.10] - 2022-01-17
 ### Fixed
 * Fix plot pane location and focus issue, again (hopefully for real this time) ([#2676](https://github.com/julia-vscode/julia-vscode/pull/2676))
