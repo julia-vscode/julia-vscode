@@ -28,6 +28,7 @@ let g_languageClient: vslc.LanguageClient = null
 let g_compiledProvider = null
 
 let g_terminal: vscode.Terminal = null
+let persistentStopWarning: boolean = false
 
 export let g_connection: rpc.MessageConnection = undefined
 
@@ -37,6 +38,65 @@ function startREPLCommand() {
     telemetry.traceEvent('command-startrepl')
 
     startREPL(false, true)
+}
+async function checkKillPersistentSession() {
+    if (persistentStopWarning || vscode.workspace.getConfiguration('julia').get<boolean>('persistentSession.stopWarning') === false) {
+        return true
+    }
+    else {
+        persistentStopWarning = true
+        try {
+            const agree = 'Yes'
+            const agreeAlways = 'Yes, always'
+            const disagree = 'No'
+            const choice = await vscode.window.showInformationMessage('This is a persistent tmux session. Do you want to close it?', agree, agreeAlways, disagree)
+            if (choice === disagree) {
+                return false
+            }
+            if (choice === agreeAlways) {
+                vscode.workspace.getConfiguration('julia').update('persistentSession.stopWarning', false, true)
+            }
+            if (choice === agree || choice === agreeAlways) {
+                return true
+            }
+        }
+        finally {
+            persistentStopWarning = false
+        }
+    }
+}
+async function stopREPLInPersistent() {
+    const config = vscode.workspace.getConfiguration('julia')
+    if (Boolean(config.get('persistentSession.enabled'))) {
+        try {
+            const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
+            const killSession = await checkKillPersistentSession()
+            if (killSession) {
+                const { code } = await exec(`tmux kill-session -t ${sessionName}`)
+                if (code) {
+                    throw new Error(`tmux kill-session Process failed with exit code ${code}`)
+                }
+            }
+
+        } catch (err) {
+            vscode.window.showErrorMessage('Failed to close tmux session.')
+        }
+    }
+}
+async function stopREPL() {
+    await stopREPLInPersistent()
+    if (isConnected()) {
+        g_connection.end()
+        g_connection = undefined
+    }
+    if (g_terminal) {
+        g_terminal.dispose()
+        g_terminal = null
+    }
+}
+async function restartREPL() {
+    await stopREPL()
+    await startREPL(false, true)
 }
 
 function is_remote_env(): boolean {
@@ -203,15 +263,7 @@ async function connectREPL() {
 }
 
 async function killREPL() {
-    const config = vscode.workspace.getConfiguration('julia')
-    if (Boolean(config.get('persistentSession.enabled'))) {
-        try {
-            const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
-            await exec(`tmux kill-session -t ${sessionName}`)
-        } catch (err) {
-            vscode.window.showErrorMessage('Failed to close tmux session.')
-        }
-    }
+    await stopREPLInPersistent()
     if (isConnected()) {
         g_connection.end()
     }
@@ -1168,6 +1220,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.startREPL', startREPLCommand),
         registerCommand('language-julia.connectREPL', connectREPL),
         registerCommand('language-julia.stopREPL', killREPL),
+        registerCommand('language-julia.restartREPL', restartREPL),
         registerCommand('language-julia.disconnectREPL', disconnectREPL),
         registerCommand('language-julia.selectBlock', selectJuliaBlock),
         registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
