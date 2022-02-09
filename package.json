@@ -1229,7 +1229,7 @@
         "applicationinsights": "^1.8.10",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
-        "markdown-it": "^12.2.0",
+        "markdown-it": "^12.3.2",
         "markdown-it-footnote": "^3.0.3",
         "promised-temp": "^v0.1.0",
         "promisify-child-process": "^4.1.1",
