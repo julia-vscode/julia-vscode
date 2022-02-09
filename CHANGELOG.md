@@ -5,6 +5,15 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.5.11] - 2022-01-17
+### Fixed
+* Fixed a grammar issue when using VS Code 1.64.x ([#2730](https://github.com/julia-vscode/julia-vscode/pull/2730))
+* Fixed inline result hovers for VS Code 1.64 and newer ([#2716](https://github.com/julia-vscode/julia-vscode/pull/2716))
+* Fixed a Julia REPL crash when getting runtime completions for uninitialized fields ([#2686](https://github.com/julia-vscode/julia-vscode/pull/2686))
+
+### Change
+* Removed some superfluous plot pane related keybindings ([#2704](https://github.com/julia-vscode/julia-vscode/pull/2704))
+
 ## [1.5.10] - 2022-01-17
 ### Fixed
 * Fix plot pane location and focus issue, again (hopefully for real this time) ([#2676](https://github.com/julia-vscode/julia-vscode/pull/2676))
