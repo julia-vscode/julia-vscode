@@ -75,6 +75,11 @@
     "contributes": {
         "grammars": [
             {
+                "language": "julia",
+                "scopeName": "source.julia",
+                "path": "./syntaxes/julia_vscode.json"
+            },
+            {
                 "language": "juliamarkdown",
                 "scopeName": "text.html.markdown.julia",
                 "path": "./syntaxes/juliamarkdown.json"
