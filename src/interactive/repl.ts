@@ -755,6 +755,34 @@ async function executeCell(shouldMove: boolean = false) {
     await evaluate(ed, cellrange, code, module)
 }
 
+
+async function debugRunCell(shouldMove: boolean = false) {
+    telemetry.traceEvent('command-executeCell')
+
+    const ed = vscode.window.activeTextEditor
+    if (ed === undefined) {
+        return
+    }
+
+    const doc = ed.document
+    const selection = ed.selection
+    const cellrange = currentCellRange(ed)
+    if (cellrange === null) {
+        return
+    }
+    const code = doc.getText(cellrange)
+
+    await startREPL(true, false)
+
+    if (shouldMove && ed.selection === selection) {
+        const isJmd = doc.languageId === 'juliamarkdown'
+        const nextpos = new vscode.Position(nextCellBorder(doc, cellrange.end.line + 1, true, isJmd) + 1, 0)
+        validateMoveAndReveal(ed, nextpos, nextpos)
+    }
+    const debugCode = 'using Debugger\nbreak_on(:error)\nDebugger.@run begin\n'+code+'\nend'
+    await executeCodeCopyPaste(debugCode,false)
+}
+
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     telemetry.traceEvent('command-executeCodeBlockOrSelection')
 
@@ -1189,6 +1217,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.activateFromDir', activateFromDir),
         registerCommand('language-julia.clearRuntimeDiagnostics', clearDiagnostics),
         registerCommand('language-julia.clearRuntimeDiagnosticsByProvider', clearDiagnosticsByProvider),
+        registerCommand('language-julia.debugRunCell', debugRunCell),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')

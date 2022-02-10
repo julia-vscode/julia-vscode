@@ -299,6 +299,10 @@
                 "icon": "$(debug-alt)"
             },
             {
+                "command": "language-julia.debugRunCell",
+                "title": "Julia: Debug Cell, break on error"
+            },
+            {
                 "command": "language-julia.cdHere",
                 "title": "Julia: Change to This Directory"
             },
