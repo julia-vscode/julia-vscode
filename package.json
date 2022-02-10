@@ -1216,21 +1216,6 @@
                     "activeJuliaEnvironment": "language-julia.debug.getActiveJuliaEnvironment"
                 }
             }
-        ],
-        "problemMatchers": [
-            {
-                "name": "julia",
-                "owner": "language-julia",
-                "fileLocation": [
-                    "autoDetect"
-                ],
-                "pattern": {
-                    "regexp": "^\\[\\d+\\]\\s(?<body>.+)\\sat\\s(?<path>.+)\\:(?<line>\\d+)",
-                    "file": 2,
-                    "line": 3,
-                    "message": 1
-                }
-            }
         ]
     },
     "scripts": {
