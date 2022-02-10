@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.5.10",
+    "version": "1.5.11",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -74,6 +74,11 @@
     "main": "./dist/extension",
     "contributes": {
         "grammars": [
+            {
+                "language": "julia",
+                "scopeName": "source.julia",
+                "path": "./syntaxes/julia_vscode.json"
+            },
             {
                 "language": "juliamarkdown",
                 "scopeName": "text.html.markdown.julia",
@@ -666,28 +671,8 @@
                 "when": "jlplotpaneFocus"
             },
             {
-                "command": "language-julia.plotpane-previous",
-                "key": "up",
-                "when": "jlplotpaneFocus"
-            },
-            {
-                "command": "language-julia.plotpane-previous",
-                "key": "pageup",
-                "when": "jlplotpaneFocus"
-            },
-            {
                 "command": "language-julia.plotpane-next",
                 "key": "right",
-                "when": "jlplotpaneFocus"
-            },
-            {
-                "command": "language-julia.plotpane-next",
-                "key": "down",
-                "when": "jlplotpaneFocus"
-            },
-            {
-                "command": "language-julia.plotpane-next",
-                "key": "pagedown",
                 "when": "jlplotpaneFocus"
             },
             {
@@ -1264,7 +1249,7 @@
         "applicationinsights": "^1.8.10",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
-        "markdown-it": "^12.2.0",
+        "markdown-it": "^12.3.2",
         "markdown-it-footnote": "^3.0.3",
         "promised-temp": "^v0.1.0",
         "promisify-child-process": "^4.1.1",
