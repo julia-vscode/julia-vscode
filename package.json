@@ -1006,11 +1006,11 @@
                     "scope": "machine-overridable",
                     "markdownDescription": "Name of the `tmux` session."
                 },
-                "julia.persistentSession.stopWarning": {
+                "julia.persistentSession.warnOnKill": {
                     "type": "boolean",
                     "default": true,
                     "scope": "machine-overridable",
-                    "description": "Warning on closing of persistent session. false to disable warning"
+                    "description": "Warn when stopping a persistent session."
                 },
                 "julia.deleteJuliaCovFiles": {
                     "type": "boolean",
