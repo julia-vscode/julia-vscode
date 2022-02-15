@@ -41,6 +41,7 @@ completion_label(c::DictCompletion) = rstrip(completion_text(c), (']', '"'))
 
 completion_detail(c::PropertyCompletion) = begin
     hasproperty(c.value, c.property) || return ""
+    isdefined(c.value, c.property) || return "#undef"
     t = typeof(getproperty(c.value, c.property))
     string(t)
 end

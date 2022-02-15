@@ -1,5 +1,7 @@
 # Julia
 [![Build and Test](https://github.com/julia-vscode/julia-vscode/actions/workflows/main.yml/badge.svg)](https://github.com/julia-vscode/julia-vscode/actions/workflows/main.yml)
+[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://www.julia-vscode.org/docs/latest/)
+<!-- [![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://www.julia-vscode.org/docs/dev/) -->
 
 This [VS Code](https://code.visualstudio.com) extension provides support for the [Julia programming language](http://julialang.org/).
 

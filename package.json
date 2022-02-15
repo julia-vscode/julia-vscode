@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.5.8",
+    "version": "1.5.11",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -43,6 +43,9 @@
         "onCommand:language-julia.weave-open-preview-side",
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
+        "onCommand:language-julia.openProfiler",
+        "onCommand:language-julia.nextProfile",
+        "onCommand:language-julia.previousProfile",
         "onCommand:language-julia.executeCell",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
@@ -74,6 +77,11 @@
     "main": "./dist/extension",
     "contributes": {
         "grammars": [
+            {
+                "language": "julia",
+                "scopeName": "source.julia",
+                "path": "./syntaxes/julia_vscode.json"
+            },
             {
                 "language": "juliamarkdown",
                 "scopeName": "text.html.markdown.julia",
@@ -176,6 +184,29 @@
             {
                 "command": "language-julia.show-documentation-pane",
                 "title": "Julia: Show Documentation Pane"
+            },
+            {
+                "command": "language-julia.openProfiler",
+                "title": "Julia: Show Profiler"
+            },
+            {
+                "command": "language-julia.nextProfile",
+                "title": "Julia: Next Profiler",
+                "icon": "$(arrow-right)"
+            },
+            {
+                "command": "language-julia.previousProfile",
+                "title": "Julia: Previous Profile",
+                "icon": "$(arrow-left)"
+            },
+            {
+                "command": "language-julia.deleteProfile",
+                "title": "Julia: Delete Profile",
+                "icon": "$(trash)"
+            },
+            {
+                "command": "language-julia.deleteAllProfiles",
+                "title": "Julia: Delete All Profiles"
             },
             {
                 "command": "language-julia.show-plot-navigator",
@@ -410,6 +441,21 @@
                     "group": "navigation@-1"
                 },
                 {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.deleteProfile",
+                    "group": "navigation@0"
+                },
+                {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.nextProfile",
+                    "group": "navigation@-2"
+                },
+                {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.previousProfile",
+                    "group": "navigation@-3"
+                },
+                {
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete",
                     "group": "navigation@0"
@@ -567,6 +613,11 @@
             ],
             "editor/context": [
                 {
+                    "command": "language-julia.executeCodeBlockOrSelection",
+                    "when": "editorLangId == julia || editorLangId == juliamarkdown",
+                    "group": "z_commands"
+                },
+                {
                     "command": "language-julia.show-documentation",
                     "when": "editorLangId == julia || editorLangId == juliamarkdown",
                     "group": "z_commands"
@@ -666,28 +717,8 @@
                 "when": "jlplotpaneFocus"
             },
             {
-                "command": "language-julia.plotpane-previous",
-                "key": "up",
-                "when": "jlplotpaneFocus"
-            },
-            {
-                "command": "language-julia.plotpane-previous",
-                "key": "pageup",
-                "when": "jlplotpaneFocus"
-            },
-            {
                 "command": "language-julia.plotpane-next",
                 "key": "right",
-                "when": "jlplotpaneFocus"
-            },
-            {
-                "command": "language-julia.plotpane-next",
-                "key": "down",
-                "when": "jlplotpaneFocus"
-            },
-            {
-                "command": "language-julia.plotpane-next",
-                "key": "pagedown",
                 "when": "jlplotpaneFocus"
             },
             {
@@ -1250,7 +1281,7 @@
         "applicationinsights": "^1.8.10",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
-        "markdown-it": "^12.2.0",
+        "markdown-it": "^12.3.2",
         "markdown-it-footnote": "^3.0.3",
         "promised-temp": "^v0.1.0",
         "promisify-child-process": "^4.1.1",

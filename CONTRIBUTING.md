@@ -6,14 +6,19 @@
 
 2. Clone the repository (including submodules):
    ```bash
-   $ git clone --recurse-submodules https://github.com/julia-vscode/julia-vscode
+   git clone --recurse-submodules https://github.com/julia-vscode/julia-vscode
+   cd julia-vscode
    ```
 
    If you have already cloned the repository, update the submodules:
    ```bash
-    git submodule update --init
+   git submodule update --init
    ```
-
+   install deps
+   ```bash
+   npm i
+   ```
+   
 3. Open the folder where the extension was cloned in VSCode. The `Start Debugging` command (<kbd>F5</kbd>) opens a separate window with the modified extension in debug mode
 
 ### Reload extension after making changes

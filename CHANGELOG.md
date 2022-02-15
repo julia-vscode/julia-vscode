@@ -8,6 +8,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * The `julia.NumThreads` setting now allows for a value of `auto` if your Julia versions supports it ([#2666](https://github.com/julia-vscode/julia-vscode/pull/2666))
 
+## [1.5.11] - 2022-01-17
+### Fixed
+* Fixed a grammar issue when using VS Code 1.64.x ([#2730](https://github.com/julia-vscode/julia-vscode/pull/2730))
+* Fixed inline result hovers for VS Code 1.64 and newer ([#2716](https://github.com/julia-vscode/julia-vscode/pull/2716))
+* Fixed a Julia REPL crash when getting runtime completions for uninitialized fields ([#2686](https://github.com/julia-vscode/julia-vscode/pull/2686))
+
+### Change
+* Removed some superfluous plot pane related keybindings ([#2704](https://github.com/julia-vscode/julia-vscode/pull/2704))
+
+## [1.5.10] - 2022-01-17
+### Fixed
+* Fix plot pane location and focus issue, again (hopefully for real this time) ([#2676](https://github.com/julia-vscode/julia-vscode/pull/2676))
+
+## [1.5.9] - 2022-01-05
+### Fixed
+* Plot pane position is now stable and interactive plots now render properly if the plot pane wasn't opened previously ([#2662](https://github.com/julia-vscode/julia-vscode/pull/2662))
+* Fixed various issues with finding the Julia binary ([#2647](https://github.com/julia-vscode/julia-vscode/pull/2647), [#2642](https://github.com/julia-vscode/julia-vscode/pull/2642), [#2658](https://github.com/julia-vscode/julia-vscode/pull/2658))
+* Fixed a command registration issue if the Julia binary changes while the language server is starting ([#2663](https://github.com/julia-vscode/julia-vscode/pull/2663))
+
+## [1.5.8] - 2021-12-21
+### Fixed
+* `juliaup` integration now works properly ([#2374](https://github.com/julia-vscode/julia-vscode/pull/2374))
+
 ## [1.5.7] - 2021-12-14
 ### Fixed
 * Code execution in Julia markdown files should now work as intended ([#2584](https://github.com/julia-vscode/julia-vscode/pull/2484))

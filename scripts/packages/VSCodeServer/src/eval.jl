@@ -248,8 +248,7 @@ end
 
 render(::Nothing) = ReplRunCodeRequestReturn("✓", codeblock("nothing"))
 
-indent4(s) = string(' '^4, s)
-codeblock(s) = joinlines(indent4.(splitlines(s)))
+codeblock(s) = string("```\n", s, "\n```")
 
 struct EvalError
     err::Any
