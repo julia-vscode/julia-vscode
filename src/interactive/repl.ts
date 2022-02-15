@@ -260,16 +260,6 @@ async function connectREPL() {
     }
 }
 
-async function killREPL() {
-    await stopREPLInPersistent()
-    if (isConnected()) {
-        g_connection.end()
-    }
-    if (g_terminal) {
-        g_terminal.dispose()
-    }
-}
-
 function disconnectREPL() {
     const config = vscode.workspace.getConfiguration('julia')
     if (Boolean(config.get('persistentSession.enabled'))) {
@@ -1217,7 +1207,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         // commands
         registerCommand('language-julia.startREPL', startREPLCommand),
         registerCommand('language-julia.connectREPL', connectREPL),
-        registerCommand('language-julia.stopREPL', killREPL),
+        registerCommand('language-julia.stopREPL', stopREPL),
         registerCommand('language-julia.restartREPL', restartREPL),
         registerCommand('language-julia.disconnectREPL', disconnectREPL),
         registerCommand('language-julia.selectBlock', selectJuliaBlock),
@@ -1254,5 +1244,5 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
 }
 
 export function deactivate() {
-    killREPL()
+    stopREPL()
 }
