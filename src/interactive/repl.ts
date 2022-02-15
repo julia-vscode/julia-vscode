@@ -39,7 +39,7 @@ function startREPLCommand() {
     startREPL(false, true)
 }
 async function confirmKill() {
-    if (vscode.workspace.getConfiguration('julia').get<boolean>('persistentSession.stopWarning') === false) {
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('persistentSession.warnOnKill') === false) {
         return true
     }
     else {
@@ -52,7 +52,7 @@ async function confirmKill() {
                 return false
             }
             if (choice === agreeAlways) {
-                vscode.workspace.getConfiguration('julia').update('persistentSession.stopWarning', false, true)
+                vscode.workspace.getConfiguration('julia').update('persistentSession.warnOnKill', false, true)
             }
             if (choice === agree || choice === agreeAlways) {
                 return true
