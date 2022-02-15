@@ -43,24 +43,20 @@ async function confirmKill() {
         return true
     }
     else {
-        try {
-            const agree = 'Yes'
-            const agreeAlways = 'Yes, always'
-            const disagree = 'No'
-            const choice = await vscode.window.showInformationMessage('This is a persistent tmux session. Do you want to close it?', agree, agreeAlways, disagree)
-            if (choice === disagree) {
-                return false
-            }
-            if (choice === agreeAlways) {
-                vscode.workspace.getConfiguration('julia').update('persistentSession.warnOnKill', false, true)
-            }
-            if (choice === agree || choice === agreeAlways) {
-                return true
-            }
+        const agree = 'Yes'
+        const agreeAlways = 'Yes, always'
+        const disagree = 'No'
+        const choice = await vscode.window.showInformationMessage('This is a persistent tmux session. Do you want to close it?', agree, agreeAlways, disagree)
+        if (choice === disagree) {
+            return false
         }
-        finally {
-
+        if (choice === agreeAlways) {
+            vscode.workspace.getConfiguration('julia').update('persistentSession.warnOnKill', false, true)
         }
+        if (choice === agree || choice === agreeAlways) {
+            return true
+        }
+        return false
     }
 }
 async function stopREPL() {
@@ -70,14 +66,10 @@ async function stopREPL() {
             const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
             const killSession = await confirmKill()
             if (killSession) {
-                const { code } = await exec(`tmux kill-session -t ${sessionName}`)
-                if (code) {
-                    throw new Error(`tmux kill-session Process failed with exit code ${code}`)
-                }
+                await exec(`tmux kill-session -t ${sessionName}`)
             }
-
         } catch (err) {
-            vscode.window.showErrorMessage('Failed to close tmux session.')
+            vscode.window.showErrorMessage('Failed to close tmux session: '+err.stderr)
         }
     }
     if (isConnected()) {
