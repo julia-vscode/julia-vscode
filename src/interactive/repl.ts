@@ -28,7 +28,6 @@ let g_languageClient: vslc.LanguageClient = null
 let g_compiledProvider = null
 
 let g_terminal: vscode.Terminal = null
-let persistentStopWarning: boolean = false
 
 export let g_connection: rpc.MessageConnection = undefined
 
@@ -40,11 +39,10 @@ function startREPLCommand() {
     startREPL(false, true)
 }
 async function checkKillPersistentSession() {
-    if (persistentStopWarning || vscode.workspace.getConfiguration('julia').get<boolean>('persistentSession.stopWarning') === false) {
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('persistentSession.stopWarning') === false) {
         return true
     }
     else {
-        persistentStopWarning = true
         try {
             const agree = 'Yes'
             const agreeAlways = 'Yes, always'
@@ -61,7 +59,7 @@ async function checkKillPersistentSession() {
             }
         }
         finally {
-            persistentStopWarning = false
+
         }
     }
 }
