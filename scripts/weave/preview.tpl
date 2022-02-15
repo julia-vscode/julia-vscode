@@ -21,8 +21,8 @@
   {{{ :highlightcss }}}
 
 </HEAD>
-  <BODY style="background-color: white">
-    <div class ="container" style="background-color: white">
+  <BODY>
+    <div class ="container">
       <div class = "row">
         <div class = "col-md-12 twelve columns">
 
