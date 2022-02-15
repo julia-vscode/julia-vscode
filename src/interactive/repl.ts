@@ -63,7 +63,7 @@ async function confirmKill() {
         }
     }
 }
-async function stopREPLInPersistent() {
+async function stopREPL() {
     const config = vscode.workspace.getConfiguration('julia')
     if (Boolean(config.get('persistentSession.enabled'))) {
         try {
@@ -80,9 +80,6 @@ async function stopREPLInPersistent() {
             vscode.window.showErrorMessage('Failed to close tmux session.')
         }
     }
-}
-async function stopREPL() {
-    await stopREPLInPersistent()
     if (isConnected()) {
         g_connection.end()
         g_connection = undefined
