@@ -4,14 +4,12 @@ import { registerCommand } from '../utils'
 import { openFile } from './results'
 
 interface ProfilerFrame {
-    meta: {
-        func: string;
-        file: string;
-        path: string;
-        line: number;
-        count: number;
-        flags: number;
-    };
+    func: string;
+    file: string;
+    path: string;
+    line: number;
+    count: number;
+    flags: number;
     children: ProfilerFrame[];
 }
 
@@ -97,22 +95,22 @@ export class ProfilerFeature {
         })
 
         const root = profile[this.selectedThread]
-        this.buildInlineTraceElements(root, root.meta.count)
+        this.buildInlineTraceElements(root, root.count)
 
         this.refreshInlineTrace(vscode.window.visibleTextEditors)
     }
 
     buildInlineTraceElements(node: ProfilerFrame, parentCount: number) {
         this.inlineTrace.push({
-            path: node.meta.path,
-            line: node.meta.line,
-            count: node.meta.count,
-            fraction: node.meta.count / parentCount,
-            flags: node.meta.flags,
+            path: node.path,
+            line: node.line,
+            count: node.count,
+            fraction: node.count / parentCount,
+            flags: node.flags,
         })
 
         for (const child of node.children) {
-            this.buildInlineTraceElements(child, node.meta.count)
+            this.buildInlineTraceElements(child, node.count)
         }
     }
 
@@ -225,8 +223,8 @@ export class ProfilerFeature {
             (message: { type: string; node?: ProfilerFrame; thread?: string }) => {
                 if (message.type === 'open') {
                     openFile(
-                        message.node.meta.path,
-                        message.node.meta.line,
+                        message.node.path,
+                        message.node.line,
                         this.panel.viewColumn === vscode.ViewColumn.Two
                             ? vscode.ViewColumn.One
                             : vscode.ViewColumn.Beside
