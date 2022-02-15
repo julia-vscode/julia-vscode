@@ -94,6 +94,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     if (g_terminal === null) {
         const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
         const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
+        const nthreads = inferJuliaNumThreads()
 
         // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
         function getArgs() {
@@ -102,12 +103,20 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
             jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
             jlarg2.push(`DEBUG_MODE=${Boolean(process.env.DEBUG_MODE)}`)
+
+            if (nthreads === 'auto') {
+                jlarg2.splice(0, 0, '--threads=auto')
+            }
+
             return jlarg2
         }
 
-        const env = {
-            JULIA_EDITOR: get_editor(),
-            JULIA_NUM_THREADS: inferJuliaNumThreads()
+        const env: any = {
+            JULIA_EDITOR: get_editor()
+        }
+
+        if (nthreads !== 'auto') {
+            env['JULIA_NUM_THREADS'] = nthreads
         }
 
         const pkgServer: string = config.get('packageServer')

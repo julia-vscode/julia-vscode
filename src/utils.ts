@@ -46,7 +46,7 @@ export function generatePipeName(pid: string, name: string) {
  * @returns A string to set the value of `JULIA_NUM_THREADS`
  */
 export function inferJuliaNumThreads(): string {
-    const config: number | undefined = vscode.workspace.getConfiguration('julia').get('NumThreads') ?? undefined
+    const config: number | string | undefined = vscode.workspace.getConfiguration('julia').get('NumThreads') ?? undefined
     const env: string | undefined = process.env['JULIA_NUM_THREADS']
 
     if (config !== undefined) {

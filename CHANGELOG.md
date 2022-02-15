@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+* The `julia.NumThreads` setting now allows for a value of `auto` if your Julia versions supports it ([#2666](https://github.com/julia-vscode/julia-vscode/pull/2666))
+
 ## [1.5.11] - 2022-01-17
 ### Fixed
 * Fixed a grammar issue when using VS Code 1.64.x ([#2730](https://github.com/julia-vscode/julia-vscode/pull/2730))
