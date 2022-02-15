@@ -12,7 +12,7 @@ import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOpt
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
-import { ProfilerResultsProvider } from './interactive/profiler'
+import { ProfilerFeature } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import { WorkspaceFeature } from './interactive/workspace'
 import * as jlpkgenv from './jlpkgenv'
@@ -65,12 +65,15 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         })
 
+        const profilerFeature = new ProfilerFeature(context)
+        context.subscriptions.push(profilerFeature)
+
         // Active features from other files
         const compiledProvider = debugViewProvider.activate(context)
         g_juliaExecutablesFeature = new JuliaExecutablesFeature(context)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
-        repl.activate(context, compiledProvider, g_juliaExecutablesFeature)
+        repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
         weave.activate(context, g_juliaExecutablesFeature)
         documentation.activate(context)
         tasks.activate(context, g_juliaExecutablesFeature)
@@ -84,6 +87,8 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature))
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature))
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
+
+
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
@@ -116,9 +121,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(
             // commands
             registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
-            registerCommand('language-julia.restartLanguageServer', restartLanguageServer),
-            // registries
-            vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider())
+            registerCommand('language-julia.restartLanguageServer', restartLanguageServer)
         )
 
         const api = {

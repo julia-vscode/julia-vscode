@@ -44,6 +44,9 @@
         "onCommand:language-julia.weave-open-preview-side",
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
+        "onCommand:language-julia.openProfiler",
+        "onCommand:language-julia.nextProfile",
+        "onCommand:language-julia.previousProfile",
         "onCommand:language-julia.executeCell",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
@@ -186,6 +189,29 @@
             {
                 "command": "language-julia.show-documentation-pane",
                 "title": "Julia: Show Documentation Pane"
+            },
+            {
+                "command": "language-julia.openProfiler",
+                "title": "Julia: Show Profiler"
+            },
+            {
+                "command": "language-julia.nextProfile",
+                "title": "Julia: Next Profiler",
+                "icon": "$(arrow-right)"
+            },
+            {
+                "command": "language-julia.previousProfile",
+                "title": "Julia: Previous Profile",
+                "icon": "$(arrow-left)"
+            },
+            {
+                "command": "language-julia.deleteProfile",
+                "title": "Julia: Delete Profile",
+                "icon": "$(trash)"
+            },
+            {
+                "command": "language-julia.deleteAllProfiles",
+                "title": "Julia: Delete All Profiles"
             },
             {
                 "command": "language-julia.show-plot-navigator",
@@ -420,6 +446,21 @@
                     "group": "navigation@-1"
                 },
                 {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.deleteProfile",
+                    "group": "navigation@0"
+                },
+                {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.nextProfile",
+                    "group": "navigation@-2"
+                },
+                {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.previousProfile",
+                    "group": "navigation@-3"
+                },
+                {
                     "when": "jlplotpaneFocus",
                     "command": "language-julia.plotpane-delete",
                     "group": "navigation@0"
@@ -576,6 +617,11 @@
                 }
             ],
             "editor/context": [
+                {
+                    "command": "language-julia.executeCodeBlockOrSelection",
+                    "when": "editorLangId == julia || editorLangId == juliamarkdown",
+                    "group": "z_commands"
+                },
                 {
                     "command": "language-julia.show-documentation",
                     "when": "editorLangId == julia || editorLangId == juliamarkdown",
@@ -888,11 +934,12 @@
                 "julia.NumThreads": {
                     "type": [
                         "integer",
+                        "string",
                         "null"
                     ],
                     "default": null,
                     "scope": "machine-overridable",
-                    "description": "Number of threads to use for Julia processes."
+                    "markdownDescription": "Number of threads to use for Julia processes. A value of `auto` works on Julia versions that allow for `--threads=auto`."
                 },
                 "julia.editor": {
                     "type": [
