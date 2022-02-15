@@ -38,7 +38,7 @@ function startREPLCommand() {
 
     startREPL(false, true)
 }
-async function checkKillPersistentSession() {
+async function confirmKill() {
     if (vscode.workspace.getConfiguration('julia').get<boolean>('persistentSession.stopWarning') === false) {
         return true
     }
@@ -68,7 +68,7 @@ async function stopREPLInPersistent() {
     if (Boolean(config.get('persistentSession.enabled'))) {
         try {
             const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
-            const killSession = await checkKillPersistentSession()
+            const killSession = await confirmKill()
             if (killSession) {
                 const { code } = await exec(`tmux kill-session -t ${sessionName}`)
                 if (code) {
