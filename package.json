@@ -402,12 +402,12 @@
             },
             {
                 "command": "language-julia.restartKernel",
-                "title": "Julia: Restart kernel",
+                "title": "Restart",
                 "icon": "$(debug-restart)"
             },
             {
                 "command": "language-julia.stopKernel",
-                "title": "Julia: Stop kernel",
+                "title": "Stop",
                 "icon": "$(debug-stop)"
             }
         ],
@@ -626,6 +626,28 @@
                     "command": "language-julia.show-documentation",
                     "when": "editorLangId == julia || editorLangId == juliamarkdown",
                     "group": "z_commands"
+                }
+            ],
+            "notebook/toolbar": [
+                {
+                    "command": "language-julia.restartKernel",
+                    "group": "navigation/execute@1",
+                    "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted"
+                },
+                {
+                    "command": "language-julia.stopKernel",
+                    "group": "navigation/execute@2",
+                    "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "language-julia.restartKernel",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.stopKernel",
+                    "when": "false"
                 }
             ]
         },
