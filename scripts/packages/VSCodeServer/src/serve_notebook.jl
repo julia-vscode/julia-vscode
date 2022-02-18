@@ -89,9 +89,13 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
         println(IJuliaCore.orig_stdout[], "Julia Kernel started...")
 
         while true
-            msg = JSONRPC.get_next_message(conn_endpoint[])
+            try
+                msg = JSONRPC.get_next_message(conn_endpoint[])
 
-            JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
+                JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
+            catch err
+                err isa InterruptException || rethrow()
+            end
         end
 
     catch err
