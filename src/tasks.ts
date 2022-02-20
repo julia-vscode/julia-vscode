@@ -35,12 +35,28 @@ class JuliaTaskProvider {
         const rootPath = folder.uri.fsPath
 
         try {
+            const nthreads = inferJuliaNumThreads()
             const result: vscode.Task[] = []
 
             const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
             const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
             if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
+                const jlargs = [
+                    ...juliaExecutable.args,
+                    '--color=yes',
+                    `--project=${pkgenvpath}`,
+                    '-e',
+                    `using Pkg; Pkg.test("${folder.name}")`,
+                ]
+
+                const env = {}
+
+                if (nthreads === 'auto') {
+                    jlargs.splice(1, 0, '--threads=auto')
+                } else {
+                    env['JULIA_NUM_THREADS'] = nthreads
+                }
                 const testTask = new vscode.Task(
                     {
                         type: 'julia',
@@ -51,15 +67,9 @@ class JuliaTaskProvider {
                     'julia',
                     new vscode.ProcessExecution(
                         juliaExecutable.file,
-                        [
-                            ...juliaExecutable.args,
-                            '--color=yes',
-                            `--project=${pkgenvpath}`,
-                            '-e',
-                            `using Pkg; Pkg.test("${folder.name}")`
-                        ],
+                        jlargs,
                         {
-                            env: { JULIA_NUM_THREADS: inferJuliaNumThreads() }
+                            env: env
                         }
                     ),
                     ''
@@ -67,6 +77,28 @@ class JuliaTaskProvider {
                 testTask.group = vscode.TaskGroup.Test
                 testTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
                 result.push(testTask)
+
+                const jlargs2 = [
+                    ...juliaExecutable.args,
+                    '--color=yes',
+                    `--project=${pkgenvpath}`,
+                    path.join(
+                        this.context.extensionPath,
+                        'scripts',
+                        'tasks',
+                        'task_test.jl'
+                    ),
+                    folder.uri.fsPath,
+                    vscode.workspace
+                        .getConfiguration('julia')
+                        .get<boolean>('deleteJuliaCovFiles') ?? false
+                        ? 'true'
+                        : 'false',
+                ]
+
+                if (nthreads === 'auto') {
+                    jlargs.splice(1, 0, '--threads=auto')
+                }
 
                 const testTaskWithCoverage = new vscode.Task(
                     {
@@ -78,16 +110,9 @@ class JuliaTaskProvider {
                     'julia',
                     new vscode.ProcessExecution(
                         juliaExecutable.file,
-                        [
-                            ...juliaExecutable.args,
-                            '--color=yes',
-                            `--project=${pkgenvpath}`,
-                            path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_test.jl'),
-                            folder.uri.fsPath,
-                            vscode.workspace.getConfiguration('julia').get<boolean>('deleteJuliaCovFiles') ?? false ? 'true' : 'false'
-                        ],
+                        jlargs2,
                         {
-                            env: { JULIA_NUM_THREADS: inferJuliaNumThreads() }
+                            env: env
                         }
                     ),
                     ''
