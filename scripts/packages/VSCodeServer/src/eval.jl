@@ -33,10 +33,10 @@ function start_eval_backend()
                 res = try
                     Base.invokelatest(f, args...)
                 catch err
-                    @static if isdefined(Base, :catch_stack) && !Base.isdeprecated(Base, :catch_stack)
-                        EvalErrorStack(Base.catch_stack())
-                    elseif isdefined(Base, :current_exceptions)
+                    @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
+                    elseif isdefined(Base, :catch_stack)
+                        EvalErrorStack(Base.catch_stack())
                     else
                         EvalError(err, catch_backtrace())
                     end
@@ -155,10 +155,10 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     global ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
                     @eval Main ans = Main.VSCodeServer.ans
                 catch err
-                    @static if isdefined(Base, :catch_stack) && !Base.isdeprecated(Base, :catch_stack)
-                        EvalErrorStack(Base.catch_stack())
-                    elseif isdefined(Base, :current_exceptions)
+                    @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
+                    elseif isdefined(Base, :catch_stack)
+                        EvalErrorStack(Base.catch_stack())
                     else
                         EvalError(err, catch_backtrace())
                     end
@@ -274,7 +274,7 @@ function render(err::EvalError)
     all = string('\n', codeblock(errstr), '\n', backtrace_string(bt))
 
     # handle duplicates e.g. from recursion
-    st = unique!(stacktrace(bt))
+    st = unique!(remove_kw_wrappers!(stacktrace(bt)))
     # limit number of potential hovers shown in VSCode, just in case
     st = st[1:min(end, 1000)]
 
@@ -296,7 +296,7 @@ function render(stack::EvalErrorStack)
     end
 
     # handle duplicates e.g. from recursion
-    st = unique!(stacktrace(complete_bt))
+    st = unique!(remove_kw_wrappers!(stacktrace(complete_bt)))
     # limit number of potential hovers shown in VSCode, just in case
     st = st[1:min(end, 1000)]
 
@@ -325,19 +325,48 @@ function crop_backtrace(bt)
     return bt[1:(i === nothing ? end : i)]
 end
 
+function remove_kw_wrappers!(st::StackTraces.StackTrace)
+    filter!(st) do frame
+        fname = string(frame.func)
+        return !(!startswith(fname, '#') && endswith(fname, "##kw"))
+    end
+
+    return st
+end
+
 function backtrace_string(bt)
     io = IOBuffer()
 
-    println(io, "Stacktrace:")
-    for (i, frame) in enumerate(stacktrace(bt))
+    println(io, "Stacktrace:\n")
+    i = 1
+    counter = 1
+    stack = remove_kw_wrappers!(stacktrace(bt))
+
+    while i <= length(stack)
+        if counter > 200
+            println(io, "\n\n truncated")
+            break
+        end
+
+        frame, repeated = stack[i], 1
+        while i < length(stack) && stack[i+1] == frame
+            i += 1
+            repeated += 1
+        end
+
         file = string(frame.file)
         full_file = fullpath(something(Base.find_source_file(file), file))
         cmd = vscode_cmd_uri("language-julia.openFile"; path = full_file, line = frame.line)
 
-        print(io, i, ". `")
+        print(io, counter, ". `")
         Base.StackTraces.show_spec_linfo(io, frame)
         print(io, "` at [", file, "](", cmd, " \"", file, "\")")
+        if repeated > 1
+            print(io, " (repeats $repeated times)")
+        end
         println(io, "\n")
+        i += 1
+        counter += 1
     end
 
     return String(take!(io))
