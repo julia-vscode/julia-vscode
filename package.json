@@ -633,7 +633,7 @@
             "editor/context": [
                 {
                     "command": "language-julia.executeCodeBlockOrSelection",
-                    "when": "editorLangId == julia || editorLangId == juliamarkdown",
+                    "when": "activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown",
                     "group": "z_commands"
                 },
                 {
