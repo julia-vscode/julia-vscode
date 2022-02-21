@@ -328,16 +328,16 @@ end
 function backtrace_string(bt)
     io = IOBuffer()
 
-    println(io, "Stacktrace:")
+    println(io, "Stacktrace:\n")
     i = 1
     counter = 1
     stack = stacktrace(bt)
-    while i < length(stack)
+    while i <= length(stack)
         if counter > 200
             println(io, "\n\n truncated")
             break
         end
-        frame, repeated = stack[i], 0
+        frame, repeated = stack[i], 1
         while i < length(stack) && stack[i+1] == frame
             i += 1
             repeated += 1
@@ -347,10 +347,10 @@ function backtrace_string(bt)
         full_file = fullpath(something(Base.find_source_file(file), file))
         cmd = vscode_cmd_uri("language-julia.openFile"; path = full_file, line = frame.line)
 
-        print(io, i, ". `")
+        print(io, counter, ". `")
         Base.StackTraces.show_spec_linfo(io, frame)
         print(io, "` at [", file, "](", cmd, " \"", file, "\")")
-        if repeated > 0
+        if repeated > 1
             print(io, " (repeats $repeated times)")
         end
         println(io, "\n")
