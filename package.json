@@ -130,11 +130,13 @@
             },
             {
                 "command": "language-julia.stopREPL",
-                "title": "Julia: Stop REPL"
+                "title": "Julia: Stop REPL",
+                "icon": "$(debug-stop)"
             },
             {
                 "command": "language-julia.restartREPL",
-                "title": "Julia: Restart REPL"
+                "title": "Julia: Restart REPL",
+                "icon": "$(debug-restart)"
             },
             {
                 "command": "language-julia.disconnectREPL",
@@ -164,7 +166,9 @@
             },
             {
                 "command": "language-julia.interrupt",
-                "title": "Julia: Interrupt Execution"
+                "title": "Julia: Interrupt Execution",
+                "icon": "$(debug-pause)",
+                "enablement": "isJuliaEvaluating"
             },
             {
                 "command": "language-julia.toggleLinter",
@@ -545,12 +549,22 @@
                 },
                 {
                     "command": "language-julia.stopKernel",
-                    "when": "view == REPLVariables && viewItem ==juliakernel",
+                    "when": "view == REPLVariables && viewItem == juliakernel",
                     "group": "inline"
                 },
                 {
                     "command": "language-julia.restartKernel",
-                    "when": "view == REPLVariables && viewItem ==juliakernel",
+                    "when": "view == REPLVariables && viewItem == juliakernel",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.stopREPL",
+                    "when": "view == REPLVariables && viewItem == juliarepl",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.restartREPL",
+                    "when": "view == REPLVariables && viewItem == juliarepl",
                     "group": "inline"
                 },
                 {
