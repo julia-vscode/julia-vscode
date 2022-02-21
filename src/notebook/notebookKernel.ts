@@ -17,7 +17,7 @@ import {
 import { getAbsEnvPath } from '../jlpkgenv'
 import { JuliaExecutable } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
-import { generatePipeName } from '../utils'
+import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
 
 const notifyTypeDisplay = new NotificationType<{
@@ -292,19 +292,36 @@ export class JuliaKernel {
         const pkgenvpath = await this.getAbsEnvPathForNotebook()
         const cwdPath = await this.getCwdPathForNotebook()
 
+        const nthreads = inferJuliaNumThreads()
+
+        const args = [
+            '--color=yes',
+            `--project=${pkgenvpath}`,
+            '--history-file=no',
+        ]
+
+        const env = {
+            ...process.env
+        }
+
+        if (nthreads === 'auto') {
+            args.push('--threads=auto')
+        } else {
+            env['JULIA_NUM_THREADS'] = nthreads
+        }
+
         this._kernelProcess = spawn(
             this.juliaExecutable.file,
             [
                 ...this.juliaExecutable.args,
-                '--color=yes',
-                `--project=${pkgenvpath}`,
-                '--history-file=no',
+                ...args,
                 path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
                 pn,
                 getCrashReportingPipename(),
             ],
             {
-                cwd: cwdPath,
+                env,
+                cwd: cwdPath
             }
         )
 
