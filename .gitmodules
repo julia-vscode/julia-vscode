@@ -46,9 +46,6 @@
 [submodule "scripts/packages/OrderedCollections"]
 	path = scripts/packages/OrderedCollections
 	url = https://github.com/JuliaCollections/OrderedCollections.jl.git
-[submodule "scripts/packages/Revise"]
-	path = scripts/packages/Revise
-	url = https://github.com/timholy/Revise.jl.git
 [submodule "scripts/packages/CoverageTools"]
 	path = scripts/packages/CoverageTools
 	url = https://github.com/JuliaCI/CoverageTools.jl.git
@@ -76,3 +73,9 @@
 [submodule "libs/jl-profile"]
 	path = libs/jl-profile
 	url = git@github.com:pfitzseb/jl-profile.js.git
+[submodule "scripts/packages-old/PackageCompiler.jl"]
+	path = scripts/packages-old/PackageCompiler.jl
+	url = git@github.com:JuliaLang/PackageCompiler.jl.git
+[submodule "scripts/packages-old/JuliaInterpreter"]
+	path = scripts/packages-old/JuliaInterpreter
+	url = git@github.com:JuliaDebug/JuliaInterpreter.jl.git
