@@ -263,7 +263,7 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             const treeItem = new vscode.TreeItem('Julia REPL')
             treeItem.description = ''
             treeItem.tooltip = ''
-            treeItem.contextValue = ''
+            treeItem.contextValue = 'juliarepl'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
         } else if (node instanceof NotebookNode) {
