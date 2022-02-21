@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '12'
+  NODE_VERSION: '14'
 
 defaults:
   run:
