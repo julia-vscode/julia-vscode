@@ -191,7 +191,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     end
                 end
 
-                if !(res isa EvalError) && ends_with_semicolon(source_code)
+                if !(res isa EvalError || res isa EvalErrorStack) && ends_with_semicolon(source_code)
                     res = nothing
                 end
 
