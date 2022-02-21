@@ -38,7 +38,7 @@ async function main() {
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css', 'libs/fontawesome/solid.min.css')
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css', 'libs/fontawesome/brands.min.css')
 
-    for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'StaticLint', 'SymbolServer', 'DebugAdapter', 'ChromeProfileFormat']) {
+    for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'StaticLint', 'SymbolServer', 'DebugAdapter']) {
         await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
@@ -67,6 +67,7 @@ async function main() {
         'JuliaFormatter',
         'URIs'
     ]) {
+        await cp.exec('git fetch')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
 
         const newestTag = tags.stdout.toString().split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))[0]
@@ -75,13 +76,11 @@ async function main() {
     }
 
     // Note that this "+1.3.1" argument currently only works on Windows with a juliaup installation
-    await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/development') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/debugadapter') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/vscodeserver') })
-    await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/chromeprofileformat') })
 
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.update()"`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev') })
 
