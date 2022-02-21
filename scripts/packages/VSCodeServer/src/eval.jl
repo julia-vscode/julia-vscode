@@ -274,7 +274,7 @@ function render(err::EvalError)
     all = string('\n', codeblock(errstr), '\n', backtrace_string(bt))
 
     # handle duplicates e.g. from recursion
-    st = unique!(stacktrace(bt))
+    st = unique!(remove_kw_wrappers!(stacktrace(bt)))
     # limit number of potential hovers shown in VSCode, just in case
     st = st[1:min(end, 1000)]
 
@@ -296,7 +296,7 @@ function render(stack::EvalErrorStack)
     end
 
     # handle duplicates e.g. from recursion
-    st = unique!(stacktrace(complete_bt))
+    st = unique!(remove_kw_wrappers!(stacktrace(complete_bt)))
     # limit number of potential hovers shown in VSCode, just in case
     st = st[1:min(end, 1000)]
 
@@ -325,18 +325,29 @@ function crop_backtrace(bt)
     return bt[1:(i === nothing ? end : i)]
 end
 
+function remove_kw_wrappers!(st::StackTraces.StackTrace)
+    filter!(st) do frame
+        fname = string(frame.func)
+        return !(!startswith(fname, '#') && endswith(fname, "##kw"))
+    end
+
+    return st
+end
+
 function backtrace_string(bt)
     io = IOBuffer()
 
     println(io, "Stacktrace:\n")
     i = 1
     counter = 1
-    stack = stacktrace(bt)
+    stack = remove_kw_wrappers!(stacktrace(bt))
+
     while i <= length(stack)
         if counter > 200
             println(io, "\n\n truncated")
             break
         end
+
         frame, repeated = stack[i], 1
         while i < length(stack) && stack[i+1] == frame
             i += 1
