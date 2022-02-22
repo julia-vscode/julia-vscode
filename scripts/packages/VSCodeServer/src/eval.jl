@@ -259,8 +259,10 @@ struct EvalErrorStack
     stack::Any
 end
 
-sprint_error_unwrap(err::LoadError) = sprint_error(err.error)
-sprint_error_unwrap(err) = sprint_error(err)
+sprint_error_unwrap(err) = sprint_error(unwrap_loaderror(err))
+
+unwrap_loaderror(err::LoadError) = err.error
+unwrap_loaderror(err) = err
 
 function sprint_error(err)
     sprintlimited(err, [], func = Base.display_error, limit = MAX_RESULT_LENGTH)
@@ -306,7 +308,7 @@ end
 
 function Base.display_error(io::IO, err::EvalError)
     try
-        Base.invokelatest(display_repl_error, io, err.err, err.bt)
+        Base.invokelatest(display_repl_error, io, unwrap_loaderror(err.err), err.bt)
     catch err
         @error "Error trying to display an error."
     end
