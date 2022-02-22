@@ -164,14 +164,13 @@ function display_repl_error(io, err, bt)
     showerror(IOContext(io, :limit => true), err, st)
     println(io)
 end
-display_repl_error(io, err::LoadError, bt) = display_repl_error(io, err.error, bt)
 
 function display_repl_error(io, stack::EvalErrorStack)
     printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
     for (i, (err, bt)) in enumerate(reverse(stack.stack))
         i !== 1 && print(io, "\ncaused by: ")
         st = stacktrace(crop_backtrace(bt))
-        showerror(IOContext(io, :limit => true), err, st)
+        showerror(IOContext(io, :limit => true), i == 1 ? unwrap_loaderror(err) : err, st)
         println(io)
     end
 end
