@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+* Add config "julia.execution.saveOnEval" to allow auto saving before execution([#2727](https://github.com/julia-vscode/julia-vscode/pull/2727))
 * Add restart REPL command and always stop persistent session option([#2720](https://github.com/julia-vscode/julia-vscode/pull/2720))
 * The `julia.NumThreads` setting now allows for a value of `auto` if your Julia versions supports it ([#2666](https://github.com/julia-vscode/julia-vscode/pull/2666))
 

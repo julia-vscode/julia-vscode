@@ -1038,6 +1038,12 @@
                     "description": "Print executed code in REPL and append it to the REPL history.",
                     "scope": "window"
                 },
+                "julia.execution.saveOnEval": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "machine-overridable",
+                    "markdownDescription": "Save file before execution"
+                },
                 "julia.packageServer": {
                     "type": "string",
                     "default": "",
