@@ -139,7 +139,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
 
                 for (i, line) in enumerate(eachline(IOBuffer(source_code)))
                     if i == 1
-                        print(prefix, prompt, "\e[0m")
+                        print(prefix, "\e[1m", prompt, "\e[0m")
                         print(' '^code_column)
                     else
                         # Indent by 7 so that it aligns with the julia> prompt

@@ -5,10 +5,27 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.6.0] - 2022-02-22
+### Added
+* New profile viewer with inline annotations ([#2674](https://github.com/julia-vscode/julia-vscode/pull/2674))
+* "Execute Code Block in REPL" in editor context menu ([#2667](https://github.com/julia-vscode/julia-vscode/pull/2667))
+* Support for `--threads=auto` setting ([#2666](https://github.com/julia-vscode/julia-vscode/pull/2666))
+
 ### Changed
-* Add config "julia.execution.saveOnEval" to allow auto saving before execution([#2727](https://github.com/julia-vscode/julia-vscode/pull/2727))
+* Add config "julia.execution.saveOnEval" to allow auto saving before execution ([#2727](https://github.com/julia-vscode/julia-vscode/pull/2727))
 * Add restart REPL command and always stop persistent session option([#2720](https://github.com/julia-vscode/julia-vscode/pull/2720))
 * The `julia.NumThreads` setting now allows for a value of `auto` if your Julia versions supports it ([#2666](https://github.com/julia-vscode/julia-vscode/pull/2666))
+* Better enum rendering ([#2620](https://github.com/julia-vscode/julia-vscode/pull/2620))
+* Improved various notebook functionality ([#2742](https://github.com/julia-vscode/julia-vscode/pull/2742))
+* Added stop/restart buttons to REPL workspace ([#2746](https://github.com/julia-vscode/julia-vscode/pull/2746))
+* The table viewer now shows the actual Julia type when hovering over the colum header ([#2749](https://github.com/julia-vscode/julia-vscode/pull/2749))
+
+### Fixed
+* Weave preview background now follow theme color ([#2740](https://github.com/julia-vscode/julia-vscode/pull/2740))
+* Notebooks now respect the thread setting ([#2747](https://github.com/julia-vscode/julia-vscode/pull/2747))
+* Fixed rendering of large stacktraces (especially with repeated frames) ([#2746](https://github.com/julia-vscode/julia-vscode/pull/2746))
+* `LoadError`s are now properly unwrapped in the REPL ([#2754](https://github.com/julia-vscode/julia-vscode/pull/2754))
+* Inline errors are now properly shown even when the line ends with a `;` ([#2748](https://github.com/julia-vscode/julia-vscode/pull/2748))
 
 ## [1.5.11] - 2022-01-17
 ### Fixed

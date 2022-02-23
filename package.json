@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.5.11",
+    "version": "1.6.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -1041,7 +1041,7 @@
                 "julia.execution.saveOnEval": {
                     "type": "boolean",
                     "default": false,
-                    "scope": "machine-overridable",
+                    "scope": "window",
                     "markdownDescription": "Save file before execution"
                 },
                 "julia.packageServer": {
