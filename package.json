@@ -646,12 +646,12 @@
                 {
                     "command": "language-julia.restartKernel",
                     "group": "navigation/execute@1",
-                    "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted"
+                    "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted && notebookKernel =~ /julialang/"
                 },
                 {
                     "command": "language-julia.stopKernel",
                     "group": "navigation/execute@2",
-                    "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted"
+                    "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted && notebookKernel =~ /julialang/"
                 }
             ],
             "commandPalette": [
