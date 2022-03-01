@@ -1086,6 +1086,12 @@
                     "scope": "machine-overridable",
                     "description": "Warn when stopping a persistent session."
                 },
+                "julia.persistentSession.alwaysCopy": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "machine-overridable",
+                    "description": "Always copy the command for connecting to an external REPL to the clipboard."
+                },
                 "julia.deleteJuliaCovFiles": {
                     "type": "boolean",
                     "default": "true",

@@ -245,29 +245,45 @@ async function connectREPL() {
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
     const connectJuliaCode = juliaConnector(pipename, true)
 
-    const click = await vscode.window.showInformationMessage('Start a Julia session, and execute the code copied into your clipboard by the button below into it.', 'Copy code')
-    if (click === 'Copy code') {
+    const config = vscode.workspace.getConfiguration('julia')
+
+    if (config.get<boolean>('persistentSession.alwaysCopy')) {
         vscode.env.clipboard.writeText(connectJuliaCode)
-        try {
-            await juliaIsConnectedPromise.wait()
-            vscode.window.showInformationMessage('Successfully connected to external Julia REPL.')
-        } catch (err) {
-            vscode.window.showErrorMessage('Failed to connect to external Julia REPL.')
+        vscode.window.showInformationMessage('Start a Julia session and execute the code in your clipboard into it.')
+        await _connectREPL(juliaIsConnectedPromise)
+    } else {
+        const copy = 'Copy code'
+        const always  = 'Always copy code'
+        const click = await vscode.window.showInformationMessage(
+            'Start a Julia session and execute the code copied into your clipboard by the button below into it.',
+            always, copy
+        )
+        if (click === always) {
+            config.update('persistentSession.alwaysCopy', true)
+        }
+        if (click) {
+            vscode.env.clipboard.writeText(connectJuliaCode)
+            await _connectREPL(juliaIsConnectedPromise)
         }
     }
 }
 
+async function _connectREPL(juliaIsConnectedPromise) {
+    try {
+        await juliaIsConnectedPromise.wait()
+        vscode.window.showInformationMessage('Successfully connected to external Julia REPL.')
+    } catch (err) {
+        vscode.window.showErrorMessage('Failed to connect to external Julia REPL.')
+    }
+}
+
 function disconnectREPL() {
-    const config = vscode.workspace.getConfiguration('julia')
-    if (Boolean(config.get('persistentSession.enabled'))) {
+    if (g_terminal) {
+        vscode.window.showInformationMessage('Cannot disconnect from integrated REPL.')
+    } else {
         if (isConnected()) {
             g_connection.end()
         }
-        if (g_terminal) {
-            g_terminal.dispose()
-        }
-    } else {
-        vscode.window.showInformationMessage('Persistent sessions are not enabled.')
     }
 }
 
