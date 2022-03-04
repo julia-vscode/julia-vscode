@@ -215,7 +215,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                 shellArgs: tmuxArgs,
                 isTransient: true,
                 env: env,
-            })
+            } as any)
         } else {
             g_terminal = vscode.window.createTerminal({
                 name: 'Julia REPL',
@@ -223,7 +223,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                 shellArgs: [...juliaExecutable.args, ...jlarg1, ...getArgs()],
                 isTransient: true,
                 env: env
-            })
+            } as any)
         }
 
         g_terminal.show(preserveFocus)
