@@ -5,6 +5,20 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.6.1] - 2022-03-10
+### Added
+* "Always copy" option for "Connect to external REPL" command ([#2759](https://github.com/julia-vscode/julia-vscode/pull/2759))
+
+### Changed
+* Flame graph viewer improvements (scroll up now moves to the parent node, better macOS compatiblity).
+* Julia REPL is now properly marked as transient on supported VS Code versions ([#2764](https://github.com/julia-vscode/julia-vscode/pull/2764))
+
+### Fixed
+* Julia-specific notebook toolbar icons now only show up for notebooks with Julia kernels ([#2758](https://github.com/julia-vscode/julia-vscode/pull/2758))
+* Fixed version incompatibility in debugger ([#52](https://github.com/julia-vscode/DebugAdapter.jl/pull/52))
+* Fixed certain `@doc` parsing issues ([#329](https://github.com/julia-vscode/CSTParser.jl/pull/329), [#330](https://github.com/julia-vscode/CSTParser.jl/pull/330))
+* Only pass on valid options to JuliaFormatter ([#1030](https://github.com/julia-vscode/LanguageServer.jl/pull/1030))
+
 ## [1.6.0] - 2022-02-22
 ### Added
 * New profile viewer with inline annotations ([#2674](https://github.com/julia-vscode/julia-vscode/pull/2674))
