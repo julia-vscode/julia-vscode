@@ -69,7 +69,7 @@
 	url = https://github.com/JuliaWeb/URIs.jl.git
 [submodule "libs/jl-profile"]
 	path = libs/jl-profile
-	url = git@github.com:pfitzseb/jl-profile.js.git
+	url = https://github.com/pfitzseb/jl-profile.js.git
 [submodule "scripts/packages-old/JuliaInterpreter"]
 	path = scripts/packages-old/JuliaInterpreter
-	url = git@github.com:JuliaDebug/JuliaInterpreter.jl.git
+	url = https://github.com/JuliaDebug/JuliaInterpreter.jl.git
