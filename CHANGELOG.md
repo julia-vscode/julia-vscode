@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* The table viewer is now available even when TableTraits is loaded before we connect to the Julia session, e.g. because it's compiled into the sysimage ([#2775](https://github.com/julia-vscode/julia-vscode/pull/2775))
+
 ## [1.6.1] - 2022-03-10
 ### Added
 * "Always copy" option for "Connect to external REPL" command ([#2759](https://github.com/julia-vscode/julia-vscode/pull/2759))

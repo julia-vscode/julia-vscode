@@ -19,6 +19,10 @@ function __init__()
     end
 
     push!(Base.package_callbacks, on_pkg_load)
+
+    for pkgid in keys(Base.loaded_modules)
+        on_pkg_load(pkgid)
+    end
 end
 
 include("../../JSON/src/JSON.jl")
