@@ -52,12 +52,11 @@ async function main() {
     for (const pkg of [
         'CodeTracking',
         'CoverageTools',
-        // 'FilePathsBase',
+        'FilePathsBase',
         'JuliaInterpreter',
         'LoweredCodeUtils',
         'OrderedCollections',
-        // 'PackageCompiler',
-        'Revise',
+        'PackageCompiler',
         'Tokenize',
         'URIParser',
         'CommonMark',
@@ -75,7 +74,8 @@ async function main() {
         await cp.exec(`git checkout ${newestTag.original}`, { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
-    // Note that this "+1.3.1" argument currently only works on Windows with a juliaup installation
+    // Note that this "+1.3.1" argument currently only works with a juliaup installation
+    await cp.exec(`julia "+release" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/development') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/debugadapter') })
