@@ -77,12 +77,12 @@ async function main() {
     // Note that this "+1.3.1" argument currently only works with a juliaup installation
     await cp.exec(`julia "+release" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/development') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver') })
-    await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile') })
+    await cp.exec(`julia "+1.6" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/debugadapter') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger') })
     await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/testenvironments/vscodeserver') })
 
-    await cp.exec(`julia "+1.3.1" --project=. -e "using Pkg; Pkg.update()"`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev') })
+    await cp.exec(`julia "+1.6" --project=. -e "using Pkg; Pkg.update()"`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev') })
 
     await cp.exec('npm update', { cwd: process.cwd() })
 }
