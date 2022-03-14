@@ -8,42 +8,53 @@ end
 const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NotebookRunCellArguments, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
 function notebook_runcell_request(conn, params::NotebookRunCellArguments)
-    try
-        code = string('\n'^params.line, ' '^params.column, params.code)
+    code = string('\n'^params.line, ' '^params.column, params.code)
 
-        withpath(params.filename) do
-            revise()
+    withpath(params.filename) do
+        revise()
 
-            args = VERSION >= v"1.5" ? (REPL.softscope, Main, code, params.filename) : (Main, code, params.filename)
-            result = Base.invokelatest(include_string, args...)
+        args = VERSION >= v"1.5" ? (REPL.softscope, Main, code, params.filename) : (Main, code, params.filename)
 
-            IJuliaCore.flush_all()
+        result = try
+            Base.invokelatest(include_string, args...)
+        catch err
+            bt = catch_backtrace()
 
-            if result !== nothing && !ends_with_semicolon(code)
-                Base.invokelatest(Base.display, result)
+            if err isa LoadError
+                inner_err = err.error
+
+                st = stacktrace(bt)
+
+                error_type = string(typeof(inner_err))
+                error_message_str = sprint(showerror, inner_err)
+                traceback = sprint(Base.show_backtrace, bt)
+
+                return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
+            else
+                rethrow(err)
+                error("Not clear what this means, but we should probably send a crash report.")
             end
-
-            IJuliaCore.flush_all()
-
-            return (success = true, error = (message = "", name = "", stack = ""))
         end
-    catch err
-        bt = catch_backtrace()
 
-        if err isa LoadError
-            inner_err = err.error
+        IJuliaCore.flush_all()
 
-            st = stacktrace(bt)
+        if result !== nothing && !ends_with_semicolon(code)
+            try
+                Base.invokelatest(Base.display, result)
+            catch err
+                bt = catch_backtrace()
 
-            error_type = string(typeof(inner_err))
-            error_message_str = sprint(showerror, inner_err)
-            traceback = sprint(Base.show_backtrace, bt)
+                error_type = string(typeof(err))
+                error_message_str = sprint(showerror, err)
+                traceback = sprint(Base.show_backtrace, bt)
 
-            return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
-        else
-            rethrow(err)
-            error("Not clear what this means, but we should probably send a crash report.")
+                return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
+            end
         end
+
+        IJuliaCore.flush_all()
+
+        return (success = true, error = (message = "", name = "", stack = ""))
     end
 end
 
