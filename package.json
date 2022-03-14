@@ -6,7 +6,7 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.65.0"
+        "vscode": "^1.63.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -1358,7 +1358,7 @@
         "@types/mocha": "^9.1.0",
         "@types/node": "^14.17.15",
         "@types/semver": "^7.3.9",
-        "@types/vscode": "^1.65.0",
+        "@types/vscode": "=1.63.0",
         "@typescript-eslint/parser": "^5.14.0",
         "download": "^8.0.0",
         "eslint": "^8.11.0",
