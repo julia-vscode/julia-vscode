@@ -1,7 +1,7 @@
-import * as path from 'path'
-import * as vscode from 'vscode'
-import { registerCommand } from '../utils'
-import { openFile } from './results'
+import * as path from 'path';
+import * as vscode from 'vscode';
+import { registerCommand } from '../utils';
+import { openFile } from './results';
 
 interface ProfilerFrame {
     func: string;
@@ -43,15 +43,15 @@ function flagString(flags: number) {
 
 const profilerContextKey = 'jlProfilerFocus'
 export class ProfilerFeature {
-    context: vscode.ExtensionContext;
-    panel: vscode.WebviewPanel;
+    context: vscode.ExtensionContext
+    panel: vscode.WebviewPanel
 
-    profiles: ProfilerFrame[] = [];
-    inlineTrace: InlineTraceElement[] = [];
-    decoration: vscode.TextEditorDecorationType;
-    inlineMaxWidth: number = 100;
-    currentProfileIndex: number = 0;
-    selectedThread: string = 'all';
+    profiles: ProfilerFrame[] = []
+    inlineTrace: InlineTraceElement[] = []
+    decoration: vscode.TextEditorDecorationType
+    inlineMaxWidth: number = 100
+    currentProfileIndex: number = 0
+    selectedThread: string = 'all'
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context

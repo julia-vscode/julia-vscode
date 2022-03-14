@@ -41,7 +41,7 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 }
 
 export class JuliaDebugSession extends LoggingDebugSession {
-    private _configurationDone = new Subject();
+    private _configurationDone = new Subject()
 
     // private _debuggeeTerminal: vscode.Terminal
     private _task: vscode.TaskExecution
@@ -50,7 +50,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
     private _launchMode: boolean
     private _launchedWithoutDebug: boolean
 
-    private _no_need_for_force_kill: boolean = false;
+    private _no_need_for_force_kill: boolean = false
 
     /**
      * Creates a new debug adapter that is used for one debug session.

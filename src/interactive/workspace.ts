@@ -155,7 +155,7 @@ export class WorkspaceFeature {
     _REPLTreeDataProvider: REPLTreeDataProvider
 
     _REPLNode: REPLNode
-    _NotebokNodes: NotebookNode[] = [];
+    _NotebokNodes: NotebookNode[] = []
 
     constructor(private context: vscode.ExtensionContext) {
         this._REPLTreeDataProvider = new REPLTreeDataProvider(this)
@@ -215,10 +215,10 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
 {
     private _onDidChangeTreeData: vscode.EventEmitter<
         AbstractWorkspaceNode | undefined
-    > = new vscode.EventEmitter<AbstractWorkspaceNode | undefined>();
+    > = new vscode.EventEmitter<AbstractWorkspaceNode | undefined>()
     readonly onDidChangeTreeData: vscode.Event<
         AbstractWorkspaceNode | undefined
-    > = this._onDidChangeTreeData.event;
+    > = this._onDidChangeTreeData.event
 
     constructor(private workspaceFeautre: WorkspaceFeature) { }
 

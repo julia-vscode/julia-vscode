@@ -38,26 +38,26 @@ const requestTypeRunCell = new RequestType<
 // }
 
 export class JuliaKernel {
-    private _localDisposables: vscode.Disposable[] = [];
+    private _localDisposables: vscode.Disposable[] = []
 
-    private _scheduledExecutionRequests: vscode.NotebookCellExecution[] = [];
-    private _currentExecutionRequest: vscode.NotebookCellExecution = null;
-    private _processExecutionRequests = new Subject();
+    private _scheduledExecutionRequests: vscode.NotebookCellExecution[] = []
+    private _currentExecutionRequest: vscode.NotebookCellExecution = null
+    private _processExecutionRequests = new Subject()
 
     private _kernelProcess: ChildProcess
     public _msgConnection: MessageConnection
-    private _current_request_id: number = 0;
+    private _current_request_id: number = 0
 
-    private _onCellRunFinished = new vscode.EventEmitter<void>();
-    public onCellRunFinished = this._onCellRunFinished.event;
+    private _onCellRunFinished = new vscode.EventEmitter<void>()
+    public onCellRunFinished = this._onCellRunFinished.event
 
-    private _onConnected = new vscode.EventEmitter<void>();
-    public onConnected = this._onConnected.event;
+    private _onConnected = new vscode.EventEmitter<void>()
+    public onConnected = this._onConnected.event
 
-    private _onStopped = new vscode.EventEmitter<void>();
-    public onStopped = this._onStopped.event;
+    private _onStopped = new vscode.EventEmitter<void>()
+    public onStopped = this._onStopped.event
 
-    private _tokenSource = new vscode.CancellationTokenSource();
+    private _tokenSource = new vscode.CancellationTokenSource()
 
     constructor(
         private extensionPath: string,
