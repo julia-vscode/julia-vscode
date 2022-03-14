@@ -1,7 +1,7 @@
-import * as path from 'path';
-import * as vscode from 'vscode';
-import { registerCommand } from '../utils';
-import { openFile } from './results';
+import * as path from 'path'
+import * as vscode from 'vscode'
+import { registerCommand } from '../utils'
+import { openFile } from './results'
 
 interface ProfilerFrame {
     func: string;
