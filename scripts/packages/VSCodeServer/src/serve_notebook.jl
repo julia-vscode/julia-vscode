@@ -21,15 +21,19 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
             bt = catch_backtrace()
 
             if err isa LoadError
-                inner_err = err.error
+                try
+                    inner_err = err.error
 
-                st = stacktrace(bt)
+                    st = stacktrace(bt)
 
-                error_type = string(typeof(inner_err))
-                error_message_str = sprint(showerror, inner_err)
-                traceback = sprint(Base.show_backtrace, bt)
+                    error_type = string(typeof(inner_err))
+                    error_message_str = Base.invokelatest(sprint, showerror, inner_err)
+                    traceback = Base.invokelatest(sprint, Base.show_backtrace, bt)
 
-                return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
+                    return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
+                catch err
+                    return (success = false, error = (message = "Error trying to display an error.", name = error_type, stack = "Error trying to display an error."))
+                end
             else
                 rethrow(err)
                 error("Not clear what this means, but we should probably send a crash report.")
@@ -42,13 +46,17 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
             try
                 Base.invokelatest(Base.display, result)
             catch err
-                bt = catch_backtrace()
+                try
+                    bt = catch_backtrace()
 
-                error_type = string(typeof(err))
-                error_message_str = sprint(showerror, err)
-                traceback = sprint(Base.show_backtrace, bt)
+                    error_type = string(typeof(err))
+                    error_message_str = Base.invokelatest(sprint, showerror, err)
+                    traceback = Base.invokelatest(sprint, Base.show_backtrace, bt)
 
-                return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
+                    return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
+                catch err
+                    return (success = false, error = (message = "Error trying to display an error.", name = error_type, stack = "Error trying to display an error."))
+                end
             end
         end
 
