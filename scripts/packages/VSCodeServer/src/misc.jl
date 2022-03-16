@@ -179,7 +179,7 @@ end
 function revise()
     if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
         let mode = get(ENV, "JULIA_REVISE", "auto")
-            mode == "auto" && Main.Revise.revise()
+            mode == "auto" && Base.invokelatest(Main.Revise.revise)
         end
     end
 end
