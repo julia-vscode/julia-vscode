@@ -116,7 +116,7 @@ version = "0.22.7"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.10"
+version = "0.9.11"
 
 [[deps.LanguageServer]]
 deps = ["CSTParser", "JSON", "JSONRPC", "JuliaFormatter", "Markdown", "Pkg", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIParser", "UUIDs"]
