@@ -1337,7 +1337,7 @@
     },
     "dependencies": {
         "@traptitech/markdown-it-katex": "^3.5.0",
-        "applicationinsights": "^1.8.10",
+        "applicationinsights": "^2",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "markdown-it": "^12.3.2",
