@@ -82,7 +82,7 @@ uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
 path = "../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.17"
+version = "0.9.18"
 
 [[deps.IJuliaCore]]
 deps = ["Base64", "Dates", "InteractiveUtils", "JSON", "Libdl", "Markdown", "Pkg", "Printf", "REPL", "Random", "Test", "UUIDs"]
