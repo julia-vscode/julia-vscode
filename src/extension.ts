@@ -1,4 +1,5 @@
 'use strict'
+import * as sourcemapsupport from 'source-map-support'
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
@@ -26,6 +27,8 @@ import * as tasks from './tasks'
 import * as telemetry from './telemetry'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
+
+sourcemapsupport.install({ handleUncaughtExceptions: false })
 
 let g_languageClient: LanguageClient = null
 let g_context: vscode.ExtensionContext = null
