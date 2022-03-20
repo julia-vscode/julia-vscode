@@ -1,7 +1,6 @@
 'use strict'
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
 import * as fs from 'async-file'
 import { unwatchFile, watchFile } from 'async-file'
 import * as net from 'net'
