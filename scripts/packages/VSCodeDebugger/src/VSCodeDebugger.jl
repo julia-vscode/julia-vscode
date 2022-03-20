@@ -10,7 +10,11 @@ include("../../JSON/src/JSON.jl")
 module JuliaInterpreter
     using ..CodeTracking
 
-    include("../../JuliaInterpreter/src/packagedef.jl")
+    @static if VERSION >= v"1.6.0"
+        include("../../JuliaInterpreter/src/packagedef.jl")
+    else
+        include("../../../packages-old/JuliaInterpreter/src/packagedef.jl")
+    end
 end
 
 module JSONRPC
@@ -34,6 +38,7 @@ function startdebugger()
     try
         @debug "Trying to connect to debug adapter."
         socket = Sockets.connect(pipenames[1])
+        printstyled("Done!\n\n", bold = true)
         try
             DebugAdapter.startdebug(socket, (err, bt)->global_err_handler(err, bt, pipenames[2], "Debugger"))
         finally

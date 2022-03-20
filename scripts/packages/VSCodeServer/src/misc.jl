@@ -1,3 +1,6 @@
+import UUIDs: uuid1
+import InteractiveUtils: @which
+
 # error handling
 # --------------
 
@@ -27,8 +30,10 @@ end
 # ---------------
 
 function fullpath(path)
-    return if isuntitled(path) || isabspath(path)
+    return if isuntitled(path)
         path
+    elseif isabspath(path)
+        maybe_fix_stdlib_path(path)
     else
         basepath(path)
     end |> realpath′
@@ -45,13 +50,30 @@ function realpath′(p)
     end |> normpath
 end
 
+# https://github.com/timholy/CodeTracking.jl/blob/2ba66f6f7864c6a3e06887a6832787bb3dc8e9be/src/utils.jl
+const BUILDBOT_STDLIB_PATH = dirname(abspath(joinpath(String((@which uuid1()).file), "..", "..", "..")))
+replace_buildbot_stdlibpath(str::String) = replace(str, BUILDBOT_STDLIB_PATH => Sys.STDLIB)
+function maybe_fix_stdlib_path(p)
+    if !ispath′(p)
+        p_fix = replace_buildbot_stdlibpath(p)
+        ispath′(p_fix) && return p_fix
+    end
+    p
+end
+
+ispath′(p) = try
+    ispath(p)
+catch err
+    false
+end
+
 
 # string utilitiles
 # -----------------
 
 # https://github.com/JuliaDebug/Debugger.jl/blob/4cf99c662ab89da0fe7380c1e81461e2428e8b00/src/limitio.jl
 
-mutable struct LimitIO{IO_t <: IO} <: IO
+mutable struct LimitIO{IO_t<:IO} <: IO
     io::IO_t
     maxbytes::Int
     n::Int
@@ -65,7 +87,7 @@ function Base.write(io::LimitIO, v::UInt8)
     io.n += write(io.io, v)
 end
 
-function sprintlimited(args...; func=show, limit::Int=30, ellipsis::AbstractString="…", color=false)
+function sprintlimited(args...; func = show, limit::Int = 30, ellipsis::AbstractString = "…", color = false)
     io = IOBuffer()
     ioctx = IOContext(LimitIO(io, limit - length(ellipsis)), :limit => true, :color => color, :displaysize => (30, 64))
 
@@ -84,7 +106,7 @@ function sprintlimited(args...; func=show, limit::Int=30, ellipsis::AbstractStri
     return color ? str : remove_ansi_control_chars(str)
 end
 
-function strlimit(str; limit::Int=30, ellipsis::AbstractString="…")
+function strlimit(str; limit::Int = 30, ellipsis::AbstractString = "…")
     will_append = length(str) > limit
 
     io = IOBuffer()
@@ -108,7 +130,10 @@ function remove_ansi_control_chars(str::String)
 end
 
 function ends_with_semicolon(x)
-    return REPL.ends_with_semicolon(split(x, '\n', keepempty=false)[end])
+    lines = split(x, '\n', keepempty=false)
+    return length(lines) > 0 ?
+        REPL.ends_with_semicolon(last(lines)) :
+        false
 end
 
 const splitlines = Base.Fix2(split, '\n')
@@ -154,7 +179,7 @@ end
 function revise()
     if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
         let mode = get(ENV, "JULIA_REVISE", "auto")
-            mode == "auto" && Main.Revise.revise()
+            mode == "auto" && Base.invokelatest(Main.Revise.revise)
         end
     end
 end

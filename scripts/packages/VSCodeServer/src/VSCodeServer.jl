@@ -1,9 +1,9 @@
 module VSCodeServer
 
-export vscodedisplay, @enter, @run
+export vscodedisplay, @vscodedisplay, @enter, @run
 export view_profile, @profview
 
-using REPL, Sockets, Base64, Pkg, UUIDs
+using REPL, Sockets, Base64, Pkg, UUIDs, Dates, Profile
 import Base: display, redisplay
 import Dates
 import Profile
@@ -18,47 +18,48 @@ function __init__()
         end
     end
 
-    push!(Base.package_callbacks, pkgload)
+    push!(Base.package_callbacks, on_pkg_load)
+
+    for pkgid in keys(Base.loaded_modules)
+        on_pkg_load(pkgid)
+    end
 end
 
 include("../../JSON/src/JSON.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
 
 module IJuliaCore
-    using ..JSON
-    using Printf
-    import Base64
+using ..JSON
+using Printf
+import Base64
 
-    include("../../IJuliaCore/src/packagedef.jl")
+include("../../IJuliaCore/src/packagedef.jl")
 end
 
 module JSONRPC
-    import ..JSON
-    import UUIDs
+import ..JSON
+import UUIDs
 
-    include("../../JSONRPC/src/packagedef.jl")
+include("../../JSONRPC/src/packagedef.jl")
 end
 
 module JuliaInterpreter
-    using ..CodeTracking
+using ..CodeTracking
 
+@static if VERSION >= v"1.6.0"
     include("../../JuliaInterpreter/src/packagedef.jl")
+else
+    include("../../../packages-old/JuliaInterpreter/src/packagedef.jl")
+end
 end
 
 module DebugAdapter
-    import ..JuliaInterpreter
-    import ..JSON
-    import ..JSONRPC
-    import ..JSONRPC: @dict_readable, Outbound
+import ..JuliaInterpreter
+import ..JSON
+import ..JSONRPC
+import ..JSONRPC: @dict_readable, Outbound
 
-    include("../../DebugAdapter/src/packagedef.jl")
-end
-
-module ChromeProfileFormat
-    import ..JSON
-    import Profile
-
-    include("../../ChromeProfileFormat/src/core.jl")
+include("../../DebugAdapter/src/packagedef.jl")
 end
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
@@ -67,11 +68,12 @@ include("../../../error_handler.jl")
 include("repl_protocol.jl")
 include("misc.jl")
 include("trees.jl")
-include("gridviewer.jl")
 include("module.jl")
 include("progress.jl")
 include("eval.jl")
+include("completions.jl")
 include("repl.jl")
+include("./tables/tableviewer.jl")
 include("display.jl")
 include("profiler.jl")
 include("debugger.jl")
@@ -90,7 +92,7 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     end
 end
 
-function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractString,Nothing} = nothing)
     if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
         hook_repl(Base.active_repl)
     end
@@ -115,12 +117,18 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
         msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request
         msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
+        msg_dispatcher[repl_getcompletions_request_type] = repl_getcompletions_request
+        msg_dispatcher[repl_resolvecompletion_request_type] = repl_resolvecompletion_request
+        msg_dispatcher[repl_startdebugger_notification_type] = (conn, params) -> repl_startdebugger_request(conn, params, crashreporting_pipename)
         msg_dispatcher[repl_startdebugger_notification_type] = (conn, params) -> repl_startdebugger_request(conn, params, crashreporting_pipename)
         msg_dispatcher[repl_toggle_plot_pane_notification_type] = toggle_plot_pane
+        msg_dispatcher[repl_toggle_diagnostics_notification_type] = toggle_diagnostics
         msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress
         msg_dispatcher[cd_notification_type] = cd_to_uri
         msg_dispatcher[activate_project_notification_type] = activate_uri
         msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request
+        msg_dispatcher[repl_gettabledata_request_type] = get_table_data
+        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
 
         @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
             msg = JSONRPC.get_next_message(conn_endpoint[])

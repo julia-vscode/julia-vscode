@@ -71,18 +71,32 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                 `--project=${g_resolved_path_of_environment}`,
                 '--startup-file=no',
                 '--history-file=no',
-                '-e "using Pkg; println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ? realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) : realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))"',
-                `"${case_adjusted}"`
+                '-e',
+                `using Pkg;
+                try
+                    println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ?
+                        realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) :
+                        realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))
+                catch err
+                    println(stderr, err)
+                    println(false)
+                end`,
+                `${case_adjusted}`
             ]
         )
 
         if (res.stdout.toString().trim() === 'false') {
-            vscode.window.showInformationMessage('You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?', 'Change Julia environment')
-                .then(env_choice => {
-                    if (env_choice === 'Change Julia environment') {
-                        changeJuliaEnvironment()
-                    }
-                })
+            const err = res.stderr.toString().trim()
+            if (err) {
+                vscode.window.showWarningMessage(`Error while parsing your current environment: \n${err}`)
+            } else {
+                vscode.window.showInformationMessage('You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?', 'Change Julia environment')
+                    .then(env_choice => {
+                        if (env_choice === 'Change Julia environment') {
+                            changeJuliaEnvironment()
+                        }
+                    })
+            }
         }
     }
 
@@ -186,7 +200,7 @@ async function getDefaultEnvPath() {
             [
                 '--startup-file=no',
                 '--history-file=no',
-                '-e "using Pkg; println(dirname(Pkg.Types.Context().env.project_file))"'
+                '-e', 'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))'
             ])
         g_path_of_default_environment = res.stdout.toString().trim()
     }
@@ -212,7 +226,11 @@ function absEnvPath(p: string) {
     if (path.isAbsolute(p)) {
         return p
     } else {
-        return path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, p)
+        if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+            return path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, p)
+        } else {
+            return path.join(os.homedir(), p)
+        }
     }
 }
 
@@ -236,6 +254,7 @@ export async function activate(context: vscode.ExtensionContext, juliaExecutable
     // Environment status bar
     g_current_environment = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
     g_current_environment.show()
+    g_current_environment.tooltip = 'Choose Julia environment'
     g_current_environment.text = 'Julia env: [loading]'
     g_current_environment.command = 'language-julia.changeCurrentEnvironment'
     context.subscriptions.push(g_current_environment)

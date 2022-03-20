@@ -13,7 +13,7 @@ juliaprompt = "julia> "
 
 current_prompt = juliaprompt
 
-function get_main_mode(repl=Base.active_repl)
+function get_main_mode(repl = Base.active_repl)
     mode = repl.interface.modes[1]
     mode isa LineEdit.Prompt || error("no julia repl mode found")
     mode
@@ -55,10 +55,10 @@ function hideprompt(f)
         elseif applicable(LineEdit.write_prompt, stdout, mode.parent_prompt, true)
             LineEdit.write_prompt(stdout, mode.parent_prompt, true)
         else
-            printstyled(stdout, current_prompt, color=:green, bold=true)
+            printstyled(stdout, current_prompt, color = :green, bold = true)
         end
     else
-        printstyled(stdout, current_prompt, color=:green, bold=true)
+        printstyled(stdout, current_prompt, color = :green, bold = true)
     end
 
     truncate(LineEdit.buffer(mistate), 0)
@@ -81,7 +81,7 @@ function hook_repl(repl)
     main_mode = get_main_mode(repl)
 
     if VERSION > v"1.5-"
-        for _ in 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
+        for _ = 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
             isdefined(Base, :active_repl_backend) && continue
             sleep(0.5)
         end
@@ -93,7 +93,7 @@ function hook_repl(repl)
         end
     end
 
-    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty=false) do line
+    main_mode.on_done = REPL.respond(repl, main_mode; pass_empty = false) do line
         quote
             $(evalrepl)(Main, $line, $repl, $main_mode)
         end
@@ -116,7 +116,7 @@ function evalrepl(m, line, repl, main_mode)
             JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
             did_notify = true
         catch err
-            @debug "Could not send repl/starteval notification" exception=(err, catch_backtrace())
+            @debug "Could not send repl/starteval notification" exception = (err, catch_backtrace())
         end
         r = run_with_backend() do
             fix_displays()
@@ -141,7 +141,7 @@ function evalrepl(m, line, repl, main_mode)
             try
                 JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
             catch err
-                @debug "Could not send repl/finisheval notification" exception=(err, catch_backtrace())
+                @debug "Could not send repl/finisheval notification" exception = (err, catch_backtrace())
             end
         end
     end
@@ -160,18 +160,17 @@ end
 # basically the same as Base's `display_error`, with internal frames removed
 function display_repl_error(io, err, bt)
     st = stacktrace(crop_backtrace(bt))
-    printstyled(io, "ERROR: "; bold=true, color=Base.error_color())
+    printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
     showerror(IOContext(io, :limit => true), err, st)
     println(io)
 end
-display_repl_error(io, err::LoadError, bt) = display_repl_error(io, err.error, bt)
 
 function display_repl_error(io, stack::EvalErrorStack)
-    printstyled(io, "ERROR: "; bold=true, color=Base.error_color())
+    printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
     for (i, (err, bt)) in enumerate(reverse(stack.stack))
         i !== 1 && print(io, "\ncaused by: ")
         st = stacktrace(crop_backtrace(bt))
-        showerror(IOContext(io, :limit => true), err, st)
+        showerror(IOContext(io, :limit => true), i == 1 ? unwrap_loaderror(err) : err, st)
         println(io)
     end
 end

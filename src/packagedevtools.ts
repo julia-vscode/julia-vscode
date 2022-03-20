@@ -27,26 +27,31 @@ export class JuliaPackageDevFeature {
 
                 const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
-                const newTerm = vscode.window.createTerminal(
-                    {
-                        name: 'Julia: Tag a new package version',
-                        shellPath: juliaExecutable.file,
-                        shellArgs: [
-                            ...juliaExecutable.args,
-                            path.join(this.context.extensionPath, 'scripts', 'packagedev', 'tagnewpackageversion.jl'),
-                            accessToken,
-                            account,
-                            resultVersion
-                        ],
-                        cwd: vscode.workspace.workspaceFolders[0].uri.fsPath,
-                        env: {
-                            JULIA_PROJECT: path.join(this.context.extensionPath, 'scripts', 'environments', 'pkgdev')
-                        },
+                if (juliaExecutable.getVersion().compare('1.6.0') >= 0) {
+                    const newTerm = vscode.window.createTerminal(
+                        {
+                            name: 'Julia: Tag a new package version',
+                            shellPath: juliaExecutable.file,
+                            shellArgs: [
+                                ...juliaExecutable.args,
+                                path.join(this.context.extensionPath, 'scripts', 'packagedev', 'tagnewpackageversion.jl'),
+                                accessToken,
+                                account,
+                                resultVersion
+                            ],
+                            cwd: vscode.workspace.workspaceFolders[0].uri.fsPath,
+                            env: {
+                                JULIA_PROJECT: path.join(this.context.extensionPath, 'scripts', 'environments', 'pkgdev')
+                            },
 
-                    }
-                )
+                        }
+                    )
 
-                newTerm.show(true)
+                    newTerm.show(true)
+                }
+                else {
+                    await vscode.window.showErrorMessage('Tagging package versions is only supported on Julia 1.6 and newer.')
+                }
             }
         }
     }

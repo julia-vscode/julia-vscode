@@ -158,7 +158,7 @@ export class Result {
 
         for (const change of e.contentChanges) {
             const intersect = change.range.intersection(this.range)
-            if (intersect !== undefined && !(intersect.isEmpty && change.text === '\n')) {
+            if (intersect !== undefined && !(intersect.isEmpty && change.text === '\n' || change.text === '\r\n' || change.text === '')) {
                 return false
             }
 
@@ -276,7 +276,8 @@ function toMarkdownString(str: string) {
 
 export interface Frame {
     path: string,
-    line: number
+    line: number,
+    msg?: string
 }
 interface Highlight {
     frame: Frame,
@@ -307,10 +308,10 @@ export function clearStackTrace() {
     stackFrameHighlights.err = ''
 }
 
-function setStackFrameHighlight(
+export function setStackFrameHighlight(
     err: string,
     frames: Frame[],
-    editors: vscode.TextEditor[] = vscode.window.visibleTextEditors
+    editors: readonly vscode.TextEditor[] = vscode.window.visibleTextEditors
 ) {
     stackFrameHighlights.err = err
     frames.forEach(frame => {
@@ -319,7 +320,7 @@ function setStackFrameHighlight(
             stackFrameHighlights.highlights.push({ frame, result: undefined })
         } else {
             targetEditors.forEach(targetEditor => {
-                const result = addErrorResult(err, frame, targetEditor)
+                const result = addErrorResult(frame.msg || err, frame, targetEditor)
                 if (result) {
                     stackFrameHighlights.highlights.push({ frame, result })
                 }
@@ -370,7 +371,7 @@ function attachGotoFrameCommandLinks(transformed: string, frame: Frame) {
     ].join(' ')
 }
 
-export function refreshResults(editors: vscode.TextEditor[]) {
+export function refreshResults(editors: readonly vscode.TextEditor[]) {
     results.forEach(result => {
         editors.forEach(editor => {
             if (result.document === editor.document) {
@@ -385,7 +386,7 @@ export function refreshResults(editors: vscode.TextEditor[]) {
                 if (highlight.result) {
                     highlight.result.draw()
                 } else {
-                    const result = addErrorResult(stackFrameHighlights.err, frame, editor)
+                    const result = addErrorResult(frame.msg || stackFrameHighlights.err, frame, editor)
                     if (result) {
                         highlight.result = result
                     }
@@ -407,6 +408,7 @@ export function removeResult(target: Result) {
 export function removeAll(editor: undefined | vscode.TextEditor = undefined) {
     const isvalid = (result: Result) => (!editor) || result.document === editor.document
     results.filter(isvalid).forEach(removeResult)
+    clearStackTrace()
 }
 
 export function removeCurrent(editor: vscode.TextEditor) {
@@ -426,7 +428,7 @@ function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: v
 
 // goto frame utilties
 
-export async function openFile(path: string, line: number | undefined = undefined) {
+export async function openFile(path: string, line: number | undefined = undefined, column: vscode.ViewColumn | undefined = undefined) {
     const newLine = line || 1
     const start = new vscode.Position(newLine - 1, 0)
     const end = new vscode.Position(newLine - 1, 0)
@@ -441,7 +443,8 @@ export async function openFile(path: string, line: number | undefined = undefine
     }
     return vscode.window.showTextDocument(uri, {
         preview: true,
-        selection: range
+        selection: range,
+        viewColumn: column
     })
 }
 
