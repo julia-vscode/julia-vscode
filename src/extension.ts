@@ -241,7 +241,27 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
     }
 
-    const juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+    let juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+
+    // Special case the situation where a user configured something like `julia +lts`
+    // If the user is using juliaup, we need to prevent the LS process to try to use a juliaup
+    // install in our LS depot, which would normally happen becuse we set the JULIA_DEPOT_PATH
+    // env variable. This here works around that.
+    if (juliaExecutablesFeature.isJuliaup() &&
+        juliaExecutable.file.toLocaleLowerCase() === 'julia' &&
+        juliaExecutable.args.length > 0 &&
+        juliaExecutable.args[0].startsWith('+')) {
+
+        const channel = juliaExecutable.args[0].slice(1)
+
+        const juliaExePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
+
+        const channelExecutable = juliaExePaths.find(i => i.channel === channel)
+
+        if (channelExecutable) {
+            juliaExecutable = channelExecutable
+        }
+    }
 
     const serverOptions: ServerOptions = Boolean(process.env.DETACHED_LS) ?
         async () => {
