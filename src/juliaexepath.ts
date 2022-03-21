@@ -60,6 +60,7 @@ export class JuliaExecutable {
 export class JuliaExecutablesFeature {
     private actualJuliaExePath: JuliaExecutable | undefined
     private cachedJuliaExePaths: JuliaExecutable[] | undefined
+    private usingJuliaup: boolean | undefined
 
     constructor(private context: vscode.ExtensionContext) {
         this.context.subscriptions.push(
@@ -67,6 +68,7 @@ export class JuliaExecutablesFeature {
                 if (event.affectsConfiguration('julia.executablePath')) {
                     this.actualJuliaExePath = undefined
                     this.cachedJuliaExePaths = undefined
+                    this.usingJuliaup = undefined
                 }
             })
         )
@@ -189,6 +191,7 @@ export class JuliaExecutablesFeature {
     }
 
     async tryJuliaup() {
+        this.usingJuliaup = false
         try {
             const { stdout, } = await execFile('juliaup', ['api', 'getconfig1'])
 
@@ -214,6 +217,8 @@ export class JuliaExecutablesFeature {
                     i.Name,
                     true
                 )).concat(this.actualJuliaExePath)
+
+                this.usingJuliaup = true
 
                 return true
             }
@@ -275,6 +280,10 @@ export class JuliaExecutablesFeature {
             }
         }
         return this.actualJuliaExePath
+    }
+
+    public getUsingJuliaup() {
+        return this.usingJuliaup
     }
 
     getExecutablePath() {
