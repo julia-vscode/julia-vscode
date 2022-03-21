@@ -120,7 +120,10 @@ Anything printed to `io` is discarded.
 """
 const DIAGNOSTIC_MIME = "application/vnd.julia-vscode.diagnostics"
 Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(DIAGNOSTIC_MIME)}) = DIAGNOSTICS_ENABLED[]
-Base.Multimedia.display(::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIME)}, diagnostics) = sendDisplayMsg(DIAGNOSTIC_MIME, show(IOBuffer(), m, diagnostics))
+function Base.Multimedia.display(::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIME)}, diagnostics)
+    display(MIME"text/plain", diagnostics)
+    sendDisplayMsg(DIAGNOSTIC_MIME, show(IOBuffer(), m, diagnostics))
+end
 
 function is_table_like(x)
     if showable("application/vnd.dataresource+json", x)
