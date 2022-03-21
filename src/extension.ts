@@ -247,7 +247,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     // If the user is using juliaup, we need to prevent the LS process to try to use a juliaup
     // install in our LS depot, which would normally happen becuse we set the JULIA_DEPOT_PATH
     // env variable. This here works around that.
-    if (juliaExecutablesFeature.getUsingJuliaup() &&
+    if (juliaExecutablesFeature.isJuliaup() &&
         juliaExecutable.file.toLocaleLowerCase() === 'julia' &&
         juliaExecutable.args.length > 0 &&
         juliaExecutable.args[0].startsWith('+')) {

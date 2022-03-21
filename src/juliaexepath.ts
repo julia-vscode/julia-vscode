@@ -282,7 +282,7 @@ export class JuliaExecutablesFeature {
         return this.actualJuliaExePath
     }
 
-    public getUsingJuliaup() {
+    public isJuliaup() {
         return this.usingJuliaup
     }
 
