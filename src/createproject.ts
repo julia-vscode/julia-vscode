@@ -10,24 +10,38 @@ export class JuliaNewProjectFeature {
 
     private async createNewProject() {
 
-        const pkgName = await vscode.window.showInputBox({ prompt: 'Please enter the name of the project to create.' })
+        const pkgName = await vscode.window.showInputBox({
+            prompt: 'Please enter the name of the project to create.',
+            validateInput: (input) => {
+                if (input === "")
+                    return 'The project name cannot be empty.'
+                return undefined
+            }
+        })
         if (!pkgName)
-            return // TODO: Show cancellation message
+            return
 
         const authors = await vscode.window.showInputBox({ prompt: 'Please enter the authors of the project', placeHolder: "Default uses 'github.name' and 'github.email' from the global Git config." })
         if (authors === undefined)
-            return // TODO: Show cancellation message
+            return
 
         let host = await vscode.window.showQuickPick(['github.com', 'gitlab.com', 'bitbucket.org', 'Other'], { placeHolder: 'The URL to the code hosting service where the project will reside.' })
         if (host === 'Other') {
             host = await vscode.window.showInputBox({ prompt: 'Please enter the URL to the code hosting service.' })
         }
         if (host === undefined)
-            return // TODO: Show cancellation message
+            return
 
-        const user = await vscode.window.showInputBox({ prompt: 'Please enter your username.', placeHolder: "Default is 'github.user' from the global Git config." })
+        const user = await vscode.window.showInputBox({
+            prompt: 'Please enter your username.', placeHolder: "Default is 'github.user' from the global Git config.",
+            validateInput: (input) => {
+                if (input === "")
+                    return 'Username cannot be empty.'
+                return undefined
+            }
+        })
         if (user === undefined)
-            return // TODO: Show cancellation message
+            return
 
         let juliaVersion = await vscode.window.showQuickPick(
             ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', 'Other'],
@@ -37,7 +51,7 @@ export class JuliaNewProjectFeature {
             juliaVersion = await vscode.window.showInputBox({ prompt: 'Please enter the minimum allowed Julia version.'})
         }
         if (juliaVersion === undefined)
-            return // TODO: Show cancellation message
+            return
 
         const plugins = await vscode.window.showQuickPick(
             [
@@ -68,7 +82,7 @@ export class JuliaNewProjectFeature {
             { canPickMany: true, placeHolder: 'Please select plugins to include in the template.' }
         )
         if (plugins === undefined)
-            return // TODO: Show cancellation message
+            return
 
         const directory = await vscode.window.showOpenDialog({
             canSelectFolders: true,
@@ -77,7 +91,7 @@ export class JuliaNewProjectFeature {
             openLabel: 'Select Project Location'
         })
         if (!directory)
-            return // TODO: Show cancellation message
+            return
 
         const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
