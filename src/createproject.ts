@@ -111,7 +111,7 @@ export class JuliaNewProjectFeature {
                     ...plugins.map(x => x.label)
                 ],
                 env: {
-                    JULIA_PROJECT: path.join(this.context.extensionPath, 'scripts', 'environments', 'pkgdev')
+                    JULIA_PROJECT: path.join(this.context.extensionPath, 'scripts', 'environments', 'newproject')
                 },
 
             }
