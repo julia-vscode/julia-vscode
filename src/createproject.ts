@@ -3,12 +3,12 @@ import * as vscode from 'vscode'
 import { JuliaExecutablesFeature } from './juliaexepath'
 import { registerCommand } from './utils'
 
-export class JuliaPackageTemplateFeature {
+export class JuliaNewProjectFeature {
     constructor(private context: vscode.ExtensionContext, private juliaExecutablesFeature: JuliaExecutablesFeature) {
-        this.context.subscriptions.push(registerCommand('language-julia.createPackageTemplate', () => this.createPackageTemplate()))
+        this.context.subscriptions.push(registerCommand('language-julia.createNewProject', () => this.createNewProject()))
     }
 
-    private async createPackageTemplate() {
+    private async createNewProject() {
 
         const pkgName = await vscode.window.showInputBox({ prompt: 'Please enter the name of the project to create.' })
         if (!pkgName)
@@ -81,11 +81,11 @@ export class JuliaPackageTemplateFeature {
 
         const newTerm = vscode.window.createTerminal(
             {
-                name: 'Julia: Create package template',
+                name: 'Julia: Create new project',
                 shellPath: juliaExecutable.file,
                 shellArgs: [
                     ...juliaExecutable.args,
-                    path.join(this.context.extensionPath, 'scripts', 'packagedev', 'createpackagetemplate.jl'),
+                    path.join(this.context.extensionPath, 'scripts', 'packagedev', 'createproject.jl'),
                     pkgName,
                     directory[0].fsPath,
                     authors,

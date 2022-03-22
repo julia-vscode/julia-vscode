@@ -60,7 +60,7 @@
         "onCommand:language-julia.activateHere",
         "onCommand:language-julia.activateFromDir",
         "onCommand:language-julia.tagNewPackageVersion",
-        "onCommand:language-julia.createPackageTemplate",
+        "onCommand:language-julia.createNewProject",
         "onCommand:language-julia.newJuliaFile",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
@@ -117,8 +117,8 @@
                 "title": "Julia: Tag new package version (experimental)"
             },
             {
-                "command": "language-julia.createPackageTemplate",
-                "title": "Julia: Create Package Template"
+                "command": "language-julia.createNewProject",
+                "title": "Julia: Create New Project"
             },
             {
                 "command": "language-julia.changeCurrentEnvironment",
