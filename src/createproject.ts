@@ -14,19 +14,19 @@ export class JuliaNewProjectFeature {
         if (!pkgName)
             return // TODO: Show cancellation message
 
-        let authors = await vscode.window.showInputBox({ prompt: 'Please enter the authors of the project', placeHolder: "Default uses 'github.name' and 'github.email' from the global Git config." })
-        if (!authors)
-            authors = ""
+        const authors = await vscode.window.showInputBox({ prompt: 'Please enter the authors of the project', placeHolder: "Default uses 'github.name' and 'github.email' from the global Git config." })
+        if (authors === undefined)
+            return // TODO: Show cancellation message
 
         let host = await vscode.window.showQuickPick(['github.com', 'gitlab.com', 'bitbucket.org', 'Other'], { placeHolder: 'The URL to the code hosting service where the project will reside.' })
         if (host === 'Other') {
             host = await vscode.window.showInputBox({ prompt: 'Please enter the URL to the code hosting service.' })
         }
-        if (!host)
-            host = ""
+        if (host === undefined)
+            return // TODO: Show cancellation message
 
         const user = await vscode.window.showInputBox({ prompt: 'Please enter your username.', placeHolder: "Default is 'github.user' from the global Git config." })
-        if (!user)
+        if (user === undefined)
             return // TODO: Show cancellation message
 
         let juliaVersion = await vscode.window.showQuickPick(
@@ -36,8 +36,8 @@ export class JuliaNewProjectFeature {
         if (juliaVersion === 'Other') {
             juliaVersion = await vscode.window.showInputBox({ prompt: 'Please enter the minimum allowed Julia version.'})
         }
-        if (!juliaVersion)
-            juliaVersion = ""
+        if (juliaVersion === undefined)
+            return // TODO: Show cancellation message
 
         const plugins = await vscode.window.showQuickPick(
             [
@@ -67,13 +67,15 @@ export class JuliaNewProjectFeature {
             ],
             { canPickMany: true, placeHolder: 'Please select plugins to include in the template.' }
         )
+        if (plugins === undefined)
+            return // TODO: Show cancellation message
 
         const directory = await vscode.window.showOpenDialog({
             canSelectFolders: true,
             canSelectFiles: false,
             canSelectMany: false,
             openLabel: 'Select Project Location'
-        });
+        })
         if (!directory)
             return // TODO: Show cancellation message
 
