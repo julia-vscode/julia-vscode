@@ -74,7 +74,7 @@
 	path = scripts/packages-old/JuliaInterpreter
 	url = https://github.com/JuliaDebug/JuliaInterpreter.jl.git
 [submodule "scripts/packages/PkgTemplates.jl"]
-	path = scripts/packages/PkgTemplates.jl
+	path = scripts/packages/PkgTemplates
 	url = https://github.com/invenia/PkgTemplates.jl.git
 [submodule "scripts/packages/Revise"]
 	path = scripts/packages/Revise
