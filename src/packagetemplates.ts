@@ -13,9 +13,9 @@ export class JuliaPackageTemplateFeature {
         const pkgName = await vscode.window.showInputBox({ prompt: 'Please enter the name of the project to create.' })
         if (!pkgName)
             return // TODO: Show cancellation message
-        const authors = await vscode.window.showInputBox({ prompt: 'Please enter the authors of the project', placeHolder: "Default is 'github.user' from the global Git config." })
+        const authors = await vscode.window.showInputBox({ prompt: 'Please enter the authors of the project', placeHolder: "Default uses 'github.name' and 'github.email' from the global Git config." })
         const host = await vscode.window.showQuickPick(['github.com', 'gitlab.com', 'bitbucket.org', 'Other'], { placeHolder: 'The URL to the code hosting service where the project will reside.' })
-        const user = await vscode.window.showInputBox({ prompt: 'Please enter your username.', placeHolder: "Default uses 'github.name' and 'github.email' from the global Git config." })
+        const user = await vscode.window.showInputBox({ prompt: 'Please enter your username.', placeHolder: "Default is 'github.user' from the global Git config." })
         if (!user)
             return // TODO: Show cancellation message
         let juliaVersion = await vscode.window.showQuickPick(
@@ -40,9 +40,9 @@ export class JuliaPackageTemplateFeature {
                 { label: 'CirrusCI', picked: false },
                 { label: 'Citation', picked: false },
                 { label: 'Codecov', picked: false },
-                { label: 'ColPragBadge', picked: false },
+                { label: 'ColPracBadge', picked: false },
                 { label: 'Coveralls', picked: false },
-                { label: 'Develop', picked: false },
+                // { label: 'Develop', picked: false },
                 { label: 'Documenter', picked: false },
                 { label: 'DroneCI', picked: false },
                 { label: 'GitHubActions', picked: false },
