@@ -13,11 +13,22 @@ export class JuliaPackageTemplateFeature {
         const pkgName = await vscode.window.showInputBox({ prompt: 'Please enter the name of the project to create.' })
         if (!pkgName)
             return // TODO: Show cancellation message
-        const authors = await vscode.window.showInputBox({ prompt: 'Please enter the authors of the project', placeHolder: "Default uses 'github.name' and 'github.email' from the global Git config." })
-        const host = await vscode.window.showQuickPick(['github.com', 'gitlab.com', 'bitbucket.org', 'Other'], { placeHolder: 'The URL to the code hosting service where the project will reside.' })
+
+        let authors = await vscode.window.showInputBox({ prompt: 'Please enter the authors of the project', placeHolder: "Default uses 'github.name' and 'github.email' from the global Git config." })
+        if (!authors)
+            authors = ""
+
+        let host = await vscode.window.showQuickPick(['github.com', 'gitlab.com', 'bitbucket.org', 'Other'], { placeHolder: 'The URL to the code hosting service where the project will reside.' })
+        if (host === 'Other') {
+            host = await vscode.window.showInputBox({ prompt: 'Please enter the URL to the code hosting service.' })
+        }
+        if (!host)
+            host = ""
+
         const user = await vscode.window.showInputBox({ prompt: 'Please enter your username.', placeHolder: "Default is 'github.user' from the global Git config." })
         if (!user)
             return // TODO: Show cancellation message
+
         let juliaVersion = await vscode.window.showQuickPick(
             ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', 'Other'],
             { placeHolder: 'Please select the minimum allowed Julia version.' }
@@ -25,6 +36,9 @@ export class JuliaPackageTemplateFeature {
         if (juliaVersion === 'Other') {
             juliaVersion = await vscode.window.showInputBox({ prompt: 'Please enter the minimum allowed Julia version.'})
         }
+        if (!juliaVersion)
+            juliaVersion = ""
+
         const plugins = await vscode.window.showQuickPick(
             [
                 { label: 'Project File', picked: true },
@@ -53,39 +67,41 @@ export class JuliaPackageTemplateFeature {
             ],
             { canPickMany: true, placeHolder: 'Please select plugins to include in the template.' }
         )
+
         const directory = await vscode.window.showOpenDialog({
             canSelectFolders: true,
             canSelectFiles: false,
             canSelectMany: false,
             openLabel: 'Select Project Location'
         });
-        if (pkgName) {
-            const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        if (!directory)
+            return // TODO: Show cancellation message
 
-            const newTerm = vscode.window.createTerminal(
-                {
-                    name: 'Julia: Create package template',
-                    shellPath: juliaExecutable.file,
-                    shellArgs: [
-                        ...juliaExecutable.args,
-                        path.join(this.context.extensionPath, 'scripts', 'packagedev', 'createpackagetemplate.jl'),
-                        pkgName,
-                        directory[0].fsPath,
-                        authors,
-                        host,
-                        user,
-                        juliaVersion,
-                        ...plugins.map(x => x.label)
-                    ],
-                    env: {
-                        JULIA_PROJECT: path.join(this.context.extensionPath, 'scripts', 'environments', 'pkgdev')
-                    },
+        const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
-                }
-            )
+        const newTerm = vscode.window.createTerminal(
+            {
+                name: 'Julia: Create package template',
+                shellPath: juliaExecutable.file,
+                shellArgs: [
+                    ...juliaExecutable.args,
+                    path.join(this.context.extensionPath, 'scripts', 'packagedev', 'createpackagetemplate.jl'),
+                    pkgName,
+                    directory[0].fsPath,
+                    authors,
+                    host,
+                    user,
+                    juliaVersion,
+                    ...plugins.map(x => x.label)
+                ],
+                env: {
+                    JULIA_PROJECT: path.join(this.context.extensionPath, 'scripts', 'environments', 'pkgdev')
+                },
 
-            newTerm.show(true)
-        }
+            }
+        )
+
+        newTerm.show(true)
     }
 
     public dispose() { }
