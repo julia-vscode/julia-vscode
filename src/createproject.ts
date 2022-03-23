@@ -117,8 +117,36 @@ export class JuliaNewProjectFeature {
 
             }
         )
-
         newTerm.show(true)
+
+        const subscription = vscode.window.onDidCloseTerminal(async t => {
+            if (t.processId === newTerm.processId) {
+                // TODO: check if path exists
+                const projectPath = directory[0];
+                let message = "Would you like to open the new project?"
+                const open = "Open"
+                const openNewWindow = "Open in New Window"
+                const choices = [open, openNewWindow]
+
+                const addToWorkspace = "Add to Workspace"
+                if (vscode.workspace.workspaceFolders) {
+                    message = "Would you like to open the cloned repository, or add it to the current workspace?"
+                    choices.push(addToWorkspace)
+                }
+
+                const result = await vscode.window.showInformationMessage(message, ...choices)
+
+                if (result === open) {
+                    vscode.commands.executeCommand('vscode.openFolder', projectPath, { forceReuseWindow: true })
+                } else if (result === addToWorkspace) {
+                    vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders!.length, 0, { uri: projectPath })
+                } else if (result === openNewWindow) {
+                    vscode.commands.executeCommand('vscode.openFolder', projectPath, { forceNewWindow: true })
+                }
+                subscription.dispose()
+            }
+        })
+
     }
 
     public dispose() { }
