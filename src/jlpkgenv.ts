@@ -75,7 +75,7 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                 `using Pkg;
                 try
                     println(in(ARGS[1], VERSION>=VersionNumber(1,1,0) ?
-                        realpath.(filter(i->i!==nothing && isdir(i), getproperty.(values(Pkg.Types.Context().env.manifest), :path))) :
+                        realpath.(filter(i->isdir(i), map(i->isabspath(i) ? i : joinpath(dirname(Pkg.Types.Context().env.project_file), i), filter(i->i!==nothing, getproperty.(values(Pkg.Types.Context().env.manifest), :path))))) :
                         realpath.(filter(i->i!=nothing && isdir(i), map(i->get(i[1], string(:path), nothing), values(Pkg.Types.Context().env.manifest)))) ))
                 catch err
                     println(stderr, err)
