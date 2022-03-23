@@ -114,7 +114,7 @@ export class JuliaNewProjectFeature {
                 ],
                 env: {
                     JULIA_PROJECT: path.join(this.context.extensionPath, 'scripts', 'environments', 'newproject')
-                },
+                }
 
             }
         )
@@ -122,8 +122,8 @@ export class JuliaNewProjectFeature {
 
         const disposable = vscode.window.onDidCloseTerminal(async t => {
             if (t.processId === newTerm.processId) {
-                const projectPath = directory[0];
-                if (await fs.exists(projectPath.fsPath) && t.exitStatus && t.exitStatus.code === 0) {
+                const projectPath = vscode.Uri.file(path.join(directory[0].fsPath, pkgName))
+                if (t.exitStatus && t.exitStatus.code === 0 && await fs.exists(projectPath.fsPath)) {
                     let message = "Would you like to open the new project?"
                     const open = "Open"
                     const openNewWindow = "Open in New Window"
