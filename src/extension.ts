@@ -7,7 +7,7 @@ import * as net from 'net'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions } from 'vscode-languageclient/node'
+import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State } from 'vscode-languageclient/node'
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
@@ -23,7 +23,7 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
-import { TestFeature } from './testing/testFeature'
+import { notifyTypeTextDocumentPublishTestitems, TestFeature } from './testing/testFeature'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 
@@ -32,6 +32,7 @@ let g_context: vscode.ExtensionContext = null
 let g_watchedEnvironmentFile: string = null
 let g_startupNotification: vscode.StatusBarItem = null
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
+let g_testFeature: TestFeature = null
 
 export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b(\s*|\s*#.*)$)|(?:[^\[]*\].*)$).*$/
 export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
@@ -87,7 +88,8 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature))
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature))
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
-        context.subscriptions.push(new TestFeature(context))
+        g_testFeature = new TestFeature(context)
+        context.subscriptions.push(g_testFeature)
 
 
 
@@ -309,6 +311,12 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
         else if (data.command === 'symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
+        }
+    })
+
+    languageClient.onDidChangeState(event => {
+        if (event.newState === State.Running) {
+            languageClient.onNotification(notifyTypeTextDocumentPublishTestitems, i=> g_testFeature.publishTestitemsHandler(i))
         }
     })
 
