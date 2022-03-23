@@ -1,4 +1,8 @@
-struct InlineDisplay <: AbstractDisplay end
+struct InlineDisplay <: AbstractDisplay
+    is_repl::Bool
+end
+
+InlineDisplay() = InlineDisplay(false)
 
 const PLOT_PANE_ENABLED = Ref(true)
 const DIAGNOSTICS_ENABLED = Ref(true)
@@ -16,13 +20,13 @@ function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     PROGRESS_ENABLED[] = params.enable
 end
 
-function fix_displays()
+function fix_displays(; is_repl = false)
     for d in reverse(Base.Multimedia.displays)
         if d isa InlineDisplay
-            popdisplay(InlineDisplay())
+            popdisplay(d)
         end
     end
-    pushdisplay(InlineDisplay())
+    pushdisplay(InlineDisplay(is_repl))
 end
 
 function with_no_default_display(f)
@@ -120,7 +124,12 @@ Anything printed to `io` is discarded.
 """
 const DIAGNOSTIC_MIME = "application/vnd.julia-vscode.diagnostics"
 Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(DIAGNOSTIC_MIME)}) = DIAGNOSTICS_ENABLED[]
-Base.Multimedia.display(::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIME)}, diagnostics) = sendDisplayMsg(DIAGNOSTIC_MIME, show(IOBuffer(), m, diagnostics))
+function Base.Multimedia.display(d::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIME)}, diagnostics)
+    sendDisplayMsg(DIAGNOSTIC_MIME, show(IOBuffer(), m, diagnostics))
+    if d.is_repl
+        display(MIME"text/plain"(), diagnostics)
+    end
+end
 
 function is_table_like(x)
     if showable("application/vnd.dataresource+json", x)
