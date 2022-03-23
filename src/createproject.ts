@@ -32,8 +32,9 @@ export class JuliaNewProjectFeature {
         if (host === undefined)
             return
 
+        // TODO: add gihub.user as placeholder
         const user = await vscode.window.showInputBox({
-            prompt: 'Please enter your username.', placeHolder: "Default is 'github.user' from the global Git config.",
+            prompt: 'Please enter your GitHub (or other code hosting service) username.',
             validateInput: (input) => {
                 if (input === "")
                     return 'Username cannot be empty.'
@@ -48,7 +49,7 @@ export class JuliaNewProjectFeature {
             { placeHolder: 'Please select the minimum allowed Julia version.' }
         )
         if (juliaVersion === 'Other') {
-            juliaVersion = await vscode.window.showInputBox({ prompt: 'Please enter the minimum allowed Julia version.'})
+            juliaVersion = await vscode.window.showInputBox({ prompt: 'Please enter the minimum allowed Julia version.' })
         }
         if (juliaVersion === undefined)
             return
