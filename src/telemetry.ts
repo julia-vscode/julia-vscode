@@ -62,7 +62,7 @@ export async function init(context: vscode.ExtensionContext) {
 
     // The Application Insights Key
     let key = ''
-    if (vscode.env.machineId === 'someValue.machineId') {
+    if (process.env.DEBUG_MODE === 'true') {
         // Use the debug environment
         key = '82cf1bd4-8560-43ec-97a6-79847395d791'
     }
