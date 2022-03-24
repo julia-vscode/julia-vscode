@@ -1,3 +1,7 @@
+using Pkg
+
+Pkg.instantiate()
+
 using PkgTemplates
 
 default_plugins = [
