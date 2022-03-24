@@ -10,6 +10,7 @@ import { Subject } from 'await-notify'
 import { JuliaExecutablesFeature } from '../juliaexepath'
 import { join } from 'path'
 import { getCrashReportingPipename } from '../telemetry'
+import { getAbsEnvPath } from '../jlpkgenv'
 
 interface Testitem {
     name: string
@@ -39,7 +40,8 @@ interface TestserverRunTestitemRequestParamsReturn {
 }
 
 export const notifyTypeTextDocumentPublishTestitems = new NotificationType<PublishTestitemsParams>('julia/publishTestitems')
-const requestTypeExecuteTestitem = new RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn,void>('testserver/runtestitem')
+const requestTypeExecuteTestitem = new RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
+const requestTypeRevise = new RequestType<void, string, void>('testserver/revise')
 
 class TestProcess {
     private process: ChildProcessWithoutNullStreams
@@ -71,7 +73,23 @@ class TestProcess {
 
         const juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
-        this.process = spawn(juliaExecutable.file, [...juliaExecutable.args, join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'), pipename, getCrashReportingPipename()])
+        const pkgenvpath = await getAbsEnvPath()
+
+        this.process = spawn(
+            juliaExecutable.file,
+            [
+                ...juliaExecutable.args,
+                `--project=${pkgenvpath}`,
+                join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
+                pipename,
+                getCrashReportingPipename()
+            ],
+            {
+                env: {
+                    JULIA_REVISE: 'off'
+                }
+            }
+        )
 
         this.process.stdout.on('data', function (data) {
             outputChannel.append(String(data))
@@ -88,6 +106,15 @@ class TestProcess {
 
         console.log('OK')
     }
+
+    public async revise() {
+        return await this.connection.sendRequest(requestTypeRevise, undefined)
+    }
+
+    public async kill() {
+        this.process.kill()
+    }
+
 
     public async executeTest(location: lsp.Location, code: string) {
         const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, line: location.range.start.line, column: location.range.start.character, code: code })
@@ -169,6 +196,18 @@ export class TestFeature {
         if (this.testProcess === null) {
             this.testProcess = new TestProcess()
             await this.testProcess.start(this.context, this.executableFeature, this.outputChannel)
+        }
+        else {
+            const status = await this.testProcess.revise()
+
+            if (status !== 'success') {
+                await this.testProcess.kill()
+
+                this.outputChannel.appendLine('RESTARTING TEST SERVER')
+
+                this.testProcess = new TestProcess()
+                await this.testProcess.start(this.context, this.executableFeature, this.outputChannel)
+            }
         }
 
         for (const i of itemsToRun) {

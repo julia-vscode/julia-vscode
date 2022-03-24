@@ -1,26 +1,43 @@
 module VSCodeTestServer
 
 include("../../URIParser/src/URIParser.jl")
-
 include("../../JSON/src/JSON.jl")
-# include("../../CodeTracking/src/CodeTracking.jl")
+include("../../OrderedCollections/src/OrderedCollections.jl")
+include("../../CodeTracking/src/CodeTracking.jl")
 
 module JSONRPC
 import ..JSON
 import UUIDs
-
 include("../../JSONRPC/src/packagedef.jl")
 end
 
-# module JuliaInterpreter
-# using ..CodeTracking
+module JuliaInterpreter
+using ..CodeTracking
+include("../../JuliaInterpreter/src/packagedef.jl")
+end
 
-# @static if VERSION >= v"1.6.0"
-#     include("../../JuliaInterpreter/src/packagedef.jl")
-# else
-#     include("../../../packages-old/JuliaInterpreter/src/packagedef.jl")
-# end
-# end
+module LoweredCodeUtils
+using ..JuliaInterpreter
+using ..JuliaInterpreter: SSAValue, SlotNumber, Frame
+using ..JuliaInterpreter: @lookup, moduleof, pc_expr, step_expr!, is_global_ref, is_quotenode_egal, whichtt,
+    next_until!, finish_and_return!, get_return, nstatements, codelocation, linetable,
+    is_return, lookup_return, is_GotoIfNot, is_ReturnNode
+
+include("../../LoweredCodeUtils/src/packagedef.jl")
+end
+
+module Revise
+using ..OrderedCollections
+using ..LoweredCodeUtils
+using ..CodeTracking
+using ..JuliaInterpreter
+using ..CodeTracking: PkgFiles, basedir, srcfiles, line_is_decl, basepath
+using ..JuliaInterpreter: whichtt, is_doc_expr, step_expr!, finish_and_return!, get_return,
+    @lookup, moduleof, scopeof, pc_expr, is_quotenode_egal,
+    linetable, codelocs, LineTypes, is_GotoIfNot, isassign, isidentical
+using ..LoweredCodeUtils: next_or_nothing!, trackedheads, callee_matches
+include("../../Revise/src/packagedef.jl")
+end
 
 # module DebugAdapter
 # import ..JuliaInterpreter
@@ -72,6 +89,7 @@ JSONRPC.@dict_readable struct TestserverRunTestitemRequestParamsReturn <: JSONRP
     message::Union{Vector{TestMessage},Nothing}
 end
 
+const testserver_revise_request_type = JSONRPC.RequestType("testserver/revise", Nothing, String)
 const testserver_run_testitem_request_type = JSONRPC.RequestType("testserver/runtestitem", TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn)
 
 # TODO Use our new Uri2 once it is ready
@@ -137,12 +155,26 @@ function filepath2uri(file::String)
     end
 end
 
+function run_revise_handler(conn, params::Nothing)
+    try
+        @info "NOW TRYING TO REVISE"
+        Revise.revise(throw=true)
+        @info "FINISHED WITH REVISE"
+        return "success"
+    catch err
+        Base.display_error(err, catch_backtrace())
+        @info "FAILED TO REVISE"
+        return "failed"
+    end
+end
+
 function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     mod = Core.eval(Main, :(module Testmodule end))
 
     filepath = uri2filepath(params.uri)
 
-    code = string('\n'^params.line, ' '^params.column, params.code)
+    code_without_begin_end = params.code[6:end-3]
+    code = string('\n'^params.line, ' '^params.column, code_without_begin_end)
 
     try
 
@@ -155,6 +187,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
         error_message = sprint(Base.display_error, err, bt)
 
+        @info "THE FILE PROBLEM IS " string(st[1].file)
+
         filepath = string(st[1].file)
 
         return TestserverRunTestitemRequestParamsReturn(
@@ -163,8 +197,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 TestMessage(
                     error_message,
                     Location(
-                        filepath2uri(filepath),
-                        Range(Position(st[1].line-1, 0), Position(st[1].line-1, 0))
+                        isabspath(filepath) ? filepath2uri(filepath) : "",
+                        Range(Position(max(0, st[1].line - 1), 0), Position(max(0, st[1].line - 1), 0))
                     )
                 )
             ]
@@ -180,6 +214,7 @@ function serve(conn; is_dev=false, crashreporting_pipename::Union{AbstractString
 
     msg_dispatcher = JSONRPC.MsgDispatcher()
 
+    msg_dispatcher[testserver_revise_request_type] = run_revise_handler
     msg_dispatcher[testserver_run_testitem_request_type] = run_testitem_handler
 
     while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
