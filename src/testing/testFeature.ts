@@ -46,6 +46,7 @@ const requestTypeRevise = new RequestType<void, string, void>('testserver/revise
 class TestProcess {
     private process: ChildProcessWithoutNullStreams
     private connection: lsp.MessageConnection
+    private testRun: vscode.TestRun
 
     public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel) {
         const pipename = generatePipeName(uuid(), 'vsc-jl-ts')
@@ -91,12 +92,22 @@ class TestProcess {
             }
         )
 
-        this.process.stdout.on('data', function (data) {
-            outputChannel.append(String(data))
+        this.process.stdout.on('data', data => {
+            if (this.testRun) {
+                this.testRun.appendOutput(String(data))
+            }
+            else {
+                outputChannel.append(String(data))
+            }
         })
 
-        this.process.stderr.on('data', function (data) {
-            outputChannel.append(String(data))
+        this.process.stderr.on('data', data => {
+            if (this.testRun) {
+                this.testRun.appendOutput(String(data))
+            }
+            else {
+                outputChannel.append(String(data))
+            }
         })
 
 
@@ -116,8 +127,10 @@ class TestProcess {
     }
 
 
-    public async executeTest(location: lsp.Location, code: string) {
+    public async executeTest(location: lsp.Location, code: string, testRun: vscode.TestRun) {
+        this.testRun = testRun
         const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, line: location.range.start.line, column: location.range.start.character, code: code })
+        this.testRun = undefined
         return result
     }
 }
@@ -177,7 +190,7 @@ export class TestFeature {
         request: vscode.TestRunRequest,
         token: vscode.CancellationToken
     ) {
-        const testRun = this.controller.createTestRun(request, 'Super run', true)
+        const testRun = this.controller.createTestRun(request, undefined, true)
 
         const itemsToRun: vscode.TestItem[] = []
 
@@ -224,7 +237,7 @@ export class TestFeature {
                 range: details.range
             }
 
-            const result = await this.testProcess.executeTest(location, code)
+            const result = await this.testProcess.executeTest(location, code, testRun)
 
             if (result.status === 'passed') {
 
