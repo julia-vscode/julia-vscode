@@ -49,6 +49,14 @@ end
 # end
 
 import .JSONRPC: @dict_readable
+import Test
+
+struct VSCodeTestSet <: Test.AbstractTestSet
+    description::AbstractString
+    results::Vector
+    children::Vector
+    VSCodeTestSet(desc) = new(desc, [], [])
+end
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 
@@ -168,6 +176,14 @@ function run_revise_handler(conn, params::Nothing)
     end
 end
 
+function flatten_failed_tests!(ts, out)
+    append!(out, i for i in ts.results if !(i isa Test.Pass))
+
+    for cts in ts.children
+        flatten_failed_tests!(cts, out)
+    end
+end
+
 function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     mod = Core.eval(Main, :(module Testmodule end))
 
@@ -176,12 +192,15 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     code_without_begin_end = params.code[6:end-3]
     code = string('\n'^params.line, ' '^params.column, code_without_begin_end)
 
+    ts = VSCodeTestSet("WE NEED A DESCRIPTION")
+
+    Test.push_testset(ts)
+
     try
-
         Base.invokelatest(include_string, mod, code, filepath)
-
-        return TestserverRunTestitemRequestParamsReturn("passed", nothing)
     catch err
+        Test.pop_testset()
+
         bt = catch_backtrace()
         st = stacktrace(bt)
 
@@ -203,6 +222,38 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 )
             ]
         )
+    end
+
+    ts = Test.pop_testset()
+
+    failed_tests = []
+
+    flatten_failed_tests!(ts, failed_tests)
+
+    if length(failed_tests) == 0
+        return TestserverRunTestitemRequestParamsReturn("passed", nothing)
+    else
+        return TestserverRunTestitemRequestParamsReturn(
+            "failed",
+            [TestMessage(sprint(Base.show, i), Location(filepath2uri(string(i.source.file)), Range(Position(i.source.line - 1, 0), Position(i.source.line - 1, 0)))) for i in failed_tests]
+        )
+    end
+end
+
+function Test.record(ts::VSCodeTestSet, res)
+    push!(ts.results, res)
+end
+
+function Test.record(ts::VSCodeTestSet, res::VSCodeTestSet)
+    push!(ts.children, res)
+end
+
+function Test.finish(ts::VSCodeTestSet)
+    if Test.get_testset_depth() != 0
+        # Attach this test set to the parent test set
+        parent_ts = Test.get_testset()
+        Test.record(parent_ts, ts)
+        return ts
     end
 end
 

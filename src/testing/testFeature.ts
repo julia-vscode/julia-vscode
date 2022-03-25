@@ -235,6 +235,14 @@ export class TestFeature {
                 message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line, result.message[0].location.range.start.character))
                 testRun.errored(i, message)
             }
+            else if (result.status === 'failed') {
+                const messages = result.message.map(i => {
+                    const message = new vscode.TestMessage(i.message)
+                    message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
+                    return message
+                })
+                testRun.errored(i, messages)
+            }
         }
 
         // testRun.failed(this.controller.items.get('test1'), new vscode.TestMessage('Well that did not work'))
