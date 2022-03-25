@@ -21,12 +21,12 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
             bt = catch_backtrace()
 
             if err isa LoadError
-                try
-                    inner_err = err.error
+                inner_err = err.error
+                error_type = string(typeof(inner_err))
 
+                try
                     st = stacktrace(bt)
 
-                    error_type = string(typeof(inner_err))
                     error_message_str = Base.invokelatest(sprint, showerror, inner_err)
                     traceback = Base.invokelatest(sprint, Base.show_backtrace, bt)
 
@@ -46,16 +46,17 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
             try
                 Base.invokelatest(Base.display, result)
             catch err
+                error_type = string(typeof(err))
+
                 try
                     bt = catch_backtrace()
 
-                    error_type = string(typeof(err))
                     error_message_str = Base.invokelatest(sprint, showerror, err)
                     traceback = Base.invokelatest(sprint, Base.show_backtrace, bt)
 
-                    return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
+                    return (success=false, error=(message=error_message_str, name=error_type, stack=string(error_message_str, "\n", traceback)))
                 catch err
-                    return (success = false, error = (message = "Error trying to display an error.", name = error_type, stack = "Error trying to display an error."))
+                    return (success=false, error=(message="Error trying to display an error.", name=error_type, stack="Error trying to display an error."))
                 end
             end
         end
