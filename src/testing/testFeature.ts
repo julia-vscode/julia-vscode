@@ -94,7 +94,7 @@ class TestProcess {
 
         this.process.stdout.on('data', data => {
             if (this.testRun) {
-                this.testRun.appendOutput(String(data))
+                this.testRun.appendOutput(String(data).split('\n').join('\n\r'))
             }
             else {
                 outputChannel.append(String(data))
@@ -103,7 +103,7 @@ class TestProcess {
 
         this.process.stderr.on('data', data => {
             if (this.testRun) {
-                this.testRun.appendOutput(String(data))
+                this.testRun.appendOutput(String(data).split('\n').join('\n\r'))
             }
             else {
                 outputChannel.append(String(data))

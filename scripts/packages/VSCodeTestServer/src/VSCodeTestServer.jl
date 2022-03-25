@@ -40,7 +40,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     code_without_begin_end = params.code[6:end-3]
     code = string('\n'^params.line, ' '^params.column, code_without_begin_end)
 
-    ts = VSCodeTestSet("")
+    ts = Test.DefaultTestSet("")
 
     Test.push_testset(ts)
 
@@ -74,17 +74,21 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
     ts = Test.pop_testset()
 
-    failed_tests = []
+    try
+        Test.finish(ts)
 
-    flatten_failed_tests!(ts, failed_tests)
-
-    if length(failed_tests) == 0
         return TestserverRunTestitemRequestParamsReturn("passed", nothing)
-    else
-        return TestserverRunTestitemRequestParamsReturn(
-            "failed",
-            [TestMessage(sprint(Base.show, i), Location(filepath2uri(string(i.source.file)), Range(Position(i.source.line - 1, 0), Position(i.source.line - 1, 0)))) for i in failed_tests]
-        )
+    catch err
+        if err isa Test.TestSetException
+            failed_tests = Test.filter_errors(ts)
+
+            return TestserverRunTestitemRequestParamsReturn(
+                "failed",
+                [TestMessage(sprint(Base.show, i), Location(filepath2uri(string(i.source.file)), Range(Position(i.source.line - 1, 0), Position(i.source.line - 1, 0)))) for i in failed_tests]
+            )
+        else
+            rethrow(err)
+        end
     end
 end
 
