@@ -61,7 +61,7 @@ async function main() {
         'URIParser',
         'CommonMark',
         'Compat',
-        'Crayons',
+        // 'Crayons', # Crayons 4.1 dropped Julia 1.0 support, so we keep it on an older version
         'DataStructures',
         'JuliaFormatter',
         'URIs'
