@@ -64,7 +64,8 @@ async function main() {
         // 'Crayons', # Crayons 4.1 dropped Julia 1.0 support, so we keep it on an older version
         'DataStructures',
         'JuliaFormatter',
-        'URIs'
+        'URIs',
+        'Revise'
     ]) {
         await cp.exec('git fetch')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
