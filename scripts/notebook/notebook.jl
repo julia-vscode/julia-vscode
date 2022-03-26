@@ -11,5 +11,7 @@ let
 
     ccall(:jl_exit_on_sigint, Nothing, (Cint,), false)
 
-    VSCodeServer.serve_notebook(conn_pipeline, crashreporting_pipename=telemetry_pipeline)
+    outputchannel_logger = Base.CoreLogging.SimpleLogger(Base.stderr)
+
+    VSCodeServer.serve_notebook(conn_pipeline, outputchannel_logger, crashreporting_pipename=telemetry_pipeline)
 end
