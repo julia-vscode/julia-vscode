@@ -70,12 +70,27 @@ function io_send_callback(name, data)
     JSONRPC.send_notification(conn_endpoint[], "streamoutput", Dict{String,Any}("name" => name, "data" => data))
 end
 
-function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,Nothing} = nothing)
+function serve_notebook(pipename, outputchannel_logger; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    Base.with_logger(outputchannel_logger) do
+        @info "Trying to connect..."
+    end
     conn = Sockets.connect(pipename)
+
+    Base.with_logger(outputchannel_logger) do
+        @info "Connection established"
+    end
 
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
 
+    Base.with_logger(outputchannel_logger) do
+        @info "Starting JSONRPC endpoint..."
+    end
+
     run(conn_endpoint[])
+
+    Base.with_logger(outputchannel_logger) do
+        @info "JSONRPC endpoint started"
+    end
 
     IJuliaCore.orig_stdin[] = Base.stdin
     IJuliaCore.orig_stdout[] = Base.stdout
@@ -99,13 +114,19 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
 
         IJuliaCore.watch_stdio(io_send_callback)
 
+        Base.with_logger(outputchannel_logger) do
+            @info "Creating msg dispather"
+        end
+
         msg_dispatcher = JSONRPC.MsgDispatcher()
         msg_dispatcher[notebook_runcell_request_type] = notebook_runcell_request
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
 
-        println(IJuliaCore.orig_stdout[], "Julia Kernel started...")
+        Base.with_logger(outputchannel_logger) do
+            @info "Julia Kernel started"
+        end
 
         while true
             try
