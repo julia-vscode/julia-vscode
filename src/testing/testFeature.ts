@@ -19,7 +19,8 @@ interface Testitem {
 
 interface PublishTestitemsParams {
     uri: lsp.URI
-    version: number
+    version: number,
+    packageuuid: string,
     testitems: Testitem[]
 }
 
@@ -76,6 +77,8 @@ class TestProcess {
 
         const pkgenvpath = await getAbsEnvPath()
 
+        const testproject = 'StringBuilders'
+
         this.process = spawn(
             juliaExecutable.file,
             [
@@ -83,6 +86,7 @@ class TestProcess {
                 `--project=${pkgenvpath}`,
                 join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
                 pipename,
+                testproject,
                 getCrashReportingPipename()
             ],
             {
@@ -136,7 +140,7 @@ class TestProcess {
 }
 export class TestFeature {
     private controller: vscode.TestController
-    private testitems: WeakMap<vscode.TestItem, Testitem> = new WeakMap<vscode.TestItem, Testitem>()
+    private testitems: WeakMap<vscode.TestItem, { testitem: Testitem, uuid: string }> = new WeakMap<vscode.TestItem, { testitem: Testitem, uuid: string }>()
     private testProcess: TestProcess = null
     private outputChannel: vscode.OutputChannel
 
@@ -230,11 +234,11 @@ export class TestFeature {
 
             const doc = await vscode.workspace.openTextDocument(i.uri)
 
-            const code = doc.getText(new vscode.Range(details.range.start.line, details.range.start.character, details.range.end.line, details.range.end.character))
+            const code = doc.getText(new vscode.Range(details.testitem.range.start.line, details.testitem.range.start.character, details.testitem.range.end.line, details.testitem.range.end.character))
 
             const location = {
                 uri: i.uri.toString(),
-                range: details.range
+                range: details.testitem.range
             }
 
             const result = await this.testProcess.executeTest(location, code, testRun)

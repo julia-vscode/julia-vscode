@@ -92,7 +92,11 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     end
 end
 
-function serve(conn; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve(conn, test_project; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    if test_project!=""
+        TestEnv.activate(test_project)
+    end
+
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
     @debug "connected"
     run(conn_endpoint[])

@@ -1,3 +1,4 @@
+include("../../TestEnv/src/TestEnv.jl")
 include("../../URIParser/src/URIParser.jl")
 include("../../JSON/src/JSON.jl")
 include("../../OrderedCollections/src/OrderedCollections.jl")
