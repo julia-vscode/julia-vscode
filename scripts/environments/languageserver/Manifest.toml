@@ -24,7 +24,7 @@ version = "3.42.0"
 [[Crayons]]
 path = "../../packages/Crayons"
 uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
-version = "4.1.1"
+version = "4.0.4"
 
 [[DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
