@@ -1,7 +1,7 @@
 'use strict'
+import * as sourcemapsupport from 'source-map-support'
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { SeverityLevel } from 'applicationinsights/out/Declarations/Contracts'
 import * as fs from 'async-file'
 import { unwatchFile, watchFile } from 'async-file'
 import * as net from 'net'
@@ -12,7 +12,7 @@ import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOpt
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
-import { ProfilerResultsProvider } from './interactive/profiler'
+import { ProfilerFeature } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import { WorkspaceFeature } from './interactive/workspace'
 import * as jlpkgenv from './jlpkgenv'
@@ -26,6 +26,8 @@ import * as tasks from './tasks'
 import * as telemetry from './telemetry'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
+
+sourcemapsupport.install({ handleUncaughtExceptions: false })
 
 let g_languageClient: LanguageClient = null
 let g_context: vscode.ExtensionContext = null
@@ -65,12 +67,15 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         })
 
+        const profilerFeature = new ProfilerFeature(context)
+        context.subscriptions.push(profilerFeature)
+
         // Active features from other files
         const compiledProvider = debugViewProvider.activate(context)
         g_juliaExecutablesFeature = new JuliaExecutablesFeature(context)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
-        repl.activate(context, compiledProvider, g_juliaExecutablesFeature)
+        repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
         weave.activate(context, g_juliaExecutablesFeature)
         documentation.activate(context)
         tasks.activate(context, g_juliaExecutablesFeature)
@@ -84,6 +89,8 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature))
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature))
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
+
+
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
@@ -116,9 +123,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(
             // commands
             registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
-            registerCommand('language-julia.restartLanguageServer', restartLanguageServer),
-            // registries
-            vscode.workspace.registerTextDocumentContentProvider('juliavsodeprofilerresults', new ProfilerResultsProvider())
+            registerCommand('language-julia.restartLanguageServer', restartLanguageServer)
         )
 
         const api = {
@@ -239,7 +244,27 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
     }
 
-    const juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+    let juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+
+    // Special case the situation where a user configured something like `julia +lts`
+    // If the user is using juliaup, we need to prevent the LS process to try to use a juliaup
+    // install in our LS depot, which would normally happen becuse we set the JULIA_DEPOT_PATH
+    // env variable. This here works around that.
+    if (juliaExecutablesFeature.isJuliaup() &&
+        juliaExecutable.file.toLocaleLowerCase() === 'julia' &&
+        juliaExecutable.args.length > 0 &&
+        juliaExecutable.args[0].startsWith('+')) {
+
+        const channel = juliaExecutable.args[0].slice(1)
+
+        const juliaExePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
+
+        const channelExecutable = juliaExePaths.find(i => i.channel === channel)
+
+        if (channelExecutable) {
+            juliaExecutable = channelExecutable
+        }
+    }
 
     const serverOptions: ServerOptions = Boolean(process.env.DETACHED_LS) ?
         async () => {
@@ -270,35 +295,6 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: vscode.window.createOutputChannel('Julia Language Server trace'),
-        middleware: {
-            provideCompletionItem: async (document, position, context, token, next) => {
-
-                const validatedPosition = document.validatePosition(position)
-
-                if (validatedPosition !== position) {
-                    telemetry.traceTrace({
-                        message: `Middleware found a change in position in provideCompletionItem. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}`,
-                        severity: SeverityLevel.Error
-                    })
-
-                }
-
-                return await next(document, position, context, token)
-            },
-            provideDefinition: async (document, position, token, next) => {
-
-                const validatedPosition = document.validatePosition(position)
-
-                if (validatedPosition !== position) {
-                    telemetry.traceTrace({
-                        message: `Middleware found a change in position in provideDefinition. Original ${position.line}:${position.character}, validated ${validatedPosition.line}:${validatedPosition.character}`,
-                        severity: SeverityLevel.Error
-                    })
-                }
-
-                return await next(document, position, token)
-            }
-        }
     }
 
     // Create the language client and start the client.

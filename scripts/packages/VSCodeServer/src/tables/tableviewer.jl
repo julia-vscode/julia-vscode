@@ -6,14 +6,14 @@ include("filtering.jl")
 _is_javascript_safe(x::Real) = false
 
 function _is_javascript_safe(x::Integer)
-    min_safe_int = -(Int64(2)^53-1)
-    max_safe_int = Int64(2)^53-1
+    min_safe_int = -(Int64(2)^53 - 1)
+    max_safe_int = Int64(2)^53 - 1
     min_safe_int < x < max_safe_int
 end
 
 function _is_javascript_safe(x::AbstractFloat)
-    min_safe_float = -(Float64(2)^53-1)
-    max_safe_float = Float64(2)^53-1
+    min_safe_float = -(Float64(2)^53 - 1)
+    max_safe_float = Float64(2)^53 - 1
     min_safe_float < x < max_safe_float
 end
 
@@ -25,20 +25,25 @@ json_sprint(x) = sprint(print, x)
 
 schema_type(::Type{Union{}}) = "string"
 schema_type(::Type{T}) where {T} = "string"
-schema_type(::Type{T}) where {T <: AbstractFloat} = "number"
-schema_type(::Type{T}) where {T <: Integer} = "integer"
-schema_type(::Type{T}) where {T <: Bool} = "boolean"
-schema_type(::Type{T}) where {T <: Dates.Time} = "time"
-schema_type(::Type{T}) where {T <: Dates.Date} = "date"
-schema_type(::Type{T}) where {T <: Dates.DateTime} = "datetime"
-schema_type(::Type{T}) where {T <: AbstractString} = "string"
+schema_type(::Type{T}) where {T<:AbstractFloat} = "number"
+schema_type(::Type{T}) where {T<:Integer} = "integer"
+schema_type(::Type{T}) where {T<:Bool} = "boolean"
+schema_type(::Type{T}) where {T<:Dates.Time} = "time"
+schema_type(::Type{T}) where {T<:Dates.Date} = "date"
+schema_type(::Type{T}) where {T<:Dates.DateTime} = "datetime"
+schema_type(::Type{T}) where {T<:AbstractString} = "string"
 
+julia_type(::Type{Union{}}) = nothing
+julia_type(::Type{T}) where {T} = strlimit(string(T); limit = 100)
+
+ag_schema_type(::Type{Union{}}) = nothing
 ag_schema_type(::Type{T}) where {T} = nothing
-ag_schema_type(::Type{T}) where {T <: Number} = "numericColumn"
+ag_schema_type(::Type{T}) where {T<:Number} = "numericColumn"
 
-ag_filter_type(::Type{T}) where {T}= true
-ag_filter_type(::Type{T}) where {T <: Number} = "agNumberColumnFilter"
-ag_filter_type(::Type{T}) where {T <: Union{Dates.Date, Dates.DateTime}} = "agDateColumnFilter"
+ag_filter_type(::Type{Union{}}) = true
+ag_filter_type(::Type{T}) where {T} = true
+ag_filter_type(::Type{T}) where {T<:Number} = "agNumberColumnFilter"
+ag_filter_type(::Type{T}) where {T<:Union{Dates.Date,Dates.DateTime}} = "agDateColumnFilter"
 
 # for small tables only
 function print_table(io::IO, source, col_names, fixed_col_names, col_types, title = "")
@@ -72,6 +77,7 @@ function print_schema(ctx, col_names, fixed_col_names, col_types; filterable = f
         JSON.show_pair(ctx, ser, "title", col_names[i])
         JSON.show_pair(ctx, ser, "type", schema_type(col_types[i]))
         # custom fields
+        JSON.show_pair(ctx, ser, "jl_type", julia_type(col_types[i]))
         JSON.show_pair(ctx, ser, "ag_type", ag_schema_type(col_types[i]))
         JSON.show_pair(ctx, ser, "ag_filter", filterable ? ag_filter_type(col_types[i]) : false)
         JSON.show_pair(ctx, ser, "ag_sortable", sortable)
@@ -116,7 +122,7 @@ _getiterator = x -> x
 const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
 const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
 function on_pkg_load(pkg)
-    if  pkg.uuid == tabletraits_uuid
+    if pkg.uuid == tabletraits_uuid
         TableTraits = Base.require(pkg)
 
         global _isiterabletable = TableTraits.isiterabletable
@@ -141,17 +147,17 @@ const MAX_CACHE_TABLE_ELEMENTS = 10_000_000
 # make a copy of medium size tables (MAX_SYNC_TABLE_ELEMENTS < #el < MAX_CACHE_TABLE_ELEMENTS)
 # store a reference for big tables
 # (column_names, column_types, table_iterator, table_length, table_indexable)
-const TABLES = Dict{UUID, Tuple{Any, Any, Any, Int, Bool}}()
+const TABLES = Dict{UUID,Tuple{Any,Any,Any,Int,Bool}}()
 
 # special-case vectors for a few known eltypes
-showtable(table::AbstractVector{<:Union{Number, AbstractString, Date, DateTime, Time, AbstractVector}}, title = "") = showtable(reshape(table, :, 1), title)
+showtable(table::AbstractVector{<:Union{Number,AbstractString,Date,DateTime,Time,AbstractVector}}, title = "") = showtable(reshape(table, :, 1), title)
 
-function showtable(table::T, title = "") where T
+function showtable(table::T, title = "") where {T}
     if showable("application/vnd.dataresource+json", table)
         return _display(InlineDisplay(), table)
     end
 
-    iter =  _getiterator(table)
+    iter = _getiterator(table)
 
     if T <: AbstractMatrix
         col_names = [string(i) for i in 1:size(table, 2)]
@@ -260,7 +266,7 @@ function get_table_data(conn, params::GetTableDataRequest)
     )
 end
 
-function clear_lazy_table(conn, params::NamedTuple{(:id,), Tuple{String}})
+function clear_lazy_table(conn, params::NamedTuple{(:id,),Tuple{String}})
     id = UUID(params.id)
     delete!(TABLES, id)
     delete!(FILTER_CACHE, id)

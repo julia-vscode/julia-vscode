@@ -19,6 +19,10 @@ function __init__()
     end
 
     push!(Base.package_callbacks, on_pkg_load)
+
+    for pkgid in keys(Base.loaded_modules)
+        on_pkg_load(pkgid)
+    end
 end
 
 include("../../JSON/src/JSON.jl")
@@ -42,7 +46,11 @@ end
 module JuliaInterpreter
 using ..CodeTracking
 
-include("../../JuliaInterpreter/src/packagedef.jl")
+@static if VERSION >= v"1.6.0"
+    include("../../JuliaInterpreter/src/packagedef.jl")
+else
+    include("../../../packages-old/JuliaInterpreter/src/packagedef.jl")
+end
 end
 
 module DebugAdapter
@@ -52,13 +60,6 @@ import ..JSONRPC
 import ..JSONRPC: @dict_readable, Outbound
 
 include("../../DebugAdapter/src/packagedef.jl")
-end
-
-module ChromeProfileFormat
-import ..JSON
-import Profile
-
-include("../../ChromeProfileFormat/src/core.jl")
 end
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)

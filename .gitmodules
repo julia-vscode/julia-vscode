@@ -34,9 +34,6 @@
 [submodule "scripts/packages/JSONRPC"]
 	path = scripts/packages/JSONRPC
 	url = https://github.com/julia-vscode/JSONRPC.jl.git
-[submodule "scripts/packages/ChromeProfileFormat"]
-	path = scripts/packages/ChromeProfileFormat
-	url = https://github.com/julia-vscode/ChromeProfileFormat.jl.git
 [submodule "scripts/packages/DebugAdapter"]
 	path = scripts/packages/DebugAdapter
 	url = https://github.com/julia-vscode/DebugAdapter.jl.git
@@ -46,9 +43,6 @@
 [submodule "scripts/packages/OrderedCollections"]
 	path = scripts/packages/OrderedCollections
 	url = https://github.com/JuliaCollections/OrderedCollections.jl.git
-[submodule "scripts/packages/Revise"]
-	path = scripts/packages/Revise
-	url = https://github.com/timholy/Revise.jl.git
 [submodule "scripts/packages/CoverageTools"]
 	path = scripts/packages/CoverageTools
 	url = https://github.com/JuliaCI/CoverageTools.jl.git
@@ -73,3 +67,12 @@
 [submodule "scripts/packages/URIs"]
 	path = scripts/packages/URIs
 	url = https://github.com/JuliaWeb/URIs.jl.git
+[submodule "libs/jl-profile"]
+	path = libs/jl-profile
+	url = https://github.com/pfitzseb/jl-profile.js.git
+[submodule "scripts/packages-old/JuliaInterpreter"]
+	path = scripts/packages-old/JuliaInterpreter
+	url = https://github.com/JuliaDebug/JuliaInterpreter.jl.git
+[submodule "scripts/packages/Revise"]
+	path = scripts/packages/Revise
+	url = https://github.com/timholy/Revise.jl

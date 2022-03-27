@@ -8,42 +8,61 @@ end
 const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NotebookRunCellArguments, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
 function notebook_runcell_request(conn, params::NotebookRunCellArguments)
-    try
-        code = string('\n'^params.line, ' '^params.column, params.code)
+    code = string('\n'^params.line, ' '^params.column, params.code)
 
-        withpath(params.filename) do
-            revise()
+    withpath(params.filename) do
+        revise()
 
-            args = VERSION >= v"1.5" ? (REPL.softscope, Main, code, params.filename) : (Main, code, params.filename)
-            result = Base.invokelatest(include_string, args...)
+        args = VERSION >= v"1.5" ? (REPL.softscope, Main, code, params.filename) : (Main, code, params.filename)
 
-            IJuliaCore.flush_all()
+        result = try
+            Base.invokelatest(include_string, args...)
+        catch err
+            bt = catch_backtrace()
 
-            if result !== nothing && !ends_with_semicolon(code)
-                Base.invokelatest(Base.display, result)
+            if err isa LoadError
+                try
+                    inner_err = err.error
+
+                    st = stacktrace(bt)
+
+                    error_type = string(typeof(inner_err))
+                    error_message_str = Base.invokelatest(sprint, showerror, inner_err)
+                    traceback = Base.invokelatest(sprint, Base.show_backtrace, bt)
+
+                    return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
+                catch err
+                    return (success = false, error = (message = "Error trying to display an error.", name = error_type, stack = "Error trying to display an error."))
+                end
+            else
+                rethrow(err)
+                error("Not clear what this means, but we should probably send a crash report.")
             end
-
-            IJuliaCore.flush_all()
-
-            return (success = true, error = (message = "", name = "", stack = ""))
         end
-    catch err
-        bt = catch_backtrace()
 
-        if err isa LoadError
-            inner_err = err.error
+        IJuliaCore.flush_all()
 
-            st = stacktrace(bt)
+        if result !== nothing && !ends_with_semicolon(code)
+            try
+                Base.invokelatest(Base.display, result)
+            catch err
+                try
+                    bt = catch_backtrace()
 
-            error_type = string(typeof(inner_err))
-            error_message_str = sprint(showerror, inner_err)
-            traceback = sprint(Base.show_backtrace, bt)
+                    error_type = string(typeof(err))
+                    error_message_str = Base.invokelatest(sprint, showerror, err)
+                    traceback = Base.invokelatest(sprint, Base.show_backtrace, bt)
 
-            return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
-        else
-            rethrow(err)
-            error("Not clear what this means, but we should probably send a crash report.")
+                    return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
+                catch err
+                    return (success = false, error = (message = "Error trying to display an error.", name = error_type, stack = "Error trying to display an error."))
+                end
+            end
         end
+
+        IJuliaCore.flush_all()
+
+        return (success = true, error = (message = "", name = "", stack = ""))
     end
 end
 
@@ -51,12 +70,27 @@ function io_send_callback(name, data)
     JSONRPC.send_notification(conn_endpoint[], "streamoutput", Dict{String,Any}("name" => name, "data" => data))
 end
 
-function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,Nothing} = nothing)
+function serve_notebook(pipename, outputchannel_logger; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    Base.with_logger(outputchannel_logger) do
+        @info "Trying to connect..."
+    end
     conn = Sockets.connect(pipename)
+
+    Base.with_logger(outputchannel_logger) do
+        @info "Connection established"
+    end
 
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
 
+    Base.with_logger(outputchannel_logger) do
+        @info "Starting JSONRPC endpoint..."
+    end
+
     run(conn_endpoint[])
+
+    Base.with_logger(outputchannel_logger) do
+        @info "JSONRPC endpoint started"
+    end
 
     IJuliaCore.orig_stdin[] = Base.stdin
     IJuliaCore.orig_stdout[] = Base.stdout
@@ -80,18 +114,28 @@ function serve_notebook(pipename; crashreporting_pipename::Union{AbstractString,
 
         IJuliaCore.watch_stdio(io_send_callback)
 
+        Base.with_logger(outputchannel_logger) do
+            @info "Creating msg dispather"
+        end
+
         msg_dispatcher = JSONRPC.MsgDispatcher()
         msg_dispatcher[notebook_runcell_request_type] = notebook_runcell_request
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
 
-        println(IJuliaCore.orig_stdout[], "Julia Kernel started...")
+        Base.with_logger(outputchannel_logger) do
+            @info "Julia Kernel started"
+        end
 
         while true
-            msg = JSONRPC.get_next_message(conn_endpoint[])
+            try
+                msg = JSONRPC.get_next_message(conn_endpoint[])
 
-            JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
+                JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
+            catch err
+                err isa InterruptException || rethrow()
+            end
         end
 
     catch err

@@ -5,6 +5,46 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.6.2] - 2022-03-11
+### Fixed
+* The table viewer is now available even when TableTraits is loaded before we connect to the Julia session, e.g. because it's compiled into the sysimage ([#2775](https://github.com/julia-vscode/julia-vscode/pull/2775))
+
+## [1.6.1] - 2022-03-10
+### Added
+* "Always copy" option for "Connect to external REPL" command ([#2759](https://github.com/julia-vscode/julia-vscode/pull/2759))
+
+### Changed
+* Flame graph viewer improvements (scroll up now moves to the parent node, better macOS compatiblity).
+* Julia REPL is now properly marked as transient on supported VS Code versions ([#2764](https://github.com/julia-vscode/julia-vscode/pull/2764))
+
+### Fixed
+* Julia-specific notebook toolbar icons now only show up for notebooks with Julia kernels ([#2758](https://github.com/julia-vscode/julia-vscode/pull/2758))
+* Fixed version incompatibility in debugger ([#52](https://github.com/julia-vscode/DebugAdapter.jl/pull/52))
+* Fixed certain `@doc` parsing issues ([#329](https://github.com/julia-vscode/CSTParser.jl/pull/329), [#330](https://github.com/julia-vscode/CSTParser.jl/pull/330))
+* Only pass on valid options to JuliaFormatter ([#1030](https://github.com/julia-vscode/LanguageServer.jl/pull/1030))
+
+## [1.6.0] - 2022-02-22
+### Added
+* New profile viewer with inline annotations ([#2674](https://github.com/julia-vscode/julia-vscode/pull/2674))
+* "Execute Code Block in REPL" in editor context menu ([#2667](https://github.com/julia-vscode/julia-vscode/pull/2667))
+* Support for `--threads=auto` setting ([#2666](https://github.com/julia-vscode/julia-vscode/pull/2666))
+
+### Changed
+* Add config "julia.execution.saveOnEval" to allow auto saving before execution ([#2727](https://github.com/julia-vscode/julia-vscode/pull/2727))
+* Add restart REPL command and always stop persistent session option([#2720](https://github.com/julia-vscode/julia-vscode/pull/2720))
+* The `julia.NumThreads` setting now allows for a value of `auto` if your Julia versions supports it ([#2666](https://github.com/julia-vscode/julia-vscode/pull/2666))
+* Better enum rendering ([#2620](https://github.com/julia-vscode/julia-vscode/pull/2620))
+* Improved various notebook functionality ([#2742](https://github.com/julia-vscode/julia-vscode/pull/2742))
+* Added stop/restart buttons to REPL workspace ([#2746](https://github.com/julia-vscode/julia-vscode/pull/2746))
+* The table viewer now shows the actual Julia type when hovering over the colum header ([#2749](https://github.com/julia-vscode/julia-vscode/pull/2749))
+
+### Fixed
+* Weave preview background now follow theme color ([#2740](https://github.com/julia-vscode/julia-vscode/pull/2740))
+* Notebooks now respect the thread setting ([#2747](https://github.com/julia-vscode/julia-vscode/pull/2747))
+* Fixed rendering of large stacktraces (especially with repeated frames) ([#2746](https://github.com/julia-vscode/julia-vscode/pull/2746))
+* `LoadError`s are now properly unwrapped in the REPL ([#2754](https://github.com/julia-vscode/julia-vscode/pull/2754))
+* Inline errors are now properly shown even when the line ends with a `;` ([#2748](https://github.com/julia-vscode/julia-vscode/pull/2748))
+
 ## [1.5.11] - 2022-01-17
 ### Fixed
 * Fixed a grammar issue when using VS Code 1.64.x ([#2730](https://github.com/julia-vscode/julia-vscode/pull/2730))

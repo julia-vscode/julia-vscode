@@ -20,7 +20,6 @@
     "files.insertFinalNewline": true,
     "eslint.format.enable": true,
     "editor.codeActionsOnSave": {
-        "source.organizeImports": true,
         "source.fixAll.eslint": true
     },
     "eslint.lintTask.enable": true,

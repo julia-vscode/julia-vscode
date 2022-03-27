@@ -1,3 +1,6 @@
+import UUIDs: uuid1
+import InteractiveUtils: @which
+
 # error handling
 # --------------
 
@@ -27,8 +30,10 @@ end
 # ---------------
 
 function fullpath(path)
-    return if isuntitled(path) || isabspath(path)
+    return if isuntitled(path)
         path
+    elseif isabspath(path)
+        maybe_fix_stdlib_path(path)
     else
         basepath(path)
     end |> realpath′
@@ -43,6 +48,23 @@ function realpath′(p)
     catch e
         p
     end |> normpath
+end
+
+# https://github.com/timholy/CodeTracking.jl/blob/2ba66f6f7864c6a3e06887a6832787bb3dc8e9be/src/utils.jl
+const BUILDBOT_STDLIB_PATH = dirname(abspath(joinpath(String((@which uuid1()).file), "..", "..", "..")))
+replace_buildbot_stdlibpath(str::String) = replace(str, BUILDBOT_STDLIB_PATH => Sys.STDLIB)
+function maybe_fix_stdlib_path(p)
+    if !ispath′(p)
+        p_fix = replace_buildbot_stdlibpath(p)
+        ispath′(p_fix) && return p_fix
+    end
+    p
+end
+
+ispath′(p) = try
+    ispath(p)
+catch err
+    false
 end
 
 
@@ -157,7 +179,7 @@ end
 function revise()
     if isdefined(Main, :Revise) && isdefined(Main.Revise, :revise) && Main.Revise.revise isa Function
         let mode = get(ENV, "JULIA_REVISE", "auto")
-            mode == "auto" && Main.Revise.revise()
+            mode == "auto" && Base.invokelatest(Main.Revise.revise)
         end
     end
 end

@@ -10,7 +10,11 @@ include("../../JSON/src/JSON.jl")
 module JuliaInterpreter
     using ..CodeTracking
 
-    include("../../JuliaInterpreter/src/packagedef.jl")
+    @static if VERSION >= v"1.6.0"
+        include("../../JuliaInterpreter/src/packagedef.jl")
+    else
+        include("../../../packages-old/JuliaInterpreter/src/packagedef.jl")
+    end
 end
 
 module JSONRPC

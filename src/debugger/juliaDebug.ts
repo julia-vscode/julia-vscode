@@ -41,7 +41,7 @@ interface AttachRequestArguments extends DebugProtocol.AttachRequestArguments {
 }
 
 export class JuliaDebugSession extends LoggingDebugSession {
-    private _configurationDone = new Subject();
+    private _configurationDone = new Subject()
 
     // private _debuggeeTerminal: vscode.Terminal
     private _task: vscode.TaskExecution
@@ -50,7 +50,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
     private _launchMode: boolean
     private _launchedWithoutDebug: boolean
 
-    private _no_need_for_force_kill: boolean = false;
+    private _no_need_for_force_kill: boolean = false
 
     /**
      * Creates a new debug adapter that is used for one debug session.
@@ -222,35 +222,48 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
         await serverListeningPromise.wait()
 
+        const nthreads = inferJuliaNumThreads()
+        const jlargs = [
+            ...this.juliaExecutable.args,
+            '--color=yes',
+            '--startup-file=no',
+            '--history-file=no',
+            `--project=${args.juliaEnv}`,
+            join(
+                this.context.extensionPath,
+                'scripts',
+                'debugger',
+                'run_debugger.jl'
+            ),
+            pn,
+            getCrashReportingPipename(),
+        ]
+
+        const env = {
+            JL_ARGS: args.args
+                ? args.args.map((i) => Buffer.from(i).toString('base64')).join(';')
+                : '',
+        }
+
+        if (nthreads === 'auto') {
+            jlargs.splice(1, 0, '--threads=auto')
+        } else {
+            env['JULIA_NUM_THREADS'] = nthreads
+        }
+
         const task = new vscode.Task(
             {
                 type: 'julia-proc',
-                id: uuid()
+                id: uuid(),
             },
             vscode.TaskScope.Workspace,
             `Debug ${basename(args.program)}`,
             'Julia',
 
-            new vscode.ProcessExecution(
-                this.juliaExecutable.file,
-                [
-                    ...this.juliaExecutable.args,
-                    '--color=yes',
-                    '--startup-file=no',
-                    '--history-file=no',
-                    `--project=${args.juliaEnv}`,
-                    join(this.context.extensionPath, 'scripts', 'debugger', 'run_debugger.jl'),
-                    pn,
-                    getCrashReportingPipename()
-                ],
-                {
-                    env: {
-                        JL_ARGS: args.args ? args.args.map(i => Buffer.from(i).toString('base64')).join(';') : '',
-                        JULIA_NUM_THREADS: inferJuliaNumThreads()
-                    },
-                    cwd: args.cwd
-                }
-            )
+            new vscode.ProcessExecution(this.juliaExecutable.file, jlargs, {
+                env: env,
+                cwd: args.cwd,
+            })
         )
         this._task = await vscode.tasks.executeTask(task)
 
@@ -288,29 +301,34 @@ export class JuliaDebugSession extends LoggingDebugSession {
     }
 
     protected async runRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
+        const nthreads = inferJuliaNumThreads()
+        const jlargs = [
+            ...this.juliaExecutable.args,
+            '--color=yes',
+            `--project=${args.juliaEnv}`,
+            args.program,
+        ]
+
+        const env = {}
+
+        if (nthreads === 'auto') {
+            jlargs.splice(1, 0, '--threads=auto')
+        } else {
+            env['JULIA_NUM_THREADS'] = nthreads
+        }
+
         const task = new vscode.Task(
             {
                 type: 'julia-proc',
-                id: uuid()
+                id: uuid(),
             },
             vscode.TaskScope.Workspace,
             `Run ${basename(args.program)}`,
             'Julia',
-            new vscode.ProcessExecution(
-                this.juliaExecutable.file,
-                [
-                    ...this.juliaExecutable.args,
-                    '--color=yes',
-                    `--project=${args.juliaEnv}`,
-                    args.program
-                ],
-                {
-                    env: {
-                        JULIA_NUM_THREADS: inferJuliaNumThreads()
-                    },
-                    cwd: args.cwd
-                }
-            )
+            new vscode.ProcessExecution(this.juliaExecutable.file, jlargs, {
+                env: env,
+                cwd: args.cwd,
+            })
         )
         this._task = await vscode.tasks.executeTask(task)
 

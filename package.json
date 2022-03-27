@@ -2,11 +2,11 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.5.11",
+    "version": "1.6.10",
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.60.1"
+        "vscode": "^1.63.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -35,6 +35,7 @@
         "onCommand:language-julia.startREPL",
         "onCommand:language-julia.connectREPL",
         "onCommand:language-julia.stopREPL",
+        "onCommand:language-julia.restartREPL",
         "onCommand:language-julia.executeCodeBlockOrSelection",
         "onCommand:language-julia.executeFile",
         "onCommand:language-julia.executeActiveFile",
@@ -43,6 +44,9 @@
         "onCommand:language-julia.weave-open-preview-side",
         "onCommand:language-julia.weave-save",
         "onCommand:language-julia.show-plotpane",
+        "onCommand:language-julia.openProfiler",
+        "onCommand:language-julia.nextProfile",
+        "onCommand:language-julia.previousProfile",
         "onCommand:language-julia.executeCell",
         "onCommand:language-julia.executeJuliaBlockInREPL",
         "onCommand:language-julia.selectBlock",
@@ -58,10 +62,6 @@
         "onCommand:language-julia.tagNewPackageVersion",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
-        "workspaceContains:deps/build.jl",
-        "workspaceContains:test/runtests.jl",
-        "workspaceContains:benchmark/benchmarks.jl",
-        "workspaceContains:docs/make.jl",
         "onNotebook:jupyter-notebook",
         "onView:julia-explorer.REPLVariables",
         "onView:julia-explorer.julia-documentation",
@@ -126,7 +126,13 @@
             },
             {
                 "command": "language-julia.stopREPL",
-                "title": "Julia: Stop REPL"
+                "title": "Julia: Stop REPL",
+                "icon": "$(debug-stop)"
+            },
+            {
+                "command": "language-julia.restartREPL",
+                "title": "Julia: Restart REPL",
+                "icon": "$(debug-restart)"
             },
             {
                 "command": "language-julia.disconnectREPL",
@@ -156,7 +162,9 @@
             },
             {
                 "command": "language-julia.interrupt",
-                "title": "Julia: Interrupt Execution"
+                "title": "Julia: Interrupt Execution",
+                "icon": "$(debug-pause)",
+                "enablement": "isJuliaEvaluating"
             },
             {
                 "command": "language-julia.toggleLinter",
@@ -181,6 +189,29 @@
             {
                 "command": "language-julia.show-documentation-pane",
                 "title": "Julia: Show Documentation Pane"
+            },
+            {
+                "command": "language-julia.openProfiler",
+                "title": "Julia: Show Profiler"
+            },
+            {
+                "command": "language-julia.nextProfile",
+                "title": "Julia: Next Profiler",
+                "icon": "$(arrow-right)"
+            },
+            {
+                "command": "language-julia.previousProfile",
+                "title": "Julia: Previous Profile",
+                "icon": "$(arrow-left)"
+            },
+            {
+                "command": "language-julia.deleteProfile",
+                "title": "Julia: Delete Profile",
+                "icon": "$(trash)"
+            },
+            {
+                "command": "language-julia.deleteAllProfiles",
+                "title": "Julia: Delete All Profiles"
             },
             {
                 "command": "language-julia.show-plot-navigator",
@@ -371,12 +402,12 @@
             },
             {
                 "command": "language-julia.restartKernel",
-                "title": "Julia: Restart kernel",
+                "title": "Restart",
                 "icon": "$(debug-restart)"
             },
             {
                 "command": "language-julia.stopKernel",
-                "title": "Julia: Stop kernel",
+                "title": "Stop",
                 "icon": "$(debug-stop)"
             }
         ],
@@ -413,6 +444,21 @@
                     "command": "language-julia.browse-forward-documentation",
                     "when": "juliaDocumentationPaneActive",
                     "group": "navigation@-1"
+                },
+                {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.deleteProfile",
+                    "group": "navigation@0"
+                },
+                {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.nextProfile",
+                    "group": "navigation@-2"
+                },
+                {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.previousProfile",
+                    "group": "navigation@-3"
                 },
                 {
                     "when": "jlplotpaneFocus",
@@ -499,12 +545,22 @@
                 },
                 {
                     "command": "language-julia.stopKernel",
-                    "when": "view == REPLVariables && viewItem ==juliakernel",
+                    "when": "view == REPLVariables && viewItem == juliakernel",
                     "group": "inline"
                 },
                 {
                     "command": "language-julia.restartKernel",
-                    "when": "view == REPLVariables && viewItem ==juliakernel",
+                    "when": "view == REPLVariables && viewItem == juliakernel",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.stopREPL",
+                    "when": "view == REPLVariables && viewItem == juliarepl",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.restartREPL",
+                    "when": "view == REPLVariables && viewItem == juliarepl",
                     "group": "inline"
                 },
                 {
@@ -572,9 +628,36 @@
             ],
             "editor/context": [
                 {
+                    "command": "language-julia.executeCodeBlockOrSelection",
+                    "when": "activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown",
+                    "group": "z_commands"
+                },
+                {
                     "command": "language-julia.show-documentation",
                     "when": "editorLangId == julia || editorLangId == juliamarkdown",
                     "group": "z_commands"
+                }
+            ],
+            "notebook/toolbar": [
+                {
+                    "command": "language-julia.restartKernel",
+                    "group": "navigation/execute@1",
+                    "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted && notebookKernel =~ /julialang/"
+                },
+                {
+                    "command": "language-julia.stopKernel",
+                    "group": "navigation/execute@2",
+                    "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted && notebookKernel =~ /julialang/"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "language-julia.restartKernel",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.stopKernel",
+                    "when": "false"
                 }
             ]
         },
@@ -626,6 +709,10 @@
             {
                 "command": "language-julia.stopREPL",
                 "key": "Alt+J Alt+K"
+            },
+            {
+                "command": "language-julia.restartREPL",
+                "key": "Alt+J Alt+R"
             },
             {
                 "command": "language-julia.changeCurrentEnvironment",
@@ -879,11 +966,12 @@
                 "julia.NumThreads": {
                     "type": [
                         "integer",
+                        "string",
                         "null"
                     ],
                     "default": null,
                     "scope": "machine-overridable",
-                    "description": "Number of threads to use for Julia processes."
+                    "markdownDescription": "Number of threads to use for Julia processes. A value of `auto` works on Julia versions that allow for `--threads=auto`."
                 },
                 "julia.editor": {
                     "type": [
@@ -946,6 +1034,12 @@
                     "description": "Print executed code in REPL and append it to the REPL history.",
                     "scope": "window"
                 },
+                "julia.execution.saveOnEval": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "window",
+                    "markdownDescription": "Save file before execution"
+                },
                 "julia.packageServer": {
                     "type": "string",
                     "default": "",
@@ -981,6 +1075,18 @@
                     "default": "julia_vscode",
                     "scope": "machine-overridable",
                     "markdownDescription": "Name of the `tmux` session."
+                },
+                "julia.persistentSession.warnOnKill": {
+                    "type": "boolean",
+                    "default": true,
+                    "scope": "machine-overridable",
+                    "description": "Warn when stopping a persistent session."
+                },
+                "julia.persistentSession.alwaysCopy": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "machine-overridable",
+                    "description": "Always copy the command for connecting to an external REPL to the clipboard."
                 },
                 "julia.deleteJuliaCovFiles": {
                     "type": "boolean",
@@ -1245,8 +1351,8 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
-        "@traptitech/markdown-it-katex": "^3.4.3",
-        "applicationinsights": "^1.8.10",
+        "@traptitech/markdown-it-katex": "^3.5.0",
+        "applicationinsights": "^2",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "markdown-it": "^12.3.2",
@@ -1254,29 +1360,31 @@
         "promised-temp": "^v0.1.0",
         "promisify-child-process": "^4.1.1",
         "semver": "^7.3.5",
+        "source-map-support": "^0.5.21",
         "string-argv": "^0.3.1",
         "uuidv4": "^6.2.12",
-        "vscode-debugadapter": "^1.49.0",
+        "vscode-debugadapter": "^1.51.0",
         "vscode-jsonrpc": "^6.0.0",
         "vscode-languageclient": "^7.0.0",
         "which": "^2.0.2"
     },
     "devDependencies": {
         "@types/download": "^8.0.1",
-        "@types/markdown-it": "^12.2.1",
-        "@types/mocha": "^8.2.3",
+        "@types/markdown-it": "^12.2.3",
+        "@types/mocha": "^9.1.0",
         "@types/node": "^14.17.15",
-        "@types/semver": "^7.3.8",
-        "@types/vscode": "^1.60.0",
-        "@typescript-eslint/parser": "^4.31.0",
-        "download": "^6.2.5",
-        "eslint": "^7.32.0",
-        "mocha": "^8.4.0",
-        "ts-loader": "^9.2.5",
-        "typescript": "^4.4.2",
-        "vsce": "^1.97.0",
+        "@types/semver": "^7.3.9",
+        "@types/source-map-support": "^0.5.4",
+        "@types/vscode": "=1.63.0",
+        "@typescript-eslint/parser": "^5.14.0",
+        "download": "^8.0.0",
+        "eslint": "^8.11.0",
+        "mocha": "^9.2.2",
+        "ts-loader": "^9.2.8",
+        "typescript": "^4.6.2",
+        "vsce": "^2.7.0",
         "vscode-test": "^1.6.1",
-        "webpack": "^5.52.0",
-        "webpack-cli": "^4.8.0"
+        "webpack": "^5.70.0",
+        "webpack-cli": "^4.9.2"
     }
 }

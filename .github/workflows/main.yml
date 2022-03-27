@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '12'
+  NODE_VERSION: '14'
 
 defaults:
   run:
@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: npm install
+      - run: npm ci
       # - run: npm i -D @actions/core
       # - run: npm i -D @actions/github
       # - run: npm i -D @octokit/core
@@ -69,7 +69,7 @@ jobs:
         with:
           version: ${{matrix.julia_version}}
 
-      - run: npm install
+      - run: npm ci
 
       - run: npm run compile
 
@@ -119,7 +119,6 @@ jobs:
           julia --project=./scripts/testenvironments/debugadapter -e 'using Pkg; Pkg.test("DebugAdapter", coverage=true)'
           julia --project=./scripts/testenvironments/vscodedebugger -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
           julia --project=./scripts/testenvironments/vscodeserver -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
-          julia --project=./scripts/testenvironments/chromeprofileformat -e 'using Pkg; Pkg.test("ChromeProfileFormat", coverage=true)'
 
   buildReleaseVSIX:
     name: Build Release VSIX
@@ -134,7 +133,7 @@ jobs:
         with:
           node-version: ${{env.NODE_VERSION}}
 
-      - run: npm install
+      - run: npm ci
 
       - run: npm run package
 
@@ -167,7 +166,7 @@ jobs:
           $package | ConvertTo-Json -Depth 100 | Out-File package.json
           Move-Item -Force README-insider.md README.md
 
-      - run: npm install
+      - run: npm ci
 
       - run: npm run package
 

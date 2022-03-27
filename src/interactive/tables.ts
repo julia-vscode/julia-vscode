@@ -113,7 +113,7 @@ export function displayTable(payload, context, isLazy = false) {
                         field: f.name,
                         headerName: f.name,
                         type: f.ag_type,
-                        headerTooltip: f.type,
+                        headerTooltip: f.jl_type,
                         filter: f.ag_filter,
                         sortable: f.ag_sortable,
                         resizable: true
@@ -209,7 +209,7 @@ export function displayTable(payload, context, isLazy = false) {
                         field: f.name,
                         headerName: f.name,
                         type: f.ag_type,
-                        headerTooltip: f.type,
+                        headerTooltip: f.jl_type,
                         filter: f.ag_filter,
                         sortable: true,
                         resizable: true
