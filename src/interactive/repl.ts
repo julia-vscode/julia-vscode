@@ -284,6 +284,7 @@ function disconnectREPL() {
     } else {
         if (isConnected()) {
             g_connection.end()
+            g_connection = undefined
         }
     }
 }
@@ -805,7 +806,11 @@ async function executeCell(shouldMove: boolean = false) {
         validateMoveAndReveal(ed, nextpos, nextpos)
     }
 
-    await evaluate(ed, cellrange, code, module)
+    const connection_available = await evaluate(ed, cellrange, code, module)
+
+    if (!connection_available) {
+        await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
+    }
 }
 
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
@@ -859,16 +864,26 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
-        await evaluate(editor, range, text, module)
+        const connection_available = await evaluate(editor, range, text, module)
+
+        if (!connection_available) {
+            vscode.window.showErrorMessage('Could not evaluate code because the Julia REPL is no longer available.')
+            break
+        }
     }
 }
 
+// Returns false if the connection wasn't available
 async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string) {
     telemetry.traceEvent('command-evaluate')
 
     const section = vscode.workspace.getConfiguration('julia')
     const resultType: string = section.get('execution.resultType')
     const codeInREPL: boolean = section.get('execution.codeInREPL')
+
+    if (!g_connection) {
+        return false
+    }
 
     let r: results.Result = null
     if (resultType !== 'REPL') {
@@ -900,9 +915,11 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             }
             r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, Boolean(result.stackframe)))
         }
+
+        return true
     } catch (err) {
         r.remove(true)
-        telemetry.handleNewCrashReportFromException(err, 'Extension')
+        throw(err)
     }
 }
 
