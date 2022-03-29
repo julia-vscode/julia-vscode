@@ -3,25 +3,31 @@ struct LazyTree
     icon::String
     isempty::Bool
     children::Any
+    location::Union{Location, Nothing}
 end
 
-LazyTree(head, children) = LazyTree(head, "", false, children)
-LazyTree(head, icon::String, children) = LazyTree(head, icon, false, children)
+LazyTree(head, children) = LazyTree(head, "", false, children, nothing)
+LazyTree(head, icon::String, children) = LazyTree(head, icon, false, children, nothing)
+LazyTree(head, icon::String, children, location) = LazyTree(head, icon, false, children, location)
 
 struct SubTree
     head::String
     icon::String
     child::Any
+    location::Union{Location, Nothing}
 end
 
-SubTree(head, child) = LazyTree(head, "", child)
+SubTree(head, child) = SubTree(head, "", child, nothing)
+SubTree(head, icon, child) = SubTree(head, icon, child, nothing)
 
 struct Leaf
     val::Any
     icon::String
+    location::Union{Location, Nothing}
 end
 
-Leaf(val) = Leaf(val, "")
+Leaf(val) = Leaf(val, "", nothing)
+Leaf(val, icon) = Leaf(val, icon, nothing)
 
 const TREES = Dict{Int,LazyTree}()
 const ID = Ref(0)
@@ -46,7 +52,8 @@ function treerender(x::LazyTree)
         x.icon,
         "",
         false,
-        ""
+        "",
+        x.location
     )
 end
 
@@ -61,7 +68,8 @@ function treerender(x::SubTree)
         child.icon,
         child.head,
         false,
-        ""
+        "",
+        x.location
     )
 end
 
@@ -74,7 +82,8 @@ function treerender(x::Leaf)
         x.icon,
         "",
         false,
-        ""
+        "",
+        x.location
     )
 end
 
@@ -108,7 +117,8 @@ function treerender(x::AbstractDict{K,V}) where {K,V}
                     collect([SubTree(repr(k), wsicon(v), v) for (k, v) in x])
                 end,
                 SubTree("", wsicon(x), PropertyBox(x))
-            )
+            ),
+            nothing
         ))
 end
 
@@ -123,15 +133,22 @@ function treerender(x::AbstractArray{T,N}) where {T,N}
                     collect([SubTree(repr(k), wsicon(v), v) for (k, v) in zip(keys(x), vec(assign_undefs(x)))])
                 end
                 x isa Array ? out : pushfirst!(out, SubTree("", wsicon(x), PropertyBox(x)))
-            end
+            end,
+            nothing
         ))
 end
 
 
 function treerender(x::Module)
-    treerender(LazyTree(string(x), wsicon(x), function ()
-                ns = names(x, all = true)
-                out = []
+    loc = location(x)
+
+    treerender(
+        LazyTree(
+            string(x),
+            wsicon(x),
+            function ()
+                ns = names(x, all=true)
+                out = SubTree[]
                 for n in ns
                     isdefined(x, n) || continue
                     Base.isdeprecated(x, n) && continue
@@ -143,8 +160,11 @@ function treerender(x::Module)
                     push!(out, SubTree(string(n), wsicon(v), v))
                 end
 
-                out
-            end))
+                return out
+            end,
+            loc
+        )
+    )
 end
 
 struct Undef end
@@ -172,7 +192,7 @@ end
 
 function treerender(err::Exception, bt)
     st = stacktrace(bt)
-    treerender(LazyTree(string("Internal Error: ", sprint(showerror, err)), wsicon(err), length(st) == 0, () -> [Leaf(sprint(show, x), wsicon(x)) for x in st]))
+    treerender(LazyTree(string("Internal Error: ", sprint(showerror, err)), wsicon(err), length(st) == 0, () -> [Leaf(sprint(show, x), wsicon(x)) for x in st], nothing))
 end
 
 treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
@@ -183,11 +203,31 @@ treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(
 treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
 treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base = 16, pad = Sys.WORD_SIZE >> 2)), wsicon(x)))
 treerender(x::Text) = treerender(Leaf(x.content, wsicon(x)))
-treerender(x::Function) = treerender(Leaf(strlimit(string(x), limit = 100), wsicon(x)))
 treerender(x::Type) = treerender(Leaf(strlimit(string(x), limit = 100), wsicon(x)))
 treerender(x::Undef) = treerender(Leaf("#undef", wsicon(x)))
 treerender(x::StackTraces.StackFrame) = treerender(Leaf(string(x), wsicon(x)))
 treerender(x::Enum) = treerender(Leaf(sprint(show, MIME"text/plain"(), x), wsicon(x)))
+
+function treerender(x::Function)
+    treerender(LazyTree(
+        strlimit(string(x), limit=100),
+        wsicon(x),
+        function ()
+            try
+                collect(methods(x))
+            catch err
+                []
+            end
+        end
+    ))
+end
+
+function treerender(x::Method)
+    m = match(r"^(.+) in (.+) at (.+)$", string(x))
+    mstr = m === nothing ? "unknown" : strlimit(m[1]; limit=100)
+
+    treerender(Leaf(mstr, wsicon(x), location(x)))
+end
 
 function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
     partitions = Iterators.partition(_keys, max(sz, length(_keys) ÷ maxparts))
@@ -209,6 +249,21 @@ function partition_by_keys(x, _keys = keys(x); sz = 20, maxparts = 100)
     return out
 end
 
+# can't get runtime location info for most objects
+location(_) = nothing
+# we don't attach location info to modules,
+# but for non-baremodules we can just look at
+# eval instead
+location(m::Module) = isdefined(m, :eval) ? location(first(methods(m.eval))) : nothing
+function location(m::Method)
+    file = fullpath(string(m.file))
+    if isfile(file)
+        loc = Location(file, m.line)
+    else
+        loc = nothing
+    end
+end
+
 # workspace
 
 repl_getvariables_request(conn, params::Nothing) = Base.invokelatest(getvariables)
@@ -223,14 +278,18 @@ function getvariables()
         Base.isdeprecated(M, n) && continue
 
         x = getfield(M, n)
-        x === vscodedisplay && continue
-        x === VSCodeServer && continue
-        x === Main && continue
+        x in Set([
+            vscodedisplay,
+            VSCodeServer,
+            Main,
+            Main.include,
+            Main.eval
+        ]) && continue
 
         s = string(n)
         startswith(s, "#") && continue
         try
-            tree = treerender(SubTree(s, wsicon(x), x))
+            tree = treerender(SubTree(s, wsicon(x), x, location(x)))
             tree.canshow = can_display(x)
             push!(variables, tree)
         catch err
@@ -257,7 +316,8 @@ end
 
 wsicon(::Any) = "symbol-variable"
 wsicon(::Module) = "symbol-namespace"
-wsicon(::Function) = "symbol-method"
+wsicon(::Function) = "symbol-function"
+wsicon(::Method) = "symbol-method"
 wsicon(::Number) = "symbol-numeric"
 wsicon(::Bool) = "symbol-boolean"
 wsicon(::AbstractString) = "symbol-string"

@@ -304,6 +304,11 @@
                 "icon": "$(preview)"
             },
             {
+                "command": "language-julia.workspaceGoToFile",
+                "title": "Go to definition",
+                "icon": "$(go-to-file)"
+            },
+            {
                 "command": "language-julia.clearAllInlineResults",
                 "title": "Julia: Clear All Inline Results"
             },
@@ -540,7 +545,12 @@
             "view/item/context": [
                 {
                     "command": "language-julia.showInVSCode",
-                    "when": "view == REPLVariables && viewItem == globalvariable",
+                    "when": "view == REPLVariables && viewItem =~ /globalvariable/",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.workspaceGoToFile",
+                    "when": "view == REPLVariables && viewItem =~ /haslocation/",
                     "group": "inline"
                 },
                 {
