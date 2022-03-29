@@ -278,13 +278,13 @@ function getvariables()
         Base.isdeprecated(M, n) && continue
 
         x = getfield(M, n)
-        x in Set([
+        x in (
             vscodedisplay,
             VSCodeServer,
             Main,
             Main.include,
             Main.eval
-        ]) && continue
+        ) && continue
 
         s = string(n)
         startswith(s, "#") && continue
