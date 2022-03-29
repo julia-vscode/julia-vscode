@@ -17,8 +17,8 @@ struct SubTree
     location::Union{Location, Nothing}
 end
 
-SubTree(head, child) = SubTree(head, "", child, nothing)
-SubTree(head, icon, child) = SubTree(head, icon, child, nothing)
+SubTree(head, child) = SubTree(head, "", child, location(child))
+SubTree(head, icon, child) = SubTree(head, icon, child, location(child))
 
 struct Leaf
     val::Any
@@ -289,7 +289,7 @@ function getvariables()
         s = string(n)
         startswith(s, "#") && continue
         try
-            tree = treerender(SubTree(s, wsicon(x), x, location(x)))
+            tree = treerender(SubTree(s, wsicon(x), x))
             tree.canshow = can_display(x)
             push!(variables, tree)
         catch err
