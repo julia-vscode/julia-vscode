@@ -85,7 +85,7 @@ export async function init(context: vscode.ExtensionContext) {
         .setUseDiskRetryCaching(true)
         .start()
 
-    if (vscode.env.machineId === 'someValue.machineId') {
+    if (process.env.DEBUG_MODE === 'true') {
         // Make sure we send out messages right away
         appInsights.defaultClient.config.maxBatchSize = 0
     }
