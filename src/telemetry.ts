@@ -64,15 +64,15 @@ export async function init(context: vscode.ExtensionContext) {
     let key = ''
     if (process.env.DEBUG_MODE === 'true') {
         // Use the debug environment
-        key = '82cf1bd4-8560-43ec-97a6-79847395d791'
+        key = 'InstrumentationKey=82cf1bd4-8560-43ec-97a6-79847395d791;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
     }
     else if (!previewVersion) {
         // Use the production environment
-        key = 'ca1fb443-8d44-4a06-91fe-0235cfdf635f'
+        key = 'InstrumentationKey=ca1fb443-8d44-4a06-91fe-0235cfdf635f;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
     }
     else {
         // Use the dev environment
-        key = '94d316b7-bba0-4d03-9525-81e25c7da22f'
+        key = 'InstrumentationKey=94d316b7-bba0-4d03-9525-81e25c7da22f;IngestionEndpoint=https://eastus-3.in.applicationinsights.azure.com/'
     }
 
     appInsights.setup(key)
