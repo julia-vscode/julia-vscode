@@ -1486,6 +1486,7 @@
         "promised-temp": "^v0.1.0",
         "promisify-child-process": "^4.1.1",
         "semver": "^7.3.5",
+        "simple-git": "^3.4.0",
         "source-map-support": "^0.5.21",
         "string-argv": "^0.3.1",
         "uuidv4": "^6.2.12",

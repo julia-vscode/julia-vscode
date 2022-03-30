@@ -3,6 +3,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { JuliaExecutablesFeature } from './juliaexepath'
 import { registerCommand } from './utils'
+import simpleGit from 'simple-git'
 
 export class JuliaNewProjectFeature {
     constructor(private context: vscode.ExtensionContext, private juliaExecutablesFeature: JuliaExecutablesFeature) {
@@ -25,9 +26,23 @@ export class JuliaNewProjectFeature {
         const templateType = await vscode.window.showQuickPick(['Default', 'Custom'], { placeHolder: "Select a template for the project" })
         if (!templateType)
             return
+
+        const userResult = await simpleGit().getConfig('github.user', 'global')
+        const defaultUser = userResult.value
+        const user = await vscode.window.showInputBox({
+            prompt: 'Please enter your GitHub (or other code hosting service) username.',
+            value: defaultUser,
+            validateInput: (input) => {
+                if (input === "")
+                    return 'Username cannot be empty.'
+                return undefined
+            }
+        })
+        if (user === undefined)
+            return
+
         let authors = ''
         let host = ''
-        let user = ''
         let juliaVersion = ''
         let plugins: vscode.QuickPickItem[] = []
         if (templateType == 'Custom') {
@@ -40,17 +55,6 @@ export class JuliaNewProjectFeature {
                 host = await vscode.window.showInputBox({ prompt: 'Please enter the URL to the code hosting service.' })
             }
             if (host === undefined)
-                return
-
-            user = await vscode.window.showInputBox({
-                prompt: 'Please enter your GitHub (or other code hosting service) username.',
-                validateInput: (input) => {
-                    if (input === "")
-                        return 'Username cannot be empty.'
-                    return undefined
-                }
-            })
-            if (user === undefined)
                 return
 
             let juliaVersion = await vscode.window.showQuickPick(
