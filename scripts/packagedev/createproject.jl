@@ -47,7 +47,7 @@ try
     authors = split(ARGS[3], ',')
     host = ARGS[4]
     user = ARGS[5]
-    julia = VersionNumber(ARGS[6])
+    julia = ARGS[6] == "" ? VersionNumber(VERSION.major) : VersionNumber(ARGS[6])
 
     plugin_args = String[]
     plugins = []
@@ -57,10 +57,12 @@ try
             push!(plugins, plugin_lookup[p])
         end
     end
-    # Defaults must be negated to disable
-    for p in default_plugins
-        if !(p in plugin_args)
-            push!(plugins, !typeof(plugin_lookup[p]))
+    if length(plugin_args) > 0
+        # Defaults must be negated to disable
+        for p in default_plugins
+            if !(p in plugin_args)
+                push!(plugins, !typeof(plugin_lookup[p]))
+            end
         end
     end
     Template(; user=user, authors=authors, dir=dir, host=host, julia=julia, plugins=plugins)(pkg_name)
