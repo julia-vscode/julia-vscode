@@ -8,11 +8,16 @@ import {
     notifyTypeReplShowInGrid,
     onExit,
     onFinishEval,
-    onInit
+    onInit,
 } from './repl'
+import { openFile } from './results'
+
+interface Location {
+    file: string
+    line: number
+}
 
 // RPC Interface
-
 interface WorkspaceVariable {
     head: string
     type: string
@@ -22,6 +27,7 @@ interface WorkspaceVariable {
     haschildren: boolean
     canshow: boolean
     icon: string
+    location?: Location
 }
 
 const requestTypeGetVariables = new rpc.RequestType<
@@ -172,6 +178,9 @@ export class WorkspaceFeature {
             // commands
             registerCommand('language-julia.showInVSCode', (node: VariableNode) =>
                 this.showInVSCode(node)
+            ),
+            registerCommand('language-julia.workspaceGoToFile', (node: VariableNode) =>
+                this.openLocation(node)
             )
         )
     }
@@ -188,6 +197,13 @@ export class WorkspaceFeature {
 
     async showInVSCode(node: VariableNode) {
         await node.showInVSCode()
+    }
+
+    async openLocation(node: VariableNode) {
+        openFile(
+            node.workspaceVariable.location.file,
+            node.workspaceVariable.location.line
+        )
     }
 
     public dispose() {
@@ -246,9 +262,8 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             const treeItem = new vscode.TreeItem(node.workspaceVariable.head)
             treeItem.description = node.workspaceVariable.value
             treeItem.tooltip = node.workspaceVariable.type
-            treeItem.contextValue = node.workspaceVariable.canshow
-                ? 'globalvariable'
-                : ''
+            treeItem.contextValue = (node.workspaceVariable.canshow ? 'globalvariable' : '') + (
+                node.workspaceVariable.location ? ' haslocation' : '')
             treeItem.collapsibleState = node.workspaceVariable.haschildren
                 ? vscode.TreeItemCollapsibleState.Collapsed
                 : vscode.TreeItemCollapsibleState.None

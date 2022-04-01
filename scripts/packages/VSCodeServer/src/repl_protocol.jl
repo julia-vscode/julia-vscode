@@ -29,6 +29,11 @@ JSONRPC.@dict_readable struct ReplRunCodeRequestReturn <: JSONRPC.Outbound
 end
 ReplRunCodeRequestReturn(inline, all) = ReplRunCodeRequestReturn(inline, all, nothing)
 
+JSONRPC.@dict_readable mutable struct Location <: JSONRPC.Outbound
+    file::String
+    line::Int
+end
+
 JSONRPC.@dict_readable mutable struct ReplWorkspaceItem <: JSONRPC.Outbound
     head::String
     id::Int
@@ -38,6 +43,7 @@ JSONRPC.@dict_readable mutable struct ReplWorkspaceItem <: JSONRPC.Outbound
     value::String
     canshow::Bool
     type::String
+    location::Union{Nothing, Location}
 end
 
 JSONRPC.@dict_readable struct GetCompletionsRequestParams <: JSONRPC.Outbound
