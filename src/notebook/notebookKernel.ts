@@ -16,7 +16,7 @@ import {
 } from 'vscode-jsonrpc/node'
 import { getAbsEnvPath } from '../jlpkgenv'
 import { JuliaExecutable } from '../juliaexepath'
-import { getCrashReportingPipename } from '../telemetry'
+import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
 
@@ -207,158 +207,171 @@ export class JuliaKernel {
     }
 
     private async run(token: CancellationToken) {
-        const connectedPromise = new Subject()
-        const serverListeningPromise = new Subject()
+        try {
+            const connectedPromise = new Subject()
+            const serverListeningPromise = new Subject()
 
-        const pn = generatePipeName(uuid(), 'vscjl-nbk')
+            const pn = generatePipeName(uuid(), 'vscjl-nbk')
 
-        const server = net.createServer((socket) => {
-            this._msgConnection = createMessageConnection(
-                new StreamMessageReader(socket),
-                new StreamMessageWriter(socket)
-            )
+            const server = net.createServer((socket) => {
+                this._msgConnection = createMessageConnection(
+                    new StreamMessageReader(socket),
+                    new StreamMessageWriter(socket)
+                )
 
-            this._msgConnection.onNotification(notifyTypeDisplay, ({ items }) => {
-                const execution = this._currentExecutionRequest
-                if (execution) {
-                    execution.appendOutput(
-                        new vscode.NotebookCellOutput(
-                            items.map((item) => {
-                                if (
-                                    item.mimetype === 'image/png' ||
-                                    item.mimetype === 'image/jpeg'
-                                ) {
-                                    return new vscode.NotebookCellOutputItem(
-                                        Buffer.from(item.data, 'base64'),
-                                        item.mimetype
-                                    )
-                                } else if (item.mimetype.endsWith('+json')) {
-                                    return vscode.NotebookCellOutputItem.json(
-                                        item.data,
-                                        item.mimetype
-                                    )
-                                } else {
-                                    return vscode.NotebookCellOutputItem.text(
-                                        item.data,
-                                        item.mimetype
-                                    )
-                                }
-                            })
+                this._msgConnection.onNotification(notifyTypeDisplay, ({ items }) => {
+                    const execution = this._currentExecutionRequest
+                    if (execution) {
+                        execution.appendOutput(
+                            new vscode.NotebookCellOutput(
+                                items.map((item) => {
+                                    if (
+                                        item.mimetype === 'image/png' ||
+                                        item.mimetype === 'image/jpeg'
+                                    ) {
+                                        return new vscode.NotebookCellOutputItem(
+                                            Buffer.from(item.data, 'base64'),
+                                            item.mimetype
+                                        )
+                                    } else if (item.mimetype.endsWith('+json')) {
+                                        return vscode.NotebookCellOutputItem.json(
+                                            item.data,
+                                            item.mimetype
+                                        )
+                                    } else {
+                                        return vscode.NotebookCellOutputItem.text(
+                                            item.data,
+                                            item.mimetype
+                                        )
+                                    }
+                                })
+                            )
                         )
-                    )
-                }
+                    }
+                })
+
+                this._msgConnection.onNotification(
+                    notifyTypeStreamoutput,
+                    ({ name, data }) => {
+                        if (name === 'stdout') {
+                            const execution = this._currentExecutionRequest
+                            if (execution) {
+                                execution.appendOutput([
+                                    new vscode.NotebookCellOutput([
+                                        vscode.NotebookCellOutputItem.stdout(data),
+                                    ]),
+                                ])
+                            }
+                        } else if (name === 'stderr') {
+                            const execution = this._currentExecutionRequest
+                            if (execution) {
+                                execution.appendOutput([
+                                    new vscode.NotebookCellOutput([
+                                        vscode.NotebookCellOutputItem.stderr(data),
+                                    ]),
+                                ])
+                            }
+                        } else {
+                            throw new Error('Unknown stream type.')
+                        }
+                    }
+                )
+
+                this._msgConnection.listen()
+
+                this._onConnected.fire(null)
+
+                connectedPromise.notify()
             })
 
-            this._msgConnection.onNotification(
-                notifyTypeStreamoutput,
-                ({ name, data }) => {
-                    if (name === 'stdout') {
-                        const execution = this._currentExecutionRequest
-                        if (execution) {
-                            execution.appendOutput([
-                                new vscode.NotebookCellOutput([
-                                    vscode.NotebookCellOutputItem.stdout(data),
-                                ]),
-                            ])
-                        }
-                    } else if (name === 'stderr') {
-                        const execution = this._currentExecutionRequest
-                        if (execution) {
-                            execution.appendOutput([
-                                new vscode.NotebookCellOutput([
-                                    vscode.NotebookCellOutputItem.stderr(data),
-                                ]),
-                            ])
-                        }
-                    } else {
-                        throw new Error('Unknown stream type.')
-                    }
+            server.listen(pn, () => {
+                serverListeningPromise.notify()
+            })
+
+            this.outputChannel.appendLine(`Pre 'await serverListeningPromise.wait()'`)
+            await serverListeningPromise.wait()
+            this.outputChannel.appendLine(`Post 'await serverListeningPromise.wait()'`)
+
+            const pkgenvpath = await this.getAbsEnvPathForNotebook()
+            this.outputChannel.appendLine(`Post 'const pkgenvpath = await this.getAbsEnvPathForNotebook()'`)
+            const cwdPath = await this.getCwdPathForNotebook()
+            this.outputChannel.appendLine(`Post 'const cwdPath = await this.getCwdPathForNotebook()'`)
+
+            const nthreads = inferJuliaNumThreads()
+
+            const args = [
+                '--color=yes',
+                `--project=${pkgenvpath}`,
+                '--history-file=no',
+            ]
+
+            const env = {
+                ...process.env
+            }
+
+            if (nthreads === 'auto') {
+                args.push('--threads=auto')
+            } else {
+                env['JULIA_NUM_THREADS'] = nthreads
+            }
+
+            this.outputChannel.appendLine(`Now strating the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`)
+
+            this._kernelProcess = spawn(
+                this.juliaExecutable.file,
+                [
+                    ...this.juliaExecutable.args,
+                    ...args,
+                    path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
+                    pn,
+                    getCrashReportingPipename(),
+                ],
+                {
+                    env,
+                    cwd: cwdPath
                 }
             )
 
-            this._msgConnection.listen()
+            this.outputChannel.appendLine('Successfully started the kernel process from the extension.')
 
-            this._onConnected.fire(null)
+            const outputChannel = this.outputChannel
 
-            connectedPromise.notify()
-        })
+            this._kernelProcess.stdout.on('data', function (data) {
+                outputChannel.append(String(data))
+            })
+            this._kernelProcess.stderr.on('data', function (data) {
+                outputChannel.append(String(data))
+            })
+            const tokenSource = this._tokenSource
+            const processExecutionRequests = this._processExecutionRequests
 
-        server.listen(pn, () => {
-            serverListeningPromise.notify()
-        })
+            this._kernelProcess.on('close', async (code) => {
+                tokenSource.cancel()
+                processExecutionRequests.notify()
 
-        await serverListeningPromise.wait()
+                this._onCellRunFinished.fire()
+                this._onStopped.fire(undefined)
+                outputChannel.appendLine(`Kernel closed with ${code}.`)
+                this._kernelProcess = undefined
 
-        const pkgenvpath = await this.getAbsEnvPathForNotebook()
-        const cwdPath = await this.getCwdPathForNotebook()
+                this.dispose()
+            })
 
-        const nthreads = inferJuliaNumThreads()
+            this.outputChannel.appendLine(`Pre 'await connectedPromise.wait()'`)
+            await connectedPromise.wait()
+            this.outputChannel.appendLine(`Post 'await connectedPromise.wait()'`)
 
-        const args = [
-            '--color=yes',
-            `--project=${pkgenvpath}`,
-            '--history-file=no',
-        ]
+            await this.messageLoop(token)
+            this.outputChannel.appendLine(`Post 'await this.messageLoop(token)'`)
 
-        const env = {
-            ...process.env
-        }
-
-        if (nthreads === 'auto') {
-            args.push('--threads=auto')
-        } else {
-            env['JULIA_NUM_THREADS'] = nthreads
-        }
-
-        this.outputChannel.appendLine(`Now strating the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`)
-
-        this._kernelProcess = spawn(
-            this.juliaExecutable.file,
-            [
-                ...this.juliaExecutable.args,
-                ...args,
-                path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
-                pn,
-                getCrashReportingPipename(),
-            ],
-            {
-                env,
-                cwd: cwdPath
-            }
-        )
-
-        this.outputChannel.appendLine('Successfully started the kernel process from the extension.')
-
-        const outputChannel = this.outputChannel
-
-        this._kernelProcess.stdout.on('data', function (data) {
-            outputChannel.append(String(data))
-        })
-        this._kernelProcess.stderr.on('data', function (data) {
-            outputChannel.append(String(data))
-        })
-        const tokenSource = this._tokenSource
-        const processExecutionRequests = this._processExecutionRequests
-
-        this._kernelProcess.on('close', async (code) => {
-            tokenSource.cancel()
-            processExecutionRequests.notify()
-
-            this._onCellRunFinished.fire()
             this._onStopped.fire(undefined)
-            outputChannel.appendLine(`Kernel closed with ${code}.`)
-            this._kernelProcess = undefined
 
             this.dispose()
-        })
-
-        await connectedPromise.wait()
-
-        await this.messageLoop(token)
-
-        this._onStopped.fire(undefined)
-
-        this.dispose()
+        }
+        catch (err) {
+            handleNewCrashReportFromException(err, 'Extension')
+            throw (err)
+        }
     }
 
     public async stop() {
