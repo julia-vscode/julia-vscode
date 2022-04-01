@@ -66,10 +66,7 @@
         "onView:julia-explorer.REPLVariables",
         "onView:julia-explorer.julia-documentation",
         "onView:julia-explorer.julia-plot-navigator",
-        "workspaceContains:*.jl",
-        "workspaceContains:*/*.jl",
-        "workspaceContains:*/*/*.jl",
-        "workspaceContains:*/*/*/*.jl"
+        "workspaceContains:**/*.jl"
     ],
     "main": "./dist/extension",
     "contributes": {
