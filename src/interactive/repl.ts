@@ -86,7 +86,7 @@ async function restartREPL() {
 }
 
 function getEditor(): string {
-    return 'code'
+    return vscode.workspace.getConfiguration('julia').get('editor')
 }
 function isConnected() {
     return Boolean(g_connection)

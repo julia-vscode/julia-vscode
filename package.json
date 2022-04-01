@@ -984,12 +984,9 @@
                     "markdownDescription": "Number of threads to use for Julia processes. A value of `auto` works on Julia versions that allow for `--threads=auto`."
                 },
                 "julia.editor": {
-                    "type": [
-                        "string",
-                        "null"
-                    ],
-                    "default": null,
-                    "markdownDescription": "Command to open files from the REPL (via setting the `JULIA_EDITOR` environment variable). Defaults to `code`/`code-insiders` if unset."
+                    "type": "string",
+                    "default": "code",
+                    "markdownDescription": "Command to open files from the REPL (via setting the `JULIA_EDITOR` environment variable)."
                 },
                 "julia.completionmode": {
                     "type": "string",
