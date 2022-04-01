@@ -85,26 +85,9 @@ async function restartREPL() {
     await startREPL(false, true)
 }
 
-function is_remote_env(): boolean {
-    return typeof vscode.env.remoteName !== 'undefined'
+function getEditor(): string {
+    return vscode.workspace.getConfiguration('julia').get('editor')
 }
-
-function get_editor(): string {
-    const editor: string | null = vscode.workspace.getConfiguration('julia').get('editor')
-
-    if (editor) {
-        return editor
-    }
-    if (is_remote_env()) {
-        if (vscode.env.appName === 'Code - OSS') {
-            return 'code-server'
-        } else {
-            return `"${process.execPath}"`
-        }
-    }
-    return vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
-}
-
 function isConnected() {
     return Boolean(g_connection)
 }
@@ -159,7 +142,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         }
 
         const env: any = {
-            JULIA_EDITOR: get_editor()
+            JULIA_EDITOR: getEditor()
         }
 
         if (nthreads !== 'auto') {
@@ -203,7 +186,11 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             shellPath = config.get('persistentSession.shell')
             const connectJuliaCode = juliaConnector(pipename)
             const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
-            const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS} JULIA_EDITOR=${env.JULIA_EDITOR} ${juliaExecutable.file} ${[...juliaExecutable.args, ...jlarg1, ...getArgs()].join(' ')}`.replace(/"/g, '\\"')
+            const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
+                ...juliaExecutable.args,
+                ...jlarg1,
+                ...getArgs()
+            ].join(' ')}`.replace(/"/g, '\\"')
             shellArgs = [
                 <string>config.get('persistentSession.shellExecutionArgument'),
                 // create a new tmux session, set remain-on-exit to true, and attach; if the session already exists we just attach to the existing session
@@ -346,7 +333,7 @@ const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
 const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: any }>('repl/showprofileresult')
-// const notifyTypeShowProfilerResultFile = new rpc.NotificationType<{ filename: string }>('repl/showprofileresult_file')
+const notifyTypeOpenFile = new rpc.NotificationType<{ path: string, line: number }>('repl/openFile')
 
 interface Progress {
     id: { value: number },
@@ -1176,7 +1163,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
             connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
             connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
             connection.onNotification(notifyTypeShowProfilerResult, (data) => profilerFeature.showTrace(data.trace))
-            // connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
+            connection.onNotification(notifyTypeOpenFile, ({ path, line }) => openFile(path, line))
             connection.onNotification(notifyTypeProgress, updateProgress)
             setContext('isJuliaEvaluating', false)
             setContext('hasJuliaREPL', true)
