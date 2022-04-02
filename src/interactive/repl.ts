@@ -58,9 +58,9 @@ async function confirmKill() {
         return false
     }
 }
-async function stopREPL() {
+async function stopREPL(onDeactivate=false) {
     const config = vscode.workspace.getConfiguration('julia')
-    if (Boolean(config.get('persistentSession.enabled'))) {
+    if (Boolean(config.get('persistentSession.enabled')) && !onDeactivate) {
         try {
             const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
             const killSession = await confirmKill()
@@ -68,7 +68,7 @@ async function stopREPL() {
                 await exec(`tmux kill-session -t ${sessionName}`)
             }
         } catch (err) {
-            vscode.window.showErrorMessage('Failed to close tmux session: '+err.stderr)
+            vscode.window.showErrorMessage('Failed to close tmux session: ' + err.stderr)
         }
     }
     if (isConnected()) {
@@ -85,26 +85,9 @@ async function restartREPL() {
     await startREPL(false, true)
 }
 
-function is_remote_env(): boolean {
-    return typeof vscode.env.remoteName !== 'undefined'
+function getEditor(): string {
+    return vscode.workspace.getConfiguration('julia').get('editor')
 }
-
-function get_editor(): string {
-    const editor: string | null = vscode.workspace.getConfiguration('julia').get('editor')
-
-    if (editor) {
-        return editor
-    }
-    if (is_remote_env()) {
-        if (vscode.env.appName === 'Code - OSS') {
-            return 'code-server'
-        } else {
-            return `"${process.execPath}"`
-        }
-    }
-    return vscode.env.appName.includes('Insiders') ? 'code-insiders' : 'code'
-}
-
 function isConnected() {
     return Boolean(g_connection)
 }
@@ -159,7 +142,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         }
 
         const env: any = {
-            JULIA_EDITOR: get_editor()
+            JULIA_EDITOR: getEditor()
         }
 
         if (nthreads !== 'auto') {
@@ -203,7 +186,11 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             shellPath = config.get('persistentSession.shell')
             const connectJuliaCode = juliaConnector(pipename)
             const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
-            const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS} JULIA_EDITOR=${env.JULIA_EDITOR} ${juliaExecutable.file} ${[...juliaExecutable.args, ...jlarg1, ...getArgs()].join(' ')}`.replace(/"/g, '\\"')
+            const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
+                ...juliaExecutable.args,
+                ...jlarg1,
+                ...getArgs()
+            ].join(' ')}`.replace(/"/g, '\\"')
             shellArgs = [
                 <string>config.get('persistentSession.shellExecutionArgument'),
                 // create a new tmux session, set remain-on-exit to true, and attach; if the session already exists we just attach to the existing session
@@ -284,6 +271,7 @@ function disconnectREPL() {
     } else {
         if (isConnected()) {
             g_connection.end()
+            g_connection = undefined
         }
     }
 }
@@ -345,7 +333,7 @@ const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
 const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: any }>('repl/showprofileresult')
-// const notifyTypeShowProfilerResultFile = new rpc.NotificationType<{ filename: string }>('repl/showprofileresult_file')
+const notifyTypeOpenFile = new rpc.NotificationType<{ path: string, line: number }>('repl/openFile')
 
 interface Progress {
     id: { value: number },
@@ -805,7 +793,11 @@ async function executeCell(shouldMove: boolean = false) {
         validateMoveAndReveal(ed, nextpos, nextpos)
     }
 
-    await evaluate(ed, cellrange, code, module)
+    const connection_available = await evaluate(ed, cellrange, code, module)
+
+    if (!connection_available) {
+        await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
+    }
 }
 
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
@@ -859,16 +851,26 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
-        await evaluate(editor, range, text, module)
+        const connection_available = await evaluate(editor, range, text, module)
+
+        if (!connection_available) {
+            vscode.window.showErrorMessage('Could not evaluate code because the Julia REPL is no longer available.')
+            break
+        }
     }
 }
 
+// Returns false if the connection wasn't available
 async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string) {
     telemetry.traceEvent('command-evaluate')
 
     const section = vscode.workspace.getConfiguration('julia')
     const resultType: string = section.get('execution.resultType')
     const codeInREPL: boolean = section.get('execution.codeInREPL')
+
+    if (!g_connection) {
+        return false
+    }
 
     let r: results.Result = null
     if (resultType !== 'REPL') {
@@ -900,9 +902,11 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             }
             r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, Boolean(result.stackframe)))
         }
+
+        return true
     } catch (err) {
         r.remove(true)
-        telemetry.handleNewCrashReportFromException(err, 'Extension')
+        throw(err)
     }
 }
 
@@ -1159,7 +1163,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
             connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
             connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
             connection.onNotification(notifyTypeShowProfilerResult, (data) => profilerFeature.showTrace(data.trace))
-            // connection.onNotification(notifyTypeShowProfilerResultFile, showProfileResultFile)
+            connection.onNotification(notifyTypeOpenFile, ({ path, line }) => openFile(path, line))
             connection.onNotification(notifyTypeProgress, updateProgress)
             setContext('isJuliaEvaluating', false)
             setContext('hasJuliaREPL', true)
@@ -1263,5 +1267,5 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
 }
 
 export function deactivate() {
-    stopREPL()
+    stopREPL(true)
 }

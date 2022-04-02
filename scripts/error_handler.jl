@@ -27,10 +27,10 @@ function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
 
             # Send error message
             temp_io = IOBuffer()
-            InteractiveUtils.versioninfo(temp_io, verbose=false)
-            println(temp_io)
-            println(temp_io)
             showerror(temp_io, e)
+            println(temp_io)
+            println(temp_io)
+            InteractiveUtils.versioninfo(temp_io, verbose=false)
             error_message_str = chomp(String(take!(temp_io)))
             n = count(i -> i == '\n', error_message_str) + 1
             println(pipe_to_vscode, n)

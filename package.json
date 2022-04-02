@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.6.10",
+    "version": "1.6.14",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -66,10 +66,7 @@
         "onView:julia-explorer.REPLVariables",
         "onView:julia-explorer.julia-documentation",
         "onView:julia-explorer.julia-plot-navigator",
-        "workspaceContains:*.jl",
-        "workspaceContains:*/*.jl",
-        "workspaceContains:*/*/*.jl",
-        "workspaceContains:*/*/*/*.jl"
+        "workspaceContains:**/*.jl"
     ],
     "main": "./dist/extension",
     "contributes": {
@@ -302,6 +299,11 @@
                 "command": "language-julia.showInVSCode",
                 "title": "Open in VS Code",
                 "icon": "$(preview)"
+            },
+            {
+                "command": "language-julia.workspaceGoToFile",
+                "title": "Go to definition",
+                "icon": "$(go-to-file)"
             },
             {
                 "command": "language-julia.clearAllInlineResults",
@@ -540,7 +542,12 @@
             "view/item/context": [
                 {
                     "command": "language-julia.showInVSCode",
-                    "when": "view == REPLVariables && viewItem == globalvariable",
+                    "when": "view == REPLVariables && viewItem =~ /globalvariable/",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.workspaceGoToFile",
+                    "when": "view == REPLVariables && viewItem =~ /haslocation/",
                     "group": "inline"
                 },
                 {
@@ -974,12 +981,9 @@
                     "markdownDescription": "Number of threads to use for Julia processes. A value of `auto` works on Julia versions that allow for `--threads=auto`."
                 },
                 "julia.editor": {
-                    "type": [
-                        "string",
-                        "null"
-                    ],
-                    "default": null,
-                    "markdownDescription": "Command to open files from the REPL (via setting the `JULIA_EDITOR` environment variable). Defaults to `code`/`code-insiders` if unset."
+                    "type": "string",
+                    "default": "code",
+                    "markdownDescription": "Command to open files from the REPL (via setting the `JULIA_EDITOR` environment variable)."
                 },
                 "julia.completionmode": {
                     "type": "string",

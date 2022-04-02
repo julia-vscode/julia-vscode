@@ -8,6 +8,7 @@ import Base: display, redisplay
 import Dates
 import Profile
 import Logging
+import InteractiveUtils
 
 function __init__()
     atreplinit() do repl
@@ -22,6 +23,14 @@ function __init__()
 
     for pkgid in keys(Base.loaded_modules)
         on_pkg_load(pkgid)
+    end
+
+    if VERSION >= v"1.4" && isdefined(InteractiveUtils, :EDITOR_CALLBACKS)
+        pushfirst!(InteractiveUtils.EDITOR_CALLBACKS, function (cmd::Cmd, path::AbstractString, line::Integer)
+            cmd == `code` || return false
+            JSONRPC.send(conn_endpoint[], repl_open_file_notification_type, (; path = String(path), line = Int(line)))
+            return true
+        end)
     end
 end
 

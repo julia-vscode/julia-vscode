@@ -64,7 +64,7 @@ class JuliaTaskProvider {
                     },
                     folder,
                     `Run tests`,
-                    'julia',
+                    'Julia',
                     new vscode.ProcessExecution(
                         juliaExecutable.file,
                         jlargs,
@@ -107,7 +107,7 @@ class JuliaTaskProvider {
                     },
                     folder,
                     `Run tests with coverage`,
-                    'julia',
+                    'Julia',
                     new vscode.ProcessExecution(
                         juliaExecutable.file,
                         jlargs2,
@@ -136,7 +136,7 @@ class JuliaTaskProvider {
                     },
                     folder,
                     `Build custom sysimage for current environment (experimental)`,
-                    'julia',
+                    'Julia',
                     new vscode.ProcessExecution(juliaExecutable.file, [
                         ...juliaExecutable.args,
                         '--color=yes',
@@ -171,7 +171,7 @@ class JuliaTaskProvider {
                     },
                     folder,
                     `Run build`,
-                    'julia',
+                    'Julia',
                     new vscode.ProcessExecution(
                         juliaExecutable.file,
                         [
@@ -197,7 +197,7 @@ class JuliaTaskProvider {
                     },
                     folder,
                     `Run benchmark`,
-                    'julia',
+                    'Julia',
                     new vscode.ProcessExecution(
                         juliaExecutable.file,
                         [
@@ -223,7 +223,7 @@ class JuliaTaskProvider {
                     },
                     folder,
                     `Build documentation`,
-                    'julia',
+                    'Julia',
                     new vscode.ProcessExecution(
                         juliaExecutable.file,
                         [
