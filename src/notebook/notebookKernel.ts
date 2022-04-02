@@ -192,7 +192,7 @@ export class JuliaKernel {
 
     private async getCwdPathForNotebook() {
         if (this.notebook.isUntitled) {
-            if (vscode.workspace.workspaceFolders.length > 0) {
+            if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
                 return vscode.workspace.workspaceFolders[0].uri.fsPath
             } else {
                 return await this.getAbsEnvPathForNotebook()
