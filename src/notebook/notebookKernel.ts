@@ -166,7 +166,7 @@ export class JuliaKernel {
                 this.notebook.uri.scheme === 'file' &&
                 vscode.workspace.getWorkspaceFolder(this.notebook.uri) !== undefined
             ) {
-                let currentFolder = path.dirname(this.notebook.uri.fsPath)
+                let currentFolder = path.dirname(vscode.Uri.parse(this.notebook.uri.toString()).fsPath)
 
                 // We run this loop until we are looking at a folder that is no longer part of the workspace
                 while (
