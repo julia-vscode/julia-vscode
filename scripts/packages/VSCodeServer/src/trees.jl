@@ -277,8 +277,8 @@ function getvariables()
         !isdefined(M, n) && continue
         Base.isdeprecated(M, n) && continue
 
-        x = coalesce(getfield(M, n), nothing)
-        x in (
+        x = getfield(M, n)
+        x !== missing && x in (
             vscodedisplay,
             VSCodeServer,
             Main,
