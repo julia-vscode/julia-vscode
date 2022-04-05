@@ -278,7 +278,7 @@ function getvariables()
         Base.isdeprecated(M, n) && continue
 
         x = getfield(M, n)
-        x in (
+        x !== missing && x in (
             vscodedisplay,
             VSCodeServer,
             Main,
