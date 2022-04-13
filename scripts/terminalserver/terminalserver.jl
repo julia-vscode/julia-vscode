@@ -1,25 +1,15 @@
 # this script basially only handles `ARGS`
-
-pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
-try
-    using VSCodeServer
-catch err
-    local distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), "Distributed")
-    if haskey(Base.loaded_modules, distributed)
-        local Distributed = Base.loaded_modules[distributed]
-        if err isa CompositeException
-            local ex1 = first(err.exceptions)
-            if ex1 isa Distributed.RemoteException && ex1.pid == 1
-                rethrow()
-            end
-        else
-            rethrow()
-        end
+let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), "Distributed")
+    if haskey(Base.loaded_modules, distributed) && (Distributed = Base.loaded_modules[distributed]).nprocs() > 1
+        Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(pushfirst!(LOAD_PATH, joinpath($(@__DIR__), "..", "packages"))))
+        using VSCodeServer
+        Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(popfirst!(LOAD_PATH)))
     else
-        rethrow()
+        pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
+        using VSCodeServer
+        popfirst!(LOAD_PATH)
     end
 end
-popfirst!(LOAD_PATH)
 
 let
     args = [popfirst!(Base.ARGS) for _ in 1:6]
