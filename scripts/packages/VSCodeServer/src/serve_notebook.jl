@@ -124,6 +124,8 @@ function serve_notebook(pipename, outputchannel_logger; crashreporting_pipename:
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
+        msg_dispatcher[repl_gettabledata_request_type] = get_table_data
+        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
 
         Base.with_logger(outputchannel_logger) do
             @info "Julia Kernel started"
