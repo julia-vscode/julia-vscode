@@ -6,8 +6,6 @@ module RegistryQuery
 using Base: UUID, SHA1, TOML
 using Pkg
 
-include("../Tar/src/Tar.jl")
-
 function to_tar_path_format(file::AbstractString)
     @static if Sys.iswindows()
         file = replace(file, "\\" => "/")
@@ -102,7 +100,7 @@ function initialize_uncompressed!(pkg::PkgInfo, versions=keys(pkg.version_info))
     sort!(versions)
 
     uncompressed_compat = uncompress(pkg.compat, versions)
-    uncompressed_deps   = uncompress(pkg.deps,   versions)
+    uncompressed_deps = uncompress(pkg.deps, versions)
 
     for v in versions
         vinfo = pkg.version_info[v]
@@ -151,13 +149,13 @@ function init_package_info!(pkg::PkgEntry)
 
     # Versions.toml
     d_v = custom_isfile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Versions.toml")) ?
-        parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Versions.toml")) : Dict{String,Any}()
+          parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Versions.toml")) : Dict{String,Any}()
     version_info = Dict{VersionNumber,VersionInfo}(VersionNumber(k) =>
         VersionInfo(SHA1(v["git-tree-sha1"]::String), get(v, "yanked", false)::Bool) for (k, v) in d_v)
 
     # Compat.toml
     compat_data_toml = custom_isfile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Compat.toml")) ?
-        parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Compat.toml")) : Dict{String,Any}()
+                       parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Compat.toml")) : Dict{String,Any}()
     # The Compat.toml file might have string or vector values
     compat_data_toml = convert(Dict{String,Dict{String,Union{String,Vector{String}}}}, compat_data_toml)
     compat = Dict{Pkg.Types.VersionRange,Dict{String,Pkg.Types.VersionSpec}}()
@@ -169,12 +167,12 @@ function init_package_info!(pkg::PkgEntry)
 
     # Deps.toml
     deps_data_toml = custom_isfile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Deps.toml")) ?
-        parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Deps.toml")) : Dict{String,Any}()
+                     parsefile(pkg.in_memory_registry, pkg.registry_path, joinpath(pkg.path, "Deps.toml")) : Dict{String,Any}()
     # But the Deps.toml only have strings as values
     deps_data_toml = convert(Dict{String,Dict{String,String}}, deps_data_toml)
     deps = Dict{Pkg.Types.VersionRange,Dict{String,UUID}}()
     for (v, data) in deps_data_toml
-    vr = Pkg.Types.VersionRange(v)
+        vr = Pkg.Types.VersionRange(v)
         d = Dict{String,UUID}(dep => UUID(uuid) for (dep, uuid) in data)
         deps[vr] = d
     end
@@ -188,7 +186,7 @@ end
 
 
 function uncompress_registry(tar_gz::AbstractString)
-                if !isfile(tar_gz)
+    if !isfile(tar_gz)
         error("$(repr(tar_gz)): No such file")
     end
     data = Dict{String,String}()
@@ -274,18 +272,18 @@ function RegistryInstance(path::AbstractString)
         name = info["name"]::String
         pkgpath = info["path"]::String
         pkg = PkgEntry(pkgpath, path, name, uuid, in_memory_registry, nothing)
-    pkgs[uuid] = pkg
+        pkgs[uuid] = pkg
     end
     reg = RegistryInstance(
         path,
         d["name"]::String,
         UUID(d["uuid"]::String),
-get(d, "repo", nothing)::Union{String,Nothing},
+        get(d, "repo", nothing)::Union{String,Nothing},
         get(d, "description", nothing)::Union{String,Nothing},
         pkgs,
         tree_info,
         in_memory_registry,
-    Dict{String,UUID}(),
+        Dict{String,UUID}(),
     )
     if tree_info !== nothing
         REGISTRY_CACHE[path] = (tree_info, compressed_file !== nothing, reg)
@@ -317,11 +315,11 @@ function create_name_uuid_mapping!(r::RegistryInstance)
     for (uuid, pkg) in r.pkgs
         uuids = get!(Vector{UUID}, r.name_to_uuids, pkg.name)
         push!(uuids, pkg.uuid)
-            end
+    end
     return
 end
 
-        function registry_use_pkg_server()
+function registry_use_pkg_server()
     get(ENV, "JULIA_PKG_SERVER", nothing) !== ""
 end
 
@@ -376,14 +374,14 @@ function reachable_registries(; depots::Union{String,Vector{String}}=Base.DEPOT_
         end
 
         for candidate in candidate_registries
-    # candidate can be either a folder or a TOML file
-if isfile(joinpath(candidate, "Registry.toml")) || isfile(candidate)
+            # candidate can be either a folder or a TOML file
+            if isfile(joinpath(candidate, "Registry.toml")) || isfile(candidate)
                 push!(registries, RegistryInstance(candidate))
             end
         end
     end
     return registries
-    end
+end
 
 function get_pkg_info(r::RegistryInstance, uuid::Base.UUID)
     pkg = search_uuid(r, uuid)
@@ -440,7 +438,7 @@ function get_pkg_metadata(r::RegistryInstance, uuid::UUID)::PkgMetadata
     stdlib_module_from_uuid = get(stdlibs, uuid, nothing)
 
     if stdlib_module_from_uuid !== nothing
-        return  StdlibMoudleMetadata
+        return StdlibMoudleMetadata
     end
 
     info = get_pkg_info(r, uuid)

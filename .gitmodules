@@ -78,4 +78,7 @@
 	url = https://github.com/timholy/Revise.jl
 [submodule "scripts/packages/Tar"]
 	path = scripts/packages/Tar
-	url = https://github.com/JuliaIO/Tar.jl.git
+	url = https://github.com/AbdulrhmnGhanem/Tar.jl
+[submodule "scripts/packages/ArgTools"]
+	path = scripts/packages/ArgTools
+	url = https://github.com/AbdulrhmnGhanem/ArgTools.jl

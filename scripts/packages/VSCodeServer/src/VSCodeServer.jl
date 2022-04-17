@@ -88,6 +88,15 @@ include("profiler.jl")
 include("debugger.jl")
 include("notebookdisplay.jl")
 include("serve_notebook.jl")
+module ArgTools
+include("../../ArgTools/src/packagedef.jl")
+end
+
+module Tar
+import ..ArgTools
+include("../../Tar/src/packagedef.jl")
+end
+
 include("../../RegistryQuery/RegistryQuery.jl")
 include("verionslens.jl")
 
