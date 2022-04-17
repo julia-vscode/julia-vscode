@@ -94,8 +94,8 @@
         ],
         "commands": [
             {
-              "command": "language-julia.updateAllDependencies",
-              "title": "Julia: Update Dependencies"
+                "command": "language-julia.updateAllDependencies",
+                "title": "Julia: Update Dependencies"
             },
             {
                 "command": "language-julia.refreshLanguageServer",
@@ -529,7 +529,6 @@
                     "command": "language-julia.activateFromDir",
                     "group": "julia",
                     "when": "editorLangId == julia || editorLangId == juliamarkdown"
-
                 },
                 {
                     "command": "language-julia.versionsLensQueryRegistries",
@@ -1361,6 +1360,7 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
+        "@iarna/toml": "^2.2.5",
         "@traptitech/markdown-it-katex": "^3.5.0",
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
