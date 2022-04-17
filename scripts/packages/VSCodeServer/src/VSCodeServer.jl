@@ -28,7 +28,7 @@ function __init__()
     if VERSION >= v"1.4" && isdefined(InteractiveUtils, :EDITOR_CALLBACKS)
         pushfirst!(InteractiveUtils.EDITOR_CALLBACKS, function (cmd::Cmd, path::AbstractString, line::Integer)
             cmd == `code` || return false
-            JSONRPC.send(conn_endpoint[], repl_open_file_notification_type, (; path = String(path), line = Int(line)))
+            JSONRPC.send(conn_endpoint[], repl_open_file_notification_type, (; path=String(path), line=Int(line)))
             return true
         end)
     end
@@ -88,6 +88,7 @@ include("profiler.jl")
 include("debugger.jl")
 include("notebookdisplay.jl")
 include("serve_notebook.jl")
+include("../../RegistryQuery/RegistryQuery.jl")
 include("verionslens.jl")
 
 function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
@@ -102,7 +103,7 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     end
 end
 
-function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractString,Nothing} = nothing)
+function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
         hook_repl(Base.active_repl)
     end

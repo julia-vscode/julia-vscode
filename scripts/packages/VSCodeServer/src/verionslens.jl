@@ -1,6 +1,3 @@
-include("../../RegistryQuery/RegistryQuery.jl")
-
-
 JSONRPC.@dict_readable struct LensParams <: JSONRPC.Outbound
     name::String
     uuid::String
@@ -24,7 +21,7 @@ function lens_request(conn, params::LensParams)
             uuid = RegistryQuery.uuids_from_name(registry, params.name)[1]
         end
 
-        metadata =  RegistryQuery.get_pkg_metadata(registry, uuid)
+        metadata = RegistryQuery.get_pkg_metadata(registry, uuid)
         # If the pakcage is knwown, return, i.e., don't query other registries.
         if metadata !== RegistryQuery.UnknownPkgMetadata
             return LensResponse(metadata)
