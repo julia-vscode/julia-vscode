@@ -97,7 +97,7 @@ import ..ArgTools
 include("../../Tar/src/packagedef.jl")
 end
 
-include("../../RegistryQuery/RegistryQuery.jl")
+include("../../RegistryQuery/src/RegistryQuery.jl")
 include("verionslens.jl")
 
 function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
