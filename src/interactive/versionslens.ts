@@ -2,8 +2,10 @@ import * as toml from '@iarna/toml'
 import * as cp from 'child_process'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
+import * as vslc from 'vscode-languageclient/node'
+import * as packagepath from '../packagepath'
+import { onSetLanguageClient } from '../extension'
 import { registerCommand } from '../utils'
-import { g_connection as g_repl_connection, startREPL } from './repl'
 
 export function activate(context: vscode.ExtensionContext) {
     if (!vscode.workspace.getConfiguration('julia').get('versionsLens.enabled')) {
@@ -38,9 +40,9 @@ enum UpgradeLevel {
 namespace VersionLens {
     const projectTomlSelector = { pattern: '**/Project.toml', language: 'toml' }
 
-    const requestTypeLens = new rpc.RequestType<{ name: string, uuid: string }, {
+    const requestTypeLens = new rpc.RequestType<{ name: string, uuid: string, depotPath: Array<string> }, {
         latest_version: string, url: string, registry: string
-    }, void>('lens/pkgVersions')
+    }, void>('julia/pkgVersionLensRequest')
 
     const updatePackagesOutputChannel = vscode.window.createOutputChannel('Julia Update Packages')
 
@@ -50,6 +52,7 @@ namespace VersionLens {
     let g_juliaVersionLensRegistriesReady = false
     let g_juliaVersionLensRegistriesLoading = false
     let g_isUpdatingPackagesLock = false
+    let g_languageClient: vslc.LanguageClient = null
 
     /**
      * Register codelens, {@link updateAllDependenciesCommand}, {@link queryRegistriesCommand},
@@ -66,6 +69,9 @@ namespace VersionLens {
 
         context.subscriptions.push(registerCommand(updateAllDependenciesCommand, updateAllDependencies))
         context.subscriptions.push(registerCommand(queryRegistriesCommand, queryRegistries))
+        context.subscriptions.push(onSetLanguageClient(languageClient => {
+            g_languageClient = languageClient
+        }))
     }
 
     /**
@@ -268,9 +274,11 @@ namespace VersionLens {
     }
 
     async function queryRegistries() {
-        if (g_repl_connection === undefined) {
+        const languageClient = g_languageClient
+
+        if (languageClient === undefined) {
             g_juliaVersionLensRegistriesLoading = true
-            await startREPL(false)
+            await languageClient.onReady()
             g_juliaVersionLensRegistriesLoading = false
         }
 
@@ -371,6 +379,8 @@ namespace VersionLens {
     }
 
     async function sectionHover(key: ProjectTomlSection, depsRanges: [TomlDependency, vscode.Range][], position: vscode.Position) {
+        const languageClient = g_languageClient
+
         if (!(g_juliaVersionLensRegistriesLoading || g_juliaVersionLensRegistriesReady)) {
             for (const [_, range] of depsRanges) {
                 if (range.contains(position)) {
@@ -391,8 +401,8 @@ namespace VersionLens {
             for (const [dependency, range] of depsRanges) {
                 if (range.contains(position)) {
                     const depName = Object.keys(dependency)[0]
-                    const { latest_version, url, registry } = await g_repl_connection.sendRequest(
-                        requestTypeLens, { name: depName, uuid: dependency[depName] }
+                    const { latest_version, url, registry } = await languageClient.sendRequest(
+                        requestTypeLens, { name: depName, uuid: dependency[depName], depotPath: await packagepath.getPkgDepotPath() }
                     )
 
                     return new vscode.Hover(
