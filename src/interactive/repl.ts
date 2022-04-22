@@ -161,7 +161,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         let jlarg1: string[]
         const pkgenvpath = await jlpkgenv.getAbsEnvPath()
         if (pkgenvpath === null) {
-            jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
+            jlarg1 = ['-i', '--banner=yes'].concat(config.get('additionalArgs'))
         } else {
             const env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath)
 
@@ -177,7 +177,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                     vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
                 }
             }
-            jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(config.get('additionalArgs'))
+            jlarg1 = ['-i', '--banner=yes', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(config.get('additionalArgs'))
         }
 
         let shellPath: string, shellArgs: string[]
