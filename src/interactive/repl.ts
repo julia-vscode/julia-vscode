@@ -205,7 +205,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         // that option isn't available on pre 1.65 versions of VS Code,
         // so we cast the options to `any`
         g_terminal = vscode.window.createTerminal({
-            name: 'Julia REPL',
+            name: `Julia REPL (v${juliaExecutable.getVersion()})`,
             shellPath: shellPath,
             shellArgs: shellArgs,
             isTransient: true,
