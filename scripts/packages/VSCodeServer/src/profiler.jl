@@ -7,6 +7,12 @@ function view_profile(; C = false, kwargs...)
         threads = ["all"]
     end
     data = Profile.fetch()
+
+    if isempty(data)
+        Profile.warning_empty()
+        return
+    end
+
     lidict = Profile.getdict(unique(data))
     data_u64 = convert(Vector{UInt64}, data)
     for thread in threads
@@ -33,8 +39,9 @@ function stackframetree(data_u64, lidict; thread = nothing, combine = true, recu
     else
         root = Profile.tree!(root, data_u64, lidict, true, recur)
     end
-
-    root.count = sum(pr -> pr.second.count, root.down)
+    if !isempty(root.down)
+        root.count = sum(pr -> pr.second.count, root.down)
+    end
 
     return root
 end
