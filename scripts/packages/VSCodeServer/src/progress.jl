@@ -8,8 +8,6 @@ function Logging.handle_message(j::VSCodeLogger, level, message, _module,
         try
             JSONRPC.send_notification(conn_endpoint[], "repl/updateProgress", progress)
             JSONRPC.flush(conn_endpoint[])
-        catch err
-            # it's fine to drop this
         finally
             unlock(logger_lock)
         end
