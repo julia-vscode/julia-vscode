@@ -35,6 +35,9 @@ let g_watchedEnvironmentFile: string = null
 let g_startupNotification: vscode.StatusBarItem = null
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
 
+let g_traceOutputChannel: vscode.OutputChannel = null
+let g_outputChannel: vscode.OutputChannel = null
+
 export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b(\s*|\s*#.*)$)|(?:[^\[]*\].*)$).*$/
 export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
 
@@ -90,10 +93,14 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature))
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
 
-
-
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
+
+        context.subscriptions.push(registerCommand('language-julia.showLanguageServerOutput', () => {
+            if (g_languageClient) {
+                g_languageClient.outputChannel.show(true)
+            }
+        }))
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('symbolCacheDownload') === null) {
             vscode.window.showInformationMessage('The extension will now download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.', 'Open Settings').then(val => {
@@ -287,6 +294,12 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
     }
 
+    if (!g_outputChannel) {
+        g_outputChannel = vscode.window.createOutputChannel('Julia Language Server')
+    }
+    if (!g_traceOutputChannel) {
+        g_traceOutputChannel = vscode.window.createOutputChannel('Julia Language Server Trace')
+    }
 
     const clientOptions: LanguageClientOptions = {
         documentSelector: selector,
@@ -294,7 +307,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
-        traceOutputChannel: vscode.window.createOutputChannel('Julia Language Server trace'),
+        traceOutputChannel: g_traceOutputChannel,
+        outputChannel: g_outputChannel,
     }
 
     // Create the language client and start the client.
@@ -328,12 +342,6 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             }
         })
     }
-
-    g_context.subscriptions.push(registerCommand('language-julia.showLanguageServerOutput', () => {
-        if (g_languageClient) {
-            g_languageClient.outputChannel.show(true)
-        }
-    }))
 
     try {
         // Push the disposable to the context's subscriptions so that the  client can be deactivated on extension deactivation
