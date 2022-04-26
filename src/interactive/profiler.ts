@@ -1,5 +1,6 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
+import { readFile, writeFile } from 'fs/promises'
 import { registerCommand } from '../utils'
 import { openFile } from './results'
 
@@ -71,6 +72,9 @@ export class ProfilerFeature {
             }),
             registerCommand('language-julia.deleteAllProfiles', () => {
                 this.deleteAll()
+            }),
+            registerCommand('language-julia.saveProfileToFile', () => {
+                this.saveToFile()
             }),
             vscode.window.onDidChangeVisibleTextEditors((editors) =>
                 this.refreshInlineTrace(editors)
@@ -285,22 +289,24 @@ export class ProfilerFeature {
         this.show()
     }
 
+    profileViewerJSPath() {
+        return path.join(
+            this.context.extensionPath,
+            'libs',
+            'jl-profile',
+            'dist',
+            'profile-viewer.js'
+        )
+    }
+
     getContent() {
         const profilerURL = this.panel.webview.asWebviewUri(
-            vscode.Uri.file(
-                path.join(
-                    this.context.extensionPath,
-                    'libs',
-                    'jl-profile',
-                    'dist',
-                    'profile-viewer.js'
-                )
-            )
+            vscode.Uri.file(this.profileViewerJSPath())
         )
 
         return `
-        <html>
-        <head>
+        <!DOCTYPE html>
+        <html lang="en">
             <style>
             body {
                 width: 100vw;
@@ -387,6 +393,66 @@ export class ProfilerFeature {
         </body>
         </html>
         `
+    }
+
+    async saveToFile() {
+        if (this.profiles.length === 0 || !this.profiles[this.currentProfileIndex]) {
+            vscode.window.showErrorMessage('Not Profile trace recorded.')
+            return
+        }
+        let defaultUri = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0]?.uri : undefined
+        if (defaultUri) {
+            defaultUri = defaultUri.with({
+                path: defaultUri.path + '/profile.html'
+            })
+        }
+        const savePath = await vscode.window.showSaveDialog({
+            title: 'Save Profile Trace',
+            filters: {
+                'HTML': ['html']
+            },
+            defaultUri
+        })
+        if (!savePath) {
+            return
+        }
+        const jsProfileScript = await readFile(this.profileViewerJSPath())
+        const jsProfileDataUrl = 'data:text/javascript;base64,' + btoa(jsProfileScript.toString())
+        writeFile(savePath.fsPath, `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <title>Profile Trace</title>
+            <style>
+            #profiler-container {
+                margin: 0;
+                padding: 0;
+                width: 100vw;
+                height: 100vh;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100vw;
+                height: 100vh;
+                overflow: hidden;
+            }
+            </style>
+        </head>
+
+        <body>
+            <div id="profiler-container"></div>
+            <script type="text/javascript">
+                const container = document.getElementById("profiler-container");
+                import('${jsProfileDataUrl}').then(({ProfileViewer}) => {
+                    prof = new ProfileViewer(container);
+                    prof.setData(${JSON.stringify(this.profiles[this.currentProfileIndex])});
+                });
+            </script>
+        </body>
+        </html>
+        `)
     }
 
     previous() {
