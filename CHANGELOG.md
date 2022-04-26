@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.6.1] - 2022-03-10
 ### Added
+* `Hovers` and `Codelens` for `Prject.toml` ([##2373](https://github.com/julia-vscode/julia-vscode/pull/2373))o
 * "Always copy" option for "Connect to external REPL" command ([#2759](https://github.com/julia-vscode/julia-vscode/pull/2759))
 
 ### Changed

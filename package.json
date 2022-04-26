@@ -94,6 +94,10 @@
         ],
         "commands": [
             {
+                "command": "language-julia.updateAllDependencies",
+                "title": "Julia: Update Dependencies"
+            },
+            {
                 "command": "language-julia.refreshLanguageServer",
                 "title": "Julia: Re-Index Language Server Cache"
             },
@@ -411,6 +415,11 @@
                 "command": "language-julia.stopKernel",
                 "title": "Stop",
                 "icon": "$(debug-stop)"
+            },
+            {
+                "command": "language-julia.versionsLensQueryRegistries",
+                "title": "Query Registries for Packages Information",
+                "icon": "$(versions)"
             }
         ],
         "menus": {
@@ -520,6 +529,11 @@
                     "command": "language-julia.activateFromDir",
                     "group": "julia",
                     "when": "editorLangId == julia || editorLangId == juliamarkdown"
+                },
+                {
+                    "command": "language-julia.versionsLensQueryRegistries",
+                    "when": "resourceFilename == Project.toml",
+                    "group": "navigation@-1"
                 }
             ],
             "editor/title/run": [
@@ -802,6 +816,12 @@
             "type": "object",
             "title": "Julia",
             "properties": {
+                "julia.versionsLens.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Packages information for Project.toml files, require window reload.",
+                    "scope": "resource"
+                },
                 "julia.executablePath": {
                     "type": "string",
                     "default": "",
@@ -1340,6 +1360,7 @@
         "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
     },
     "dependencies": {
+        "@iarna/toml": "^2.2.5",
         "@traptitech/markdown-it-katex": "^3.5.0",
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
