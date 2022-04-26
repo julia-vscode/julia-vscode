@@ -94,6 +94,10 @@
         ],
         "commands": [
             {
+                "command": "language-julia.newJuliaFile",
+                "title": "Julia: New Julia File"
+            },
+            {
                 "command": "language-julia.refreshLanguageServer",
                 "title": "Julia: Re-Index Language Server Cache"
             },
@@ -421,6 +425,10 @@
         "menus": {
             "explorer/context": [
                 {
+                    "command": "language-julia.newJuliaFile",
+                    "group": "julia"
+                },
+                {
                     "when": "resourceLangId == julia",
                     "command": "language-julia.executeFile",
                     "group": "julia"
@@ -718,6 +726,10 @@
                 "command": "language-julia.chooseModule",
                 "key": "Alt+J Alt+M",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+            },
+            {
+                "command": "language-julia.newJuliaFile",
+                "key": "Alt+J Alt+N"
             },
             {
                 "command": "language-julia.startREPL",
