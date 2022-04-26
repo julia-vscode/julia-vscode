@@ -18,7 +18,7 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
         result = try
             Base.invokelatest(include_string, args...)
         catch err
-            bt = catch_backtrace()
+            bt = crop_backtrace(catch_backtrace())
 
             if err isa LoadError
                 inner_err = err.error
@@ -49,7 +49,7 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
                 error_type = string(typeof(err))
 
                 try
-                    bt = catch_backtrace()
+                    bt = crop_backtrace(catch_backtrace())
 
                     error_message_str = Base.invokelatest(sprint, showerror, err)
                     traceback = Base.invokelatest(sprint, Base.show_backtrace, bt)
@@ -124,6 +124,8 @@ function serve_notebook(pipename, outputchannel_logger; crashreporting_pipename:
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
+        msg_dispatcher[repl_gettabledata_request_type] = get_table_data
+        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
 
         Base.with_logger(outputchannel_logger) do
             @info "Julia Kernel started"

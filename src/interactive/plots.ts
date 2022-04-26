@@ -5,6 +5,7 @@ import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
 import { registerCommand } from '../utils'
 import { displayTable } from './tables'
+import { JuliaKernel } from '../notebook/notebookKernel'
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
@@ -412,7 +413,7 @@ function wrapImagelike(srcString: string) {
     </html>`
 }
 
-export function displayPlot(params: { kind: string, data: string }) {
+export function displayPlot(params: { kind: string, data: string }, kernel?: JuliaKernel) {
     const kind = params.kind
     const payload = params.data
 
@@ -717,10 +718,10 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.dataresource+json') {
-        return displayTable(payload, g_context, false)
+        return displayTable(payload, g_context, false, kernel)
     }
     else if (kind === 'application/vnd.dataresource+lazy') {
-        return displayTable(payload, g_context, true)
+        return displayTable(payload, g_context, true, kernel)
     }
     else {
         throw new Error()

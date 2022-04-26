@@ -97,8 +97,8 @@ function add_code_to_repl_history(code)
 end
 
 ans = nothing
-function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
-    return run_with_backend() do
+function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
+    run_with_backend() do
         fix_displays()
 
         source_filename = params.filename
@@ -117,10 +117,12 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
         show_code = params.showCodeInREPL
         show_result = params.showResultInREPL
         show_error = params.showErrorInREPL
+        try
+            JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+        catch err
+            @debug "Could not send repl/starteval notification."
+        end
 
-        JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
-
-        rendered_result = nothing
         f = () -> hideprompt() do
             revise()
 
@@ -150,7 +152,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                 end
             end
 
-            withpath(source_filename) do
+            return withpath(source_filename) do
                 res = try
                     global ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
                     @eval Main ans = Main.VSCodeServer.ans
@@ -163,7 +165,11 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                         EvalError(err, catch_backtrace())
                     end
                 finally
-                    JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+                    try
+                        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+                    catch err
+                        @debug "Could not send repl/finisheval notification."
+                    end
                 end
 
                 if show_error && res isa EvalError || res isa EvalErrorStack
@@ -195,12 +201,11 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     res = nothing
                 end
 
-                rendered_result = safe_render(res)
+                return safe_render(res)
             end
         end
-        PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
 
-        return rendered_result
+        return PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
     end
 end
 
@@ -320,11 +325,6 @@ function Base.display_error(io::IO, err::EvalErrorStack)
     catch err
         @error "Error trying to display an error."
     end
-end
-
-function crop_backtrace(bt)
-    i = find_first_topelevel_scope(bt)
-    return bt[1:(i === nothing ? end : i)]
 end
 
 function remove_kw_wrappers!(st::StackTraces.StackTrace)

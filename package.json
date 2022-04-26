@@ -66,7 +66,7 @@
         "onView:julia-explorer.REPLVariables",
         "onView:julia-explorer.julia-documentation",
         "onView:julia-explorer.julia-plot-navigator",
-        "workspaceContains:**/*.jl"
+        "workspaceContains:Project.toml"
     ],
     "main": "./dist/extension",
     "contributes": {
@@ -211,6 +211,11 @@
                 "title": "Julia: Delete All Profiles"
             },
             {
+                "command": "language-julia.saveProfileToFile",
+                "title": "Julia: Save Profile",
+                "icon": "$(save)"
+            },
+            {
                 "command": "language-julia.show-plot-navigator",
                 "title": "Julia: Show Plot Navigator"
             },
@@ -269,7 +274,7 @@
             {
                 "command": "language-julia.save-plot",
                 "title": "Julia: Save Plot",
-                "icon": "$(save-as)"
+                "icon": "$(save)"
             },
             {
                 "command": "language-julia.plotpane-delete-all",
@@ -446,6 +451,11 @@
                     "command": "language-julia.browse-forward-documentation",
                     "when": "juliaDocumentationPaneActive",
                     "group": "navigation@-1"
+                },
+                {
+                    "when": "jlProfilerFocus",
+                    "command": "language-julia.saveProfileToFile",
+                    "group": "navigation@1"
                 },
                 {
                     "when": "jlProfilerFocus",
