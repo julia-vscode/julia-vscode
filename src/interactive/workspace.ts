@@ -215,7 +215,7 @@ export class WorkspaceFeature {
         this._NotebokNodes.push(node)
         kernel.onCellRunFinished((e) => node.updateReplVariables())
         kernel.onConnected((e) => {
-            kernel._msgConnection.onNotification(notifyTypeDisplay, displayPlot)
+            kernel._msgConnection.onNotification(notifyTypeDisplay, (params) => displayPlot(params, kernel))
             node.updateReplVariables()
         })
         kernel.onStopped((e) => {
