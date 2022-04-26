@@ -1,10 +1,16 @@
 struct VSCodeLogger <: Logging.AbstractLogger end
 
+const logger_lock = ReentrantLock()
 function Logging.handle_message(j::VSCodeLogger, level, message, _module,
     group, id, file, line; kwargs...)
     isprogress = try_process_progress(level, message, _module, group, id, file, line; kwargs...) do progress
-        JSONRPC.send_notification(conn_endpoint[], "repl/updateProgress", progress)
-        JSONRPC.flush(conn_endpoint[])
+        lock(logger_lock)
+        try
+            JSONRPC.send_notification(conn_endpoint[], "repl/updateProgress", progress)
+            JSONRPC.flush(conn_endpoint[])
+        finally
+            unlock(logger_lock)
+        end
     end isa Some
 
     if isprogress
