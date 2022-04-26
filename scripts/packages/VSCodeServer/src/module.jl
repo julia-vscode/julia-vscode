@@ -1,6 +1,6 @@
 repl_loadedModules_request(conn, params::Nothing) = string.(collect(get_modules()))
 
-repl_isModuleLoaded_request(conn, params::String) = is_module_loaded(params)
+repl_isModuleLoaded_request(conn, params::NamedTuple{(:mod,),Tuple{String}}) = is_module_loaded(params.mod)
 
 function module_from_string(mod)
     ms = split(mod, '.')
@@ -31,13 +31,13 @@ end
 
 is_module_loaded(mod) = mod == "Main" || module_from_string(mod) !== Main
 
-function get_modules(toplevel=nothing, mods=Set(Module[]))
+function get_modules(toplevel = nothing, mods = Set(Module[]))
     top_mods = toplevel === nothing ? Base.loaded_modules_array() : [toplevel]
 
     for mod in top_mods
         push!(mods, mod)
 
-        for name in names(mod, all=true)
+        for name in names(mod, all = true)
             if !Base.isdeprecated(mod, name) && isdefined(mod, name)
                 thismod = getfield(mod, name)
                 if thismod isa Module && thismod !== mod && !(thismod in mods)

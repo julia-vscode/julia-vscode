@@ -1,18 +1,32 @@
 import * as assert from 'assert'
-import { after } from 'mocha'
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
-import * as vscode from 'vscode'
+import * as ext from '../../extension'
 
-// import * as myExtension from '../extension';
 
-suite('Extension Test Suite', () => {
-    after(() => {
-        vscode.window.showInformationMessage('All tests done!')
+suite('Indentation', () => {
+    test('functions', () => {
+        assert.strictEqual(ext.increaseIndentPattern.test('function f()'), true)
     })
 
-    test('Sample test', () => {
-        assert.equal(-1, [1, 2, 3].indexOf(5))
-        assert.equal(-1, [1, 2, 3].indexOf(0))
+    test('for loops', () => {
+        // Should indent next line
+        assert.strictEqual(ext.increaseIndentPattern.test('for i = 1:5'), true)
+        assert.strictEqual(ext.increaseIndentPattern.test('  for i = 1:5'), true)
+        assert.strictEqual(ext.increaseIndentPattern.test('for i = 1:inds[end]'), true)
+        assert.strictEqual(ext.increaseIndentPattern.test('for i in inds[2:end]'), true)
+        assert.strictEqual(ext.increaseIndentPattern.test('for i = 1:inds[end ]'), true)
+        assert.strictEqual(ext.increaseIndentPattern.test('for i = 1:inds[end] '), true)
+        assert.strictEqual(ext.increaseIndentPattern.test('for i = 1:inds[end]  # comment'), true)
+
+        // Should not indent next line
+        assert.strictEqual(ext.increaseIndentPattern.test('for i = 1:5; end'), false)
+        assert.strictEqual(ext.increaseIndentPattern.test('for i = 1:inds[end]; end'), false)
+        assert.strictEqual(ext.increaseIndentPattern.test('for i in inds[2:end]; end'), false)
+        assert.strictEqual(ext.increaseIndentPattern.test('for i = 1:5; end '), false)
+        assert.strictEqual(ext.increaseIndentPattern.test('for i = 1:5; end  # comment'), false)
+        assert.strictEqual(ext.increaseIndentPattern.test('  for i = 1:5; end  # comment'), false)
+    })
+
+    test('end', () => {
+        assert.strictEqual(ext.decreaseIndentPattern.test('    end'), true)
     })
 })

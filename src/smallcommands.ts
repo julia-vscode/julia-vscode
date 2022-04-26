@@ -2,6 +2,7 @@ import * as fs from 'async-file'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 
 function toggleLinter() {
     telemetry.traceEvent('command-togglelinter')

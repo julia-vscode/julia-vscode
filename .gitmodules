@@ -1,45 +1,78 @@
-[submodule "scripts/languageserver/packages/JSON"]
+[submodule "scripts/packages/JSON"]
 	path = scripts/packages/JSON
 	url = https://github.com/JuliaIO/JSON.jl.git
-[submodule "scripts/languageserver/packages/LanguageServer"]
+[submodule "scripts/packages/LanguageServer"]
 	path = scripts/packages/LanguageServer
 	url = https://github.com/julia-vscode/LanguageServer.jl.git
-[submodule "scripts/languageserver/packages/URIParser"]
+[submodule "scripts/packages/URIParser"]
 	path = scripts/packages/URIParser
 	url = https://github.com/JuliaWeb/URIParser.jl.git
-[submodule "scripts/languageserver/packages/CSTParser"]
+[submodule "scripts/packages/CSTParser"]
 	path = scripts/packages/CSTParser
 	url = https://github.com/julia-vscode/CSTParser.jl.git
-[submodule "scripts/languageserver/packages/Tokenize"]
+[submodule "scripts/packages/Tokenize"]
 	path = scripts/packages/Tokenize
 	url = https://github.com/JuliaLang/Tokenize.jl.git
-[submodule "scripts/languageserver/packages/DocumentFormat"]
-	path = scripts/packages/DocumentFormat
-	url = https://github.com/julia-vscode/DocumentFormat.jl
-[submodule "scripts/languageserver/packages/StaticLint"]
+[submodule "scripts/packages/StaticLint"]
 	path = scripts/packages/StaticLint
 	url = https://github.com/julia-vscode/StaticLint.jl
-[submodule "scripts/languageserver/packages/SymbolServer"]
+[submodule "scripts/packages/SymbolServer"]
 	path = scripts/packages/SymbolServer
 	url = https://github.com/julia-vscode/SymbolServer.jl.git
-[submodule "scripts/languageserver/packages/FilePathsBase"]
+[submodule "scripts/packages/FilePathsBase"]
 	path = scripts/packages/FilePathsBase
 	url = https://github.com/rofinn/FilePathsBase.jl.git
-[submodule "scripts/debugger/packages/JuliaInterpreter"]
+[submodule "scripts/packages/JuliaInterpreter"]
 	path = scripts/packages/JuliaInterpreter
 	url = https://github.com/JuliaDebug/JuliaInterpreter.jl.git
-[submodule "scripts/debugger/packages/CodeTracking"]
+[submodule "scripts/packages/CodeTracking"]
 	path = scripts/packages/CodeTracking
 	url = https://github.com/timholy/CodeTracking.jl.git
-[submodule "scripts/tasks/sysimageenv/PackageCompiler"]
+[submodule "scripts/packages/PackageCompiler"]
 	path = scripts/packages/PackageCompiler
 	url = https://github.com/JuliaLang/PackageCompiler.jl.git
 [submodule "scripts/packages/JSONRPC"]
 	path = scripts/packages/JSONRPC
 	url = https://github.com/julia-vscode/JSONRPC.jl.git
-[submodule "scripts/packages/ChromeProfileFormat"]
-	path = scripts/packages/ChromeProfileFormat
-	url = https://github.com/julia-vscode/ChromeProfileFormat.jl.git
 [submodule "scripts/packages/DebugAdapter"]
 	path = scripts/packages/DebugAdapter
 	url = https://github.com/julia-vscode/DebugAdapter.jl.git
+[submodule "scripts/packages/LoweredCodeUtils"]
+	path = scripts/packages/LoweredCodeUtils
+	url = https://github.com/JuliaDebug/LoweredCodeUtils.jl.git
+[submodule "scripts/packages/OrderedCollections"]
+	path = scripts/packages/OrderedCollections
+	url = https://github.com/JuliaCollections/OrderedCollections.jl.git
+[submodule "scripts/packages/CoverageTools"]
+	path = scripts/packages/CoverageTools
+	url = https://github.com/JuliaCI/CoverageTools.jl.git
+[submodule "scripts/packages/IJuliaCore"]
+	path = scripts/packages/IJuliaCore
+	url = https://github.com/JuliaLang/IJuliaCore.jl.git
+[submodule "scripts/packages/Crayons"]
+	path = scripts/packages/Crayons
+	url = https://github.com/KristofferC/Crayons.jl.git
+[submodule "scripts/packages/DataStructures"]
+	path = scripts/packages/DataStructures
+	url = https://github.com/JuliaCollections/DataStructures.jl.git
+[submodule "scripts/packages/CommonMark"]
+	path = scripts/packages/CommonMark
+	url = https://github.com/MichaelHatherly/CommonMark.jl.git
+[submodule "scripts/packages/JuliaFormatter"]
+	path = scripts/packages/JuliaFormatter
+	url = https://github.com/domluna/JuliaFormatter.jl.git
+[submodule "scripts/packages/Compat"]
+	path = scripts/packages/Compat
+	url = https://github.com/JuliaLang/Compat.jl.git
+[submodule "scripts/packages/URIs"]
+	path = scripts/packages/URIs
+	url = https://github.com/JuliaWeb/URIs.jl.git
+[submodule "libs/jl-profile"]
+	path = libs/jl-profile
+	url = https://github.com/pfitzseb/jl-profile.js.git
+[submodule "scripts/packages-old/JuliaInterpreter"]
+	path = scripts/packages-old/JuliaInterpreter
+	url = https://github.com/JuliaDebug/JuliaInterpreter.jl.git
+[submodule "scripts/packages/Revise"]
+	path = scripts/packages/Revise
+	url = https://github.com/timholy/Revise.jl

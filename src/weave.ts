@@ -2,11 +2,12 @@ import * as fs from 'async-file'
 import { ChildProcess, spawn } from 'child_process'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import * as juliaexepath from './juliaexepath'
+import * as jlpkgenv from './jlpkgenv'
+import { JuliaExecutablesFeature } from './juliaexepath'
 import * as telemetry from './telemetry'
+import { registerCommand } from './utils'
 
 const tempfs = require('promised-temp').track()
-const kill = require('async-child-process').kill
 
 let g_context: vscode.ExtensionContext = null
 
@@ -14,6 +15,8 @@ let g_lastWeaveContent: string = null
 let g_weaveOutputChannel: vscode.OutputChannel = null
 let g_weaveChildProcess: ChildProcess = null
 let g_weaveNextChildProcess: ChildProcess = null
+
+let g_juliaExecutablesFeature: JuliaExecutablesFeature
 
 async function weave_core(column, selected_format: string = undefined) {
     let source_filename: string
@@ -27,7 +30,9 @@ async function weave_core(column, selected_format: string = undefined) {
 
         await fs.writeTextFile(source_filename, source_text, 'utf8')
 
-        output_filename = path.join(temporary_dirname, 'output-file.html')
+        // note that there is a bug in Weave.jl right now that does not support the option
+        // out_path properly. The output file will therefore always have the format [input-file].html
+        output_filename = path.join(temporary_dirname, 'source-file.html')
     }
     else {
         source_filename = vscode.window.activeTextEditor.document.fileName
@@ -35,23 +40,32 @@ async function weave_core(column, selected_format: string = undefined) {
     }
 
     if (g_weaveOutputChannel === null) {
-        g_weaveOutputChannel = vscode.window.createOutputChannel('julia Weave')
+        g_weaveOutputChannel = vscode.window.createOutputChannel('Julia Weave')
     }
     g_weaveOutputChannel.clear()
     g_weaveOutputChannel.show(true)
 
     if (g_weaveChildProcess !== null) {
         try {
-            await kill(g_weaveChildProcess)
+            g_weaveChildProcess.kill()
         }
         catch (e) {
         }
     }
 
-    const jlexepath = await juliaexepath.getJuliaExePath()
+    const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+    const pkgenvpath = await jlpkgenv.getAbsEnvPath()
+
+    const args = [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]
+
+    if (pkgenvpath) {
+        args.unshift(`--project=${pkgenvpath}`)
+    }
+
+    console.log(args)
 
     if (g_weaveNextChildProcess === null) {
-        g_weaveNextChildProcess = spawn(jlexepath, [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')])
+        g_weaveNextChildProcess = spawn(juliaExecutable.file, [...juliaExecutable.args, ...args])
     }
     g_weaveChildProcess = g_weaveNextChildProcess
 
@@ -66,7 +80,7 @@ async function weave_core(column, selected_format: string = undefined) {
         g_weaveOutputChannel.append(String('Weaving ' + source_filename + ' to ' + output_filename + '\n'))
     }
 
-    g_weaveNextChildProcess = spawn(jlexepath, [path.join(g_context.extensionPath, 'scripts', 'weave', 'run_weave.jl')])
+    g_weaveNextChildProcess = spawn(juliaExecutable.file, [...juliaExecutable.args, ...args])
 
     g_weaveChildProcess.stdout.on('data', function (data) {
         g_weaveOutputChannel.append(String(data))
@@ -157,10 +171,11 @@ async function save() {
     }
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature) {
     g_context = context
+    g_juliaExecutablesFeature = juliaExecutablesFeature
 
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview', open_preview))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-open-preview-side', open_preview_side))
-    context.subscriptions.push(vscode.commands.registerCommand('language-julia.weave-save', save))
+    context.subscriptions.push(registerCommand('language-julia.weave-open-preview', open_preview))
+    context.subscriptions.push(registerCommand('language-julia.weave-open-preview-side', open_preview_side))
+    context.subscriptions.push(registerCommand('language-julia.weave-save', save))
 }

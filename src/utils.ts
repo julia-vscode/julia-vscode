@@ -1,6 +1,21 @@
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
+import * as vslc from 'vscode-languageclient'
+import { VersionedTextDocumentPositionParams } from './interactive/misc'
+import { handleNewCrashReportFromException } from './telemetry'
+
+export function constructCommandString(cmd: string, args: any = {}) {
+    return `command:${cmd}?${encodeURIComponent(JSON.stringify(args))}`
+}
+
+export function getVersionedParamsAtPosition(document: vscode.TextDocument, position: vscode.Position): VersionedTextDocumentPositionParams {
+    return {
+        textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
+        version: document.version,
+        position
+    }
+}
 
 export function setContext(contextKey: string, state: boolean) {
     vscode.commands.executeCommand('setContext', contextKey, state)
@@ -31,7 +46,7 @@ export function generatePipeName(pid: string, name: string) {
  * @returns A string to set the value of `JULIA_NUM_THREADS`
  */
 export function inferJuliaNumThreads(): string {
-    const config: number | undefined = vscode.workspace.getConfiguration('julia').get('NumThreads') ?? undefined
+    const config: number | string | undefined = vscode.workspace.getConfiguration('julia').get('NumThreads') ?? undefined
     const env: string | undefined = process.env['JULIA_NUM_THREADS']
 
     if (config !== undefined) {
@@ -43,4 +58,33 @@ export function inferJuliaNumThreads(): string {
     else {
         return ''
     }
+}
+
+/**
+ * Same as `vscode.commands.registerCommand`, but with added middleware.
+ * Currently sends any uncaught errors in the command to crash reporting.
+ */
+export function registerCommand(cmd: string, f) {
+    const fWrapped = (...args) => {
+        try {
+            return f(...args)
+        } catch (err) {
+            handleNewCrashReportFromException(err, 'Extension')
+            throw (err)
+        }
+    }
+    return vscode.commands.registerCommand(cmd, fWrapped)
+}
+
+export function resolvePath(p: string, normalize: boolean = true) {
+    p = parseEnvVariables(p)
+    p = p.replace(/^~/, os.homedir())
+    p = normalize ? path.normalize(p) : p
+    return p
+}
+
+function parseEnvVariables(p: string) {
+    return p.replace(/\${env:(.*?)}/g, (_, variable) => {
+        return process.env[variable] || ''
+    })
 }
