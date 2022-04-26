@@ -729,7 +729,7 @@
             },
             {
                 "command": "language-julia.newJuliaFile",
-                "key": "Alt+J Alt+F"
+                "key": "Alt+J Alt+N"
             },
             {
                 "command": "language-julia.startREPL",
