@@ -327,11 +327,6 @@ function Base.display_error(io::IO, err::EvalErrorStack)
     end
 end
 
-function crop_backtrace(bt)
-    i = find_first_topelevel_scope(bt)
-    return bt[1:(i === nothing ? end : i)]
-end
-
 function remove_kw_wrappers!(st::StackTraces.StackTrace)
     filter!(st) do frame
         fname = string(frame.func)

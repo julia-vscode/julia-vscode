@@ -3,6 +3,10 @@ import InteractiveUtils: @which
 
 # error handling
 # --------------
+function crop_backtrace(bt)
+    i = find_first_topelevel_scope(bt)
+    return bt[1:(i === nothing ? end : i)]
+end
 
 function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}})
     for (i, ip) in enumerate(bt)

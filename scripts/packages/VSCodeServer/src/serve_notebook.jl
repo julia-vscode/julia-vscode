@@ -18,7 +18,7 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
         result = try
             Base.invokelatest(include_string, args...)
         catch err
-            bt = catch_backtrace()
+            bt = crop_backtrace(catch_backtrace())
 
             if err isa LoadError
                 inner_err = err.error
@@ -49,7 +49,7 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
                 error_type = string(typeof(err))
 
                 try
-                    bt = catch_backtrace()
+                    bt = crop_backtrace(catch_backtrace())
 
                     error_message_str = Base.invokelatest(sprint, showerror, err)
                     traceback = Base.invokelatest(sprint, Base.show_backtrace, bt)
