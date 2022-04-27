@@ -639,7 +639,7 @@ async function executeFile(uri?: vscode.Uri | string) {
     )
 }
 
-async function getBlockRange(params: VersionedTextDocumentPositionParams) {
+async function getBlockRange(params: VersionedTextDocumentPositionParams): Promise<vscode.Position[]> {
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
@@ -648,7 +648,7 @@ async function getBlockRange(params: VersionedTextDocumentPositionParams) {
         return zeroReturn
     }
     try {
-        return await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)
+        return (await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(pos => new vscode.Position(pos.line, pos.character))
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err.message)
@@ -781,7 +781,6 @@ async function executeCell(shouldMove: boolean = false) {
     if (cellrange === null) {
         return
     }
-    const code = doc.getText(cellrange)
 
     const module: string = await modules.getModuleForEditor(ed.document, cellrange.start)
 
@@ -792,11 +791,29 @@ async function executeCell(shouldMove: boolean = false) {
         const nextpos = new vscode.Position(nextCellBorder(doc, cellrange.end.line + 1, true, isJmd) + 1, 0)
         validateMoveAndReveal(ed, nextpos, nextpos)
     }
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation') === true) {
+        let currentPos: vscode.Position = ed.document.validatePosition(new vscode.Position(cellrange.start.line , cellrange.start.character))
+        while (currentPos.line <= cellrange.end.line) {
+            const [startPos, endPos, nextPos] = await getBlockRange(getVersionedParamsAtPosition(ed.document, currentPos))
+            const lineEndPos = ed.document.validatePosition(new vscode.Position(endPos.line, Infinity))
+            const curRange = new vscode.Range(startPos, lineEndPos)
+            if (curRange.isEmpty) {
+                continue
+            }
+            currentPos = ed.document.validatePosition(nextPos)
+            const code = doc.getText(curRange)
 
-    const connection_available = await evaluate(ed, cellrange, code, module)
-
-    if (!connection_available) {
-        await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
+            const connection_available = await evaluate(ed, curRange, code, module)
+            if (!connection_available) {
+                await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
+            }
+        }
+    } else {
+        const code = doc.getText(cellrange)
+        const connection_available = await evaluate(ed, cellrange, code, module)
+        if (!connection_available) {
+            await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
+        }
     }
 }
 
@@ -818,15 +835,15 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     for (const selection of selections) {
         let range: vscode.Range = null
         let nextBlock: vscode.Position = null
-        const startpos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
-        const module: string = await modules.getModuleForEditor(editor.document, startpos)
+        const cursorPos: vscode.Position = editor.document.validatePosition(new vscode.Position(selection.start.line, selection.start.character))
+        const module: string = await modules.getModuleForEditor(editor.document, cursorPos)
 
         if (selection.isEmpty) {
-            const currentBlock = await getBlockRange(getVersionedParamsAtPosition(editor.document, startpos))
-            const blockStartPos = editor.document.validatePosition(new vscode.Position(currentBlock[0].line, currentBlock[0].character))
-            const lineEndPos = editor.document.validatePosition(new vscode.Position(currentBlock[1].line, Infinity))
+            const [startPos, endPos, nextPos] = await getBlockRange(getVersionedParamsAtPosition(editor.document, cursorPos))
+            const blockStartPos = editor.document.validatePosition(startPos)
+            const lineEndPos = editor.document.validatePosition(new vscode.Position(endPos.line, Infinity))
             range = new vscode.Range(blockStartPos, lineEndPos)
-            nextBlock = editor.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
+            nextBlock = editor.document.validatePosition(nextPos)
         } else {
             range = new vscode.Range(selection.start, selection.end)
         }

@@ -1066,6 +1066,12 @@
                     "scope": "window",
                     "markdownDescription": "Save file before execution"
                 },
+                "julia.execution.inlineResultsForCellEvaluation": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "window",
+                    "markdownDescription": "Show separate inline results for all code blocks in a cell"
+                },
                 "julia.packageServer": {
                     "type": "string",
                     "default": "",
