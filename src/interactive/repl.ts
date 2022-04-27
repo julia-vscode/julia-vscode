@@ -1097,8 +1097,8 @@ async function linkHandler(link: any) {
 
     if (file.startsWith('.')) {
         // Base file
-        const exepath = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
-        file = path.join(await exepath.getBaseRootFolderPathAsync(), file)
+        const exe = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        file = path.join(await exe.getBaseRootFolderPathAsync(), file)
     } else if (file.startsWith('~')) {
         file = path.join(homedir(), file.slice(1))
     }
