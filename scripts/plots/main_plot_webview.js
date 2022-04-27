@@ -229,7 +229,6 @@ function initPanZoom() {
 window.addEventListener('load', () => {
     removePlotlyBuiltinExport()
     initPanZoom()
-    postThumbnailToNavigator()
 })
 
 window.addEventListener('message', ({ data }) => {
@@ -244,5 +243,3 @@ window.addEventListener('message', ({ data }) => {
         console.error(new Error('Unknown plot request!'))
     }
 })
-
-const interval = setInterval(postThumbnailToNavigator, 1000)
