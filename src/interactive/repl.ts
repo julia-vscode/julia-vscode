@@ -639,7 +639,7 @@ async function executeFile(uri?: vscode.Uri | string) {
     )
 }
 
-async function getBlockRange(params: VersionedTextDocumentPositionParams) {
+async function getBlockRange(params: VersionedTextDocumentPositionParams): Promise<vscode.Position[]> {
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
@@ -648,7 +648,7 @@ async function getBlockRange(params: VersionedTextDocumentPositionParams) {
         return zeroReturn
     }
     try {
-        return await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)
+        return (await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(pos => new vscode.Position(pos.line, pos.character))
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             vscode.window.showErrorMessage(err.message)
@@ -782,7 +782,6 @@ async function executeCell(shouldMove: boolean = false) {
         return
     }
 
-
     const module: string = await modules.getModuleForEditor(ed.document, cellrange.start)
 
     await startREPL(true, false)
@@ -841,10 +840,10 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
         if (selection.isEmpty) {
             const [startPos, endPos, nextPos] = await getBlockRange(getVersionedParamsAtPosition(editor.document, cursorPos))
-            const blockStartPos = editor.document.validatePosition(new vscode.Position(startPos.line, startPos.character))
+            const blockStartPos = editor.document.validatePosition(startPos)
             const lineEndPos = editor.document.validatePosition(new vscode.Position(endPos.line, Infinity))
             range = new vscode.Range(blockStartPos, lineEndPos)
-            nextBlock = editor.document.validatePosition(new vscode.Position(nextPos.line, nextPos.character))
+            nextBlock = editor.document.validatePosition(nextPos)
         } else {
             range = new vscode.Range(selection.start, selection.end)
         }
