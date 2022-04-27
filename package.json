@@ -1066,11 +1066,11 @@
                     "scope": "window",
                     "markdownDescription": "Save file before execution"
                 },
-                "julia.execution.showLineResultsInCell": {
+                "julia.execution.inlineResultsForCellEvaluation": {
                     "type": "boolean",
                     "default": false,
                     "scope": "window",
-                    "markdownDescription": "Show all line results when evaluate cell rather than show only one at last"
+                    "markdownDescription": "Show separate inline results for all code blocks in a cell"
                 },
                 "julia.packageServer": {
                     "type": "string",
