@@ -1066,6 +1066,12 @@
                     "scope": "window",
                     "markdownDescription": "Save file before execution"
                 },
+                "julia.execution.showLineResultsInCell": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "window",
+                    "markdownDescription": "Show all line results when evaluate cell rather than show only one at last"
+                },
                 "julia.packageServer": {
                     "type": "string",
                     "default": "",

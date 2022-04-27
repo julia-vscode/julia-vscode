@@ -781,7 +781,7 @@ async function executeCell(shouldMove: boolean = false) {
     if (cellrange === null) {
         return
     }
-    const code = doc.getText(cellrange)
+
 
     const module: string = await modules.getModuleForEditor(ed.document, cellrange.start)
 
@@ -792,11 +792,29 @@ async function executeCell(shouldMove: boolean = false) {
         const nextpos = new vscode.Position(nextCellBorder(doc, cellrange.end.line + 1, true, isJmd) + 1, 0)
         validateMoveAndReveal(ed, nextpos, nextpos)
     }
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.showLineResultsInCell') === true) {
+        let startpos: vscode.Position = ed.document.validatePosition(new vscode.Position(cellrange.start.line , cellrange.start.character))
+        while (startpos.line <= cellrange.end.line) {
+            const currentBlock = await getBlockRange(getVersionedParamsAtPosition(ed.document, startpos))
+            const lineEndPos = ed.document.validatePosition(new vscode.Position(currentBlock[1].line, Infinity))
+            const curRange = new vscode.Range(startpos, lineEndPos)
+            if (curRange.isEmpty) {
+                continue
+            }
+            startpos = ed.document.validatePosition(new vscode.Position(currentBlock[2].line, currentBlock[2].character))
+            const code = doc.getText(curRange)
 
-    const connection_available = await evaluate(ed, cellrange, code, module)
-
-    if (!connection_available) {
-        await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
+            const connection_available = await evaluate(ed, curRange, code, module)
+            if (!connection_available) {
+                await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
+            }
+        }
+    } else {
+        const code = doc.getText(cellrange)
+        const connection_available = await evaluate(ed, cellrange, code, module)
+        if (!connection_available) {
+            await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
+        }
     }
 }
 
