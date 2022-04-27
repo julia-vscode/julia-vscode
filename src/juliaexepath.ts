@@ -45,7 +45,7 @@ export class JuliaExecutable {
                 ]
             )
 
-            this._baseRootFolderPath = path.normalize(path.join(result.stdout.toString().trim(), '..', '..', 'share', 'julia', 'base'))
+            this._baseRootFolderPath = path.normalize(path.join(result.stdout.toString().trim(), '..', 'share', 'julia', 'base'))
         }
 
         return this._baseRootFolderPath
