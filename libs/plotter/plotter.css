@@ -5,12 +5,18 @@ html.theme--plotter {
     font-size: var(--vscode-editor-font-size); }
     html.theme--plotter body .thumbnail {
       cursor: pointer;
-      text-align: center; }
+      text-align: left;
+      transition: background-color 0.1s;
+      padding: 0.2em; }
       html.theme--plotter body .thumbnail img {
         min-height: 50px;
         max-height: 150px;
         max-width: 100%;
         border: 1px black solid; }
+      html.theme--plotter body .thumbnail:hover {
+        background-color: var(--vscode-editor-background); }
+      html.theme--plotter body .thumbnail .float-right {
+        float: right; }
     html.theme--plotter body .content pre, html.theme--plotter body .content code {
       background-color: var(--vscode-editor-background);
       color: var(--vscode-editor-foreground); }
@@ -35,5 +41,3 @@ html.theme--plotter {
         outline: none; }
     html.theme--plotter body::selection {
       background-color: var(--vscode-list-hoverBackground); }
-
-/*# sourceMappingURL=plotter.css.map */

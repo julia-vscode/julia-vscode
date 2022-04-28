@@ -39,6 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 interface Plot {
     thumbnail_type: string;
     thumbnail_data: string;
+    time: Date;
 }
 
 class PlotNavigatorProvider implements vscode.WebviewViewProvider {
@@ -123,7 +124,10 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
             break
         default:
         case 'text': // This is a fallback which shows the index of the plot
-            thumbnailHTML = `<p class="thumbnail" onclick="toPlot(${index})">Plot ${index + 1} </p>`
+            thumbnailHTML = `<div class="thumbnail" onclick="toPlot(${index})">
+                Plot ${index + 1}
+                <small class="float-right">${plot.time.toLocaleTimeString()}</small>
+            </div>`
             break
         }
         return thumbnailHTML
@@ -241,6 +245,7 @@ function plotPanelOnMessage(msg) {
                 plotsInfo[g_currentPlotIndex] = {
                     thumbnail_type: 'image',
                     thumbnail_data: thumbnailData,
+                    time: new Date()
                 }
                 return plotsInfo
             })
@@ -453,7 +458,8 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
         g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
             plotsInfo.push({
                 thumbnail_type: 'text',
-                thumbnail_data: null
+                thumbnail_data: null,
+                time: new Date()
             })
             return plotsInfo
         })

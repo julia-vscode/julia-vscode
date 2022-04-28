@@ -25,6 +25,15 @@ html.theme--#{$themename} {
         max-width: 100%;
         border: 1px black solid;
       }
+      transition: background-color 0.1s;
+      &:hover {
+        background-color: var(--vscode-editor-background);
+      }
+      padding: 0.2em;
+
+      .float-right {
+        float: right;
+      }
     }
 
     .content {
