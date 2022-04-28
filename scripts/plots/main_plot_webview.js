@@ -21,19 +21,26 @@ function getPlotElement() {
     return canvas ?? plot_element
 }
 
+let isGenerating = false
 function postThumbnailToNavigator() {
     const plot = getPlotElement()
     const width = plot.offsetWidth
     const height = plot.offsetHeight
     if (width > 0 && height > 0) {
+        if (isGenerating) {
+            return
+        }
+        isGenerating = true
         html2canvas(plot, { height, width }).then(
             (canvas) => {
                 postMessageToHost('thumbnail', canvas.toDataURL('png'))
                 if (interval) {
                     clearInterval(interval)
                 }
+                isGenerating = false
             },
             (reason) => {
+                isGenerating = false
                 console.error('Error in generating thumbnail: ', reason)
             }
         )

@@ -168,7 +168,36 @@ function invalidator() {
 
 function getPlotPaneContent(webview: vscode.Webview) {
     if (g_plots.length === 0) {
-        return `<html></html>`
+        return `<html lang="en" style="padding:0;margin:0;">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Julia Plots</title>
+            <style>
+            body {
+                width: 100vw;
+                height: 100vh;
+            }
+            .logo {
+                width: 100%;
+                height: 100%;
+                opacity: 0.1;
+                background: var(--vscode-foreground);
+                -webkit-mask: url(${webview.asWebviewUri(
+        vscode.Uri.file(
+            path.join(
+                g_context.extensionPath,
+                'images',
+                'julia-dots.svg'
+            )
+        ))}) 50% 50% / 200px no-repeat;
+            }
+        </style>
+        </head>
+        <body style="padding:0;margin:0;">
+            <div class="logo"></div>
+        </body>
+        </html>`
     } else {
         const screenShotScript = `<script src="${webview.asWebviewUri(
             vscode.Uri.file(
@@ -400,9 +429,11 @@ function wrapImagelike(srcString: string) {
         svgTag = `<div id="plot-element">${svgTag}</div>`
     }
 
-    return `
-    <html style="padding:0;margin:0;">
+    return `<html lang="en" style="padding:0;margin:0;">
         <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Julia Plots</title>
             <style>
             ${plotElementStyle}
             </style>
@@ -410,7 +441,7 @@ function wrapImagelike(srcString: string) {
         <body style="padding:0;margin:0;">
             ${isSvg ? svgTag : `<img id= "plot-element" style = "max-height: 100vh; max-width: 100vw; display:block;" src = "${srcString}" >`}
         </body>
-    </html>`
+        </html>`
 }
 
 export function displayPlot(params: { kind: string, data: string }, kernel?: JuliaKernel) {
