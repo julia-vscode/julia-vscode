@@ -96,7 +96,6 @@ function add_code_to_repl_history(code)
     end
 end
 
-ans = nothing
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
     run_with_backend() do
         fix_displays()
@@ -154,8 +153,13 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
 
             return withpath(source_filename) do
                 res = try
-                    global ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
-                    @eval Main ans = Main.VSCodeServer.ans
+                    val = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
+                    @static if @isdefined setglobal!
+                        setglobal!(Main, :ans, val)
+                    else
+                        ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :ans, val)
+                    end
+                    val
                 catch err
                     @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
