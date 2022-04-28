@@ -96,6 +96,7 @@ function add_code_to_repl_history(code)
     end
 end
 
+CAN_SET_ANS = Ref{Bool}(true)
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
     run_with_backend() do
         fix_displays()
@@ -154,10 +155,16 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
             return withpath(source_filename) do
                 res = try
                     val = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
-                    @static if @isdefined setglobal!
-                        setglobal!(Main, :ans, val)
-                    else
-                        ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :ans, val)
+                    if CAN_SET_ANS[]
+                        try
+                            @static if @isdefined setglobal!
+                                setglobal!(Main, :ans, val)
+                            else
+                                ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :ans, val)
+                            end
+                        catch _
+                            CAN_SET_ANS[] = false
+                        end
                     end
                     val
                 catch err
