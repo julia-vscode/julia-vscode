@@ -81,24 +81,6 @@ html.theme--#{$themename} {
 
   @import "documenter/theme_overrides";
 
-  // .docstring {
-  //   border: $border-width solid $border;
-  //   box-shadow: none;
-  //
-  //   header {
-  //     box-shadow: none;
-  //     background-color: rgba($black-bis, 0.2);
-  //     border-radius: $radius $radius 0 0;
-  //   }
-  // }
-
-  // FIXME: Hack to get a proper theme for highlight.js in the Darkly theme
-  // @import "highlightjs/a11y-dark.scss";
-  // Also, a11y-dark does not highlight string interpolation properly.
-  // .hljs-subst {
-  //   color: #f8f8f2;
-  // }
-
   background-color: var(--vscode-sideBar-background)!important;
 
   body {
@@ -107,8 +89,13 @@ html.theme--#{$themename} {
 
     .content {
       pre, code {
-        background-color: var(--vscode-editor-background);
         color: var(--vscode-editor-foreground);
+      }
+      pre {
+        background-color: var(--vscode-editor-background);
+      }
+      strong {
+        color: var(--vscode-foreground)!important;
       }
 
       pre {

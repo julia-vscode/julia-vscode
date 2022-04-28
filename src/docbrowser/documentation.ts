@@ -195,7 +195,8 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
         <style>
         body {
-            word-break: break-all;
+            word-break: normal;
+            overflow-wrap: break-word;
         }
         body:active {
             outline: 1px solid var(--vscode-focusBorder);

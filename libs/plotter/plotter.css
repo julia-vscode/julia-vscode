@@ -5,7 +5,7 @@ html.theme--plotter {
     font-size: var(--vscode-editor-font-size); }
     html.theme--plotter body .thumbnail {
       cursor: pointer;
-      text-align: center; }
+      text-align: left; }
       html.theme--plotter body .thumbnail img {
         min-height: 50px;
         max-height: 150px;
