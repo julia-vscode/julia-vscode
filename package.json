@@ -60,6 +60,7 @@
         "onCommand:language-julia.activateHere",
         "onCommand:language-julia.activateFromDir",
         "onCommand:language-julia.tagNewPackageVersion",
+        "onCommand:language-julia.newJuliaFile",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "onNotebook:jupyter-notebook",
@@ -95,7 +96,8 @@
         "commands": [
             {
                 "command": "language-julia.newJuliaFile",
-                "title": "Julia: New Julia File"
+                "title": "Julia: New Julia File",
+                "shortTitle": "Julia File"
             },
             {
                 "command": "language-julia.refreshLanguageServer",
@@ -683,6 +685,12 @@
                 {
                     "command": "language-julia.stopKernel",
                     "when": "false"
+                }
+            ],
+            "file/newFile": [
+                {
+                    "command": "language-julia.newJuliaFile",
+                    "group": "file"
                 }
             ]
         },
