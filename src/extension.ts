@@ -293,6 +293,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             })
         }
     }
+    selector.push({scheme: 'file', pattern: '**/{Project,JuliaProject,Manifest,JuliaManifest}.toml'})
 
     if (!g_outputChannel) {
         g_outputChannel = vscode.window.createOutputChannel('Julia Language Server')
@@ -304,7 +305,10 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     const clientOptions: LanguageClientOptions = {
         documentSelector: selector,
         synchronize: {
-            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
+            fileEvents: [
+                vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}'),
+                vscode.workspace.createFileSystemWatcher('**/{Project,JuliaProject,Manifest,JuliaManifest}.toml'),
+            ]
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: g_traceOutputChannel,
