@@ -1377,6 +1377,8 @@
     },
     "dependencies": {
         "@traptitech/markdown-it-katex": "^3.5.0",
+        "@vscode/debugadapter": "^1.55.1",
+        "@vscode/debugprotocol": "^1.55.1",
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
@@ -1388,7 +1390,6 @@
         "source-map-support": "^0.5.21",
         "string-argv": "^0.3.1",
         "uuidv4": "^6.2.12",
-        "vscode-debugadapter": "^1.51.0",
         "vscode-jsonrpc": "^6.0.0",
         "vscode-languageclient": "^7.0.0",
         "which": "^2.0.2"

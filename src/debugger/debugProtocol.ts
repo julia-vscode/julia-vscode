@@ -1,4 +1,4 @@
-import { DebugProtocol } from 'vscode-debugprotocol'
+import { DebugProtocol } from '@vscode/debugprotocol'
 import { NotificationType, RequestType, RequestType0 } from 'vscode-jsonrpc'
 
 /** Arguments for 'disconnect' response. */
