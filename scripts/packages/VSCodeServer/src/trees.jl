@@ -266,10 +266,7 @@ end
 
 # workspace
 
-repl_getvariables_request(conn, params) = begin
-    @show params
-    Base.invokelatest(getvariables, params.modules)
-end
+repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}) =  Base.invokelatest(getvariables, params.modules)
 
 function getvariables(show_modules)
     M = Main

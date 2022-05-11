@@ -425,15 +425,11 @@
             },
             {
                 "command": "language-julia.showModules",
-                "title": "Julia: Show modules in Workspace",
-                "shortTitle": "Show modules",
-                "icon": "$(debug-stop)"
+                "title": "Show modules in Workspace"
             },
             {
                 "command": "language-julia.hideModules",
-                "title": "Julia: Hide modules in Workspace",
-                "shortTitle": "Hide modules",
-                "icon": "$(debug-restart)"
+                "title": "Hide modules in Workspace"
             }
         ],
         "menus": {
@@ -667,12 +663,12 @@
                 {
                     "command": "language-julia.showModules",
                     "when": "view == REPLVariables && julia.showingModules == false",
-                    "group": "navigation"
+                    "group": "menu"
                 },
                 {
                     "command": "language-julia.hideModules",
                     "when": "view == REPLVariables && julia.showingModules == true",
-                    "group": "navigation"
+                    "group": "menu"
                 }
             ],
             "editor/context": [
@@ -706,6 +702,14 @@
                 },
                 {
                     "command": "language-julia.stopKernel",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.showModules",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.hideModules",
                     "when": "false"
                 }
             ],
