@@ -10,6 +10,7 @@ interface ProfilerFrame {
     path: string;
     line: number;
     count: number;
+    countLabel?: number | string
     flags: number;
     children: ProfilerFrame[];
 }
@@ -19,6 +20,7 @@ interface InlineTraceElement {
     line: number;
     fraction: number;
     count: number;
+    countLabel?: number | string
     flags: number;
 }
 
@@ -104,17 +106,18 @@ export class ProfilerFeature {
         this.refreshInlineTrace(vscode.window.visibleTextEditors)
     }
 
-    buildInlineTraceElements(node: ProfilerFrame, parentCount: number) {
+    buildInlineTraceElements(node: ProfilerFrame, rootCount: number) {
         this.inlineTrace.push({
             path: node.path,
             line: node.line,
             count: node.count,
-            fraction: node.count / parentCount,
+            countLabel: node.countLabel,
+            fraction: node.count / rootCount,
             flags: node.flags,
         })
 
         for (const child of node.children) {
-            this.buildInlineTraceElements(child, node.count)
+            this.buildInlineTraceElements(child, rootCount)
         }
     }
 
@@ -139,27 +142,15 @@ export class ProfilerFeature {
                         edHighlights[uri] = {}
                     }
                     const line = Math.max(0, highlight.line - 1)
-                    const branchCount = (edHighlights[uri][line]?.branchCount ?? 0) + 1
                     const count = (edHighlights[uri][line]?.count ?? 0) + highlight.count
-                    const fraction =
-                        ((edHighlights[uri][line]?.fraction ?? 0) * (branchCount - 1) +
-                        highlight.fraction) /
-                        branchCount
+                    const fraction = (edHighlights[uri][line]?.fraction ?? 0) + highlight.fraction
                     const flags = (edHighlights[uri][line]?.flags ?? 0) | highlight.flags
 
-                    const hoverMessage =
-                        branchCount > 1
-                            ? `${count} samples (compound, ${branchCount} branches, on average ${(
-                                fraction * 100
-                            ).toFixed()} % of parent) ${flagString(flags)}`
-                            : `${count} samples (${(
-                                fraction * 100
-                            ).toFixed()} % of parent) ${flagString(flags)}`
+                    const hoverMessage = (highlight.countLabel || `${count} samples`).toString() + ` (${(fraction * 100).toFixed()}%) ${flagString(flags)}`
                     edHighlights[uri][line] = {
                         count,
                         fraction,
                         flags,
-                        branchCount,
                         range: new vscode.Range(
                             new vscode.Position(line, 0),
                             new vscode.Position(line, 0)

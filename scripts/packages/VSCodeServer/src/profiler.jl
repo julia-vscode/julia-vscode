@@ -1,4 +1,4 @@
-function view_profile(; C = false, kwargs...)
+function view_profile(data = Profile.fetch(); C=false, kwargs...)
     d = Dict()
 
     if VERSION >= v"1.8.0-DEV.460"
@@ -6,7 +6,6 @@ function view_profile(; C = false, kwargs...)
     else
         threads = ["all"]
     end
-    data = Profile.fetch()
 
     if isempty(data)
         Profile.warning_empty()
@@ -16,22 +15,22 @@ function view_profile(; C = false, kwargs...)
     lidict = Profile.getdict(unique(data))
     data_u64 = convert(Vector{UInt64}, data)
     for thread in threads
-        graph = stackframetree(data_u64, lidict; thread = thread, kwargs...)
+        graph = stackframetree(data_u64, lidict; thread=thread, kwargs...)
         d[thread] = dicttree(Dict(
-            :func => "root",
-            :file => "",
-            :path => "",
-            :line => 0,
-            :count => graph.count,
-            :flags => 0x0,
-            :children => []
-        ), graph; C = C, kwargs...)
+                :func => "root",
+                :file => "",
+                :path => "",
+                :line => 0,
+                :count => graph.count,
+                :flags => 0x0,
+                :children => []
+            ), graph; C=C, kwargs...)
     end
 
-    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace = d))
+    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace=d))
 end
 
-function stackframetree(data_u64, lidict; thread = nothing, combine = true, recur = :off)
+function stackframetree(data_u64, lidict; thread=nothing, combine=true, recur=:off)
     root = combine ? Profile.StackFrameTree{Profile.StackFrame}() : Profile.StackFrameTree{UInt64}()
     if VERSION >= v"1.8.0-DEV.460"
         thread = thread == "all" ? (1:Threads.nthreads()) : thread
@@ -48,10 +47,10 @@ end
 
 # https://github.com/timholy/FlameGraphs.jl/blob/master/src/graph.jl
 const runtime_dispatch = UInt8(2^0)
-const gc_event         = UInt8(2^1)
-const repl             = UInt8(2^2)
-const compilation      = UInt8(2^3)
-const task_event       = UInt8(2^4)
+const gc_event = UInt8(2^1)
+const repl = UInt8(2^2)
+const compilation = UInt8(2^3)
+const task_event = UInt8(2^4)
 # const              = UInt8(2^5)
 # const              = UInt8(2^6)
 # const              = UInt8(2^7)
@@ -110,12 +109,12 @@ function add_child(graph, node, C::Bool)
     return d
 end
 
-function dicttree(graph, node::Profile.StackFrameTree; C = false)
-    for child_node in sort!(collect(values(node.down)); rev = true, by = node -> node.count)
+function dicttree(graph, node::Profile.StackFrameTree; C=false)
+    for child_node in sort!(collect(values(node.down)); rev=true, by=node -> node.count)
         # child not a hidden frame
         if C || !child_node.frame.from_c
             child = add_child(graph, child_node, C)
-            dicttree(child, child_node; C = C)
+            dicttree(child, child_node; C=C)
         else
             dicttree(graph, child_node)
         end
@@ -137,4 +136,106 @@ macro profview(ex, args...)
         Profile.@profile $(esc(ex))
         view_profile(; $(esc.(args)...))
     end
+end
+
+## Allocs
+
+"""
+    @profview_allocs f(args...) [sample_rate=0.0001] [C=false]
+
+Clear the Profile buffer, profile `f(args...)`, and view the result graphically.
+"""
+macro profview_allocs(ex, args...)
+    sample_rate_expr = :(sample_rate=0.0001)
+    for arg in args
+        if arg.head == :(=) && length(arg.args) > 0 && arg.args[1] == :sample_rate
+            sample_rate_expr = arg
+        end
+    end
+    if isdefined(Profile, :Allocs)
+        return quote
+            Profile.Allocs.clear()
+            Profile.Allocs.@profile $(esc(sample_rate_expr)) $(esc(ex))
+            view_alloc_profile()
+        end
+    else
+        return :(@error "This version of Julia does not support the allocation profiler.")
+    end
+end
+
+function view_alloc_profile(_results=Profile.Allocs.fetch(); C=false)
+    results = _results::Profile.Allocs.AllocResults
+    allocs = results.allocs
+
+    root = Dict(
+        :func => "root",
+        :file => "",
+        :path => "",
+        :line => 0,
+        :count => 0,
+        :scaledCount => 0,
+        :flags => 0x0,
+        :children => Dict()
+    )
+    for alloc in allocs
+        this = root
+        for (i, sf) in enumerate(Iterators.reverse(alloc.stacktrace))
+            if !C && sf.from_c
+                continue
+            end
+            file = string(sf.file)
+            this = get!(this[:children], hash(sf), Dict(
+                :func => sf.func,
+                :file => basename(file),
+                :path => fullpath(file),
+                :line => sf.line,
+                :count => 0,
+        :scaledCount => 0,
+                :flags => 0x0,
+                :children => Dict()
+            ))
+            this[:count] += alloc.size
+            this[:scaledCount] += scaler(alloc.size)
+        end
+        this[:children][rand()] = Dict(
+            :func => replace(string(alloc.type), "Profile.Allocs." => ""),
+            :file => "",
+            :path => "",
+            :line => 0,
+            :count => alloc.size,
+            :scaledCount => scaler(alloc.size),
+            :flags => 0x2,
+            :children => Dict()
+        )
+        root[:count] += alloc.size
+        root[:scaledCount] += scaler(alloc.size)
+    end
+
+    postprocess!(root, root[:count])
+
+    d = Dict{Any, Any}(
+        "all" => root
+    )
+
+    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace=d))
+end
+
+scaler(x) = x^(1/5)
+
+function postprocess!(root, parent_count)
+    root[:children] = postprocess!.(values(root[:children]), Ref(root[:scaledCount]))
+    root[:countLabel] = memory_size(root[:count])
+    root[:fraction] = root[:scaledCount]/parent_count
+
+    return root
+end
+
+const prefixes = ["bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+function memory_size(size)
+    i = 1
+    while size > 1000 && i + 1 < length(prefixes)
+        size /= 1000
+        i += 1
+    end
+    return string(round(Int, size), " ", prefixes[i])
 end
