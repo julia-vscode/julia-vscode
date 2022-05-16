@@ -54,7 +54,7 @@ version = "4.0.4"
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
 path = "../../packages/DataStructures"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.11"
+version = "0.18.12"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -272,7 +272,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [[deps.Tokenize]]
 path = "../../packages/Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.21"
+version = "0.5.24"
 
 [[deps.URIParser]]
 deps = ["Unicode"]

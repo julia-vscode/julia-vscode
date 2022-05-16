@@ -44,9 +44,9 @@ version = "1.10.0"
 
 [[DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "3daef5523dd2e769dad2365274f760ff5f282c7d"
+git-tree-sha1 = "cc1a8e22627f33c789ab60b36a9132ac050bbf75"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.11"
+version = "0.18.12"
 
 [[DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -283,9 +283,9 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Tokenize]]
-git-tree-sha1 = "1f426012d5656a6ac74d18805f46e2a955c1ceb0"
+git-tree-sha1 = "2b3af135d85d7e70b863540160208fa612e736b9"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.23"
+version = "0.5.24"
 
 [[URIs]]
 git-tree-sha1 = "97bbe755a53fe859669cd907f2d96aee8d2c1355"
