@@ -422,6 +422,14 @@
                 "command": "language-julia.stopKernel",
                 "title": "Stop",
                 "icon": "$(debug-stop)"
+            },
+            {
+                "command": "language-julia.showModules",
+                "title": "Show modules in Workspace"
+            },
+            {
+                "command": "language-julia.hideModules",
+                "title": "Hide modules in Workspace"
             }
         ],
         "menus": {
@@ -651,6 +659,16 @@
                     "command": "language-julia.enable-compiled-mode",
                     "when": "view == debugger-compiled && juliaCompiledMode == false",
                     "group": "navigation"
+                },
+                {
+                    "command": "language-julia.showModules",
+                    "when": "view == REPLVariables && julia.showingModules == false",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.hideModules",
+                    "when": "view == REPLVariables && julia.showingModules == true",
+                    "group": "menu"
                 }
             ],
             "editor/context": [
@@ -684,6 +702,14 @@
                 },
                 {
                     "command": "language-julia.stopKernel",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.showModules",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.hideModules",
                     "when": "false"
                 }
             ],

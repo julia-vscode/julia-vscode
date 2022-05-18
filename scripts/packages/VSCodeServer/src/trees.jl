@@ -266,9 +266,9 @@ end
 
 # workspace
 
-repl_getvariables_request(conn, params::Nothing) = Base.invokelatest(getvariables)
+repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}) =  Base.invokelatest(getvariables, params.modules)
 
-function getvariables()
+function getvariables(show_modules)
     M = Main
     variables = ReplWorkspaceItem[]
     clear_lazy()
@@ -285,6 +285,8 @@ function getvariables()
             Main.include,
             Main.eval
         )) && continue
+
+        !show_modules && x isa Module && continue
 
         s = string(n)
         startswith(s, "#") && continue
