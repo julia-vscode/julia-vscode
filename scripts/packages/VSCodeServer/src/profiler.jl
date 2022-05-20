@@ -154,14 +154,14 @@ macro profview_allocs(ex, args...)
         return quote
             Profile.Allocs.clear()
             Profile.Allocs.@profile $(esc(sample_rate_expr)) $(esc(ex))
-            view_alloc_profile()
+            view_profile_allocs()
         end
     else
         return :(@error "This version of Julia does not support the allocation profiler.")
     end
 end
 
-function view_alloc_profile(_results=Profile.Allocs.fetch(); C=false)
+function view_profile_allocs(_results=Profile.Allocs.fetch(); C=false)
     results = _results::Profile.Allocs.AllocResults
     allocs = results.allocs
 

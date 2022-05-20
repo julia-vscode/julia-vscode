@@ -1,7 +1,7 @@
 module VSCodeServer
 
 export vscodedisplay, @vscodedisplay, @enter, @run
-export view_profile, view_alloc_profile, @profview, @profview_allocs
+export view_profile, view_profile_allocs, @profview, @profview_allocs
 
 using REPL, Sockets, Base64, Pkg, UUIDs, Dates, Profile
 import Base: display, redisplay
@@ -28,7 +28,7 @@ function __init__()
     if VERSION >= v"1.4" && isdefined(InteractiveUtils, :EDITOR_CALLBACKS)
         pushfirst!(InteractiveUtils.EDITOR_CALLBACKS, function (cmd::Cmd, path::AbstractString, line::Integer)
             cmd == `code` || return false
-            JSONRPC.send(conn_endpoint[], repl_open_file_notification_type, (; path = String(path), line = Int(line)))
+            JSONRPC.send(conn_endpoint[], repl_open_file_notification_type, (; path=String(path), line=Int(line)))
             return true
         end)
     end
@@ -101,7 +101,7 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     end
 end
 
-function serve(args...; is_dev = false, crashreporting_pipename::Union{AbstractString,Nothing} = nothing)
+function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
         hook_repl(Base.active_repl)
     end
