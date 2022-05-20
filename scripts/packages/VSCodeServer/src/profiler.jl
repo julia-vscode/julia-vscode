@@ -148,7 +148,7 @@ Clear the Profile buffer, profile `f(args...)`, and view the result graphically.
 macro profview_allocs(ex, args...)
     sample_rate_expr = :(sample_rate=0.0001)
     for arg in args
-        if arg.head == :(=) && length(arg.args) > 0 && arg.args[1] == :sample_rate
+        if Meta.isexpr(arg, :(=)) && length(arg.args) > 0 && arg.args[1] === :sample_rate
             sample_rate_expr = arg
         end
     end
