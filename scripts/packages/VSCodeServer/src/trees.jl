@@ -278,13 +278,14 @@ function getvariables(show_modules)
         Base.isdeprecated(M, n) && continue
 
         x = getfield(M, n)
-        any(isequal(x), (
-            vscodedisplay,
-            VSCodeServer,
-            Main,
-            Main.include,
-            Main.eval
-        )) && continue
+
+        if x === vscodedisplay ||
+           x === VSCodeServer ||
+           x === Main ||
+           x === Main.include ||
+           x === Main.eval
+           continue
+        end
 
         !show_modules && x isa Module && continue
 
