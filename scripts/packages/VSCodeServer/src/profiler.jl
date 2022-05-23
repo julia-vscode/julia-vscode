@@ -33,7 +33,7 @@ function view_profile(data = Profile.fetch(); C=false, kwargs...)
             ), graph; C=C, kwargs...)
     end
 
-    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace=d))
+    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace=d, typ="Thread"))
 end
 
 function stackframetree(data_u64, lidict; thread=nothing, combine=true, recur=:off)
@@ -227,7 +227,7 @@ function view_profile_allocs(_results=Profile.Allocs.fetch(); C=false)
         "count" => counts_root
     )
 
-    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace=d))
+    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace=d, typ="Allocation"))
 end
 
 const prefixes = ["bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
