@@ -179,8 +179,6 @@ export async function withLanguageClient(
         return callbackOnHandledErr(new Error('Language client is not active'))
     }
 
-    await g_languageClient.onReady()
-
     try {
         return callback(g_languageClient)
     } catch (err) {
@@ -344,13 +342,9 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     }
 
     try {
-        // Push the disposable to the context's subscriptions so that the  client can be deactivated on extension deactivation
-        g_context.subscriptions.push(languageClient.start())
         g_startupNotification.command = 'language-julia.showLanguageServerOutput'
+        await languageClient.start()
         setLanguageClient(languageClient)
-        languageClient.onReady().finally(() => {
-            g_startupNotification.hide()
-        })
     }
     catch (e) {
         vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(val => {
@@ -359,8 +353,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             }
         })
         setLanguageClient()
-        g_startupNotification.hide()
     }
+    g_startupNotification.hide()
 }
 
 function refreshLanguageServer(languageClient: LanguageClient = g_languageClient) {
@@ -374,10 +368,10 @@ function refreshLanguageServer(languageClient: LanguageClient = g_languageClient
     }
 }
 
-function restartLanguageServer(languageClient: LanguageClient = g_languageClient) {
+async function restartLanguageServer(languageClient: LanguageClient = g_languageClient) {
     if (languageClient !== null) {
-        languageClient.stop()
+        await languageClient.stop()
         setLanguageClient()
     }
-    startLanguageServer(g_juliaExecutablesFeature)
+    await startLanguageServer(g_juliaExecutablesFeature)
 }
