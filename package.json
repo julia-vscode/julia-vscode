@@ -1208,6 +1208,22 @@
                     "type": "string",
                     "description": "The output directory to save plots to",
                     "scope": "window"
+                },
+                "julia.inlayHints": {
+                    "type": "string",
+                    "default": "literals",
+                    "description": "Enable/disable inlay hints.",
+                    "enum": [
+                        "none",
+                        "literals",
+                        "all"
+                    ],
+                    "enumDescriptions": [
+                        "Hide all inlay hints.",
+                        "Show inlay hints for assignments and literal function arguments.",
+                        "Show inlay hints for assignments and all function arguments."
+                    ],
+                    "scope": "window"
                 }
             }
         },
