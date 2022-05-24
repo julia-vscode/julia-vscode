@@ -85,50 +85,21 @@ export class Result {
     }
 
     createResultDecoration(): vscode.DecorationRenderOptions {
-
-        const section = vscode.workspace.getConfiguration('julia')
-        const colorConfig = section.get<object>('execution.inlineResults.colors')
-
-        const colorFor = function (candidates: string[], defaultTo: string | vscode.ThemeColor): string | vscode.ThemeColor {
-            if (candidates.length > 0) {
-                if (colorConfig && colorConfig[candidates[0]]) {
-                    const color: string = colorConfig[candidates[0]]
-                    return color.startsWith('vscode.') ? new vscode.ThemeColor(color.replace(/^(vscode\.)/, '')) : color
-                } else {
-                    return colorFor(candidates.slice(1), defaultTo)
-                }
-            } else {
-                return defaultTo
-            }
-        }
-
         const accentColor = this.content.isError
-            ? colorFor(['accent-error'], '#d11111')
-            : colorFor(['accent'], '#159eed')
+            ? new vscode.ThemeColor('julia.result.success')
+            : new vscode.ThemeColor('julia.result.error')
 
         return {
             before: {
                 contentIconPath: undefined,
                 contentText: undefined,
-                color: colorFor(['foreground'], new vscode.ThemeColor('editor.foreground')),
-                backgroundColor: colorFor(['background'], '#ffffff22'),
+                color: new vscode.ThemeColor('julia.result.foreground'),
+                backgroundColor: new vscode.ThemeColor('julia.result.background'),
                 margin: '0 0 0 10px',
                 border: '2px solid',
                 borderColor: accentColor,
                 // HACK: CSS injection to get custom styling in:
                 textDecoration: 'none; white-space: pre; border-top: 0px; border-right: 0px; border-bottom: 0px; border-radius: 2px'
-            },
-            dark: {
-                before: {
-                    color: colorFor(['foreground-dark', 'foreground'], new vscode.ThemeColor('editor.foreground')),
-                    backgroundColor: colorFor(['background-dark', 'background'], '#ffffff22')
-                }
-            },
-            light: {
-                before: {
-                    color: colorFor(['foreground-light', 'foreground'], new vscode.ThemeColor('editor.foreground')),
-                    backgroundColor: colorFor(['background-light', 'background'], '#00000011')
-                }
             },
             rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed,
         }
