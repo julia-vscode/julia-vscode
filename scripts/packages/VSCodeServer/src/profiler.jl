@@ -1,12 +1,22 @@
-function view_profile(; C = false, kwargs...)
-    d = Dict()
+using Profile
+
+# https://github.com/timholy/FlameGraphs.jl/blob/master/src/graph.jl
+const ProfileFrameFlag = (
+    RuntimeDispatch = UInt8(2^0),
+    GCEvent = UInt8(2^1),
+    REPL = UInt8(2^2),
+    Compilation = UInt8(2^3),
+    TaskEvent = UInt8(2^4)
+)
+
+function view_profile(data = Profile.fetch(); C=false, kwargs...)
+    d = Dict{String,ProfileFrame}()
 
     if VERSION >= v"1.8.0-DEV.460"
         threads = ["all", 1:Threads.nthreads()...]
     else
         threads = ["all"]
     end
-    data = Profile.fetch()
 
     if isempty(data)
         Profile.warning_empty()
@@ -16,23 +26,18 @@ function view_profile(; C = false, kwargs...)
     lidict = Profile.getdict(unique(data))
     data_u64 = convert(Vector{UInt64}, data)
     for thread in threads
-        graph = stackframetree(data_u64, lidict; thread = thread, kwargs...)
-        d[thread] = dicttree(Dict(
-            :func => "root",
-            :file => "",
-            :path => "",
-            :line => 0,
-            :count => graph.count,
-            :flags => 0x0,
-            :children => []
-        ), graph; C = C, kwargs...)
+        graph = stackframetree(data_u64, lidict; thread=thread, kwargs...)
+        d[string(thread)] = make_tree(
+            ProfileFrame(
+                "root", "", "", 0, graph.count, missing, 0x0, missing, ProfileFrame[]
+            ), graph; C=C, kwargs...)
     end
 
-    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace = d))
+    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace=d, typ="Thread"))
 end
 
-function stackframetree(data_u64, lidict; thread = nothing, combine = true, recur = :off)
-    root = combine ? Profile.StackFrameTree{Profile.StackFrame}() : Profile.StackFrameTree{UInt64}()
+function stackframetree(data_u64, lidict; thread=nothing, combine=true, recur=:off)
+    root = combine ? Profile.StackFrameTree{StackTraces.StackFrame}() : Profile.StackFrameTree{UInt64}()
     if VERSION >= v"1.8.0-DEV.460"
         thread = thread == "all" ? (1:Threads.nthreads()) : thread
         root, _ = Profile.tree!(root, data_u64, lidict, true, recur, thread)
@@ -46,33 +51,22 @@ function stackframetree(data_u64, lidict; thread = nothing, combine = true, recu
     return root
 end
 
-# https://github.com/timholy/FlameGraphs.jl/blob/master/src/graph.jl
-const runtime_dispatch = UInt8(2^0)
-const gc_event         = UInt8(2^1)
-const repl             = UInt8(2^2)
-const compilation      = UInt8(2^3)
-const task_event       = UInt8(2^4)
-# const              = UInt8(2^5)
-# const              = UInt8(2^6)
-# const              = UInt8(2^7)
-# const              = UInt8(2^8)
-
-function status(sf::Profile.StackFrame)
+function status(sf::StackTraces.StackFrame)
     st = UInt8(0)
     if sf.from_c && (sf.func === :jl_invoke || sf.func === :jl_apply_generic || sf.func === :ijl_apply_generic)
-        st |= runtime_dispatch
+        st |= ProfileFrameFlag.RuntimeDispatch
     end
     if sf.from_c && startswith(String(sf.func), "jl_gc_")
-        st |= gc_event
+        st |= ProfileFrameFlag.GCEvent
     end
     if !sf.from_c && sf.func === :eval_user_input && endswith(String(sf.file), "REPL.jl")
-        st |= repl
+        st |= ProfileFrameFlag.REPL
     end
     if !sf.from_c && occursin("./compiler/", String(sf.file))
-        st |= compilation
+        st |= ProfileFrameFlag.Compilation
     end
     if !sf.from_c && occursin("task.jl", String(sf.file))
-        st |= task_event
+        st |= ProfileFrameFlag.TaskEvent
     end
     return st
 end
@@ -88,7 +82,7 @@ function status(node::Profile.StackFrameTree, C::Bool)
     return st
 end
 
-function add_child(graph, node, C::Bool)
+function add_child(graph::ProfileFrame, node, C::Bool)
     name = string(node.frame.file)
     func = String(node.frame.func)
 
@@ -96,28 +90,31 @@ function add_child(graph, node, C::Bool)
         func = "unknown"
     end
 
-    d = Dict(
-        :func => func,
-        :file => basename(name),
-        :path => fullpath(name),
-        :line => node.frame.line,
-        :count => node.count,
-        :flags => status(node, C),
-        :children => []
+    frame = ProfileFrame(
+        func,
+        basename(name),
+        fullpath(name),
+        node.frame.line,
+        node.count,
+        missing,
+        status(node, C),
+        missing,
+        ProfileFrame[]
     )
-    push!(graph[:children], d)
 
-    return d
+    push!(graph.children, frame)
+
+    return frame
 end
 
-function dicttree(graph, node::Profile.StackFrameTree; C = false)
-    for child_node in sort!(collect(values(node.down)); rev = true, by = node -> node.count)
+function make_tree(graph, node::Profile.StackFrameTree; C=false)
+    for child_node in sort!(collect(values(node.down)); rev=true, by=node -> node.count)
         # child not a hidden frame
         if C || !child_node.frame.from_c
             child = add_child(graph, child_node, C)
-            dicttree(child, child_node; C = C)
+            make_tree(child, child_node; C=C)
         else
-            dicttree(graph, child_node)
+            make_tree(graph, child_node)
         end
     end
 
@@ -137,4 +134,108 @@ macro profview(ex, args...)
         Profile.@profile $(esc(ex))
         view_profile(; $(esc.(args)...))
     end
+end
+
+## Allocs
+
+"""
+    @profview_allocs f(args...) [sample_rate=0.0001] [C=false]
+
+Clear the Profile buffer, profile `f(args...)`, and view the result graphically.
+"""
+macro profview_allocs(ex, args...)
+    sample_rate_expr = :(sample_rate=0.0001)
+    for arg in args
+        if Meta.isexpr(arg, :(=)) && length(arg.args) > 0 && arg.args[1] === :sample_rate
+            sample_rate_expr = arg
+        end
+    end
+    if isdefined(Profile, :Allocs)
+        return quote
+            Profile.Allocs.clear()
+            Profile.Allocs.@profile $(esc(sample_rate_expr)) $(esc(ex))
+            view_profile_allocs()
+        end
+    else
+        return :(@error "This version of Julia does not support the allocation profiler.")
+    end
+end
+
+function view_profile_allocs(_results=Profile.Allocs.fetch(); C=false)
+    results = _results::Profile.Allocs.AllocResults
+    allocs = results.allocs
+
+    allocs_root = ProfileFrame("root", "", "", 0, 0, missing, 0x0, missing, ProfileFrame[])
+    counts_root = ProfileFrame("root", "", "", 0, 0, missing, 0x0, missing, ProfileFrame[])
+    for alloc in allocs
+        this_allocs = allocs_root
+        this_counts = counts_root
+
+        for sf in Iterators.reverse(alloc.stacktrace)
+            if !C && sf.from_c
+                continue
+            end
+            file = string(sf.file)
+            this_counts′ = ProfileFrame(
+                string(sf.func), basename(file), fullpath(file),
+                sf.line, 0, missing, 0x0, missing, ProfileFrame[]
+            )
+            ind = findfirst(c -> (
+                    c.func == this_counts′.func &&
+                    c.path == this_counts′.path &&
+                    c.line == this_counts′.line
+                ), this_allocs.children)
+
+            this_counts, this_allocs = if ind === nothing
+                push!(this_counts.children, this_counts′)
+                this_allocs′ = deepcopy(this_counts′)
+                push!(this_allocs.children, this_allocs′)
+
+                (this_counts′, this_allocs′)
+            else
+                (this_counts.children[ind], this_allocs.children[ind])
+            end
+            this_allocs.count += alloc.size
+            this_allocs.countLabel = memory_size(this_allocs.count)
+            this_counts.count += 1
+        end
+
+        alloc_type = replace(string(alloc.type), "Profile.Allocs." => "")
+        ind = findfirst(c -> (c.func == alloc_type), this_allocs.children)
+        if ind === nothing
+            push!(this_allocs.children, ProfileFrame(
+                alloc_type, "", "",
+                0, this_allocs.count, memory_size(this_allocs.count), ProfileFrameFlag.GCEvent, missing, ProfileFrame[]
+            ))
+            push!(this_counts.children, ProfileFrame(
+                alloc_type, "", "",
+                0, 1, missing, ProfileFrameFlag.GCEvent, missing, ProfileFrame[]
+            ))
+        else
+            this_counts.children[ind].count += 1
+            this_allocs.children[ind].count += alloc.size
+            this_allocs.children[ind].countLabel = memory_size(this_allocs.count)
+        end
+
+        counts_root.count += 1
+        allocs_root.count += alloc.size
+        allocs_root.countLabel = memory_size(allocs_root.count)
+    end
+
+    d = Dict{String, ProfileFrame}(
+        "size" => allocs_root,
+        "count" => counts_root
+    )
+
+    JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace=d, typ="Allocation"))
+end
+
+const prefixes = ["bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+function memory_size(size)
+    i = 1
+    while size > 1000 && i + 1 < length(prefixes)
+        size /= 1000
+        i += 1
+    end
+    return string(round(Int, size), " ", prefixes[i])
 end
