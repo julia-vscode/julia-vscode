@@ -30,7 +30,7 @@ version = "4.0.4"
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
 path = "../../packages/DataStructures"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.11"
+version = "0.18.13"
 
 [[Dates]]
 deps = ["Printf"]
@@ -70,7 +70,7 @@ version = "1.3.5-DEV"
 deps = ["CSTParser", "CommonMark", "DataStructures", "Pkg", "Tokenize"]
 path = "../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "0.22.10"
+version = "0.23.1"
 
 [[LanguageServer]]
 deps = ["CSTParser", "JSON", "JSONRPC", "JuliaFormatter", "Markdown", "Pkg", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIs", "UUIDs"]
@@ -159,7 +159,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [[Tokenize]]
 path = "../../packages/Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.21"
+version = "0.5.24"
 
 [[URIParser]]
 deps = ["Unicode"]

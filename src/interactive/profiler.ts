@@ -10,8 +10,14 @@ interface ProfilerFrame {
     path: string;
     line: number;
     count: number;
+    countLabel?: number | string
     flags: number;
     children: ProfilerFrame[];
+}
+
+interface ProfileRoot {
+    data: Record<string, ProfilerFrame>
+    type: string
 }
 
 interface InlineTraceElement {
@@ -19,6 +25,7 @@ interface InlineTraceElement {
     line: number;
     fraction: number;
     count: number;
+    countLabel?: number | string
     flags: number;
 }
 
@@ -47,12 +54,12 @@ export class ProfilerFeature {
     context: vscode.ExtensionContext
     panel: vscode.WebviewPanel
 
-    profiles: ProfilerFrame[] = []
+    profiles: ProfileRoot[] = []
     inlineTrace: InlineTraceElement[] = []
     decoration: vscode.TextEditorDecorationType
     inlineMaxWidth: number = 100
     currentProfileIndex: number = 0
-    selectedThread: string = 'all'
+    selection: string = 'all'
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
@@ -90,7 +97,7 @@ export class ProfilerFeature {
         this.decoration = undefined
     }
 
-    setInlineTrace(profile: ProfilerFrame) {
+    setInlineTrace(profile: Record<string, ProfilerFrame>) {
         this.clearInlineTrace()
 
         this.decoration = vscode.window.createTextEditorDecorationType({
@@ -98,23 +105,24 @@ export class ProfilerFeature {
             isWholeLine: true,
         })
 
-        const root = profile[this.selectedThread]
+        const root = profile[this.selection]
         this.buildInlineTraceElements(root, root.count)
 
         this.refreshInlineTrace(vscode.window.visibleTextEditors)
     }
 
-    buildInlineTraceElements(node: ProfilerFrame, parentCount: number) {
+    buildInlineTraceElements(node: ProfilerFrame, rootCount: number) {
         this.inlineTrace.push({
             path: node.path,
             line: node.line,
             count: node.count,
-            fraction: node.count / parentCount,
+            countLabel: node.countLabel,
+            fraction: node.count / rootCount,
             flags: node.flags,
         })
 
         for (const child of node.children) {
-            this.buildInlineTraceElements(child, node.count)
+            this.buildInlineTraceElements(child, rootCount)
         }
     }
 
@@ -139,27 +147,15 @@ export class ProfilerFeature {
                         edHighlights[uri] = {}
                     }
                     const line = Math.max(0, highlight.line - 1)
-                    const branchCount = (edHighlights[uri][line]?.branchCount ?? 0) + 1
                     const count = (edHighlights[uri][line]?.count ?? 0) + highlight.count
-                    const fraction =
-                        ((edHighlights[uri][line]?.fraction ?? 0) * (branchCount - 1) +
-                        highlight.fraction) /
-                        branchCount
+                    const fraction = (edHighlights[uri][line]?.fraction ?? 0) + highlight.fraction
                     const flags = (edHighlights[uri][line]?.flags ?? 0) | highlight.flags
 
-                    const hoverMessage =
-                        branchCount > 1
-                            ? `${count} samples (compound, ${branchCount} branches, on average ${(
-                                fraction * 100
-                            ).toFixed()} % of parent) ${flagString(flags)}`
-                            : `${count} samples (${(
-                                fraction * 100
-                            ).toFixed()} % of parent) ${flagString(flags)}`
+                    const hoverMessage = (highlight.countLabel || `${count} samples`).toString() + ` (${(fraction * 100).toFixed()}%) ${flagString(flags)}`
                     edHighlights[uri][line] = {
                         count,
                         fraction,
                         flags,
-                        branchCount,
                         range: new vscode.Range(
                             new vscode.Position(line, 0),
                             new vscode.Position(line, 0)
@@ -224,7 +220,7 @@ export class ProfilerFeature {
         this.panel.webview.html = this.getContent()
 
         const messageHandler = this.panel.webview.onDidReceiveMessage(
-            (message: { type: string; node?: ProfilerFrame; thread?: string }) => {
+            (message: { type: string; node?: ProfilerFrame; selection?: string }) => {
                 if (message.type === 'open') {
                     openFile(
                         message.node.path,
@@ -233,9 +229,9 @@ export class ProfilerFeature {
                             ? vscode.ViewColumn.One
                             : vscode.ViewColumn.Beside
                     )
-                } else if (message.type === 'threadChange') {
-                    this.selectedThread = message.thread
-                    this.setInlineTrace(this.profiles[this.currentProfileIndex])
+                } else if (message.type === 'selectionChange') {
+                    this.selection = message.selection
+                    this.setInlineTrace(this.profiles[this.currentProfileIndex].data)
                 } else {
                     console.error('unknown message type received in profiler pane')
                 }
@@ -266,14 +262,15 @@ export class ProfilerFeature {
     }
 
     show() {
-        this.selectedThread = 'all'
+        this.selection = 'all'
         this.createPanel()
         this.panel.title = this.makeTitle()
 
         if (this.profileCount > 0) {
             const profile = this.profiles[this.currentProfileIndex]
             this.panel.webview.postMessage(profile)
-            this.setInlineTrace(profile)
+            this.selection = Object.keys(profile.data)[0]
+            this.setInlineTrace(profile.data)
         } else {
             this.panel.webview.postMessage(null)
             this.clearInlineTrace()
@@ -283,7 +280,7 @@ export class ProfilerFeature {
         }
     }
 
-    showTrace(trace: ProfilerFrame) {
+    showTrace(trace: ProfileRoot) {
         this.profiles.push(trace)
         this.currentProfileIndex = this.profiles.length - 1
         this.show()
@@ -378,15 +375,20 @@ export class ProfilerFeature {
                             node: node
                         });
                     });
-                    prof.registerThreadSelectorHandler((thread) => {
+                    prof.registerSelectionHandler((selection) => {
                         vscode.postMessage({
-                            type: "threadChange",
-                            thread: thread
+                            type: "selectionChange",
+                            selection: selection
                         });
                     });
 
                     window.addEventListener("message", (event) => {
-                        prof.setData(event.data);
+                        if (event.data) {
+                            prof.setData(event.data.data);
+                            prof.setSelectorLabel(event.data.type);
+                        } else {
+                            prof.setData(null)
+                        }
                     });
                 })
             </script>

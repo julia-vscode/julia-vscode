@@ -60,7 +60,7 @@ async function main() {
         'Tokenize',
         'URIParser',
         'CommonMark',
-        'Compat',
+        // 'Compat', # Compat 4 dropped Julia 1.0 support, so we keep it on an older version
         // 'Crayons', # Crayons 4.1 dropped Julia 1.0 support, so we keep it on an older version
         'DataStructures',
         'JuliaFormatter',
