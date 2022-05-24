@@ -1287,5 +1287,5 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
 }
 
 export function deactivate() {
-    stopREPL(true)
+    return stopREPL(true)
 }
