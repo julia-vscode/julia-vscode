@@ -129,12 +129,12 @@ export class ProfilerFeature {
     inlineTraceColor(highlight: InlineTraceElement | number) {
         const flags = typeof highlight === 'number' ? highlight : highlight.flags
         if (flags & 0x01) {
-            return 'rgba(204, 103, 103, 0.2)'
+            return new vscode.ThemeColor('julia.profiler.dispatch')
         }
         if (flags & 0x02) {
-            return 'rgba(204, 153, 68, 0.2)'
+            return new vscode.ThemeColor('julia.profiler.gc')
         }
-        return 'rgba(64, 99, 221, 0.2)'
+        return new vscode.ThemeColor('julia.profiler.default')
     }
 
     collateTrace(editors: readonly vscode.TextEditor[]) {
