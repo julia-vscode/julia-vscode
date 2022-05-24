@@ -155,7 +155,7 @@ class VariableNode extends AbstractWorkspaceNode {
     }
 
     public async showInVSCode() {
-        this.parentREPL
+        await this.parentREPL
             .getConnection()
             .sendNotification(notifyTypeReplShowInGrid, {
                 code: this.workspaceVariable.head,

@@ -37,9 +37,9 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
     if (isLazy) {
         const objectId = parsedPayload.id
 
-        panel.onDidDispose(() => {
+        panel.onDidDispose(async () => {
             try {
-                g_connection.sendNotification(
+                await g_connection.sendNotification(
                     clearLazyTable,
                     {
                         id: objectId

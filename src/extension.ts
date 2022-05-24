@@ -333,10 +333,10 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     g_watchedEnvironmentFile = (await jlpkgenv.getProjectFilePaths(jlEnvPath)).manifest_toml_path
     // polling watch for robustness
     if (g_watchedEnvironmentFile) {
-        watchFile(g_watchedEnvironmentFile, { interval: 10000 }, (curr, prev) => {
+        watchFile(g_watchedEnvironmentFile, { interval: 10000 }, async (curr, prev) => {
             if (curr.mtime > prev.mtime) {
                 if (!languageClient.needsStop()) { return } // this client already gets stopped
-                refreshLanguageServer(languageClient)
+                await refreshLanguageServer(languageClient)
             }
         })
     }
@@ -357,10 +357,10 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     g_startupNotification.hide()
 }
 
-function refreshLanguageServer(languageClient: LanguageClient = g_languageClient) {
+async function refreshLanguageServer(languageClient: LanguageClient = g_languageClient) {
     if (!languageClient) { return }
     try {
-        languageClient.sendNotification('julia/refreshLanguageServer')
+        await languageClient.sendNotification('julia/refreshLanguageServer')
     } catch (err) {
         vscode.window.showErrorMessage('Failed to refresh the language server cache.', {
             detail: err

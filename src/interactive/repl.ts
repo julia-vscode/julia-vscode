@@ -991,10 +991,10 @@ export async function executeInREPL(code: string, { filename = 'code', line = 0,
 
 const interrupts = []
 let last_interrupt_index = -1
-function interrupt() {
+async function interrupt() {
     telemetry.traceEvent('command-interrupt')
     // always send out internal interrupt
-    softInterrupt()
+    await softInterrupt()
     // but we'll try sending a SIGINT if more than 3 interrupts were sent in the last second
     last_interrupt_index = (last_interrupt_index + 1) % 5
     interrupts[last_interrupt_index] = new Date()
@@ -1004,9 +1004,9 @@ function interrupt() {
     }
 }
 
-function softInterrupt() {
+async function softInterrupt() {
     try {
-        g_connection.sendNotification('repl/interrupt')
+        await g_connection.sendNotification('repl/interrupt')
     } catch (err) {
         console.warn(err)
     }
@@ -1034,7 +1034,7 @@ async function cdToHere(uri: vscode.Uri) {
     await startREPL(true, false)
     if (uriPath) {
         try {
-            g_connection.sendNotification('repl/cd', { uri: uriPath })
+            await g_connection.sendNotification('repl/cd', { uri: uriPath })
         } catch (err) {
             console.log(err)
         }
@@ -1052,7 +1052,7 @@ async function activatePath(path: string) {
     await startREPL(true, false)
     if (path) {
         try {
-            g_connection.sendNotification('repl/activateProject', { uri: path })
+            await g_connection.sendNotification('repl/activateProject', { uri: path })
             switchEnvToPath(path, true)
         } catch (err) {
             console.log(err)
@@ -1159,7 +1159,7 @@ function updateCellDelimiters() {
 export async function replStartDebugger(pipename: string) {
     await startREPL(true)
 
-    g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
+    await g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
 }
 
 export function activate(context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, profilerFeature) {
@@ -1207,22 +1207,22 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
             clearProgress()
             setContext('isJuliaEvaluating', false)
         }),
-        vscode.workspace.onDidChangeConfiguration(event => {
+        vscode.workspace.onDidChangeConfiguration(async event => {
             if (event.affectsConfiguration('julia.usePlotPane')) {
                 try {
-                    g_connection.sendNotification('repl/togglePlotPane', { enable: vscode.workspace.getConfiguration('julia').get('usePlotPane') })
+                    await g_connection.sendNotification('repl/togglePlotPane', { enable: vscode.workspace.getConfiguration('julia').get('usePlotPane') })
                 } catch (err) {
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.useProgressFrontend')) {
                 try {
-                    g_connection.sendNotification('repl/toggleProgress', { enable: vscode.workspace.getConfiguration('julia').get('useProgressFrontend') })
+                    await g_connection.sendNotification('repl/toggleProgress', { enable: vscode.workspace.getConfiguration('julia').get('useProgressFrontend') })
                 } catch (err) {
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.showRuntimeDiagnostics')) {
                 try {
-                    g_connection.sendNotification('repl/toggleDiagnostics', { enable: vscode.workspace.getConfiguration('julia').get('showRuntimeDiagnostics') })
+                    await g_connection.sendNotification('repl/toggleDiagnostics', { enable: vscode.workspace.getConfiguration('julia').get('showRuntimeDiagnostics') })
                 } catch (err) {
                     console.warn(err)
                 }
