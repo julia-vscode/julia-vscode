@@ -86,8 +86,8 @@ export class Result {
 
     createResultDecoration(): vscode.DecorationRenderOptions {
         const accentColor = this.content.isError
-            ? new vscode.ThemeColor('julia.result.success')
-            : new vscode.ThemeColor('julia.result.error')
+            ? new vscode.ThemeColor('julia.result.error')
+            : new vscode.ThemeColor('julia.result.success')
 
         return {
             before: {
