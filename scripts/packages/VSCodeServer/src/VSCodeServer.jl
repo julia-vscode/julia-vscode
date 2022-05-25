@@ -9,6 +9,7 @@ import Dates
 import Profile
 import Logging
 import InteractiveUtils
+import FileWatching
 
 function __init__()
     atreplinit() do repl
