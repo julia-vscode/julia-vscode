@@ -1162,7 +1162,7 @@ export async function replStartDebugger(pipename: string) {
     await g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
 }
 
-export function activate(context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, profilerFeature) {
+export function activate(context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, profilerFeature, liveshareFeature) {
     g_context = context
     g_juliaExecutablesFeature = juliaExecutablesFeature
 
@@ -1281,7 +1281,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
     updateCellDelimiters()
 
     results.activate(context)
-    plots.activate(context)
+    plots.activate(context, liveshareFeature)
     modules.activate(context)
     completions.activate(context)
 }

@@ -6,6 +6,7 @@ import * as telemetry from '../telemetry'
 import { registerCommand } from '../utils'
 import { displayTable } from './tables'
 import { JuliaKernel } from '../notebook/notebookKernel'
+import { JuliaLiveShareService } from '../liveshare'
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
@@ -14,9 +15,13 @@ let g_plotPanel: vscode.WebviewPanel | undefined = undefined
 let g_context: vscode.ExtensionContext = null
 let g_plotNavigatorProvider: PlotNavigatorProvider = null
 
-export function activate(context: vscode.ExtensionContext) {
+let g_liveshareFeature: JuliaLiveShareService
+const plot_notification_id = 'language-julia.new-plot'
+
+export async function activate(context: vscode.ExtensionContext, liveshareFeature: JuliaLiveShareService) {
     g_context = context
 
+    g_liveshareFeature = liveshareFeature
     g_plotNavigatorProvider = new PlotNavigatorProvider(context)
 
     context.subscriptions.push(
@@ -32,8 +37,14 @@ export function activate(context: vscode.ExtensionContext) {
         registerCommand('language-julia.plotpane-delete', plotPaneDel),
         registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll),
         registerCommand('language-julia.show-plot-navigator', () => g_plotNavigatorProvider.showPlotNavigator()),
-        vscode.window.registerWebviewViewProvider('julia-plot-navigator', g_plotNavigatorProvider)
+        vscode.window.registerWebviewViewProvider('julia-plot-navigator', g_plotNavigatorProvider),
     )
+
+    if (liveshareFeature.guestService) {
+        liveshareFeature.guestService.onNotify(plot_notification_id, (params: { kind: string, data: string }) => {
+            displayPlot(params)
+        })
+    }
 }
 
 interface Plot {
@@ -452,6 +463,10 @@ function wrapImagelike(srcString: string) {
 export function displayPlot(params: { kind: string, data: string }, kernel?: JuliaKernel) {
     const kind = params.kind
     const payload = params.data
+
+    if (g_liveshareFeature.hostService?.isServiceAvailable) {
+        g_liveshareFeature.hostService.notify(plot_notification_id, params)
+    }
 
     if (!(kind.startsWith('application/vnd.dataresource'))) {
         // We display a text thumbnail first just in case that JavaScript errors in the webview or did not successfully send out message and corrupt thumbnail indices.

@@ -26,6 +26,7 @@ import * as tasks from './tasks'
 import * as telemetry from './telemetry'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
+import * as liveshare from './liveshare'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -48,6 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     await telemetry.init(context)
+
     try {
         setContext('julia.isActive', true)
 
@@ -73,12 +75,16 @@ export async function activate(context: vscode.ExtensionContext) {
         const profilerFeature = new ProfilerFeature(context)
         context.subscriptions.push(profilerFeature)
 
+        const liveshareFeature = new liveshare.JuliaLiveShareService(context)
+        await liveshareFeature.init()
+        context.subscriptions.push(liveshareFeature)
+
         // Active features from other files
         const compiledProvider = debugViewProvider.activate(context)
         g_juliaExecutablesFeature = new JuliaExecutablesFeature(context)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
-        repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
+        repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature, liveshareFeature)
         weave.activate(context, g_juliaExecutablesFeature)
         documentation.activate(context)
         tasks.activate(context, g_juliaExecutablesFeature)

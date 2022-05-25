@@ -1484,6 +1484,7 @@
         "uuidv4": "^6.2.12",
         "vscode-jsonrpc": "^8.0.0",
         "vscode-languageclient": "^8.0.0",
+        "vsls": "^1.0.4753",
         "which": "^2.0.2"
     },
     "devDependencies": {
