@@ -25,10 +25,11 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
                 error_type = string(typeof(inner_err))
 
                 try
-                    st = stacktrace(bt)
-
                     error_message_str = Base.invokelatest(sprint, showerror, inner_err)
                     traceback = Base.invokelatest(sprint, Base.show_backtrace, bt)
+
+                    flush(stdout)
+                    flush(stderr)
 
                     return (success = false, error = (message = error_message_str, name = error_type, stack = string(error_message_str, "\n", traceback)))
                 catch err
