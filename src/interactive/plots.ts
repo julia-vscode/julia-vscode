@@ -16,7 +16,7 @@ let g_context: vscode.ExtensionContext = null
 let g_plotNavigatorProvider: PlotNavigatorProvider = null
 
 let g_liveshareFeature: JuliaLiveShareService
-const plot_notification_id = 'language-julia.new-plot'
+const plot_notification_id = 'newPlot'
 
 export async function activate(context: vscode.ExtensionContext, liveshareFeature: JuliaLiveShareService) {
     g_context = context
