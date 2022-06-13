@@ -724,22 +724,22 @@
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
                 "key": "Shift+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown || editorLangId == markdown"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelection",
                 "key": "Ctrl+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown || editorLangId == markdown"
             },
             {
                 "command": "language-julia.executeCell",
                 "key": "Alt+Enter",
-                "when": "editorTextFocus &&activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown || editorLangId == markdown"
             },
             {
                 "command": "language-julia.executeCellAndMove",
                 "key": "Alt+Shift+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown || editorLangId == markdown"
             },
             {
                 "command": "language-julia.interrupt",
@@ -749,17 +749,17 @@
             {
                 "command": "language-julia.clearCurrentInlineResult",
                 "key": "Escape",
-                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && juliaHasInlineResult && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && juliaHasInlineResult && editorLangId == julia || editorLangId == juliamarkdown || editorLangId == markdown"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
                 "key": "Ctrl+I Ctrl+C",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown || editorLangId == markdown"
             },
             {
                 "command": "language-julia.chooseModule",
                 "key": "Alt+J Alt+M",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown || editorLangId == markdown"
             },
             {
                 "command": "language-julia.newJuliaFile",
@@ -780,12 +780,12 @@
             {
                 "command": "language-julia.changeCurrentEnvironment",
                 "key": "Alt+J Alt+E",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown || editorLangId == markdown"
             },
             {
                 "command": "language-julia.show-documentation",
                 "key": "Alt+J Alt+D",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown || editorLangId == markdown"
             },
             {
                 "key": "Alt+J Alt+P",
@@ -1483,7 +1483,7 @@
         "string-argv": "^0.3.1",
         "uuidv4": "^6.2.12",
         "vscode-jsonrpc": "^8.0.0",
-        "vscode-languageclient": "^8.0.0",
+        "vscode-languageclient": "8.0.2-next.5",
         "which": "^2.0.2"
     },
     "devDependencies": {
