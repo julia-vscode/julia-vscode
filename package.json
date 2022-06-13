@@ -1483,7 +1483,7 @@
         "string-argv": "^0.3.1",
         "uuidv4": "^6.2.12",
         "vscode-jsonrpc": "^8.0.0",
-        "vscode-languageclient": "8.0.2-next.5",
+        "vscode-languageclient": "^8.0.0",
         "which": "^2.0.2"
     },
     "devDependencies": {
