@@ -226,12 +226,14 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     try {
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
-        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(val => {
+        vscode.window.showErrorMessage(
+            'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.',
+            'Open Settings'
+        ).then(val => {
             if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
             }
         })
-        vscode.window.showErrorMessage(e)
         g_startupNotification.hide()
         return
     }
@@ -258,6 +260,19 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     }
 
     let juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+
+    if (juliaExecutable === undefined) {
+        vscode.window.showErrorMessage(
+            'Could not start the Julia language server. Make sure the `julia.executablePath` setting points to the Julia binary.',
+            'Open Settings'
+        ).then(val => {
+            if (val) {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+            }
+        })
+        g_startupNotification.hide()
+        return
+    }
 
     // Special case the situation where a user configured something like `julia +lts`
     // If the user is using juliaup, we need to prevent the LS process to try to use a juliaup
