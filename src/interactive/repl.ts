@@ -599,13 +599,13 @@ async function executeFile(uri?: vscode.Uri | string) {
         uri = vscode.Uri.parse(uri)
     }
 
-    let isJMD = false
+    let isJmd = false
 
     if (uri && uri instanceof vscode.Uri) {
         path = uri.fsPath
         const readBytes = await vscode.workspace.fs.readFile(uri)
         code = Buffer.from(readBytes).toString('utf8')
-        isJMD = path.endsWith('.jmd')
+        isJmd = path.endsWith('.jmd') || path.endsWith('.md')
     }  else {
         if (!editor) {
             return
@@ -615,11 +615,11 @@ async function executeFile(uri?: vscode.Uri | string) {
 
         const pos = editor.document.validatePosition(new vscode.Position(0, 1)) // xref: https://github.com/julia-vscode/julia-vscode/issues/1500
         module = await modules.getModuleForEditor(editor.document, pos)
-        isJMD = editor.document.languageId === 'juliamarkdown'
+        isJmd = isMarkdownEditor(editor)
     }
 
     // strip out non-code-block condent for JMD files:
-    if (isJMD) {
+    if (isJmd) {
         code = stripMarkdown(code)
     }
 
@@ -716,7 +716,7 @@ async function moveCellDown() {
     if (ed === undefined) {
         return
     }
-    const isJmd = ed.document.languageId === 'juliamarkdown'
+    const isJmd = isMarkdownEditor(ed)
     const currline = ed.selection.active.line
     const newpos = new vscode.Position(nextCellBorder(ed.document, currline + 1, true, isJmd) + 1, 0)
     validateMoveAndReveal(ed, newpos, newpos)
@@ -728,7 +728,7 @@ async function moveCellUp() {
     if (ed === undefined) {
         return
     }
-    const isJmd = ed.document.languageId === 'juliamarkdown'
+    const isJmd = isMarkdownEditor(ed)
     const currline = ed.selection.active.line
 
     let newpos: vscode.Position
@@ -750,7 +750,7 @@ async function moveCellUp() {
 function currentCellRange(editor: vscode.TextEditor) {
     const doc = editor.document
     const currline = editor.selection.active.line
-    const isJmd = doc.languageId === 'juliamarkdown'
+    const isJmd = isMarkdownEditor(editor)
     const startline = prevCellBorder(doc, currline, true, isJmd) + 1
     if (isJmd && startline === 0) {
         return null
@@ -787,33 +787,35 @@ async function executeCell(shouldMove: boolean = false) {
     await startREPL(true, false)
 
     if (shouldMove && ed.selection === selection) {
-        const isJmd = doc.languageId === 'juliamarkdown'
+        const isJmd = isMarkdownEditor(ed)
         const nextpos = new vscode.Position(nextCellBorder(doc, cellrange.end.line + 1, true, isJmd) + 1, 0)
         validateMoveAndReveal(ed, nextpos, nextpos)
     }
     if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation') === true) {
-        let currentPos: vscode.Position = ed.document.validatePosition(new vscode.Position(cellrange.start.line , cellrange.start.character))
+        let currentPos: vscode.Position = ed.document.validatePosition(new vscode.Position(cellrange.start.line , cellrange.start.character + 1))
+        let lastRange = new vscode.Range(0, 0, 0, 0)
         while (currentPos.line <= cellrange.end.line) {
             const [startPos, endPos, nextPos] = await getBlockRange(getVersionedParamsAtPosition(ed.document, currentPos))
             const lineEndPos = ed.document.validatePosition(new vscode.Position(endPos.line, Infinity))
-            const curRange = new vscode.Range(startPos, lineEndPos)
+            const curRange = cellrange.intersection(new vscode.Range(startPos, lineEndPos))
+            if (curRange === undefined || curRange.isEqual(lastRange)) {
+                break
+            }
+            lastRange = curRange
             if (curRange.isEmpty) {
                 continue
             }
             currentPos = ed.document.validatePosition(nextPos)
             const code = doc.getText(curRange)
 
-            const connection_available = await evaluate(ed, curRange, code, module)
-            if (!connection_available) {
-                await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
+            const success = await evaluate(ed, curRange, code, module)
+            if (!success) {
+                break
             }
         }
     } else {
         const code = doc.getText(cellrange)
-        const connection_available = await evaluate(ed, cellrange, code, module)
-        if (!connection_available) {
-            await vscode.window.showErrorMessage('Could not evaluate Julia code because the REPL is no longer available.')
-        }
+        await evaluate(ed, cellrange, code, module)
     }
 }
 
@@ -868,10 +870,9 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
-        const connection_available = await evaluate(editor, range, text, module)
+        const success = await evaluate(editor, range, text, module)
 
-        if (!connection_available) {
-            vscode.window.showErrorMessage('Could not evaluate code because the Julia REPL is no longer available.')
+        if (!success) {
             break
         }
     }
@@ -908,19 +909,20 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
                 softscope: true
             }
         )
+        const isError = Boolean(result.stackframe)
 
         if (resultType !== 'REPL') {
             if (r.destroyed) {
                 r = results.addResult(editor, range, '', '')
             }
-            if (result.stackframe) {
+            if (isError) {
                 results.clearStackTrace()
                 results.setStackTrace(r, result.all, result.stackframe)
             }
-            r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, Boolean(result.stackframe)))
+            r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, isError))
         }
 
-        return true
+        return !isError
     } catch (err) {
         r.remove(true)
         throw(err)
@@ -1154,6 +1156,10 @@ function updateCellDelimiters() {
     if (delims) {
         g_cellDelimiters = delims.map(s => RegExp(s))
     }
+}
+
+function isMarkdownEditor(editor: vscode.TextEditor) {
+    return editor.document.languageId === 'juliamarkdown' || editor.document.languageId === 'markdown'
 }
 
 export async function replStartDebugger(pipename: string) {

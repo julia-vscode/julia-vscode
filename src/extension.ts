@@ -214,7 +214,8 @@ const supportedSchemes = [
 
 const supportedLanguages = [
     'julia',
-    'juliamarkdown'
+    'juliamarkdown',
+    'markdown'
 ]
 
 async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature) {
@@ -325,7 +326,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     const clientOptions: LanguageClientOptions = {
         documentSelector: selector,
         synchronize: {
-            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd}')
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd,md}')
         },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: g_traceOutputChannel,
