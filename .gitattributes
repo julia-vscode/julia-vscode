@@ -1,5 +1,4 @@
-./libs/**/*.js linguist-vendored
-./libs/**/*.css linguist-vendored
+libs/* linguist-vendored
 
 package.json eol=lf
 package-lock.json eol=lf
