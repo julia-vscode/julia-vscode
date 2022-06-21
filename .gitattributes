@@ -1,4 +1,4 @@
-libs/* linguist-vendored
+libs/** linguist-vendored
 
 package.json eol=lf
 package-lock.json eol=lf
