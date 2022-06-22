@@ -256,10 +256,14 @@ Must return a `ReplRunCodeRequestReturn` with the following fields:
 - `stackframe::Vector{Frame}`: Optional, should only be given on an error
 """
 function render(x)
-    str = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
-    inline = strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH)
-    all = codeblock(str)
-    return ReplRunCodeRequestReturn(inline, all)
+    plain = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
+    md = try
+        sprintlimited(MIME"text/markdown"(), x, limit = MAX_RESULT_LENGTH)
+    catch _
+        codeblock(plain)
+    end
+    inline = strlimit(first(split(plain, "\n")), limit = INLINE_RESULT_LENGTH)
+    return ReplRunCodeRequestReturn(inline, md)
 end
 
 render(::Nothing) = ReplRunCodeRequestReturn("✓", codeblock("nothing"))
