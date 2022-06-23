@@ -69,6 +69,32 @@ function hideprompt(f)
     r
 end
 
+const SHELL = (
+    prompt_start = () -> "\e]633;A\a",
+    prompt_end = () -> "\e]633;B\a",
+    output_start = () -> "\e]633;C\a",
+    output_end = function ()
+        if LAST_REPL_EVAL_ERRORED[] === nothing
+            "\e]633;D\a"
+        else
+            "\e]633;D;$(Int(LAST_REPL_EVAL_ERRORED[]))\a"
+        end
+    end,
+    continuation_prompt_start = () -> "\e]633;F\a",
+    continuation_prompt_end = () -> "\e]633;G\a",
+    update_cwd = () -> "\e]633;P;Cwd=$(pwd())\a",
+)
+
+as_func(x) = () -> x
+as_func(x::Function) = x
+
+function install_vscode_shell_integration(prompt)
+    prefix = as_func(prompt.prompt_prefix)
+    suffix = as_func(prompt.prompt_suffix)
+    prompt.prompt_prefix = () -> string(SHELL.output_end(), SHELL.prompt_start(), prefix())
+    prompt.prompt_suffix = () -> string(suffix(), SHELL.update_cwd(), SHELL.prompt_end())
+end
+
 const HAS_REPL_TRANSFORM = Ref{Bool}(false)
 function hook_repl(repl)
     if HAS_REPL_TRANSFORM[]
@@ -88,6 +114,7 @@ function hook_repl(repl)
         if isdefined(Base, :active_repl_backend)
             push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
             HAS_REPL_TRANSFORM[] = true
+            install_vscode_shell_integration(main_mode)
             @debug "REPL AST transform installed"
             return
         end
@@ -105,10 +132,12 @@ end
 
 function transform_backend(ast, repl, main_mode)
     quote
+        print(stdout, $(SHELL.output_start)())
         $(evalrepl)(Main, $(QuoteNode(ast)), $repl, $main_mode)
     end
 end
 
+const LAST_REPL_EVAL_ERRORED = Ref{Union{Nothing, Bool}}(nothing)
 function evalrepl(m, line, repl, main_mode)
     did_notify = false
     return try
@@ -123,6 +152,7 @@ function evalrepl(m, line, repl, main_mode)
             f = () -> repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
             PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
         end
+        LAST_REPL_EVAL_ERRORED[] = true
         if r isa EvalError
             display_repl_error(stderr, r.err, r.bt)
             nothing
@@ -130,6 +160,7 @@ function evalrepl(m, line, repl, main_mode)
             display_repl_error(stderr, r)
             nothing
         else
+            LAST_REPL_EVAL_ERRORED[] = false
             r
         end
     catch err
