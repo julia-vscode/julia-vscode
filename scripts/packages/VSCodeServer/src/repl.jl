@@ -3,6 +3,8 @@
 using REPL
 using REPL.LineEdit
 
+const ENABLE_SHELL_INTEGRATION = Ref{Bool}(false)
+
 isREPL() = isdefined(Base, :active_repl) &&
            isdefined(Base.active_repl, :interface) &&
            isdefined(Base.active_repl.interface, :modes) &&
@@ -69,20 +71,22 @@ function hideprompt(f)
     r
 end
 
+si(f) = () -> ENABLE_SHELL_INTEGRATION[] ? f() : ""
+
 const SHELL = (
-    prompt_start = () -> "\e]633;A\a",
-    prompt_end = () -> "\e]633;B\a",
-    output_start = () -> "\e]633;C\a",
-    output_end = function ()
+    prompt_start = si(() -> "\e]633;A\a"),
+    prompt_end = si(() -> "\e]633;B\a"),
+    output_start = si(() -> "\e]633;C\a"),
+    output_end = si(function ()
         if LAST_REPL_EVAL_ERRORED[] === nothing
             "\e]633;D\a"
         else
             "\e]633;D;$(Int(LAST_REPL_EVAL_ERRORED[]))\a"
         end
-    end,
-    continuation_prompt_start = () -> "\e]633;F\a",
-    continuation_prompt_end = () -> "\e]633;G\a",
-    update_cwd = () -> "\e]633;P;Cwd=$(pwd())\a",
+    end),
+    continuation_prompt_start = si(() -> "\e]633;F\a"),
+    continuation_prompt_end = si(() -> "\e]633;G\a"),
+    update_cwd = si(() -> "\e]633;P;Cwd=$(pwd())\a"),
 )
 
 as_func(x) = () -> x
