@@ -5,8 +5,102 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Inline results now support markdown-`show` methods ([#2933](https://github.com/julia-vscode/julia-vscode/pull/2933))
+
+## [1.6.25] - 2022-05-24
+### Changed
+- Inline results and inline profile traces are now themeable ([#2897](https://github.com/julia-vscode/julia-vscode/pull/2897))
+- Inline evaluation now works in plain markdown files ([#2920](https://github.com/julia-vscode/julia-vscode/pull/2920))
+
 ### Fixed
-* `launch.json` command line arguments were ignored
+- Restored a check (and notification) as to whether the Julia path is valid ([#2923](https://github.com/julia-vscode/julia-vscode/pull/2923))
+
+## [1.6.23] - 2022-05-24
+### Added
+- Integrated the new allocation profiler ([#2890](https://github.com/julia-vscode/julia-vscode/pull/2890))
+
+### Changed
+- Switched to LSP 3.17 ([#2886](https://github.com/julia-vscode/julia-vscode/pull/2886))
+
+### Fixed
+- Made the workspace even more robust. For real this time. ([#2892](https://github.com/julia-vscode/julia-vscode/pull/2892))
+
+## [1.6.22] - 2022-05-04
+### Added
+- Modules can now be hidden in the workspace ([#2887](https://github.com/julia-vscode/julia-vscode/pull/2887))
+
+## [1.6.18] - 2022-05-04
+### Added
+- The profile pane now has a button to save the current profile to a file ([#2847](https://github.com/julia-vscode/julia-vscode/pull/2847))
+- Added a `Julia: New Julia File` command ([#1509](https://github.com/julia-vscode/julia-vscode/pull/1509), [#2877](https://github.com/julia-vscode/julia-vscode/pull/2877))
+- Cell evaluation now shows inline results for all top-level code blocks when the `julia.execution.inlineResultsForCellEvaluation` setting is enabled ([#2866](https://github.com/julia-vscode/julia-vscode/pull/2866))
+
+### Changed
+- The Julia version is now appended to the REPL title ([#2857](https://github.com/julia-vscode/julia-vscode/pull/2857))
+- The extension is now only auto-activated when a `Project.toml` is in the workspace, not any arbitrary `.jl` file ([#2850](https://github.com/julia-vscode/julia-vscode/pull/2850))
+- Plot navigator screenshots were removed due to performance issues ([#2869](https://github.com/julia-vscode/julia-vscode/pull/2869))
+
+### Fixed
+- Internal modules are now correctly loaded on all processes ([#2845](https://github.com/julia-vscode/julia-vscode/pull/2845))
+- Big tables originating from notebooks are now correctly displayed ([#2848](https://github.com/julia-vscode/julia-vscode/pull/2848))
+- Nested progress bars are more robust in the presence of multiple tasks ([#2845](https://github.com/julia-vscode/julia-vscode/pull/2854))
+- The Language Server is now properly restatable again ([#2859](https://github.com/julia-vscode/julia-vscode/pull/2859))
+- Notebook internals are now hidden in stacktraces ([#2862](https://github.com/julia-vscode/julia-vscode/pull/2862))
+- Terminal link handler now properly works for Base-internal code ([#2865](https://github.com/julia-vscode/julia-vscode/pull/2865))
+- `ans` assignment is now more robust, which fixes an issue when IJulia.jl is loaded ([#2867](https://github.com/julia-vscode/julia-vscode/pull/2867))
+- Lines are now broken properly in the documentation browser ([#2870](https://github.com/julia-vscode/julia-vscode/pull/2870))
+- `args` can now be specified in the Julia launch configuration ([#2872](https://github.com/julia-vscode/julia-vscode/pull/2872))
+
+## [1.6.17] - 2022-04-06
+### Fixed
+- Slightly better check for displaying objects in the workspace ([#2833](https://github.com/julia-vscode/julia-vscode/pull/2833))
+
+## [1.6.16] - 2022-04-06
+### Fixed
+- Fix a problem when trying to display `missing`s in the workspace ([#2831](https://github.com/julia-vscode/julia-vscode/pull/2831))
+
+## [1.6.15] - 2022-04-03
+### Fixed
+- Notebooks now start properly in empty VS Code workspaces ([#2828](https://github.com/julia-vscode/julia-vscode/pull/2828))
+
+## [1.6.14] - 2022-04-01
+### Added
+- More notebook startup diagnostics.
+
+## [1.6.13] - 2022-04-01
+### Added
+- "Go to defintion" button for some workspace items ([#2815](https://github.com/julia-vscode/julia-vscode/pull/2815))
+
+### Fixed
+- `@edit` is now much more robust ([#2823](https://github.com/julia-vscode/julia-vscode/pull/2823))
+
+## [1.6.11] - 2022-03-28
+### Fixed
+- Fixed another bug in notebook error handling ([#2803](https://github.com/julia-vscode/julia-vscode/pull/2803))
+- Persistent REPL is no more killed on window reload ([#2807](https://github.com/julia-vscode/julia-vscode/pull/2807))
+- `LOAD_PATH` is now correctly set in notebooks ([#2810](https://github.com/julia-vscode/julia-vscode/pull/2810))
+- Trying to display an empty profile trace now shows a warning instead of emitting a scary looking error ([#2809](https://github.com/julia-vscode/julia-vscode/pull/2809))
+
+## [1.6.8] - 2022-03-23
+### Fixed
+- Toolbar icon now works properly in Chromium based browsers ([#2794](https://github.com/julia-vscode/julia-vscode/pull/2794))
+- juliaup integration is now more robust ([#2796](https://github.com/julia-vscode/julia-vscode/pull/2796))
+- Inline diagnostics are now also displayed in the REPL ([#2797](https://github.com/julia-vscode/julia-vscode/pull/2797))
+- Fix for dev'ed package with relative paths ([#2798](https://github.com/julia-vscode/julia-vscode/pull/2798))
+
+## [1.6.5] - 2022-03-20
+### Fixed
+- Inline error are now handled better during debugging ([#56](https://github.com/julia-vscode/DebugAdapter.jl/pull/56))
+
+## [1.6.4] - 2022-03-17
+### Fixed
+- Errors in notebooks are now handled more robustly ([#2781](https://github.com/julia-vscode/julia-vscode/pull/2781), [#2783](https://github.com/julia-vscode/julia-vscode/pull/2783))
+- `Revise.revise` is now called in the most recent world during inline evaluation ([#2782](https://github.com/julia-vscode/julia-vscode/pull/2782))
+
+## [1.6.3] - 2022-03-15
+### Changed
+- Internal workflow changes.
 
 ## [1.6.2] - 2022-03-11
 ### Fixed
@@ -54,7 +148,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Fixed inline result hovers for VS Code 1.64 and newer ([#2716](https://github.com/julia-vscode/julia-vscode/pull/2716))
 * Fixed a Julia REPL crash when getting runtime completions for uninitialized fields ([#2686](https://github.com/julia-vscode/julia-vscode/pull/2686))
 
-### Change
+### Changed
 * Removed some superfluous plot pane related keybindings ([#2704](https://github.com/julia-vscode/julia-vscode/pull/2704))
 
 ## [1.5.10] - 2022-01-17
