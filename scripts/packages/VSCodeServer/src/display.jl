@@ -42,8 +42,8 @@ function with_no_default_display(f)
     end
 end
 
-function sendDisplayMsg(kind, data)
-    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data))
+function sendDisplayMsg(kind, data, id = missing)
+    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data, "id" => id))
     JSONRPC.flush(conn_endpoint[])
 end
 
@@ -128,6 +128,15 @@ function Base.Multimedia.display(d::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIM
     sendDisplayMsg(DIAGNOSTIC_MIME, show(IOBuffer(), m, diagnostics))
     if d.is_repl
         display(MIME"text/plain"(), diagnostics)
+    end
+end
+
+function display_with_id(id, x)
+    for mime in DISPLAYABLE_MIMES
+        if showable(mime, x)
+            payload = startswith(mime, "image") ? stringmime(MIME(mime), x) : String(repr(MIME(mime), x))
+            return sendDisplayMsg(mime, payload, id)
+        end
     end
 end
 

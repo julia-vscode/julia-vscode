@@ -9,6 +9,7 @@ import { JuliaKernel } from '../notebook/notebookKernel'
 
 const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
+const g_plot_id_map = new Map<string, number>()
 let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
 let g_context: vscode.ExtensionContext = null
@@ -384,6 +385,12 @@ export function plotPaneDel() {
             return plotsInfo
         })
         g_plots.splice(g_currentPlotIndex, 1)
+        for (const [k, v] of g_plot_id_map) {
+            if (v === g_currentPlotIndex) {
+                g_plot_id_map.delete(k)
+            }
+        }
+
         if (g_currentPlotIndex > g_plots.length - 1) {
             g_currentPlotIndex = g_plots.length - 1
         }
@@ -394,6 +401,7 @@ export function plotPaneDel() {
 export function plotPaneDelAll() {
     telemetry.traceEvent('command-plotpanedeleteall')
     g_plotNavigatorProvider?.setPlotsInfo(() => [])
+    g_plot_id_map.clear()
     if (g_plots.length > 0) {
         g_plots.splice(0, g_plots.length)
         g_currentPlotIndex = 0
@@ -449,21 +457,43 @@ function wrapImagelike(srcString: string) {
         </html>`
 }
 
-export function displayPlot(params: { kind: string, data: string }, kernel?: JuliaKernel) {
-    const kind = params.kind
-    const payload = params.data
-
-    if (!(kind.startsWith('application/vnd.dataresource'))) {
-        // We display a text thumbnail first just in case that JavaScript errors in the webview or did not successfully send out message and corrupt thumbnail indices.
+function addOrUpdatePlot(plotPaneContent, id: string = undefined) {
+    if (id && g_plot_id_map.has(id)) {
+        const ind = g_plot_id_map.get(id)
+        g_plots[ind] = plotPaneContent
+        g_currentPlotIndex = ind
         g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
-            plotsInfo.push({
+            plotsInfo[ind] = {
                 thumbnail_type: 'text',
                 thumbnail_data: null,
                 time: new Date()
-            })
+            }
             return plotsInfo
         })
+        showPlotPane()
+        return
     }
+
+    g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
+
+    g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
+        plotsInfo.push({
+            thumbnail_type: 'text',
+            thumbnail_data: null,
+            time: new Date()
+        })
+        return plotsInfo
+    })
+
+    if (id) {
+        g_plot_id_map.set(id, g_currentPlotIndex)
+    }
+
+    showPlotPane()
+}
+
+export function displayPlot(params: { kind: string, data: string, id: string|undefined }, kernel?: JuliaKernel) {
+    const {kind, data: payload, id} = params
 
     if (kind === 'image/svg+xml') {
         const has_xmlns_attribute = payload.includes('xmlns=')
@@ -479,22 +509,18 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
             plotPaneContent = payload
         }
 
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'image/png') {
         const plotPaneContent = wrapImagelike(`data:image/png;base64,${payload}`)
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'image/gif') {
         const plotPaneContent = wrapImagelike(`data:image/gif;base64,${payload}`)
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'juliavscode/html') {
-        g_currentPlotIndex = g_plots.push(payload) - 1
-        showPlotPane()
+        addOrUpdatePlot(payload, id)
     }
     else if (kind === 'application/vnd.vegalite.v2+json') {
         showPlotPane()
@@ -532,8 +558,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                     vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'application/vnd.vegalite.v3+json') {
         showPlotPane()
@@ -571,8 +596,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                     vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'application/vnd.vegalite.v4+json') {
         showPlotPane()
@@ -610,8 +634,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                     vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'application/vnd.vega.v3+json') {
         showPlotPane()
@@ -647,8 +670,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                     vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'application/vnd.vega.v4+json') {
         showPlotPane()
@@ -684,8 +706,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                     vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'application/vnd.vega.v5+json') {
         showPlotPane()
@@ -721,8 +742,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                     vegaEmbed('#plot-element', spec, opt);
                 </script>
             </html>`
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'application/vnd.plotly.v1+json') {
         showPlotPane()
@@ -751,8 +771,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
             }
         </script>
         </html>`
-        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        addOrUpdatePlot(plotPaneContent, id)
     }
     else if (kind === 'application/vnd.dataresource+json') {
         return displayTable(payload, g_context, false, kernel)
