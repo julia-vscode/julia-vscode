@@ -12,7 +12,7 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
 end
 
 let
-    args = [popfirst!(Base.ARGS) for _ in 1:6]
+    args = [popfirst!(Base.ARGS) for _ in 1:7]
     # load Revise ?
     if "USE_REVISE=true" in args
         try
@@ -24,6 +24,10 @@ let
             end
         catch err
         end
+    end
+
+    if "ENABLE_SHELL_INTEGRATION=true" in args
+        VSCodeServer.ENABLE_SHELL_INTEGRATION[] = true
     end
 
     atreplinit() do repl

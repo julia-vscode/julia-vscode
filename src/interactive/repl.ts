@@ -120,7 +120,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     }
 
     const config = vscode.workspace.getConfiguration('julia')
-
+    const terminalConfig = vscode.workspace.getConfiguration('terminal')
     if (g_terminal === null) {
         const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
         const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
@@ -132,6 +132,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
             jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
             jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
+            jlarg2.push(`ENABLE_SHELL_INTEGRATION=${terminalConfig.get('integrated.shellIntegration.enabled')}`)
             jlarg2.push(`DEBUG_MODE=${Boolean(process.env.DEBUG_MODE)}`)
 
             if (nthreads === 'auto') {
