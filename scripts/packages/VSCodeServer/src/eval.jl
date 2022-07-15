@@ -143,18 +143,19 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
 
                 for (i, line) in enumerate(eachline(IOBuffer(source_code)))
                     if i == 1
-                        print(prefix, "\e[1m", prompt, suffix)
-                        print(' '^code_column)
+                        print(Base.active_repl.t, prefix, "\e[1m", prompt, suffix)
+                        print(Base.active_repl.t, ' '^code_column)
                     else
                         print(
+                            Base.active_repl.t,
                             SHELL.continuation_prompt_start(),
                             ' '^length(prompt),
                             SHELL.continuation_prompt_end()
                         )
                     end
-                    println(line)
+                    println(Base.active_repl.t, line)
                 end
-                print(stdout, SHELL.output_start())
+                print(Base.active_repl.t, SHELL.output_start(source_code))
             end
 
             return withpath(source_filename) do
