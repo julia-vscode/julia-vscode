@@ -21,8 +21,6 @@ function get_main_mode(repl = Base.active_repl)
     mode
 end
 
-get_current_line_buffer() = String(take!(copy(LineEdit.buffer(Base.active_repl.mistate))))
-
 function hideprompt(f)
     isREPL() || return f()
 
@@ -30,7 +28,7 @@ function hideprompt(f)
     mistate = repl.mistate
     mode = mistate.current_mode
 
-    buf = get_current_line_buffer()
+    buf = String(take!(copy(LineEdit.buffer(mistate))))
 
     # clear input buffer
     truncate(LineEdit.buffer(mistate), 0)
@@ -73,23 +71,17 @@ function hideprompt(f)
     r
 end
 
-si(f) = (args...) -> ENABLE_SHELL_INTEGRATION[] ? f(args...) : ""
+si(f) = () -> ENABLE_SHELL_INTEGRATION[] ? f() : ""
 
 const SHELL = (
     prompt_start = si(() -> "\e]633;A\a"),
     prompt_end = si(() -> "\e]633;B\a"),
-    output_start = si(function (cmd = nothing)
-        if cmd === nothing
-            "\e]633;C\a"
-        else
-            "\e]633;C\a\e]633;E;$cmd\a"
-        end
-    end),
+    output_start = si(() -> "\e]633;C\a"),
     output_end = si(function ()
         if LAST_REPL_EVAL_ERRORED[] === nothing
-            "\e]633;E\a\e]633;D\a"
+            "\e]633;D\a"
         else
-            "\e]633;E\a\e]633;D;$(Int(LAST_REPL_EVAL_ERRORED[]))\a"
+            "\e]633;D;$(Int(LAST_REPL_EVAL_ERRORED[]))\a"
         end
     end),
     continuation_prompt_start = si(() -> "\e]633;F\a"),
@@ -103,8 +95,8 @@ as_func(x::Function) = x
 function install_vscode_shell_integration(prompt)
     prefix = as_func(prompt.prompt_prefix)
     suffix = as_func(prompt.prompt_suffix)
-    prompt.prompt_prefix = () -> string(SHELL.output_end(), SHELL.prompt_start(), SHELL.update_cwd(), prefix())
-    prompt.prompt_suffix = () -> string(suffix(), SHELL.prompt_end())
+    prompt.prompt_prefix = () -> string(SHELL.output_end(), SHELL.prompt_start(), prefix())
+    prompt.prompt_suffix = () -> string(suffix(), SHELL.update_cwd(), SHELL.prompt_end())
 end
 
 const HAS_REPL_TRANSFORM = Ref{Bool}(false)
@@ -144,6 +136,7 @@ end
 
 function transform_backend(ast, repl, main_mode)
     quote
+        print(stdout, $(SHELL.output_start)())
         $(evalrepl)(Main, $(QuoteNode(ast)), $repl, $main_mode)
     end
 end
@@ -152,7 +145,6 @@ const LAST_REPL_EVAL_ERRORED = Ref{Union{Nothing, Bool}}(nothing)
 function evalrepl(m, line, repl, main_mode)
     did_notify = false
     return try
-        write(Base.active_repl.t, SHELL.output_start(get_current_line_buffer()))
         try
             JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
             did_notify = true

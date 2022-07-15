@@ -26,7 +26,7 @@ let
         end
     end
 
-    if "ENABLE_SHELL_INTEGRATION=true" in args && !Sys.iswindows()
+    if "ENABLE_SHELL_INTEGRATION=true" in args
         VSCodeServer.ENABLE_SHELL_INTEGRATION[] = true
     end
 
