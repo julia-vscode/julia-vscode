@@ -71,7 +71,11 @@ function hideprompt(f)
     r
 end
 
-si(f) = () -> ENABLE_SHELL_INTEGRATION[] ? f() : ""
+si(f) = (args...) -> ENABLE_SHELL_INTEGRATION[] ? f(args...) : ""
+
+function sanitize_shell_integration_string(cmd)
+    replace(replace(replace(cmd, "\n" => "<LF>"), ";" => "<CL>"), "\a" => "<ST>")
+end
 
 const SHELL = (
     prompt_start = si(() -> "\e]633;A\a"),
@@ -79,10 +83,16 @@ const SHELL = (
     output_start = si(() -> "\e]633;C\a"),
     output_end = si(function ()
         if LAST_REPL_EVAL_ERRORED[] === nothing
-            "\e]633;D\a"
+            ""
         else
-            "\e]633;D;$(Int(LAST_REPL_EVAL_ERRORED[]))\a"
+            exitcode = LAST_REPL_EVAL_ERRORED[]
+            LAST_REPL_EVAL_ERRORED[] === nothing
+            "\e]633;D;$(Int(exitcode))\a"
         end
+    end),
+    update_cmd = si(function (cmd)
+        cmd = sanitize_shell_integration_string(cmd)
+        "\e]633;E;$cmd\a"
     end),
     continuation_prompt_start = si(() -> "\e]633;F\a"),
     continuation_prompt_end = si(() -> "\e]633;G\a"),
@@ -97,6 +107,12 @@ function install_vscode_shell_integration(prompt)
     suffix = as_func(prompt.prompt_suffix)
     prompt.prompt_prefix = () -> string(SHELL.output_end(), SHELL.prompt_start(), prefix())
     prompt.prompt_suffix = () -> string(suffix(), SHELL.update_cwd(), SHELL.prompt_end())
+
+    on_done = prompt.on_done
+    prompt.on_done = function (mi, buf, ok)
+        print(SHELL.output_start(), SHELL.update_cmd(String(take!(deepcopy(buf)))))
+        on_done(mi, buf, ok)
+    end
 end
 
 const HAS_REPL_TRANSFORM = Ref{Bool}(false)
@@ -136,7 +152,6 @@ end
 
 function transform_backend(ast, repl, main_mode)
     quote
-        print(stdout, $(SHELL.output_start)())
         $(evalrepl)(Main, $(QuoteNode(ast)), $repl, $main_mode)
     end
 end
