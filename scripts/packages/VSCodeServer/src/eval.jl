@@ -155,6 +155,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     println(line)
                 end
                 print(stdout, SHELL.output_start())
+                print(stdout, SHELL.update_cmd(source_code))
             end
 
             return withpath(source_filename) do
