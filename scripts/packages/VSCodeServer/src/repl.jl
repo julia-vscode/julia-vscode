@@ -86,7 +86,7 @@ const SHELL = (
             ""
         else
             exitcode = LAST_REPL_EVAL_ERRORED[]
-            LAST_REPL_EVAL_ERRORED[] === nothing
+            LAST_REPL_EVAL_ERRORED[] = nothing
             "\e]633;D;$(Int(exitcode))\a"
         end
     end),
