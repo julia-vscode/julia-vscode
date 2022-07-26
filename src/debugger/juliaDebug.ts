@@ -307,7 +307,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
             '--color=yes',
             `--project=${args.juliaEnv}`,
             args.program,
-            ...args.args
+            ...(args.args ?? [])
         ]
 
         const env = {}
