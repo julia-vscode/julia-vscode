@@ -167,6 +167,11 @@ export class Result {
 }
 
 const results: Result[] = []
+const supportedLanguageIds = [
+    'julia',
+    'juliamarkdown',
+    'markdown'
+]
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
@@ -198,10 +203,11 @@ export function activate(context: vscode.ExtensionContext) {
         registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
         registerCommand('language-julia.clearStackTrace', clearStackTrace)
     )
+    setContext('juliaSupportedLanguageIds', supportedLanguageIds)
 }
 
 function updateResultContextKey(changeEvent: vscode.TextEditorSelectionChangeEvent) {
-    if (changeEvent.textEditor.document.languageId !== 'julia') {
+    if (!supportedLanguageIds.includes(changeEvent.textEditor.document.languageId)) {
         return
     }
     for (const selection of changeEvent.selections) {

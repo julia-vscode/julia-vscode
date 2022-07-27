@@ -532,22 +532,22 @@
                 },
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
-                    "when": "editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 },
                 {
                     "command": "language-julia.cdHere",
                     "group": "julia",
-                    "when": "editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 },
                 {
                     "command": "language-julia.activateHere",
                     "group": "julia",
-                    "when": "editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 },
                 {
                     "command": "language-julia.activateFromDir",
                     "group": "julia",
-                    "when": "editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 }
             ],
             "editor/title/run": [
@@ -674,12 +674,12 @@
             "editor/context": [
                 {
                     "command": "language-julia.executeCodeBlockOrSelection",
-                    "when": "activeEditor != workbench.editor.notebook && editorLangId =~ /^julia|juliamarkdown|markdown$/",
+                    "when": "activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds",
                     "group": "z_commands"
                 },
                 {
                     "command": "language-julia.show-documentation",
-                    "when": "editorLangId =~ /^julia|juliamarkdown|markdown$/",
+                    "when": "editorLangId in julia.supportedLanguageIds",
                     "group": "z_commands"
                 }
             ],
@@ -724,22 +724,22 @@
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
                 "key": "Shift+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelection",
                 "key": "Ctrl+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.executeCell",
                 "key": "Alt+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.executeCellAndMove",
                 "key": "Alt+Shift+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.interrupt",
@@ -749,17 +749,17 @@
             {
                 "command": "language-julia.clearCurrentInlineResult",
                 "key": "Escape",
-                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && juliaHasInlineResult && editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && juliaHasInlineResult && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
                 "key": "Ctrl+I Ctrl+C",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.chooseModule",
                 "key": "Alt+J Alt+M",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.newJuliaFile",
@@ -780,12 +780,12 @@
             {
                 "command": "language-julia.changeCurrentEnvironment",
                 "key": "Alt+J Alt+E",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.show-documentation",
                 "key": "Alt+J Alt+D",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId =~ /^julia|juliamarkdown|markdown$/"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "key": "Alt+J Alt+P",
