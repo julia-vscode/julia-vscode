@@ -3,6 +3,8 @@
 using REPL
 using REPL.LineEdit
 
+const ENABLE_SHELL_INTEGRATION = Ref{Bool}(false)
+
 isREPL() = isdefined(Base, :active_repl) &&
            isdefined(Base.active_repl, :interface) &&
            isdefined(Base.active_repl.interface, :modes) &&
@@ -69,6 +71,50 @@ function hideprompt(f)
     r
 end
 
+si(f) = (args...) -> ENABLE_SHELL_INTEGRATION[] ? f(args...) : ""
+
+function sanitize_shell_integration_string(cmd)
+    replace(replace(replace(cmd, "\n" => "<LF>"), ";" => "<CL>"), "\a" => "<ST>")
+end
+
+const SHELL = (
+    prompt_start = si(() -> "\e]633;A\a"),
+    prompt_end = si(() -> "\e]633;B\a"),
+    output_start = si(() -> "\e]633;C\a"),
+    output_end = si(function ()
+        if LAST_REPL_EVAL_ERRORED[] === nothing
+            ""
+        else
+            exitcode = LAST_REPL_EVAL_ERRORED[]
+            LAST_REPL_EVAL_ERRORED[] = nothing
+            "\e]633;D;$(Int(exitcode))\a"
+        end
+    end),
+    update_cmd = si(function (cmd)
+        cmd = sanitize_shell_integration_string(cmd)
+        "\e]633;E;$cmd\a"
+    end),
+    continuation_prompt_start = si(() -> "\e]633;F\a"),
+    continuation_prompt_end = si(() -> "\e]633;G\a"),
+    update_cwd = si(() -> "\e]633;P;Cwd=$(pwd())\a"),
+)
+
+as_func(x) = () -> x
+as_func(x::Function) = x
+
+function install_vscode_shell_integration(prompt)
+    prefix = as_func(prompt.prompt_prefix)
+    suffix = as_func(prompt.prompt_suffix)
+    prompt.prompt_prefix = () -> string(SHELL.output_end(), SHELL.prompt_start(), prefix())
+    prompt.prompt_suffix = () -> string(suffix(), SHELL.update_cwd(), SHELL.prompt_end())
+
+    on_done = prompt.on_done
+    prompt.on_done = function (mi, buf, ok)
+        print(SHELL.output_start(), SHELL.update_cmd(String(take!(deepcopy(buf)))))
+        on_done(mi, buf, ok)
+    end
+end
+
 const HAS_REPL_TRANSFORM = Ref{Bool}(false)
 function hook_repl(repl)
     if HAS_REPL_TRANSFORM[]
@@ -88,6 +134,7 @@ function hook_repl(repl)
         if isdefined(Base, :active_repl_backend)
             push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
             HAS_REPL_TRANSFORM[] = true
+            install_vscode_shell_integration(main_mode)
             @debug "REPL AST transform installed"
             return
         end
@@ -109,6 +156,7 @@ function transform_backend(ast, repl, main_mode)
     end
 end
 
+const LAST_REPL_EVAL_ERRORED = Ref{Union{Nothing, Bool}}(nothing)
 function evalrepl(m, line, repl, main_mode)
     did_notify = false
     return try
@@ -123,6 +171,7 @@ function evalrepl(m, line, repl, main_mode)
             f = () -> repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
             PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
         end
+        LAST_REPL_EVAL_ERRORED[] = true
         if r isa EvalError
             display_repl_error(stderr, r.err, r.bt)
             nothing
@@ -130,6 +179,7 @@ function evalrepl(m, line, repl, main_mode)
             display_repl_error(stderr, r)
             nothing
         else
+            LAST_REPL_EVAL_ERRORED[] = false
             r
         end
     catch err

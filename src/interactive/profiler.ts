@@ -449,7 +449,8 @@ export class ProfilerFeature {
                 const container = document.getElementById("profiler-container");
                 import('${jsProfileDataUrl}').then(({ProfileViewer}) => {
                     prof = new ProfileViewer(container);
-                    prof.setData(${JSON.stringify(this.profiles[this.currentProfileIndex])});
+                    prof.setData(${JSON.stringify(this.profiles[this.currentProfileIndex].data)});
+                    prof.setSelectorLabel(${JSON.stringify(this.profiles[this.currentProfileIndex].type)});
                 });
             </script>
         </body>

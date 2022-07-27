@@ -131,25 +131,31 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
 
                 prompt = "julia> "
                 prefix = "\e[32m"
+                suffix = "\e[0m"
                 try
                     mode = get_main_mode()
                     prompt = mode.prompt
-                    prefix = mode.prompt_prefix
+                    prefix = as_func(mode.prompt_prefix)()
+                    suffix = as_func(mode.prompt_suffix)()
                 catch err
                     @debug "getting prompt info failed" exception = (err, catch_backtrace())
                 end
 
                 for (i, line) in enumerate(eachline(IOBuffer(source_code)))
                     if i == 1
-                        print(prefix, "\e[1m", prompt, "\e[0m")
+                        print(prefix, "\e[1m", prompt, suffix)
                         print(' '^code_column)
                     else
-                        # Indent by 7 so that it aligns with the julia> prompt
-                        print(' '^length(prompt))
+                        print(
+                            SHELL.continuation_prompt_start(),
+                            ' '^length(prompt),
+                            SHELL.continuation_prompt_end()
+                        )
                     end
-
                     println(line)
                 end
+                print(stdout, SHELL.output_start())
+                print(stdout, SHELL.update_cmd(source_code))
             end
 
             return withpath(source_filename) do
@@ -166,8 +172,14 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                             CAN_SET_ANS[] = false
                         end
                     end
+                    if show_code
+                        LAST_REPL_EVAL_ERRORED[] = false
+                    end
                     val
                 catch err
+                    if show_code
+                        LAST_REPL_EVAL_ERRORED[] = true
+                    end
                     @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
                     elseif isdefined(Base, :catch_stack)
@@ -256,10 +268,14 @@ Must return a `ReplRunCodeRequestReturn` with the following fields:
 - `stackframe::Vector{Frame}`: Optional, should only be given on an error
 """
 function render(x)
-    str = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
-    inline = strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH)
-    all = codeblock(str)
-    return ReplRunCodeRequestReturn(inline, all)
+    plain = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
+    md = try
+        sprintlimited(MIME"text/markdown"(), x, limit = MAX_RESULT_LENGTH)
+    catch _
+        codeblock(plain)
+    end
+    inline = strlimit(first(split(plain, "\n")), limit = INLINE_RESULT_LENGTH)
+    return ReplRunCodeRequestReturn(inline, md)
 end
 
 render(::Nothing) = ReplRunCodeRequestReturn("✓", codeblock("nothing"))

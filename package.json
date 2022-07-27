@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.6.25",
+    "version": "1.6.28",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -1150,7 +1150,7 @@
                 },
                 "julia.deleteJuliaCovFiles": {
                     "type": "boolean",
-                    "default": "true",
+                    "default": true,
                     "description": "Delete Julia .cov files when running tests with coverage, leaving only a .lcov file behind.",
                     "scope": "window"
                 },
