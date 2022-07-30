@@ -662,12 +662,12 @@
                 },
                 {
                     "command": "language-julia.showModules",
-                    "when": "view == REPLVariables && julia.showingModules == false",
+                    "when": "view == REPLVariables && config.julia.workspace.showModules == false",
                     "group": "menu"
                 },
                 {
                     "command": "language-julia.hideModules",
-                    "when": "view == REPLVariables && julia.showingModules == true",
+                    "when": "view == REPLVariables && config.julia.workspace.showModules == true",
                     "group": "menu"
                 }
             ],
@@ -1223,6 +1223,12 @@
                     "type": "string",
                     "description": "The output directory to save plots to",
                     "scope": "window"
+                },
+                "julia.workspace.showModules": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show top-level modules in the workspace.",
+                    "scope": "application"
                 }
             }
         },

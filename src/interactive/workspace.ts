@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
-import { registerCommand, setContext } from '../utils'
+import { registerCommand } from '../utils'
 import { displayPlot } from './plots'
 import {
     notifyTypeDisplay,
@@ -49,13 +49,27 @@ abstract class AbstractWorkspaceNode {
 }
 
 abstract class SessionNode extends AbstractWorkspaceNode {
-    _showModules = true
+    _showModules: boolean
+
+    constructor() {
+        super()
+
+        this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
+        vscode.workspace.onDidChangeConfiguration(config => {
+            if (config.affectsConfiguration('julia.workspace.showModules')) {
+                this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
+                this.updateReplVariables()
+            }
+        })
+    }
 
     public toggleModules(show) {
         this._showModules = show
     }
 
     public abstract getConnection()
+
+    public abstract updateReplVariables()
 }
 
 export class NotebookNode extends SessionNode {
@@ -171,7 +185,6 @@ export class WorkspaceFeature {
 
     constructor(private context: vscode.ExtensionContext) {
         this._REPLTreeDataProvider = new REPLTreeDataProvider(this)
-        setContext('julia.showingModules', true)
 
         this.context.subscriptions.push(
             // registries
@@ -311,6 +324,6 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             node.toggleModules(show)
             node.updateReplVariables()
         })
-        setContext('julia.showingModules', show)
+        vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, true)
     }
 }
