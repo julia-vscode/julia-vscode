@@ -367,8 +367,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     try {
         g_startupNotification.command = 'language-julia.showLanguageServerOutput'
-        await languageClient.start()
         setLanguageClient(languageClient)
+        await languageClient.start()
     }
     catch (e) {
         vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(val => {
