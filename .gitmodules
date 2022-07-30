@@ -76,3 +76,9 @@
 [submodule "scripts/packages/Revise"]
 	path = scripts/packages/Revise
 	url = https://github.com/timholy/Revise.jl
+[submodule "scripts/packages/libblastrampoline_jll"]
+	path = scripts/packages/libblastrampoline_jll
+	url = https://github.com/JuliaBinaryWrappers/libblastrampoline_jll.jl.git
+[submodule "scripts/packages/SuiteSparse_jll"]
+	path = scripts/packages/SuiteSparse_jll
+	url = https://github.com/JuliaBinaryWrappers/SuiteSparse_jll.jl.git

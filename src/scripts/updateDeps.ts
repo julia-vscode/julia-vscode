@@ -65,7 +65,9 @@ async function main() {
         'DataStructures',
         'JuliaFormatter',
         'URIs',
-        'Revise'
+        'Revise',
+        'SuiteSparse_jll',
+        'libblastrampoline_jll'
     ]) {
         await cp.exec('git fetch')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })

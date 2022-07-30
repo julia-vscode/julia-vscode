@@ -151,7 +151,9 @@ uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [[SuiteSparse_jll]]
 deps = ["Artifacts", "Libdl", "Pkg", "libblastrampoline_jll"]
+path = "../../packages/SuiteSparse_jll"
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
+version = "5.10.1+3"
 
 [[SymbolServer]]
 deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
@@ -188,4 +190,6 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [[libblastrampoline_jll]]
 deps = ["Artifacts", "Libdl"]
+path = "../../packages/libblastrampoline_jll"
 uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
+version = "5.1.1+0"
