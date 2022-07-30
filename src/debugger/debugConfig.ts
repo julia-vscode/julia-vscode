@@ -235,7 +235,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
 export function activate(context: vscode.ExtensionContext) {
     const provider = new DebugConfigTreeProvider()
     provider.applyDefaults()
-    setContext('juliaCompiledMode', false)
+    setContext('julia.debuggerCompiledMode', false)
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('debugger-compiled', provider),
@@ -273,11 +273,11 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('language-julia.enable-compiled-mode', async () => {
             provider.enableCompiledMode()
-            setContext('juliaCompiledMode', true)
+            setContext('julia.debuggerCompiledMode', true)
         }),
         vscode.commands.registerCommand('language-julia.disable-compiled-mode', async () => {
             provider.disableCompiledMode()
-            setContext('juliaCompiledMode', false)
+            setContext('julia.debuggerCompiledMode', false)
         }),
         onInit(connection => {
             provider.setConnection(connection)

@@ -1192,14 +1192,14 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
             }))
             connection.onNotification(notifyTypeOpenFile, ({ path, line }) => openFile(path, line))
             connection.onNotification(notifyTypeProgress, updateProgress)
-            setContext('isJuliaEvaluating', false)
-            setContext('hasJuliaREPL', true)
+            setContext('julia.isEvaluating', false)
+            setContext('julia.hasREPL', true)
         }),
         onExit(() => {
             results.removeAll()
             clearDiagnostics()
-            setContext('isJuliaEvaluating', false)
-            setContext('hasJuliaREPL', false)
+            setContext('julia.isEvaluating', false)
+            setContext('julia.hasREPL', false)
         }),
         onStartEval(() => {
             updateProgress({
@@ -1208,11 +1208,11 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
                 fraction: -1,
                 done: false
             })
-            setContext('isJuliaEvaluating', true)
+            setContext('julia.isEvaluating', true)
         }),
         onFinishEval(() => {
             clearProgress()
-            setContext('isJuliaEvaluating', false)
+            setContext('julia.isEvaluating', false)
         }),
         vscode.workspace.onDidChangeConfiguration(async event => {
             if (event.affectsConfiguration('julia.usePlotPane')) {
@@ -1239,9 +1239,9 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         }),
         vscode.window.onDidChangeActiveTerminal(terminal => {
             if (terminal === g_terminal) {
-                setContext('isJuliaREPL', true)
+                setContext('julia.isActiveREPL', true)
             } else {
-                setContext('isJuliaREPL', false)
+                setContext('julia.isActiveREPL', false)
             }
         }),
         vscode.window.onDidCloseTerminal(terminal => {
