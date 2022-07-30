@@ -441,7 +441,7 @@
                 {
                     "command": "language-julia.executeFile",
                     "group": "julia",
-                    "when": "resourceLangId == julia"
+                    "when": "resourceLangId in julia.supportedLanguageIds"
                 },
                 {
                     "command": "language-julia.cdHere",
@@ -553,7 +553,7 @@
             "editor/title/run": [
                 {
                     "command": "language-julia.executeActiveFile",
-                    "when": "resourceLangId == julia",
+                    "when": "resourceLangId in julia.supportedLanguageIds",
                     "group": "Julia@10"
                 },
                 {
