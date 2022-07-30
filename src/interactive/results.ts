@@ -43,6 +43,11 @@ export class Result {
         this.onDidRemove = this.removeEmitter.event
 
         this.setContent(content)
+        for (const selection of editor.selections) {
+            if (isResultInLineRange(editor, this, selection)) {
+                setContext('julia.hasInlineResult', true)
+            }
+        }
     }
 
     setContent(content: ResultContent) {
@@ -178,7 +183,7 @@ export function activate(context: vscode.ExtensionContext) {
         // subscriptions
         vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)),
         vscode.window.onDidChangeVisibleTextEditors((editors) => refreshResults(editors)),
-        vscode.window.onDidChangeTextEditorSelection(changeEvent => updateResultContextKey(changeEvent)),
+        vscode.window.onDidChangeTextEditorSelection(changeEvent => updateContextKeyForSelections(changeEvent.textEditor, changeEvent.selections)),
 
         // public commands
         registerCommand('language-julia.clearAllInlineResults', removeAll),
@@ -203,22 +208,22 @@ export function activate(context: vscode.ExtensionContext) {
         registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
         registerCommand('language-julia.clearStackTrace', clearStackTrace)
     )
-    setContext('juliaSupportedLanguageIds', supportedLanguageIds)
+    setContext('julia.supportedLanguageIds', supportedLanguageIds)
 }
 
-function updateResultContextKey(changeEvent: vscode.TextEditorSelectionChangeEvent) {
-    if (!supportedLanguageIds.includes(changeEvent.textEditor.document.languageId)) {
+function updateContextKeyForSelections(editor: vscode.TextEditor, selections: readonly vscode.Selection[] = editor.selections) {
+    if (!supportedLanguageIds.includes(editor.document.languageId)) {
         return
     }
-    for (const selection of changeEvent.selections) {
+    for (const selection of selections) {
         for (const r of results) {
-            if (isResultInLineRange(changeEvent.textEditor, r, selection)) {
-                setContext('juliaHasInlineResult', true)
+            if (isResultInLineRange(editor, r, selection)) {
+                setContext('julia.hasInlineResult', true)
                 return
             }
         }
     }
-    setContext('juliaHasInlineResult', false)
+    setContext('julia.hasInlineResult', false)
 }
 
 export function deactivate() { }
@@ -392,7 +397,7 @@ export function removeCurrent(editor: vscode.TextEditor) {
     editor.selections.forEach(selection => {
         results.filter(r => isResultInLineRange(editor, r, selection)).forEach(removeResult)
     })
-    setContext('juliaHasInlineResult', false)
+    setContext('julia.hasInlineResult', false)
 }
 
 function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: vscode.Selection | vscode.Range) {
