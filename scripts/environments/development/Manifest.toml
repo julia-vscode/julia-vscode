@@ -16,13 +16,13 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 deps = ["Tokenize"]
 path = "../../packages/CSTParser"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.3.6-DEV"
+version = "3.3.7-DEV"
 
 [[deps.CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
 path = "../../packages/CodeTracking"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-version = "1.0.9"
+version = "1.1.0"
 
 [[deps.CommonMark]]
 deps = ["Crayons", "JSON", "URIs"]
@@ -119,7 +119,7 @@ version = "1.0.7"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.13"
+version = "0.9.14"
 
 [[deps.LanguageServer]]
 deps = ["CSTParser", "JSON", "JSONRPC", "JuliaFormatter", "Markdown", "Pkg", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIs", "UUIDs"]
