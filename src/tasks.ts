@@ -129,7 +129,6 @@ class JuliaTaskProvider {
             }
 
             if (juliaExecutable.getVersion().compare('1.6.0') >= 0) {
-                const envFolder = juliaExecutable.getVersion().compare('1.8.0') >= 0 ? 'environments' : 'environments-old'
                 const buildJuliaSysimage = new vscode.Task(
                     {
                         type: 'julia',
@@ -144,7 +143,7 @@ class JuliaTaskProvider {
                         `--project=${path.join(
                             this.context.extensionPath,
                             'scripts',
-                            envFolder,
+                            'environments',
                             'sysimagecompile'
                         )}`,
                         '--startup-file=no',
