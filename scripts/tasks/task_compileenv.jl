@@ -1,4 +1,13 @@
-import Pkg, Libdl, PackageCompiler
+import Pkg
+version_specific_env_path = joinpath(@__DIR__, "..", "environments", "sysimagecompile", "v$(VERSION.major).$(VERSION.minor)")
+if isdir(version_specific_env_path)
+    Pkg.activate(version_specific_env_path)
+else
+    Pkg.activate(joinpath(@__DIR__, "..", "environments", "sysimagecompile", "fallback"))
+end
+
+
+import Libdl, PackageCompiler
 import TOML
 
 

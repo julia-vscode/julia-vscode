@@ -2,6 +2,14 @@ if VERSION < v"1.0.0"
     error("VS Code julia language server only works with julia 1.0.0+")
 end
 
+import Pkg
+version_specific_env_path = joinpath(@__DIR__, "..", "environments", "languageserver", "v$(VERSION.major).$(VERSION.minor)")
+if isdir(version_specific_env_path)
+    Pkg.activate(version_specific_env_path)
+else
+    Pkg.activate(joinpath(@__DIR__, "..", "environments", "languageserver", "fallback"))
+end
+
 @debug "Julia started at $(round(Int, time()))"
 
 using Logging
