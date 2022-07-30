@@ -82,12 +82,14 @@ const SHELL = (
     prompt_end = si(() -> "\e]633;B\a"),
     output_start = si(() -> "\e]633;C\a"),
     output_end = si(function ()
-        if LAST_REPL_EVAL_ERRORED[] === nothing
-            ""
+        if REPL_PROMPT_STATE[] === REPLPromptStates.NoUpdate
+            return ""
+        elseif REPL_PROMPT_STATE[] === REPLPromptStates.NoStatus
+            return "\e]633;D\a"
         else
-            exitcode = LAST_REPL_EVAL_ERRORED[]
-            LAST_REPL_EVAL_ERRORED[] = nothing
-            "\e]633;D;$(Int(exitcode))\a"
+            exitcode = REPL_PROMPT_STATE[] == REPLPromptStates.Error
+            REPL_PROMPT_STATE[] = REPLPromptStates.NoUpdate
+            return "\e]633;D;$(Int(exitcode))\a"
         end
     end),
     update_cmd = si(function (cmd)
@@ -97,12 +99,16 @@ const SHELL = (
     continuation_prompt_start = si(() -> "\e]633;F\a"),
     continuation_prompt_end = si(() -> "\e]633;G\a"),
     update_cwd = si(() -> "\e]633;P;Cwd=$(pwd())\a"),
+    windows_compat = si(() -> "\e]633;P;IsWindows=True\a")
 )
 
 as_func(x) = () -> x
 as_func(x::Function) = x
 
 function install_vscode_shell_integration(prompt)
+    if Sys.iswindows()
+        print(stdout, SHELL.windows_compat())
+    end
     prefix = as_func(prompt.prompt_prefix)
     suffix = as_func(prompt.prompt_suffix)
     prompt.prompt_prefix = () -> string(SHELL.output_end(), SHELL.prompt_start(), prefix())
@@ -110,7 +116,8 @@ function install_vscode_shell_integration(prompt)
 
     on_done = prompt.on_done
     prompt.on_done = function (mi, buf, ok)
-        print(SHELL.output_start(), SHELL.update_cmd(String(take!(deepcopy(buf)))))
+        print(stdout, SHELL.output_start(), SHELL.update_cmd(String(take!(deepcopy(buf)))))
+        REPL_PROMPT_STATE[] = REPLPromptStates.NoStatus
         on_done(mi, buf, ok)
     end
 end
@@ -156,7 +163,14 @@ function transform_backend(ast, repl, main_mode)
     end
 end
 
-const LAST_REPL_EVAL_ERRORED = Ref{Union{Nothing, Bool}}(nothing)
+const REPLPromptStates = (
+    NoUpdate = 0,
+    NoStatus = 1,
+    Success = 2,
+    Error = 3,
+)
+
+const REPL_PROMPT_STATE = Ref{Int}(REPLPromptStates.NoUpdate)
 function evalrepl(m, line, repl, main_mode)
     did_notify = false
     return try
@@ -171,7 +185,7 @@ function evalrepl(m, line, repl, main_mode)
             f = () -> repleval(m, line, REPL.repl_filename(repl, main_mode.hist))
             PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
         end
-        LAST_REPL_EVAL_ERRORED[] = true
+        REPL_PROMPT_STATE[] = REPLPromptStates.Error
         if r isa EvalError
             display_repl_error(stderr, r.err, r.bt)
             nothing
@@ -179,7 +193,7 @@ function evalrepl(m, line, repl, main_mode)
             display_repl_error(stderr, r)
             nothing
         else
-            LAST_REPL_EVAL_ERRORED[] = false
+            REPL_PROMPT_STATE[] = REPLPromptStates.Success
             r
         end
     catch err
