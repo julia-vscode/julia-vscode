@@ -239,27 +239,6 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         return
     }
 
-    const storagePath = g_context.globalStorageUri.fsPath
-    const useSymserverDownloads = vscode.workspace.getConfiguration('julia').get('symbolCacheDownload') ? 'download' : 'local'
-    const symserverUpstream = vscode.workspace.getConfiguration('julia').get<string>('symbolserverUpstream')
-
-    const languageServerDepotPath = path.join(storagePath, 'lsdepot', 'v1')
-    await fs.createDirectory(languageServerDepotPath)
-    const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
-    const envForLSPath = path.join(g_context.extensionPath, 'scripts', 'environments', 'languageserver')
-    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
-    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
-    const spawnOptions = {
-        cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
-        env: {
-            JULIA_DEPOT_PATH: languageServerDepotPath,
-            JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
-            HOME: process.env.HOME ? process.env.HOME : os.homedir(),
-            JULIA_LANGUAGESERVER: '1',
-            PATH: process.env.PATH
-        }
-    }
-
     let juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
     if (juliaExecutable === undefined) {
@@ -273,6 +252,28 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         })
         g_startupNotification.hide()
         return
+    }
+
+    const storagePath = g_context.globalStorageUri.fsPath
+    const useSymserverDownloads = vscode.workspace.getConfiguration('julia').get('symbolCacheDownload') ? 'download' : 'local'
+    const symserverUpstream = vscode.workspace.getConfiguration('julia').get<string>('symbolserverUpstream')
+
+    const languageServerDepotPath = path.join(storagePath, 'lsdepot', 'v1')
+    await fs.createDirectory(languageServerDepotPath)
+    const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
+    const envFolder = juliaExecutable.getVersion().compare('1.8.0') >= 0 ? 'environments' : 'environments-old'
+    const envForLSPath = path.join(g_context.extensionPath, 'scripts', envFolder, 'languageserver')
+    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
+    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
+    const spawnOptions = {
+        cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
+        env: {
+            JULIA_DEPOT_PATH: languageServerDepotPath,
+            JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
+            HOME: process.env.HOME ? process.env.HOME : os.homedir(),
+            JULIA_LANGUAGESERVER: '1',
+            PATH: process.env.PATH
+        }
     }
 
     // Special case the situation where a user configured something like `julia +lts`
