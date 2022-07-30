@@ -85,6 +85,7 @@ const SHELL = (
         if REPL_PROMPT_STATE[] === REPLPromptStates.NoUpdate
             return ""
         elseif REPL_PROMPT_STATE[] === REPLPromptStates.NoStatus
+            REPL_PROMPT_STATE[] = REPLPromptStates.NoUpdate
             return "\e]633;D\a"
         else
             exitcode = REPL_PROMPT_STATE[] == REPLPromptStates.Error
