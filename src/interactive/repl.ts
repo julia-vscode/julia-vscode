@@ -644,10 +644,6 @@ async function getBlockRange(params: VersionedTextDocumentPositionParams): Promi
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
-    if (g_languageClient === null) {
-        vscode.window.showErrorMessage('No LS running or start. Check your settings.')
-        return zeroReturn
-    }
     try {
         return (await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(pos => new vscode.Position(pos.line, pos.character))
     } catch (err) {
