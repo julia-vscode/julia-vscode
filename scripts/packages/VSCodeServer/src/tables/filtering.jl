@@ -4,31 +4,12 @@ const SORTED_CACHE = Dict{UUID, UInt64}()
 col_access(row, col) = row[col]
 
 function generate_sorter(params, fixed_col_names)
-    lts = []
     for sortspec in params
-        let col = sortspec["colId"]
-            ind = findfirst(==(col), fixed_col_names)
-            if ind === nothing
-                continue
-            end
-            if sortspec["sort"] == "asc"
-                push!(lts, (r -> col_access(r, ind), (r1, r2) -> col_access(r1, ind) < col_access(r2, ind)))
-            else
-                push!(lts, (r -> col_access(r, ind), (r1, r2) -> !(col_access(r1, ind) < col_access(r2, ind))))
-            end
+        col = sortspec["colId"]
+        ind = findfirst(==(col), fixed_col_names)
+        if ind !== nothing
+            return (row -> col_access(row, ind)), sortspec["sort"] != "asc"
         end
-    end
-    function (row1, row2)
-        lt = false
-        for (accessor, ltf) in lts
-            if ltf(row1, row2)
-                return true
-            end
-            if accessor(row1) != accessor(row2)
-                return false
-            end
-        end
-        return lt
     end
 end
 

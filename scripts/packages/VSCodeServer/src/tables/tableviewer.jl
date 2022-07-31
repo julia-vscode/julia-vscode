@@ -246,7 +246,9 @@ function get_table_data(conn, params::GetTableDataRequest)
         sort_hash = hash(params.sortModel)
         if get(SORTED_CACHE, id, 0x0) != sort_hash
             sorter = generate_sorter(params.sortModel, fixed_col_names)
-            Base.invokelatest(sort!, table, lt = sorter)
+            if sorter !== nothing
+                Base.invokelatest(sort!, table, by=sorter[1], rev=sorter[2])
+            end
             SORTED_CACHE[id] = sort_hash
         end
     end
