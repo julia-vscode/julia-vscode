@@ -230,8 +230,8 @@ function get_table_data(conn, params::GetTableDataRequest)
     will_sort = !isempty(params.sortModel)
 
     # this will only be called for medium-sized tables
+    filter_hash = hash(params.filterModel)
     if will_filter
-        filter_hash = hash(params.filterModel)
         # we have already filtered this table with the specified filterModel
         if haskey(FILTER_CACHE, id) && first(FILTER_CACHE[id]) == filter_hash
             table = last(FILTER_CACHE[id])
@@ -243,7 +243,7 @@ function get_table_data(conn, params::GetTableDataRequest)
         tablelength = length(table)
     end
     if will_sort
-        sort_hash = hash(params.sortModel)
+        sort_hash = hash((params.sortModel, filter_hash))
         if get(SORTED_CACHE, id, 0x0) != sort_hash
             sorter = generate_sorter(params.sortModel, fixed_col_names)
             if sorter !== nothing
