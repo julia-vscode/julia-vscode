@@ -510,19 +510,15 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
         }
 
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'image/png') {
+    } else if (kind === 'image/png') {
         const plotPaneContent = wrapImagelike(`data:image/png;base64,${payload}`)
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'image/gif') {
+    } else if (kind === 'image/gif') {
         const plotPaneContent = wrapImagelike(`data:image/gif;base64,${payload}`)
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'juliavscode/html') {
+    } else if (kind === 'juliavscode/html' || kind === 'application/vnd.julia-vscode.plotpane+html') {
         addOrUpdatePlot(payload, id)
-    }
-    else if (kind === 'application/vnd.vegalite.v2+json') {
+    } else if (kind === 'application/vnd.vegalite.v2+json') {
         showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
@@ -559,8 +555,7 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
                 </script>
             </html>`
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'application/vnd.vegalite.v3+json') {
+    } else if (kind === 'application/vnd.vegalite.v3+json') {
         showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
@@ -597,8 +592,7 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
                 </script>
             </html>`
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'application/vnd.vegalite.v4+json') {
+    } else if (kind === 'application/vnd.vegalite.v4+json') {
         showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
@@ -635,8 +629,7 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
                 </script>
             </html>`
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'application/vnd.vega.v3+json') {
+    } else if (kind === 'application/vnd.vega.v3+json') {
         showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
@@ -671,8 +664,7 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
                 </script>
             </html>`
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'application/vnd.vega.v4+json') {
+    } else if (kind === 'application/vnd.vega.v4+json') {
         showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
@@ -707,8 +699,7 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
                 </script>
             </html>`
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'application/vnd.vega.v5+json') {
+    } else if (kind === 'application/vnd.vega.v5+json') {
         showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
@@ -743,8 +734,7 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
                 </script>
             </html>`
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'application/vnd.plotly.v1+json') {
+    } else if (kind === 'application/vnd.plotly.v1+json') {
         showPlotPane()
         const uriPlotly = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')))
         const plotPaneContent = `
@@ -772,19 +762,49 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
         </script>
         </html>`
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'application/vnd.dataresource+json') {
+    } else if (kind === 'application/vnd.dataresource+json') {
         return displayTable(payload, g_context, false, kernel)
-    }
-    else if (kind === 'application/vnd.dataresource+lazy') {
+    } else if (kind === 'application/vnd.dataresource+lazy') {
         return displayTable(payload, g_context, true, kernel)
-    }
-    else {
+    } else if (kind === 'application/vnd.julia-vscode.custompane+html') {
+        return displayCustom(payload, id)
+    } else {
         throw new Error()
     }
 
     if (vscode.workspace.getConfiguration('julia').get('focusPlotNavigator')) {
         g_plotNavigatorProvider?.showPlotNavigator()
+    }
+}
+
+const CUSTOM_PANELS = new Map<string, vscode.WebviewPanel>()
+function displayCustom(payload, id) {
+    let panel: vscode.WebviewPanel
+    if (CUSTOM_PANELS.has(id)) {
+        panel = CUSTOM_PANELS.get(id)
+    } else {
+        panel = vscode.window.createWebviewPanel(
+            `julia.custom_pane.${id}`,
+            id,
+            {
+                preserveFocus: true,
+                viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Two)
+            },
+            {
+                enableScripts: true
+            }
+        )
+        CUSTOM_PANELS.set(id, panel)
+    }
+
+    panel.webview.html = payload
+    // Reset when the current panel is closed
+    panel.onDidDispose(() => {
+        CUSTOM_PANELS.delete(id)
+    }, null, g_context.subscriptions)
+
+    if (!panel.visible) {
+        panel.reveal(panel.viewColumn, true)
     }
 }
 
@@ -824,18 +844,15 @@ function savePlot(plot: ExportedPlot) {
     if (plot.svg !== null) {
         const fileName = `${plotName}.svg`
         _writePlotFile(fileName, plot.svg)
-    }
-    else if (plot.png !== null) {
+    } else if (plot.png !== null) {
         const fileName = `${plotName}.png`
         const buffer = Buffer.from(plot.png, 'base64')
         _writePlotFile(fileName, buffer)
-    }
-    else if (plot.gif !== null) {
+    } else if (plot.gif !== null) {
         const fileName = `${plotName}.gif`
         const buffer = Buffer.from(plot.gif, 'base64')
         _writePlotFile(fileName, buffer)
-    }
-    else {
+    } else {
         vscode.window.showWarningMessage('Failed to save plot, supported formats are svg, png, and gif.')
     }
 }
