@@ -49,7 +49,7 @@ end
 
 function extract_mime_id(m::MIME)
     mime = string(m)
-    if !startswith("application/vnd.julia-vscode")
+    if !startswith(mime, "application/vnd.julia-vscode")
         return mime, missing
     end
     parts = split(mime, ";")
