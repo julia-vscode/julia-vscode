@@ -23,6 +23,11 @@ async function our_download(url: string, destination: string) {
     return
 }
 
+async function replace_backslash_in_manifest(project_path: string) {
+    const manifest_content = await fs.readFile(path.join(project_path, 'Manifest.toml'))
+    await fs.writeFile(path.join(project_path, 'Manifest.toml'), manifest_content.toString().replace (/\\\\/g, '/'))
+}
+
 async function main() {
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@2', 'libs/vega-lite-2/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@3', 'libs/vega-lite-3/vega-lite.min.js')
@@ -123,14 +128,15 @@ async function main() {
     await cp.exec(`julia "+release" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback') })
 
     // Julia 1.0 and 1.1 write backslash in relative paths in Manifest files, which we don't want
-    const manifest_content_1 = await fs.readFile(path.join(process.cwd(), 'scripts/environments/languageserver/v1.0/Manifest.toml'))
-    await fs.writeFile(path.join(process.cwd(), 'scripts/environments/languageserver/v1.0/Manifest.toml'), manifest_content_1.toString().replace (/\\\\/g, '/'))
-    const manifest_content_2 = await fs.readFile(path.join(process.cwd(), 'scripts/environments/languageserver/v1.1/Manifest.toml'))
-    await fs.writeFile(path.join(process.cwd(), 'scripts/environments/languageserver/v1.1/Manifest.toml'), manifest_content_2.toString().replace(/\\\\/g, '/'))
-    const manifest_content_3 = await fs.readFile(path.join(process.cwd(), 'scripts/environments/sysimagecompile/v1.0/Manifest.toml'))
-    await fs.writeFile(path.join(process.cwd(), 'scripts/environments/sysimagecompile/v1.0/Manifest.toml'), manifest_content_3.toString().replace (/\\\\/g, '/'))
-    const manifest_content_4 = await fs.readFile(path.join(process.cwd(), 'scripts/environments/sysimagecompile/v1.1/Manifest.toml'))
-    await fs.writeFile(path.join(process.cwd(), 'scripts/environments/sysimagecompile/v1.1/Manifest.toml'), manifest_content_4.toString().replace(/\\\\/g, '/'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/languageserver/v1.0'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/languageserver/v1.1'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/sysimagecompile/v1.0'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/debugadapter/v1.0'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/debugadapter/v1.1'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger/v1.0'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger/v1.1'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver/v1.0'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver/v1.1'))
 
     // We keep the dev environment on the latest release version always
     await cp.exec(`julia "+release" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/development') })
