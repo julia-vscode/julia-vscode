@@ -5,7 +5,7 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
-path = "..\\..\\..\\packages\\CodeTracking"
+path = "../../../packages/CodeTracking"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 version = "1.1.0"
 
@@ -15,7 +15,7 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
 [[DebugAdapter]]
 deps = ["Base64", "JSON", "JSONRPC", "JuliaInterpreter", "Sockets", "UUIDs"]
-path = "..\\..\\..\\packages\\DebugAdapter"
+path = "../../../packages/DebugAdapter"
 uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
 version = "1.0.1-DEV"
 
@@ -25,19 +25,19 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[JSON]]
 deps = ["Dates", "Mmap", "Unicode"]
-path = "..\\..\\..\\packages\\JSON"
+path = "../../../packages/JSON"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.1"
 
 [[JSONRPC]]
 deps = ["JSON", "UUIDs"]
-path = "..\\..\\..\\packages\\JSONRPC"
+path = "../../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
 version = "1.3.5-DEV"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-path = "..\\..\\..\\packages-old\\JuliaInterpreter"
+path = "../../../packages-old/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
 version = "0.8.21"
 
