@@ -130,32 +130,26 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                 add_code_to_repl_history(source_code)
 
                 prompt = "julia> "
-                prefix = "\e[32m"
-                suffix = "\e[0m"
+                prefix = string(SHELL.output_end(), SHELL.prompt_start(), "\e[32m\e[1m")
+                suffix = string("\e[0m", SHELL.update_cwd(), SHELL.prompt_end())
                 try
                     mode = get_main_mode()
                     prompt = mode.prompt
-                    prefix = as_func(mode.prompt_prefix)()
-                    suffix = as_func(mode.prompt_suffix)()
+                    LineEdit.write_prompt(stdout, mode)
                 catch err
+                    print(stdout, prefix, prompt, suffix)
                     @debug "getting prompt info failed" exception = (err, catch_backtrace())
                 end
 
                 for (i, line) in enumerate(eachline(IOBuffer(source_code)))
-                    if i == 1
-                        print(prefix, "\e[1m", prompt, suffix)
-                        print(' '^code_column)
-                    else
-                        print(
-                            SHELL.continuation_prompt_start(),
-                            ' '^length(prompt),
-                            SHELL.continuation_prompt_end()
-                        )
-                    end
+                    i != 1 && print(' '^length(prompt))
+                    print(' '^code_column)
                     println(line)
                 end
+
                 print(stdout, SHELL.output_start())
                 print(stdout, SHELL.update_cmd(source_code))
+                REPL_PROMPT_STATE[] = REPLPromptStates.NoStatus
             end
 
             return withpath(source_filename) do
@@ -173,12 +167,12 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                         end
                     end
                     if show_code
-                        LAST_REPL_EVAL_ERRORED[] = false
+                        REPL_PROMPT_STATE[] = REPLPromptStates.Success
                     end
                     val
                 catch err
                     if show_code
-                        LAST_REPL_EVAL_ERRORED[] = true
+                        REPL_PROMPT_STATE[] = REPLPromptStates.Error
                     end
                     @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
