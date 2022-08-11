@@ -436,7 +436,8 @@
             "explorer/context": [
                 {
                     "command": "language-julia.newJuliaFile",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "julia.isActive"
                 },
                 {
                     "command": "language-julia.executeFile",
