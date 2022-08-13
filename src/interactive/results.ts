@@ -43,6 +43,11 @@ export class Result {
         this.onDidRemove = this.removeEmitter.event
 
         this.setContent(content)
+        for (const selection of editor.selections) {
+            if (isResultInLineRange(editor, this, selection)) {
+                setContext('julia.hasInlineResult', true)
+            }
+        }
     }
 
     setContent(content: ResultContent) {
@@ -85,50 +90,21 @@ export class Result {
     }
 
     createResultDecoration(): vscode.DecorationRenderOptions {
-
-        const section = vscode.workspace.getConfiguration('julia')
-        const colorConfig = section.get<object>('execution.inlineResults.colors')
-
-        const colorFor = function (candidates: string[], defaultTo: string | vscode.ThemeColor): string | vscode.ThemeColor {
-            if (candidates.length > 0) {
-                if (colorConfig && colorConfig[candidates[0]]) {
-                    const color: string = colorConfig[candidates[0]]
-                    return color.startsWith('vscode.') ? new vscode.ThemeColor(color.replace(/^(vscode\.)/, '')) : color
-                } else {
-                    return colorFor(candidates.slice(1), defaultTo)
-                }
-            } else {
-                return defaultTo
-            }
-        }
-
         const accentColor = this.content.isError
-            ? colorFor(['accent-error'], '#d11111')
-            : colorFor(['accent'], '#159eed')
+            ? new vscode.ThemeColor('julia.result.error')
+            : new vscode.ThemeColor('julia.result.success')
 
         return {
             before: {
                 contentIconPath: undefined,
                 contentText: undefined,
-                color: colorFor(['foreground'], new vscode.ThemeColor('editor.foreground')),
-                backgroundColor: colorFor(['background'], '#ffffff22'),
+                color: new vscode.ThemeColor('julia.result.foreground'),
+                backgroundColor: new vscode.ThemeColor('julia.result.background'),
                 margin: '0 0 0 10px',
                 border: '2px solid',
                 borderColor: accentColor,
                 // HACK: CSS injection to get custom styling in:
                 textDecoration: 'none; white-space: pre; border-top: 0px; border-right: 0px; border-bottom: 0px; border-radius: 2px'
-            },
-            dark: {
-                before: {
-                    color: colorFor(['foreground-dark', 'foreground'], new vscode.ThemeColor('editor.foreground')),
-                    backgroundColor: colorFor(['background-dark', 'background'], '#ffffff22')
-                }
-            },
-            light: {
-                before: {
-                    color: colorFor(['foreground-light', 'foreground'], new vscode.ThemeColor('editor.foreground')),
-                    backgroundColor: colorFor(['background-light', 'background'], '#00000011')
-                }
             },
             rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed,
         }
@@ -196,13 +172,18 @@ export class Result {
 }
 
 const results: Result[] = []
+const supportedLanguageIds = [
+    'julia',
+    'juliamarkdown',
+    'markdown'
+]
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         // subscriptions
         vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)),
         vscode.window.onDidChangeVisibleTextEditors((editors) => refreshResults(editors)),
-        vscode.window.onDidChangeTextEditorSelection(changeEvent => updateResultContextKey(changeEvent)),
+        vscode.window.onDidChangeTextEditorSelection(changeEvent => updateContextKeyForSelections(changeEvent.textEditor, changeEvent.selections)),
 
         // public commands
         registerCommand('language-julia.clearAllInlineResults', removeAll),
@@ -227,21 +208,22 @@ export function activate(context: vscode.ExtensionContext) {
         registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
         registerCommand('language-julia.clearStackTrace', clearStackTrace)
     )
+    setContext('julia.supportedLanguageIds', supportedLanguageIds)
 }
 
-function updateResultContextKey(changeEvent: vscode.TextEditorSelectionChangeEvent) {
-    if (changeEvent.textEditor.document.languageId !== 'julia') {
+function updateContextKeyForSelections(editor: vscode.TextEditor, selections: readonly vscode.Selection[] = editor.selections) {
+    if (!supportedLanguageIds.includes(editor.document.languageId)) {
         return
     }
-    for (const selection of changeEvent.selections) {
+    for (const selection of selections) {
         for (const r of results) {
-            if (isResultInLineRange(changeEvent.textEditor, r, selection)) {
-                setContext('juliaHasInlineResult', true)
+            if (isResultInLineRange(editor, r, selection)) {
+                setContext('julia.hasInlineResult', true)
                 return
             }
         }
     }
-    setContext('juliaHasInlineResult', false)
+    setContext('julia.hasInlineResult', false)
 }
 
 export function deactivate() { }
@@ -415,7 +397,7 @@ export function removeCurrent(editor: vscode.TextEditor) {
     editor.selections.forEach(selection => {
         results.filter(r => isResultInLineRange(editor, r, selection)).forEach(removeResult)
     })
-    setContext('juliaHasInlineResult', false)
+    setContext('julia.hasInlineResult', false)
 }
 
 function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: vscode.Selection | vscode.Range) {

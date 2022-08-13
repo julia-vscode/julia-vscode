@@ -86,8 +86,8 @@ const DISPLAYABLE_MIMES = [
     "application/vnd.plotly.v1+json",
     "juliavscode/html",
     # "text/html",
-    "image/png",
     "image/svg+xml",
+    "image/png",
     "image/gif",
 ]
 

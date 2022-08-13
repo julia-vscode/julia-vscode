@@ -96,9 +96,9 @@ function add_code_to_repl_history(code)
     end
 end
 
-ans = nothing
-function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
-    return run_with_backend() do
+CAN_SET_ANS = Ref{Bool}(true)
+function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
+    run_with_backend() do
         fix_displays()
 
         source_filename = params.filename
@@ -117,10 +117,12 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
         show_code = params.showCodeInREPL
         show_result = params.showResultInREPL
         show_error = params.showErrorInREPL
+        try
+            JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
+        catch err
+            @debug "Could not send repl/starteval notification."
+        end
 
-        JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
-
-        rendered_result = nothing
         f = () -> hideprompt() do
             revise()
 
@@ -128,33 +130,50 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                 add_code_to_repl_history(source_code)
 
                 prompt = "julia> "
-                prefix = "\e[32m"
+                prefix = string(SHELL.output_end(), SHELL.prompt_start(), "\e[32m\e[1m")
+                suffix = string("\e[0m", SHELL.update_cwd(), SHELL.prompt_end())
                 try
                     mode = get_main_mode()
                     prompt = mode.prompt
-                    prefix = mode.prompt_prefix
+                    LineEdit.write_prompt(stdout, mode)
                 catch err
+                    print(stdout, prefix, prompt, suffix)
                     @debug "getting prompt info failed" exception = (err, catch_backtrace())
                 end
 
                 for (i, line) in enumerate(eachline(IOBuffer(source_code)))
-                    if i == 1
-                        print(prefix, "\e[1m", prompt, "\e[0m")
-                        print(' '^code_column)
-                    else
-                        # Indent by 7 so that it aligns with the julia> prompt
-                        print(' '^length(prompt))
-                    end
-
+                    i != 1 && print(' '^length(prompt))
+                    print(' '^code_column)
                     println(line)
                 end
+
+                print(stdout, SHELL.output_start())
+                print(stdout, SHELL.update_cmd(source_code))
+                REPL_PROMPT_STATE[] = REPLPromptStates.NoStatus
             end
 
-            withpath(source_filename) do
+            return withpath(source_filename) do
                 res = try
-                    global ans = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
-                    @eval Main ans = Main.VSCodeServer.ans
+                    val = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
+                    if CAN_SET_ANS[]
+                        try
+                            @static if @isdefined setglobal!
+                                setglobal!(Main, :ans, val)
+                            else
+                                ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :ans, val)
+                            end
+                        catch _
+                            CAN_SET_ANS[] = false
+                        end
+                    end
+                    if show_code
+                        REPL_PROMPT_STATE[] = REPLPromptStates.Success
+                    end
+                    val
                 catch err
+                    if show_code
+                        REPL_PROMPT_STATE[] = REPLPromptStates.Error
+                    end
                     @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
                     elseif isdefined(Base, :catch_stack)
@@ -163,7 +182,11 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                         EvalError(err, catch_backtrace())
                     end
                 finally
-                    JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+                    try
+                        JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
+                    catch err
+                        @debug "Could not send repl/finisheval notification."
+                    end
                 end
 
                 if show_error && res isa EvalError || res isa EvalErrorStack
@@ -195,12 +218,11 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)
                     res = nothing
                 end
 
-                rendered_result = safe_render(res)
+                return safe_render(res)
             end
         end
-        PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
 
-        return rendered_result
+        return PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
     end
 end
 
@@ -240,10 +262,14 @@ Must return a `ReplRunCodeRequestReturn` with the following fields:
 - `stackframe::Vector{Frame}`: Optional, should only be given on an error
 """
 function render(x)
-    str = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
-    inline = strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH)
-    all = codeblock(str)
-    return ReplRunCodeRequestReturn(inline, all)
+    plain = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
+    md = try
+        sprintlimited(MIME"text/markdown"(), x, limit = MAX_RESULT_LENGTH)
+    catch _
+        codeblock(plain)
+    end
+    inline = strlimit(first(split(plain, "\n")), limit = INLINE_RESULT_LENGTH)
+    return ReplRunCodeRequestReturn(inline, md)
 end
 
 render(::Nothing) = ReplRunCodeRequestReturn("✓", codeblock("nothing"))
@@ -320,11 +346,6 @@ function Base.display_error(io::IO, err::EvalErrorStack)
     catch err
         @error "Error trying to display an error."
     end
-end
-
-function crop_backtrace(bt)
-    i = find_first_topelevel_scope(bt)
-    return bt[1:(i === nothing ? end : i)]
 end
 
 function remove_kw_wrappers!(st::StackTraces.StackTrace)

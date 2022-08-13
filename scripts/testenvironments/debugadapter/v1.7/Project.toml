@@ -1,0 +1,6 @@
+[deps]
+CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+DebugAdapter = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+JSONRPC = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
+JuliaInterpreter = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"

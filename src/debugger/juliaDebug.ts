@@ -3,8 +3,8 @@ import * as net from 'net'
 import { basename, join } from 'path'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
-import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, TerminatedEvent } from 'vscode-debugadapter'
-import { DebugProtocol } from 'vscode-debugprotocol'
+import { InitializedEvent, Logger, logger, LoggingDebugSession, StoppedEvent, TerminatedEvent } from '@vscode/debugadapter'
+import { DebugProtocol } from '@vscode/debugprotocol'
 import { createMessageConnection, MessageConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-jsonrpc/node'
 import { replStartDebugger } from '../interactive/repl'
 import { JuliaExecutable } from '../juliaexepath'
@@ -177,7 +177,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
         // await this._configurationDone.wait(1000);
         await this._configurationDone.wait()
 
-        this._connection.sendNotification(notifyTypeExec, {
+        await this._connection.sendNotification(notifyTypeExec, {
             stopOnEntry: args.stopOnEntry,
             code: args.code,
             file: args.file,
@@ -287,9 +287,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
         this._launchedWithoutDebug = args.noDebug ?? false
 
         if (args.noDebug) {
-            this._connection.sendNotification(notifyTypeRun, { program: args.program })
+            await this._connection.sendNotification(notifyTypeRun, { program: args.program })
         } else {
-            this._connection.sendNotification(notifyTypeDebug, {
+            await this._connection.sendNotification(notifyTypeDebug, {
                 stopOnEntry: args.stopOnEntry ?? false,
                 program: args.program,
                 compiledModulesOrFunctions: args.compiledModulesOrFunctions,
@@ -307,6 +307,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
             '--color=yes',
             `--project=${args.juliaEnv}`,
             args.program,
+            ...(args.args ?? [])
         ]
 
         const env = {}
@@ -464,9 +465,9 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
     protected async customRequest(request: string, response: any, args: any) {
         if (request === 'setCompiledItems') {
-            this._connection.sendNotification(notifyTypeSetCompiledItems, args)
+            await this._connection.sendNotification(notifyTypeSetCompiledItems, args)
         } else if (request === 'setCompiledMode') {
-            this._connection.sendNotification(notifyTypeSetCompiledMode, args)
+            await this._connection.sendNotification(notifyTypeSetCompiledMode, args)
         }
     }
 }

@@ -31,7 +31,7 @@ interface WorkspaceVariable {
 }
 
 const requestTypeGetVariables = new rpc.RequestType<
-    void,
+    { modules: boolean },
     WorkspaceVariable[],
     void
 >('repl/getvariables')
@@ -49,7 +49,27 @@ abstract class AbstractWorkspaceNode {
 }
 
 abstract class SessionNode extends AbstractWorkspaceNode {
+    _showModules: boolean
+
+    constructor() {
+        super()
+
+        this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
+        vscode.workspace.onDidChangeConfiguration(config => {
+            if (config.affectsConfiguration('julia.workspace.showModules')) {
+                this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
+                this.updateReplVariables()
+            }
+        })
+    }
+
+    public toggleModules(show) {
+        this._showModules = show
+    }
+
     public abstract getConnection()
+
+    public abstract updateReplVariables()
 }
 
 export class NotebookNode extends SessionNode {
@@ -69,7 +89,7 @@ export class NotebookNode extends SessionNode {
     async updateReplVariables() {
         const variables = await this.kernel._msgConnection.sendRequest(
             requestTypeGetVariables,
-            undefined
+            { modules: this._showModules }
         )
         this.variablesNodes = variables.map((i) => new VariableNode(this, i))
 
@@ -120,7 +140,7 @@ class REPLNode extends SessionNode {
         const variables: WorkspaceVariable[] =
             await this.getConnection().sendRequest(
                 requestTypeGetVariables,
-                undefined
+                { modules: this._showModules }
             )
         this.variablesNodes = variables.map((v) => new VariableNode(this, v))
 
@@ -149,7 +169,7 @@ class VariableNode extends AbstractWorkspaceNode {
     }
 
     public async showInVSCode() {
-        this.parentREPL
+        await this.parentREPL
             .getConnection()
             .sendNotification(notifyTypeReplShowInGrid, {
                 code: this.workspaceVariable.head,
@@ -161,7 +181,7 @@ export class WorkspaceFeature {
     _REPLTreeDataProvider: REPLTreeDataProvider
 
     _REPLNode: REPLNode
-    _NotebokNodes: NotebookNode[] = []
+    _NotebookNodes: NotebookNode[] = []
 
     constructor(private context: vscode.ExtensionContext) {
         this._REPLTreeDataProvider = new REPLTreeDataProvider(this)
@@ -181,6 +201,12 @@ export class WorkspaceFeature {
             ),
             registerCommand('language-julia.workspaceGoToFile', (node: VariableNode) =>
                 this.openLocation(node)
+            ),
+            registerCommand('language-julia.showModules', () =>
+                this._REPLTreeDataProvider.toggleModules(true)
+            ),
+            registerCommand('language-julia.hideModules', () =>
+                this._REPLTreeDataProvider.toggleModules(false)
             )
         )
     }
@@ -212,14 +238,14 @@ export class WorkspaceFeature {
 
     public async addNotebookKernel(kernel: JuliaKernel) {
         const node = new NotebookNode(kernel, this._REPLTreeDataProvider)
-        this._NotebokNodes.push(node)
+        this._NotebookNodes.push(node)
         kernel.onCellRunFinished((e) => node.updateReplVariables())
         kernel.onConnected((e) => {
-            kernel._msgConnection.onNotification(notifyTypeDisplay, displayPlot)
+            kernel._msgConnection.onNotification(notifyTypeDisplay, (params) => displayPlot(params, kernel))
             node.updateReplVariables()
         })
         kernel.onStopped((e) => {
-            this._NotebokNodes = this._NotebokNodes.filter(x => x !== node)
+            this._NotebookNodes = this._NotebookNodes.filter(x => x !== node)
             this._REPLTreeDataProvider.refresh()
         })
         this._REPLTreeDataProvider.refresh()
@@ -236,7 +262,7 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
         AbstractWorkspaceNode | undefined
     > = this._onDidChangeTreeData.event
 
-    constructor(private workspaceFeautre: WorkspaceFeature) { }
+    constructor(private workspaceFeature: WorkspaceFeature) { }
 
     refresh(): void {
         this._onDidChangeTreeData.fire(undefined)
@@ -246,13 +272,13 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
         if (node) {
             return await node.getChildren()
         } else {
-            if (this.workspaceFeautre._REPLNode) {
+            if (this.workspaceFeature._REPLNode) {
                 return [
-                    this.workspaceFeautre._REPLNode,
-                    ...this.workspaceFeautre._NotebokNodes,
+                    this.workspaceFeature._REPLNode,
+                    ...this.workspaceFeature._NotebookNodes,
                 ]
             } else {
-                return [...this.workspaceFeautre._NotebokNodes]
+                return [...this.workspaceFeature._NotebookNodes]
             }
         }
     }
@@ -289,5 +315,15 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
         }
+    }
+
+    toggleModules(show: boolean) {
+        this.workspaceFeature._REPLNode.toggleModules(show)
+        this.workspaceFeature._REPLNode.updateReplVariables()
+        this.workspaceFeature._NotebookNodes.forEach(node => {
+            node.toggleModules(show)
+            node.updateReplVariables()
+        })
+        vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, true)
     }
 }

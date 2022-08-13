@@ -1,6 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
+import { JuliaKernel } from '../notebook/notebookKernel'
 import { g_connection } from './repl'
 
 const requestTypeGetTableData = new rpc.RequestType<{
@@ -14,7 +15,7 @@ const clearLazyTable = new rpc.NotificationType<{
     id: string
 }>('repl/clearLazyTable')
 
-export function displayTable(payload, context, isLazy = false) {
+export function displayTable(payload, context, isLazy = false, kernel?: JuliaKernel) {
     const parsedPayload = JSON.parse(payload)
     const title = parsedPayload.name
 
@@ -36,9 +37,9 @@ export function displayTable(payload, context, isLazy = false) {
     if (isLazy) {
         const objectId = parsedPayload.id
 
-        panel.onDidDispose(() => {
+        panel.onDidDispose(async () => {
             try {
-                g_connection.sendNotification(
+                await g_connection.sendNotification(
                     clearLazyTable,
                     {
                         id: objectId
@@ -52,8 +53,9 @@ export function displayTable(payload, context, isLazy = false) {
         panel.webview.onDidReceiveMessage(async (message) => {
             if (message.type === 'getRows') {
                 let response
+                const conn = kernel?._msgConnection || g_connection
                 try {
-                    const data = await g_connection.sendRequest(
+                    const data = await conn.sendRequest(
                         requestTypeGetTableData,
                         {
                             id: objectId,
@@ -73,7 +75,7 @@ export function displayTable(payload, context, isLazy = false) {
 
                     let warning: Thenable<string | undefined>
                     const button = 'Close table'
-                    if (g_connection) {
+                    if (conn) {
                         warning = vscode.window.showWarningMessage('Could not fetch table data. The object might have been deleted or modified.', button)
                     } else {
                         warning = vscode.window.showWarningMessage('Could not fetch table data. The Julia process is no longer available.', button)

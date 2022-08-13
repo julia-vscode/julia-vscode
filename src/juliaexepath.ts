@@ -45,7 +45,7 @@ export class JuliaExecutable {
                 ]
             )
 
-            this._baseRootFolderPath = path.normalize(path.join(result.stdout.toString().trim(), '..', '..', 'share', 'julia', 'base'))
+            this._baseRootFolderPath = path.normalize(path.join(result.stdout.toString().trim(), '..', 'share', 'julia', 'base'))
         }
 
         return this._baseRootFolderPath
@@ -134,9 +134,13 @@ export class JuliaExecutablesFeature {
         let pathsToSearch = []
         if (process.platform === 'win32') {
             pathsToSearch = ['julia.exe',
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.4', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.3', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.2', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.1', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.8', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.7', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.6', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.5', 'bin', 'julia.exe'),
@@ -168,6 +172,8 @@ export class JuliaExecutablesFeature {
         }
         else if (process.platform === 'darwin') {
             pathsToSearch = ['julia',
+                path.join(homedir, 'Applications', 'Julia-1.8.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.8.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                 path.join(homedir, 'Applications', 'Julia-1.7.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                 path.join('/', 'Applications', 'Julia-1.7.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                 path.join(homedir, 'Applications', 'Julia-1.6.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),

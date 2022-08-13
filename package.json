@@ -2,11 +2,11 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.6.14",
+    "version": "1.6.31",
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.63.0"
+        "vscode": "^1.67.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -60,13 +60,14 @@
         "onCommand:language-julia.activateHere",
         "onCommand:language-julia.activateFromDir",
         "onCommand:language-julia.tagNewPackageVersion",
+        "onCommand:language-julia.newJuliaFile",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "onNotebook:jupyter-notebook",
         "onView:julia-explorer.REPLVariables",
         "onView:julia-explorer.julia-documentation",
         "onView:julia-explorer.julia-plot-navigator",
-        "workspaceContains:**/*.jl"
+        "workspaceContains:Project.toml"
     ],
     "main": "./dist/extension",
     "contributes": {
@@ -93,6 +94,11 @@
             }
         ],
         "commands": [
+            {
+                "command": "language-julia.newJuliaFile",
+                "title": "Julia: New Julia File",
+                "shortTitle": "Julia File"
+            },
             {
                 "command": "language-julia.refreshLanguageServer",
                 "title": "Julia: Re-Index Language Server Cache"
@@ -161,7 +167,7 @@
                 "command": "language-julia.interrupt",
                 "title": "Julia: Interrupt Execution",
                 "icon": "$(debug-pause)",
-                "enablement": "isJuliaEvaluating"
+                "enablement": "julia.isEvaluating"
             },
             {
                 "command": "language-julia.toggleLinter",
@@ -209,6 +215,11 @@
             {
                 "command": "language-julia.deleteAllProfiles",
                 "title": "Julia: Delete All Profiles"
+            },
+            {
+                "command": "language-julia.saveProfileToFile",
+                "title": "Julia: Save Profile",
+                "icon": "$(save)"
             },
             {
                 "command": "language-julia.show-plot-navigator",
@@ -269,7 +280,7 @@
             {
                 "command": "language-julia.save-plot",
                 "title": "Julia: Save Plot",
-                "icon": "$(save-as)"
+                "icon": "$(save)"
             },
             {
                 "command": "language-julia.plotpane-delete-all",
@@ -411,29 +422,42 @@
                 "command": "language-julia.stopKernel",
                 "title": "Stop",
                 "icon": "$(debug-stop)"
+            },
+            {
+                "command": "language-julia.showModules",
+                "title": "Show modules in Workspace"
+            },
+            {
+                "command": "language-julia.hideModules",
+                "title": "Hide modules in Workspace"
             }
         ],
         "menus": {
             "explorer/context": [
                 {
-                    "when": "resourceLangId == julia",
+                    "command": "language-julia.newJuliaFile",
+                    "group": "julia",
+                    "when": "julia.isActive"
+                },
+                {
                     "command": "language-julia.executeFile",
-                    "group": "julia"
+                    "group": "julia",
+                    "when": "resourceLangId in julia.supportedLanguageIds"
                 },
                 {
                     "command": "language-julia.cdHere",
                     "group": "julia",
-                    "when": "hasJuliaREPL"
+                    "when": "julia.hasREPL"
                 },
                 {
                     "command": "language-julia.activateHere",
                     "group": "julia",
-                    "when": "hasJuliaREPL"
+                    "when": "julia.hasREPL"
                 },
                 {
                     "command": "language-julia.activateFromDir",
                     "group": "julia",
-                    "when": "hasJuliaREPL"
+                    "when": "julia.hasREPL"
                 }
             ],
             "editor/title": [
@@ -448,84 +472,89 @@
                     "group": "navigation@-1"
                 },
                 {
-                    "when": "jlProfilerFocus",
+                    "when": "julia.profilerFocus",
+                    "command": "language-julia.saveProfileToFile",
+                    "group": "navigation@1"
+                },
+                {
+                    "when": "julia.profilerFocus",
                     "command": "language-julia.deleteProfile",
                     "group": "navigation@0"
                 },
                 {
-                    "when": "jlProfilerFocus",
+                    "when": "julia.profilerFocus",
                     "command": "language-julia.nextProfile",
                     "group": "navigation@-2"
                 },
                 {
-                    "when": "jlProfilerFocus",
+                    "when": "julia.profilerFocus",
                     "command": "language-julia.previousProfile",
                     "group": "navigation@-3"
                 },
                 {
-                    "when": "jlplotpaneFocus",
+                    "when": "julia.plotpaneFocus",
                     "command": "language-julia.plotpane-delete",
                     "group": "navigation@0"
                 },
                 {
-                    "when": "jlplotpaneFocus",
+                    "when": "julia.plotpaneFocus",
                     "command": "language-julia.save-plot",
                     "group": "navigation@-1"
                 },
                 {
-                    "when": "jlplotpaneFocus",
+                    "when": "julia.plotpaneFocus",
                     "command": "language-julia.plotpane-next",
                     "group": "navigation@-2"
                 },
                 {
-                    "when": "jlplotpaneFocus",
+                    "when": "julia.plotpaneFocus",
                     "command": "language-julia.plotpane-previous",
                     "group": "navigation@-3"
                 },
                 {
-                    "when": "jlplotpaneFocus",
+                    "when": "julia.plotpaneFocus",
                     "command": "language-julia.copy-plot",
                     "group": "1-julia@0"
                 },
                 {
-                    "when": "jlplotpaneFocus && config.julia.usePlotPane",
+                    "when": "julia.plotpaneFocus && config.julia.usePlotPane",
                     "command": "language-julia.plotpane-disable",
                     "group": "1-julia@1"
                 },
                 {
-                    "when": "jlplotpaneFocus && !config.julia.usePlotPane",
+                    "when": "julia.plotpaneFocus && !config.julia.usePlotPane",
                     "command": "language-julia.plotpane-enable",
                     "group": "1-julia@1"
                 },
                 {
-                    "when": "jlplotpaneFocus",
+                    "when": "julia.plotpaneFocus",
                     "command": "language-julia.plotpane-delete-all",
                     "group": "1-julia@2"
                 },
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
-                    "when": "editorLangId == julia || editorLangId == juliamarkdown"
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 },
                 {
                     "command": "language-julia.cdHere",
                     "group": "julia",
-                    "when": "editorLangId == julia || editorLangId == juliamarkdown"
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 },
                 {
                     "command": "language-julia.activateHere",
                     "group": "julia",
-                    "when": "editorLangId == julia || editorLangId == juliamarkdown"
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 },
                 {
                     "command": "language-julia.activateFromDir",
                     "group": "julia",
-                    "when": "editorLangId == julia || editorLangId == juliamarkdown"
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 }
             ],
             "editor/title/run": [
                 {
                     "command": "language-julia.executeActiveFile",
-                    "when": "resourceLangId == julia",
+                    "when": "resourceLangId in julia.supportedLanguageIds",
                     "group": "Julia@10"
                 },
                 {
@@ -631,17 +660,27 @@
                     "command": "language-julia.enable-compiled-mode",
                     "when": "view == debugger-compiled && juliaCompiledMode == false",
                     "group": "navigation"
+                },
+                {
+                    "command": "language-julia.showModules",
+                    "when": "view == REPLVariables && config.julia.workspace.showModules == false",
+                    "group": "menu"
+                },
+                {
+                    "command": "language-julia.hideModules",
+                    "when": "view == REPLVariables && config.julia.workspace.showModules == true",
+                    "group": "menu"
                 }
             ],
             "editor/context": [
                 {
                     "command": "language-julia.executeCodeBlockOrSelection",
-                    "when": "activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown",
+                    "when": "activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds",
                     "group": "z_commands"
                 },
                 {
                     "command": "language-julia.show-documentation",
-                    "when": "editorLangId == julia || editorLangId == juliamarkdown",
+                    "when": "editorLangId in julia.supportedLanguageIds",
                     "group": "z_commands"
                 }
             ],
@@ -665,6 +704,20 @@
                 {
                     "command": "language-julia.stopKernel",
                     "when": "false"
+                },
+                {
+                    "command": "language-julia.showModules",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.hideModules",
+                    "when": "false"
+                }
+            ],
+            "file/newFile": [
+                {
+                    "command": "language-julia.newJuliaFile",
+                    "group": "file"
                 }
             ]
         },
@@ -672,42 +725,46 @@
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
                 "key": "Shift+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelection",
                 "key": "Ctrl+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.executeCell",
                 "key": "Alt+Enter",
-                "when": "editorTextFocus &&activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.executeCellAndMove",
                 "key": "Alt+Shift+Enter",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.interrupt",
                 "key": "Ctrl+C",
-                "when": "terminalFocus && isJuliaREPL && isJuliaEvaluating"
+                "when": "terminalFocus && julia.isActiveREPL && julia.isEvaluating"
             },
             {
                 "command": "language-julia.clearCurrentInlineResult",
                 "key": "Escape",
-                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && juliaHasInlineResult && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && !editorHasSelection && !findWidgetVisible && !markerNavigationVisible && !parameterHintsVisible && !inSnippetMode && !isInEmbeddedEditor && !suggestWidgetVisible && !onTypeRenameInputVisible && !renameInputVisible && julia.hasInlineResult && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
                 "key": "Ctrl+I Ctrl+C",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.chooseModule",
                 "key": "Alt+J Alt+M",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
+            },
+            {
+                "command": "language-julia.newJuliaFile",
+                "key": "Alt+J Alt+N"
             },
             {
                 "command": "language-julia.startREPL",
@@ -724,12 +781,12 @@
             {
                 "command": "language-julia.changeCurrentEnvironment",
                 "key": "Alt+J Alt+E",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "command": "language-julia.show-documentation",
                 "key": "Alt+J Alt+D",
-                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId == julia || editorLangId == juliamarkdown"
+                "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
                 "key": "Alt+J Alt+P",
@@ -740,14 +797,9 @@
                 "command": "REPLVariables.focus"
             },
             {
-                "key": "escape",
-                "command": "language-julia.clearCurrentInlineResult",
-                "when": "editorTextFocus && juliaHasInlineResult && !editorHasSelection && !findWidgetVisible && !inSnippetMode && !isInEmbeddedEditor && !markerNavigationVisible && !onTypeRenameInputVisible && !parameterHintsVisible && !renameInputVisible && !suggestWidgetVisible && editorLangId == julia || editorLangId == juliamarkdown"
-            },
-            {
                 "key": "Ctrl+Shift+C",
                 "command": "language-julia.interrupt",
-                "when": "isJuliaEvaluating"
+                "when": "julia.isEvaluating"
             },
             {
                 "command": "language-julia.browse-back-documentation",
@@ -762,40 +814,40 @@
             {
                 "command": "language-julia.plotpane-previous",
                 "key": "left",
-                "when": "jlplotpaneFocus"
+                "when": "julia.plotpaneFocus"
             },
             {
                 "command": "language-julia.plotpane-next",
                 "key": "right",
-                "when": "jlplotpaneFocus"
+                "when": "julia.plotpaneFocus"
             },
             {
                 "command": "language-julia.plotpane-first",
                 "key": "home",
-                "when": "jlplotpaneFocus"
+                "when": "julia.plotpaneFocus"
             },
             {
                 "command": "language-julia.plotpane-last",
                 "key": "end",
-                "when": "jlplotpaneFocus"
+                "when": "julia.plotpaneFocus"
             },
             {
                 "command": "language-julia.plotpane-delete",
                 "key": "delete",
-                "when": "jlplotpaneFocus"
+                "when": "julia.plotpaneFocus"
             },
             {
                 "command": "language-julia.copy-plot",
-                "when": "jlplotpaneFocus"
+                "when": "julia.plotpaneFocus"
             },
             {
                 "command": "language-julia.save-plot",
-                "when": "jlplotpaneFocus"
+                "when": "julia.plotpaneFocus"
             },
             {
                 "command": "language-julia.plotpane-delete-all",
                 "key": "shift+delete",
-                "when": "jlplotpaneFocus"
+                "when": "julia.plotpaneFocus"
             }
         ],
         "configuration": {
@@ -1026,12 +1078,6 @@
                         "Shows inline execution results in REPL and inline bubbles"
                     ]
                 },
-                "julia.execution.inlineResults.colors": {
-                    "type": "object",
-                    "default": {},
-                    "markdownDescription": "Customizes the colors of inline results when they are displayed in the editor. \n* Available keys for this setting are : \n\t* `foreground`: foreground text color\n\t* `foreground-light`: foreground text color in light themes \n\t* `foreground-dark`: foreground text color in dark themes\n\t* `background`: background color\n\t* `background-light`: background color in light themes\n\t* `background-dark`: background color in dark themes\n\t* `accent`: accent color for normal execution results\n\t* `accent-error`: accent color for error execution results \n* Accepted values are: \n\t* valid CSS color strings\n\t* VS Code [Theme Colors](https://code.visualstudio.com/api/references/theme-color), prefixed by `vscode.` (i.e. `vscode.editor.foreground`)",
-                    "scope": "window"
-                },
                 "julia.execution.codeInREPL": {
                     "type": "boolean",
                     "default": false,
@@ -1043,6 +1089,12 @@
                     "default": false,
                     "scope": "window",
                     "markdownDescription": "Save file before execution"
+                },
+                "julia.execution.inlineResultsForCellEvaluation": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "window",
+                    "markdownDescription": "Show separate inline results for all code blocks in a cell"
                 },
                 "julia.packageServer": {
                     "type": "string",
@@ -1094,7 +1146,7 @@
                 },
                 "julia.deleteJuliaCovFiles": {
                     "type": "boolean",
-                    "default": "true",
+                    "default": true,
                     "description": "Delete Julia .cov files when running tests with coverage, leaving only a .lcov file behind.",
                     "scope": "window"
                 },
@@ -1172,6 +1224,12 @@
                     "type": "string",
                     "description": "The output directory to save plots to",
                     "scope": "window"
+                },
+                "julia.workspace.showModules": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show top-level modules in the workspace.",
+                    "scope": "application"
                 }
             }
         },
@@ -1322,6 +1380,78 @@
                     "activeJuliaEnvironment": "language-julia.debug.getActiveJuliaEnvironment"
                 }
             }
+        ],
+        "colors": [
+            {
+                "id": "julia.result.foreground",
+                "description": "Result text color.",
+                "defaults": {
+                    "dark": "editor.foreground",
+                    "light": "editor.foreground",
+                    "highContrast": "editor.foreground",
+                    "highContrastLight": "editor.foreground"
+                }
+            },
+            {
+                "id": "julia.result.background",
+                "description": "Result background color.",
+                "defaults": {
+                    "dark": "#ffffff22",
+                    "light": "#00000011",
+                    "highContrast": "#ffffff22",
+                    "highContrastLight": "#00000011"
+                }
+            },
+            {
+                "id": "julia.result.success",
+                "description": "Accent color for non-error results.",
+                "defaults": {
+                    "dark": "#159eed",
+                    "light": "#159eed",
+                    "highContrast": "#159eed",
+                    "highContrastLight": "#159eed"
+                }
+            },
+            {
+                "id": "julia.result.error",
+                "description": "Accent color for error results.",
+                "defaults": {
+                    "dark": "#d11111",
+                    "light": "#d11111",
+                    "highContrast": "#d11111",
+                    "highContrastLight": "#d11111"
+                }
+            },
+            {
+                "id": "julia.profiler.dispatch",
+                "description": "Inline profiler color for traces with dynamic dispatch.",
+                "defaults": {
+                    "dark": "#cc676732",
+                    "light": "#cc676732",
+                    "highContrast": "#cc676732",
+                    "highContrastLight": "#cc676732"
+                }
+            },
+            {
+                "id": "julia.profiler.gc",
+                "description": "Inline profiler color for traces with GC events/allocations.",
+                "defaults": {
+                    "dark": "#cc994432",
+                    "light": "#cc994432",
+                    "highContrast": "#cc994432",
+                    "highContrastLight": "#cc994432"
+                }
+            },
+            {
+                "id": "julia.profiler.default",
+                "description": "Default inline profiler color.",
+                "defaults": {
+                    "dark": "#4063dd32",
+                    "light": "#4063dd32",
+                    "highContrast": "#4063dd32",
+                    "highContrastLight": "#4063dd32"
+                }
+            }
         ]
     },
     "scripts": {
@@ -1341,6 +1471,8 @@
     },
     "dependencies": {
         "@traptitech/markdown-it-katex": "^3.5.0",
+        "@vscode/debugadapter": "^1.55.1",
+        "@vscode/debugprotocol": "^1.55.1",
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
@@ -1352,9 +1484,8 @@
         "source-map-support": "^0.5.21",
         "string-argv": "^0.3.1",
         "uuidv4": "^6.2.12",
-        "vscode-debugadapter": "^1.51.0",
-        "vscode-jsonrpc": "^6.0.0",
-        "vscode-languageclient": "^7.0.0",
+        "vscode-jsonrpc": "^8.0.0",
+        "vscode-languageclient": "^8.0.0",
         "which": "^2.0.2"
     },
     "devDependencies": {
@@ -1364,7 +1495,7 @@
         "@types/node": "^14.17.15",
         "@types/semver": "^7.3.9",
         "@types/source-map-support": "^0.5.4",
-        "@types/vscode": "=1.63.0",
+        "@types/vscode": "1.67.0",
         "@typescript-eslint/parser": "^5.14.0",
         "download": "^8.0.0",
         "eslint": "^8.11.0",

@@ -3,10 +3,11 @@ import { homedir } from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
-import { registerCommand } from '../utils'
+import { registerCommand, setContext } from '../utils'
 import { displayTable } from './tables'
+import { JuliaKernel } from '../notebook/notebookKernel'
 
-const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
+const c_juliaPlotPanelActiveContextKey = 'julia.plotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
 let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
@@ -38,6 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 interface Plot {
     thumbnail_type: string;
     thumbnail_data: string;
+    time: Date;
 }
 
 class PlotNavigatorProvider implements vscode.WebviewViewProvider {
@@ -122,7 +124,10 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
             break
         default:
         case 'text': // This is a fallback which shows the index of the plot
-            thumbnailHTML = `<p class="thumbnail" onclick="toPlot(${index})">Plot ${index + 1} </p>`
+            thumbnailHTML = `<div class="thumbnail" onclick="toPlot(${index})">
+                Plot ${index + 1}
+                <small class="float-right">${plot.time.toLocaleTimeString()}</small>
+            </div>`
             break
         }
         return thumbnailHTML
@@ -167,7 +172,36 @@ function invalidator() {
 
 function getPlotPaneContent(webview: vscode.Webview) {
     if (g_plots.length === 0) {
-        return `<html></html>`
+        return `<html lang="en" style="padding:0;margin:0;">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Julia Plots</title>
+            <style>
+            body {
+                width: 100vw;
+                height: 100vh;
+            }
+            .logo {
+                width: 100%;
+                height: 100%;
+                opacity: 0.1;
+                background: var(--vscode-foreground);
+                -webkit-mask: url(${webview.asWebviewUri(
+        vscode.Uri.file(
+            path.join(
+                g_context.extensionPath,
+                'images',
+                'julia-dots.svg'
+            )
+        ))}) 50% 50% / 200px no-repeat;
+            }
+        </style>
+        </head>
+        <body style="padding:0;margin:0;">
+            <div class="logo"></div>
+        </body>
+        </html>`
     } else {
         const screenShotScript = `<script src="${webview.asWebviewUri(
             vscode.Uri.file(
@@ -211,6 +245,7 @@ function plotPanelOnMessage(msg) {
                 plotsInfo[g_currentPlotIndex] = {
                     thumbnail_type: 'image',
                     thumbnail_data: thumbnailData,
+                    time: new Date()
                 }
                 return plotsInfo
             })
@@ -250,11 +285,11 @@ export function showPlotPane() {
 
         const viewStateListener = g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
             g_context.globalState.update('juliaPlotPanelViewColumn', webviewPanel.viewColumn)
-            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active)
+            setContext(c_juliaPlotPanelActiveContextKey, webviewPanel.active)
         })
 
         g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
-        vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true)
+        setContext(c_juliaPlotPanelActiveContextKey, true)
 
         const configListener = vscode.workspace.onDidChangeConfiguration(config => {
             if (config.affectsConfiguration('julia') && g_plotPanel) {
@@ -266,7 +301,7 @@ export function showPlotPane() {
             configListener.dispose()
             viewStateListener.dispose()
             g_plotPanel = undefined
-            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, false)
+            setContext(c_juliaPlotPanelActiveContextKey, false)
         }, null, g_context.subscriptions)
 
         g_plotPanel.webview.onDidReceiveMessage(plotPanelOnMessage)
@@ -399,9 +434,11 @@ function wrapImagelike(srcString: string) {
         svgTag = `<div id="plot-element">${svgTag}</div>`
     }
 
-    return `
-    <html style="padding:0;margin:0;">
+    return `<html lang="en" style="padding:0;margin:0;">
         <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <title>Julia Plots</title>
             <style>
             ${plotElementStyle}
             </style>
@@ -409,10 +446,10 @@ function wrapImagelike(srcString: string) {
         <body style="padding:0;margin:0;">
             ${isSvg ? svgTag : `<img id= "plot-element" style = "max-height: 100vh; max-width: 100vw; display:block;" src = "${srcString}" >`}
         </body>
-    </html>`
+        </html>`
 }
 
-export function displayPlot(params: { kind: string, data: string }) {
+export function displayPlot(params: { kind: string, data: string }, kernel?: JuliaKernel) {
     const kind = params.kind
     const payload = params.data
 
@@ -421,7 +458,8 @@ export function displayPlot(params: { kind: string, data: string }) {
         g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
             plotsInfo.push({
                 thumbnail_type: 'text',
-                thumbnail_data: null
+                thumbnail_data: null,
+                time: new Date()
             })
             return plotsInfo
         })
@@ -717,10 +755,10 @@ export function displayPlot(params: { kind: string, data: string }) {
         showPlotPane()
     }
     else if (kind === 'application/vnd.dataresource+json') {
-        return displayTable(payload, g_context, false)
+        return displayTable(payload, g_context, false, kernel)
     }
     else if (kind === 'application/vnd.dataresource+lazy') {
-        return displayTable(payload, g_context, true)
+        return displayTable(payload, g_context, true, kernel)
     }
     else {
         throw new Error()

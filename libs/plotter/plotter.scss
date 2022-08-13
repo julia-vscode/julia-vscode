@@ -18,12 +18,21 @@ html.theme--#{$themename} {
 
     .thumbnail {
       cursor: pointer;
-      text-align: center;
+      text-align: left;
       img {
         min-height: 50px;
         max-height: 150px;
         max-width: 100%;
         border: 1px black solid;
+      }
+      transition: background-color 0.1s;
+      &:hover {
+        background-color: var(--vscode-editor-background);
+      }
+      padding: 0.2em;
+
+      .float-right {
+        float: right;
       }
     }
 

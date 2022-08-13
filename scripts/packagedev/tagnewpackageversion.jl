@@ -5,6 +5,12 @@ if VERSION < v"1.6"
 end
 
 using Pkg
+version_specific_env_path = joinpath(@__DIR__, "..", "environments", "pkgdev", "v$(VERSION.major).$(VERSION.minor)")
+if isdir(version_specific_env_path)
+    Pkg.activate(version_specific_env_path)
+else
+    Pkg.activate(joinpath(@__DIR__, "..", "environments", "pkgdev", "fallback"))
+end
 
 Pkg.instantiate()
 

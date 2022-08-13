@@ -6,17 +6,17 @@
   to {
     transform: rotate(359deg); } }
 
-html.theme--documenter-vscode .delete, html.theme--documenter-vscode .modal-close, .is-unselectable, html.theme--documenter-vscode .button, html.theme--documenter-vscode .file, html.theme--documenter-vscode .breadcrumb, html.theme--documenter-vscode .pagination-previous,
+html.theme--documenter-vscode .tabs, html.theme--documenter-vscode .pagination-previous,
 html.theme--documenter-vscode .pagination-next,
 html.theme--documenter-vscode .pagination-link,
-html.theme--documenter-vscode .pagination-ellipsis, html.theme--documenter-vscode .tabs {
+html.theme--documenter-vscode .pagination-ellipsis, html.theme--documenter-vscode .breadcrumb, html.theme--documenter-vscode .file, html.theme--documenter-vscode .button, .is-unselectable, html.theme--documenter-vscode .modal-close, html.theme--documenter-vscode .delete {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none; }
 
-html.theme--documenter-vscode .select:not(.is-multiple):not(.is-loading)::after, html.theme--documenter-vscode .navbar-link:not(.is-arrowless)::after {
+html.theme--documenter-vscode .navbar-link:not(.is-arrowless)::after, html.theme--documenter-vscode .select:not(.is-multiple):not(.is-loading)::after {
   border: 3px solid transparent;
   border-radius: 2px;
   border-right: 0;
@@ -32,11 +32,11 @@ html.theme--documenter-vscode .select:not(.is-multiple):not(.is-loading)::after,
   transform-origin: center;
   width: 0.625em; }
 
-html.theme--documenter-vscode .box:not(:last-child), html.theme--documenter-vscode .content:not(:last-child), html.theme--documenter-vscode .notification:not(:last-child), html.theme--documenter-vscode .progress:not(:last-child), html.theme--documenter-vscode .table:not(:last-child), html.theme--documenter-vscode .table-container:not(:last-child), html.theme--documenter-vscode .title:not(:last-child),
-html.theme--documenter-vscode .subtitle:not(:last-child), html.theme--documenter-vscode .block:not(:last-child), html.theme--documenter-vscode .highlight:not(:last-child), html.theme--documenter-vscode .breadcrumb:not(:last-child), html.theme--documenter-vscode .level:not(:last-child), html.theme--documenter-vscode .list:not(:last-child), html.theme--documenter-vscode .message:not(:last-child), html.theme--documenter-vscode .tabs:not(:last-child), html.theme--documenter-vscode .admonition:not(:last-child) {
+html.theme--documenter-vscode .admonition:not(:last-child), html.theme--documenter-vscode .tabs:not(:last-child), html.theme--documenter-vscode .message:not(:last-child), html.theme--documenter-vscode .list:not(:last-child), html.theme--documenter-vscode .level:not(:last-child), html.theme--documenter-vscode .breadcrumb:not(:last-child), html.theme--documenter-vscode .highlight:not(:last-child), html.theme--documenter-vscode .block:not(:last-child), html.theme--documenter-vscode .title:not(:last-child),
+html.theme--documenter-vscode .subtitle:not(:last-child), html.theme--documenter-vscode .table-container:not(:last-child), html.theme--documenter-vscode .table:not(:last-child), html.theme--documenter-vscode .progress:not(:last-child), html.theme--documenter-vscode .notification:not(:last-child), html.theme--documenter-vscode .content:not(:last-child), html.theme--documenter-vscode .box:not(:last-child) {
   margin-bottom: 1.5rem; }
 
-html.theme--documenter-vscode .delete, html.theme--documenter-vscode .modal-close {
+html.theme--documenter-vscode .modal-close, html.theme--documenter-vscode .delete {
   -moz-appearance: none;
   -webkit-appearance: none;
   background-color: rgba(10, 10, 10, 0.2);
@@ -57,7 +57,7 @@ html.theme--documenter-vscode .delete, html.theme--documenter-vscode .modal-clos
   position: relative;
   vertical-align: top;
   width: 20px; }
-  html.theme--documenter-vscode .delete::before, html.theme--documenter-vscode .modal-close::before, html.theme--documenter-vscode .delete::after, html.theme--documenter-vscode .modal-close::after {
+  html.theme--documenter-vscode .modal-close::before, html.theme--documenter-vscode .delete::before, html.theme--documenter-vscode .modal-close::after, html.theme--documenter-vscode .delete::after {
     background-color: white;
     content: "";
     display: block;
@@ -66,31 +66,31 @@ html.theme--documenter-vscode .delete, html.theme--documenter-vscode .modal-clos
     top: 50%;
     transform: translateX(-50%) translateY(-50%) rotate(45deg);
     transform-origin: center center; }
-  html.theme--documenter-vscode .delete::before, html.theme--documenter-vscode .modal-close::before {
+  html.theme--documenter-vscode .modal-close::before, html.theme--documenter-vscode .delete::before {
     height: 2px;
     width: 50%; }
-  html.theme--documenter-vscode .delete::after, html.theme--documenter-vscode .modal-close::after {
+  html.theme--documenter-vscode .modal-close::after, html.theme--documenter-vscode .delete::after {
     height: 50%;
     width: 2px; }
-  html.theme--documenter-vscode .delete:hover, html.theme--documenter-vscode .modal-close:hover, html.theme--documenter-vscode .delete:focus, html.theme--documenter-vscode .modal-close:focus {
+  html.theme--documenter-vscode .modal-close:hover, html.theme--documenter-vscode .delete:hover, html.theme--documenter-vscode .modal-close:focus, html.theme--documenter-vscode .delete:focus {
     background-color: rgba(10, 10, 10, 0.3); }
-  html.theme--documenter-vscode .delete:active, html.theme--documenter-vscode .modal-close:active {
+  html.theme--documenter-vscode .modal-close:active, html.theme--documenter-vscode .delete:active {
     background-color: rgba(10, 10, 10, 0.4); }
-  html.theme--documenter-vscode .is-small.delete, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.delete, html.theme--documenter-vscode .is-small.modal-close, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.modal-close {
+  html.theme--documenter-vscode .is-small.modal-close, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.modal-close, html.theme--documenter-vscode .is-small.delete, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.delete {
     height: 16px;
     max-height: 16px;
     max-width: 16px;
     min-height: 16px;
     min-width: 16px;
     width: 16px; }
-  html.theme--documenter-vscode .is-medium.delete, html.theme--documenter-vscode .is-medium.modal-close {
+  html.theme--documenter-vscode .is-medium.modal-close, html.theme--documenter-vscode .is-medium.delete {
     height: 24px;
     max-height: 24px;
     max-width: 24px;
     min-height: 24px;
     min-width: 24px;
     width: 24px; }
-  html.theme--documenter-vscode .is-large.delete, html.theme--documenter-vscode .is-large.modal-close {
+  html.theme--documenter-vscode .is-large.modal-close, html.theme--documenter-vscode .is-large.delete {
     height: 32px;
     max-height: 32px;
     max-width: 32px;
@@ -98,7 +98,7 @@ html.theme--documenter-vscode .delete, html.theme--documenter-vscode .modal-clos
     min-width: 32px;
     width: 32px; }
 
-html.theme--documenter-vscode .button.is-loading::after, html.theme--documenter-vscode .loader, html.theme--documenter-vscode .select.is-loading::after, html.theme--documenter-vscode .control.is-loading::after {
+html.theme--documenter-vscode .control.is-loading::after, html.theme--documenter-vscode .select.is-loading::after, html.theme--documenter-vscode .loader, html.theme--documenter-vscode .button.is-loading::after {
   animation: spinAround 500ms infinite linear;
   border: 2px solid #dbdee0;
   border-radius: 290486px;
@@ -110,7 +110,7 @@ html.theme--documenter-vscode .button.is-loading::after, html.theme--documenter-
   position: relative;
   width: 1em; }
 
-.is-overlay, html.theme--documenter-vscode .image.is-square img, html.theme--documenter-vscode #documenter .docs-sidebar .docs-logo > img.is-square img,
+html.theme--documenter-vscode .hero-video, html.theme--documenter-vscode .modal-background, html.theme--documenter-vscode .modal, html.theme--documenter-vscode .image.is-square img, html.theme--documenter-vscode #documenter .docs-sidebar .docs-logo > img.is-square img,
 html.theme--documenter-vscode .image.is-square .has-ratio,
 html.theme--documenter-vscode #documenter .docs-sidebar .docs-logo > img.is-square .has-ratio, html.theme--documenter-vscode .image.is-1by1 img, html.theme--documenter-vscode #documenter .docs-sidebar .docs-logo > img.is-1by1 img,
 html.theme--documenter-vscode .image.is-1by1 .has-ratio,
@@ -142,18 +142,18 @@ html.theme--documenter-vscode #documenter .docs-sidebar .docs-logo > img.is-9by1
 html.theme--documenter-vscode .image.is-1by2 .has-ratio,
 html.theme--documenter-vscode #documenter .docs-sidebar .docs-logo > img.is-1by2 .has-ratio, html.theme--documenter-vscode .image.is-1by3 img, html.theme--documenter-vscode #documenter .docs-sidebar .docs-logo > img.is-1by3 img,
 html.theme--documenter-vscode .image.is-1by3 .has-ratio,
-html.theme--documenter-vscode #documenter .docs-sidebar .docs-logo > img.is-1by3 .has-ratio, html.theme--documenter-vscode .modal, html.theme--documenter-vscode .modal-background, html.theme--documenter-vscode .hero-video {
+html.theme--documenter-vscode #documenter .docs-sidebar .docs-logo > img.is-1by3 .has-ratio, .is-overlay {
   bottom: 0;
   left: 0;
   position: absolute;
   right: 0;
   top: 0; }
 
-html.theme--documenter-vscode .button, html.theme--documenter-vscode .input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input, html.theme--documenter-vscode .textarea, html.theme--documenter-vscode .select select, html.theme--documenter-vscode .file-cta,
-html.theme--documenter-vscode .file-name, html.theme--documenter-vscode .pagination-previous,
+html.theme--documenter-vscode .pagination-previous,
 html.theme--documenter-vscode .pagination-next,
 html.theme--documenter-vscode .pagination-link,
-html.theme--documenter-vscode .pagination-ellipsis {
+html.theme--documenter-vscode .pagination-ellipsis, html.theme--documenter-vscode .file-cta,
+html.theme--documenter-vscode .file-name, html.theme--documenter-vscode .select select, html.theme--documenter-vscode .textarea, html.theme--documenter-vscode .input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input, html.theme--documenter-vscode .button {
   -moz-appearance: none;
   -webkit-appearance: none;
   align-items: center;
@@ -171,51 +171,37 @@ html.theme--documenter-vscode .pagination-ellipsis {
   padding-top: calc(0.375em - 1px);
   position: relative;
   vertical-align: top; }
-  html.theme--documenter-vscode .button:focus, html.theme--documenter-vscode .input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:focus, html.theme--documenter-vscode .textarea:focus, html.theme--documenter-vscode .select select:focus, html.theme--documenter-vscode .file-cta:focus,
-  html.theme--documenter-vscode .file-name:focus, html.theme--documenter-vscode .pagination-previous:focus,
+  html.theme--documenter-vscode .pagination-previous:focus,
   html.theme--documenter-vscode .pagination-next:focus,
   html.theme--documenter-vscode .pagination-link:focus,
-  html.theme--documenter-vscode .pagination-ellipsis:focus, html.theme--documenter-vscode .is-focused.button, html.theme--documenter-vscode .is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-focused.textarea, html.theme--documenter-vscode .select select.is-focused, html.theme--documenter-vscode .is-focused.file-cta,
-  html.theme--documenter-vscode .is-focused.file-name, html.theme--documenter-vscode .is-focused.pagination-previous,
+  html.theme--documenter-vscode .pagination-ellipsis:focus, html.theme--documenter-vscode .file-cta:focus,
+  html.theme--documenter-vscode .file-name:focus, html.theme--documenter-vscode .select select:focus, html.theme--documenter-vscode .textarea:focus, html.theme--documenter-vscode .input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:focus, html.theme--documenter-vscode .button:focus, html.theme--documenter-vscode .is-focused.pagination-previous,
   html.theme--documenter-vscode .is-focused.pagination-next,
   html.theme--documenter-vscode .is-focused.pagination-link,
-  html.theme--documenter-vscode .is-focused.pagination-ellipsis, html.theme--documenter-vscode .button:active, html.theme--documenter-vscode .input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:active, html.theme--documenter-vscode .textarea:active, html.theme--documenter-vscode .select select:active, html.theme--documenter-vscode .file-cta:active,
-  html.theme--documenter-vscode .file-name:active, html.theme--documenter-vscode .pagination-previous:active,
+  html.theme--documenter-vscode .is-focused.pagination-ellipsis, html.theme--documenter-vscode .is-focused.file-cta,
+  html.theme--documenter-vscode .is-focused.file-name, html.theme--documenter-vscode .select select.is-focused, html.theme--documenter-vscode .is-focused.textarea, html.theme--documenter-vscode .is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-focused.button, html.theme--documenter-vscode .pagination-previous:active,
   html.theme--documenter-vscode .pagination-next:active,
   html.theme--documenter-vscode .pagination-link:active,
-  html.theme--documenter-vscode .pagination-ellipsis:active, html.theme--documenter-vscode .is-active.button, html.theme--documenter-vscode .is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active, html.theme--documenter-vscode .is-active.textarea, html.theme--documenter-vscode .select select.is-active, html.theme--documenter-vscode .is-active.file-cta,
-  html.theme--documenter-vscode .is-active.file-name, html.theme--documenter-vscode .is-active.pagination-previous,
+  html.theme--documenter-vscode .pagination-ellipsis:active, html.theme--documenter-vscode .file-cta:active,
+  html.theme--documenter-vscode .file-name:active, html.theme--documenter-vscode .select select:active, html.theme--documenter-vscode .textarea:active, html.theme--documenter-vscode .input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:active, html.theme--documenter-vscode .button:active, html.theme--documenter-vscode .is-active.pagination-previous,
   html.theme--documenter-vscode .is-active.pagination-next,
   html.theme--documenter-vscode .is-active.pagination-link,
-  html.theme--documenter-vscode .is-active.pagination-ellipsis {
+  html.theme--documenter-vscode .is-active.pagination-ellipsis, html.theme--documenter-vscode .is-active.file-cta,
+  html.theme--documenter-vscode .is-active.file-name, html.theme--documenter-vscode .select select.is-active, html.theme--documenter-vscode .is-active.textarea, html.theme--documenter-vscode .is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active, html.theme--documenter-vscode .is-active.button {
     outline: none; }
-  html.theme--documenter-vscode .button[disabled], html.theme--documenter-vscode .input[disabled], html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled], html.theme--documenter-vscode .textarea[disabled], html.theme--documenter-vscode .select select[disabled], html.theme--documenter-vscode .file-cta[disabled],
-  html.theme--documenter-vscode .file-name[disabled], html.theme--documenter-vscode .pagination-previous[disabled],
+  html.theme--documenter-vscode .pagination-previous[disabled],
   html.theme--documenter-vscode .pagination-next[disabled],
   html.theme--documenter-vscode .pagination-link[disabled],
-  html.theme--documenter-vscode .pagination-ellipsis[disabled],
-  fieldset[disabled] html.theme--documenter-vscode .button,
-  html.theme--documenter-vscode fieldset[disabled] .button,
-  fieldset[disabled] html.theme--documenter-vscode .input,
-  html.theme--documenter-vscode fieldset[disabled] .input,
-  fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input,
-  html.theme--documenter-vscode #documenter .docs-sidebar fieldset[disabled] form.docs-search > input,
-  fieldset[disabled] html.theme--documenter-vscode .textarea,
-  html.theme--documenter-vscode fieldset[disabled] .textarea,
-  fieldset[disabled] html.theme--documenter-vscode .select select,
-  html.theme--documenter-vscode .select fieldset[disabled] select,
-  fieldset[disabled] html.theme--documenter-vscode .file-cta,
-  html.theme--documenter-vscode fieldset[disabled] .file-cta,
-  fieldset[disabled] html.theme--documenter-vscode .file-name,
-  html.theme--documenter-vscode fieldset[disabled] .file-name,
-  fieldset[disabled] html.theme--documenter-vscode .pagination-previous,
-  html.theme--documenter-vscode fieldset[disabled] .pagination-previous,
+  html.theme--documenter-vscode .pagination-ellipsis[disabled], html.theme--documenter-vscode .file-cta[disabled],
+  html.theme--documenter-vscode .file-name[disabled], html.theme--documenter-vscode .select select[disabled], html.theme--documenter-vscode .textarea[disabled], html.theme--documenter-vscode .input[disabled], html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled], html.theme--documenter-vscode .button[disabled], fieldset[disabled] html.theme--documenter-vscode .pagination-previous, html.theme--documenter-vscode fieldset[disabled] .pagination-previous,
   fieldset[disabled] html.theme--documenter-vscode .pagination-next,
   html.theme--documenter-vscode fieldset[disabled] .pagination-next,
   fieldset[disabled] html.theme--documenter-vscode .pagination-link,
   html.theme--documenter-vscode fieldset[disabled] .pagination-link,
   fieldset[disabled] html.theme--documenter-vscode .pagination-ellipsis,
-  html.theme--documenter-vscode fieldset[disabled] .pagination-ellipsis {
+  html.theme--documenter-vscode fieldset[disabled] .pagination-ellipsis, fieldset[disabled] html.theme--documenter-vscode .file-cta, html.theme--documenter-vscode fieldset[disabled] .file-cta,
+  fieldset[disabled] html.theme--documenter-vscode .file-name,
+  html.theme--documenter-vscode fieldset[disabled] .file-name, fieldset[disabled] html.theme--documenter-vscode .select select, fieldset[disabled] html.theme--documenter-vscode .textarea, fieldset[disabled] html.theme--documenter-vscode .input, fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input, html.theme--documenter-vscode fieldset[disabled] .select select, html.theme--documenter-vscode .select fieldset[disabled] select, html.theme--documenter-vscode fieldset[disabled] .textarea, html.theme--documenter-vscode fieldset[disabled] .input, html.theme--documenter-vscode fieldset[disabled] #documenter .docs-sidebar form.docs-search > input, html.theme--documenter-vscode #documenter .docs-sidebar fieldset[disabled] form.docs-search > input, fieldset[disabled] html.theme--documenter-vscode .button, html.theme--documenter-vscode fieldset[disabled] .button {
     cursor: not-allowed; }
 
 /*! minireset.css v0.0.4 | MIT License | github.com/jgthms/minireset.css */
@@ -1223,8 +1209,7 @@ html.theme--documenter-vscode {
       html.theme--documenter-vscode .button.is-text:active, html.theme--documenter-vscode .button.is-text.is-active {
         background-color: #1d2122;
         color: #f2f2f2; }
-      html.theme--documenter-vscode .button.is-text[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-text {
+      html.theme--documenter-vscode .button.is-text[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-text {
         background-color: transparent;
         border-color: transparent;
         box-shadow: none; }
@@ -1245,8 +1230,7 @@ html.theme--documenter-vscode {
         background-color: #f2f2f2;
         border-color: transparent;
         color: #0a0a0a; }
-      html.theme--documenter-vscode .button.is-white[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-white {
+      html.theme--documenter-vscode .button.is-white[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-white {
         background-color: white;
         border-color: transparent;
         box-shadow: none; }
@@ -1255,8 +1239,7 @@ html.theme--documenter-vscode {
         color: white; }
         html.theme--documenter-vscode .button.is-white.is-inverted:hover, html.theme--documenter-vscode .button.is-white.is-inverted.is-hovered {
           background-color: black; }
-        html.theme--documenter-vscode .button.is-white.is-inverted[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-white.is-inverted {
+        html.theme--documenter-vscode .button.is-white.is-inverted[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-white.is-inverted {
           background-color: #0a0a0a;
           border-color: transparent;
           box-shadow: none;
@@ -1275,8 +1258,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent white white !important; }
         html.theme--documenter-vscode .button.is-white.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-white.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-white.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-white.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #0a0a0a #0a0a0a !important; }
-        html.theme--documenter-vscode .button.is-white.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-white.is-outlined {
+        html.theme--documenter-vscode .button.is-white.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-white.is-outlined {
           background-color: transparent;
           border-color: white;
           box-shadow: none;
@@ -1290,8 +1272,7 @@ html.theme--documenter-vscode {
           color: white; }
         html.theme--documenter-vscode .button.is-white.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-white.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-white.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-white.is-inverted.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent white white !important; }
-        html.theme--documenter-vscode .button.is-white.is-inverted.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-white.is-inverted.is-outlined {
+        html.theme--documenter-vscode .button.is-white.is-inverted.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-white.is-inverted.is-outlined {
           background-color: transparent;
           border-color: #0a0a0a;
           box-shadow: none;
@@ -1313,8 +1294,7 @@ html.theme--documenter-vscode {
         background-color: black;
         border-color: transparent;
         color: white; }
-      html.theme--documenter-vscode .button.is-black[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-black {
+      html.theme--documenter-vscode .button.is-black[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-black {
         background-color: #0a0a0a;
         border-color: transparent;
         box-shadow: none; }
@@ -1323,8 +1303,7 @@ html.theme--documenter-vscode {
         color: #0a0a0a; }
         html.theme--documenter-vscode .button.is-black.is-inverted:hover, html.theme--documenter-vscode .button.is-black.is-inverted.is-hovered {
           background-color: #f2f2f2; }
-        html.theme--documenter-vscode .button.is-black.is-inverted[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-black.is-inverted {
+        html.theme--documenter-vscode .button.is-black.is-inverted[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-black.is-inverted {
           background-color: white;
           border-color: transparent;
           box-shadow: none;
@@ -1343,8 +1322,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent #0a0a0a #0a0a0a !important; }
         html.theme--documenter-vscode .button.is-black.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-black.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-black.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-black.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent white white !important; }
-        html.theme--documenter-vscode .button.is-black.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-black.is-outlined {
+        html.theme--documenter-vscode .button.is-black.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-black.is-outlined {
           background-color: transparent;
           border-color: #0a0a0a;
           box-shadow: none;
@@ -1358,8 +1336,7 @@ html.theme--documenter-vscode {
           color: #0a0a0a; }
         html.theme--documenter-vscode .button.is-black.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-black.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-black.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-black.is-inverted.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #0a0a0a #0a0a0a !important; }
-        html.theme--documenter-vscode .button.is-black.is-inverted.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-black.is-inverted.is-outlined {
+        html.theme--documenter-vscode .button.is-black.is-inverted.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-black.is-inverted.is-outlined {
           background-color: transparent;
           border-color: white;
           box-shadow: none;
@@ -1381,8 +1358,7 @@ html.theme--documenter-vscode {
         background-color: #dde4e6;
         border-color: transparent;
         color: #282f2f; }
-      html.theme--documenter-vscode .button.is-light[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-light {
+      html.theme--documenter-vscode .button.is-light[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-light {
         background-color: #ecf0f1;
         border-color: transparent;
         box-shadow: none; }
@@ -1391,8 +1367,7 @@ html.theme--documenter-vscode {
         color: #ecf0f1; }
         html.theme--documenter-vscode .button.is-light.is-inverted:hover, html.theme--documenter-vscode .button.is-light.is-inverted.is-hovered {
           background-color: #1d2122; }
-        html.theme--documenter-vscode .button.is-light.is-inverted[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-light.is-inverted {
+        html.theme--documenter-vscode .button.is-light.is-inverted[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-light.is-inverted {
           background-color: #282f2f;
           border-color: transparent;
           box-shadow: none;
@@ -1411,8 +1386,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent #ecf0f1 #ecf0f1 !important; }
         html.theme--documenter-vscode .button.is-light.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-light.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-light.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-light.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #282f2f #282f2f !important; }
-        html.theme--documenter-vscode .button.is-light.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-light.is-outlined {
+        html.theme--documenter-vscode .button.is-light.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-light.is-outlined {
           background-color: transparent;
           border-color: #ecf0f1;
           box-shadow: none;
@@ -1426,8 +1400,7 @@ html.theme--documenter-vscode {
           color: #ecf0f1; }
         html.theme--documenter-vscode .button.is-light.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-light.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-light.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-light.is-inverted.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #ecf0f1 #ecf0f1 !important; }
-        html.theme--documenter-vscode .button.is-light.is-inverted.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-light.is-inverted.is-outlined {
+        html.theme--documenter-vscode .button.is-light.is-inverted.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-light.is-inverted.is-outlined {
           background-color: transparent;
           border-color: #282f2f;
           box-shadow: none;
@@ -1449,9 +1422,7 @@ html.theme--documenter-vscode {
         background-color: #1d2122;
         border-color: transparent;
         color: #ecf0f1; }
-      html.theme--documenter-vscode .button.is-dark[disabled], html.theme--documenter-vscode .content kbd.button[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-dark,
-      fieldset[disabled] html.theme--documenter-vscode .content kbd.button {
+      html.theme--documenter-vscode .button.is-dark[disabled], html.theme--documenter-vscode .content kbd.button[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-dark, fieldset[disabled] html.theme--documenter-vscode .content kbd.button {
         background-color: #282f2f;
         border-color: transparent;
         box-shadow: none; }
@@ -1460,9 +1431,7 @@ html.theme--documenter-vscode {
         color: #282f2f; }
         html.theme--documenter-vscode .button.is-dark.is-inverted:hover, html.theme--documenter-vscode .content kbd.button.is-inverted:hover, html.theme--documenter-vscode .button.is-dark.is-inverted.is-hovered, html.theme--documenter-vscode .content kbd.button.is-inverted.is-hovered {
           background-color: #dde4e6; }
-        html.theme--documenter-vscode .button.is-dark.is-inverted[disabled], html.theme--documenter-vscode .content kbd.button.is-inverted[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-dark.is-inverted,
-        fieldset[disabled] html.theme--documenter-vscode .content kbd.button.is-inverted {
+        html.theme--documenter-vscode .button.is-dark.is-inverted[disabled], html.theme--documenter-vscode .content kbd.button.is-inverted[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-dark.is-inverted, fieldset[disabled] html.theme--documenter-vscode .content kbd.button.is-inverted {
           background-color: #ecf0f1;
           border-color: transparent;
           box-shadow: none;
@@ -1481,9 +1450,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent #282f2f #282f2f !important; }
         html.theme--documenter-vscode .button.is-dark.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .content kbd.button.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-dark.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .content kbd.button.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-dark.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .content kbd.button.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-dark.is-outlined.is-loading.is-focused::after, html.theme--documenter-vscode .content kbd.button.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #ecf0f1 #ecf0f1 !important; }
-        html.theme--documenter-vscode .button.is-dark.is-outlined[disabled], html.theme--documenter-vscode .content kbd.button.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-dark.is-outlined,
-        fieldset[disabled] html.theme--documenter-vscode .content kbd.button.is-outlined {
+        html.theme--documenter-vscode .button.is-dark.is-outlined[disabled], html.theme--documenter-vscode .content kbd.button.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-dark.is-outlined, fieldset[disabled] html.theme--documenter-vscode .content kbd.button.is-outlined {
           background-color: transparent;
           border-color: #282f2f;
           box-shadow: none;
@@ -1497,9 +1464,7 @@ html.theme--documenter-vscode {
           color: #282f2f; }
         html.theme--documenter-vscode .button.is-dark.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .content kbd.button.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-dark.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .content kbd.button.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-dark.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .content kbd.button.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-dark.is-inverted.is-outlined.is-loading.is-focused::after, html.theme--documenter-vscode .content kbd.button.is-inverted.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #282f2f #282f2f !important; }
-        html.theme--documenter-vscode .button.is-dark.is-inverted.is-outlined[disabled], html.theme--documenter-vscode .content kbd.button.is-inverted.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-dark.is-inverted.is-outlined,
-        fieldset[disabled] html.theme--documenter-vscode .content kbd.button.is-inverted.is-outlined {
+        html.theme--documenter-vscode .button.is-dark.is-inverted.is-outlined[disabled], html.theme--documenter-vscode .content kbd.button.is-inverted.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-dark.is-inverted.is-outlined, fieldset[disabled] html.theme--documenter-vscode .content kbd.button.is-inverted.is-outlined {
           background-color: transparent;
           border-color: #ecf0f1;
           box-shadow: none;
@@ -1521,9 +1486,7 @@ html.theme--documenter-vscode {
         background-color: #2f4d6d;
         border-color: transparent;
         color: #fff; }
-      html.theme--documenter-vscode .button.is-primary[disabled], html.theme--documenter-vscode .docstring > section > a.button.docs-sourcelink[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-primary,
-      fieldset[disabled] html.theme--documenter-vscode .docstring > section > a.button.docs-sourcelink {
+      html.theme--documenter-vscode .button.is-primary[disabled], html.theme--documenter-vscode .docstring > section > a.button.docs-sourcelink[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-primary, fieldset[disabled] html.theme--documenter-vscode .docstring > section > a.button.docs-sourcelink {
         background-color: #375a7f;
         border-color: transparent;
         box-shadow: none; }
@@ -1532,9 +1495,7 @@ html.theme--documenter-vscode {
         color: #375a7f; }
         html.theme--documenter-vscode .button.is-primary.is-inverted:hover, html.theme--documenter-vscode .docstring > section > a.button.is-inverted.docs-sourcelink:hover, html.theme--documenter-vscode .button.is-primary.is-inverted.is-hovered, html.theme--documenter-vscode .docstring > section > a.button.is-inverted.is-hovered.docs-sourcelink {
           background-color: #f2f2f2; }
-        html.theme--documenter-vscode .button.is-primary.is-inverted[disabled], html.theme--documenter-vscode .docstring > section > a.button.is-inverted.docs-sourcelink[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-primary.is-inverted,
-        fieldset[disabled] html.theme--documenter-vscode .docstring > section > a.button.is-inverted.docs-sourcelink {
+        html.theme--documenter-vscode .button.is-primary.is-inverted[disabled], html.theme--documenter-vscode .docstring > section > a.button.is-inverted.docs-sourcelink[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-primary.is-inverted, fieldset[disabled] html.theme--documenter-vscode .docstring > section > a.button.is-inverted.docs-sourcelink {
           background-color: #fff;
           border-color: transparent;
           box-shadow: none;
@@ -1553,9 +1514,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent #375a7f #375a7f !important; }
         html.theme--documenter-vscode .button.is-primary.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .docstring > section > a.button.is-outlined.is-loading.docs-sourcelink:hover::after, html.theme--documenter-vscode .button.is-primary.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .docstring > section > a.button.is-outlined.is-loading.is-hovered.docs-sourcelink::after, html.theme--documenter-vscode .button.is-primary.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .docstring > section > a.button.is-outlined.is-loading.docs-sourcelink:focus::after, html.theme--documenter-vscode .button.is-primary.is-outlined.is-loading.is-focused::after, html.theme--documenter-vscode .docstring > section > a.button.is-outlined.is-loading.is-focused.docs-sourcelink::after {
           border-color: transparent transparent #fff #fff !important; }
-        html.theme--documenter-vscode .button.is-primary.is-outlined[disabled], html.theme--documenter-vscode .docstring > section > a.button.is-outlined.docs-sourcelink[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-primary.is-outlined,
-        fieldset[disabled] html.theme--documenter-vscode .docstring > section > a.button.is-outlined.docs-sourcelink {
+        html.theme--documenter-vscode .button.is-primary.is-outlined[disabled], html.theme--documenter-vscode .docstring > section > a.button.is-outlined.docs-sourcelink[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-primary.is-outlined, fieldset[disabled] html.theme--documenter-vscode .docstring > section > a.button.is-outlined.docs-sourcelink {
           background-color: transparent;
           border-color: #375a7f;
           box-shadow: none;
@@ -1569,9 +1528,7 @@ html.theme--documenter-vscode {
           color: #375a7f; }
         html.theme--documenter-vscode .button.is-primary.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .docstring > section > a.button.is-inverted.is-outlined.is-loading.docs-sourcelink:hover::after, html.theme--documenter-vscode .button.is-primary.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .docstring > section > a.button.is-inverted.is-outlined.is-loading.is-hovered.docs-sourcelink::after, html.theme--documenter-vscode .button.is-primary.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .docstring > section > a.button.is-inverted.is-outlined.is-loading.docs-sourcelink:focus::after, html.theme--documenter-vscode .button.is-primary.is-inverted.is-outlined.is-loading.is-focused::after, html.theme--documenter-vscode .docstring > section > a.button.is-inverted.is-outlined.is-loading.is-focused.docs-sourcelink::after {
           border-color: transparent transparent #375a7f #375a7f !important; }
-        html.theme--documenter-vscode .button.is-primary.is-inverted.is-outlined[disabled], html.theme--documenter-vscode .docstring > section > a.button.is-inverted.is-outlined.docs-sourcelink[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-primary.is-inverted.is-outlined,
-        fieldset[disabled] html.theme--documenter-vscode .docstring > section > a.button.is-inverted.is-outlined.docs-sourcelink {
+        html.theme--documenter-vscode .button.is-primary.is-inverted.is-outlined[disabled], html.theme--documenter-vscode .docstring > section > a.button.is-inverted.is-outlined.docs-sourcelink[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-primary.is-inverted.is-outlined, fieldset[disabled] html.theme--documenter-vscode .docstring > section > a.button.is-inverted.is-outlined.docs-sourcelink {
           background-color: transparent;
           border-color: #fff;
           box-shadow: none;
@@ -1593,8 +1550,7 @@ html.theme--documenter-vscode {
         background-color: #17a689;
         border-color: transparent;
         color: #fff; }
-      html.theme--documenter-vscode .button.is-link[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-link {
+      html.theme--documenter-vscode .button.is-link[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-link {
         background-color: #1abc9c;
         border-color: transparent;
         box-shadow: none; }
@@ -1603,8 +1559,7 @@ html.theme--documenter-vscode {
         color: #1abc9c; }
         html.theme--documenter-vscode .button.is-link.is-inverted:hover, html.theme--documenter-vscode .button.is-link.is-inverted.is-hovered {
           background-color: #f2f2f2; }
-        html.theme--documenter-vscode .button.is-link.is-inverted[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-link.is-inverted {
+        html.theme--documenter-vscode .button.is-link.is-inverted[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-link.is-inverted {
           background-color: #fff;
           border-color: transparent;
           box-shadow: none;
@@ -1623,8 +1578,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent #1abc9c #1abc9c !important; }
         html.theme--documenter-vscode .button.is-link.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-link.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-link.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-link.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #fff #fff !important; }
-        html.theme--documenter-vscode .button.is-link.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-link.is-outlined {
+        html.theme--documenter-vscode .button.is-link.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-link.is-outlined {
           background-color: transparent;
           border-color: #1abc9c;
           box-shadow: none;
@@ -1638,8 +1592,7 @@ html.theme--documenter-vscode {
           color: #1abc9c; }
         html.theme--documenter-vscode .button.is-link.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-link.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-link.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-link.is-inverted.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #1abc9c #1abc9c !important; }
-        html.theme--documenter-vscode .button.is-link.is-inverted.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-link.is-inverted.is-outlined {
+        html.theme--documenter-vscode .button.is-link.is-inverted.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-link.is-inverted.is-outlined {
           background-color: transparent;
           border-color: #fff;
           box-shadow: none;
@@ -1661,8 +1614,7 @@ html.theme--documenter-vscode {
         background-color: #023d64;
         border-color: transparent;
         color: #fff; }
-      html.theme--documenter-vscode .button.is-info[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-info {
+      html.theme--documenter-vscode .button.is-info[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-info {
         background-color: #024c7d;
         border-color: transparent;
         box-shadow: none; }
@@ -1671,8 +1623,7 @@ html.theme--documenter-vscode {
         color: #024c7d; }
         html.theme--documenter-vscode .button.is-info.is-inverted:hover, html.theme--documenter-vscode .button.is-info.is-inverted.is-hovered {
           background-color: #f2f2f2; }
-        html.theme--documenter-vscode .button.is-info.is-inverted[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-info.is-inverted {
+        html.theme--documenter-vscode .button.is-info.is-inverted[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-info.is-inverted {
           background-color: #fff;
           border-color: transparent;
           box-shadow: none;
@@ -1691,8 +1642,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent #024c7d #024c7d !important; }
         html.theme--documenter-vscode .button.is-info.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-info.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-info.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-info.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #fff #fff !important; }
-        html.theme--documenter-vscode .button.is-info.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-info.is-outlined {
+        html.theme--documenter-vscode .button.is-info.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-info.is-outlined {
           background-color: transparent;
           border-color: #024c7d;
           box-shadow: none;
@@ -1706,8 +1656,7 @@ html.theme--documenter-vscode {
           color: #024c7d; }
         html.theme--documenter-vscode .button.is-info.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-info.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-info.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-info.is-inverted.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #024c7d #024c7d !important; }
-        html.theme--documenter-vscode .button.is-info.is-inverted.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-info.is-inverted.is-outlined {
+        html.theme--documenter-vscode .button.is-info.is-inverted.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-info.is-inverted.is-outlined {
           background-color: transparent;
           border-color: #fff;
           box-shadow: none;
@@ -1729,8 +1678,7 @@ html.theme--documenter-vscode {
         background-color: #006b2d;
         border-color: transparent;
         color: #fff; }
-      html.theme--documenter-vscode .button.is-success[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-success {
+      html.theme--documenter-vscode .button.is-success[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-success {
         background-color: #008438;
         border-color: transparent;
         box-shadow: none; }
@@ -1739,8 +1687,7 @@ html.theme--documenter-vscode {
         color: #008438; }
         html.theme--documenter-vscode .button.is-success.is-inverted:hover, html.theme--documenter-vscode .button.is-success.is-inverted.is-hovered {
           background-color: #f2f2f2; }
-        html.theme--documenter-vscode .button.is-success.is-inverted[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-success.is-inverted {
+        html.theme--documenter-vscode .button.is-success.is-inverted[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-success.is-inverted {
           background-color: #fff;
           border-color: transparent;
           box-shadow: none;
@@ -1759,8 +1706,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent #008438 #008438 !important; }
         html.theme--documenter-vscode .button.is-success.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-success.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-success.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-success.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #fff #fff !important; }
-        html.theme--documenter-vscode .button.is-success.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-success.is-outlined {
+        html.theme--documenter-vscode .button.is-success.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-success.is-outlined {
           background-color: transparent;
           border-color: #008438;
           box-shadow: none;
@@ -1774,8 +1720,7 @@ html.theme--documenter-vscode {
           color: #008438; }
         html.theme--documenter-vscode .button.is-success.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-success.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-success.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-success.is-inverted.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #008438 #008438 !important; }
-        html.theme--documenter-vscode .button.is-success.is-inverted.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-success.is-inverted.is-outlined {
+        html.theme--documenter-vscode .button.is-success.is-inverted.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-success.is-inverted.is-outlined {
           background-color: transparent;
           border-color: #fff;
           box-shadow: none;
@@ -1797,8 +1742,7 @@ html.theme--documenter-vscode {
         background-color: #946e00;
         border-color: transparent;
         color: #fff; }
-      html.theme--documenter-vscode .button.is-warning[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-warning {
+      html.theme--documenter-vscode .button.is-warning[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-warning {
         background-color: #ad8100;
         border-color: transparent;
         box-shadow: none; }
@@ -1807,8 +1751,7 @@ html.theme--documenter-vscode {
         color: #ad8100; }
         html.theme--documenter-vscode .button.is-warning.is-inverted:hover, html.theme--documenter-vscode .button.is-warning.is-inverted.is-hovered {
           background-color: #f2f2f2; }
-        html.theme--documenter-vscode .button.is-warning.is-inverted[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-warning.is-inverted {
+        html.theme--documenter-vscode .button.is-warning.is-inverted[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-warning.is-inverted {
           background-color: #fff;
           border-color: transparent;
           box-shadow: none;
@@ -1827,8 +1770,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent #ad8100 #ad8100 !important; }
         html.theme--documenter-vscode .button.is-warning.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-warning.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-warning.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-warning.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #fff #fff !important; }
-        html.theme--documenter-vscode .button.is-warning.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-warning.is-outlined {
+        html.theme--documenter-vscode .button.is-warning.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-warning.is-outlined {
           background-color: transparent;
           border-color: #ad8100;
           box-shadow: none;
@@ -1842,8 +1784,7 @@ html.theme--documenter-vscode {
           color: #ad8100; }
         html.theme--documenter-vscode .button.is-warning.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-warning.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-warning.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-warning.is-inverted.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #ad8100 #ad8100 !important; }
-        html.theme--documenter-vscode .button.is-warning.is-inverted.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-warning.is-inverted.is-outlined {
+        html.theme--documenter-vscode .button.is-warning.is-inverted.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-warning.is-inverted.is-outlined {
           background-color: transparent;
           border-color: #fff;
           box-shadow: none;
@@ -1865,8 +1806,7 @@ html.theme--documenter-vscode {
         background-color: #86170b;
         border-color: transparent;
         color: #fff; }
-      html.theme--documenter-vscode .button.is-danger[disabled],
-      fieldset[disabled] html.theme--documenter-vscode .button.is-danger {
+      html.theme--documenter-vscode .button.is-danger[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-danger {
         background-color: #9e1b0d;
         border-color: transparent;
         box-shadow: none; }
@@ -1875,8 +1815,7 @@ html.theme--documenter-vscode {
         color: #9e1b0d; }
         html.theme--documenter-vscode .button.is-danger.is-inverted:hover, html.theme--documenter-vscode .button.is-danger.is-inverted.is-hovered {
           background-color: #f2f2f2; }
-        html.theme--documenter-vscode .button.is-danger.is-inverted[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-danger.is-inverted {
+        html.theme--documenter-vscode .button.is-danger.is-inverted[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-danger.is-inverted {
           background-color: #fff;
           border-color: transparent;
           box-shadow: none;
@@ -1895,8 +1834,7 @@ html.theme--documenter-vscode {
           border-color: transparent transparent #9e1b0d #9e1b0d !important; }
         html.theme--documenter-vscode .button.is-danger.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-danger.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-danger.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-danger.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #fff #fff !important; }
-        html.theme--documenter-vscode .button.is-danger.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-danger.is-outlined {
+        html.theme--documenter-vscode .button.is-danger.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-danger.is-outlined {
           background-color: transparent;
           border-color: #9e1b0d;
           box-shadow: none;
@@ -1910,8 +1848,7 @@ html.theme--documenter-vscode {
           color: #9e1b0d; }
         html.theme--documenter-vscode .button.is-danger.is-inverted.is-outlined.is-loading:hover::after, html.theme--documenter-vscode .button.is-danger.is-inverted.is-outlined.is-loading.is-hovered::after, html.theme--documenter-vscode .button.is-danger.is-inverted.is-outlined.is-loading:focus::after, html.theme--documenter-vscode .button.is-danger.is-inverted.is-outlined.is-loading.is-focused::after {
           border-color: transparent transparent #9e1b0d #9e1b0d !important; }
-        html.theme--documenter-vscode .button.is-danger.is-inverted.is-outlined[disabled],
-        fieldset[disabled] html.theme--documenter-vscode .button.is-danger.is-inverted.is-outlined {
+        html.theme--documenter-vscode .button.is-danger.is-inverted.is-outlined[disabled], fieldset[disabled] html.theme--documenter-vscode .button.is-danger.is-inverted.is-outlined {
           background-color: transparent;
           border-color: #fff;
           box-shadow: none;
@@ -1925,8 +1862,7 @@ html.theme--documenter-vscode {
       font-size: 1.25rem; }
     html.theme--documenter-vscode .button.is-large {
       font-size: 1.5rem; }
-    html.theme--documenter-vscode .button[disabled],
-    fieldset[disabled] html.theme--documenter-vscode .button {
+    html.theme--documenter-vscode .button[disabled], fieldset[disabled] html.theme--documenter-vscode .button {
       background-color: #8c9b9d;
       border-color: #dbdee0;
       box-shadow: none;
@@ -2077,13 +2013,13 @@ html.theme--documenter-vscode {
     margin-top: 1em; }
     html.theme--documenter-vscode .content ol:not([type]) {
       list-style-type: decimal; }
-      html.theme--documenter-vscode .content ol:not([type]).is-lower-alpha {
+      html.theme--documenter-vscode .content ol.is-lower-alpha:not([type]) {
         list-style-type: lower-alpha; }
-      html.theme--documenter-vscode .content ol:not([type]).is-lower-roman {
+      html.theme--documenter-vscode .content ol.is-lower-roman:not([type]) {
         list-style-type: lower-roman; }
-      html.theme--documenter-vscode .content ol:not([type]).is-upper-alpha {
+      html.theme--documenter-vscode .content ol.is-upper-alpha:not([type]) {
         list-style-type: upper-alpha; }
-      html.theme--documenter-vscode .content ol:not([type]).is-upper-roman {
+      html.theme--documenter-vscode .content ol.is-upper-roman:not([type]) {
         list-style-type: upper-roman; }
   html.theme--documenter-vscode .content ul {
     list-style: disc outside;
@@ -2111,7 +2047,7 @@ html.theme--documenter-vscode {
   html.theme--documenter-vscode .content pre {
     -webkit-overflow-scrolling: touch;
     overflow-x: auto;
-    padding: 0.7rem 0.5rem;
+    padding: 0;
     white-space: pre;
     word-wrap: normal; }
   html.theme--documenter-vscode .content sup,
@@ -2568,39 +2504,39 @@ html.theme--documenter-vscode {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-start; }
-    html.theme--documenter-vscode .tags .tag, html.theme--documenter-vscode .tags .docstring > section > a.docs-sourcelink, html.theme--documenter-vscode .tags .content kbd, html.theme--documenter-vscode .content .tags kbd {
+    html.theme--documenter-vscode .tags .tag, html.theme--documenter-vscode .tags .content kbd, html.theme--documenter-vscode .content .tags kbd, html.theme--documenter-vscode .tags .docstring > section > a.docs-sourcelink {
       margin-bottom: 0.5rem; }
-      html.theme--documenter-vscode .tags .tag:not(:last-child), html.theme--documenter-vscode .tags .docstring > section > a.docs-sourcelink:not(:last-child), html.theme--documenter-vscode .tags .content kbd:not(:last-child), html.theme--documenter-vscode .content .tags kbd:not(:last-child) {
+      html.theme--documenter-vscode .tags .tag:not(:last-child), html.theme--documenter-vscode .tags .content kbd:not(:last-child), html.theme--documenter-vscode .content .tags kbd:not(:last-child), html.theme--documenter-vscode .tags .docstring > section > a.docs-sourcelink:not(:last-child) {
         margin-right: 0.5rem; }
     html.theme--documenter-vscode .tags:last-child {
       margin-bottom: -0.5rem; }
     html.theme--documenter-vscode .tags:not(:last-child) {
       margin-bottom: 1rem; }
-    html.theme--documenter-vscode .tags.are-medium .tag:not(.is-normal):not(.is-large), html.theme--documenter-vscode .tags.are-medium .docstring > section > a.docs-sourcelink:not(.is-normal):not(.is-large), html.theme--documenter-vscode .tags.are-medium .content kbd:not(.is-normal):not(.is-large), html.theme--documenter-vscode .content .tags.are-medium kbd:not(.is-normal):not(.is-large) {
+    html.theme--documenter-vscode .tags.are-medium .tag:not(.is-normal):not(.is-large), html.theme--documenter-vscode .tags.are-medium .content kbd:not(.is-normal):not(.is-large), html.theme--documenter-vscode .content .tags.are-medium kbd:not(.is-normal):not(.is-large), html.theme--documenter-vscode .tags.are-medium .docstring > section > a.docs-sourcelink:not(.is-normal):not(.is-large) {
       font-size: 15px; }
-    html.theme--documenter-vscode .tags.are-large .tag:not(.is-normal):not(.is-medium), html.theme--documenter-vscode .tags.are-large .docstring > section > a.docs-sourcelink:not(.is-normal):not(.is-medium), html.theme--documenter-vscode .tags.are-large .content kbd:not(.is-normal):not(.is-medium), html.theme--documenter-vscode .content .tags.are-large kbd:not(.is-normal):not(.is-medium) {
+    html.theme--documenter-vscode .tags.are-large .tag:not(.is-normal):not(.is-medium), html.theme--documenter-vscode .tags.are-large .content kbd:not(.is-normal):not(.is-medium), html.theme--documenter-vscode .content .tags.are-large kbd:not(.is-normal):not(.is-medium), html.theme--documenter-vscode .tags.are-large .docstring > section > a.docs-sourcelink:not(.is-normal):not(.is-medium) {
       font-size: 1.25rem; }
     html.theme--documenter-vscode .tags.is-centered {
       justify-content: center; }
-      html.theme--documenter-vscode .tags.is-centered .tag, html.theme--documenter-vscode .tags.is-centered .docstring > section > a.docs-sourcelink, html.theme--documenter-vscode .tags.is-centered .content kbd, html.theme--documenter-vscode .content .tags.is-centered kbd {
+      html.theme--documenter-vscode .tags.is-centered .tag, html.theme--documenter-vscode .tags.is-centered .content kbd, html.theme--documenter-vscode .content .tags.is-centered kbd, html.theme--documenter-vscode .tags.is-centered .docstring > section > a.docs-sourcelink {
         margin-right: 0.25rem;
         margin-left: 0.25rem; }
     html.theme--documenter-vscode .tags.is-right {
       justify-content: flex-end; }
-      html.theme--documenter-vscode .tags.is-right .tag:not(:first-child), html.theme--documenter-vscode .tags.is-right .docstring > section > a.docs-sourcelink:not(:first-child), html.theme--documenter-vscode .tags.is-right .content kbd:not(:first-child), html.theme--documenter-vscode .content .tags.is-right kbd:not(:first-child) {
+      html.theme--documenter-vscode .tags.is-right .tag:not(:first-child), html.theme--documenter-vscode .tags.is-right .content kbd:not(:first-child), html.theme--documenter-vscode .content .tags.is-right kbd:not(:first-child), html.theme--documenter-vscode .tags.is-right .docstring > section > a.docs-sourcelink:not(:first-child) {
         margin-left: 0.5rem; }
-      html.theme--documenter-vscode .tags.is-right .tag:not(:last-child), html.theme--documenter-vscode .tags.is-right .docstring > section > a.docs-sourcelink:not(:last-child), html.theme--documenter-vscode .tags.is-right .content kbd:not(:last-child), html.theme--documenter-vscode .content .tags.is-right kbd:not(:last-child) {
+      html.theme--documenter-vscode .tags.is-right .tag:not(:last-child), html.theme--documenter-vscode .tags.is-right .content kbd:not(:last-child), html.theme--documenter-vscode .content .tags.is-right kbd:not(:last-child), html.theme--documenter-vscode .tags.is-right .docstring > section > a.docs-sourcelink:not(:last-child) {
         margin-right: 0; }
-    html.theme--documenter-vscode .tags.has-addons .tag, html.theme--documenter-vscode .tags.has-addons .docstring > section > a.docs-sourcelink, html.theme--documenter-vscode .tags.has-addons .content kbd, html.theme--documenter-vscode .content .tags.has-addons kbd {
+    html.theme--documenter-vscode .tags.has-addons .tag, html.theme--documenter-vscode .tags.has-addons .content kbd, html.theme--documenter-vscode .content .tags.has-addons kbd, html.theme--documenter-vscode .tags.has-addons .docstring > section > a.docs-sourcelink {
       margin-right: 0; }
-      html.theme--documenter-vscode .tags.has-addons .tag:not(:first-child), html.theme--documenter-vscode .tags.has-addons .docstring > section > a.docs-sourcelink:not(:first-child), html.theme--documenter-vscode .tags.has-addons .content kbd:not(:first-child), html.theme--documenter-vscode .content .tags.has-addons kbd:not(:first-child) {
+      html.theme--documenter-vscode .tags.has-addons .tag:not(:first-child), html.theme--documenter-vscode .tags.has-addons .content kbd:not(:first-child), html.theme--documenter-vscode .content .tags.has-addons kbd:not(:first-child), html.theme--documenter-vscode .tags.has-addons .docstring > section > a.docs-sourcelink:not(:first-child) {
         margin-left: 0;
         border-bottom-left-radius: 0;
         border-top-left-radius: 0; }
-      html.theme--documenter-vscode .tags.has-addons .tag:not(:last-child), html.theme--documenter-vscode .tags.has-addons .docstring > section > a.docs-sourcelink:not(:last-child), html.theme--documenter-vscode .tags.has-addons .content kbd:not(:last-child), html.theme--documenter-vscode .content .tags.has-addons kbd:not(:last-child) {
+      html.theme--documenter-vscode .tags.has-addons .tag:not(:last-child), html.theme--documenter-vscode .tags.has-addons .content kbd:not(:last-child), html.theme--documenter-vscode .content .tags.has-addons kbd:not(:last-child), html.theme--documenter-vscode .tags.has-addons .docstring > section > a.docs-sourcelink:not(:last-child) {
         border-bottom-right-radius: 0;
         border-top-right-radius: 0; }
-  html.theme--documenter-vscode .tag:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body), html.theme--documenter-vscode .content kbd:not(body) {
+  html.theme--documenter-vscode .tag:not(body), html.theme--documenter-vscode .content kbd:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) {
     align-items: center;
     background-color: #282f2f;
     border-radius: 0.4em;
@@ -2613,60 +2549,60 @@ html.theme--documenter-vscode {
     padding-left: 0.75em;
     padding-right: 0.75em;
     white-space: nowrap; }
-    html.theme--documenter-vscode .tag:not(body) .delete, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) .delete, html.theme--documenter-vscode .content kbd:not(body) .delete {
+    html.theme--documenter-vscode .tag:not(body) .delete, html.theme--documenter-vscode .content kbd:not(body) .delete, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) .delete {
       margin-left: 0.25rem;
       margin-right: -0.375rem; }
-    html.theme--documenter-vscode .tag:not(body).is-white, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-white, html.theme--documenter-vscode .content kbd:not(body).is-white {
+    html.theme--documenter-vscode .tag.is-white:not(body), html.theme--documenter-vscode .content kbd.is-white:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-white:not(body) {
       background-color: white;
       color: #0a0a0a; }
-    html.theme--documenter-vscode .tag:not(body).is-black, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-black, html.theme--documenter-vscode .content kbd:not(body).is-black {
+    html.theme--documenter-vscode .tag.is-black:not(body), html.theme--documenter-vscode .content kbd.is-black:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-black:not(body) {
       background-color: #0a0a0a;
       color: white; }
-    html.theme--documenter-vscode .tag:not(body).is-light, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-light, html.theme--documenter-vscode .content kbd:not(body).is-light {
+    html.theme--documenter-vscode .tag.is-light:not(body), html.theme--documenter-vscode .content kbd.is-light:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-light:not(body) {
       background-color: #ecf0f1;
       color: #282f2f; }
-    html.theme--documenter-vscode .tag:not(body).is-dark, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-dark, html.theme--documenter-vscode .content kbd:not(body) {
+    html.theme--documenter-vscode .tag.is-dark:not(body), html.theme--documenter-vscode .content kbd:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-dark:not(body), html.theme--documenter-vscode .content .docstring > section > kbd:not(body) {
       background-color: #282f2f;
       color: #ecf0f1; }
-    html.theme--documenter-vscode .tag:not(body).is-primary, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body), html.theme--documenter-vscode .content kbd:not(body).is-primary {
+    html.theme--documenter-vscode .tag.is-primary:not(body), html.theme--documenter-vscode .content kbd.is-primary:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) {
       background-color: #375a7f;
       color: #fff; }
-    html.theme--documenter-vscode .tag:not(body).is-link, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-link, html.theme--documenter-vscode .content kbd:not(body).is-link {
+    html.theme--documenter-vscode .tag.is-link:not(body), html.theme--documenter-vscode .content kbd.is-link:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-link:not(body) {
       background-color: #1abc9c;
       color: #fff; }
-    html.theme--documenter-vscode .tag:not(body).is-info, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-info, html.theme--documenter-vscode .content kbd:not(body).is-info {
+    html.theme--documenter-vscode .tag.is-info:not(body), html.theme--documenter-vscode .content kbd.is-info:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-info:not(body) {
       background-color: #024c7d;
       color: #fff; }
-    html.theme--documenter-vscode .tag:not(body).is-success, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-success, html.theme--documenter-vscode .content kbd:not(body).is-success {
+    html.theme--documenter-vscode .tag.is-success:not(body), html.theme--documenter-vscode .content kbd.is-success:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-success:not(body) {
       background-color: #008438;
       color: #fff; }
-    html.theme--documenter-vscode .tag:not(body).is-warning, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-warning, html.theme--documenter-vscode .content kbd:not(body).is-warning {
+    html.theme--documenter-vscode .tag.is-warning:not(body), html.theme--documenter-vscode .content kbd.is-warning:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-warning:not(body) {
       background-color: #ad8100;
       color: #fff; }
-    html.theme--documenter-vscode .tag:not(body).is-danger, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-danger, html.theme--documenter-vscode .content kbd:not(body).is-danger {
+    html.theme--documenter-vscode .tag.is-danger:not(body), html.theme--documenter-vscode .content kbd.is-danger:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-danger:not(body) {
       background-color: #9e1b0d;
       color: #fff; }
-    html.theme--documenter-vscode .tag:not(body).is-normal, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-normal, html.theme--documenter-vscode .content kbd:not(body).is-normal {
+    html.theme--documenter-vscode .tag.is-normal:not(body), html.theme--documenter-vscode .content kbd.is-normal:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-normal:not(body) {
       font-size: 0.85em; }
-    html.theme--documenter-vscode .tag:not(body).is-medium, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-medium, html.theme--documenter-vscode .content kbd:not(body).is-medium {
+    html.theme--documenter-vscode .tag.is-medium:not(body), html.theme--documenter-vscode .content kbd.is-medium:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-medium:not(body) {
       font-size: 15px; }
-    html.theme--documenter-vscode .tag:not(body).is-large, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-large, html.theme--documenter-vscode .content kbd:not(body).is-large {
+    html.theme--documenter-vscode .tag.is-large:not(body), html.theme--documenter-vscode .content kbd.is-large:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-large:not(body) {
       font-size: 1.25rem; }
-    html.theme--documenter-vscode .tag:not(body) .icon:first-child:not(:last-child), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) .icon:first-child:not(:last-child), html.theme--documenter-vscode .content kbd:not(body) .icon:first-child:not(:last-child) {
+    html.theme--documenter-vscode .tag:not(body) .icon:first-child:not(:last-child), html.theme--documenter-vscode .content kbd:not(body) .icon:first-child:not(:last-child), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) .icon:first-child:not(:last-child) {
       margin-left: -0.375em;
       margin-right: 0.1875em; }
-    html.theme--documenter-vscode .tag:not(body) .icon:last-child:not(:first-child), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) .icon:last-child:not(:first-child), html.theme--documenter-vscode .content kbd:not(body) .icon:last-child:not(:first-child) {
+    html.theme--documenter-vscode .tag:not(body) .icon:last-child:not(:first-child), html.theme--documenter-vscode .content kbd:not(body) .icon:last-child:not(:first-child), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) .icon:last-child:not(:first-child) {
       margin-left: 0.1875em;
       margin-right: -0.375em; }
-    html.theme--documenter-vscode .tag:not(body) .icon:first-child:last-child, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) .icon:first-child:last-child, html.theme--documenter-vscode .content kbd:not(body) .icon:first-child:last-child {
+    html.theme--documenter-vscode .tag:not(body) .icon:first-child:last-child, html.theme--documenter-vscode .content kbd:not(body) .icon:first-child:last-child, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body) .icon:first-child:last-child {
       margin-left: -0.375em;
       margin-right: -0.375em; }
-    html.theme--documenter-vscode .tag:not(body).is-delete, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-delete, html.theme--documenter-vscode .content kbd:not(body).is-delete {
+    html.theme--documenter-vscode .tag.is-delete:not(body), html.theme--documenter-vscode .content kbd.is-delete:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-delete:not(body) {
       margin-left: 1px;
       padding: 0;
       position: relative;
       width: 2em; }
-      html.theme--documenter-vscode .tag:not(body).is-delete::before, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-delete::before, html.theme--documenter-vscode .content kbd:not(body).is-delete::before, html.theme--documenter-vscode .tag:not(body).is-delete::after, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-delete::after, html.theme--documenter-vscode .content kbd:not(body).is-delete::after {
+      html.theme--documenter-vscode .tag.is-delete:not(body)::before, html.theme--documenter-vscode .content kbd.is-delete:not(body)::before, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-delete:not(body)::before, html.theme--documenter-vscode .tag.is-delete:not(body)::after, html.theme--documenter-vscode .content kbd.is-delete:not(body)::after, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-delete:not(body)::after {
         background-color: currentColor;
         content: "";
         display: block;
@@ -2675,17 +2611,17 @@ html.theme--documenter-vscode {
         top: 50%;
         transform: translateX(-50%) translateY(-50%) rotate(45deg);
         transform-origin: center center; }
-      html.theme--documenter-vscode .tag:not(body).is-delete::before, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-delete::before, html.theme--documenter-vscode .content kbd:not(body).is-delete::before {
+      html.theme--documenter-vscode .tag.is-delete:not(body)::before, html.theme--documenter-vscode .content kbd.is-delete:not(body)::before, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-delete:not(body)::before {
         height: 1px;
         width: 50%; }
-      html.theme--documenter-vscode .tag:not(body).is-delete::after, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-delete::after, html.theme--documenter-vscode .content kbd:not(body).is-delete::after {
+      html.theme--documenter-vscode .tag.is-delete:not(body)::after, html.theme--documenter-vscode .content kbd.is-delete:not(body)::after, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-delete:not(body)::after {
         height: 50%;
         width: 1px; }
-      html.theme--documenter-vscode .tag:not(body).is-delete:hover, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-delete:hover, html.theme--documenter-vscode .content kbd:not(body).is-delete:hover, html.theme--documenter-vscode .tag:not(body).is-delete:focus, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-delete:focus, html.theme--documenter-vscode .content kbd:not(body).is-delete:focus {
+      html.theme--documenter-vscode .tag.is-delete:not(body):hover, html.theme--documenter-vscode .content kbd.is-delete:not(body):hover, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-delete:not(body):hover, html.theme--documenter-vscode .tag.is-delete:not(body):focus, html.theme--documenter-vscode .content kbd.is-delete:not(body):focus, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-delete:not(body):focus {
         background-color: #1d2122; }
-      html.theme--documenter-vscode .tag:not(body).is-delete:active, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-delete:active, html.theme--documenter-vscode .content kbd:not(body).is-delete:active {
+      html.theme--documenter-vscode .tag.is-delete:not(body):active, html.theme--documenter-vscode .content kbd.is-delete:not(body):active, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-delete:not(body):active {
         background-color: #111414; }
-    html.theme--documenter-vscode .tag:not(body).is-rounded, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:not(body).is-rounded, html.theme--documenter-vscode .content kbd:not(body).is-rounded, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.tag:not(body) {
+    html.theme--documenter-vscode .tag.is-rounded:not(body), html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:not(body), html.theme--documenter-vscode .content kbd.is-rounded:not(body), html.theme--documenter-vscode #documenter .docs-sidebar .content form.docs-search > input:not(body), html.theme--documenter-vscode .docstring > section > a.docs-sourcelink.is-rounded:not(body) {
       border-radius: 290486px; }
   html.theme--documenter-vscode a.tag:hover, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:hover {
     text-decoration: underline; }
@@ -2703,11 +2639,11 @@ html.theme--documenter-vscode {
     html.theme--documenter-vscode .title sup,
     html.theme--documenter-vscode .subtitle sup {
       font-size: 0.75em; }
-    html.theme--documenter-vscode .title .tag, html.theme--documenter-vscode .title .docstring > section > a.docs-sourcelink, html.theme--documenter-vscode .title .content kbd, html.theme--documenter-vscode .content .title kbd,
+    html.theme--documenter-vscode .title .tag, html.theme--documenter-vscode .title .content kbd, html.theme--documenter-vscode .content .title kbd, html.theme--documenter-vscode .title .docstring > section > a.docs-sourcelink,
     html.theme--documenter-vscode .subtitle .tag,
-    html.theme--documenter-vscode .subtitle .docstring > section > a.docs-sourcelink,
     html.theme--documenter-vscode .subtitle .content kbd,
-    html.theme--documenter-vscode .content .subtitle kbd {
+    html.theme--documenter-vscode .content .subtitle kbd,
+    html.theme--documenter-vscode .subtitle .docstring > section > a.docs-sourcelink {
       vertical-align: middle; }
   html.theme--documenter-vscode .title {
     color: #fff;
@@ -2786,114 +2722,94 @@ html.theme--documenter-vscode {
     padding: 0.25rem 0.5rem;
     text-align: center;
     vertical-align: top; }
-  html.theme--documenter-vscode .input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input, html.theme--documenter-vscode .textarea, html.theme--documenter-vscode .select select {
+  html.theme--documenter-vscode .select select, html.theme--documenter-vscode .textarea, html.theme--documenter-vscode .input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input {
     background-color: #1f2424;
     border-color: #5e6d6f;
     border-radius: 0.4em;
     color: #dbdee0; }
-    html.theme--documenter-vscode .input::-moz-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input::-moz-placeholder, html.theme--documenter-vscode .textarea::-moz-placeholder, html.theme--documenter-vscode .select select::-moz-placeholder {
+    html.theme--documenter-vscode .select select::-moz-placeholder, html.theme--documenter-vscode .textarea::-moz-placeholder, html.theme--documenter-vscode .input::-moz-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input::-moz-placeholder {
       color: rgba(219, 222, 224, 0.3); }
-    html.theme--documenter-vscode .input::-webkit-input-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input::-webkit-input-placeholder, html.theme--documenter-vscode .textarea::-webkit-input-placeholder, html.theme--documenter-vscode .select select::-webkit-input-placeholder {
+    html.theme--documenter-vscode .select select::-webkit-input-placeholder, html.theme--documenter-vscode .textarea::-webkit-input-placeholder, html.theme--documenter-vscode .input::-webkit-input-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input::-webkit-input-placeholder {
       color: rgba(219, 222, 224, 0.3); }
-    html.theme--documenter-vscode .input:-moz-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:-moz-placeholder, html.theme--documenter-vscode .textarea:-moz-placeholder, html.theme--documenter-vscode .select select:-moz-placeholder {
+    html.theme--documenter-vscode .select select:-moz-placeholder, html.theme--documenter-vscode .textarea:-moz-placeholder, html.theme--documenter-vscode .input:-moz-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:-moz-placeholder {
       color: rgba(219, 222, 224, 0.3); }
-    html.theme--documenter-vscode .input:-ms-input-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:-ms-input-placeholder, html.theme--documenter-vscode .textarea:-ms-input-placeholder, html.theme--documenter-vscode .select select:-ms-input-placeholder {
+    html.theme--documenter-vscode .select select:-ms-input-placeholder, html.theme--documenter-vscode .textarea:-ms-input-placeholder, html.theme--documenter-vscode .input:-ms-input-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:-ms-input-placeholder {
       color: rgba(219, 222, 224, 0.3); }
-    html.theme--documenter-vscode .input:hover, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:hover, html.theme--documenter-vscode .textarea:hover, html.theme--documenter-vscode .select select:hover, html.theme--documenter-vscode .is-hovered.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-hovered, html.theme--documenter-vscode .is-hovered.textarea, html.theme--documenter-vscode .select select.is-hovered {
+    html.theme--documenter-vscode .select select:hover, html.theme--documenter-vscode .textarea:hover, html.theme--documenter-vscode .input:hover, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:hover, html.theme--documenter-vscode .select select.is-hovered, html.theme--documenter-vscode .is-hovered.textarea, html.theme--documenter-vscode .is-hovered.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-hovered {
       border-color: #8c9b9d; }
-    html.theme--documenter-vscode .input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:focus, html.theme--documenter-vscode .textarea:focus, html.theme--documenter-vscode .select select:focus, html.theme--documenter-vscode .is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-focused.textarea, html.theme--documenter-vscode .select select.is-focused, html.theme--documenter-vscode .input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:active, html.theme--documenter-vscode .textarea:active, html.theme--documenter-vscode .select select:active, html.theme--documenter-vscode .is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active, html.theme--documenter-vscode .is-active.textarea, html.theme--documenter-vscode .select select.is-active {
+    html.theme--documenter-vscode .select select:focus, html.theme--documenter-vscode .textarea:focus, html.theme--documenter-vscode .input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:focus, html.theme--documenter-vscode .select select.is-focused, html.theme--documenter-vscode .is-focused.textarea, html.theme--documenter-vscode .is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .select select:active, html.theme--documenter-vscode .textarea:active, html.theme--documenter-vscode .input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:active, html.theme--documenter-vscode .select select.is-active, html.theme--documenter-vscode .is-active.textarea, html.theme--documenter-vscode .is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active {
       border-color: #1abc9c;
       box-shadow: 0 0 0 0.125em rgba(26, 188, 156, 0.25); }
-    html.theme--documenter-vscode .input[disabled], html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled], html.theme--documenter-vscode .textarea[disabled], html.theme--documenter-vscode .select select[disabled],
-    fieldset[disabled] html.theme--documenter-vscode .input,
-    fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input,
-    fieldset[disabled] html.theme--documenter-vscode .textarea,
-    fieldset[disabled] html.theme--documenter-vscode .select select {
+    html.theme--documenter-vscode .select select[disabled], html.theme--documenter-vscode .textarea[disabled], html.theme--documenter-vscode .input[disabled], html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled], fieldset[disabled] html.theme--documenter-vscode .select select, fieldset[disabled] html.theme--documenter-vscode .textarea, fieldset[disabled] html.theme--documenter-vscode .input, fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input {
       background-color: #8c9b9d;
       border-color: #282f2f;
       box-shadow: none;
       color: white; }
-      html.theme--documenter-vscode .input[disabled]::-moz-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled]::-moz-placeholder, html.theme--documenter-vscode .textarea[disabled]::-moz-placeholder, html.theme--documenter-vscode .select select[disabled]::-moz-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .input::-moz-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input::-moz-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .textarea::-moz-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .select select::-moz-placeholder {
+      html.theme--documenter-vscode .select select[disabled]::-moz-placeholder, html.theme--documenter-vscode .textarea[disabled]::-moz-placeholder, html.theme--documenter-vscode .input[disabled]::-moz-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled]::-moz-placeholder, fieldset[disabled] html.theme--documenter-vscode .select select::-moz-placeholder, fieldset[disabled] html.theme--documenter-vscode .textarea::-moz-placeholder, fieldset[disabled] html.theme--documenter-vscode .input::-moz-placeholder, fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input::-moz-placeholder {
         color: rgba(255, 255, 255, 0.3); }
-      html.theme--documenter-vscode .input[disabled]::-webkit-input-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled]::-webkit-input-placeholder, html.theme--documenter-vscode .textarea[disabled]::-webkit-input-placeholder, html.theme--documenter-vscode .select select[disabled]::-webkit-input-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .input::-webkit-input-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input::-webkit-input-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .textarea::-webkit-input-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .select select::-webkit-input-placeholder {
+      html.theme--documenter-vscode .select select[disabled]::-webkit-input-placeholder, html.theme--documenter-vscode .textarea[disabled]::-webkit-input-placeholder, html.theme--documenter-vscode .input[disabled]::-webkit-input-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled]::-webkit-input-placeholder, fieldset[disabled] html.theme--documenter-vscode .select select::-webkit-input-placeholder, fieldset[disabled] html.theme--documenter-vscode .textarea::-webkit-input-placeholder, fieldset[disabled] html.theme--documenter-vscode .input::-webkit-input-placeholder, fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input::-webkit-input-placeholder {
         color: rgba(255, 255, 255, 0.3); }
-      html.theme--documenter-vscode .input[disabled]:-moz-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled]:-moz-placeholder, html.theme--documenter-vscode .textarea[disabled]:-moz-placeholder, html.theme--documenter-vscode .select select[disabled]:-moz-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .input:-moz-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:-moz-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .textarea:-moz-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .select select:-moz-placeholder {
+      html.theme--documenter-vscode .select select[disabled]:-moz-placeholder, html.theme--documenter-vscode .textarea[disabled]:-moz-placeholder, html.theme--documenter-vscode .input[disabled]:-moz-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled]:-moz-placeholder, fieldset[disabled] html.theme--documenter-vscode .select select:-moz-placeholder, fieldset[disabled] html.theme--documenter-vscode .textarea:-moz-placeholder, fieldset[disabled] html.theme--documenter-vscode .input:-moz-placeholder, fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:-moz-placeholder {
         color: rgba(255, 255, 255, 0.3); }
-      html.theme--documenter-vscode .input[disabled]:-ms-input-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled]:-ms-input-placeholder, html.theme--documenter-vscode .textarea[disabled]:-ms-input-placeholder, html.theme--documenter-vscode .select select[disabled]:-ms-input-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .input:-ms-input-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:-ms-input-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .textarea:-ms-input-placeholder,
-      fieldset[disabled] html.theme--documenter-vscode .select select:-ms-input-placeholder {
+      html.theme--documenter-vscode .select select[disabled]:-ms-input-placeholder, html.theme--documenter-vscode .textarea[disabled]:-ms-input-placeholder, html.theme--documenter-vscode .input[disabled]:-ms-input-placeholder, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[disabled]:-ms-input-placeholder, fieldset[disabled] html.theme--documenter-vscode .select select:-ms-input-placeholder, fieldset[disabled] html.theme--documenter-vscode .textarea:-ms-input-placeholder, fieldset[disabled] html.theme--documenter-vscode .input:-ms-input-placeholder, fieldset[disabled] html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input:-ms-input-placeholder {
         color: rgba(255, 255, 255, 0.3); }
-  html.theme--documenter-vscode .input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input, html.theme--documenter-vscode .textarea {
+  html.theme--documenter-vscode .textarea, html.theme--documenter-vscode .input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input {
     box-shadow: inset 0 1px 2px rgba(10, 10, 10, 0.1);
     max-width: 100%;
     width: 100%; }
-    html.theme--documenter-vscode .input[readonly], html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[readonly], html.theme--documenter-vscode .textarea[readonly] {
+    html.theme--documenter-vscode .textarea[readonly], html.theme--documenter-vscode .input[readonly], html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input[readonly] {
       box-shadow: none; }
-    html.theme--documenter-vscode .is-white.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-white, html.theme--documenter-vscode .is-white.textarea {
+    html.theme--documenter-vscode .is-white.textarea, html.theme--documenter-vscode .is-white.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-white {
       border-color: white; }
-      html.theme--documenter-vscode .is-white.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-white:focus, html.theme--documenter-vscode .is-white.textarea:focus, html.theme--documenter-vscode .is-white.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-white.is-focused, html.theme--documenter-vscode .is-white.is-focused.textarea, html.theme--documenter-vscode .is-white.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-white:active, html.theme--documenter-vscode .is-white.textarea:active, html.theme--documenter-vscode .is-white.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-white.is-active, html.theme--documenter-vscode .is-white.is-active.textarea {
+      html.theme--documenter-vscode .is-white.textarea:focus, html.theme--documenter-vscode .is-white.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-white:focus, html.theme--documenter-vscode .is-white.is-focused.textarea, html.theme--documenter-vscode .is-white.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-white.textarea:active, html.theme--documenter-vscode .is-white.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-white:active, html.theme--documenter-vscode .is-white.is-active.textarea, html.theme--documenter-vscode .is-white.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active {
         box-shadow: 0 0 0 0.125em rgba(255, 255, 255, 0.25); }
-    html.theme--documenter-vscode .is-black.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-black, html.theme--documenter-vscode .is-black.textarea {
+    html.theme--documenter-vscode .is-black.textarea, html.theme--documenter-vscode .is-black.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-black {
       border-color: #0a0a0a; }
-      html.theme--documenter-vscode .is-black.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-black:focus, html.theme--documenter-vscode .is-black.textarea:focus, html.theme--documenter-vscode .is-black.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-black.is-focused, html.theme--documenter-vscode .is-black.is-focused.textarea, html.theme--documenter-vscode .is-black.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-black:active, html.theme--documenter-vscode .is-black.textarea:active, html.theme--documenter-vscode .is-black.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-black.is-active, html.theme--documenter-vscode .is-black.is-active.textarea {
+      html.theme--documenter-vscode .is-black.textarea:focus, html.theme--documenter-vscode .is-black.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-black:focus, html.theme--documenter-vscode .is-black.is-focused.textarea, html.theme--documenter-vscode .is-black.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-black.textarea:active, html.theme--documenter-vscode .is-black.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-black:active, html.theme--documenter-vscode .is-black.is-active.textarea, html.theme--documenter-vscode .is-black.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active {
         box-shadow: 0 0 0 0.125em rgba(10, 10, 10, 0.25); }
-    html.theme--documenter-vscode .is-light.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-light, html.theme--documenter-vscode .is-light.textarea {
+    html.theme--documenter-vscode .is-light.textarea, html.theme--documenter-vscode .is-light.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-light {
       border-color: #ecf0f1; }
-      html.theme--documenter-vscode .is-light.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-light:focus, html.theme--documenter-vscode .is-light.textarea:focus, html.theme--documenter-vscode .is-light.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-light.is-focused, html.theme--documenter-vscode .is-light.is-focused.textarea, html.theme--documenter-vscode .is-light.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-light:active, html.theme--documenter-vscode .is-light.textarea:active, html.theme--documenter-vscode .is-light.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-light.is-active, html.theme--documenter-vscode .is-light.is-active.textarea {
+      html.theme--documenter-vscode .is-light.textarea:focus, html.theme--documenter-vscode .is-light.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-light:focus, html.theme--documenter-vscode .is-light.is-focused.textarea, html.theme--documenter-vscode .is-light.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-light.textarea:active, html.theme--documenter-vscode .is-light.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-light:active, html.theme--documenter-vscode .is-light.is-active.textarea, html.theme--documenter-vscode .is-light.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active {
         box-shadow: 0 0 0 0.125em rgba(236, 240, 241, 0.25); }
-    html.theme--documenter-vscode .is-dark.input, html.theme--documenter-vscode .content kbd.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-dark, html.theme--documenter-vscode .is-dark.textarea, html.theme--documenter-vscode .content kbd.textarea {
+    html.theme--documenter-vscode .is-dark.textarea, html.theme--documenter-vscode .content kbd.textarea, html.theme--documenter-vscode .is-dark.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-dark, html.theme--documenter-vscode .content kbd.input {
       border-color: #282f2f; }
-      html.theme--documenter-vscode .is-dark.input:focus, html.theme--documenter-vscode .content kbd.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-dark:focus, html.theme--documenter-vscode .is-dark.textarea:focus, html.theme--documenter-vscode .content kbd.textarea:focus, html.theme--documenter-vscode .is-dark.is-focused.input, html.theme--documenter-vscode .content kbd.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-dark.is-focused, html.theme--documenter-vscode .is-dark.is-focused.textarea, html.theme--documenter-vscode .content kbd.is-focused.textarea, html.theme--documenter-vscode .is-dark.input:active, html.theme--documenter-vscode .content kbd.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-dark:active, html.theme--documenter-vscode .is-dark.textarea:active, html.theme--documenter-vscode .content kbd.textarea:active, html.theme--documenter-vscode .is-dark.is-active.input, html.theme--documenter-vscode .content kbd.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-dark.is-active, html.theme--documenter-vscode .is-dark.is-active.textarea, html.theme--documenter-vscode .content kbd.is-active.textarea {
+      html.theme--documenter-vscode .is-dark.textarea:focus, html.theme--documenter-vscode .content kbd.textarea:focus, html.theme--documenter-vscode .is-dark.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-dark:focus, html.theme--documenter-vscode .content kbd.input:focus, html.theme--documenter-vscode .is-dark.is-focused.textarea, html.theme--documenter-vscode .content kbd.is-focused.textarea, html.theme--documenter-vscode .is-dark.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .content kbd.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar .content form.docs-search > input.is-focused, html.theme--documenter-vscode .is-dark.textarea:active, html.theme--documenter-vscode .content kbd.textarea:active, html.theme--documenter-vscode .is-dark.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-dark:active, html.theme--documenter-vscode .content kbd.input:active, html.theme--documenter-vscode .is-dark.is-active.textarea, html.theme--documenter-vscode .content kbd.is-active.textarea, html.theme--documenter-vscode .is-dark.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active, html.theme--documenter-vscode .content kbd.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar .content form.docs-search > input.is-active {
         box-shadow: 0 0 0 0.125em rgba(40, 47, 47, 0.25); }
-    html.theme--documenter-vscode .is-primary.input, html.theme--documenter-vscode .docstring > section > a.input.docs-sourcelink, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-primary, html.theme--documenter-vscode .is-primary.textarea, html.theme--documenter-vscode .docstring > section > a.textarea.docs-sourcelink {
+    html.theme--documenter-vscode .is-primary.textarea, html.theme--documenter-vscode .docstring > section > a.textarea.docs-sourcelink, html.theme--documenter-vscode .is-primary.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-primary, html.theme--documenter-vscode .docstring > section > a.input.docs-sourcelink {
       border-color: #375a7f; }
-      html.theme--documenter-vscode .is-primary.input:focus, html.theme--documenter-vscode .docstring > section > a.input.docs-sourcelink:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-primary:focus, html.theme--documenter-vscode .is-primary.textarea:focus, html.theme--documenter-vscode .docstring > section > a.textarea.docs-sourcelink:focus, html.theme--documenter-vscode .is-primary.is-focused.input, html.theme--documenter-vscode .docstring > section > a.is-focused.input.docs-sourcelink, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-primary.is-focused, html.theme--documenter-vscode .is-primary.is-focused.textarea, html.theme--documenter-vscode .docstring > section > a.is-focused.textarea.docs-sourcelink, html.theme--documenter-vscode .is-primary.input:active, html.theme--documenter-vscode .docstring > section > a.input.docs-sourcelink:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-primary:active, html.theme--documenter-vscode .is-primary.textarea:active, html.theme--documenter-vscode .docstring > section > a.textarea.docs-sourcelink:active, html.theme--documenter-vscode .is-primary.is-active.input, html.theme--documenter-vscode .docstring > section > a.is-active.input.docs-sourcelink, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-primary.is-active, html.theme--documenter-vscode .is-primary.is-active.textarea, html.theme--documenter-vscode .docstring > section > a.is-active.textarea.docs-sourcelink {
+      html.theme--documenter-vscode .is-primary.textarea:focus, html.theme--documenter-vscode .docstring > section > a.textarea.docs-sourcelink:focus, html.theme--documenter-vscode .is-primary.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-primary:focus, html.theme--documenter-vscode .docstring > section > a.input.docs-sourcelink:focus, html.theme--documenter-vscode .is-primary.is-focused.textarea, html.theme--documenter-vscode .docstring > section > a.is-focused.textarea.docs-sourcelink, html.theme--documenter-vscode .is-primary.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .docstring > section > a.is-focused.input.docs-sourcelink, html.theme--documenter-vscode .is-primary.textarea:active, html.theme--documenter-vscode .docstring > section > a.textarea.docs-sourcelink:active, html.theme--documenter-vscode .is-primary.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-primary:active, html.theme--documenter-vscode .docstring > section > a.input.docs-sourcelink:active, html.theme--documenter-vscode .is-primary.is-active.textarea, html.theme--documenter-vscode .docstring > section > a.is-active.textarea.docs-sourcelink, html.theme--documenter-vscode .is-primary.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active, html.theme--documenter-vscode .docstring > section > a.is-active.input.docs-sourcelink {
         box-shadow: 0 0 0 0.125em rgba(55, 90, 127, 0.25); }
-    html.theme--documenter-vscode .is-link.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-link, html.theme--documenter-vscode .is-link.textarea {
+    html.theme--documenter-vscode .is-link.textarea, html.theme--documenter-vscode .is-link.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-link {
       border-color: #1abc9c; }
-      html.theme--documenter-vscode .is-link.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-link:focus, html.theme--documenter-vscode .is-link.textarea:focus, html.theme--documenter-vscode .is-link.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-link.is-focused, html.theme--documenter-vscode .is-link.is-focused.textarea, html.theme--documenter-vscode .is-link.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-link:active, html.theme--documenter-vscode .is-link.textarea:active, html.theme--documenter-vscode .is-link.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-link.is-active, html.theme--documenter-vscode .is-link.is-active.textarea {
+      html.theme--documenter-vscode .is-link.textarea:focus, html.theme--documenter-vscode .is-link.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-link:focus, html.theme--documenter-vscode .is-link.is-focused.textarea, html.theme--documenter-vscode .is-link.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-link.textarea:active, html.theme--documenter-vscode .is-link.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-link:active, html.theme--documenter-vscode .is-link.is-active.textarea, html.theme--documenter-vscode .is-link.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active {
         box-shadow: 0 0 0 0.125em rgba(26, 188, 156, 0.25); }
-    html.theme--documenter-vscode .is-info.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-info, html.theme--documenter-vscode .is-info.textarea {
+    html.theme--documenter-vscode .is-info.textarea, html.theme--documenter-vscode .is-info.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-info {
       border-color: #024c7d; }
-      html.theme--documenter-vscode .is-info.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-info:focus, html.theme--documenter-vscode .is-info.textarea:focus, html.theme--documenter-vscode .is-info.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-info.is-focused, html.theme--documenter-vscode .is-info.is-focused.textarea, html.theme--documenter-vscode .is-info.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-info:active, html.theme--documenter-vscode .is-info.textarea:active, html.theme--documenter-vscode .is-info.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-info.is-active, html.theme--documenter-vscode .is-info.is-active.textarea {
+      html.theme--documenter-vscode .is-info.textarea:focus, html.theme--documenter-vscode .is-info.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-info:focus, html.theme--documenter-vscode .is-info.is-focused.textarea, html.theme--documenter-vscode .is-info.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-info.textarea:active, html.theme--documenter-vscode .is-info.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-info:active, html.theme--documenter-vscode .is-info.is-active.textarea, html.theme--documenter-vscode .is-info.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active {
         box-shadow: 0 0 0 0.125em rgba(2, 76, 125, 0.25); }
-    html.theme--documenter-vscode .is-success.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-success, html.theme--documenter-vscode .is-success.textarea {
+    html.theme--documenter-vscode .is-success.textarea, html.theme--documenter-vscode .is-success.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-success {
       border-color: #008438; }
-      html.theme--documenter-vscode .is-success.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-success:focus, html.theme--documenter-vscode .is-success.textarea:focus, html.theme--documenter-vscode .is-success.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-success.is-focused, html.theme--documenter-vscode .is-success.is-focused.textarea, html.theme--documenter-vscode .is-success.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-success:active, html.theme--documenter-vscode .is-success.textarea:active, html.theme--documenter-vscode .is-success.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-success.is-active, html.theme--documenter-vscode .is-success.is-active.textarea {
+      html.theme--documenter-vscode .is-success.textarea:focus, html.theme--documenter-vscode .is-success.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-success:focus, html.theme--documenter-vscode .is-success.is-focused.textarea, html.theme--documenter-vscode .is-success.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-success.textarea:active, html.theme--documenter-vscode .is-success.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-success:active, html.theme--documenter-vscode .is-success.is-active.textarea, html.theme--documenter-vscode .is-success.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active {
         box-shadow: 0 0 0 0.125em rgba(0, 132, 56, 0.25); }
-    html.theme--documenter-vscode .is-warning.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-warning, html.theme--documenter-vscode .is-warning.textarea {
+    html.theme--documenter-vscode .is-warning.textarea, html.theme--documenter-vscode .is-warning.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-warning {
       border-color: #ad8100; }
-      html.theme--documenter-vscode .is-warning.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-warning:focus, html.theme--documenter-vscode .is-warning.textarea:focus, html.theme--documenter-vscode .is-warning.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-warning.is-focused, html.theme--documenter-vscode .is-warning.is-focused.textarea, html.theme--documenter-vscode .is-warning.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-warning:active, html.theme--documenter-vscode .is-warning.textarea:active, html.theme--documenter-vscode .is-warning.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-warning.is-active, html.theme--documenter-vscode .is-warning.is-active.textarea {
+      html.theme--documenter-vscode .is-warning.textarea:focus, html.theme--documenter-vscode .is-warning.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-warning:focus, html.theme--documenter-vscode .is-warning.is-focused.textarea, html.theme--documenter-vscode .is-warning.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-warning.textarea:active, html.theme--documenter-vscode .is-warning.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-warning:active, html.theme--documenter-vscode .is-warning.is-active.textarea, html.theme--documenter-vscode .is-warning.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active {
         box-shadow: 0 0 0 0.125em rgba(173, 129, 0, 0.25); }
-    html.theme--documenter-vscode .is-danger.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-danger, html.theme--documenter-vscode .is-danger.textarea {
+    html.theme--documenter-vscode .is-danger.textarea, html.theme--documenter-vscode .is-danger.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-danger {
       border-color: #9e1b0d; }
-      html.theme--documenter-vscode .is-danger.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-danger:focus, html.theme--documenter-vscode .is-danger.textarea:focus, html.theme--documenter-vscode .is-danger.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-danger.is-focused, html.theme--documenter-vscode .is-danger.is-focused.textarea, html.theme--documenter-vscode .is-danger.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-danger:active, html.theme--documenter-vscode .is-danger.textarea:active, html.theme--documenter-vscode .is-danger.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-danger.is-active, html.theme--documenter-vscode .is-danger.is-active.textarea {
+      html.theme--documenter-vscode .is-danger.textarea:focus, html.theme--documenter-vscode .is-danger.input:focus, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-danger:focus, html.theme--documenter-vscode .is-danger.is-focused.textarea, html.theme--documenter-vscode .is-danger.is-focused.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-focused, html.theme--documenter-vscode .is-danger.textarea:active, html.theme--documenter-vscode .is-danger.input:active, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-danger:active, html.theme--documenter-vscode .is-danger.is-active.textarea, html.theme--documenter-vscode .is-danger.is-active.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-active {
         box-shadow: 0 0 0 0.125em rgba(158, 27, 13, 0.25); }
-    html.theme--documenter-vscode .is-small.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input, html.theme--documenter-vscode .is-small.textarea {
+    html.theme--documenter-vscode .is-small.textarea, html.theme--documenter-vscode .is-small.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input {
       border-radius: 3px;
       font-size: 0.85em; }
-    html.theme--documenter-vscode .is-medium.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-medium, html.theme--documenter-vscode .is-medium.textarea {
+    html.theme--documenter-vscode .is-medium.textarea, html.theme--documenter-vscode .is-medium.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-medium {
       font-size: 1.25rem; }
-    html.theme--documenter-vscode .is-large.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-large, html.theme--documenter-vscode .is-large.textarea {
+    html.theme--documenter-vscode .is-large.textarea, html.theme--documenter-vscode .is-large.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-large {
       font-size: 1.5rem; }
-    html.theme--documenter-vscode .is-fullwidth.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-fullwidth, html.theme--documenter-vscode .is-fullwidth.textarea {
+    html.theme--documenter-vscode .is-fullwidth.textarea, html.theme--documenter-vscode .is-fullwidth.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-fullwidth {
       display: block;
       width: 100%; }
-    html.theme--documenter-vscode .is-inline.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-inline, html.theme--documenter-vscode .is-inline.textarea {
+    html.theme--documenter-vscode .is-inline.textarea, html.theme--documenter-vscode .is-inline.input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-inline {
       display: inline;
       width: auto; }
   html.theme--documenter-vscode .input.is-rounded, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input {
@@ -2919,18 +2835,16 @@ html.theme--documenter-vscode {
       height: initial; }
     html.theme--documenter-vscode .textarea.has-fixed-size {
       resize: none; }
-  html.theme--documenter-vscode .checkbox, html.theme--documenter-vscode .radio {
+  html.theme--documenter-vscode .radio, html.theme--documenter-vscode .checkbox {
     cursor: pointer;
     display: inline-block;
     line-height: 1.25;
     position: relative; }
-    html.theme--documenter-vscode .checkbox input, html.theme--documenter-vscode .radio input {
+    html.theme--documenter-vscode .radio input, html.theme--documenter-vscode .checkbox input {
       cursor: pointer; }
-    html.theme--documenter-vscode .checkbox:hover, html.theme--documenter-vscode .radio:hover {
+    html.theme--documenter-vscode .radio:hover, html.theme--documenter-vscode .checkbox:hover {
       color: #8c9b9d; }
-    html.theme--documenter-vscode .checkbox[disabled], html.theme--documenter-vscode .radio[disabled],
-    fieldset[disabled] html.theme--documenter-vscode .checkbox,
-    fieldset[disabled] html.theme--documenter-vscode .radio {
+    html.theme--documenter-vscode .radio[disabled], html.theme--documenter-vscode .checkbox[disabled], fieldset[disabled] html.theme--documenter-vscode .radio, fieldset[disabled] html.theme--documenter-vscode .checkbox {
       color: white;
       cursor: not-allowed; }
   html.theme--documenter-vscode .radio + .radio {
@@ -2957,8 +2871,7 @@ html.theme--documenter-vscode {
       outline: none; }
       html.theme--documenter-vscode .select select::-ms-expand {
         display: none; }
-      html.theme--documenter-vscode .select select[disabled]:hover,
-      fieldset[disabled] html.theme--documenter-vscode .select select:hover {
+      html.theme--documenter-vscode .select select[disabled]:hover, fieldset[disabled] html.theme--documenter-vscode .select select:hover {
         border-color: #282f2f; }
       html.theme--documenter-vscode .select select:not([multiple]) {
         padding-right: 2.5em; }
@@ -3068,7 +2981,7 @@ html.theme--documenter-vscode {
       right: 0.625em;
       top: 0.625em;
       transform: none; }
-    html.theme--documenter-vscode .select.is-loading.is-small:after, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.select.is-loading:after {
+    html.theme--documenter-vscode .select.is-loading.is-small:after, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-loading:after {
       font-size: 0.85em; }
     html.theme--documenter-vscode .select.is-loading.is-medium:after {
       font-size: 1.25rem; }
@@ -3272,7 +3185,7 @@ html.theme--documenter-vscode {
       width: 1.5em; }
       html.theme--documenter-vscode .file.is-boxed .file-icon .fa {
         font-size: 21px; }
-    html.theme--documenter-vscode .file.is-boxed.is-small .file-icon .fa, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.file.is-boxed .file-icon .fa {
+    html.theme--documenter-vscode .file.is-boxed.is-small .file-icon .fa, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-boxed .file-icon .fa {
       font-size: 14px; }
     html.theme--documenter-vscode .file.is-boxed.is-medium .file-icon .fa {
       font-size: 28px; }
@@ -3416,51 +3329,51 @@ html.theme--documenter-vscode {
     html.theme--documenter-vscode .field.has-addons .control:last-child:not(:only-child) .select select {
       border-bottom-left-radius: 0;
       border-top-left-radius: 0; }
-    html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):hover, html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]).is-hovered,
+    html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):hover, html.theme--documenter-vscode .field.has-addons .control .button.is-hovered:not([disabled]),
     html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]):hover,
     html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]):hover,
     html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]):hover,
-    html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]).is-hovered,
-    html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]).is-hovered,
-    html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]).is-hovered,
+    html.theme--documenter-vscode .field.has-addons .control .input.is-hovered:not([disabled]),
+    html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input.is-hovered:not([disabled]),
+    html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input.is-hovered:not([disabled]),
     html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]):hover,
-    html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]).is-hovered {
+    html.theme--documenter-vscode .field.has-addons .control .select select.is-hovered:not([disabled]) {
       z-index: 2; }
-    html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):focus, html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]).is-focused, html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):active, html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]).is-active,
+    html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):focus, html.theme--documenter-vscode .field.has-addons .control .button.is-focused:not([disabled]), html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):active, html.theme--documenter-vscode .field.has-addons .control .button.is-active:not([disabled]),
     html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]):focus,
     html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]):focus,
     html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]):focus,
-    html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]).is-focused,
-    html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]).is-focused,
-    html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]).is-focused,
+    html.theme--documenter-vscode .field.has-addons .control .input.is-focused:not([disabled]),
+    html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input.is-focused:not([disabled]),
+    html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input.is-focused:not([disabled]),
     html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]):active,
     html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]):active,
     html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]):active,
-    html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]).is-active,
-    html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]).is-active,
-    html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]).is-active,
+    html.theme--documenter-vscode .field.has-addons .control .input.is-active:not([disabled]),
+    html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input.is-active:not([disabled]),
+    html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input.is-active:not([disabled]),
     html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]):focus,
-    html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]).is-focused,
+    html.theme--documenter-vscode .field.has-addons .control .select select.is-focused:not([disabled]),
     html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]):active,
-    html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]).is-active {
+    html.theme--documenter-vscode .field.has-addons .control .select select.is-active:not([disabled]) {
       z-index: 3; }
-      html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):focus:hover, html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]).is-focused:hover, html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):active:hover, html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]).is-active:hover,
+      html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):focus:hover, html.theme--documenter-vscode .field.has-addons .control .button.is-focused:not([disabled]):hover, html.theme--documenter-vscode .field.has-addons .control .button:not([disabled]):active:hover, html.theme--documenter-vscode .field.has-addons .control .button.is-active:not([disabled]):hover,
       html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]):focus:hover,
       html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]):focus:hover,
       html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]):focus:hover,
-      html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]).is-focused:hover,
-      html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]).is-focused:hover,
-      html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]).is-focused:hover,
+      html.theme--documenter-vscode .field.has-addons .control .input.is-focused:not([disabled]):hover,
+      html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input.is-focused:not([disabled]):hover,
+      html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input.is-focused:not([disabled]):hover,
       html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]):active:hover,
       html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]):active:hover,
       html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]):active:hover,
-      html.theme--documenter-vscode .field.has-addons .control .input:not([disabled]).is-active:hover,
-      html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input:not([disabled]).is-active:hover,
-      html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input:not([disabled]).is-active:hover,
+      html.theme--documenter-vscode .field.has-addons .control .input.is-active:not([disabled]):hover,
+      html.theme--documenter-vscode .field.has-addons .control #documenter .docs-sidebar form.docs-search > input.is-active:not([disabled]):hover,
+      html.theme--documenter-vscode #documenter .docs-sidebar .field.has-addons .control form.docs-search > input.is-active:not([disabled]):hover,
       html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]):focus:hover,
-      html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]).is-focused:hover,
+      html.theme--documenter-vscode .field.has-addons .control .select select.is-focused:not([disabled]):hover,
       html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]):active:hover,
-      html.theme--documenter-vscode .field.has-addons .control .select select:not([disabled]).is-active:hover {
+      html.theme--documenter-vscode .field.has-addons .control .select select.is-active:not([disabled]):hover {
         z-index: 4; }
     html.theme--documenter-vscode .field.has-addons .control.is-expanded {
       flex-grow: 1;
@@ -3548,12 +3461,8 @@ html.theme--documenter-vscode {
     html.theme--documenter-vscode .control.has-icons-right .select:focus ~ .icon {
       color: #5e6d6f; }
     html.theme--documenter-vscode .control.has-icons-left .input.is-small ~ .icon, html.theme--documenter-vscode .control.has-icons-left #documenter .docs-sidebar form.docs-search > input ~ .icon, html.theme--documenter-vscode #documenter .docs-sidebar .control.has-icons-left form.docs-search > input ~ .icon,
-    html.theme--documenter-vscode .control.has-icons-left .select.is-small ~ .icon,
-    html.theme--documenter-vscode .control.has-icons-left #documenter .docs-sidebar form.docs-search > input.select ~ .icon,
-    html.theme--documenter-vscode #documenter .docs-sidebar .control.has-icons-left form.docs-search > input.select ~ .icon, html.theme--documenter-vscode .control.has-icons-right .input.is-small ~ .icon, html.theme--documenter-vscode .control.has-icons-right #documenter .docs-sidebar form.docs-search > input ~ .icon, html.theme--documenter-vscode #documenter .docs-sidebar .control.has-icons-right form.docs-search > input ~ .icon,
-    html.theme--documenter-vscode .control.has-icons-right .select.is-small ~ .icon,
-    html.theme--documenter-vscode .control.has-icons-right #documenter .docs-sidebar form.docs-search > input.select ~ .icon,
-    html.theme--documenter-vscode #documenter .docs-sidebar .control.has-icons-right form.docs-search > input.select ~ .icon {
+    html.theme--documenter-vscode .control.has-icons-left .select.is-small ~ .icon, html.theme--documenter-vscode .control.has-icons-right .input.is-small ~ .icon, html.theme--documenter-vscode .control.has-icons-right #documenter .docs-sidebar form.docs-search > input ~ .icon, html.theme--documenter-vscode #documenter .docs-sidebar .control.has-icons-right form.docs-search > input ~ .icon,
+    html.theme--documenter-vscode .control.has-icons-right .select.is-small ~ .icon {
       font-size: 0.85em; }
     html.theme--documenter-vscode .control.has-icons-left .input.is-medium ~ .icon, html.theme--documenter-vscode .control.has-icons-left #documenter .docs-sidebar form.docs-search > input.is-medium ~ .icon, html.theme--documenter-vscode #documenter .docs-sidebar .control.has-icons-left form.docs-search > input.is-medium ~ .icon,
     html.theme--documenter-vscode .control.has-icons-left .select.is-medium ~ .icon, html.theme--documenter-vscode .control.has-icons-right .input.is-medium ~ .icon, html.theme--documenter-vscode .control.has-icons-right #documenter .docs-sidebar form.docs-search > input.is-medium ~ .icon, html.theme--documenter-vscode #documenter .docs-sidebar .control.has-icons-right form.docs-search > input.is-medium ~ .icon,
@@ -3586,7 +3495,7 @@ html.theme--documenter-vscode {
       right: 0.625em;
       top: 0.625em;
       z-index: 4; }
-    html.theme--documenter-vscode .control.is-loading.is-small:after, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.control.is-loading:after {
+    html.theme--documenter-vscode .control.is-loading.is-small:after, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input.is-loading:after {
       font-size: 0.85em; }
     html.theme--documenter-vscode .control.is-loading.is-medium:after {
       font-size: 1.25rem; }
@@ -5274,14 +5183,14 @@ html.theme--documenter-vscode {
       margin-left: 0%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-1 {
       flex: none;
-      width: 8.33333%; }
+      width: 8.3333333333%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-offset-1 {
-      margin-left: 8.33333%; }
+      margin-left: 8.3333333333%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-2 {
       flex: none;
-      width: 16.66667%; }
+      width: 16.6666666667%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-offset-2 {
-      margin-left: 16.66667%; }
+      margin-left: 16.6666666667%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-3 {
       flex: none;
       width: 25%; }
@@ -5289,14 +5198,14 @@ html.theme--documenter-vscode {
       margin-left: 25%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-4 {
       flex: none;
-      width: 33.33333%; }
+      width: 33.3333333333%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-offset-4 {
-      margin-left: 33.33333%; }
+      margin-left: 33.3333333333%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-5 {
       flex: none;
-      width: 41.66667%; }
+      width: 41.6666666667%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-offset-5 {
-      margin-left: 41.66667%; }
+      margin-left: 41.6666666667%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-6 {
       flex: none;
       width: 50%; }
@@ -5304,14 +5213,14 @@ html.theme--documenter-vscode {
       margin-left: 50%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-7 {
       flex: none;
-      width: 58.33333%; }
+      width: 58.3333333333%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-offset-7 {
-      margin-left: 58.33333%; }
+      margin-left: 58.3333333333%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-8 {
       flex: none;
-      width: 66.66667%; }
+      width: 66.6666666667%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-offset-8 {
-      margin-left: 66.66667%; }
+      margin-left: 66.6666666667%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-9 {
       flex: none;
       width: 75%; }
@@ -5319,14 +5228,14 @@ html.theme--documenter-vscode {
       margin-left: 75%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-10 {
       flex: none;
-      width: 83.33333%; }
+      width: 83.3333333333%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-offset-10 {
-      margin-left: 83.33333%; }
+      margin-left: 83.3333333333%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-11 {
       flex: none;
-      width: 91.66667%; }
+      width: 91.6666666667%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-offset-11 {
-      margin-left: 91.66667%; }
+      margin-left: 91.6666666667%; }
     .columns.is-mobile > html.theme--documenter-vscode .column.is-12 {
       flex: none;
       width: 100%; }
@@ -5390,14 +5299,14 @@ html.theme--documenter-vscode {
         margin-left: 0%; }
       html.theme--documenter-vscode .column.is-1-mobile {
         flex: none;
-        width: 8.33333%; }
+        width: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-1-mobile {
-        margin-left: 8.33333%; }
+        margin-left: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-2-mobile {
         flex: none;
-        width: 16.66667%; }
+        width: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-2-mobile {
-        margin-left: 16.66667%; }
+        margin-left: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-3-mobile {
         flex: none;
         width: 25%; }
@@ -5405,14 +5314,14 @@ html.theme--documenter-vscode {
         margin-left: 25%; }
       html.theme--documenter-vscode .column.is-4-mobile {
         flex: none;
-        width: 33.33333%; }
+        width: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-4-mobile {
-        margin-left: 33.33333%; }
+        margin-left: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-5-mobile {
         flex: none;
-        width: 41.66667%; }
+        width: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-5-mobile {
-        margin-left: 41.66667%; }
+        margin-left: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-6-mobile {
         flex: none;
         width: 50%; }
@@ -5420,14 +5329,14 @@ html.theme--documenter-vscode {
         margin-left: 50%; }
       html.theme--documenter-vscode .column.is-7-mobile {
         flex: none;
-        width: 58.33333%; }
+        width: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-7-mobile {
-        margin-left: 58.33333%; }
+        margin-left: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-8-mobile {
         flex: none;
-        width: 66.66667%; }
+        width: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-8-mobile {
-        margin-left: 66.66667%; }
+        margin-left: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-9-mobile {
         flex: none;
         width: 75%; }
@@ -5435,14 +5344,14 @@ html.theme--documenter-vscode {
         margin-left: 75%; }
       html.theme--documenter-vscode .column.is-10-mobile {
         flex: none;
-        width: 83.33333%; }
+        width: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-10-mobile {
-        margin-left: 83.33333%; }
+        margin-left: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-11-mobile {
         flex: none;
-        width: 91.66667%; }
+        width: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-11-mobile {
-        margin-left: 91.66667%; }
+        margin-left: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-12-mobile {
         flex: none;
         width: 100%; }
@@ -5506,14 +5415,14 @@ html.theme--documenter-vscode {
         margin-left: 0%; }
       html.theme--documenter-vscode .column.is-1, html.theme--documenter-vscode .column.is-1-tablet {
         flex: none;
-        width: 8.33333%; }
+        width: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-1, html.theme--documenter-vscode .column.is-offset-1-tablet {
-        margin-left: 8.33333%; }
+        margin-left: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-2, html.theme--documenter-vscode .column.is-2-tablet {
         flex: none;
-        width: 16.66667%; }
+        width: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-2, html.theme--documenter-vscode .column.is-offset-2-tablet {
-        margin-left: 16.66667%; }
+        margin-left: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-3, html.theme--documenter-vscode .column.is-3-tablet {
         flex: none;
         width: 25%; }
@@ -5521,14 +5430,14 @@ html.theme--documenter-vscode {
         margin-left: 25%; }
       html.theme--documenter-vscode .column.is-4, html.theme--documenter-vscode .column.is-4-tablet {
         flex: none;
-        width: 33.33333%; }
+        width: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-4, html.theme--documenter-vscode .column.is-offset-4-tablet {
-        margin-left: 33.33333%; }
+        margin-left: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-5, html.theme--documenter-vscode .column.is-5-tablet {
         flex: none;
-        width: 41.66667%; }
+        width: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-5, html.theme--documenter-vscode .column.is-offset-5-tablet {
-        margin-left: 41.66667%; }
+        margin-left: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-6, html.theme--documenter-vscode .column.is-6-tablet {
         flex: none;
         width: 50%; }
@@ -5536,14 +5445,14 @@ html.theme--documenter-vscode {
         margin-left: 50%; }
       html.theme--documenter-vscode .column.is-7, html.theme--documenter-vscode .column.is-7-tablet {
         flex: none;
-        width: 58.33333%; }
+        width: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-7, html.theme--documenter-vscode .column.is-offset-7-tablet {
-        margin-left: 58.33333%; }
+        margin-left: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-8, html.theme--documenter-vscode .column.is-8-tablet {
         flex: none;
-        width: 66.66667%; }
+        width: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-8, html.theme--documenter-vscode .column.is-offset-8-tablet {
-        margin-left: 66.66667%; }
+        margin-left: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-9, html.theme--documenter-vscode .column.is-9-tablet {
         flex: none;
         width: 75%; }
@@ -5551,14 +5460,14 @@ html.theme--documenter-vscode {
         margin-left: 75%; }
       html.theme--documenter-vscode .column.is-10, html.theme--documenter-vscode .column.is-10-tablet {
         flex: none;
-        width: 83.33333%; }
+        width: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-10, html.theme--documenter-vscode .column.is-offset-10-tablet {
-        margin-left: 83.33333%; }
+        margin-left: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-11, html.theme--documenter-vscode .column.is-11-tablet {
         flex: none;
-        width: 91.66667%; }
+        width: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-11, html.theme--documenter-vscode .column.is-offset-11-tablet {
-        margin-left: 91.66667%; }
+        margin-left: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-12, html.theme--documenter-vscode .column.is-12-tablet {
         flex: none;
         width: 100%; }
@@ -5622,14 +5531,14 @@ html.theme--documenter-vscode {
         margin-left: 0%; }
       html.theme--documenter-vscode .column.is-1-touch {
         flex: none;
-        width: 8.33333%; }
+        width: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-1-touch {
-        margin-left: 8.33333%; }
+        margin-left: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-2-touch {
         flex: none;
-        width: 16.66667%; }
+        width: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-2-touch {
-        margin-left: 16.66667%; }
+        margin-left: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-3-touch {
         flex: none;
         width: 25%; }
@@ -5637,14 +5546,14 @@ html.theme--documenter-vscode {
         margin-left: 25%; }
       html.theme--documenter-vscode .column.is-4-touch {
         flex: none;
-        width: 33.33333%; }
+        width: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-4-touch {
-        margin-left: 33.33333%; }
+        margin-left: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-5-touch {
         flex: none;
-        width: 41.66667%; }
+        width: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-5-touch {
-        margin-left: 41.66667%; }
+        margin-left: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-6-touch {
         flex: none;
         width: 50%; }
@@ -5652,14 +5561,14 @@ html.theme--documenter-vscode {
         margin-left: 50%; }
       html.theme--documenter-vscode .column.is-7-touch {
         flex: none;
-        width: 58.33333%; }
+        width: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-7-touch {
-        margin-left: 58.33333%; }
+        margin-left: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-8-touch {
         flex: none;
-        width: 66.66667%; }
+        width: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-8-touch {
-        margin-left: 66.66667%; }
+        margin-left: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-9-touch {
         flex: none;
         width: 75%; }
@@ -5667,14 +5576,14 @@ html.theme--documenter-vscode {
         margin-left: 75%; }
       html.theme--documenter-vscode .column.is-10-touch {
         flex: none;
-        width: 83.33333%; }
+        width: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-10-touch {
-        margin-left: 83.33333%; }
+        margin-left: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-11-touch {
         flex: none;
-        width: 91.66667%; }
+        width: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-11-touch {
-        margin-left: 91.66667%; }
+        margin-left: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-12-touch {
         flex: none;
         width: 100%; }
@@ -5738,14 +5647,14 @@ html.theme--documenter-vscode {
         margin-left: 0%; }
       html.theme--documenter-vscode .column.is-1-desktop {
         flex: none;
-        width: 8.33333%; }
+        width: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-1-desktop {
-        margin-left: 8.33333%; }
+        margin-left: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-2-desktop {
         flex: none;
-        width: 16.66667%; }
+        width: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-2-desktop {
-        margin-left: 16.66667%; }
+        margin-left: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-3-desktop {
         flex: none;
         width: 25%; }
@@ -5753,14 +5662,14 @@ html.theme--documenter-vscode {
         margin-left: 25%; }
       html.theme--documenter-vscode .column.is-4-desktop {
         flex: none;
-        width: 33.33333%; }
+        width: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-4-desktop {
-        margin-left: 33.33333%; }
+        margin-left: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-5-desktop {
         flex: none;
-        width: 41.66667%; }
+        width: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-5-desktop {
-        margin-left: 41.66667%; }
+        margin-left: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-6-desktop {
         flex: none;
         width: 50%; }
@@ -5768,14 +5677,14 @@ html.theme--documenter-vscode {
         margin-left: 50%; }
       html.theme--documenter-vscode .column.is-7-desktop {
         flex: none;
-        width: 58.33333%; }
+        width: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-7-desktop {
-        margin-left: 58.33333%; }
+        margin-left: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-8-desktop {
         flex: none;
-        width: 66.66667%; }
+        width: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-8-desktop {
-        margin-left: 66.66667%; }
+        margin-left: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-9-desktop {
         flex: none;
         width: 75%; }
@@ -5783,14 +5692,14 @@ html.theme--documenter-vscode {
         margin-left: 75%; }
       html.theme--documenter-vscode .column.is-10-desktop {
         flex: none;
-        width: 83.33333%; }
+        width: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-10-desktop {
-        margin-left: 83.33333%; }
+        margin-left: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-11-desktop {
         flex: none;
-        width: 91.66667%; }
+        width: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-11-desktop {
-        margin-left: 91.66667%; }
+        margin-left: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-12-desktop {
         flex: none;
         width: 100%; }
@@ -5854,14 +5763,14 @@ html.theme--documenter-vscode {
         margin-left: 0%; }
       html.theme--documenter-vscode .column.is-1-widescreen {
         flex: none;
-        width: 8.33333%; }
+        width: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-1-widescreen {
-        margin-left: 8.33333%; }
+        margin-left: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-2-widescreen {
         flex: none;
-        width: 16.66667%; }
+        width: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-2-widescreen {
-        margin-left: 16.66667%; }
+        margin-left: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-3-widescreen {
         flex: none;
         width: 25%; }
@@ -5869,14 +5778,14 @@ html.theme--documenter-vscode {
         margin-left: 25%; }
       html.theme--documenter-vscode .column.is-4-widescreen {
         flex: none;
-        width: 33.33333%; }
+        width: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-4-widescreen {
-        margin-left: 33.33333%; }
+        margin-left: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-5-widescreen {
         flex: none;
-        width: 41.66667%; }
+        width: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-5-widescreen {
-        margin-left: 41.66667%; }
+        margin-left: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-6-widescreen {
         flex: none;
         width: 50%; }
@@ -5884,14 +5793,14 @@ html.theme--documenter-vscode {
         margin-left: 50%; }
       html.theme--documenter-vscode .column.is-7-widescreen {
         flex: none;
-        width: 58.33333%; }
+        width: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-7-widescreen {
-        margin-left: 58.33333%; }
+        margin-left: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-8-widescreen {
         flex: none;
-        width: 66.66667%; }
+        width: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-8-widescreen {
-        margin-left: 66.66667%; }
+        margin-left: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-9-widescreen {
         flex: none;
         width: 75%; }
@@ -5899,14 +5808,14 @@ html.theme--documenter-vscode {
         margin-left: 75%; }
       html.theme--documenter-vscode .column.is-10-widescreen {
         flex: none;
-        width: 83.33333%; }
+        width: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-10-widescreen {
-        margin-left: 83.33333%; }
+        margin-left: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-11-widescreen {
         flex: none;
-        width: 91.66667%; }
+        width: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-11-widescreen {
-        margin-left: 91.66667%; }
+        margin-left: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-12-widescreen {
         flex: none;
         width: 100%; }
@@ -5970,14 +5879,14 @@ html.theme--documenter-vscode {
         margin-left: 0%; }
       html.theme--documenter-vscode .column.is-1-fullhd {
         flex: none;
-        width: 8.33333%; }
+        width: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-1-fullhd {
-        margin-left: 8.33333%; }
+        margin-left: 8.3333333333%; }
       html.theme--documenter-vscode .column.is-2-fullhd {
         flex: none;
-        width: 16.66667%; }
+        width: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-2-fullhd {
-        margin-left: 16.66667%; }
+        margin-left: 16.6666666667%; }
       html.theme--documenter-vscode .column.is-3-fullhd {
         flex: none;
         width: 25%; }
@@ -5985,14 +5894,14 @@ html.theme--documenter-vscode {
         margin-left: 25%; }
       html.theme--documenter-vscode .column.is-4-fullhd {
         flex: none;
-        width: 33.33333%; }
+        width: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-4-fullhd {
-        margin-left: 33.33333%; }
+        margin-left: 33.3333333333%; }
       html.theme--documenter-vscode .column.is-5-fullhd {
         flex: none;
-        width: 41.66667%; }
+        width: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-5-fullhd {
-        margin-left: 41.66667%; }
+        margin-left: 41.6666666667%; }
       html.theme--documenter-vscode .column.is-6-fullhd {
         flex: none;
         width: 50%; }
@@ -6000,14 +5909,14 @@ html.theme--documenter-vscode {
         margin-left: 50%; }
       html.theme--documenter-vscode .column.is-7-fullhd {
         flex: none;
-        width: 58.33333%; }
+        width: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-7-fullhd {
-        margin-left: 58.33333%; }
+        margin-left: 58.3333333333%; }
       html.theme--documenter-vscode .column.is-8-fullhd {
         flex: none;
-        width: 66.66667%; }
+        width: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-8-fullhd {
-        margin-left: 66.66667%; }
+        margin-left: 66.6666666667%; }
       html.theme--documenter-vscode .column.is-9-fullhd {
         flex: none;
         width: 75%; }
@@ -6015,14 +5924,14 @@ html.theme--documenter-vscode {
         margin-left: 75%; }
       html.theme--documenter-vscode .column.is-10-fullhd {
         flex: none;
-        width: 83.33333%; }
+        width: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-offset-10-fullhd {
-        margin-left: 83.33333%; }
+        margin-left: 83.3333333333%; }
       html.theme--documenter-vscode .column.is-11-fullhd {
         flex: none;
-        width: 91.66667%; }
+        width: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-offset-11-fullhd {
-        margin-left: 91.66667%; }
+        margin-left: 91.6666666667%; }
       html.theme--documenter-vscode .column.is-12-fullhd {
         flex: none;
         width: 100%; }
@@ -6357,37 +6266,37 @@ html.theme--documenter-vscode {
         display: flex; }
       html.theme--documenter-vscode .tile.is-1 {
         flex: none;
-        width: 8.33333%; }
+        width: 8.3333333333%; }
       html.theme--documenter-vscode .tile.is-2 {
         flex: none;
-        width: 16.66667%; }
+        width: 16.6666666667%; }
       html.theme--documenter-vscode .tile.is-3 {
         flex: none;
         width: 25%; }
       html.theme--documenter-vscode .tile.is-4 {
         flex: none;
-        width: 33.33333%; }
+        width: 33.3333333333%; }
       html.theme--documenter-vscode .tile.is-5 {
         flex: none;
-        width: 41.66667%; }
+        width: 41.6666666667%; }
       html.theme--documenter-vscode .tile.is-6 {
         flex: none;
         width: 50%; }
       html.theme--documenter-vscode .tile.is-7 {
         flex: none;
-        width: 58.33333%; }
+        width: 58.3333333333%; }
       html.theme--documenter-vscode .tile.is-8 {
         flex: none;
-        width: 66.66667%; }
+        width: 66.6666666667%; }
       html.theme--documenter-vscode .tile.is-9 {
         flex: none;
         width: 75%; }
       html.theme--documenter-vscode .tile.is-10 {
         flex: none;
-        width: 83.33333%; }
+        width: 83.3333333333%; }
       html.theme--documenter-vscode .tile.is-11 {
         flex: none;
-        width: 91.66667%; }
+        width: 91.6666666667%; }
       html.theme--documenter-vscode .tile.is-12 {
         flex: none;
         width: 100%; } }
@@ -6440,10 +6349,10 @@ html.theme--documenter-vscode {
         border-color: #0a0a0a;
         color: white; }
       html.theme--documenter-vscode .hero.is-white.is-bold {
-        background-image: linear-gradient(141deg, #e6e6e6 0%, white 71%, white 100%); }
+        background-image: linear-gradient(141deg, #e8e3e4 0%, white 71%, white 100%); }
         @media screen and (max-width: 768px) {
           html.theme--documenter-vscode .hero.is-white.is-bold .navbar-menu {
-            background-image: linear-gradient(141deg, #e6e6e6 0%, white 71%, white 100%); } }
+            background-image: linear-gradient(141deg, #e8e3e4 0%, white 71%, white 100%); } }
     html.theme--documenter-vscode .hero.is-black {
       background-color: #0a0a0a;
       color: white; }
@@ -6572,7 +6481,7 @@ html.theme--documenter-vscode {
         color: #ecf0f1; }
         html.theme--documenter-vscode .hero.is-dark .tabs.is-boxed a:hover, html.theme--documenter-vscode .content kbd.hero .tabs.is-boxed a:hover, html.theme--documenter-vscode .hero.is-dark .tabs.is-toggle a:hover, html.theme--documenter-vscode .content kbd.hero .tabs.is-toggle a:hover {
           background-color: rgba(10, 10, 10, 0.1); }
-      html.theme--documenter-vscode .hero.is-dark .tabs.is-boxed li.is-active a, html.theme--documenter-vscode .content kbd.hero .tabs.is-boxed li.is-active a, html.theme--documenter-vscode .hero.is-dark .tabs.is-boxed li.is-active a:hover, html.theme--documenter-vscode .content kbd.hero .tabs.is-boxed li.is-active a:hover, html.theme--documenter-vscode .hero.is-dark .tabs.is-toggle li.is-active a, html.theme--documenter-vscode .content kbd.hero .tabs.is-toggle li.is-active a, html.theme--documenter-vscode .hero.is-dark .tabs.is-toggle li.is-active a:hover, html.theme--documenter-vscode .content kbd.hero .tabs.is-toggle li.is-active a:hover {
+      html.theme--documenter-vscode .hero.is-dark .tabs.is-boxed li.is-active a, html.theme--documenter-vscode .content kbd.hero .tabs.is-boxed li.is-active a, html.theme--documenter-vscode .hero.is-dark .tabs.is-boxed li.is-active a:hover, html.theme--documenter-vscode .hero.is-dark .tabs.is-toggle li.is-active a, html.theme--documenter-vscode .content kbd.hero .tabs.is-toggle li.is-active a, html.theme--documenter-vscode .hero.is-dark .tabs.is-toggle li.is-active a:hover {
         background-color: #ecf0f1;
         border-color: #ecf0f1;
         color: #282f2f; }
@@ -6621,7 +6530,7 @@ html.theme--documenter-vscode {
         color: #fff; }
         html.theme--documenter-vscode .hero.is-primary .tabs.is-boxed a:hover, html.theme--documenter-vscode .docstring > section > a.hero.docs-sourcelink .tabs.is-boxed a:hover, html.theme--documenter-vscode .hero.is-primary .tabs.is-toggle a:hover, html.theme--documenter-vscode .docstring > section > a.hero.docs-sourcelink .tabs.is-toggle a:hover {
           background-color: rgba(10, 10, 10, 0.1); }
-      html.theme--documenter-vscode .hero.is-primary .tabs.is-boxed li.is-active a, html.theme--documenter-vscode .docstring > section > a.hero.docs-sourcelink .tabs.is-boxed li.is-active a, html.theme--documenter-vscode .hero.is-primary .tabs.is-boxed li.is-active a:hover, html.theme--documenter-vscode .docstring > section > a.hero.docs-sourcelink .tabs.is-boxed li.is-active a:hover, html.theme--documenter-vscode .hero.is-primary .tabs.is-toggle li.is-active a, html.theme--documenter-vscode .docstring > section > a.hero.docs-sourcelink .tabs.is-toggle li.is-active a, html.theme--documenter-vscode .hero.is-primary .tabs.is-toggle li.is-active a:hover, html.theme--documenter-vscode .docstring > section > a.hero.docs-sourcelink .tabs.is-toggle li.is-active a:hover {
+      html.theme--documenter-vscode .hero.is-primary .tabs.is-boxed li.is-active a, html.theme--documenter-vscode .docstring > section > a.hero.docs-sourcelink .tabs.is-boxed li.is-active a, html.theme--documenter-vscode .hero.is-primary .tabs.is-boxed li.is-active a:hover, html.theme--documenter-vscode .hero.is-primary .tabs.is-toggle li.is-active a, html.theme--documenter-vscode .docstring > section > a.hero.docs-sourcelink .tabs.is-toggle li.is-active a, html.theme--documenter-vscode .hero.is-primary .tabs.is-toggle li.is-active a:hover {
         background-color: #fff;
         border-color: #fff;
         color: #375a7f; }
@@ -6996,9 +6905,7 @@ html.theme--documenter-vscode {
   html.theme--documenter-vscode .select select,
   html.theme--documenter-vscode .textarea {
     height: 2.5em; }
-  
-  html.theme--documenter-vscode .input,
-  html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input,
+  html.theme--documenter-vscode .input, html.theme--documenter-vscode #documenter .docs-sidebar form.docs-search > input,
   html.theme--documenter-vscode .textarea {
     transition: all 200ms ease;
     box-shadow: none;
@@ -7063,7 +6970,7 @@ html.theme--documenter-vscode {
   html.theme--documenter-vscode .notification.is-danger a:not(.button) {
     color: #fff;
     text-decoration: underline; }
-  html.theme--documenter-vscode .tag, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink, html.theme--documenter-vscode .content kbd {
+  html.theme--documenter-vscode .tag, html.theme--documenter-vscode .content kbd, html.theme--documenter-vscode .docstring > section > a.docs-sourcelink {
     border-radius: 0.4em; }
   html.theme--documenter-vscode .menu-list a {
     transition: all 300ms ease; }
@@ -7166,6 +7073,44 @@ html.theme--documenter-vscode {
     visibility: visible; }
   html.theme--documenter-vscode .docs-light-only {
     display: none !important; }
+  html.theme--documenter-vscode pre {
+    position: relative;
+    overflow: hidden; }
+    html.theme--documenter-vscode pre code, html.theme--documenter-vscode pre code.hljs {
+      padding: 0 0.5rem !important;
+      overflow: auto;
+      display: block; }
+    html.theme--documenter-vscode pre code:first-of-type, html.theme--documenter-vscode pre code.hljs:first-of-type {
+      padding-top: 0.7rem !important; }
+    html.theme--documenter-vscode pre code:last-of-type, html.theme--documenter-vscode pre code.hljs:last-of-type {
+      padding-bottom: 0.7rem !important; }
+    html.theme--documenter-vscode pre .copy-button {
+      opacity: 0.2;
+      transition: opacity 0.2s;
+      position: absolute;
+      right: 0em;
+      top: 0em;
+      padding: 0.5em;
+      width: 2.5em;
+      height: 2.5em;
+      background: transparent;
+      border: none;
+      font-family: "Font Awesome 5 Free";
+      color: #fff;
+      cursor: pointer;
+      text-align: center; }
+      html.theme--documenter-vscode pre .copy-button:focus, html.theme--documenter-vscode pre .copy-button:hover {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.1);
+        color: #1abc9c; }
+      html.theme--documenter-vscode pre .copy-button.success {
+        color: #2ecc71;
+        opacity: 1; }
+      html.theme--documenter-vscode pre .copy-button.error {
+        color: #e74c3c;
+        opacity: 1; }
+    html.theme--documenter-vscode pre:hover .copy-button {
+      opacity: 1; }
   html.theme--documenter-vscode .admonition {
     background-color: #282f2f;
     border-style: solid;
@@ -7264,12 +7209,38 @@ html.theme--documenter-vscode {
         position: absolute;
         right: 0.625rem;
         bottom: 0.5rem; }
+        html.theme--documenter-vscode .docstring > section > a.docs-sourcelink:focus {
+          opacity: 1 !important; }
     html.theme--documenter-vscode .docstring:hover > section > a.docs-sourcelink {
+      opacity: 0.2; }
+    html.theme--documenter-vscode .docstring:focus-within > section > a.docs-sourcelink {
       opacity: 0.2; }
     html.theme--documenter-vscode .docstring > section:hover a.docs-sourcelink {
       opacity: 1; }
   html.theme--documenter-vscode .documenter-example-output {
     background-color: #1f2424; }
+  html.theme--documenter-vscode .outdated-warning-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    background-color: #282f2f;
+    border-bottom: 3px solid #9e1b0d;
+    padding: 10px 35px;
+    text-align: center;
+    font-size: 15px; }
+    html.theme--documenter-vscode .outdated-warning-overlay .outdated-warning-closer {
+      position: absolute;
+      top: calc(50% - 10px);
+      right: 18px;
+      cursor: pointer;
+      width: 12px; }
+    html.theme--documenter-vscode .outdated-warning-overlay a {
+      color: #1abc9c; }
+      html.theme--documenter-vscode .outdated-warning-overlay a:hover {
+        color: #1dd2af; }
   html.theme--documenter-vscode .content pre {
     border: 1px solid #5e6d6f; }
   html.theme--documenter-vscode .content code {
@@ -7285,14 +7256,15 @@ html.theme--documenter-vscode {
     overflow-x: auto; }
   html.theme--documenter-vscode .content blockquote > ul:first-child, html.theme--documenter-vscode .content blockquote > ol:first-child, html.theme--documenter-vscode .content .admonition-body > ul:first-child, html.theme--documenter-vscode .content .admonition-body > ol:first-child {
     margin-top: 0; }
+  html.theme--documenter-vscode pre, html.theme--documenter-vscode code {
+    font-variant-ligatures: no-contextual; }
   html.theme--documenter-vscode .breadcrumb a.is-disabled {
     cursor: default;
     pointer-events: none; }
     html.theme--documenter-vscode .breadcrumb a.is-disabled, html.theme--documenter-vscode .breadcrumb a.is-disabled:hover {
       color: #f2f2f2; }
   html.theme--documenter-vscode .hljs {
-    background: initial !important;
-    padding: initial !important; }
+    background: initial !important; }
   html.theme--documenter-vscode .katex .katex-mathml {
     top: 0;
     right: 0; }
@@ -7301,10 +7273,13 @@ html.theme--documenter-vscode {
   html.theme--documenter-vscode html {
     -moz-osx-font-smoothing: auto;
     -webkit-font-smoothing: auto; }
+  html.theme--documenter-vscode li.no-marker {
+    list-style: none; }
   html.theme--documenter-vscode #documenter .docs-main > article {
     overflow-wrap: break-word; }
     html.theme--documenter-vscode #documenter .docs-main > article .math-container {
-      overflow-x: auto; }
+      overflow-x: auto;
+      overflow-y: hidden; }
   @media screen and (min-width: 1056px) {
     html.theme--documenter-vscode #documenter .docs-main {
       max-width: 52rem;
@@ -7439,6 +7414,8 @@ html.theme--documenter-vscode {
       padding: 0.5rem 0; }
       html.theme--documenter-vscode #documenter .docs-sidebar .docs-package-name .docs-autofit {
         max-width: 16.2rem; }
+      html.theme--documenter-vscode #documenter .docs-sidebar .docs-package-name a, html.theme--documenter-vscode #documenter .docs-sidebar .docs-package-name a:hover {
+        color: #fff; }
     html.theme--documenter-vscode #documenter .docs-sidebar .docs-version-selector {
       border-top: 1px solid #5e6d6f;
       display: none;
@@ -7569,8 +7546,11 @@ html.theme--documenter-vscode {
     color: var(--vscode-foreground);
     font-size: var(--vscode-editor-font-size); }
     html.theme--documenter-vscode body .content pre, html.theme--documenter-vscode body .content code {
-      background-color: var(--vscode-editor-background);
       color: var(--vscode-editor-foreground); }
+    html.theme--documenter-vscode body .content pre {
+      background-color: var(--vscode-editor-background); }
+    html.theme--documenter-vscode body .content strong {
+      color: var(--vscode-foreground) !important; }
     html.theme--documenter-vscode body .content pre {
       border-radius: 0;
       border-color: var(--vscode-editorWidget-border); }
