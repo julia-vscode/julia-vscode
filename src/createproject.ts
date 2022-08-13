@@ -30,13 +30,8 @@ export class JuliaNewProjectFeature {
         const userResult = await simpleGit().getConfig('github.user', 'global')
         const defaultUser = userResult.value
         const user = await vscode.window.showInputBox({
-            prompt: 'Please enter your GitHub (or other code hosting service) username.',
-            value: defaultUser,
-            validateInput: (input) => {
-                if (input === "")
-                    return 'Username cannot be empty.'
-                return undefined
-            }
+            prompt: 'Please enter your GitHub (or other code hosting service) username. Leave blank to skip Git repository setup.',
+            value: defaultUser
         })
         if (user === undefined)
             return

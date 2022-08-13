@@ -54,18 +54,22 @@ try
     if length(ARGS) > 6
         plugin_args = ARGS[7:end]
         for p in plugin_args
+            if user == "" && PkgTemplates.needs_username(plugin_lookup[p])
+                continue
+            end
             push!(plugins, plugin_lookup[p])
         end
     end
-    if length(plugin_args) > 0
-        # Defaults must be negated to disable
-        for p in default_plugins
-            if !(p in plugin_args)
-                push!(plugins, !typeof(plugin_lookup[p]))
-            end
+
+    for p in default_plugins
+        default_excluded = length(plugin_args) > 0 && !(p in plugin_args)
+        needs_user = user == "" && PkgTemplates.needs_username(plugin_lookup[p])
+        if default_excluded || needs_user
+            push!(plugins, !typeof(plugin_lookup[p])) # Defaults must be negated to disable
         end
     end
     Template(; user=user, authors=authors, dir=dir, host=host, julia=julia, plugins=plugins)(pkg_name)
 catch err
     Base.display_error(err, catch_backtrace())
+    sleep(5) # Gives some time to see the error before terminal disappears
 end
