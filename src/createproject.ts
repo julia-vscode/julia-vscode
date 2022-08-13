@@ -15,17 +15,20 @@ export class JuliaNewProjectFeature {
         const pkgName = await vscode.window.showInputBox({
             prompt: 'Please enter the name of the project to create.',
             validateInput: (input) => {
-                if (input === "")
+                if (input === '') {
                     return 'The project name cannot be empty.'
+                }
                 return undefined
             }
         })
-        if (!pkgName)
+        if (!pkgName) {
             return
+        }
 
-        const templateType = await vscode.window.showQuickPick(['Default', 'Custom'], { placeHolder: "Select a template for the project" })
-        if (!templateType)
+        const templateType = await vscode.window.showQuickPick(['Default', 'Custom'], { placeHolder: 'Select a template for the project' })
+        if (!templateType) {
             return
+        }
 
         const userResult = await simpleGit().getConfig('github.user', 'global')
         const defaultUser = userResult.value
@@ -33,34 +36,38 @@ export class JuliaNewProjectFeature {
             prompt: 'Please enter your GitHub (or other code hosting service) username. Leave blank to skip Git repository setup.',
             value: defaultUser
         })
-        if (user === undefined)
+        if (user === undefined) {
             return
+        }
 
         let authors = ''
         let host = ''
         let juliaVersion = ''
         let plugins: vscode.QuickPickItem[] = []
-        if (templateType == 'Custom') {
-            const authors = await vscode.window.showInputBox({ prompt: 'Please enter the authors of the project', placeHolder: "Leave blank to use 'user.name' and 'user.email' from the global Git config." })
-            if (authors === undefined)
+        if (templateType === 'Custom') {
+            authors = await vscode.window.showInputBox({ prompt: 'Please enter the authors of the project', placeHolder: 'Leave blank to use \'user.name\' and \'user.email\' from the global Git config.' })
+            if (authors === undefined) {
                 return
+            }
 
-            let host = await vscode.window.showQuickPick(['github.com', 'gitlab.com', 'bitbucket.org', 'Other'], { placeHolder: 'The URL to the code hosting service where the project will reside.' })
+            host = await vscode.window.showQuickPick(['github.com', 'gitlab.com', 'bitbucket.org', 'Other'], { placeHolder: 'The URL to the code hosting service where the project will reside.' })
             if (host === 'Other') {
                 host = await vscode.window.showInputBox({ prompt: 'Please enter the URL to the code hosting service.' })
             }
-            if (host === undefined)
+            if (host === undefined) {
                 return
+            }
 
-            let juliaVersion = await vscode.window.showQuickPick(
+            juliaVersion = await vscode.window.showQuickPick(
                 ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', 'Other'],
                 { placeHolder: 'Please select the minimum allowed Julia version.' }
             )
             if (juliaVersion === 'Other') {
                 juliaVersion = await vscode.window.showInputBox({ prompt: 'Please enter the minimum allowed Julia version.' })
             }
-            if (juliaVersion === undefined)
+            if (juliaVersion === undefined) {
                 return
+            }
 
             plugins = await vscode.window.showQuickPick(
                 [
@@ -90,8 +97,9 @@ export class JuliaNewProjectFeature {
                 ],
                 { canPickMany: true, placeHolder: 'Please select plugins to include in the template.' }
             )
-            if (plugins === undefined)
+            if (plugins === undefined) {
                 return
+            }
         }
         const directory = await vscode.window.showOpenDialog({
             canSelectFolders: true,
@@ -99,8 +107,9 @@ export class JuliaNewProjectFeature {
             canSelectMany: false,
             openLabel: 'Select Project Location'
         })
-        if (!directory)
+        if (!directory) {
             return
+        }
 
         const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
@@ -131,14 +140,14 @@ export class JuliaNewProjectFeature {
             if (t.processId === newTerm.processId) {
                 const projectPath = vscode.Uri.file(path.join(directory[0].fsPath, pkgName))
                 if (t.exitStatus && t.exitStatus.code === 0 && await fs.exists(projectPath.fsPath)) {
-                    let message = "Would you like to open the new project?"
-                    const open = "Open"
-                    const openNewWindow = "Open in New Window"
+                    let message = 'Would you like to open the new project?'
+                    const open = 'Open'
+                    const openNewWindow = 'Open in New Window'
                     const choices = [open, openNewWindow]
 
-                    const addToWorkspace = "Add to Workspace"
+                    const addToWorkspace = 'Add to Workspace'
                     if (vscode.workspace.workspaceFolders) {
-                        message = "Would you like to open the new project, or add it to the current workspace?"
+                        message = 'Would you like to open the new project, or add it to the current workspace?'
                         choices.push(addToWorkspace)
                     }
 
@@ -152,7 +161,7 @@ export class JuliaNewProjectFeature {
                         vscode.commands.executeCommand('vscode.openFolder', projectPath, { forceNewWindow: true })
                     }
                 } else {
-                    vscode.window.showErrorMessage("Could not create the project.")
+                    vscode.window.showErrorMessage('Could not create the project.')
                 }
                 disposable.dispose()
             }
