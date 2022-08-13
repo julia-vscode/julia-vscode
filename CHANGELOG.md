@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * `Assigned but not used` linter annotations are now slightly more correct ([#339](https://github.com/julia-vscode/StaticLint.jl/pull/339))
 * Actually fixed that issue with copying `Expr`s while debugging ([#60](https://github.com/julia-vscode/DebugAdapter.jl/pull/60))
+* Fixed `when` clauses of some keybindings that caused incorrect matches when `editorLangId != julia` ([#2971](https://github.com/julia-vscode/julia-vscode/pull/2971))
 
 ## [1.6.25] - 2022-06-17
 ### Changed

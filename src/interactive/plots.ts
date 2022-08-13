@@ -3,11 +3,11 @@ import { homedir } from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
-import { registerCommand } from '../utils'
+import { registerCommand, setContext } from '../utils'
 import { displayTable } from './tables'
 import { JuliaKernel } from '../notebook/notebookKernel'
 
-const c_juliaPlotPanelActiveContextKey = 'jlplotpaneFocus'
+const c_juliaPlotPanelActiveContextKey = 'julia.plotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
 let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
@@ -285,11 +285,11 @@ export function showPlotPane() {
 
         const viewStateListener = g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
             g_context.globalState.update('juliaPlotPanelViewColumn', webviewPanel.viewColumn)
-            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, webviewPanel.active)
+            setContext(c_juliaPlotPanelActiveContextKey, webviewPanel.active)
         })
 
         g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
-        vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, true)
+        setContext(c_juliaPlotPanelActiveContextKey, true)
 
         const configListener = vscode.workspace.onDidChangeConfiguration(config => {
             if (config.affectsConfiguration('julia') && g_plotPanel) {
@@ -301,7 +301,7 @@ export function showPlotPane() {
             configListener.dispose()
             viewStateListener.dispose()
             g_plotPanel = undefined
-            vscode.commands.executeCommand('setContext', c_juliaPlotPanelActiveContextKey, false)
+            setContext(c_juliaPlotPanelActiveContextKey, false)
         }, null, g_context.subscriptions)
 
         g_plotPanel.webview.onDidReceiveMessage(plotPanelOnMessage)

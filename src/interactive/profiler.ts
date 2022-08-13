@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { readFile, writeFile } from 'fs/promises'
-import { registerCommand } from '../utils'
+import { registerCommand, setContext } from '../utils'
 import { openFile } from './results'
 
 interface ProfilerFrame {
@@ -49,7 +49,7 @@ function flagString(flags: number) {
     return out
 }
 
-const profilerContextKey = 'jlProfilerFocus'
+const profilerContextKey = 'julia.profilerFocus'
 export class ProfilerFeature {
     context: vscode.ExtensionContext
     panel: vscode.WebviewPanel
@@ -244,18 +244,14 @@ export class ProfilerFeature {
                     'juliaProfilerViewColumn',
                     webviewPanel.viewColumn
                 )
-                vscode.commands.executeCommand(
-                    'setContext',
-                    profilerContextKey,
-                    webviewPanel.active
-                )
+                setContext(profilerContextKey, webviewPanel.active)
             }
         )
 
         this.panel.onDidDispose(() => {
             viewStateListener.dispose()
             messageHandler.dispose()
-            vscode.commands.executeCommand('setContext', profilerContextKey, false)
+            setContext(profilerContextKey, false)
             this.panel = undefined
             this.clearInlineTrace()
         })

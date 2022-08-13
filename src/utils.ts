@@ -17,7 +17,7 @@ export function getVersionedParamsAtPosition(document: vscode.TextDocument, posi
     }
 }
 
-export function setContext(contextKey: string, state: boolean) {
+export function setContext(contextKey: string, state: any) {
     vscode.commands.executeCommand('setContext', contextKey, state)
 }
 

@@ -140,12 +140,6 @@ class JuliaTaskProvider {
                     new vscode.ProcessExecution(juliaExecutable.file, [
                         ...juliaExecutable.args,
                         '--color=yes',
-                        `--project=${path.join(
-                            this.context.extensionPath,
-                            'scripts',
-                            'environments',
-                            'sysimagecompile'
-                        )}`,
                         '--startup-file=no',
                         '--history-file=no',
                         path.join(

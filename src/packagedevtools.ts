@@ -40,10 +40,6 @@ export class JuliaPackageDevFeature {
                                 resultVersion
                             ],
                             cwd: vscode.workspace.workspaceFolders[0].uri.fsPath,
-                            env: {
-                                JULIA_PROJECT: path.join(this.context.extensionPath, 'scripts', 'environments', 'pkgdev')
-                            },
-
                         }
                     )
 
