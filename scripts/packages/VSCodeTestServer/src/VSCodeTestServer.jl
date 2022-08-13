@@ -3,7 +3,7 @@ module VSCodeTestServer
 include("pkg_imports.jl")
 
 import .JSONRPC: @dict_readable
-import Test
+import Test, Pkg
 
 include("testserver_protocol.jl")
 include("helper.jl")
@@ -92,11 +92,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     end
 end
 
-function serve(conn, test_project; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
-    if test_project!=""
-        TestEnv.activate(test_project)
-    end
-
+function serve_in_env(conn)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
     @debug "connected"
     run(conn_endpoint[])
@@ -111,6 +107,28 @@ function serve(conn, test_project; is_dev=false, crashreporting_pipename::Union{
         msg = JSONRPC.get_next_message(conn_endpoint[])
 
         JSONRPC.dispatch_msg(conn_endpoint[], msg_dispatcher, msg)
+    end
+end
+
+function serve(conn, project_path, package_path, package_name; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    if project_path==""
+        Pkg.activate(temp=true)
+
+        Pkg.develop(package_path)
+
+        TestEnv.activate(package_name) do
+            serve_in_env(conn)
+        end
+    else
+        Pkg.activate(project_path)
+
+        if package_name!=""
+            TestEnv.activate(package_name) do
+                serve_in_env(conn)
+            end
+        else
+            serve_in_env(conn)
+        end
     end
 end
 

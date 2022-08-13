@@ -11,8 +11,8 @@ try
 
     @debug "Now running"
 
-    VSCodeTestServer.serve(conn, ARGS[2])
+    VSCodeTestServer.serve(conn, ARGS[2][3:end], ARGS[3][3:end], ARGS[4][3:end])
 
 catch err
-    global_err_handler(err, catch_backtrace(), Base.ARGS[3], "Test Server")
+    global_err_handler(err, catch_backtrace(), Base.ARGS[5], "Test Server")
 end

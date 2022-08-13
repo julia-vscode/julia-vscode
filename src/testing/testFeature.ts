@@ -20,7 +20,9 @@ interface Testitem {
 interface PublishTestitemsParams {
     uri: lsp.URI
     version: number,
-    packageuuid: string,
+    project_path: string,
+    package_path: string,
+    package_name: string,
     testitems: Testitem[]
 }
 
@@ -49,7 +51,7 @@ class TestProcess {
     private connection: lsp.MessageConnection
     private testRun: vscode.TestRun
 
-    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel) {
+    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, projectPath: string, packagePath: string, packageName: string) {
         const pipename = generatePipeName(uuid(), 'vsc-jl-ts')
 
         const connected = new Subject()
@@ -77,8 +79,6 @@ class TestProcess {
 
         const pkgenvpath = await getAbsEnvPath()
 
-        const testproject = 'StringBuilders'
-
         this.process = spawn(
             juliaExecutable.file,
             [
@@ -86,7 +86,9 @@ class TestProcess {
                 `--project=${pkgenvpath}`,
                 join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
                 pipename,
-                testproject,
+                `v:${projectPath}`,
+                `v:${packagePath}`,
+                `v:${packageName}`,
                 getCrashReportingPipename()
             ],
             {
@@ -138,10 +140,11 @@ class TestProcess {
         return result
     }
 }
+
 export class TestFeature {
     private controller: vscode.TestController
-    private testitems: WeakMap<vscode.TestItem, { testitem: Testitem, uuid: string }> = new WeakMap<vscode.TestItem, { testitem: Testitem, uuid: string }>()
-    private testProcess: TestProcess = null
+    private testitems: WeakMap<vscode.TestItem, { testitem: Testitem, projectPath: string, packagePath: string, packageName: string }> = new WeakMap<vscode.TestItem, { testitem: Testitem, projectPath: string, packagePath: string, packageName: string }>()
+    private testProcesses: Map<string, TestProcess> = new Map<string, TestProcess>()
     private outputChannel: vscode.OutputChannel
 
     constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature) {
@@ -165,20 +168,25 @@ export class TestFeature {
 
         let fileTestitem = this.controller.items.get(params.uri)
 
-        if (!fileTestitem) {
+        if (!fileTestitem && params.testitems.length > 0) {
             const filename = vscode.workspace.asRelativePath(uri.fsPath)
 
             fileTestitem = this.controller.createTestItem(params.uri, filename, uri)
             this.controller.items.add(fileTestitem)
         }
+        else if (fileTestitem && params.testitems.length === 0) {
+            this.controller.items.delete(fileTestitem.id)
+        }
 
-        fileTestitem.children.replace(params.testitems.map(i => {
-            const testitem = this.controller.createTestItem(i.name, i.name, vscode.Uri.parse(params.uri))
-            this.testitems.set(testitem, i)
-            testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
+        if (params.testitems.length > 0 ) {
+            fileTestitem.children.replace(params.testitems.map(i => {
+                const testitem = this.controller.createTestItem(i.name, i.name, vscode.Uri.parse(params.uri))
+                this.testitems.set(testitem, {testitem: i, projectPath: params.project_path, packagePath: params.package_path, packageName: params.package_name})
+                testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
 
-            return testitem
-        }))
+                return testitem
+            }))
+        }
     }
 
     walkTestTree(item: vscode.TestItem, itemsToRun: vscode.TestItem[]) {
@@ -210,27 +218,33 @@ export class TestFeature {
             testRun.enqueued(i)
         }
 
-        if (this.testProcess === null) {
-            this.testProcess = new TestProcess()
-            await this.testProcess.start(this.context, this.executableFeature, this.outputChannel)
-        }
-        else {
-            const status = await this.testProcess.revise()
-
-            if (status !== 'success') {
-                await this.testProcess.kill()
-
-                this.outputChannel.appendLine('RESTARTING TEST SERVER')
-
-                this.testProcess = new TestProcess()
-                await this.testProcess.start(this.context, this.executableFeature, this.outputChannel)
-            }
-        }
-
         for (const i of itemsToRun) {
             testRun.started(i)
 
             const details = this.testitems.get(i)
+
+            let testProcess: TestProcess = null
+
+            if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
+                testProcess = new TestProcess()
+                await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
+                this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), testProcess)
+            }
+            else {
+                testProcess = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
+
+                const status = await testProcess.revise()
+
+                if (status !== 'success') {
+                    await testProcess.kill()
+
+                    this.outputChannel.appendLine('RESTARTING TEST SERVER')
+
+                    testProcess = new TestProcess()
+                    await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
+                    this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), testProcess)
+                }
+            }
 
             const doc = await vscode.workspace.openTextDocument(i.uri)
 
@@ -241,7 +255,7 @@ export class TestFeature {
                 range: details.testitem.range
             }
 
-            const result = await this.testProcess.executeTest(location, code, testRun)
+            const result = await testProcess.executeTest(location, code, testRun)
 
             if (result.status === 'passed') {
 
