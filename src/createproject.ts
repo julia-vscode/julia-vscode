@@ -143,7 +143,7 @@ export class JuliaNewProjectFeature {
 
                     const addToWorkspace = "Add to Workspace"
                     if (vscode.workspace.workspaceFolders) {
-                        message = "Would you like to open the cloned repository, or add it to the current workspace?"
+                        message = "Would you like to open the new project, or add it to the current workspace?"
                         choices.push(addToWorkspace)
                     }
 
