@@ -337,6 +337,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: g_traceOutputChannel,
         outputChannel: g_outputChannel,
+        initializationOptions: {julialangTestItemIdentification: true},
     }
 
     // Create the language client and start the client.
