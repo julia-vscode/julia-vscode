@@ -116,6 +116,12 @@ class TestProcess {
             }
         })
 
+        this.process.on('exit', (code: number, signal: NodeJS.Signals) => {
+            if(this.connection) {
+                this.connection.dispose()
+                this.connection = null
+            }
+        })
 
         console.log(this.process.killed)
 
@@ -135,9 +141,16 @@ class TestProcess {
 
     public async executeTest(location: lsp.Location, code: string, testRun: vscode.TestRun) {
         this.testRun = testRun
-        const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, line: location.range.start.line, column: location.range.start.character, code: code })
-        this.testRun = undefined
-        return result
+
+        try {
+            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, line: location.range.start.line, column: location.range.start.character, code: code })
+            this.testRun = undefined
+            return result
+        }
+        catch {
+            this.testRun = undefined
+            return {status: 'crashed', message: null}
+        }
     }
 }
 
@@ -272,7 +285,13 @@ export class TestFeature {
                     message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
                     return message
                 })
-                testRun.errored(i, messages)
+                testRun.failed(i, messages)
+            }
+            else if (result.status === 'crashed') {
+                const message = new vscode.TestMessage('The test process crashed while running this test.')
+                testRun.errored(i, message)
+
+                this.testProcesses.delete(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
             }
         }
 
