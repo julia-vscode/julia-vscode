@@ -11,6 +11,19 @@ include("vscode_testset.jl")
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 
+function withpath(f, path)
+    tls = task_local_storage()
+    hassource = haskey(tls, :SOURCE_PATH)
+    hassource && (path′ = tls[:SOURCE_PATH])
+    tls[:SOURCE_PATH] = path
+    try
+        return f()
+    finally
+        hassource ? (tls[:SOURCE_PATH] = path′) : delete!(tls, :SOURCE_PATH)
+    end
+end
+
+
 function run_revise_handler(conn, params::Nothing)
     try
         @info "NOW TRYING TO REVISE"
@@ -45,7 +58,9 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     Test.push_testset(ts)
 
     try
-        Base.invokelatest(include_string, mod, code, filepath)
+        withpath(filepath) do
+            Base.invokelatest(include_string, mod, code, filepath)
+        end
     catch err
         Test.pop_testset()
 
@@ -54,9 +69,13 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
         error_message = sprint(Base.display_error, err, bt)
 
-        @info "THE FILE PROBLEM IS " string(st[1].file)
-
-        filepath = string(st[1].file)
+        if err isa LoadError
+            error_filepath = err.file
+            error_line = err.line
+        else
+            error_filepath =  string(st[1].file)
+            error_line = st[1].line
+        end
 
         return TestserverRunTestitemRequestParamsReturn(
             "errored",
@@ -64,8 +83,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 TestMessage(
                     error_message,
                     Location(
-                        isabspath(filepath) ? filepath2uri(filepath) : "",
-                        Range(Position(max(0, st[1].line - 1), 0), Position(max(0, st[1].line - 1), 0))
+                        isabspath(error_filepath) ? filepath2uri(error_filepath) : "",
+                        Range(Position(max(0, error_line - 1), 0), Position(max(0, error_line - 1), 0))
                     )
                 )
             ]
@@ -114,7 +133,7 @@ function serve(conn, project_path, package_path, package_name; is_dev=false, cra
     if project_path==""
         Pkg.activate(temp=true)
 
-        Pkg.develop(package_path)
+        Pkg.develop(path=package_path)
 
         TestEnv.activate(package_name) do
             serve_in_env(conn)
