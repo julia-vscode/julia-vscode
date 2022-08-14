@@ -46,9 +46,15 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
                 const startPosition = new vscode.Position(position.line, 0)
                 const lineRange = new vscode.Range(startPosition, position)
                 const line = document.getText(lineRange)
+
                 const mod: string = await getModuleForEditor(document, position)
+                if(token.isCancellationRequested) { return }
+
+                const items = await conn.sendRequest(requestTypeGetCompletionItems, { line, mod })
+                if(token.isCancellationRequested) { return }
+
                 return {
-                    items: await conn.sendRequest(requestTypeGetCompletionItems, { line, mod }),
+                    items: items,
                     isIncomplete: true
                 }
             })()
