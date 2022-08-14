@@ -1,9 +1,0 @@
-name = "TestEnv"
-uuid = "6a360b79-ab38-4c91-a171-24c9bb4fafb2"
-version = "1.7.2"
-
-[deps]
-Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-
-[compat]
-julia = "~1.7"
