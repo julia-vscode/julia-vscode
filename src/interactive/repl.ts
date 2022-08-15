@@ -677,7 +677,7 @@ let g_cellDelimiters = [
 function isCellBorder(s: string, isStart: boolean, isJmd: boolean) {
     if (isJmd) {
         if (isStart) {
-            return /^```julia/.test(s)
+            return /^```({?julia|@example|@setup)/.test(s)
         } else {
             return /^```(?!\w)/.test(s)
         }
