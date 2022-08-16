@@ -83,13 +83,13 @@ async function main() {
     // Update various project files
     // ============================
 
-    await fs.rmdir(path.join(process.cwd(), 'scripts/environments/languageserver'), { recursive: true })
-    await fs.rmdir(path.join(process.cwd(), 'scripts/environments/pgkdev'), { recursive: true })
-    await fs.rmdir(path.join(process.cwd(), 'scripts/environments/sysimagecompile'), { recursive: true })
+    await fs.rm(path.join(process.cwd(), 'scripts/environments/languageserver'), { recursive: true })
+    await fs.rm(path.join(process.cwd(), 'scripts/environments/pkgdev'), { recursive: true })
+    await fs.rm(path.join(process.cwd(), 'scripts/environments/sysimagecompile'), { recursive: true })
 
-    await fs.rmdir(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
-    await fs.rmdir(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
-    await fs.rmdir(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
+    await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
+    await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
+    await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
     for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7']) {
         const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
         await fs.mkdir(env_path_ls, { recursive: true })
