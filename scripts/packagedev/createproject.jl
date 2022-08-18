@@ -42,12 +42,22 @@ plugin_lookup = Dict(
 )
 
 try
+    kwargs = Dict{Symbol, Any}()
     pkg_name = ARGS[1]
-    dir = ARGS[2]
-    authors = split(ARGS[3], ',')
-    host = ARGS[4]
+    kwargs[:dir] = ARGS[2]
+    if ARGS[3] != ""
+        kwargs[:authors] = split(ARGS[3], ',')
+    end
+    if ARGS[4] != ""
+        kwargs[:host] = ARGS[4]
+    end
     user = ARGS[5]
-    julia = ARGS[6] == "" ? VersionNumber(VERSION.major) : VersionNumber(ARGS[6])
+    if user != ""
+        kwargs[:user] = user
+    end
+    if ARGS[6] != ""
+        kwargs[:julia] = VersionNumber(ARGS[6])
+    end
 
     plugin_args = String[]
     plugins = []
@@ -68,7 +78,9 @@ try
             push!(plugins, !typeof(plugin_lookup[p])) # Defaults must be negated to disable
         end
     end
-    Template(; user=user, authors=authors, dir=dir, host=host, julia=julia, plugins=plugins)(pkg_name)
+    kwargs[:plugins] = plugins
+
+    Template(;kwargs...)(pkg_name)
 catch err
     Base.display_error(err, catch_backtrace())
     sleep(5) # Gives some time to see the error before terminal disappears
