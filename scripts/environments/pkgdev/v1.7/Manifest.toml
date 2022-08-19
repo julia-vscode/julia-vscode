@@ -215,9 +215,9 @@ uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[deps.PkgButlerEngine]]
 deps = ["Mustache", "Pkg"]
-git-tree-sha1 = "397e687ac1e76de1a56933a5074046b7fec0cca2"
+git-tree-sha1 = "64eaa9b1a19b0fb599f6e1e78b9b0a0781f3cea2"
 uuid = "5c9c0fc8-7103-448b-bb0a-c427020e3b0b"
-version = "1.11.0"
+version = "1.11.1"
 
 [[deps.PkgDev]]
 deps = ["Base64", "DocumentFormat", "FilePathsBase", "GitHub", "JSON", "LibGit2", "Pkg", "PkgButlerEngine", "RegistryTools", "TOML", "URIs", "UUIDs"]
