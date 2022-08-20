@@ -34,7 +34,7 @@ schema_type(::Type{T}) where {T<:Dates.DateTime} = "datetime"
 schema_type(::Type{T}) where {T<:AbstractString} = "string"
 
 julia_type(::Type{Union{}}) = nothing
-julia_type(::Type{T}) where {T} = strlimit(string(T); limit = 100)
+julia_type(::Type{T}) where {T} = sprintlimited(T; limit=100)
 
 ag_schema_type(::Type{Union{}}) = nothing
 ag_schema_type(::Type{T}) where {T} = nothing
