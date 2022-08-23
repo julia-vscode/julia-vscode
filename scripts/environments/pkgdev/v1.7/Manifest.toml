@@ -37,9 +37,9 @@ version = "0.8.6"
 
 [[deps.Compat]]
 deps = ["Dates", "LinearAlgebra", "UUIDs"]
-git-tree-sha1 = "924cdca592bc16f14d2f7006754a621735280b74"
+git-tree-sha1 = "5856d3031cdb1f3b2b6340dfdc66b6d9a149a374"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.1.0"
+version = "4.2.0"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -300,9 +300,9 @@ version = "0.5.24"
 
 [[deps.TranscodingStreams]]
 deps = ["Random", "Test"]
-git-tree-sha1 = "4ad90ab2bbfdddcae329cba59dab4a8cdfac3832"
+git-tree-sha1 = "ed5d390c7addb70e90fd1eb783dcb9897922cbfa"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.9.7"
+version = "0.9.8"
 
 [[deps.URIs]]
 git-tree-sha1 = "e59ecc5a41b000fa94423a578d29290c7266fc10"
