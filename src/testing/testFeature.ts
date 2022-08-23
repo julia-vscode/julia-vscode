@@ -99,21 +99,21 @@ class TestProcess {
         )
 
         this.process.stdout.on('data', data => {
+            const dataAsString = String(data)
             if (this.testRun) {
-                this.testRun.appendOutput(String(data).split('\n').join('\n\r'))
+                this.testRun.appendOutput(dataAsString.split('\n').join('\n\r'))
             }
-            else {
-                outputChannel.append(String(data))
-            }
+
+            outputChannel.append(dataAsString)
         })
 
         this.process.stderr.on('data', data => {
+            const dataAsString = String(data)
             if (this.testRun) {
-                this.testRun.appendOutput(String(data).split('\n').join('\n\r'))
+                this.testRun.appendOutput(dataAsString.split('\n').join('\n\r'))
             }
-            else {
-                outputChannel.append(String(data))
-            }
+
+            outputChannel.append(dataAsString)
         })
 
         this.process.on('exit', (code: number, signal: NodeJS.Signals) => {
