@@ -48,6 +48,14 @@ end
 function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     mod = Core.eval(Main, :(module Testmodule end))
 
+    if params.useDefaultUsings
+        Core.eval(mod, :(using Test))
+
+        if params.packageName!=""
+            Core.eval(mod, :(using $(Symbol(params.packageName))))
+        end
+    end
+
     filepath = uri2filepath(params.uri)
 
     code_without_begin_end = params.code[6:end-3]

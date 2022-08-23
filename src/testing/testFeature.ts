@@ -28,6 +28,8 @@ interface PublishTestitemsParams {
 
 interface TestserverRunTestitemRequestParams {
     uri: string
+    packageName: string
+    useDefaultUsings: boolean
     line: number
     column: number
     code: string
@@ -139,11 +141,11 @@ class TestProcess {
     }
 
 
-    public async executeTest(location: lsp.Location, code: string, testRun: vscode.TestRun) {
+    public async executeTest(packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, testRun: vscode.TestRun) {
         this.testRun = testRun
 
         try {
-            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, line: location.range.start.line, column: location.range.start.character, code: code })
+            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code })
             this.testRun = undefined
             return result
         }
@@ -268,7 +270,7 @@ export class TestFeature {
                 range: details.testitem.range
             }
 
-            const result = await testProcess.executeTest(location, code, testRun)
+            const result = await testProcess.executeTest(details.packageName, true, location, code, testRun)
 
             if (result.status === 'passed') {
 
