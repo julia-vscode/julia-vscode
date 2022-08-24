@@ -76,3 +76,6 @@
 [submodule "scripts/packages/Revise"]
 	path = scripts/packages/Revise
 	url = https://github.com/timholy/Revise.jl
+[submodule "scripts/packages/TestEnv"]
+	path = scripts/packages/TestEnv
+	url = https://github.com/davidanthoff/TestEnv.jl
