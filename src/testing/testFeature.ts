@@ -9,7 +9,7 @@ import * as rpc from 'vscode-jsonrpc/node'
 import { Subject } from 'await-notify'
 import { JuliaExecutablesFeature } from '../juliaexepath'
 import { join } from 'path'
-import { getCrashReportingPipename } from '../telemetry'
+import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { getAbsEnvPath } from '../jlpkgenv'
 
 interface Testitem {
@@ -52,6 +52,11 @@ class TestProcess {
     private process: ChildProcessWithoutNullStreams
     private connection: lsp.MessageConnection
     private testRun: vscode.TestRun
+    public launchError: Error | null = null
+
+    isConnected() {
+        return this.connection
+    }
 
     public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, projectPath: string, packagePath: string, packageName: string) {
         const pipename = generatePipeName(uuid(), 'vsc-jl-ts')
@@ -125,6 +130,12 @@ class TestProcess {
             }
         })
 
+        this.process.on('error', (err: Error) => {
+            connected.notify()
+            handleNewCrashReportFromException(err, 'Extension')
+            this.launchError = err
+        })
+
         console.log(this.process.killed)
 
         await connected.wait()
@@ -163,19 +174,30 @@ export class TestFeature {
     private outputChannel: vscode.OutputChannel
 
     constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature) {
-        console.log(this.context.extensionUri)
+        try {
+            this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
 
-        this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
+            this.controller = vscode.tests.createTestController(
+                'juliaTests',
+                'Julia Tests'
+            )
 
-        this.controller = vscode.tests.createTestController(
-            'juliaTests',
-            'Julia Tests'
-        )
-
-        this.controller.createRunProfile('Run', vscode.TestRunProfileKind.Run, async (request, token) => await this.runHandler(request, token), true)
+            this.controller.createRunProfile('Run', vscode.TestRunProfileKind.Run, async (request, token) => {
+                try {
+                    await this.runHandler(request, token)
+                }
+                catch (err) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                    throw (err)
+                }
+            }, true)
         // this.controller.createRunProfile('Debug', vscode.TestRunProfileKind.Debug, this.runHandler.bind(this), false)
         // this.controller.createRunProfile('Coverage', vscode.TestRunProfileKind.Coverage, this.runHandler.bind(this), false)
-
+        }
+        catch (err) {
+            handleNewCrashReportFromException(err, 'Extension')
+            throw (err)
+        }
     }
 
     public publishTestitemsHandler(params: PublishTestitemsParams) {
@@ -261,39 +283,50 @@ export class TestFeature {
                 }
             }
 
-            const doc = await vscode.workspace.openTextDocument(i.uri)
+            if(testProcess.isConnected()) {
 
-            const code = doc.getText(new vscode.Range(details.testitem.range.start.line, details.testitem.range.start.character, details.testitem.range.end.line, details.testitem.range.end.character))
+                const doc = await vscode.workspace.openTextDocument(i.uri)
 
-            const location = {
-                uri: i.uri.toString(),
-                range: details.testitem.range
+                const code = doc.getText(new vscode.Range(details.testitem.range.start.line, details.testitem.range.start.character, details.testitem.range.end.line, details.testitem.range.end.character))
+
+                const location = {
+                    uri: i.uri.toString(),
+                    range: details.testitem.range
+                }
+
+                const result = await testProcess.executeTest(details.packageName, true, location, code, testRun)
+
+                if (result.status === 'passed') {
+
+                    testRun.passed(i)
+                }
+                else if (result.status === 'errored') {
+                    const message = new vscode.TestMessage(result.message[0].message)
+                    message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line, result.message[0].location.range.start.character))
+                    testRun.errored(i, message)
+                }
+                else if (result.status === 'failed') {
+                    const messages = result.message.map(i => {
+                        const message = new vscode.TestMessage(i.message)
+                        message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
+                        return message
+                    })
+                    testRun.failed(i, messages)
+                }
+                else if (result.status === 'crashed') {
+                    const message = new vscode.TestMessage('The test process crashed while running this test.')
+                    testRun.errored(i, message)
+
+                    this.testProcesses.delete(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
+                }
             }
-
-            const result = await testProcess.executeTest(details.packageName, true, location, code, testRun)
-
-            if (result.status === 'passed') {
-
-                testRun.passed(i)
-            }
-            else if (result.status === 'errored') {
-                const message = new vscode.TestMessage(result.message[0].message)
-                message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line, result.message[0].location.range.start.character))
-                testRun.errored(i, message)
-            }
-            else if (result.status === 'failed') {
-                const messages = result.message.map(i => {
-                    const message = new vscode.TestMessage(i.message)
-                    message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
-                    return message
-                })
-                testRun.failed(i, messages)
-            }
-            else if (result.status === 'crashed') {
-                const message = new vscode.TestMessage('The test process crashed while running this test.')
-                testRun.errored(i, message)
-
-                this.testProcesses.delete(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
+            else {
+                if(testProcess.launchError) {
+                    testRun.errored(i, new vscode.TestMessage(`Unable to launch the test process: ${testProcess.launchError.message}`))
+                }
+                else {
+                    testRun.errored(i, new vscode.TestMessage('Unable to launch the test process.'))
+                }
             }
         }
 
