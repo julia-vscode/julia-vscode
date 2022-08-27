@@ -1,3 +1,5 @@
+@info "Starting the Julia Test Server"
+
 pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
 using VSCodeTestServer
 popfirst!(LOAD_PATH)
@@ -9,7 +11,7 @@ import Sockets
 try
     conn = Sockets.connect(ARGS[1])
 
-    @debug "Now running"
+    @info "The Julia Test Server is now connected to the Julia extension"
 
     VSCodeTestServer.serve(conn, ARGS[2][3:end], ARGS[3][3:end], ARGS[4][3:end])
 

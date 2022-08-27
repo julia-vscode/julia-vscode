@@ -27,6 +27,7 @@ import * as telemetry from './telemetry'
 import { notifyTypeTextDocumentPublishTestitems, TestFeature } from './testing/testFeature'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
+import { handleNewCrashReportFromException } from './telemetry'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -358,7 +359,15 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     languageClient.onDidChangeState(event => {
         if (event.newState === State.Running) {
-            languageClient.onNotification(notifyTypeTextDocumentPublishTestitems, i=> g_testFeature.publishTestitemsHandler(i))
+            languageClient.onNotification(notifyTypeTextDocumentPublishTestitems, i=> {
+                try {
+                    g_testFeature.publishTestitemsHandler(i)
+                }
+                catch (err) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                    throw (err)
+                }
+            })
         }
     })
 
