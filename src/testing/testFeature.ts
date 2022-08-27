@@ -86,6 +86,9 @@ class TestProcess {
             [
                 ...juliaExecutable.args,
                 `--project=${pkgenvpath}`,
+                '--startup-file=no',
+                '--history-file=no',
+                '--depwarn=no',
                 join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
                 pipename,
                 `v:${projectPath}`,
