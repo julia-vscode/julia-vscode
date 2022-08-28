@@ -82,7 +82,10 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                     println(false)
                 end`,
                 `${case_adjusted}`
-            ]
+            ],
+            {
+                shell: process.platform !== 'win32',
+            }
         )
 
         if (res.stdout.toString().trim() === 'false') {
@@ -200,7 +203,10 @@ async function getDefaultEnvPath() {
                 '--startup-file=no',
                 '--history-file=no',
                 '-e', 'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))'
-            ])
+            ],
+            {
+                shell: process.platform !== 'win32',
+            })
         g_path_of_default_environment = res.stdout.toString().trim()
     }
     return g_path_of_default_environment

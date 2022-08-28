@@ -65,7 +65,7 @@ async function weave_core(column, selected_format: string = undefined) {
     console.log(args)
 
     if (g_weaveNextChildProcess === null) {
-        g_weaveNextChildProcess = spawn(juliaExecutable.file, [...juliaExecutable.args, ...args])
+        g_weaveNextChildProcess = spawn(juliaExecutable.file, [...juliaExecutable.args, ...args], {shell: process.platform !== 'win32',})
     }
     g_weaveChildProcess = g_weaveNextChildProcess
 
@@ -80,7 +80,7 @@ async function weave_core(column, selected_format: string = undefined) {
         g_weaveOutputChannel.append(String('Weaving ' + source_filename + ' to ' + output_filename + '\n'))
     }
 
-    g_weaveNextChildProcess = spawn(juliaExecutable.file, [...juliaExecutable.args, ...args])
+    g_weaveNextChildProcess = spawn(juliaExecutable.file, [...juliaExecutable.args, ...args], {shell: process.platform !== 'win32',})
 
     g_weaveChildProcess.stdout.on('data', function (data) {
         g_weaveOutputChannel.append(String(data))

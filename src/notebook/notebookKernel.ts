@@ -328,7 +328,8 @@ export class JuliaKernel {
                 ],
                 {
                     env,
-                    cwd: cwdPath
+                    cwd: cwdPath,
+                    shell: process.platform !== 'win32',
                 }
             )
 
