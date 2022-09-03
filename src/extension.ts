@@ -28,6 +28,7 @@ import { notifyTypeTextDocumentPublishTestitems, TestFeature } from './testing/t
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
+import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -60,6 +61,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
         g_context = context
 
+        const globalDiagnosticOutputFeature = new JuliaGlobalDiagnosticOutputFeature()
+        context.subscriptions.push(globalDiagnosticOutputFeature)
+
         console.debug('Activating extension language-julia')
 
         // Config change
@@ -78,7 +82,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Active features from other files
         const compiledProvider = debugViewProvider.activate(context)
-        g_juliaExecutablesFeature = new JuliaExecutablesFeature(context)
+        g_juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
         repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
