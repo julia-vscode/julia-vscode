@@ -103,9 +103,9 @@ class TestProcess {
             ],
             {
                 env: {
+                    ...process.env,
                     JULIA_REVISE: 'off'
-                },
-                shell: process.platform !== 'win32',
+                }
             }
         )
 
