@@ -289,6 +289,8 @@ export class JuliaExecutablesFeature {
 
                 const configPath = this.getExecutablePath()
 
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.executablePath' is '${configPath}'.`)
+
                 if (configPath) {
                     await this.tryAndSetNewJuliaExePathAsync(configPath)
                 }
