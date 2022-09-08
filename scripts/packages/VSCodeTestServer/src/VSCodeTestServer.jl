@@ -49,10 +49,43 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     mod = Core.eval(Main, :(module Testmodule end))
 
     if params.useDefaultUsings
-        Core.eval(mod, :(using Test))
+        try
+            Core.eval(mod, :(using Test))
+        catch
+            return TestserverRunTestitemRequestParamsReturn(
+                "errored",
+                [
+                    TestMessage(
+                        "Unable to load the `Test` package. Please ensure that `Test` is listed as a test dependency in the Project.toml for the package.",
+                        Location(
+                            params.uri,
+                            Range(Position(params.line, 0), Position(params.line, 0))
+                        )
+                    )
+                ]
+            )
+        end
 
         if params.packageName!=""
-            Core.eval(mod, :(using $(Symbol(params.packageName))))
+            try
+                Core.eval(mod, :(using $(Symbol(params.packageName))))
+            catch err
+                bt = catch_backtrace()
+                error_message = sprint(Base.display_error, err, bt)
+
+                return TestserverRunTestitemRequestParamsReturn(
+                    "errored",
+                    [
+                        TestMessage(
+                            error_message,
+                            Location(
+                                params.uri,
+                                Range(Position(params.line, 0), Position(params.line, 0))
+                            )
+                        )
+                    ]
+                )
+            end
         end
     end
 
