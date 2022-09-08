@@ -223,7 +223,7 @@ export class TestFeature {
             fileTestitem.children.replace(params.testitems.map(i => {
                 const testitem = this.controller.createTestItem(i.name, i.name, vscode.Uri.parse(params.uri))
                 if (params.package_path==='') {
-                    testitem.error = 'Unable to identify a Julia project for this test item.'
+                    testitem.error = 'Unable to identify a Julia package for this test item.'
                 }
                 this.testitems.set(testitem, {testitem: i, projectPath: params.project_path, packagePath: params.package_path, packageName: params.package_name})
                 testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
