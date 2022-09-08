@@ -3,7 +3,7 @@ import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { NotificationType, RequestType } from 'vscode-jsonrpc'
 import * as lsp from 'vscode-languageserver-protocol'
-import { generatePipeName } from '../utils'
+import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import * as net from 'net'
 import * as rpc from 'vscode-jsonrpc/node'
 import { Subject } from 'await-notify'
@@ -86,14 +86,32 @@ class TestProcess {
 
         const pkgenvpath = await getAbsEnvPath()
 
+        const jlArgs = [
+            `--project=${pkgenvpath}`,
+            '--startup-file=no',
+            '--history-file=no',
+            '--depwarn=no'
+        ]
+
+        const nthreads = inferJuliaNumThreads()
+
+        if (nthreads==='auto') {
+            jlArgs.push('--threads=auto')
+        }
+
+        const jlEnv = {
+            JULIA_REVISE: 'off'
+        }
+
+        if (nthreads!=='auto' && nthreads!=='') {
+            jlEnv['JULIA_NUM_THREADS'] = nthreads
+        }
+
         this.process = spawn(
             juliaExecutable.file,
             [
                 ...juliaExecutable.args,
-                `--project=${pkgenvpath}`,
-                '--startup-file=no',
-                '--history-file=no',
-                '--depwarn=no',
+                ...jlArgs,
                 join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
                 pipename,
                 `v:${projectPath}`,
@@ -104,7 +122,7 @@ class TestProcess {
             {
                 env: {
                     ...process.env,
-                    JULIA_REVISE: 'off'
+                    ...jlEnv
                 }
             }
         )
