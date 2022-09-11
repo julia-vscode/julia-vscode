@@ -296,7 +296,12 @@ export class JuliaExecutablesFeature {
                 }
             }
 
-            this.diagnosticsOutput.appendLine(`The identified Julia executable is "${this.actualJuliaExePath.file}" with args "${this.actualJuliaExePath.args}".`)
+            if(this.actualJuliaExePath) {
+                this.diagnosticsOutput.appendLine(`The identified Julia executable is "${this.actualJuliaExePath.file}" with args "${this.actualJuliaExePath.args}".`)
+            }
+            else {
+                this.diagnosticsOutput.appendLine(`No Julia executable was identified.`)
+            }
             this.diagnosticsOutput.appendLine(`The current PATH environment variable is "${process.env.PATH}".`)
         }
         return this.actualJuliaExePath
