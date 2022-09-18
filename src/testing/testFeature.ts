@@ -174,7 +174,7 @@ class TestProcess {
     }
 
 
-    public async executeTest(packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, testRun: vscode.TestRun) {
+    public async executeTest(packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, testRun: vscode.TestRun, token: vscode.CancellationToken) {
         this.testRun = testRun
 
         try {
@@ -182,9 +182,14 @@ class TestProcess {
             this.testRun = undefined
             return result
         }
-        catch {
+        catch (err) {
             this.testRun = undefined
-            return {status: 'crashed', message: null}
+            if(err.code === -32097 && token.isCancellationRequested) {
+                return {status: 'canceled', message: null}
+            }
+            else {
+                return {status: 'crashed', message: null}
+            }
         }
     }
 }
@@ -266,6 +271,14 @@ export class TestFeature {
     ) {
         const testRun = this.controller.createTestRun(request, undefined, true)
 
+        const activeTestProccess: TestProcess[] = []
+
+        testRun.token.onCancellationRequested(() => {
+            for( const p of activeTestProccess) {
+                p.kill()
+            }
+        })
+
         const itemsToRun: vscode.TestItem[] = []
 
         // TODO Handle exclude
@@ -281,81 +294,93 @@ export class TestFeature {
         }
 
         for (const i of itemsToRun) {
-            testRun.started(i)
-
-            const details = this.testitems.get(i)
-
-            if (i.error) {
-                testRun.errored(i, new vscode.TestMessage(i.error))
+            if(testRun.token.isCancellationRequested) {
+                testRun.skipped(i)
             }
             else {
+                testRun.started(i)
 
-                let testProcess: TestProcess = null
+                const details = this.testitems.get(i)
 
-                if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
-                    testProcess = new TestProcess()
-                    await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
-                    this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), testProcess)
+                if (i.error) {
+                    testRun.errored(i, new vscode.TestMessage(i.error))
                 }
                 else {
-                    testProcess = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
 
-                    const status = await testProcess.revise()
+                    let testProcess: TestProcess = null
 
-                    if (status !== 'success') {
-                        await testProcess.kill()
-
-                        this.outputChannel.appendLine('RESTARTING TEST SERVER')
-
+                    if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
                         testProcess = new TestProcess()
                         await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
                         this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), testProcess)
                     }
-                }
+                    else {
+                        testProcess = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
 
-                if(testProcess.isConnected()) {
+                        const status = await testProcess.revise()
 
-                    const doc = await vscode.workspace.openTextDocument(i.uri)
+                        if (status !== 'success') {
+                            await testProcess.kill()
 
-                    const code = doc.getText(new vscode.Range(details.testitem.range.start.line, details.testitem.range.start.character, details.testitem.range.end.line, details.testitem.range.end.character))
+                            this.outputChannel.appendLine('RESTARTING TEST SERVER')
 
-                    const location = {
-                        uri: i.uri.toString(),
-                        range: details.testitem.range
+                            testProcess = new TestProcess()
+                            await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
+                            this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), testProcess)
+                        }
                     }
 
-                    const result = await testProcess.executeTest(details.packageName, true, location, code, testRun)
+                    if(testProcess.isConnected()) {
 
-                    if (result.status === 'passed') {
+                        const doc = await vscode.workspace.openTextDocument(i.uri)
 
-                        testRun.passed(i)
-                    }
-                    else if (result.status === 'errored') {
-                        const message = new vscode.TestMessage(result.message[0].message)
-                        message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line, result.message[0].location.range.start.character))
-                        testRun.errored(i, message)
-                    }
-                    else if (result.status === 'failed') {
-                        const messages = result.message.map(i => {
-                            const message = new vscode.TestMessage(i.message)
-                            message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
-                            return message
-                        })
-                        testRun.failed(i, messages)
-                    }
-                    else if (result.status === 'crashed') {
-                        const message = new vscode.TestMessage('The test process crashed while running this test.')
-                        testRun.errored(i, message)
+                        const code = doc.getText(new vscode.Range(details.testitem.range.start.line, details.testitem.range.start.character, details.testitem.range.end.line, details.testitem.range.end.character))
 
-                        this.testProcesses.delete(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
-                    }
-                }
-                else {
-                    if(testProcess.launchError) {
-                        testRun.errored(i, new vscode.TestMessage(`Unable to launch the test process: ${testProcess.launchError.message}`))
+                        const location = {
+                            uri: i.uri.toString(),
+                            range: details.testitem.range
+                        }
+
+                        activeTestProccess.push(testProcess)
+                        const result = await testProcess.executeTest(details.packageName, true, location, code, testRun, testRun.token)
+                        activeTestProccess.pop()
+
+                        if (result.status === 'passed') {
+
+                            testRun.passed(i)
+                        }
+                        else if (result.status === 'errored') {
+                            const message = new vscode.TestMessage(result.message[0].message)
+                            message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line, result.message[0].location.range.start.character))
+                            testRun.errored(i, message)
+                        }
+                        else if (result.status === 'failed') {
+                            const messages = result.message.map(i => {
+                                const message = new vscode.TestMessage(i.message)
+                                message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
+                                return message
+                            })
+                            testRun.failed(i, messages)
+                        }
+                        else if (result.status === 'crashed') {
+                            const message = new vscode.TestMessage('The test process crashed while running this test.')
+                            testRun.errored(i, message)
+
+                            this.testProcesses.delete(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
+                        }
+                        else if (result.status === 'canceled') {
+                            testRun.skipped(i)
+
+                            this.testProcesses.delete(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
+                        }
                     }
                     else {
-                        testRun.errored(i, new vscode.TestMessage('Unable to launch the test process.'))
+                        if(testProcess.launchError) {
+                            testRun.errored(i, new vscode.TestMessage(`Unable to launch the test process: ${testProcess.launchError.message}`))
+                        }
+                        else {
+                            testRun.errored(i, new vscode.TestMessage('Unable to launch the test process.'))
+                        }
                     }
                 }
             }
