@@ -35,6 +35,7 @@ end
 JSONRPC.@dict_readable struct TestserverRunTestitemRequestParamsReturn <: JSONRPC.Outbound
     status::String
     message::Union{Vector{TestMessage},Nothing}
+    duration::Union{Float64,Nothing}
 end
 
 const testserver_revise_request_type = JSONRPC.RequestType("testserver/revise", Nothing, String)

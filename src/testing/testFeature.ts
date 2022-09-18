@@ -41,7 +41,8 @@ interface TestMessage {
 }
 interface TestserverRunTestitemRequestParamsReturn {
     status: string
-    message: TestMessage[] | null
+    message: TestMessage[] | null,
+    duration: number | null
 }
 
 export const notifyTypeTextDocumentPublishTestitems = new NotificationType<PublishTestitemsParams>('julia/publishTestitems')
@@ -185,10 +186,10 @@ class TestProcess {
         catch (err) {
             this.testRun = undefined
             if(err.code === -32097 && token.isCancellationRequested) {
-                return {status: 'canceled', message: null}
+                return {status: 'canceled', message: null, duration: null}
             }
             else {
-                return {status: 'crashed', message: null}
+                return {status: 'crashed', message: null, duration: null}
             }
         }
     }
@@ -346,13 +347,12 @@ export class TestFeature {
                         activeTestProccess.pop()
 
                         if (result.status === 'passed') {
-
-                            testRun.passed(i)
+                            testRun.passed(i, result.duration)
                         }
                         else if (result.status === 'errored') {
                             const message = new vscode.TestMessage(result.message[0].message)
                             message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line, result.message[0].location.range.start.character))
-                            testRun.errored(i, message)
+                            testRun.errored(i, message, result.duration)
                         }
                         else if (result.status === 'failed') {
                             const messages = result.message.map(i => {
@@ -360,7 +360,7 @@ export class TestFeature {
                                 message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
                                 return message
                             })
-                            testRun.failed(i, messages)
+                            testRun.failed(i, messages, result.duration)
                         }
                         else if (result.status === 'crashed') {
                             const message = new vscode.TestMessage('The test process crashed while running this test.')
