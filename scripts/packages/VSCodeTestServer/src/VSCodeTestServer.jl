@@ -62,7 +62,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                             Range(Position(params.line, 0), Position(params.line, 0))
                         )
                     )
-                ]
+                ],
+                nothing
             )
         end
 
@@ -83,7 +84,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                                 Range(Position(params.line, 0), Position(params.line, 0))
                             )
                         )
-                    ]
+                    ],
+                    nothing
                 )
             end
         end
@@ -98,9 +100,16 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
     Test.push_testset(ts)
 
+    elapsed_time = UInt64(0)
+
     try
         withpath(filepath) do
-            Base.invokelatest(include_string, mod, code, filepath)
+            t0 = time_ns()
+            try
+                Base.invokelatest(include_string, mod, code, filepath)
+            finally
+                elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
+            end
         end
     catch err
         Test.pop_testset()
@@ -128,7 +137,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                         Range(Position(max(0, error_line - 1), 0), Position(max(0, error_line - 1), 0))
                     )
                 )
-            ]
+            ],
+            elapsed_time
         )
     end
 
@@ -137,14 +147,15 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     try
         Test.finish(ts)
 
-        return TestserverRunTestitemRequestParamsReturn("passed", nothing)
+        return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time)
     catch err
         if err isa Test.TestSetException
             failed_tests = Test.filter_errors(ts)
 
             return TestserverRunTestitemRequestParamsReturn(
                 "failed",
-                [TestMessage(sprint(Base.show, i), Location(filepath2uri(string(i.source.file)), Range(Position(i.source.line - 1, 0), Position(i.source.line - 1, 0)))) for i in failed_tests]
+                [TestMessage(sprint(Base.show, i), Location(filepath2uri(string(i.source.file)), Range(Position(i.source.line - 1, 0), Position(i.source.line - 1, 0)))) for i in failed_tests],
+                elapsed_time
             )
         else
             rethrow(err)
