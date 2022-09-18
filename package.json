@@ -35,6 +35,7 @@
         "onCommand:language-julia.startREPL",
         "onCommand:language-julia.connectREPL",
         "onCommand:language-julia.stopREPL",
+        "onCommand:language-julia.stopTestProcess",
         "onCommand:language-julia.restartREPL",
         "onCommand:language-julia.executeCodeBlockOrSelection",
         "onCommand:language-julia.executeFile",
@@ -136,6 +137,11 @@
                 "command": "language-julia.restartREPL",
                 "title": "Julia: Restart REPL",
                 "icon": "$(debug-restart)"
+            },
+            {
+                "command": "language-julia.stopTestProcess",
+                "title": "Julia: Stop Test Process",
+                "icon": "$(debug-stop)"
             },
             {
                 "command": "language-julia.disconnectREPL",
@@ -597,6 +603,11 @@
                 {
                     "command": "language-julia.restartREPL",
                     "when": "view == REPLVariables && viewItem == juliarepl",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.stopTestProcess",
+                    "when": "view == REPLVariables && viewItem == juliatestprocess",
                     "group": "inline"
                 },
                 {

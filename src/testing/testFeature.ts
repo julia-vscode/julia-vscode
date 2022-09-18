@@ -3,7 +3,7 @@ import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { NotificationType, RequestType } from 'vscode-jsonrpc'
 import * as lsp from 'vscode-languageserver-protocol'
-import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
 import * as net from 'net'
 import * as rpc from 'vscode-jsonrpc/node'
 import { Subject } from 'await-notify'
@@ -11,6 +11,7 @@ import { JuliaExecutablesFeature } from '../juliaexepath'
 import { join } from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { getAbsEnvPath } from '../jlpkgenv'
+import { TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 
 interface Testitem {
     name: string
@@ -49,17 +50,30 @@ export const notifyTypeTextDocumentPublishTestitems = new NotificationType<Publi
 const requestTypeExecuteTestitem = new RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
 const requestTypeRevise = new RequestType<void, string, void>('testserver/revise')
 
-class TestProcess {
+export class TestProcess {
     private process: ChildProcessWithoutNullStreams
     private connection: lsp.MessageConnection
     private testRun: vscode.TestRun
     public launchError: Error | null = null
+
+    private plannedKill = false
+
+    private _onKilled = new vscode.EventEmitter<void>()
+    public onKilled = this._onKilled.event
+
+    public projectPath: string | null = null
+    public packagePath: string | null = null
+    public packageName: string | null = null
 
     isConnected() {
         return this.connection
     }
 
     public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, projectPath: string, packagePath: string, packageName: string) {
+        this.projectPath = projectPath
+        this.packagePath = packagePath
+        this.packageName = packageName
+
         const pipename = generatePipeName(uuid(), 'vsc-jl-ts')
 
         const connected = new Subject()
@@ -151,6 +165,7 @@ class TestProcess {
                 this.connection.dispose()
                 this.connection = null
             }
+            this._onKilled.fire()
         })
 
         this.process.on('error', (err: Error) => {
@@ -171,6 +186,7 @@ class TestProcess {
     }
 
     public async kill() {
+        this.plannedKill = true
         this.process.kill()
     }
 
@@ -185,7 +201,7 @@ class TestProcess {
         }
         catch (err) {
             this.testRun = undefined
-            if(err.code === -32097 && token.isCancellationRequested) {
+            if((err.code === -32097 && token.isCancellationRequested) || (this.plannedKill)) {
                 return {status: 'canceled', message: null, duration: null}
             }
             else {
@@ -201,7 +217,7 @@ export class TestFeature {
     private testProcesses: Map<string, TestProcess> = new Map<string, TestProcess>()
     private outputChannel: vscode.OutputChannel
 
-    constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature) {
+    constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature, private workspaceFeature: WorkspaceFeature) {
         try {
             this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
 
@@ -219,6 +235,12 @@ export class TestFeature {
                     throw (err)
                 }
             }, true)
+
+            context.subscriptions.push(
+                registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
+                    node.stop()
+                )
+            )
         // this.controller.createRunProfile('Debug', vscode.TestRunProfileKind.Debug, this.runHandler.bind(this), false)
         // this.controller.createRunProfile('Coverage', vscode.TestRunProfileKind.Coverage, this.runHandler.bind(this), false)
         }
@@ -313,20 +335,34 @@ export class TestFeature {
                     if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
                         testProcess = new TestProcess()
                         await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
+                        this.workspaceFeature.addTestProcess(testProcess)
                         this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), testProcess)
                     }
                     else {
                         testProcess = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
 
-                        const status = await testProcess.revise()
+                        let needsNewProcess = false
 
-                        if (status !== 'success') {
-                            await testProcess.kill()
+                        if (!testProcess.isConnected()) {
+                            needsNewProcess = true
+                        }
+                        else {
+                            const status = await testProcess.revise()
 
-                            this.outputChannel.appendLine('RESTARTING TEST SERVER')
+                            if (status !== 'success') {
+                                await testProcess.kill()
 
+                                this.outputChannel.appendLine('RESTARTING TEST SERVER')
+
+                                needsNewProcess = true
+                            }
+
+                        }
+
+                        if (needsNewProcess) {
                             testProcess = new TestProcess()
                             await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
+                            this.workspaceFeature.addTestProcess(testProcess)
                             this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), testProcess)
                         }
                     }
