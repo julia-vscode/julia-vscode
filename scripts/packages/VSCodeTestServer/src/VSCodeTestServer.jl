@@ -43,7 +43,7 @@ function flatten_failed_tests!(ts, out)
 end
 
 function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
-    mod = Core.eval(Main, :(module Testmodule end))
+    mod = Core.eval(Main, :(module $(gensym()) end))
 
     if params.useDefaultUsings
         try
