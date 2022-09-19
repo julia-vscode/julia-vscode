@@ -237,11 +237,11 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
         vscode.window.showErrorMessage(
-            'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.',
+            'Could not start the Julia language server. Make sure the `julia.executablePath` setting is valid.',
             'Open Settings'
         ).then(val => {
             if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
             }
         })
         g_startupNotification.hide()
