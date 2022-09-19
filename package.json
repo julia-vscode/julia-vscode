@@ -1043,6 +1043,12 @@
                     "scope": "machine-overridable",
                     "markdownDescription": "Number of threads to use for Julia processes. A value of `auto` works on Julia versions that allow for `--threads=auto`."
                 },
+                "julia.numTestProcesses": {
+                    "type": "integer",
+                    "default": 0,
+                    "scope": "machine-overridable",
+                    "markdownDescription": "Number of processes to use for testing."
+                },
                 "julia.editor": {
                     "type": "string",
                     "default": "code",

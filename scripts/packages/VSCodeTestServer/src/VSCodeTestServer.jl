@@ -93,22 +93,21 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     code_without_begin_end = params.code[6:end-3]
     code = string('\n'^params.line, ' '^params.column, code_without_begin_end)
 
-    ts = Test.DefaultTestSet("")
+    ts = Test.DefaultTestSet("$filepath:$(params.name)")
 
     Test.push_testset(ts)
 
     elapsed_time = UInt64(0)
 
+    t0 = time_ns()
     try
         withpath(filepath) do
-            t0 = time_ns()
-            try
-                Base.invokelatest(include_string, mod, code, filepath)
-            finally
-                elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
-            end
+            Base.invokelatest(include_string, mod, code, filepath)
+            elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
         end
     catch err
+        elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
+
         Test.pop_testset()
 
         bt = catch_backtrace()
