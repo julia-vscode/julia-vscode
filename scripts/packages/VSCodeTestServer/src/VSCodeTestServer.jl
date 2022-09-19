@@ -26,13 +26,10 @@ end
 
 function run_revise_handler(conn, params::Nothing)
     try
-        @info "NOW TRYING TO REVISE"
         Revise.revise(throw=true)
-        @info "FINISHED WITH REVISE"
         return "success"
     catch err
         Base.display_error(err, catch_backtrace())
-        @info "FAILED TO REVISE"
         return "failed"
     end
 end
