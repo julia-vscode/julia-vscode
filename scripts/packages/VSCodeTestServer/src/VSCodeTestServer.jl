@@ -42,6 +42,17 @@ function flatten_failed_tests!(ts, out)
     end
 end
 
+function format_error_message(err, bt)
+    try
+        return Base.invokelatest(sprint, Base.display_error, err, bt)
+    catch err
+        # TODO We could probably try to output an even better error message here that
+        # takes into account `err`. And in the callsites we should probably also
+        # handle this better.
+        return "Error while trying to format an error message"
+    end
+end
+
 function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     mod = Core.eval(Main, :(module $(gensym()) end))
 
@@ -69,7 +80,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 Core.eval(mod, :(using $(Symbol(params.packageName))))
             catch err
                 bt = catch_backtrace()
-                error_message = sprint(Base.display_error, err, bt)
+                error_message = format_error_message(err, bt)
 
                 return TestserverRunTestitemRequestParamsReturn(
                     "errored",
@@ -113,7 +124,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
         bt = catch_backtrace()
         st = stacktrace(bt)
 
-        error_message = sprint(Base.display_error, err, bt)
+        error_message = format_error_message(err, bt)
 
         if err isa LoadError
             error_filepath = err.file
