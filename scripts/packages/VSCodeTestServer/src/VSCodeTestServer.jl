@@ -104,8 +104,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
     filepath = uri2filepath(params.uri)
 
-    code_without_begin_end = params.code[6:end-3]
-    code = string('\n'^params.line, ' '^params.column, code_without_begin_end)
+    code = string('\n'^params.line, ' '^params.column, params.code)
 
     ts = Test.DefaultTestSet("")
 
