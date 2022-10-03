@@ -336,7 +336,7 @@ export class TestFeature {
         }
     }
 
-    async launchNewProcess(details: { testitem: Testitem, projectPath: string, packagePath: string, packageName: string }) {
+    async launchNewProcess(details: { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }) {
         const testProcess = new TestProcess()
         await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
         this.workspaceFeature.addTestProcess(testProcess)
@@ -356,7 +356,7 @@ export class TestFeature {
         return testProcess
     }
 
-    async getFreeTestProcess(details: { testitem: Testitem, projectPath: string, packagePath: string, packageName: string }) {
+    async getFreeTestProcess(details: { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }) {
         if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
             const testProcess = await this.launchNewProcess(details)
 
