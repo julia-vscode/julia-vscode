@@ -79,3 +79,6 @@
 [submodule "scripts/packages/TestEnv"]
 	path = scripts/packages/TestEnv
 	url = https://github.com/davidanthoff/TestEnv.jl
+[submodule "scripts/packages/TestItemDetection"]
+	path = scripts/packages/TestItemDetection
+	url = https://github.com/julia-vscode/TestItemDetection.jl
