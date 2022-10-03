@@ -3,7 +3,7 @@ import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { NotificationType, RequestType } from 'vscode-jsonrpc'
 import * as lsp from 'vscode-languageserver-protocol'
-import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
 import * as net from 'net'
 import * as rpc from 'vscode-jsonrpc/node'
 import { Subject } from 'await-notify'
@@ -11,6 +11,8 @@ import { JuliaExecutablesFeature } from '../juliaexepath'
 import { join } from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { getAbsEnvPath } from '../jlpkgenv'
+import { TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
+import { cpus } from 'os'
 
 interface TestItemDetail {
     id: string,
@@ -34,6 +36,7 @@ interface PublishTestItemsParams {
 
 interface TestserverRunTestitemRequestParams {
     uri: string
+    name: string
     packageName: string
     useDefaultUsings: boolean
     line: number
@@ -55,17 +58,35 @@ export const notifyTypeTextDocumentPublishTestitems = new NotificationType<Publi
 const requestTypeExecuteTestitem = new RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
 const requestTypeRevise = new RequestType<void, string, void>('testserver/revise')
 
-class TestProcess {
+export class TestProcess {
+
     private process: ChildProcessWithoutNullStreams
     private connection: lsp.MessageConnection
-    private testRun: vscode.TestRun
+    public testRun: vscode.TestRun | null = null
     public launchError: Error | null = null
+
+    private plannedKill = false
+
+    private _onKilled = new vscode.EventEmitter<void>()
+    public onKilled = this._onKilled.event
+
+    public projectPath: string | null = null
+    public packagePath: string | null = null
+    public packageName: string | null = null
 
     isConnected() {
         return this.connection
     }
 
+    isBusy() {
+        return this.testRun!==null
+    }
+
     public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, projectPath: string, packagePath: string, packageName: string) {
+        this.projectPath = projectPath
+        this.packagePath = packagePath
+        this.packageName = packageName
+
         const pipename = generatePipeName(uuid(), 'vsc-jl-ts')
 
         const connected = new Subject()
@@ -157,6 +178,7 @@ class TestProcess {
                 this.connection.dispose()
                 this.connection = null
             }
+            this._onKilled.fire()
         })
 
         this.process.on('error', (err: Error) => {
@@ -177,25 +199,51 @@ class TestProcess {
     }
 
     public async kill() {
+        this.plannedKill = true
         this.process.kill()
     }
 
 
-    public async executeTest(packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, testRun: vscode.TestRun, token: vscode.CancellationToken) {
+    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, testRun: vscode.TestRun, someTestItemFinished: Subject) {
         this.testRun = testRun
 
         try {
-            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code })
-            this.testRun = undefined
-            return result
-        }
-        catch (err) {
-            this.testRun = undefined
-            if(err.code === -32097 && token.isCancellationRequested) {
-                return {status: 'canceled', message: null, duration: null}
+            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code })
+
+            if (result.status === 'passed') {
+                testRun.passed(testItem, result.duration)
+            }
+            else if (result.status === 'errored') {
+                const message = new vscode.TestMessage(result.message[0].message)
+                message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line, result.message[0].location.range.start.character))
+                testRun.errored(testItem, message, result.duration)
+            }
+            else if (result.status === 'failed') {
+                const messages = result.message.map(i => {
+                    const message = new vscode.TestMessage(i.message)
+                    message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
+                    return message
+                })
+                testRun.failed(testItem, messages, result.duration)
             }
             else {
-                return {status: 'crashed', message: null, duration: null}
+                throw(new Error(`Unknown test result status ${result.status}.`))
+            }
+
+            this.testRun = null
+
+            someTestItemFinished.notifyAll()
+        }
+        catch (err) {
+            if((err.code === -32097 && testRun.token.isCancellationRequested) || (this.plannedKill)) {
+                testRun.skipped(testItem)
+                this.kill()
+            }
+            else {
+                const message = new vscode.TestMessage('The test process crashed while running this test.')
+                testRun.errored(testItem, message)
+
+                this.kill()
             }
         }
     }
@@ -204,10 +252,12 @@ class TestProcess {
 export class TestFeature {
     private controller: vscode.TestController
     private testitems: WeakMap<vscode.TestItem, { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }> = new WeakMap<vscode.TestItem, { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }>()
-    private testProcesses: Map<string, TestProcess> = new Map<string, TestProcess>()
+    private testProcesses: Map<string, TestProcess[]> = new Map<string, TestProcess[]>()
     private outputChannel: vscode.OutputChannel
+    private someTestItemFinished = new Subject()
+    private cpuLength: number | null = null
 
-    constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature) {
+    constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature, private workspaceFeature: WorkspaceFeature) {
         try {
             this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
 
@@ -225,6 +275,14 @@ export class TestFeature {
                     throw (err)
                 }
             }, true)
+
+            context.subscriptions.push(
+                registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
+                    node.stop()
+                )
+            )
+
+            this.cpuLength = cpus().length
         // this.controller.createRunProfile('Debug', vscode.TestRunProfileKind.Debug, this.runHandler.bind(this), false)
         // this.controller.createRunProfile('Coverage', vscode.TestRunProfileKind.Coverage, this.runHandler.bind(this), false)
         }
@@ -278,58 +336,43 @@ export class TestFeature {
         }
     }
 
-    async runHandler(
-        request: vscode.TestRunRequest,
-        token: vscode.CancellationToken
-    ) {
-        const testRun = this.controller.createTestRun(request, undefined, true)
+    async launchNewProcess(details: { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }) {
+        const testProcess = new TestProcess()
+        await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
+        this.workspaceFeature.addTestProcess(testProcess)
 
-        const activeTestProccess: TestProcess[] = []
+        if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
+            this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), [])
+        }
 
-        testRun.token.onCancellationRequested(() => {
-            for( const p of activeTestProccess) {
-                p.kill()
-            }
+        const processes = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
+
+        processes.push(testProcess)
+
+        testProcess.onKilled((e) => {
+            processes.splice(processes.indexOf(testProcess))
         })
 
-        const itemsToRun: vscode.TestItem[] = []
+        return testProcess
+    }
 
-        // TODO Handle exclude
-        if (!request.include) {
-            this.controller.items.forEach(i=>this.walkTestTree(i, itemsToRun))
+    async getFreeTestProcess(details: { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }) {
+        if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
+            const testProcess = await this.launchNewProcess(details)
+
+            return testProcess
         }
         else {
-            request.include.forEach(i => this.walkTestTree(i, itemsToRun))
-        }
+            const testProcesses = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
 
-        for (const i of itemsToRun) {
-            testRun.enqueued(i)
-        }
+            for(let testProcess of testProcesses) {
+                if(!testProcess.isBusy()) {
+                    let needsNewProcess = false
 
-        for (const i of itemsToRun) {
-            if(testRun.token.isCancellationRequested) {
-                testRun.skipped(i)
-            }
-            else {
-                testRun.started(i)
-
-                const details = this.testitems.get(i)
-
-                if (i.error) {
-                    testRun.errored(i, new vscode.TestMessage(i.error))
-                }
-                else {
-
-                    let testProcess: TestProcess = null
-
-                    if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
-                        testProcess = new TestProcess()
-                        await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
-                        this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), testProcess)
+                    if (!testProcess.isConnected()) {
+                        needsNewProcess = true
                     }
                     else {
-                        testProcess = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
-
                         const status = await testProcess.revise()
 
                         if (status !== 'success') {
@@ -337,67 +380,126 @@ export class TestFeature {
 
                             this.outputChannel.appendLine('RESTARTING TEST SERVER')
 
-                            testProcess = new TestProcess()
-                            await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
-                            this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), testProcess)
+                            needsNewProcess = true
                         }
+
                     }
 
-                    if(testProcess.isConnected()) {
-                        const code = details.testitem.code
+                    if (needsNewProcess) {
+                        testProcess = await this.launchNewProcess(details)
+                    }
 
-                        const location = {
-                            uri: i.uri.toString(),
-                            range: details.testitem.code_range
-                        }
+                    return testProcess
+                }
+            }
 
-                        activeTestProccess.push(testProcess)
-                        const result = await testProcess.executeTest(details.packageName, details.testitem.option_default_imports, location, code, testRun, testRun.token)
-                        activeTestProccess.pop()
+            let maxNumProcesses = vscode.workspace.getConfiguration('julia').get<number>('numTestProcesses')
 
-                        if (result.status === 'passed') {
-                            testRun.passed(i, result.duration)
-                        }
-                        else if (result.status === 'errored') {
-                            const message = new vscode.TestMessage(result.message[0].message)
-                            message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line, result.message[0].location.range.start.character))
-                            testRun.errored(i, message, result.duration)
-                        }
-                        else if (result.status === 'failed') {
-                            const messages = result.message.map(i => {
-                                const message = new vscode.TestMessage(i.message)
-                                message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
-                                return message
-                            })
-                            testRun.failed(i, messages, result.duration)
-                        }
-                        else if (result.status === 'crashed') {
-                            const message = new vscode.TestMessage('The test process crashed while running this test.')
-                            testRun.errored(i, message)
+            if(maxNumProcesses===0) {
+                maxNumProcesses = this.cpuLength
+            }
 
-                            this.testProcesses.delete(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
-                        }
-                        else if (result.status === 'canceled') {
-                            testRun.skipped(i)
+            if(testProcesses.length < maxNumProcesses) {
+                const testProcess = await this.launchNewProcess(details)
 
-                            this.testProcesses.delete(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
+                return testProcess
+            }
+            else {
+                return null
+            }
+
+        }
+    }
+
+    async runHandler(
+        request: vscode.TestRunRequest,
+        token: vscode.CancellationToken
+    ) {
+        const testRun = this.controller.createTestRun(request, undefined, true)
+
+        try {
+
+            testRun.token.onCancellationRequested(() => {
+                for( const ps of this.testProcesses) {
+                    for( const p of ps[1]) {
+                        if(p.testRun === testRun && p.isBusy()) {
+                            p.kill()
                         }
+                    }
+                }
+                this.someTestItemFinished.notifyAll()
+            })
+
+            const itemsToRun: vscode.TestItem[] = []
+
+            // TODO Handle exclude
+            if (!request.include) {
+                this.controller.items.forEach(i=>this.walkTestTree(i, itemsToRun))
+            }
+            else {
+                request.include.forEach(i => this.walkTestTree(i, itemsToRun))
+            }
+
+            for (const i of itemsToRun) {
+                testRun.enqueued(i)
+            }
+
+            const executionPromises = []
+
+            for (const i of itemsToRun) {
+                if(testRun.token.isCancellationRequested) {
+                    testRun.skipped(i)
+                }
+                else {
+                    const details = this.testitems.get(i)
+
+                    if (i.error) {
+                        testRun.errored(i, new vscode.TestMessage(i.error))
                     }
                     else {
-                        if(testProcess.launchError) {
-                            testRun.errored(i, new vscode.TestMessage(`Unable to launch the test process: ${testProcess.launchError.message}`))
+
+                        let testProcess: TestProcess = await this.getFreeTestProcess(details)
+
+                        while(testProcess===null && !testRun.token.isCancellationRequested) {
+                            await this.someTestItemFinished.wait()
+                            testProcess = await this.getFreeTestProcess(details)
                         }
-                        else {
-                            testRun.errored(i, new vscode.TestMessage('Unable to launch the test process.'))
+
+                        if(testProcess!==null) {
+
+                            testRun.started(i)
+
+                            if(testProcess.isConnected()) {
+
+                                const code = details.testitem.code
+
+                                const location = {
+                                    uri: i.uri.toString(),
+                                    range: details.testitem.code_range
+                                }
+
+                                const executionPromise = testProcess.executeTest(i, details.packageName, details.testitem.option_default_imports, location, code, testRun, this.someTestItemFinished)
+
+                                executionPromises.push(executionPromise)
+                            }
+                            else {
+                                if(testProcess.launchError) {
+                                    testRun.errored(i, new vscode.TestMessage(`Unable to launch the test process: ${testProcess.launchError.message}`))
+                                }
+                                else {
+                                    testRun.errored(i, new vscode.TestMessage('Unable to launch the test process.'))
+                                }
+                            }
                         }
                     }
                 }
             }
+
+            await Promise.all(executionPromises)
         }
-
-        // testRun.failed(this.controller.items.get('test1'), new vscode.TestMessage('Well that did not work'))
-
-        testRun.end()
+        finally {
+            testRun.end()
+        }
     }
 
     public dispose() {

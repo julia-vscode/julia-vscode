@@ -25,6 +25,7 @@ end
 
 JSONRPC.@dict_readable struct TestserverRunTestitemRequestParams <: JSONRPC.Outbound
     uri::String
+    name::String
     packageName::String
     useDefaultUsings::Bool
     line::Int

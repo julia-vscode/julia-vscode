@@ -26,13 +26,10 @@ end
 
 function run_revise_handler(conn, params::Nothing)
     try
-        @info "NOW TRYING TO REVISE"
         Revise.revise(throw=true)
-        @info "FINISHED WITH REVISE"
         return "success"
     catch err
         Base.display_error(err, catch_backtrace())
-        @info "FAILED TO REVISE"
         return "failed"
     end
 end
@@ -57,7 +54,7 @@ function format_error_message(err, bt)
 end
 
 function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
-    mod = Core.eval(Main, :(module Testmodule end))
+    mod = Core.eval(Main, :(module $(gensym()) end))
 
     if params.useDefaultUsings
         try
@@ -106,22 +103,21 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
     code = string('\n'^params.line, ' '^params.column, params.code)
 
-    ts = Test.DefaultTestSet("")
+    ts = Test.DefaultTestSet("$filepath:$(params.name)")
 
     Test.push_testset(ts)
 
     elapsed_time = UInt64(0)
 
+    t0 = time_ns()
     try
         withpath(filepath) do
-            t0 = time_ns()
-            try
-                Base.invokelatest(include_string, mod, code, filepath)
-            finally
-                elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
-            end
+            Base.invokelatest(include_string, mod, code, filepath)
+            elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
         end
     catch err
+        elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
+
         Test.pop_testset()
 
         bt = catch_backtrace()
