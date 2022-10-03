@@ -1045,7 +1045,7 @@
                 },
                 "julia.numTestProcesses": {
                     "type": "integer",
-                    "default": 0,
+                    "default": 1,
                     "scope": "machine-overridable",
                     "markdownDescription": "Number of processes to use for testing."
                 },
