@@ -17,4 +17,5 @@ Pkg.develop([
     PackageSpec(path="../../../packages/Tokenize"),
     PackageSpec(path="../../../packages/URIParser"),
     PackageSpec(path="../../../packages/URIs"),
+    PackageSpec(path="../../../packages/TestItemDetection"),
 ])

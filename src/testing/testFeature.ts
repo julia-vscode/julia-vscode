@@ -14,18 +14,24 @@ import { getAbsEnvPath } from '../jlpkgenv'
 import { TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 
-interface Testitem {
-    name: string
+interface TestItemDetail {
+    id: string,
+    label: string
     range: lsp.Range
+    code?: string
+    code_range?: lsp.Range
+    option_default_imports?: boolean
+    option_tags?: string[]
+    error?: string
 }
 
-interface PublishTestitemsParams {
+interface PublishTestItemsParams {
     uri: lsp.URI
     version: number,
     project_path: string,
     package_path: string,
     package_name: string,
-    testitems: Testitem[]
+    testitemdetails: TestItemDetail[]
 }
 
 interface TestserverRunTestitemRequestParams {
@@ -48,7 +54,7 @@ interface TestserverRunTestitemRequestParamsReturn {
     duration: number | null
 }
 
-export const notifyTypeTextDocumentPublishTestitems = new NotificationType<PublishTestitemsParams>('julia/publishTestitems')
+export const notifyTypeTextDocumentPublishTestitems = new NotificationType<PublishTestItemsParams>('julia/publishTestitems')
 const requestTypeExecuteTestitem = new RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
 const requestTypeRevise = new RequestType<void, string, void>('testserver/revise')
 
@@ -245,7 +251,7 @@ export class TestProcess {
 
 export class TestFeature {
     private controller: vscode.TestController
-    private testitems: WeakMap<vscode.TestItem, { testitem: Testitem, projectPath: string, packagePath: string, packageName: string }> = new WeakMap<vscode.TestItem, { testitem: Testitem, projectPath: string, packagePath: string, packageName: string }>()
+    private testitems: WeakMap<vscode.TestItem, { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }> = new WeakMap<vscode.TestItem, { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }>()
     private testProcesses: Map<string, TestProcess[]> = new Map<string, TestProcess[]>()
     private outputChannel: vscode.OutputChannel
     private someTestItemFinished = new Subject()
@@ -286,26 +292,32 @@ export class TestFeature {
         }
     }
 
-    public publishTestitemsHandler(params: PublishTestitemsParams) {
+    public publishTestitemsHandler(params: PublishTestItemsParams) {
         const uri = vscode.Uri.parse(params.uri)
 
         let fileTestitem = this.controller.items.get(params.uri)
 
-        if (!fileTestitem && params.testitems.length > 0) {
+        if (!fileTestitem && params.testitemdetails.length > 0) {
             const filename = vscode.workspace.asRelativePath(uri.fsPath)
 
             fileTestitem = this.controller.createTestItem(params.uri, filename, uri)
             this.controller.items.add(fileTestitem)
         }
-        else if (fileTestitem && params.testitems.length === 0) {
+        else if (fileTestitem && params.testitemdetails.length === 0) {
             this.controller.items.delete(fileTestitem.id)
         }
 
-        if (params.testitems.length > 0 ) {
-            fileTestitem.children.replace(params.testitems.map(i => {
-                const testitem = this.controller.createTestItem(i.name, i.name, vscode.Uri.parse(params.uri))
-                if (params.package_path==='') {
+        if (params.testitemdetails.length > 0 ) {
+            fileTestitem.children.replace(params.testitemdetails.map(i => {
+                const testitem = this.controller.createTestItem(i.id, i.label, vscode.Uri.parse(params.uri))
+                if (i.error) {
+                    testitem.error = i.error
+                }
+                else if (params.package_path==='') {
                     testitem.error = 'Unable to identify a Julia package for this test item.'
+                }
+                else {
+                    testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
                 }
                 this.testitems.set(testitem, {testitem: i, projectPath: params.project_path, packagePath: params.package_path, packageName: params.package_name})
                 testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
@@ -459,16 +471,14 @@ export class TestFeature {
 
                             if(testProcess.isConnected()) {
 
-                                const doc = await vscode.workspace.openTextDocument(i.uri)
-
-                                const code = doc.getText(new vscode.Range(details.testitem.range.start.line, details.testitem.range.start.character, details.testitem.range.end.line, details.testitem.range.end.character))
+                                const code = details.testitem.code
 
                                 const location = {
                                     uri: i.uri.toString(),
-                                    range: details.testitem.range
+                                    range: details.testitem.code_range
                                 }
 
-                                const executionPromise = testProcess.executeTest(i, details.packageName, true, location, code, testRun, this.someTestItemFinished)
+                                const executionPromise = testProcess.executeTest(i, details.packageName, details.testitem.option_default_imports, location, code, testRun, this.someTestItemFinished)
 
                                 executionPromises.push(executionPromise)
                             }
