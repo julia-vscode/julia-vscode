@@ -2,7 +2,7 @@
 
 julia_version = "1.8.2"
 manifest_format = "2.0"
-project_hash = "6f278fcb3603e9d7ab306e1c04a11ec95ba00629"
+project_hash = "d7c00a9a9d765808ef0949c610e7195a79197547"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -289,9 +289,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.TestItemDetection]]
 deps = ["CSTParser"]
-git-tree-sha1 = "4f793035743027cc920dec13112eb16abc1925ec"
+path = "../../packages/TestItemDetection"
 uuid = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
-version = "0.1.0"
+version = "0.1.2-DEV"
 
 [[deps.Tokenize]]
 path = "../../packages/Tokenize"
