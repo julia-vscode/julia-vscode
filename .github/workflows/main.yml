@@ -165,11 +165,6 @@ jobs:
         env:
           VSCEKEY: ${{secrets.VSCEKEY}}
         run: vsce publish --pre-release -p $VSCEKEY --packagePath $PACKAGE_FILENAME
-      - name: Publish package to Open VSX Marketplace
-        env:
-          OVSXKEY: ${{secrets.OVSXKEY}}
-        run: |
-          npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
       - name: Release to GitHub
         uses: softprops/action-gh-release@v1
         with:
@@ -178,6 +173,11 @@ jobs:
           tag_name: ${{env.VERSION_NUMBER}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish package to Open VSX Marketplace
+        env:
+          OVSXKEY: ${{secrets.OVSXKEY}}
+        run: |
+          npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
 
   deployRelease:
     name: Deploy Release Version
@@ -221,11 +221,6 @@ jobs:
           VSCEKEY: ${{secrets.VSCEKEY}}
         run: |
           vsce publish -p $VSCEKEY --packagePath $PACKAGE_FILENAME
-      - name: Publish package to Open VSX Marketplace
-        env:
-          OVSXKEY: ${{secrets.OVSXKEY}}
-        run: |
-          npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
       - name: Release to GitHub
         uses: softprops/action-gh-release@v1
         with:
@@ -234,3 +229,8 @@ jobs:
           tag_name: ${{env.VERSION_NUMBER}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish package to Open VSX Marketplace
+        env:
+          OVSXKEY: ${{secrets.OVSXKEY}}
+        run: |
+          npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
