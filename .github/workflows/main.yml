@@ -3,12 +3,12 @@ name: Build and Test
 on:
   pull_request:
     branches:
-      - master
+      - main
   check_run:
     types: [rerequested, requested_action]
   push:
     branches:
-      - master
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
