@@ -125,6 +125,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
+      - name: Configure git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
       - run: npm ci
       - name: Install vsce
         run: npm install -g vsce
@@ -169,6 +173,10 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
+      - name: Configure git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
       - run: npm ci
       - name: Install vsce
         run: npm install -g vsce
