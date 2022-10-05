@@ -154,7 +154,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
-      - Name: Install vsce
+      - name: Install vsce
         run: npm install -g vsce
       - run: npm version patch --no-git-tag-version
       - name: Publish package
