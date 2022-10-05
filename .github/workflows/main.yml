@@ -169,7 +169,7 @@ jobs:
         env:
           OVSXKEY: ${{secrets.OVSXKEY}}
         run: |
-          npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY --pre-release
+          npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
       - name: Release to GitHub
         uses: softprops/action-gh-release@v1
         with:
