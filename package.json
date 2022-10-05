@@ -1484,7 +1484,9 @@
         "initialsetup": "npm i && git submodule init && git submodule update",
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run webpack",
         "package": "vsce package",
-        "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
+        "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js",
+        "tagminor": "npm version minor && git push --tags && git push",
+        "tagmajor": "npm version major && git push --tags && git push"
     },
     "dependencies": {
         "@traptitech/markdown-it-katex": "^3.5.0",
