@@ -137,7 +137,8 @@ jobs:
         run: |
           vsce package --pre-release patch
       - name : Publish git tag
-        run: git push --tags -f
+        run: git push --tags
+        continue-on-error: true
       - name: Find filename
         shell: pwsh
         run: |
@@ -185,7 +186,8 @@ jobs:
       - name: Package package
         run: vsce package patch
       - name : Publish git tag
-        run: git push --tags -f
+        run: git push --tags
+        continue-on-error: true
       - name: Find filename
         shell: pwsh
         run: |
