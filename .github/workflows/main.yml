@@ -119,10 +119,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: insider-channel
     steps:
+      - run:  git log v1.16.0 -n 1
       - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
           fetch-depth: '0'
+      - run:  git log v1.16.0 -n 1
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
@@ -130,18 +132,16 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
+      - run:  git log v1.16.0 -n 1
       - run: npm ci
-      - run: git tag --list
-      - run: npm version patch
-      - run: git tag --list
       - name: Install vsce
         run: npm install -g vsce
       - name: Publish package
         env:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
-          vsce publish --pre-release -p $MARKET_KEY
-      - run: git tag --list
+          vsce publish --pre-release -p $MARKET_KEY patch
+      - run:  git log v1.16.0 -n 1
       - name : Publish git tag
         run: git push --tags
 
@@ -189,12 +189,11 @@ jobs:
       - name: Install vsce
         run: npm install -g vsce
       - run: npm version patch --no-git-tag-version
-      - run: npm version patch
       - name: Publish package
         env:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
-          vsce publish -p $MARKET_KEY
+          vsce publish -p $MARKET_KEY patch
       - name : Publish git tag
         run: git push --tags
 
