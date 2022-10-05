@@ -130,7 +130,9 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
       - run: npm ci
+      - run: git tag --list
       - run: npm version patch
+      - run: git tag --list
       - name: Install vsce
         run: npm install -g vsce
       - name: Publish package
@@ -138,6 +140,7 @@ jobs:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
           vsce publish --pre-release -p $MARKET_KEY
+      - run: git tag --list
       - name : Publish git tag
         run: git push --tags
 
