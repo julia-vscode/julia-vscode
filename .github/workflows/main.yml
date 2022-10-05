@@ -123,7 +123,6 @@ jobs:
         with:
           submodules: 'recursive'
           fetch-depth: '0'
-      - run:  git log v1.19.0 -n 1
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
@@ -131,7 +130,6 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-      - run:  git log v1.19.0 -n 1
       - run: npm ci
       - name: Install vsce
         run: npm install -g vsce
@@ -140,9 +138,8 @@ jobs:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
           vsce publish --pre-release -p $MARKET_KEY patch
-      - run:  git log v1.19.0 -n 1
       - name : Publish git tag
-        run: git push --tags
+        run: git push --tags -f
 
   # deployInsiderOVSXMarketplace:
   #   name: Deploy Insider to Open VSX Marketplace
@@ -194,7 +191,7 @@ jobs:
         run: |
           vsce publish -p $MARKET_KEY patch
       - name : Publish git tag
-        run: git push --tags
+        run: git push --tags -f
 
   # deployReleaseOVSXMarketplace:
   #   name: Deploy Release to Open VSX Marketplace
