@@ -95,24 +95,37 @@ jobs:
       #     julia --project=./scripts/testenvironments/vscodedebugger/v${{matrix.julia_version}} -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
       #     julia --project=./scripts/testenvironments/vscodeserver/v${{matrix.julia_version}} -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
 
-  # buildReleaseVSIX:
-  #   name: Build Release VSIX
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         submodules: 'recursive'
-  #     - uses: actions/setup-node@v3
-  #       with:
-  #         node-version: 16.x
-  #     - run: npm ci
-  #     - run: npm run package
-  #     - uses: actions/upload-artifact@v3
-  #       with:
-  #         name: release-vsix
-  #         path: '*.vsix'
+  deployTag:
+    name: Deploy Pre-release Version
+    needs: [lintExtension, testExtension, testJuliaPackages]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - run: npm ci
+      - name: Install vsce
+        run: npm install -g vsce
+      - name: Package package
+        run: vsce package --pre-release
+      - name: Find filename
+        shell: pwsh
+        run: |
+          $filename =  (Get-ChildItem *.vsix)[0].FullName
+          echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{env.PACKAGE_FILENAME}}
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deployInsiderVSCMarketplace:
+  deployPreRelease:
     name: Deploy Pre-release Version
     needs: [lintExtension, testExtension, testJuliaPackages]
     if: startsWith(github.ref, 'refs/tags/')
@@ -134,8 +147,7 @@ jobs:
       - name: Install vsce
         run: npm install -g vsce
       - name: Package package
-        run: |
-          vsce package --pre-release patch
+        run: vsce package --pre-release patch
       - name : Publish git tag
         run: git push --tags
         continue-on-error: true
@@ -153,16 +165,16 @@ jobs:
           OVSXKEY: ${{secrets.OVSXKEY}}
         run: |
           npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY --pre-release
-      - name: Release to GitHub
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{env.PACKAGE_FILENAME}}
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Release to GitHub
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     files: ${{env.PACKAGE_FILENAME}}
+      #     prerelease: true
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deployReleaseVSCMarketplace:
-    name: Deploy Release to VS Code Marketplace
+  deployRelease:
+    name: Deploy Release Version
     needs: [lintExtension, testExtension, testJuliaPackages]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
@@ -203,10 +215,10 @@ jobs:
           OVSXKEY: ${{secrets.OVSXKEY}}
         run: |
           npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
-      - name: Release to GitHub
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{env.PACKAGE_FILENAME}}
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Release to GitHub
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     files: ${{env.PACKAGE_FILENAME}}
+      #     prerelease: false
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
