@@ -95,7 +95,7 @@ jobs:
       #     julia --project=./scripts/testenvironments/vscodedebugger/v${{matrix.julia_version}} -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
       #     julia --project=./scripts/testenvironments/vscodeserver/v${{matrix.julia_version}} -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
 
-  deployTag:
+  deployOriginalTag:
     name: Deploy Pre-release Version
     needs: [lintExtension, testExtension, testJuliaPackages]
     if: startsWith(github.ref, 'refs/tags/')
@@ -146,8 +146,13 @@ jobs:
       - run: npm ci
       - name: Install vsce
         run: npm install -g vsce
+      - name: Increase version
+        shell: pwsh
+        run: |
+          $versionnumber = (npm version patch) | Out-String
+          echo "VERSION_NUMBER=$($versionnumber.trim())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Package package
-        run: vsce package --pre-release patch
+        run: vsce package --pre-release
       - name : Publish git tag
         run: git push --tags
         continue-on-error: true
@@ -165,13 +170,14 @@ jobs:
           OVSXKEY: ${{secrets.OVSXKEY}}
         run: |
           npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY --pre-release
-      # - name: Release to GitHub
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: ${{env.PACKAGE_FILENAME}}
-      #     prerelease: true
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{env.PACKAGE_FILENAME}}
+          prerelease: true
+          tag_name: ${{env.VERSION_NUMBER}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deployRelease:
     name: Deploy Release Version
@@ -195,8 +201,13 @@ jobs:
       - name: Install vsce
         run: npm install -g vsce
       - run: npm version patch --no-git-tag-version
+      - name: Increase version
+        shell: pwsh
+        run: |
+          $versionnumber = (npm version patch) | Out-String
+          echo "VERSION_NUMBER=$($versionnumber.trim())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Package package
-        run: vsce package patch
+        run: vsce package
       - name : Publish git tag
         run: git push --tags
         continue-on-error: true
@@ -215,10 +226,11 @@ jobs:
           OVSXKEY: ${{secrets.OVSXKEY}}
         run: |
           npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
-      # - name: Release to GitHub
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: ${{env.PACKAGE_FILENAME}}
-      #     prerelease: false
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{env.PACKAGE_FILENAME}}
+          prerelease: false
+          tag_name: ${{env.VERSION_NUMBER}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
