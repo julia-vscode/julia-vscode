@@ -137,6 +137,8 @@ jobs:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
           vsce publish --pre-release -p $MARKET_KEY patch
+      - name : Publish git tag
+        run: git push --tags
 
   # deployInsiderOVSXMarketplace:
   #   name: Deploy Insider to Open VSX Marketplace
@@ -186,6 +188,8 @@ jobs:
           MARKET_KEY: ${{secrets.VSCEKEY}}
         run: |
           vsce publish -p $MARKET_KEY patch
+      - name : Publish git tag
+        run: git push --tags
 
   # deployReleaseOVSXMarketplace:
   #   name: Deploy Release to Open VSX Marketplace
