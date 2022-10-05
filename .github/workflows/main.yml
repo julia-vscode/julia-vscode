@@ -41,7 +41,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         # julia_version: ['1.0', 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8]
-        julia_version: [1.8]
+        julia_version: []
     steps:
       - uses: actions/checkout@v3
         with:
@@ -67,7 +67,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         # julia_version: ['1.0', 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8]
-        julia_version: [1.8]
+        julia_version: []
     steps:
       - uses: actions/checkout@v3
         with:
