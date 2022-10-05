@@ -113,9 +113,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: insider-channel
     steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
+      - run: npm ci
       - name: Install vsce
         run: npm install -g vsce
       - name: Publish package
@@ -153,9 +157,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: release-channel
     steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
       - uses: actions/setup-node@v3
         with:
           node-version: 16.x
+      - run: npm ci
       - name: Install vsce
         run: npm install -g vsce
       - run: npm version patch --no-git-tag-version
