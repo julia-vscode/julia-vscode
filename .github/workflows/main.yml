@@ -189,7 +189,7 @@ jobs:
       - name: Compute version
         shell: pwsh
         run: |
-          $v = New-Object System.Management.Automation.SemanticVersion("${{github.ref}}".SubString(11))
+          $v = New-Object System.Management.Automation.SemanticVersion("${{github.ref_name}}".SubString(1))
           $preReleaseVersion = "v" + (New-Object System.Management.Automation.SemanticVersion($v.Major, $v.Minor, $v.Patch + 1).ToString())
           echo "PRERELEASE_VERSION_NUMBER=$($preReleaseVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - uses: actions/checkout@v3
