@@ -181,7 +181,7 @@ jobs:
 
   deployRelease:
     name: Deploy Release Version
-    needs: [lintExtension, testExtension, testJuliaPackages, deployPreRelease]
+    needs: [deployPreRelease]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     environment: release-channel
