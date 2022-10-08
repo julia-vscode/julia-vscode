@@ -96,7 +96,7 @@ jobs:
       #     julia --project=./scripts/testenvironments/vscodeserver/v${{matrix.julia_version}} -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
 
   deployOriginalTag:
-    name: Deploy Pre-release Version
+    name: Deploy initial GitHub
     needs: [lintExtension, testExtension, testJuliaPackages]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
@@ -190,8 +190,6 @@ jobs:
         shell: pwsh
         run: |
           $refname = "${{github.ref_name}}"
-          Write-Output $refname
-          Write-Output $refname.SubString(1)
           $v = New-Object System.Management.Automation.SemanticVersion($refname.SubString(1))
           $preReleaseVersion = "v" + (New-Object System.Management.Automation.SemanticVersion $v.Major, $v.Minor, ($v.Patch + 1)).ToString()
           echo "PRERELEASE_VERSION_NUMBER=$($preReleaseVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -238,8 +236,8 @@ jobs:
           tag_name: ${{env.VERSION_NUMBER}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # - name: Publish package to Open VSX Marketplace
-      #   env:
-      #     OVSXKEY: ${{secrets.OVSXKEY}}
-      #   run: |
-      #     npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
+      - name: Publish package to Open VSX Marketplace
+        env:
+          OVSXKEY: ${{secrets.OVSXKEY}}
+        run: |
+          npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
