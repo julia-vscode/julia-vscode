@@ -97,6 +97,7 @@ function add_code_to_repl_history(code)
 end
 
 CAN_SET_ANS = Ref{Bool}(true)
+CAN_SET_ERR = Ref{Bool}(true)
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
     run_with_backend() do
         fix_displays()
@@ -174,12 +175,28 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     if show_code
                         REPL_PROMPT_STATE[] = REPLPromptStates.Error
                     end
-                    @static if isdefined(Base, :current_exceptions)
+                    errs = @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
                     elseif isdefined(Base, :catch_stack)
                         EvalErrorStack(Base.catch_stack())
                     else
                         EvalError(err, catch_backtrace())
+                    end
+                    if CAN_SET_ERR[]
+                        try
+                            istrivial = @static if isdefined(Base, :istrivialerror)
+                                Base.istrivialerror(errs.stack)
+                            else
+                                true
+                            end
+                            @static if @isdefined setglobal!
+                                istrivial || setglobal!(Main, :err, errs)
+                            else
+                                istrivial || ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :err, errs)
+                            end
+                        catch
+                            CAN_SET_ERR[] = false
+                        end
                     end
                 finally
                     try
