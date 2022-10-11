@@ -198,6 +198,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                             CAN_SET_ERR[] = false
                         end
                     end
+                    errs
                 finally
                     try
                         JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
