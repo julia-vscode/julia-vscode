@@ -190,9 +190,9 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                                 true
                             end
                             @static if @isdefined setglobal!
-                                istrivial || setglobal!(Main, :err, errs)
+                                istrivial || setglobal!(Main, :err, errs.stack)
                             else
-                                istrivial || ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :err, errs)
+                                istrivial || ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :err, errs.stack)
                             end
                         catch
                             CAN_SET_ERR[] = false
