@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.38.0",
+    "version": "1.38.1",
     "preview": false,
     "publisher": "julialang",
     "engines": {
