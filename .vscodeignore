@@ -13,5 +13,4 @@ scripts/testenvironments
 CONTRIBUTING.md
 *.vsix
 azure-pipelines.yml
-README-insider.md
 projectmanagement
