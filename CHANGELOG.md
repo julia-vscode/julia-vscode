@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Inline results now support markdown-`show` methods ([#2933](https://github.com/julia-vscode/julia-vscode/pull/2933))
 * The Julia REPL works with VS Code's [shell integration](https://code.visualstudio.com/docs/editor/integrated-terminal#_shell-integration) feature ([#2941](https://github.com/julia-vscode/julia-vscode/pull/2941))
 * It's now possible to add a special `ALL_MODULES_EXCEPT_MAIN` token to the list of compiled modules when debugging ([#61](https://github.com/julia-vscode/DebugAdapter.jl/pull/61))
+* The REPL now also uses the `err` global variable to contain the most recent exception.
 
 ### Changed
 * The language server now uses incremental sync ([#1105](https://github.com/julia-vscode/LanguageServer.jl/pull/1105))
