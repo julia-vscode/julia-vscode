@@ -68,7 +68,7 @@ version = "1.3.5-DEV"
 deps = ["CSTParser", "CommonMark", "DataStructures", "Pkg", "Tokenize"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "1.0.10"
+version = "1.0.12"
 
 [[LanguageServer]]
 deps = ["CSTParser", "JSON", "JSONRPC", "JuliaFormatter", "Markdown", "Pkg", "REPL", "StaticLint", "SymbolServer", "TestItemDetection", "Tokenize", "URIs", "UUIDs"]
