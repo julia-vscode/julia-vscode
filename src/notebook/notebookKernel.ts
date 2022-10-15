@@ -362,7 +362,6 @@ export class JuliaKernel {
             this.outputChannel.appendLine(`Post 'await connectedPromise.wait()'`)
 
             await this.messageLoop(token)
-            this.outputChannel.appendLine(`Post 'await this.messageLoop(token)'`)
 
             this._onStopped.fire(undefined)
 
