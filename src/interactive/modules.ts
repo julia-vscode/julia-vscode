@@ -45,10 +45,10 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.command = 'language-julia.chooseModule'
     statusBarItem.tooltip = 'Choose Current Module'
 
-    onInit(conn => {
+    onInit(wrapCrashReporting(conn => {
         g_connection = conn
         updateStatusBarItem()
-    })
+    }))
     onExit(hadError => {
         g_connection = null
         updateStatusBarItem()
