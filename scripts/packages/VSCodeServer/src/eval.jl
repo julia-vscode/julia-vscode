@@ -184,6 +184,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     end
                     if CAN_SET_ERR[]
                         try
+                            errs isa EvalErrorStack || error()
                             istrivial = @static if isdefined(Base, :istrivialerror)
                                 Base.istrivialerror(errs.stack)
                             else
