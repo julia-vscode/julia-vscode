@@ -318,7 +318,10 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     showCodeInREPL: boolean,
     showResultInREPL: boolean,
     showErrorInREPL: boolean,
-    softscope: boolean
+    softscope: boolean,
+    persistentEnabled: boolean,
+    endLine: number,
+    endColumn: number,
 }, ReturnResult, void>('repl/runcode')
 
 interface DebugLaunchParams {
@@ -635,7 +638,10 @@ async function executeFile(uri?: vscode.Uri | string) {
             showCodeInREPL: false,
             showResultInREPL: true,
             showErrorInREPL: true,
-            softscope: false
+            softscope: false,
+            persistentEnabled: false,
+            endLine: 0,
+            endColumn: 0,
         }
     )
 }
@@ -882,7 +888,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     const section = vscode.workspace.getConfiguration('julia')
     const resultType: string = section.get('execution.resultType')
     const codeInREPL: boolean = section.get('execution.codeInREPL')
-
+    const persistentEnabled: boolean = section.get('persistentSession.enabled')
     if (!g_connection) {
         return false
     }
@@ -903,7 +909,10 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
                 showCodeInREPL: codeInREPL,
                 showResultInREPL: resultType === 'REPL' || resultType === 'both',
                 showErrorInREPL: resultType.indexOf('error') > -1,
-                softscope: true
+                softscope: true,
+                persistentEnabled: persistentEnabled,
+                endLine: range.end.line,
+                endColumn: range.end.character
             }
         )
         const isError = Boolean(result.stackframe)
@@ -970,7 +979,7 @@ function executeSelectionCopyPaste() {
     executeCodeCopyPaste(text, selection.isEmpty)
 }
 
-export async function executeInREPL(code: string, { filename = 'code', line = 0, column = 0, mod = 'Main', showCodeInREPL = true, showResultInREPL = true, showErrorInREPL = false, softscope = true }): Promise<ReturnResult> {
+export async function executeInREPL(code: string, { filename = 'code', line = 0, column = 0, mod = 'Main', showCodeInREPL = true, showResultInREPL = true, showErrorInREPL = false, softscope = true, persistentEnabled=false, endLine=0,endColumn=0 }): Promise<ReturnResult> {
     await startREPL(true)
     return await g_connection.sendRequest(
         requestTypeReplRunCode,
@@ -983,7 +992,10 @@ export async function executeInREPL(code: string, { filename = 'code', line = 0,
             showCodeInREPL,
             showResultInREPL,
             showErrorInREPL,
-            softscope
+            softscope,
+            persistentEnabled,
+            endLine,
+            endColumn,
         }
     )
 }
