@@ -96,23 +96,46 @@ function add_code_to_repl_history(code)
     end
 end
 
-function savePersistentResults(res, source_filename, code_line, code_column, endLine, endColumn)
-    persistOutputFilePath = source_filename * ".po"
-    jsonD = JSON.json()
+function savePersistentResults(render_res::ReplRunCodeRequestReturn, source_filename, code_line, code_column, endLine, endColumn)
+    persistOutputFilePath = source_filename * ".vsjlpo"
+    jsonD = Dict()
     if isfile(persistOutputFilePath)
         jsonD = JSON.parsefile(persistOutputFilePath)
     end
-    jsonD[endLine] = Dict("startLine" => code_line, "startCol" => code_column, "endLine" => endLine, "endCol" => endColumn,
-        "inline" => res.inline, "all" => res.all)
+    jsonD[string(endLine)] = Dict("startLine" => code_line, "startCol" => code_column, "endLine" => endLine, "endCol" => endColumn,
+        "inline" => render_res.inline, "all" => render_res.all)
     open(persistOutputFilePath, "w") do io
         JSON.print(io, jsonD)
     end
 end
 
+function repl_loadpersist_request(conn, params::ReplLoadPersistParams)::ReplLoadPersistReturn
+    persistOutputFilePath = params.filename * ".vsjlpo"
+    if !isfile(persistOutputFilePath)
+        return ReplLoadPersistReturn("", nothing, nothing)
+    end
+    persistRanges = Vector{PersistRanges}()
+    persistResults = Vector{ReplRunCodeRequestReturn}()
+    msg = ""
+    try
+        jsonD = JSON.parsefile(persistOutputFilePath)
+        endLines = sort(parse.(Int, keys(jsonD)))
+
+        for l in endLines
+            jData = jsonD[string(l)]
+            push!(persistRanges,
+                PersistRanges(jData["startLine"], jData["startCol"], jData["endLine"], jData["endCol"]))
+            push!(persistResults, ReplRunCodeRequestReturn(jData["inline"], jData["all"]))
+        end
+    catch err
+        msg = string(err)
+    end
+    return ReplLoadPersistReturn(msg, persistRanges, persistResults)
+end
+
 CAN_SET_ANS = Ref{Bool}(true)
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
     run_with_backend() do
-        @info "enter  repl_runcode_request"
         fix_displays()
 
         source_filename = params.filename
@@ -139,7 +162,6 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
         catch err
             @debug "Could not send repl/starteval notification."
         end
-        @info "before f"
         f = () -> hideprompt() do
             revise()
 
@@ -234,12 +256,11 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                 if !(res isa EvalError || res isa EvalErrorStack) && ends_with_semicolon(source_code)
                     res = nothing
                 end
-                @info "safe render"
-                # safe_render_res = safe_render(res)
-                # if persistentEnabled && !isnothing(res)
-                #     savePersistentResults(safe_render_res, source_filename, code_line, code_column, endLine, endColumn)
-                # end
-                return safe_render(res)  # safe_render_res
+
+                if persistentEnabled && !isnothing(res)
+                    savePersistentResults(render(res), source_filename, code_line, code_column, endLine, endColumn)
+                end
+                return safe_render(res)
             end
         end
 

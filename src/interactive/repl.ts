@@ -215,6 +215,12 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
         g_terminal.show(preserveFocus)
         await juliaIsConnectedPromise.wait()
+        if (Boolean(config.get('persistentSession.enabled'))) {
+            const ed = vscode.window.activeTextEditor
+            if (ed !== undefined) {
+                await load_results(ed)
+            }
+        }
     } else if (showTerminal) {
         g_terminal.show(preserveFocus)
     }
@@ -323,7 +329,21 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     endLine: number,
     endColumn: number,
 }, ReturnResult, void>('repl/runcode')
+interface PersistRanges {
+    startLine: number,
+    startCol: number,
+    endLine: number,
+    endCol: number,
+}
+interface loadPersistResult {
+    msg: string,
+    ranges: null | Array<PersistRanges>,
+    results: null | Array<ReturnResult>
+}
 
+const loadPersistResultsCode = new rpc.RequestType<{
+    filename: string,
+}, loadPersistResult, void>('repl/loadpersistresults')
 interface DebugLaunchParams {
     code: string,
     filename: string
@@ -881,6 +901,25 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     }
 }
 
+
+async function load_results(editor: vscode.TextEditor) {
+    const result: loadPersistResult = await g_connection.sendRequest(
+        loadPersistResultsCode,
+        {
+            filename: editor.document.fileName,
+        }
+    )
+    if (result.msg === '') {
+        if (result.ranges === null) {
+            return
+        }
+        for (let i = 0; i < result.ranges.length; i++){
+            results.addResult(editor, new vscode.Range(new vscode.Position(result.ranges[i].startLine,result.ranges[i].startCol),new vscode.Position(result.ranges[i].endLine,result.ranges[i].endCol)), result.results[i].inline, result.results[i].all)
+        }
+    } else {
+        vscode.window.showErrorMessage('Failed to load persist output: ' + result.msg)
+    }
+}
 // Returns false if the connection wasn't available
 async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string) {
     telemetry.traceEvent('command-evaluate')

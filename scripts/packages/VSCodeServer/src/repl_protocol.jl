@@ -32,6 +32,21 @@ JSONRPC.@dict_readable struct ReplRunCodeRequestReturn <: JSONRPC.Outbound
 end
 ReplRunCodeRequestReturn(inline, all) = ReplRunCodeRequestReturn(inline, all, nothing)
 
+JSONRPC.@dict_readable struct ReplLoadPersistParams <: JSONRPC.Outbound
+    filename::String
+end
+JSONRPC.@dict_readable struct PersistRanges <: JSONRPC.Outbound
+    startLine::Int
+    startCol::Int
+    endLine::Int
+    endCol::Int
+end
+JSONRPC.@dict_readable struct ReplLoadPersistReturn <: JSONRPC.Outbound
+    msg::String
+    ranges::Union{Nothing,Vector{PersistRanges}}
+    results::Union{Nothing,Vector{ReplRunCodeRequestReturn}}
+end
+
 JSONRPC.@dict_readable mutable struct Location <: JSONRPC.Outbound
     file::String
     line::Int
@@ -112,6 +127,7 @@ JSONRPC.@dict_readable mutable struct ProfileFrame <: JSONRPC.Outbound
 end
 
 const repl_runcode_request_type = JSONRPC.RequestType("repl/runcode", ReplRunCodeRequestParams, ReplRunCodeRequestReturn)
+const repl_loadpersist_request_type = JSONRPC.RequestType("repl/loadpersistresults", ReplLoadPersistParams, ReplLoadPersistReturn)
 const repl_interrupt_notification_type = JSONRPC.NotificationType("repl/interrupt", Nothing)
 const repl_getvariables_request_type = JSONRPC.RequestType("repl/getvariables", NamedTuple{(:modules,),Tuple{Bool}}, Vector{ReplWorkspaceItem})
 const repl_getlazy_request_type = JSONRPC.RequestType("repl/getlazy", NamedTuple{(:id,),Tuple{Int}}, Vector{ReplWorkspaceItem})
