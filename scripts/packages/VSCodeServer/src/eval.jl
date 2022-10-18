@@ -257,8 +257,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     res = nothing
                 end
 
-                if persistentEnabled && !isnothing(res)
-                    savePersistentResults(render(res), source_filename, code_line, code_column, endLine, endColumn)
+                if persistentEnabled
+                    savePersistentResults(safe_render(res), source_filename, code_line, code_column, endLine, endColumn)
                 end
                 return safe_render(res)
             end
