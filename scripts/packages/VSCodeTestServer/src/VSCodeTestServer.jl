@@ -26,13 +26,10 @@ end
 
 function run_revise_handler(conn, params::Nothing)
     try
-        @info "NOW TRYING TO REVISE"
         Revise.revise(throw=true)
-        @info "FINISHED WITH REVISE"
         return "success"
     catch err
         Base.display_error(err, catch_backtrace())
-        @info "FAILED TO REVISE"
         return "failed"
     end
 end
@@ -45,8 +42,19 @@ function flatten_failed_tests!(ts, out)
     end
 end
 
+function format_error_message(err, bt)
+    try
+        return Base.invokelatest(sprint, Base.display_error, err, bt)
+    catch err
+        # TODO We could probably try to output an even better error message here that
+        # takes into account `err`. And in the callsites we should probably also
+        # handle this better.
+        return "Error while trying to format an error message"
+    end
+end
+
 function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
-    mod = Core.eval(Main, :(module Testmodule end))
+    mod = Core.eval(Main, :(module $(gensym()) end))
 
     if params.useDefaultUsings
         try
@@ -62,7 +70,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                             Range(Position(params.line, 0), Position(params.line, 0))
                         )
                     )
-                ]
+                ],
+                nothing
             )
         end
 
@@ -71,7 +80,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 Core.eval(mod, :(using $(Symbol(params.packageName))))
             catch err
                 bt = catch_backtrace()
-                error_message = sprint(Base.display_error, err, bt)
+                error_message = format_error_message(err, bt)
 
                 return TestserverRunTestitemRequestParamsReturn(
                     "errored",
@@ -83,7 +92,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                                 Range(Position(params.line, 0), Position(params.line, 0))
                             )
                         )
-                    ]
+                    ],
+                    nothing
                 )
             end
         end
@@ -91,24 +101,29 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
     filepath = uri2filepath(params.uri)
 
-    code_without_begin_end = params.code[6:end-3]
-    code = string('\n'^params.line, ' '^params.column, code_without_begin_end)
+    code = string('\n'^params.line, ' '^params.column, params.code)
 
-    ts = Test.DefaultTestSet("")
+    ts = Test.DefaultTestSet("$filepath:$(params.name)")
 
     Test.push_testset(ts)
 
+    elapsed_time = UInt64(0)
+
+    t0 = time_ns()
     try
         withpath(filepath) do
             Base.invokelatest(include_string, mod, code, filepath)
+            elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
         end
     catch err
+        elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
+
         Test.pop_testset()
 
         bt = catch_backtrace()
         st = stacktrace(bt)
 
-        error_message = sprint(Base.display_error, err, bt)
+        error_message = format_error_message(err, bt)
 
         if err isa LoadError
             error_filepath = err.file
@@ -128,7 +143,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                         Range(Position(max(0, error_line - 1), 0), Position(max(0, error_line - 1), 0))
                     )
                 )
-            ]
+            ],
+            elapsed_time
         )
     end
 
@@ -137,14 +153,15 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     try
         Test.finish(ts)
 
-        return TestserverRunTestitemRequestParamsReturn("passed", nothing)
+        return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time)
     catch err
         if err isa Test.TestSetException
             failed_tests = Test.filter_errors(ts)
 
             return TestserverRunTestitemRequestParamsReturn(
                 "failed",
-                [TestMessage(sprint(Base.show, i), Location(filepath2uri(string(i.source.file)), Range(Position(i.source.line - 1, 0), Position(i.source.line - 1, 0)))) for i in failed_tests]
+                [TestMessage(sprint(Base.show, i), Location(filepath2uri(string(i.source.file)), Range(Position(i.source.line - 1, 0), Position(i.source.line - 1, 0)))) for i in failed_tests],
+                elapsed_time
             )
         else
             rethrow(err)

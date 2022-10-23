@@ -2,6 +2,7 @@ import * as appInsights from 'applicationinsights'
 import * as fs from 'async-file'
 import * as net from 'net'
 import * as path from 'path'
+import { parse } from 'semver'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
@@ -58,21 +59,21 @@ export async function init(context: vscode.ExtensionContext) {
     const packageJSONContent = JSON.parse(await fs.readTextFile(path.join(context.extensionPath, 'package.json')))
 
     const extversion = packageJSONContent.version
-    const previewVersion = packageJSONContent.preview
+    const parsedExtensionVersion = parse(extversion)
 
     // The Application Insights Key
     let key = ''
-    if (process.env.DEBUG_MODE === 'true') {
-        // Use the debug environment
-        key = 'InstrumentationKey=82cf1bd4-8560-43ec-97a6-79847395d791;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
-    }
-    else if (!previewVersion) {
+    if (parsedExtensionVersion.patch===2) {
         // Use the production environment
         key = 'InstrumentationKey=ca1fb443-8d44-4a06-91fe-0235cfdf635f;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
     }
-    else {
-        // Use the dev environment
+    else if (parsedExtensionVersion.patch===1) {
+        // Use the insider environment
         key = 'InstrumentationKey=94d316b7-bba0-4d03-9525-81e25c7da22f;IngestionEndpoint=https://eastus-3.in.applicationinsights.azure.com/'
+    }
+    else {
+        // Use the debug environment
+        key = 'InstrumentationKey=82cf1bd4-8560-43ec-97a6-79847395d791;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
     }
 
     appInsights.setup(key)
@@ -85,7 +86,7 @@ export async function init(context: vscode.ExtensionContext) {
         .setUseDiskRetryCaching(true)
         .start()
 
-    if (process.env.DEBUG_MODE === 'true') {
+    if (parsedExtensionVersion.patch!==1 && parsedExtensionVersion.patch!==2) {
         // Make sure we send out messages right away
         appInsights.defaultClient.config.maxBatchSize = 0
     }

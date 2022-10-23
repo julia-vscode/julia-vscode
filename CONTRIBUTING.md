@@ -18,7 +18,7 @@
    ```bash
    npm i
    ```
-   
+
 3. Open the folder where the extension was cloned in VSCode. The `Start Debugging` command (<kbd>F5</kbd>) opens a separate window with the modified extension in debug mode
 
 ### Reload extension after making changes
@@ -27,4 +27,4 @@ To reload the Extension Development Host window after making changes, hit <kbd>c
 
 ## License
 
-By contributing code to julia-vscode, you are agreeing to release that code under the [MIT License](https://github.com/julia-vscode/julia-vscode/blob/master/LICENSE).
+By contributing code to julia-vscode, you are agreeing to release that code under the [MIT License](https://github.com/julia-vscode/julia-vscode/blob/main/LICENSE).

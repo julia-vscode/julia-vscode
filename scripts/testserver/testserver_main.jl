@@ -11,8 +11,6 @@ import Sockets
 try
     conn = Sockets.connect(ARGS[1])
 
-    @info "The Julia Test Server is now connected to the Julia extension"
-
     VSCodeTestServer.serve(conn, ARGS[2][3:end], ARGS[3][3:end], ARGS[4][3:end])
 
 catch err

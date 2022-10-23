@@ -70,7 +70,7 @@ e.g. keyboard shortcuts). This repo also has legacy docs in the
 1. If you face any issues, please open an issue [here](https://github.com/julia-vscode/julia-vscode/issues).
 2. For some known issues and their solutions, please visit the [known issues and workarounds](https://github.com/julia-vscode/julia-vscode/wiki/Known-issues-and-workarounds).
 3. If there is already an issue opened related to yours, please leave an upvote/downvote on the issue.
-4. Contributions are always welcome! Please see our [contributing guide](https://github.com/julia-vscode/julia-vscode/blob/master/CONTRIBUTING.md) for more details.
+4. Contributions are always welcome! Please see our [contributing guide](https://github.com/julia-vscode/julia-vscode/blob/main/CONTRIBUTING.md) for more details.
 ## Data/Telemetry
 
 The Julia extension for Visual Studio Code collects usage data and sends it to the development team to help improve the extension. Read our [privacy policy](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more and how to disable any telemetry.

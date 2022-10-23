@@ -909,7 +909,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         const isError = Boolean(result.stackframe)
 
         if (resultType !== 'REPL') {
-            if (r.destroyed) {
+            if (r.destroyed && r.text === editor.document.getText(r.range)) {
                 r = results.addResult(editor, range, '', '')
             }
             if (isError) {
