@@ -89,7 +89,7 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
                 if (err instanceof ResponseError && err.code===rpc.ErrorCodes.ConnectionInactive) {
                     return 'Main'
                 }
-                else if (err instanceof ResponseError && err.code===1001) {
+                else if (err instanceof ResponseError && err.code===-33101) {
                     // This is a version out of sync situation
                     return 'Main'
                 }
