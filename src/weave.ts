@@ -5,7 +5,7 @@ import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
 import { JuliaExecutablesFeature } from './juliaexepath'
 import * as telemetry from './telemetry'
-import { registerCommand } from './utils'
+import { registerAsyncCommand } from './utils'
 
 const tempfs = require('promised-temp').track()
 
@@ -113,10 +113,10 @@ async function open_preview() {
     telemetry.traceEvent('command-weaveopenpreview')
 
     if (vscode.window.activeTextEditor === undefined) {
-        vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
+        await vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
     }
     else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
-        vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
+        await vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
     }
     else {
         await weave_core(vscode.ViewColumn.Active)
@@ -127,13 +127,13 @@ async function open_preview_side() {
     telemetry.traceEvent('command-weaveopenpreviewside')
 
     if (vscode.window.activeTextEditor === undefined) {
-        vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
+        await vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
     }
     else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
-        vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
+        await vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
     }
     else {
-        weave_core(vscode.ViewColumn.Two)
+        await weave_core(vscode.ViewColumn.Two)
     }
 }
 
@@ -141,13 +141,13 @@ async function save() {
     telemetry.traceEvent('command-weavesave')
 
     if (vscode.window.activeTextEditor === undefined) {
-        vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
+        await vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
     }
     else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
-        vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
+        await vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
     }
     else if (vscode.window.activeTextEditor.document.isDirty || vscode.window.activeTextEditor.document.isUntitled) {
-        vscode.window.showErrorMessage('Please save the file before weaving.')
+        await vscode.window.showErrorMessage('Please save the file before weaving.')
     }
     else {
         const formats = ['github: Github markdown',
@@ -166,7 +166,7 @@ async function save() {
         if (result_format !== undefined) {
             const index = result_format.indexOf(':')
             const selected_format = result_format.substring(0, index)
-            weave_core(vscode.ViewColumn.One, selected_format)
+            await weave_core(vscode.ViewColumn.One, selected_format)
         }
     }
 }
@@ -175,7 +175,7 @@ export function activate(context: vscode.ExtensionContext, juliaExecutablesFeatu
     g_context = context
     g_juliaExecutablesFeature = juliaExecutablesFeature
 
-    context.subscriptions.push(registerCommand('language-julia.weave-open-preview', open_preview))
-    context.subscriptions.push(registerCommand('language-julia.weave-open-preview-side', open_preview_side))
-    context.subscriptions.push(registerCommand('language-julia.weave-save', save))
+    context.subscriptions.push(registerAsyncCommand('language-julia.weave-open-preview', open_preview))
+    context.subscriptions.push(registerAsyncCommand('language-julia.weave-open-preview-side', open_preview_side))
+    context.subscriptions.push(registerAsyncCommand('language-julia.weave-save', save))
 }

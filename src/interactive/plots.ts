@@ -3,7 +3,7 @@ import { homedir } from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
-import { registerCommand, setContext } from '../utils'
+import { registerAsyncCommand, registerNonAsyncCommand, setContext } from '../utils'
 import { displayTable } from './tables'
 import { JuliaKernel } from '../notebook/notebookKernel'
 
@@ -20,18 +20,18 @@ export function activate(context: vscode.ExtensionContext) {
     g_plotNavigatorProvider = new PlotNavigatorProvider(context)
 
     context.subscriptions.push(
-        registerCommand('language-julia.copy-plot', requestCopyPlot),
-        registerCommand('language-julia.save-plot', requestExportPlot),
-        registerCommand('language-julia.show-plotpane', showPlotPane),
-        registerCommand('language-julia.plotpane-enable', enablePlotPane),
-        registerCommand('language-julia.plotpane-disable', disablePlotPane),
-        registerCommand('language-julia.plotpane-previous', plotPanePrev),
-        registerCommand('language-julia.plotpane-next', plotPaneNext),
-        registerCommand('language-julia.plotpane-first', plotPaneFirst),
-        registerCommand('language-julia.plotpane-last', plotPaneLast),
-        registerCommand('language-julia.plotpane-delete', plotPaneDel),
-        registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll),
-        registerCommand('language-julia.show-plot-navigator', () => g_plotNavigatorProvider.showPlotNavigator()),
+        registerAsyncCommand('language-julia.copy-plot', requestCopyPlot),
+        registerAsyncCommand('language-julia.save-plot', requestExportPlot),
+        registerNonAsyncCommand('language-julia.show-plotpane', showPlotPane),
+        registerAsyncCommand('language-julia.plotpane-enable', enablePlotPane),
+        registerAsyncCommand('language-julia.plotpane-disable', disablePlotPane),
+        registerNonAsyncCommand('language-julia.plotpane-previous', plotPanePrev),
+        registerNonAsyncCommand('language-julia.plotpane-next', plotPaneNext),
+        registerNonAsyncCommand('language-julia.plotpane-first', plotPaneFirst),
+        registerNonAsyncCommand('language-julia.plotpane-last', plotPaneLast),
+        registerNonAsyncCommand('language-julia.plotpane-delete', plotPaneDel),
+        registerNonAsyncCommand('language-julia.plotpane-delete-all', plotPaneDelAll),
+        registerAsyncCommand('language-julia.show-plot-navigator', async () => await g_plotNavigatorProvider.showPlotNavigator()),
         vscode.window.registerWebviewViewProvider('julia-plot-navigator', g_plotNavigatorProvider)
     )
 }
@@ -327,14 +327,14 @@ function makeTitle() {
     return plotTitle
 }
 
-function enablePlotPane() {
+async function enablePlotPane() {
     const conf = vscode.workspace.getConfiguration('julia')
-    conf.update('usePlotPane', true, true)
+    await conf.update('usePlotPane', true, true)
 }
 
-function disablePlotPane() {
+async function disablePlotPane() {
     const conf = vscode.workspace.getConfiguration('julia')
-    conf.update('usePlotPane', false, true)
+    await conf.update('usePlotPane', false, true)
 }
 
 function updatePlotPane() {
@@ -772,8 +772,8 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
 /**
  * Send export request(message) to the plot pane.
  */
-function requestExportPlot() {
-    g_plotPanel.webview.postMessage({
+async function requestExportPlot() {
+    await g_plotPanel.webview.postMessage({
         type: 'requestSavePlot',
         body: { index: g_currentPlotIndex },
     })

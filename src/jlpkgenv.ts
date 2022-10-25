@@ -8,7 +8,7 @@ import { onSetLanguageClient } from './extension'
 import { JuliaExecutablesFeature } from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
-import { registerCommand, resolvePath } from './utils'
+import { registerAsyncCommand, resolvePath } from './utils'
 
 let g_languageClient: vslc.LanguageClient = null
 
@@ -163,15 +163,15 @@ async function changeJuliaEnvironment() {
                 const envPath = vscode.Uri.parse(envPathUri).fsPath
                 const isThisAEnv = await fs.exists(path.join(envPath, 'Project.toml'))
                 if (isThisAEnv) {
-                    switchEnvToPath(envPath, true)
+                    await switchEnvToPath(envPath, true)
                 }
                 else {
-                    vscode.window.showErrorMessage('The selected path is not a julia environment.')
+                    await vscode.window.showErrorMessage('The selected path is not a julia environment.')
                 }
             }
         }
         else {
-            switchEnvToPath(resultPackage.description, true)
+            await switchEnvToPath(resultPackage.description, true)
         }
     }
 }
@@ -249,7 +249,7 @@ export async function activate(context: vscode.ExtensionContext, juliaExecutable
         g_languageClient = languageClient
     }))
 
-    context.subscriptions.push(registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
+    context.subscriptions.push(registerAsyncCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
     // Environment status bar
     g_current_environment = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
     g_current_environment.show()

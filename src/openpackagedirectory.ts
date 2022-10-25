@@ -3,7 +3,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
-import { registerCommand } from './utils'
+import { registerAsyncCommand } from './utils'
 
 // This method implements the language-julia.openPackageDirectory command
 async function openPackageDirectoryCommand() {
@@ -21,7 +21,7 @@ async function openPackageDirectoryCommand() {
         const filteredPackages = files.filter(path => !path.startsWith('.') && ['METADATA', 'REQUIRE', 'META_BRANCH'].indexOf(path) < 0)
 
         if (filteredPackages.length === 0) {
-            vscode.window.showInformationMessage('Error: There are no packages installed.')
+            await vscode.window.showInformationMessage('Error: There are no packages installed.')
         }
         else {
             const resultPackage = await vscode.window.showQuickPick(filteredPackages, optionsPackage)
@@ -33,16 +33,16 @@ async function openPackageDirectoryCommand() {
                     await vscode.commands.executeCommand('vscode.openFolder', folder, true)
                 }
                 catch (e) {
-                    vscode.window.showInformationMessage('Could not open the package.')
+                    await vscode.window.showInformationMessage('Could not open the package.')
                 }
             }
         }
     }
     catch (e) {
-        vscode.window.showInformationMessage('Error: Could not read package directory.')
+        await vscode.window.showInformationMessage('Error: Could not read package directory.')
     }
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(registerCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand))
+    context.subscriptions.push(registerAsyncCommand('language-julia.openPackageDirectory', openPackageDirectoryCommand))
 }

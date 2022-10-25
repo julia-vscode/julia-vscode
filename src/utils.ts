@@ -64,8 +64,20 @@ export function inferJuliaNumThreads(): string {
  * Same as `vscode.commands.registerCommand`, but with added middleware.
  * Currently sends any uncaught errors in the command to crash reporting.
  */
-export function registerCommand(cmd: string, f) {
-    const fWrapped = (...args) => {
+export function registerAsyncCommand<T1 extends unknown[],T2>(cmd: string, f: (...arg: T1) => Promise<T2>) {
+    const fWrapped = async (...args: T1) => {
+        try {
+            return await f(...args)
+        } catch (err) {
+            handleNewCrashReportFromException(err, 'Extension')
+            throw (err)
+        }
+    }
+    return vscode.commands.registerCommand(cmd, fWrapped)
+}
+
+export function registerNonAsyncCommand<T extends unknown[]>(cmd: string, f: (...arg: T) => void) {
+    const fWrapped = (...args: T) => {
         try {
             return f(...args)
         } catch (err) {

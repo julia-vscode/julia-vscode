@@ -25,7 +25,7 @@ import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
 import { notifyTypeTextDocumentPublishTestitems, TestFeature } from './testing/testFeature'
-import { registerCommand, setContext } from './utils'
+import { registerAsyncCommand, registerNonAsyncCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
@@ -100,7 +100,7 @@ export async function activate(context: vscode.ExtensionContext) {
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
 
-        context.subscriptions.push(registerCommand('language-julia.showLanguageServerOutput', () => {
+        context.subscriptions.push(registerNonAsyncCommand('language-julia.showLanguageServerOutput', () => {
             if (g_languageClient) {
                 g_languageClient.outputChannel.show(true)
             }
@@ -133,8 +133,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
         context.subscriptions.push(
             // commands
-            registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
-            registerCommand('language-julia.restartLanguageServer', restartLanguageServer)
+            registerAsyncCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
+            registerAsyncCommand('language-julia.restartLanguageServer', restartLanguageServer)
         )
 
         const api = {

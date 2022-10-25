@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { TestProcess } from '../testing/testFeature'
-import { registerCommand } from '../utils'
+import { registerAsyncCommand } from '../utils'
 import { displayPlot } from './plots'
 import {
     notifyTypeDisplay,
@@ -213,17 +213,17 @@ export class WorkspaceFeature {
             onInit((conn) => this.openREPL(conn)),
             onExit((err) => this.closeREPL(err)),
             // commands
-            registerCommand('language-julia.showInVSCode', (node: VariableNode) =>
-                this.showInVSCode(node)
+            registerAsyncCommand('language-julia.showInVSCode', async (node: VariableNode) =>
+                await this.showInVSCode(node)
             ),
-            registerCommand('language-julia.workspaceGoToFile', (node: VariableNode) =>
-                this.openLocation(node)
+            registerAsyncCommand('language-julia.workspaceGoToFile', async (node: VariableNode) =>
+                await this.openLocation(node)
             ),
-            registerCommand('language-julia.showModules', () =>
-                this._REPLTreeDataProvider.toggleModules(true)
+            registerAsyncCommand('language-julia.showModules', async () =>
+                await this._REPLTreeDataProvider.toggleModules(true)
             ),
-            registerCommand('language-julia.hideModules', () =>
-                this._REPLTreeDataProvider.toggleModules(false)
+            registerAsyncCommand('language-julia.hideModules', async () =>
+                await this._REPLTreeDataProvider.toggleModules(false)
             )
         )
     }
@@ -243,7 +243,7 @@ export class WorkspaceFeature {
     }
 
     async openLocation(node: VariableNode) {
-        openFile(
+        await openFile(
             node.workspaceVariable.location.file,
             node.workspaceVariable.location.line
         )
@@ -352,13 +352,13 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
         }
     }
 
-    toggleModules(show: boolean) {
+    async toggleModules(show: boolean) {
         this.workspaceFeature._REPLNode.toggleModules(show)
-        this.workspaceFeature._REPLNode.updateReplVariables()
-        this.workspaceFeature._NotebookNodes.forEach(node => {
+        await this.workspaceFeature._REPLNode.updateReplVariables()
+        this.workspaceFeature._NotebookNodes.forEach(async node => {
             node.toggleModules(show)
-            node.updateReplVariables()
+            await node.updateReplVariables()
         })
-        vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, true)
+        await vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, true)
     }
 }

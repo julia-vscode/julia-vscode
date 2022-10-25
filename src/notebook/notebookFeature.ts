@@ -3,7 +3,7 @@ import * as semver from 'semver'
 import * as vscode from 'vscode'
 import { NotebookNode, WorkspaceFeature } from '../interactive/workspace'
 import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
-import { registerCommand } from '../utils'
+import { registerAsyncCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
@@ -52,11 +52,11 @@ export class JuliaNotebookFeature {
         )
 
         context.subscriptions.push(
-            registerCommand('language-julia.stopKernel', (node) =>
-                this.stopKernel(node)
+            registerAsyncCommand('language-julia.stopKernel', async (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
+                await this.stopKernel(node)
             ),
-            registerCommand('language-julia.restartKernel', (node) =>
-                this.restartKernel(node)
+            registerAsyncCommand('language-julia.restartKernel', async (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
+                await this.restartKernel(node)
             )
         )
     }
@@ -318,12 +318,12 @@ export class JuliaNotebookFeature {
         node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }
     ) {
         if (node instanceof NotebookNode) {
-            node.stop()
+            await node.stop()
         } else {
             const uri = node.notebookEditor.notebookUri
-            this.kernels.forEach((kernel, document) => {
+            this.kernels.forEach(async (kernel, document) => {
                 if (document.uri.toString() === uri.toString()) {
-                    kernel.stop()
+                    await kernel.stop()
                     return
                 }
             })
@@ -334,12 +334,12 @@ export class JuliaNotebookFeature {
         node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }
     ) {
         if (node instanceof NotebookNode) {
-            node.restart()
+            await node.restart()
         } else {
             const uri = node.notebookEditor.notebookUri
-            this.kernels.forEach((kernel, document) => {
+            this.kernels.forEach(async (kernel, document) => {
                 if (document.uri.toString() === uri.toString()) {
-                    kernel.restart()
+                    await kernel.restart()
                     return
                 }
             })

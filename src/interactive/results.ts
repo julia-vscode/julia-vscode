@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { constructCommandString, registerCommand, setContext } from '../utils'
+import { constructCommandString, registerAsyncCommand, registerNonAsyncCommand, setContext } from '../utils'
 
 const LINE_INF = 9999
 
@@ -186,27 +186,27 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.onDidChangeTextEditorSelection(changeEvent => updateContextKeyForSelections(changeEvent.textEditor, changeEvent.selections)),
 
         // public commands
-        registerCommand('language-julia.clearAllInlineResults', removeAll),
-        registerCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
-        registerCommand('language-julia.clearCurrentInlineResult', () => {
+        registerNonAsyncCommand('language-julia.clearAllInlineResults', removeAll),
+        registerNonAsyncCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
+        registerNonAsyncCommand('language-julia.clearCurrentInlineResult', () => {
             if (vscode.window.activeTextEditor) {
                 removeCurrent(vscode.window.activeTextEditor)
             }
         }),
 
         // internal commands
-        registerCommand('language-julia.openFile', (locationArg: { path: string, line: number }) => {
-            openFile(locationArg.path, locationArg.line)
+        registerAsyncCommand('language-julia.openFile', async (locationArg: { path: string, line: number }) => {
+            await openFile(locationArg.path, locationArg.line)
         }),
-        registerCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
-        registerCommand('language-julia.gotoPreviousFrame', (frameArg: { frame: Frame }) => {
-            gotoPreviousFrame(frameArg.frame)
+        registerAsyncCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
+        registerAsyncCommand('language-julia.gotoPreviousFrame', async (frameArg: { frame: Frame }) => {
+            await gotoPreviousFrame(frameArg.frame)
         }),
-        registerCommand('language-julia.gotoNextFrame', (frameArg: { frame: Frame }) => {
-            gotoNextFrame(frameArg.frame)
+        registerAsyncCommand('language-julia.gotoNextFrame', async (frameArg: { frame: Frame }) => {
+            await gotoNextFrame(frameArg.frame)
         }),
-        registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
-        registerCommand('language-julia.clearStackTrace', clearStackTrace)
+        registerAsyncCommand('language-julia.gotoLastFrame', gotoLastFrame),
+        registerNonAsyncCommand('language-julia.clearStackTrace', clearStackTrace)
     )
     setContext('julia.supportedLanguageIds', supportedLanguageIds)
 }
@@ -430,24 +430,24 @@ export async function openFile(path: string, line: number | undefined = undefine
     })
 }
 
-function gotoFirstFrame() {
-    return gotoFrame(stackFrameHighlights.highlights[0].frame)
+async function gotoFirstFrame() {
+    return await gotoFrame(stackFrameHighlights.highlights[0].frame)
 }
 
-function gotoPreviousFrame(frame: Frame) {
+async function gotoPreviousFrame(frame: Frame) {
     const i = findFrameIndex(frame)
     if (i < 1) { return }
-    return gotoFrame(stackFrameHighlights.highlights[i - 1].frame)
+    return await gotoFrame(stackFrameHighlights.highlights[i - 1].frame)
 }
 
-function gotoNextFrame(frame: Frame) {
+async function gotoNextFrame(frame: Frame) {
     const i = findFrameIndex(frame)
     if (i === -1 || i >= stackFrameHighlights.highlights.length - 1) { return }
-    return gotoFrame(stackFrameHighlights.highlights[i + 1].frame)
+    return await gotoFrame(stackFrameHighlights.highlights[i + 1].frame)
 }
 
-function gotoLastFrame() {
-    return gotoFrame(stackFrameHighlights.highlights[stackFrameHighlights.highlights.length - 1].frame)
+async function gotoLastFrame() {
+    return await gotoFrame(stackFrameHighlights.highlights[stackFrameHighlights.highlights.length - 1].frame)
 }
 
 function findFrameIndex(frame: Frame) {

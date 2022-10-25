@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { readFile, writeFile } from 'fs/promises'
-import { registerCommand, setContext } from '../utils'
+import { registerAsyncCommand, setContext } from '../utils'
 import { openFile } from './results'
 
 interface ProfilerFrame {
@@ -65,23 +65,23 @@ export class ProfilerFeature {
         this.context = context
 
         this.context.subscriptions.push(
-            registerCommand('language-julia.openProfiler', () => {
-                this.show()
+            registerAsyncCommand('language-julia.openProfiler', async () => {
+                await this.show()
             }),
-            registerCommand('language-julia.nextProfile', () => {
-                this.next()
+            registerAsyncCommand('language-julia.nextProfile', async () => {
+                await this.next()
             }),
-            registerCommand('language-julia.previousProfile', () => {
-                this.previous()
+            registerAsyncCommand('language-julia.previousProfile', async () => {
+                await this.previous()
             }),
-            registerCommand('language-julia.deleteProfile', () => {
-                this.delete()
+            registerAsyncCommand('language-julia.deleteProfile', async () => {
+                await this.delete()
             }),
-            registerCommand('language-julia.deleteAllProfiles', () => {
-                this.deleteAll()
+            registerAsyncCommand('language-julia.deleteAllProfiles', async () => {
+                await this.deleteAll()
             }),
-            registerCommand('language-julia.saveProfileToFile', () => {
-                this.saveToFile()
+            registerAsyncCommand('language-julia.saveProfileToFile', async () => {
+                await this.saveToFile()
             }),
             vscode.window.onDidChangeVisibleTextEditors((editors) =>
                 this.refreshInlineTrace(editors)
@@ -257,18 +257,18 @@ export class ProfilerFeature {
         })
     }
 
-    show() {
+    async show() {
         this.selection = 'all'
         this.createPanel()
         this.panel.title = this.makeTitle()
 
         if (this.profileCount > 0) {
             const profile = this.profiles[this.currentProfileIndex]
-            this.panel.webview.postMessage(profile)
+            await this.panel.webview.postMessage(profile)
             this.selection = Object.keys(profile.data)[0]
             this.setInlineTrace(profile.data)
         } else {
-            this.panel.webview.postMessage(null)
+            await this.panel.webview.postMessage(null)
             this.clearInlineTrace()
         }
         if (!this.panel.visible) {
@@ -395,7 +395,7 @@ export class ProfilerFeature {
 
     async saveToFile() {
         if (this.profiles.length === 0 || !this.profiles[this.currentProfileIndex]) {
-            vscode.window.showErrorMessage('Not Profile trace recorded.')
+            await vscode.window.showErrorMessage('Not Profile trace recorded.')
             return
         }
         let defaultUri = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0]?.uri : undefined
@@ -416,7 +416,7 @@ export class ProfilerFeature {
         }
         const jsProfileScript = await readFile(this.profileViewerJSPath())
         const jsProfileDataUrl = 'data:text/javascript;base64,' + btoa(jsProfileScript.toString())
-        writeFile(savePath.fsPath, `
+        await writeFile(savePath.fsPath, `
         <!DOCTYPE html>
         <html lang="en">
         <head>
@@ -454,33 +454,33 @@ export class ProfilerFeature {
         `)
     }
 
-    previous() {
+    async previous() {
         if (this.currentProfileIndex > 0) {
             this.currentProfileIndex -= 1
-            this.show()
+            await this.show()
         }
     }
 
-    next() {
+    async next() {
         if (this.currentProfileIndex < this.profiles.length - 1) {
             this.currentProfileIndex += 1
-            this.show()
+            await this.show()
         }
     }
 
-    delete() {
+    async delete() {
         this.profiles.splice(this.currentProfileIndex, 1)
         this.currentProfileIndex = Math.min(
             this.currentProfileIndex + 1,
             this.profiles.length - 1
         )
-        this.show()
+        await this.show()
     }
 
-    deleteAll() {
+    async deleteAll() {
         this.profiles = []
         this.currentProfileIndex = 0
-        this.show()
+        await this.show()
     }
 
     get profileCount() {

@@ -3,7 +3,7 @@ import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { NotificationType, RequestType } from 'vscode-jsonrpc'
 import * as lsp from 'vscode-languageserver-protocol'
-import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
+import { generatePipeName, inferJuliaNumThreads, registerAsyncCommand } from '../utils'
 import * as net from 'net'
 import * as rpc from 'vscode-jsonrpc/node'
 import { Subject } from 'await-notify'
@@ -277,8 +277,8 @@ export class TestFeature {
             }, true)
 
             context.subscriptions.push(
-                registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
-                    node.stop()
+                registerAsyncCommand('language-julia.stopTestProcess', async (node: TestProcessNode) =>
+                    await node.stop()
                 )
             )
 
