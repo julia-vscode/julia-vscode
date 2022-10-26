@@ -45,7 +45,8 @@ export class Result {
         this.setContent(content)
         for (const selection of editor.selections) {
             if (isResultInLineRange(editor, this, selection)) {
-                setContext('julia.hasInlineResult', true)
+                // TODO Ok to not use await here?
+                void setContext('julia.hasInlineResult', true)
             }
         }
     }
@@ -178,7 +179,7 @@ const supportedLanguageIds = [
     'markdown'
 ]
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         // subscriptions
         vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)),
@@ -188,9 +189,9 @@ export function activate(context: vscode.ExtensionContext) {
         // public commands
         registerNonAsyncCommand('language-julia.clearAllInlineResults', removeAll),
         registerNonAsyncCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
-        registerNonAsyncCommand('language-julia.clearCurrentInlineResult', () => {
+        registerNonAsyncCommand('language-julia.clearCurrentInlineResult', async () => {
             if (vscode.window.activeTextEditor) {
-                removeCurrent(vscode.window.activeTextEditor)
+                await removeCurrent(vscode.window.activeTextEditor)
             }
         }),
 
@@ -208,22 +209,22 @@ export function activate(context: vscode.ExtensionContext) {
         registerAsyncCommand('language-julia.gotoLastFrame', gotoLastFrame),
         registerNonAsyncCommand('language-julia.clearStackTrace', clearStackTrace)
     )
-    setContext('julia.supportedLanguageIds', supportedLanguageIds)
+    await setContext('julia.supportedLanguageIds', supportedLanguageIds)
 }
 
-function updateContextKeyForSelections(editor: vscode.TextEditor, selections: readonly vscode.Selection[] = editor.selections) {
+async function updateContextKeyForSelections(editor: vscode.TextEditor, selections: readonly vscode.Selection[] = editor.selections) {
     if (!supportedLanguageIds.includes(editor.document.languageId)) {
         return
     }
     for (const selection of selections) {
         for (const r of results) {
             if (isResultInLineRange(editor, r, selection)) {
-                setContext('julia.hasInlineResult', true)
+                await setContext('julia.hasInlineResult', true)
                 return
             }
         }
     }
-    setContext('julia.hasInlineResult', false)
+    await setContext('julia.hasInlineResult', false)
 }
 
 export function deactivate() { }
@@ -393,11 +394,11 @@ export function removeAll(editor: undefined | vscode.TextEditor = undefined) {
     clearStackTrace()
 }
 
-export function removeCurrent(editor: vscode.TextEditor) {
+export async function removeCurrent(editor: vscode.TextEditor) {
     editor.selections.forEach(selection => {
         results.filter(r => isResultInLineRange(editor, r, selection)).forEach(removeResult)
     })
-    setContext('julia.hasInlineResult', false)
+    await setContext('julia.hasInlineResult', false)
 }
 
 function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: vscode.Selection | vscode.Range) {

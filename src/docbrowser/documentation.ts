@@ -90,17 +90,17 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         }
         view.webview.html = this.createWebviewHTML('Use the `language-julia.show-documentation` command in an editor or search for documentation above.')
 
-        view.webview.onDidReceiveMessage(msg => {
+        view.webview.onDidReceiveMessage(async msg => {
             if (msg.type === 'search') {
-                this.showDocumentationFromWord(msg.query)
+                await this.showDocumentationFromWord(msg.query)
             } else {
                 console.error('unknown message received')
             }
         })
     }
 
-    findHelp(params: { searchTerm: string }) {
-        this.showDocumentationFromWord(params.searchTerm)
+    async findHelp(params: { searchTerm: string }) {
+        await this.showDocumentationFromWord(params.searchTerm)
     }
 
     async showDocumentationPane() {

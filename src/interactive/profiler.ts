@@ -220,9 +220,9 @@ export class ProfilerFeature {
         this.panel.webview.html = this.getContent()
 
         const messageHandler = this.panel.webview.onDidReceiveMessage(
-            (message: { type: string; node?: ProfilerFrame; selection?: string }) => {
+            async (message: { type: string; node?: ProfilerFrame; selection?: string }) => {
                 if (message.type === 'open') {
-                    openFile(
+                    await openFile(
                         message.node.path,
                         message.node.line,
                         this.panel.viewColumn === vscode.ViewColumn.Two
@@ -239,19 +239,19 @@ export class ProfilerFeature {
         )
 
         const viewStateListener = this.panel.onDidChangeViewState(
-            ({ webviewPanel }) => {
-                this.context.globalState.update(
+            async ({ webviewPanel }) => {
+                await this.context.globalState.update(
                     'juliaProfilerViewColumn',
                     webviewPanel.viewColumn
                 )
-                setContext(profilerContextKey, webviewPanel.active)
+                await setContext(profilerContextKey, webviewPanel.active)
             }
         )
 
-        this.panel.onDidDispose(() => {
+        this.panel.onDidDispose(async () => {
             viewStateListener.dispose()
             messageHandler.dispose()
-            setContext(profilerContextKey, false)
+            await setContext(profilerContextKey, false)
             this.panel = undefined
             this.clearInlineTrace()
         })
@@ -276,10 +276,10 @@ export class ProfilerFeature {
         }
     }
 
-    showTrace(trace: ProfileRoot) {
+    async showTrace(trace: ProfileRoot) {
         this.profiles.push(trace)
         this.currentProfileIndex = this.profiles.length - 1
-        this.show()
+        await this.show()
     }
 
     profileViewerJSPath() {

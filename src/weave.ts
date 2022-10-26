@@ -103,7 +103,7 @@ async function weave_core(column, selected_format: string = undefined) {
             }
         }
         else {
-            vscode.window.showErrorMessage('Error during weaving.')
+            await vscode.window.showErrorMessage('Error during weaving.')
         }
 
     })

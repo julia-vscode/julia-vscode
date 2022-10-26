@@ -20,16 +20,16 @@ const requestTypeIsModuleLoaded = new rpc.RequestType<{ mod: string }, boolean, 
 const automaticallyChooseOption = 'Choose Automatically'
 
 
-export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(ed => {
+export async function activate(context: vscode.ExtensionContext) {
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async ed => {
         cancelCurrentGetModuleRequest()
         g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
-        updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
+        await updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
     }))
-    context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(changeEvent => {
+    context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(async changeEvent => {
         cancelCurrentGetModuleRequest()
         g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
-        updateModuleForSelectionEvent(changeEvent, g_currentGetModuleRequestCancelTokenSource.token)
+        await updateModuleForSelectionEvent(changeEvent, g_currentGetModuleRequestCancelTokenSource.token)
     }))
     context.subscriptions.push(registerAsyncCommand('language-julia.chooseModule', chooseModule))
 
@@ -45,17 +45,17 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.command = 'language-julia.chooseModule'
     statusBarItem.tooltip = 'Choose Current Module'
 
-    onInit(conn => {
+    onInit(async conn => {
         g_connection = conn
-        updateStatusBarItem()
+        await updateStatusBarItem()
     })
-    onExit(hadError => {
+    onExit(async (_) => {
         g_connection = null
-        updateStatusBarItem()
+        await updateStatusBarItem()
     })
 
     context.subscriptions.push(statusBarItem)
-    updateStatusBarItem()
+    await updateStatusBarItem()
 }
 
 function cancelCurrentGetModuleRequest() {
@@ -103,10 +103,10 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
 
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
-            vscode.window.showErrorMessage(err)
+            await vscode.window.showErrorMessage(err)
         } else if (languageClient) {
             console.error(err)
-            telemetry.handleNewCrashReportFromException(err, 'Extension')
+            await telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
         return 'Main'
     }
@@ -144,7 +144,7 @@ async function isModuleLoaded(mod: string) {
         return await g_connection.sendRequest(requestTypeIsModuleLoaded, { mod: mod })
     } catch (err) {
         if (g_connection) {
-            telemetry.handleNewCrashReportFromException(err, 'Extension')
+            await telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
         return false
     }
@@ -156,9 +156,9 @@ async function chooseModule() {
         possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     } catch (err) {
         if (g_connection) {
-            telemetry.handleNewCrashReportFromException(err, 'Extension')
+            await telemetry.handleNewCrashReportFromException(err, 'Extension')
         } else {
-            vscode.window.showInformationMessage('Setting a module requires an active REPL.')
+            await vscode.window.showInformationMessage('Setting a module requires an active REPL.')
         }
         return
     }
@@ -181,5 +181,5 @@ async function chooseModule() {
 
     cancelCurrentGetModuleRequest()
     g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
-    updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
+    await updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
 }

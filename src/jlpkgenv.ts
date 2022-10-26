@@ -43,12 +43,12 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
 
     if (g_path_of_current_environment !== await getDefaultEnvPath()) {
         if (currentConfigValue !== g_path_of_current_environment) {
-            section.update('environmentPath', g_path_of_current_environment, vscode.ConfigurationTarget.Workspace)
+            await section.update('environmentPath', g_path_of_current_environment, vscode.ConfigurationTarget.Workspace)
         }
     }
     else {
         if (currentConfigValue !== null) {
-            section.update('environmentPath', undefined, vscode.ConfigurationTarget.Workspace)
+            await section.update('environmentPath', undefined, vscode.ConfigurationTarget.Workspace)
         }
     }
 
@@ -88,14 +88,12 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
         if (res.stdout.toString().trim() === 'false') {
             const err = res.stderr.toString().trim()
             if (err) {
-                vscode.window.showWarningMessage(`Error while parsing your current environment: \n${err}`)
+                await vscode.window.showWarningMessage(`Error while parsing your current environment: \n${err}`)
             } else {
-                vscode.window.showInformationMessage('You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?', 'Change Julia environment')
-                    .then(env_choice => {
-                        if (env_choice === 'Change Julia environment') {
-                            changeJuliaEnvironment()
-                        }
-                    })
+                const env_choice = await vscode.window.showInformationMessage('You opened a Julia package that is not part of your current environment. Do you want to activate a different environment?', 'Change Julia environment')
+                if (env_choice === 'Change Julia environment') {
+                    await changeJuliaEnvironment()
+                }
             }
         }
     }

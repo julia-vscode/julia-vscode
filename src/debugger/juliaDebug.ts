@@ -68,7 +68,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
      * The 'initialize' request is the first request called by the frontend
      * to interrogate the features the debug adapter provides.
      */
-    protected async initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): Promise<void> {
+    protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments) {
 
         // build and return the capabilities of this debug adapter:
         response.body = response.body || {}
@@ -164,7 +164,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
         await serverListeningPromise.wait()
 
-        replStartDebugger(pn)
+        await replStartDebugger(pn)
 
         await connectedPromise.wait()
 

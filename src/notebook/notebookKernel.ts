@@ -67,7 +67,8 @@ export class JuliaKernel {
         private outputChannel: vscode.OutputChannel,
         private notebookFeature: JuliaNotebookFeature
     ) {
-        this.run(this._tokenSource.token)
+        // TODO Is not using await here OK?
+        void this.run(this._tokenSource.token)
     }
 
     public dispose() {
@@ -124,7 +125,7 @@ export class JuliaKernel {
                     )
 
                     if (!result.success) {
-                        this._currentExecutionRequest.appendOutput(
+                        await this._currentExecutionRequest.appendOutput(
                             new vscode.NotebookCellOutput([
                                 vscode.NotebookCellOutputItem.error(result.error),
                             ])
@@ -219,10 +220,10 @@ export class JuliaKernel {
                     new StreamMessageWriter(socket)
                 )
 
-                this._msgConnection.onNotification(notifyTypeDisplay, ({ items }) => {
+                this._msgConnection.onNotification(notifyTypeDisplay, async ({ items }) => {
                     const execution = this._currentExecutionRequest
                     if (execution) {
-                        execution.appendOutput(
+                        await execution.appendOutput(
                             new vscode.NotebookCellOutput(
                                 items.map((item) => {
                                     if (
@@ -252,11 +253,11 @@ export class JuliaKernel {
 
                 this._msgConnection.onNotification(
                     notifyTypeStreamoutput,
-                    ({ name, data }) => {
+                    async ({ name, data }) => {
                         if (name === 'stdout') {
                             const execution = this._currentExecutionRequest
                             if (execution) {
-                                execution.appendOutput([
+                                await execution.appendOutput([
                                     new vscode.NotebookCellOutput([
                                         vscode.NotebookCellOutputItem.stdout(data),
                                     ]),
@@ -265,7 +266,7 @@ export class JuliaKernel {
                         } else if (name === 'stderr') {
                             const execution = this._currentExecutionRequest
                             if (execution) {
-                                execution.appendOutput([
+                                await execution.appendOutput([
                                     new vscode.NotebookCellOutput([
                                         vscode.NotebookCellOutputItem.stderr(data),
                                     ]),
@@ -345,7 +346,7 @@ export class JuliaKernel {
             const tokenSource = this._tokenSource
             const processExecutionRequests = this._processExecutionRequests
 
-            this._kernelProcess.on('close', async (code) => {
+            this._kernelProcess.on('close', (code) => {
                 tokenSource.cancel()
                 processExecutionRequests.notify()
 
@@ -368,23 +369,23 @@ export class JuliaKernel {
             this.dispose()
         }
         catch (err) {
-            handleNewCrashReportFromException(err, 'Extension')
+            await handleNewCrashReportFromException(err, 'Extension')
             throw (err)
         }
     }
 
-    public async stop() {
+    public stop() {
         if (this._kernelProcess) {
             this._kernelProcess.kill()
             this._kernelProcess = undefined
         }
     }
 
-    public async restart() {
+    public restart() {
         this.notebookFeature.restart(this)
     }
 
-    public async interrupt() {
+    public interrupt() {
         this._kernelProcess?.kill('SIGINT')
     }
 }

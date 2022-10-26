@@ -3,7 +3,7 @@ import * as semver from 'semver'
 import * as vscode from 'vscode'
 import { NotebookNode, WorkspaceFeature } from '../interactive/workspace'
 import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
-import { registerAsyncCommand } from '../utils'
+import { registerNonAsyncCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
@@ -43,7 +43,8 @@ export class JuliaNotebookFeature {
         private juliaExecutableFeature: JuliaExecutablesFeature,
         private workspaceFeature: WorkspaceFeature
     ) {
-        this.init()
+        // TODO Is it correct that we don't use await here?
+        void this.init()
 
         vscode.workspace.onDidOpenNotebookDocument(
             this.onDidOpenNotebookDocument,
@@ -52,11 +53,11 @@ export class JuliaNotebookFeature {
         )
 
         context.subscriptions.push(
-            registerAsyncCommand('language-julia.stopKernel', async (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
-                await this.stopKernel(node)
+            registerNonAsyncCommand('language-julia.stopKernel', (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
+                this.stopKernel(node)
             ),
-            registerAsyncCommand('language-julia.restartKernel', async (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
-                await this.restartKernel(node)
+            registerNonAsyncCommand('language-julia.restartKernel', (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
+                this.restartKernel(node)
             )
         )
     }
@@ -222,7 +223,7 @@ export class JuliaNotebookFeature {
             }
 
             if (!foundExistingKernel) {
-                await this.startKernel(notebook, controller)
+                this.startKernel(notebook, controller)
             }
         }
 
@@ -233,13 +234,13 @@ export class JuliaNotebookFeature {
         }
     }
 
-    private async interrupt(notebook: vscode.NotebookDocument) {
-        this.kernels.forEach((kernel, document) => {
+    private interrupt(notebook: vscode.NotebookDocument) {
+        for ( const [document, kernel] of this.kernels) {
             if (document.uri.toString() === notebook.uri.toString()) {
                 kernel.interrupt()
                 return
             }
-        })
+        }
     }
 
     private getNotebookLanguageVersion(
@@ -286,7 +287,7 @@ export class JuliaNotebookFeature {
         )
     }
 
-    async startKernel(
+    startKernel(
         notebook: vscode.NotebookDocument,
         controller: vscode.NotebookController
     ) {
@@ -298,7 +299,7 @@ export class JuliaNotebookFeature {
             this._outputChannel,
             this
         )
-        await this.workspaceFeature.addNotebookKernel(kernel)
+        this.workspaceFeature.addNotebookKernel(kernel)
         this.kernels.set(notebook, kernel)
 
         kernel.onStopped((e) => {
@@ -309,37 +310,37 @@ export class JuliaNotebookFeature {
         return kernel
     }
 
-    public async restart(kernel: JuliaKernel) {
-        await kernel.stop()
-        await this.startKernel(kernel.notebook, kernel.controller)
+    public restart(kernel: JuliaKernel) {
+        kernel.stop()
+        this.startKernel(kernel.notebook, kernel.controller)
     }
 
-    async stopKernel(
+    stopKernel(
         node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }
     ) {
         if (node instanceof NotebookNode) {
-            await node.stop()
+            node.stop()
         } else {
             const uri = node.notebookEditor.notebookUri
-            for await (const [document, kernel] of this.kernels) {
+            for (const [document, kernel] of this.kernels) {
                 if (document.uri.toString() === uri.toString()) {
-                    await kernel.stop()
+                    kernel.stop()
                     return
                 }
             }
         }
     }
 
-    async restartKernel(
+    restartKernel(
         node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }
     ) {
         if (node instanceof NotebookNode) {
-            await node.restart()
+            node.restart()
         } else {
             const uri = node.notebookEditor.notebookUri
-            this.kernels.forEach(async (kernel, document) => {
+            this.kernels.forEach((kernel, document) => {
                 if (document.uri.toString() === uri.toString()) {
-                    await kernel.restart()
+                    kernel.restart()
                     return
                 }
             })

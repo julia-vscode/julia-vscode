@@ -207,8 +207,8 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
         this.refresh()
     }
 
-    setCurrentAsDefault() {
-        vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), true)
+    async setCurrentAsDefault() {
+        await vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), true)
     }
 
     addNameToCompiled(name: string) {
@@ -232,10 +232,10 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     }
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     const provider = new DebugConfigTreeProvider()
     provider.applyDefaults()
-    setContext('julia.debuggerCompiledMode', false)
+    await setContext('julia.debuggerCompiledMode', false)
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('debugger-compiled', provider),
@@ -269,15 +269,15 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }),
         vscode.commands.registerCommand('language-julia.set-current-as-default-compiled', async () => {
-            provider.setCurrentAsDefault()
+            await provider.setCurrentAsDefault()
         }),
         vscode.commands.registerCommand('language-julia.enable-compiled-mode', async () => {
             provider.enableCompiledMode()
-            setContext('julia.debuggerCompiledMode', true)
+            await setContext('julia.debuggerCompiledMode', true)
         }),
         vscode.commands.registerCommand('language-julia.disable-compiled-mode', async () => {
             provider.disableCompiledMode()
-            setContext('julia.debuggerCompiledMode', false)
+            await setContext('julia.debuggerCompiledMode', false)
         }),
         onInit(connection => {
             provider.setConnection(connection)

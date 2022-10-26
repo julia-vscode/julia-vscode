@@ -144,4 +144,4 @@ async function main() {
     await cp.exec('npm update', { cwd: process.cwd() })
 }
 
-main()
+void main()
