@@ -2,8 +2,10 @@
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": 6,
-        "sourceType": "module"
+        "sourceType": "module",
+        "project": "tsconfig.json"
     },
+    "plugins": ["@typescript-eslint"],
     "env": {
         "node": true
     },
@@ -27,6 +29,9 @@
             "error",
             "never"
         ],
-        "eqeqeq": "error"
+        "eqeqeq": "error",
+        "@typescript-eslint/await-thenable": "error",
+        "@typescript-eslint/require-await": "error",
+        "@typescript-eslint/no-floating-promises": "error"
     }
 }
