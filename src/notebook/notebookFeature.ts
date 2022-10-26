@@ -321,12 +321,12 @@ export class JuliaNotebookFeature {
             await node.stop()
         } else {
             const uri = node.notebookEditor.notebookUri
-            this.kernels.forEach(async (kernel, document) => {
+            for await (const [document, kernel] of this.kernels) {
                 if (document.uri.toString() === uri.toString()) {
                     await kernel.stop()
                     return
                 }
-            })
+            }
         }
     }
 

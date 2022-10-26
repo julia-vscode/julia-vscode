@@ -355,10 +355,10 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
     async toggleModules(show: boolean) {
         this.workspaceFeature._REPLNode.toggleModules(show)
         await this.workspaceFeature._REPLNode.updateReplVariables()
-        this.workspaceFeature._NotebookNodes.forEach(async node => {
+        for await (const node of this.workspaceFeature._NotebookNodes) {
             node.toggleModules(show)
             await node.updateReplVariables()
-        })
+        }
         await vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, true)
     }
 }
