@@ -14,7 +14,7 @@ import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import { JuliaExecutablesFeature } from '../juliaexepath'
 import * as telemetry from '../telemetry'
-import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerAsyncCommand, registerNonAsyncCommand, setContext } from '../utils'
+import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerAsyncCommand, registerNonAsyncCommand, setContext, wrapCrashReporting } from '../utils'
 import * as completions from './completions'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
@@ -1177,7 +1177,7 @@ export async function activate(context: vscode.ExtensionContext, compiledProvide
         onSetLanguageClient(languageClient => {
             g_languageClient = languageClient
         }),
-        onInit(async connection => {
+        onInit(wrapCrashReporting(async connection => {
             connection.onNotification(notifyTypeDisplay, display)
             connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
             connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
@@ -1191,8 +1191,12 @@ export async function activate(context: vscode.ExtensionContext, compiledProvide
             connection.onNotification(notifyTypeProgress, updateProgress)
             await setContext('julia.isEvaluating', false)
             await setContext('julia.hasREPL', true)
-        }),
+        })),
         onExit(async () => {
+            setContext('julia.isEvaluating', false)
+            setContext('julia.hasREPL', true)
+        })),
+        onExit(() => {
             results.removeAll()
             clearDiagnostics()
             await setContext('julia.isEvaluating', false)

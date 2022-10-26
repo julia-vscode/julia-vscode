@@ -88,6 +88,19 @@ export function registerNonAsyncCommand<T extends unknown[]>(cmd: string, f: (..
     return vscode.commands.registerCommand(cmd, fWrapped)
 }
 
+export function wrapCrashReporting(f) {
+    const fWrapped = (...args) => {
+        try {
+            return f(...args)
+        } catch (err) {
+            handleNewCrashReportFromException(err, 'Extension')
+            throw (err)
+        }
+    }
+
+    return fWrapped
+}
+
 export function resolvePath(p: string, normalize: boolean = true) {
     p = parseEnvVariables(p)
     p = p.replace(/^~/, os.homedir())

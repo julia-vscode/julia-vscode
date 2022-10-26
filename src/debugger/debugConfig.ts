@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { onExit, onFinishEval, onInit } from '../interactive/repl'
-import { registerAsyncCommand, registerNonAsyncCommand, setContext } from '../utils'
+import { registerAsyncCommand, registerNonAsyncCommand, setContext, wrapCrashReporting } from '../utils'
 
 interface DebugConfigTreeItem {
     label: string
@@ -279,10 +279,10 @@ export async function activate(context: vscode.ExtensionContext) {
             provider.disableCompiledMode()
             await setContext('julia.debuggerCompiledMode', false)
         }),
-        onInit(connection => {
+        onInit(wrapCrashReporting(connection => {
             provider.setConnection(connection)
             provider.refresh()
-        }),
+        })),
         onFinishEval(_ => provider.refresh()),
         onExit(e => {
             provider.setConnection(null)

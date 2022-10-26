@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { TestProcess } from '../testing/testFeature'
-import { registerAsyncCommand } from '../utils'
+import { registerAsyncCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
 import {
     notifyTypeDisplay,
@@ -211,7 +211,7 @@ export class WorkspaceFeature {
                 this._REPLTreeDataProvider
             ),
             // listeners
-            onInit((conn) => this.openREPL(conn)),
+            onInit(wrapCrashReporting(conn => this.openREPL(conn))),
             onExit((err) => this.closeREPL(err)),
             // commands
             registerAsyncCommand('language-julia.showInVSCode', async (node: VariableNode) =>
