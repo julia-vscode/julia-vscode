@@ -96,14 +96,14 @@ function add_code_to_repl_history(code)
     end
 end
 
-function savePersistentResults(render_res::ReplRunCodeRequestReturn, source_filename, code_line, code_column, endLine, endColumn)
+function savePersistentResults(render_res::ReplRunCodeRequestReturn, source_filename, code_line, code_column, endLine, endColumn, code_hash)
     persistOutputFilePath = source_filename * ".vsjlpo"
     jsonD = Dict()
     if isfile(persistOutputFilePath)
         jsonD = JSON.parsefile(persistOutputFilePath)
     end
     jsonD[string(endLine)] = Dict("startLine" => code_line, "startCol" => code_column, "endLine" => endLine, "endCol" => endColumn,
-        "inline" => render_res.inline, "all" => render_res.all)
+        "inline" => render_res.inline, "all" => render_res.all, "code_hash" => code_hash)
     open(persistOutputFilePath, "w") do io
         JSON.print(io, jsonD)
     end
@@ -124,13 +124,36 @@ function repl_loadpersist_request(conn, params::ReplLoadPersistParams)::ReplLoad
         for l in endLines
             jData = jsonD[string(l)]
             push!(persistRanges,
-                PersistRanges(jData["startLine"], jData["startCol"], jData["endLine"], jData["endCol"]))
+                PersistRanges(jData["startLine"], jData["startCol"], jData["endLine"], jData["endCol"], jData["code_hash"]))
             push!(persistResults, ReplRunCodeRequestReturn(jData["inline"], jData["all"]))
         end
     catch err
         msg = string(err)
     end
     return ReplLoadPersistReturn(msg, persistRanges, persistResults)
+end
+
+function repl_rm_persist_line_request(conn, params::ReplRmPersistLineParams)::ReplRmPersistLineReturn
+    persistOutputFilePath = params.filename * ".vsjlpo"
+    msg = ""
+    if !isfile(persistOutputFilePath)
+        return ReplRmPersistLineReturn(msg)
+    end
+
+    try
+        jsonD = JSON.parsefile(persistOutputFilePath)
+        endLine = string(params.endLine)
+        if haskey(jsonD, endLine)
+            delete!(jsonD, endLine)
+        end
+
+        open(persistOutputFilePath, "w") do io
+            JSON.print(io, jsonD)
+        end
+    catch err
+        msg = string(err)
+    end
+    return ReplRmPersistLineReturn(msg)
 end
 
 CAN_SET_ANS = Ref{Bool}(true)
@@ -258,7 +281,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                 end
 
                 if persistentEnabled
-                    savePersistentResults(safe_render(res), source_filename, code_line, code_column, endLine, endColumn)
+                    savePersistentResults(safe_render(res), source_filename, code_line, code_column, endLine, endColumn, bytes2hex(sha256(source_code)))
                 end
                 return safe_render(res)
             end

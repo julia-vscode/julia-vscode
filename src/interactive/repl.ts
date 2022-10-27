@@ -21,6 +21,7 @@ import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
 import { Frame, openFile } from './results'
+import { createHash } from 'crypto'
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
@@ -334,6 +335,7 @@ interface PersistRanges {
     startCol: number,
     endLine: number,
     endCol: number,
+    code_hash: string
 }
 interface loadPersistResult {
     msg: string,
@@ -344,6 +346,14 @@ interface loadPersistResult {
 const loadPersistResultsCode = new rpc.RequestType<{
     filename: string,
 }, loadPersistResult, void>('repl/loadpersistresults')
+
+interface rmPersistLineResult {
+    msg: string,
+}
+const rmPersistLineCode = new rpc.RequestType<{
+    filename: string,
+    endLine: number
+}, rmPersistLineResult, void>('repl/rmpersistline')
 interface DebugLaunchParams {
     code: string,
     filename: string
@@ -914,7 +924,22 @@ async function load_results(editor: vscode.TextEditor) {
             return
         }
         for (let i = 0; i < result.ranges.length; i++){
-            results.addResult(editor, new vscode.Range(new vscode.Position(result.ranges[i].startLine,result.ranges[i].startCol),new vscode.Position(result.ranges[i].endLine,result.ranges[i].endCol)), result.results[i].inline, result.results[i].all)
+            const curRange = new vscode.Range(new vscode.Position(result.ranges[i].startLine,result.ranges[i].startCol),new vscode.Position(result.ranges[i].endLine,result.ranges[i].endCol))
+            const code = editor.document.getText(curRange)
+            const code_hash = createHash('sha256').update(code).digest('hex')
+            const persist_hash = result.ranges[i].code_hash
+            if (code_hash === persist_hash) {
+                results.addResult(editor, curRange, result.results[i].inline, result.results[i].all)
+            } else {
+                await g_connection.sendRequest(
+                    rmPersistLineCode,
+                    {
+                        filename: editor.document.fileName,
+                        endLine: curRange.end.line
+                    }
+                )
+            }
+
         }
     } else {
         vscode.window.showErrorMessage('Failed to load persist output: ' + result.msg)

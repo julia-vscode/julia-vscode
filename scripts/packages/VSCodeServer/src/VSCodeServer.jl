@@ -3,7 +3,7 @@ module VSCodeServer
 export vscodedisplay, @vscodedisplay, @enter, @run
 export view_profile, view_profile_allocs, @profview, @profview_allocs
 
-using REPL, Sockets, Base64, Pkg, UUIDs, Dates, Profile
+using REPL, Sockets, Base64, Pkg, UUIDs, Dates, Profile, SHA
 import Base: display, redisplay
 import Dates
 import Profile
@@ -121,6 +121,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
 
         msg_dispatcher[repl_runcode_request_type] = repl_runcode_request
         msg_dispatcher[repl_loadpersist_request_type] = repl_loadpersist_request
+        msg_dispatcher[repl_rm_persist_line_request_type] = repl_rm_persist_line_request
         msg_dispatcher[repl_interrupt_notification_type] = repl_interrupt_request
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
