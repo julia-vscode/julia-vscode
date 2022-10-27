@@ -1,11 +1,16 @@
 struct InlineDisplay <: AbstractDisplay
     is_repl::Bool
+    startLine::Int
+    startColumn::Int
     endLine::Int
+    endColumn::Int
     filename::String
+    codeHash::String
+    persistent::Bool
 end
 
-InlineDisplay() = InlineDisplay(false, -1, "")
-InlineDisplay(is_repl::Bool) = InlineDisplay(is_repl, -1, "")
+InlineDisplay() = InlineDisplay(false, -1, -1, -1, -1, "", "", false)
+InlineDisplay(is_repl::Bool) = InlineDisplay(is_repl, -1, -1, -1, -1, "", "", false)
 
 const PLOT_PANE_ENABLED = Ref(true)
 const DIAGNOSTICS_ENABLED = Ref(true)
@@ -45,8 +50,10 @@ function with_no_default_display(f)
     end
 end
 
-function sendDisplayMsg(kind, data; endLine=-1, filename="")
-    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data, "endLine" => endLine, "filename" => filename))
+function sendDisplayMsg(kind, data; startLine=-1, startColumn=-1, endLine=-1, endColumn=-1, filename="", codeHash="")
+    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}(
+        "kind" => kind, "data" => data, "startLine" => startLine, "startColumn" => startColumn,
+        "endLine" => endLine, "endColumn" => endColumn, "filename" => filename, "codeHash" => codeHash))
     JSONRPC.flush(conn_endpoint[])
 end
 
@@ -58,7 +65,8 @@ function Base.display(d::InlineDisplay, m::MIME, x)
         if mime in DISPLAYABLE_MIMES
             # we now all except for `image/...` mime types are not binary
             payload = startswith(mime, "image") ? stringmime(m, x) : String(repr(m, x))
-            sendDisplayMsg(mime, payload, endLine=d.endLine, filename=d.filename)
+            sendDisplayMsg(mime, payload, startLine=d.startLine, startColumn=d.startColumn, endLine=d.endLine,
+                endColumn=d.endColumn, filename=d.filename, codeHash=d.codeHash)
         else
             throw(MethodError(display, (d, m, x)))
         end

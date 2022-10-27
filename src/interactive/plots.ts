@@ -6,6 +6,7 @@ import * as telemetry from '../telemetry'
 import { registerCommand, setContext } from '../utils'
 import { displayTable } from './tables'
 import { JuliaKernel } from '../notebook/notebookKernel'
+import { createHash } from 'crypto'
 
 const c_juliaPlotPanelActiveContextKey = 'julia.plotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
@@ -13,13 +14,22 @@ let g_currentPlotIndex: number = 0
 let g_plotPanel: vscode.WebviewPanel | undefined = undefined
 let g_context: vscode.ExtensionContext = null
 let g_plotNavigatorProvider: PlotNavigatorProvider = null
-let g_endLine_plotIndex_map: Map<string,Map<number, number>> = null
+
+type PlotMetaData = {
+    startLine: number,
+    startColumn: number,
+    endLine: number,
+    endColumn: number,
+    codeHash: string,
+    plotIndex: number
+}
+let g_endLine_plotIndex_map: Map<string,Map<number, PlotMetaData>> = null
 
 export function activate(context: vscode.ExtensionContext) {
     g_context = context
 
     g_plotNavigatorProvider = new PlotNavigatorProvider(context)
-    g_endLine_plotIndex_map = new Map<string,Map<number, number>>()
+    g_endLine_plotIndex_map = new Map<string,Map<number, PlotMetaData>>()
     context.subscriptions.push(
         registerCommand('language-julia.copy-plot', requestCopyPlot),
         registerCommand('language-julia.save-plot', requestExportPlot),
@@ -351,9 +361,15 @@ export function showPlotForSelectionEvent(event: vscode.TextEditorSelectionChang
     if (!g_endLine_plotIndex_map.get(filename).has(endLine)) {
         return
     }
-
-    g_currentPlotIndex = g_endLine_plotIndex_map.get(filename).get(endLine)
-    updatePlotPane()
+    const plotMetaData = g_endLine_plotIndex_map.get(filename).get(endLine)
+    const curRange = new vscode.Range(new vscode.Position(plotMetaData.startLine,plotMetaData.startColumn),new vscode.Position(plotMetaData.endLine,plotMetaData.endColumn))
+    const code = event.textEditor.document.getText(curRange)
+    const code_hash = createHash('sha256').update(code).digest('hex')
+    const previous_hash = plotMetaData.codeHash
+    if (code_hash === previous_hash) {
+        g_currentPlotIndex = plotMetaData.plotIndex
+        updatePlotPane()
+    }
 }
 
 export function plotPanePrev() {
@@ -405,12 +421,16 @@ export function plotPaneDel() {
         updatePlotPane()
         for (const key of Array.from(g_endLine_plotIndex_map.keys())) {
             for (const endLineKey of Array.from(g_endLine_plotIndex_map.get(key).keys())) {
-                if (g_endLine_plotIndex_map.get(key).get(endLineKey) === g_currentPlotIndex) {
+                const plotMetaData = g_endLine_plotIndex_map.get(key).get(endLineKey)
+                if (plotMetaData.plotIndex === g_currentPlotIndex) {
                     g_endLine_plotIndex_map.get(key).delete(endLineKey)
                     continue
                 }
-                if (g_endLine_plotIndex_map.get(key).get(endLineKey) > g_currentPlotIndex) {
-                    g_endLine_plotIndex_map.get(key).set(endLineKey, g_endLine_plotIndex_map.get(key).get(endLineKey) - 1)
+                if (plotMetaData.plotIndex > g_currentPlotIndex) {
+                    g_endLine_plotIndex_map.get(key).set(endLineKey,   {
+                        startLine: plotMetaData.startLine, startColumn: plotMetaData.startColumn, endLine: endLineKey,
+                        endColumn: plotMetaData.endColumn, codeHash: plotMetaData.codeHash, plotIndex: g_endLine_plotIndex_map.get(key).get(endLineKey).plotIndex - 1
+                    })
                 }
             }
 
@@ -477,14 +497,14 @@ function wrapImagelike(srcString: string) {
         </html>`
 }
 
-export function displayPlot(params: { kind: string, data: string ,endLine: number, filename: string}, kernel?: JuliaKernel) {
+export function displayPlot(params: { kind: string, data: any ,startLine:number, startColumn: number, endLine: number, endColumn:number, filename: string, codeHash: string}, kernel?: JuliaKernel) {
     const kind = params.kind
     const payload = params.data
     const endLine = params.endLine
     const filename = params.filename
 
     if (!g_endLine_plotIndex_map.has(filename)) {
-        g_endLine_plotIndex_map.set(filename, new Map<number, number>())
+        g_endLine_plotIndex_map.set(filename, new Map<number, PlotMetaData>())
     }
 
     if (!(kind.startsWith('application/vnd.dataresource'))) {
@@ -515,24 +535,36 @@ export function displayPlot(params: { kind: string, data: string ,endLine: numbe
 
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'image/png') {
         const plotPaneContent = wrapImagelike(`data:image/png;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'image/gif') {
         const plotPaneContent = wrapImagelike(`data:image/gif;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'juliavscode/html') {
         g_currentPlotIndex = g_plots.push(payload) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'application/vnd.vegalite.v2+json') {
         showPlotPane()
@@ -572,7 +604,10 @@ export function displayPlot(params: { kind: string, data: string ,endLine: numbe
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'application/vnd.vegalite.v3+json') {
         showPlotPane()
@@ -612,7 +647,10 @@ export function displayPlot(params: { kind: string, data: string ,endLine: numbe
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'application/vnd.vegalite.v4+json') {
         showPlotPane()
@@ -652,7 +690,10 @@ export function displayPlot(params: { kind: string, data: string ,endLine: numbe
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'application/vnd.vega.v3+json') {
         showPlotPane()
@@ -690,7 +731,10 @@ export function displayPlot(params: { kind: string, data: string ,endLine: numbe
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'application/vnd.vega.v4+json') {
         showPlotPane()
@@ -728,7 +772,10 @@ export function displayPlot(params: { kind: string, data: string ,endLine: numbe
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'application/vnd.vega.v5+json') {
         showPlotPane()
@@ -766,7 +813,10 @@ export function displayPlot(params: { kind: string, data: string ,endLine: numbe
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'application/vnd.plotly.v1+json') {
         showPlotPane()
@@ -797,7 +847,10 @@ export function displayPlot(params: { kind: string, data: string ,endLine: numbe
         </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-        g_endLine_plotIndex_map.get(filename).set(endLine, g_currentPlotIndex)
+        g_endLine_plotIndex_map.get(filename).set(endLine,  {
+            startLine: params.startLine, startColumn: params.startColumn, endLine: endLine,
+            endColumn: params.endColumn, codeHash: params.codeHash, plotIndex: g_currentPlotIndex
+        })
     }
     else if (kind === 'application/vnd.dataresource+json') {
         return displayTable(payload, g_context, false, kernel)

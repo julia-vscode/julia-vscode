@@ -359,7 +359,7 @@ interface DebugLaunchParams {
     filename: string
 }
 
-export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any, endLine: number, filename: string }>('display')
+export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any ,startLine:number, startColumn: number, endLine: number, endColumn:number, filename: string, codeHash: string }>('display')
 const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams>('debugger/enter')
 const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams>('debugger/run')
 const notifyTypeReplStartDebugger = new rpc.NotificationType<{ debugPipename: string }>('repl/startdebugger')
@@ -504,7 +504,7 @@ function clearProgress() {
     }
 }
 
-function display(params: { kind: string, data: any, endLine: number, filename: string}) {
+function display(params: { kind: string, data: any ,startLine:number, startColumn: number, endLine: number,endColumn:number, filename: string,codeHash: string}) {
     if (params.kind === 'application/vnd.julia-vscode.diagnostics') {
         displayDiagnostics(params.data)
     } else {
