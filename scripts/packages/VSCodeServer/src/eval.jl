@@ -266,7 +266,12 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                 else
                     try
                         if !ends_with_semicolon(source_code)
-                            Base.invokelatest(display, InlineDisplay(), res)
+                            if (persistentEnabled)
+                                Base.invokelatest(display, InlineDisplay(false, endLine, source_filename), res)
+                            else
+                                Base.invokelatest(display, InlineDisplay(), res)
+                            end
+
                         end
                     catch err
                         if !(err isa MethodError && err.f === display)

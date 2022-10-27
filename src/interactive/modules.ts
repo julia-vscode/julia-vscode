@@ -7,6 +7,7 @@ import * as telemetry from '../telemetry'
 import { registerCommand, wrapCrashReporting } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import { onExit, onInit } from './repl'
+import {showPlotForSelectionEvent} from './plots'
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
@@ -31,6 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
         cancelCurrentGetModuleRequest()
         g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
         updateModuleForSelectionEvent(changeEvent, g_currentGetModuleRequestCancelTokenSource.token)
+        showPlotForSelectionEvent(changeEvent)
     }))
     context.subscriptions.push(registerCommand('language-julia.chooseModule', chooseModule))
 

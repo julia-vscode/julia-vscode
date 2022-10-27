@@ -1,8 +1,11 @@
 struct InlineDisplay <: AbstractDisplay
     is_repl::Bool
+    endLine::Int
+    filename::String
 end
 
-InlineDisplay() = InlineDisplay(false)
+InlineDisplay() = InlineDisplay(false, -1, "")
+InlineDisplay(is_repl::Bool) = InlineDisplay(is_repl, -1, "")
 
 const PLOT_PANE_ENABLED = Ref(true)
 const DIAGNOSTICS_ENABLED = Ref(true)
@@ -20,7 +23,7 @@ function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     PROGRESS_ENABLED[] = params.enable
 end
 
-function fix_displays(; is_repl = false)
+function fix_displays(; is_repl=false)
     for d in reverse(Base.Multimedia.displays)
         if d isa InlineDisplay
             popdisplay(d)
@@ -42,8 +45,8 @@ function with_no_default_display(f)
     end
 end
 
-function sendDisplayMsg(kind, data)
-    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data))
+function sendDisplayMsg(kind, data; endLine=-1, filename="")
+    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data, "endLine" => endLine, "filename" => filename))
     JSONRPC.flush(conn_endpoint[])
 end
 
@@ -55,7 +58,7 @@ function Base.display(d::InlineDisplay, m::MIME, x)
         if mime in DISPLAYABLE_MIMES
             # we now all except for `image/...` mime types are not binary
             payload = startswith(mime, "image") ? stringmime(m, x) : String(repr(m, x))
-            sendDisplayMsg(mime, payload)
+            sendDisplayMsg(mime, payload, endLine=d.endLine, filename=d.filename)
         else
             throw(MethodError(display, (d, m, x)))
         end
@@ -198,7 +201,7 @@ function repl_showingrid_notification(conn, params::NamedTuple{(:code,),Tuple{St
     end
 end
 
-function internal_vscodedisplay(x, title::AbstractString = "")
+function internal_vscodedisplay(x, title::AbstractString="")
     if is_table_like(x)
         showtable(x, title)
     else
@@ -206,7 +209,7 @@ function internal_vscodedisplay(x, title::AbstractString = "")
     end
 end
 
-vscodedisplay(x, title::AbstractString = "") = internal_vscodedisplay(x, title)
+vscodedisplay(x, title::AbstractString="") = internal_vscodedisplay(x, title)
 vscodedisplay(title::AbstractString) = i -> vscodedisplay(i, title)
 macro vscodedisplay(x)
     :(vscodedisplay($(esc(x)), $(string(x))))
