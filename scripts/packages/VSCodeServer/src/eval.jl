@@ -109,49 +109,94 @@ function savePersistentResults(render_res::ReplRunCodeRequestReturn, source_file
     end
 end
 
+
+
 function repl_loadpersist_request(conn, params::ReplLoadPersistParams)::ReplLoadPersistReturn
     persistOutputFilePath = params.filename * ".vsjlpo"
+    tryLineResult = true
     if !isfile(persistOutputFilePath)
-        return ReplLoadPersistReturn("", nothing, nothing)
+        tryLineResult = false
     end
-    persistRanges = Vector{PersistRanges}()
+    persistRanges = Vector{PersistRange}()
     persistResults = Vector{ReplRunCodeRequestReturn}()
     msg = ""
+    if tryLineResult
+        try
+            jsonD = JSON.parsefile(persistOutputFilePath)
+            endLines = sort(parse.(Int, keys(jsonD)))
+
+            for l in endLines
+                jData = jsonD[string(l)]
+                push!(persistRanges,
+                    PersistRange(jData["startLine"], jData["startCol"], jData["endLine"], jData["endCol"], jData["code_hash"]))
+                push!(persistResults, ReplRunCodeRequestReturn(jData["inline"], jData["all"]))
+            end
+        catch err
+            msg = string(err)
+        end
+    end
+    # load plots
+    persistPlotOutputFilePath = params.filename * ".vsjlplt"
+    if !isfile(persistPlotOutputFilePath)
+        return ReplLoadPersistReturn(msg, persistRanges, persistResults, nothing)
+    end
+    persistPlots = Vector{PlotData}()
     try
-        jsonD = JSON.parsefile(persistOutputFilePath)
+        jsonD = JSON.parsefile(persistPlotOutputFilePath)
         endLines = sort(parse.(Int, keys(jsonD)))
 
         for l in endLines
             jData = jsonD[string(l)]
-            push!(persistRanges,
-                PersistRanges(jData["startLine"], jData["startCol"], jData["endLine"], jData["endCol"], jData["code_hash"]))
-            push!(persistResults, ReplRunCodeRequestReturn(jData["inline"], jData["all"]))
+            pltData = PlotData(PersistRange(jData["startLine"],
+                    jData["startCol"], jData["endLine"], jData["endCol"], jData["code_hash"]),
+                jData["mime"], jData["payload"])
+            push!(persistPlots, pltData)
         end
     catch err
-        msg = string(err)
+        msg *= "\nPlot Loading Error:\n" * string(err)
     end
-    return ReplLoadPersistReturn(msg, persistRanges, persistResults)
+    return ReplLoadPersistReturn(msg, persistRanges, persistResults, persistPlots)
 end
 
 function repl_rm_persist_line_request(conn, params::ReplRmPersistLineParams)::ReplRmPersistLineReturn
     persistOutputFilePath = params.filename * ".vsjlpo"
     msg = ""
+    tryLineResult = true
     if !isfile(persistOutputFilePath)
-        return ReplRmPersistLineReturn(msg)
+        tryLineResult = false
+    end
+    if tryLineResult
+        try
+            jsonD = JSON.parsefile(persistOutputFilePath)
+            endLine = string(params.endLine)
+            if haskey(jsonD, endLine)
+                delete!(jsonD, endLine)
+            end
+
+            open(persistOutputFilePath, "w") do io
+                JSON.print(io, jsonD)
+            end
+        catch err
+            msg = string(err)
+        end
     end
 
+    # load plots
+    persistPlotOutputFilePath = params.filename * ".vsjlplt"
+    if !isfile(persistPlotOutputFilePath)
+        return ReplRmPersistLineReturn(msg)
+    end
     try
-        jsonD = JSON.parsefile(persistOutputFilePath)
+        jsonD = JSON.parsefile(persistPlotOutputFilePath)
         endLine = string(params.endLine)
         if haskey(jsonD, endLine)
             delete!(jsonD, endLine)
         end
-
-        open(persistOutputFilePath, "w") do io
+        open(persistPlotOutputFilePath, "w") do io
             JSON.print(io, jsonD)
         end
     catch err
-        msg = string(err)
+        msg *= "\nPlot Loading Error:\n" * string(err)
     end
     return ReplRmPersistLineReturn(msg)
 end

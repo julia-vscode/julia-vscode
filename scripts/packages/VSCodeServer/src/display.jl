@@ -57,6 +57,19 @@ function sendDisplayMsg(kind, data; startLine=-1, startColumn=-1, endLine=-1, en
     JSONRPC.flush(conn_endpoint[])
 end
 
+function persistPlot(d::InlineDisplay, mime::String, payload::String)
+    persistOutputFilePath = d.filename * ".vsjlplt"
+    jsonD = Dict()
+    if isfile(persistOutputFilePath)
+        jsonD = JSON.parsefile(persistOutputFilePath)
+    end
+    jsonD[string(d.endLine)] = Dict("startLine" => d.startLine, "startCol" => d.startColumn, "endLine" => d.endLine, "endCol" => d.endColumn,
+        "mime" => mime, "payload" => payload, "code_hash" => d.codeHash)
+    open(persistOutputFilePath, "w") do io
+        JSON.print(io, jsonD)
+    end
+end
+
 function Base.display(d::InlineDisplay, m::MIME, x)
     if !PLOT_PANE_ENABLED[]
         with_no_default_display(() -> display(m, x))
@@ -67,6 +80,9 @@ function Base.display(d::InlineDisplay, m::MIME, x)
             payload = startswith(mime, "image") ? stringmime(m, x) : String(repr(m, x))
             sendDisplayMsg(mime, payload, startLine=d.startLine, startColumn=d.startColumn, endLine=d.endLine,
                 endColumn=d.endColumn, filename=d.filename, codeHash=d.codeHash)
+            if d.persistent
+                persistPlot(d, mime, payload)
+            end
         else
             throw(MethodError(display, (d, m, x)))
         end

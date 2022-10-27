@@ -40,17 +40,23 @@ JSONRPC.@dict_readable struct ReplRmPersistLineParams <: JSONRPC.Outbound
     filename::String
     endLine::Int
 end
-JSONRPC.@dict_readable struct PersistRanges <: JSONRPC.Outbound
+JSONRPC.@dict_readable struct PersistRange <: JSONRPC.Outbound
     startLine::Int
     startCol::Int
     endLine::Int
     endCol::Int
     code_hash::String
 end
+JSONRPC.@dict_readable struct PlotData <: JSONRPC.Outbound
+    range::PersistRange
+    mime::String
+    payload::String
+end
 JSONRPC.@dict_readable struct ReplLoadPersistReturn <: JSONRPC.Outbound
     msg::String
-    ranges::Union{Nothing,Vector{PersistRanges}}
+    ranges::Union{Nothing,Vector{PersistRange}}
     results::Union{Nothing,Vector{ReplRunCodeRequestReturn}}
+    plots::Union{Nothing,Vector{PlotData}}
 end
 
 JSONRPC.@dict_readable struct ReplRmPersistLineReturn <: JSONRPC.Outbound

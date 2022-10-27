@@ -217,10 +217,13 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         g_terminal.show(preserveFocus)
         await juliaIsConnectedPromise.wait()
         if (Boolean(config.get('persistentSession.enabled'))) {
-            const ed = vscode.window.activeTextEditor
-            if (ed !== undefined) {
-                await load_results(ed)
+            const editors = vscode.window.visibleTextEditors
+            for (const ed of editors) {
+                if (ed !== undefined) {
+                    await load_results(ed)
+                }
             }
+
         }
     } else if (showTerminal) {
         g_terminal.show(preserveFocus)
@@ -330,22 +333,29 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     endLine: number,
     endColumn: number,
 }, ReturnResult, void>('repl/runcode')
-interface PersistRanges {
+interface PersistRange {
     startLine: number,
     startCol: number,
     endLine: number,
     endCol: number,
     code_hash: string
 }
-interface loadPersistResult {
+interface PlotData{
+    range: PersistRange,
+    mime: string,
+    payload: string,
+    plotIndex: number
+}
+interface LoadPersistResult {
     msg: string,
-    ranges: null | Array<PersistRanges>,
-    results: null | Array<ReturnResult>
+    ranges: null | Array<PersistRange>,
+    results: null | Array<ReturnResult>,
+    plots: null | Array<PlotData>
 }
 
 const loadPersistResultsCode = new rpc.RequestType<{
     filename: string,
-}, loadPersistResult, void>('repl/loadpersistresults')
+}, LoadPersistResult, void>('repl/loadpersistresults')
 
 interface rmPersistLineResult {
     msg: string,
@@ -913,7 +923,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 
 
 async function load_results(editor: vscode.TextEditor) {
-    const result: loadPersistResult = await g_connection.sendRequest(
+    const result: LoadPersistResult = await g_connection.sendRequest(
         loadPersistResultsCode,
         {
             filename: editor.document.fileName,
@@ -940,6 +950,32 @@ async function load_results(editor: vscode.TextEditor) {
                 )
             }
 
+        }
+        if (result.plots !== null) {
+            for (const plt_data of result.plots) {
+                const curRange = new vscode.Range(new vscode.Position(plt_data.range.startLine,
+                    plt_data.range.startCol), new vscode.Position(plt_data.range.endLine, plt_data.range.endCol))
+                const code = editor.document.getText(curRange)
+                const code_hash = createHash('sha256').update(code).digest('hex')
+                const persist_hash = plt_data.range.code_hash
+                if (code_hash === persist_hash) {
+                    display({
+                        kind: plt_data.mime, data: plt_data.payload,
+                        startLine: plt_data.range.startLine, startColumn: plt_data.range.startCol,
+                        endLine: plt_data.range.endLine, endColumn: plt_data.range.endCol,
+                        filename: editor.document.fileName, codeHash: plt_data.range.code_hash
+                    })
+                } else {
+                    await g_connection.sendRequest(
+                        rmPersistLineCode,
+                        {
+                            filename: editor.document.fileName,
+                            endLine: curRange.end.line
+                        }
+                    )
+                }
+
+            }
         }
     } else {
         vscode.window.showErrorMessage('Failed to load persist output: ' + result.msg)
