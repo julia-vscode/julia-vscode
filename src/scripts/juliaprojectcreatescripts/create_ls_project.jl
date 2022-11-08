@@ -9,6 +9,7 @@ Pkg.develop([
     PackageSpec(path="../../../packages/FilePathsBase"),
     PackageSpec(path="../../../packages/JSON"),
     PackageSpec(path="../../../packages/JSONRPC"),
+    PackageSpec(path="../../../packages/Glob"),
     PackageSpec(path="../../../packages/JuliaFormatter"),
     PackageSpec(path="../../../packages/LanguageServer"),
     PackageSpec(path="../../../packages/OrderedCollections"),

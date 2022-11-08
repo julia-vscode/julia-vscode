@@ -70,7 +70,8 @@ async function main() {
         'DataStructures',
         'JuliaFormatter',
         'URIs',
-        'Revise'
+        'Revise',
+        'Glob'
     ]) {
         await cp.exec('git fetch')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
