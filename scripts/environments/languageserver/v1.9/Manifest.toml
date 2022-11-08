@@ -54,6 +54,7 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
 [[deps.DelimitedFiles]]
 deps = ["Mmap"]
+path = "../../../packages/DelimitedFiles"
 git-tree-sha1 = "19b1417ff479c07e523fcbf2fd735a3fde3d1ab3"
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 version = "1.9.0"
