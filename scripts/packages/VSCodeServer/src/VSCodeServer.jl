@@ -122,6 +122,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_runcode_request_type] = repl_runcode_request
         msg_dispatcher[repl_interrupt_notification_type] = repl_interrupt_request
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
+        msg_dispatcher[repl_charcompletion_request_type] = repl_charcompletion_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
         msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request

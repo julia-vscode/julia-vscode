@@ -57,7 +57,7 @@ end
 function repl_interrupt_request(conn, ::Nothing)
     println(stderr, "^C")
     if EVAL_BACKEND_TASK[] !== nothing && !istaskdone(EVAL_BACKEND_TASK[]) && IS_BACKEND_WORKING[]
-        schedule(EVAL_BACKEND_TASK[], InterruptException(); error = true)
+        schedule(EVAL_BACKEND_TASK[], InterruptException(); error=true)
     end
 end
 
@@ -154,7 +154,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
 
             return withpath(source_filename) do
                 res = try
-                    val = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
+                    val = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope=params.softscope)
                     if CAN_SET_ANS[]
                         try
                             @static if @isdefined setglobal!
@@ -208,7 +208,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                         end
                     catch err
                         if !(err isa MethodError && err.f === display)
-                            printstyled(stderr, "Display Error: ", color = Base.error_color(), bold = true)
+                            printstyled(stderr, "Display Error: ", color=Base.error_color(), bold=true)
                             Base.display_error(stderr, err, catch_backtrace())
                         end
                     end
@@ -227,7 +227,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
 end
 
 # don't inline this so we can find it in the stacktrace
-@noinline function inlineeval(m, code, code_line, code_column, file; softscope = false)
+@noinline function inlineeval(m, code, code_line, code_column, file; softscope=false)
     code = string('\n'^code_line, ' '^code_column, code)
     args = softscope && VERSION >= v"1.5" ? (REPL.softscope, m, code, file) : (m, code, file)
     return Base.invokelatest(include_string, args...)
@@ -262,13 +262,13 @@ Must return a `ReplRunCodeRequestReturn` with the following fields:
 - `stackframe::Vector{Frame}`: Optional, should only be given on an error
 """
 function render(x)
-    plain = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
+    plain = sprintlimited(MIME"text/plain"(), x, limit=MAX_RESULT_LENGTH)
     md = try
-        sprintlimited(MIME"text/markdown"(), x, limit = MAX_RESULT_LENGTH)
+        sprintlimited(MIME"text/markdown"(), x, limit=MAX_RESULT_LENGTH)
     catch _
         codeblock(plain)
     end
-    inline = strlimit(first(split(plain, "\n")), limit = INLINE_RESULT_LENGTH)
+    inline = strlimit(first(split(plain, "\n")), limit=INLINE_RESULT_LENGTH)
     return ReplRunCodeRequestReturn(inline, md)
 end
 
@@ -291,14 +291,14 @@ unwrap_loaderror(err::LoadError) = err.error
 unwrap_loaderror(err) = err
 
 function sprint_error(err)
-    sprintlimited(err, [], func = Base.display_error, limit = MAX_RESULT_LENGTH)
+    sprintlimited(err, [], func=Base.display_error, limit=MAX_RESULT_LENGTH)
 end
 
 function render(err::EvalError)
     bt = crop_backtrace(err.bt)
 
     errstr = sprint_error_unwrap(err.err)
-    inline = strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
+    inline = strlimit(first(split(errstr, "\n")), limit=INLINE_RESULT_LENGTH)
     all = string('\n', codeblock(errstr), '\n', backtrace_string(bt))
 
     # handle duplicates e.g. from recursion
@@ -319,7 +319,7 @@ function render(stack::EvalErrorStack)
         append!(complete_bt, bt)
 
         errstr = sprint_error_unwrap(err)
-        inline *= strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
+        inline *= strlimit(first(split(errstr, "\n")), limit=INLINE_RESULT_LENGTH)
         all *= string('\n', codeblock(errstr), '\n', backtrace_string(bt))
     end
 
@@ -379,7 +379,7 @@ function backtrace_string(bt)
 
         file = string(frame.file)
         full_file = fullpath(something(Base.find_source_file(file), file))
-        cmd = vscode_cmd_uri("language-julia.openFile"; path = full_file, line = frame.line)
+        cmd = vscode_cmd_uri("language-julia.openFile"; path=full_file, line=frame.line)
 
         print(io, counter, ". `")
         Base.StackTraces.show_spec_linfo(io, frame)
@@ -393,4 +393,27 @@ function backtrace_string(bt)
     end
 
     return String(take!(io))
+end
+
+
+function repl_charcompletion_request(conn, params::CharCompletionRequest)::CharCompletionReturn
+    targetText = params.text
+    completion = ""
+    if haskey(REPL.REPLCompletions.symbols_latex_canonical, targetText)
+        completion = REPL.REPLCompletions.symbols_latex_canonical[targetText]
+    else
+        for (k, v) in REPL.REPLCompletions.latex_symbols
+            if v == targetText
+                completion = k
+                return CharCompletionReturn(completion)
+            end
+        end
+        for (k, v) in REPL.REPLCompletions.emoji_symbols
+            if v == targetText
+                completion = k
+                break
+            end
+        end
+    end
+    return CharCompletionReturn(completion)
 end

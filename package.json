@@ -436,6 +436,10 @@
             {
                 "command": "language-julia.hideModules",
                 "title": "Hide modules in Workspace"
+            },
+            {
+                "command": "language-julia.copyHowToType",
+                "title": "Julia: How to Type Selected Latex/Emoji to Clipboard"
             }
         ],
         "menus": {

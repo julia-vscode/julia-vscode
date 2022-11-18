@@ -1159,6 +1159,27 @@ function isMarkdownEditor(editor: vscode.TextEditor) {
     return editor.document.languageId === 'juliamarkdown' || editor.document.languageId === 'markdown'
 }
 
+interface CharCompletionReturnResult {
+    completion: string
+}
+const requestTypeCharCompletion = new rpc.RequestType<{
+    text: string,
+}, CharCompletionReturnResult, void>('repl/charcompletion')
+
+async function howToTypeToClipboard() {
+    const ed = vscode.window.activeTextEditor
+    const selection = ed.selection
+    const text = ed.document.getText(selection)
+    const completion =  await g_connection.sendRequest(
+        requestTypeCharCompletion,
+        {
+            text
+        }
+    )
+    vscode.env.clipboard.writeText(completion.completion)
+    vscode.window.showInformationMessage('Copied '+completion.completion+' to clipboard.')
+}
+
 export async function replStartDebugger(pipename: string) {
     await startREPL(true)
 
@@ -1272,6 +1293,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.activateFromDir', activateFromDir),
         registerCommand('language-julia.clearRuntimeDiagnostics', clearDiagnostics),
         registerCommand('language-julia.clearRuntimeDiagnosticsByProvider', clearDiagnosticsByProvider),
+        registerCommand('language-julia.copyHowToType', howToTypeToClipboard),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
