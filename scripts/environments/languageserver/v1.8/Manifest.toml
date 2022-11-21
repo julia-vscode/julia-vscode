@@ -74,6 +74,11 @@ version = "0.9.20"
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
+[[deps.Glob]]
+git-tree-sha1 = "4df9f7e06108728ebf00a0a11edee4b29a482bb2"
+uuid = "c27321d9-0574-5035-807b-f59d2c89b15c"
+version = "1.3.0"
+
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
@@ -91,10 +96,10 @@ uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
 version = "1.3.5-DEV"
 
 [[deps.JuliaFormatter]]
-deps = ["CSTParser", "CommonMark", "DataStructures", "Pkg", "Tokenize"]
+deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "Pkg", "Tokenize"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "1.0.12"
+version = "1.0.14"
 
 [[deps.LanguageServer]]
 deps = ["CSTParser", "JSON", "JSONRPC", "JuliaFormatter", "Markdown", "Pkg", "REPL", "StaticLint", "SymbolServer", "TestItemDetection", "Tokenize", "URIs", "UUIDs"]
