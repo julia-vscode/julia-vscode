@@ -85,3 +85,6 @@
 [submodule "scripts/packages/DelimitedFiles"]
 	path = scripts/packages/DelimitedFiles
 	url = https://github.com/JuliaData/DelimitedFiles.jl
+[submodule "scripts/packages-old/Compat"]
+	path = scripts/packages-old/Compat
+	url = https://github.com/JuliaLang/Compat.jl
