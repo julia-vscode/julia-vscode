@@ -82,3 +82,6 @@
 [submodule "scripts/packages/TestItemDetection"]
 	path = scripts/packages/TestItemDetection
 	url = https://github.com/julia-vscode/TestItemDetection.jl
+[submodule "scripts/packages/DelimitedFiles"]
+	path = scripts/packages/DelimitedFiles
+	url = https://github.com/JuliaData/DelimitedFiles.jl
