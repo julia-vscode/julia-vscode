@@ -130,7 +130,7 @@ export class JuliaNotebookFeature {
         // and prefer x64 builds
         const perfectMatchVersions = Array.from(this._controllers.entries())
             .filter(
-                ([_, juliaExec]) => juliaExec.getVersion() === semver.parse(version)
+                ([_, juliaExec]) => juliaExec.getVersion().toString() === semver.parse(version).toString()
             )
             .sort(([_, a], [__, b]) => {
                 if (a.officialChannel !== b.officialChannel) {
