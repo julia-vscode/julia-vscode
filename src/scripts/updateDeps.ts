@@ -48,7 +48,7 @@ async function main() {
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
-    for (const pkg of ['IJuliaCore', 'TestItemDetection']) {
+    for (const pkg of ['IJuliaCore', 'TestItemDetection', 'DelimitedFiles']) {
         await cp.exec('git checkout main', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
@@ -65,8 +65,8 @@ async function main() {
         'Tokenize',
         'URIParser',
         'CommonMark',
-        // 'Compat', # Compat 4 dropped Julia 1.0 support, so we keep it on an older version
-        // 'Crayons', # Crayons 4.1 dropped Julia 1.0 support, so we keep it on an older version
+        'Compat',
+        'Crayons',
         'DataStructures',
         'JuliaFormatter',
         'URIs',
@@ -90,7 +90,17 @@ async function main() {
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
-    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8']) {
+    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9']) {
+        // TODO Run this for 1.9 as well once there is a 1.9 system channel in Juliaup
+        // For now users need to have a linked 1.9 channel in Juliaup
+        if (v!=='1.9') {
+            try {
+                await cp.exec(`juliaup add ${v}`)
+            }
+            catch (err) {
+            }
+        }
+
         const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
         await fs.mkdir(env_path_ls, { recursive: true })
         await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })
@@ -116,6 +126,13 @@ async function main() {
         const env_path_test_vscodeserver = path.join(process.cwd(), 'scripts/testenvironments/vscodeserver', `v${v}`)
         await fs.mkdir(env_path_test_vscodeserver, { recursive: true })
         await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_test_vscodeserver_project.jl')}`, { cwd: env_path_test_vscodeserver })
+
+    }
+
+    try {
+        await cp.exec(`juliaup add release`)
+    }
+    catch (err) {
 
     }
 

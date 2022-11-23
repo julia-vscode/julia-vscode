@@ -1,10 +1,8 @@
 using Pkg
 
-Pkg.develop([
+packages_to_dev = [
     PackageSpec(path="../../../packages/CSTParser"),
     PackageSpec(path="../../../packages/CommonMark"),
-    PackageSpec(path="../../../packages/Compat"),
-    PackageSpec(path="../../../packages/Crayons"),
     PackageSpec(path="../../../packages/DataStructures"),
     PackageSpec(path="../../../packages/FilePathsBase"),
     PackageSpec(path="../../../packages/JSON"),
@@ -18,4 +16,18 @@ Pkg.develop([
     PackageSpec(path="../../../packages/URIParser"),
     PackageSpec(path="../../../packages/URIs"),
     PackageSpec(path="../../../packages/TestItemDetection"),
-])
+]
+
+if VERSION>=v"1.9-DEV"
+    push!(packages_to_dev, PackageSpec(path="../../../packages/DelimitedFiles"))
+end
+
+if VERSION>=v"1.6.0"
+    push!(packages_to_dev, PackageSpec(path="../../../packages/Compat"))
+    push!(packages_to_dev, PackageSpec(path="../../../packages/Crayons"))
+else
+    push!(packages_to_dev, PackageSpec(path="../../../packages-old/Compat"))
+    push!(packages_to_dev, PackageSpec(path="../../../packages-old/Crayons"))
+end
+
+Pkg.develop(packages_to_dev)
