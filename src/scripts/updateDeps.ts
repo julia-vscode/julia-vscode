@@ -48,7 +48,7 @@ async function main() {
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
-    for (const pkg of ['IJuliaCore', 'TestItemDetection', 'DelimitedFiles']) {
+    for (const pkg of ['IJuliaCore', 'TestItemDetection']) {
         await cp.exec('git checkout main', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
@@ -71,7 +71,8 @@ async function main() {
         'DataStructures',
         'JuliaFormatter',
         'URIs',
-        'Revise'
+        'Revise',
+        'DelimitedFiles'
     ]) {
         await cp.exec('git fetch')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
