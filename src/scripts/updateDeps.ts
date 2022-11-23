@@ -59,6 +59,7 @@ async function main() {
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
+        'Glob',
         'LoweredCodeUtils',
         'OrderedCollections',
         'PackageCompiler',

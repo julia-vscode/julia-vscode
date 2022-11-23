@@ -4,6 +4,7 @@ packages_to_dev = [
     PackageSpec(path="../../../packages/CSTParser"),
     PackageSpec(path="../../../packages/CommonMark"),
     PackageSpec(path="../../../packages/DataStructures"),
+    PackageSpec(path="../../../packages/Glob"),
     PackageSpec(path="../../../packages/FilePathsBase"),
     PackageSpec(path="../../../packages/JSON"),
     PackageSpec(path="../../../packages/JSONRPC"),
