@@ -46,11 +46,6 @@ export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:[
 export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
 
 export async function activate(context: vscode.ExtensionContext) {
-    if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
-        vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
-        return
-    }
-
     await telemetry.init(context)
     try {
         setContext('julia.isActive', true)
@@ -237,11 +232,11 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
         vscode.window.showErrorMessage(
-            'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.',
+            'Could not start the Julia language server. Make sure the `julia.executablePath` setting is valid.',
             'Open Settings'
         ).then(val => {
             if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
             }
         })
         g_startupNotification.hide()
