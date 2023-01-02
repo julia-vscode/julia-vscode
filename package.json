@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.7.0",
+    "version": "1.40.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -35,6 +35,7 @@
         "onCommand:language-julia.startREPL",
         "onCommand:language-julia.connectREPL",
         "onCommand:language-julia.stopREPL",
+        "onCommand:language-julia.stopTestProcess",
         "onCommand:language-julia.restartREPL",
         "onCommand:language-julia.executeCodeBlockOrSelection",
         "onCommand:language-julia.executeFile",
@@ -136,6 +137,11 @@
                 "command": "language-julia.restartREPL",
                 "title": "Julia: Restart REPL",
                 "icon": "$(debug-restart)"
+            },
+            {
+                "command": "language-julia.stopTestProcess",
+                "title": "Julia: Stop Test Process",
+                "icon": "$(debug-stop)"
             },
             {
                 "command": "language-julia.disconnectREPL",
@@ -600,6 +606,11 @@
                     "group": "inline"
                 },
                 {
+                    "command": "language-julia.stopTestProcess",
+                    "when": "view == REPLVariables && viewItem == juliatestprocess",
+                    "group": "inline"
+                },
+                {
                     "command": "language-julia.switchToInterpreted",
                     "when": "view == debugger-compiled && viewItem =~ /\\bcompiled\\b/",
                     "group": "inline@1"
@@ -1032,6 +1043,12 @@
                     "scope": "machine-overridable",
                     "markdownDescription": "Number of threads to use for Julia processes. A value of `auto` works on Julia versions that allow for `--threads=auto`."
                 },
+                "julia.numTestProcesses": {
+                    "type": "integer",
+                    "default": 1,
+                    "scope": "machine-overridable",
+                    "markdownDescription": "Number of processes to use for testing."
+                },
                 "julia.editor": {
                     "type": "string",
                     "default": "code",
@@ -1099,7 +1116,7 @@
                 "julia.packageServer": {
                     "type": "string",
                     "default": "",
-                    "markdownDescription": "Julia package server. Set's the `JULIA_PKG_SERVER` environment variable *before* starting a Julia process. Leave this empty to use the systemwide default. Requires a restart of the Julia process.",
+                    "markdownDescription": "Julia package server. Sets the `JULIA_PKG_SERVER` environment variable *before* starting a Julia process. Leave this empty to use the systemwide default. Requires a restart of the Julia process.",
                     "scope": "machine-overridable"
                 },
                 "julia.liveTestFile": {
@@ -1117,13 +1134,13 @@
                 "julia.persistentSession.shell": {
                     "type": "string",
                     "default": "/bin/sh",
-                    "scope": "machine-overridable",
+                    "scope": "machine",
                     "description": "Shell used to start the persistent session."
                 },
                 "julia.persistentSession.shellExecutionArgument": {
                     "type": "string",
                     "default": "-c",
-                    "scope": "machine-overridable",
+                    "scope": "machine",
                     "markdownDescription": "Argument to execute code in the configured shell, e.g. `-c` for sh-likes or `/c` for `cmd`."
                 },
                 "julia.persistentSession.tmuxSessionName": {
@@ -1135,13 +1152,13 @@
                 "julia.persistentSession.warnOnKill": {
                     "type": "boolean",
                     "default": true,
-                    "scope": "machine-overridable",
+                    "scope": "application",
                     "description": "Warn when stopping a persistent session."
                 },
                 "julia.persistentSession.alwaysCopy": {
                     "type": "boolean",
                     "default": false,
-                    "scope": "machine-overridable",
+                    "scope": "application",
                     "description": "Always copy the command for connecting to an external REPL to the clipboard."
                 },
                 "julia.deleteJuliaCovFiles": {
@@ -1467,12 +1484,15 @@
         "initialsetup": "npm i && git submodule init && git submodule update",
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run webpack",
         "package": "vsce package",
-        "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js"
+        "updatedeps": "npm run compile && node ./out/scripts/updateDeps.js",
+        "tagminor": "npm version minor && git push --tags && git push",
+        "tagmajor": "npm version major && git push --tags && git push"
     },
     "dependencies": {
         "@traptitech/markdown-it-katex": "^3.5.0",
         "@vscode/debugadapter": "^1.55.1",
         "@vscode/debugprotocol": "^1.55.1",
+        "@vscode/test-electron": "^2.2.0",
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
@@ -1503,7 +1523,6 @@
         "ts-loader": "^9.2.8",
         "typescript": "^4.6.2",
         "vsce": "^2.7.0",
-        "vscode-test": "^1.6.1",
         "webpack": "^5.70.0",
         "webpack-cli": "^4.9.2"
     }

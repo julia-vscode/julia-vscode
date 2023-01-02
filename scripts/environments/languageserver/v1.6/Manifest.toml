@@ -19,18 +19,18 @@ version = "3.3.7-DEV"
 deps = ["Crayons", "JSON", "URIs"]
 path = "../../../packages/CommonMark"
 uuid = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
-version = "0.8.6"
+version = "0.8.7"
 
 [[Compat]]
-deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
+deps = ["Dates", "LinearAlgebra", "UUIDs"]
 path = "../../../packages/Compat"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "3.43.0"
+version = "4.5.0"
 
 [[Crayons]]
 path = "../../../packages/Crayons"
 uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
-version = "4.0.4"
+version = "4.1.1"
 
 [[DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -42,14 +42,6 @@ version = "0.18.13"
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
-[[DelimitedFiles]]
-deps = ["Mmap"]
-uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
-
-[[Distributed]]
-deps = ["Random", "Serialization", "Sockets"]
-uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
-
 [[Downloads]]
 deps = ["ArgTools", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
@@ -58,7 +50,12 @@ uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
 path = "../../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.18"
+version = "0.9.20"
+
+[[Glob]]
+path = "../../../packages/Glob"
+uuid = "c27321d9-0574-5035-807b-f59d2c89b15c"
+version = "1.3.0"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -77,13 +74,13 @@ uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
 version = "1.3.5-DEV"
 
 [[JuliaFormatter]]
-deps = ["CSTParser", "CommonMark", "DataStructures", "Pkg", "Tokenize"]
+deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "Pkg", "Tokenize"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "1.0.9"
+version = "1.0.17"
 
 [[LanguageServer]]
-deps = ["CSTParser", "JSON", "JSONRPC", "JuliaFormatter", "Markdown", "Pkg", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIs", "UUIDs"]
+deps = ["CSTParser", "JSON", "JSONRPC", "JuliaFormatter", "Markdown", "Pkg", "REPL", "StaticLint", "SymbolServer", "TestItemDetection", "Tokenize", "URIs", "UUIDs"]
 path = "../../../packages/LanguageServer"
 uuid = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
 version = "4.3.2-DEV"
@@ -158,26 +155,14 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 [[Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 
-[[SharedArrays]]
-deps = ["Distributed", "Mmap", "Random", "Serialization"]
-uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
-
 [[Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
-
-[[SparseArrays]]
-deps = ["LinearAlgebra", "Random"]
-uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[StaticLint]]
 deps = ["CSTParser", "Serialization", "SymbolServer"]
 path = "../../../packages/StaticLint"
 uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
 version = "8.1.1-DEV"
-
-[[Statistics]]
-deps = ["LinearAlgebra", "SparseArrays"]
-uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [[SymbolServer]]
 deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
@@ -196,6 +181,12 @@ uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 [[Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[TestItemDetection]]
+deps = ["CSTParser"]
+path = "../../../packages/TestItemDetection"
+uuid = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
+version = "0.1.2-DEV"
 
 [[Tokenize]]
 path = "../../../packages/Tokenize"

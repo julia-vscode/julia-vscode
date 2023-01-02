@@ -7,6 +7,7 @@ import { parse } from 'semver'
 import stringArgv from 'string-argv'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
+import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
 import { resolvePath } from './utils'
 
@@ -62,7 +63,7 @@ export class JuliaExecutablesFeature {
     private cachedJuliaExePaths: JuliaExecutable[] | undefined
     private usingJuliaup: boolean | undefined
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private context: vscode.ExtensionContext, private diagnosticsOutput: JuliaGlobalDiagnosticOutputFeature) {
         this.context.subscriptions.push(
             onDidChangeConfig(event => {
                 if (event.affectsConfiguration('julia.executablePath')) {
@@ -134,8 +135,12 @@ export class JuliaExecutablesFeature {
         let pathsToSearch = []
         if (process.platform === 'win32') {
             pathsToSearch = ['julia.exe',
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.9.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.4', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.3', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.1', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.0', 'bin', 'julia.exe'),
-                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.4', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.3', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.2', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.1', 'bin', 'julia.exe'),
@@ -172,6 +177,8 @@ export class JuliaExecutablesFeature {
         }
         else if (process.platform === 'darwin') {
             pathsToSearch = ['julia',
+                path.join(homedir, 'Applications', 'Julia-1.9.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.9.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                 path.join(homedir, 'Applications', 'Julia-1.8.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                 path.join('/', 'Applications', 'Julia-1.8.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                 path.join(homedir, 'Applications', 'Julia-1.7.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
@@ -263,7 +270,12 @@ export class JuliaExecutablesFeature {
 
     public async getActiveJuliaExecutableAsync() {
         if (!this.actualJuliaExePath) {
+
+            this.diagnosticsOutput.appendLine('Trying to locate Julia binary...')
+
             if (!await this.tryJuliaup()) {
+                this.diagnosticsOutput.appendLine('Juliaup not found, locating Julia by other means.')
+
                 const configPath = this.getExecutablePath()
                 if (!configPath) {
                     for (const p of this.getSearchPaths()) {
@@ -279,12 +291,24 @@ export class JuliaExecutablesFeature {
             // Even when Juliaup reports a version, we still want the configuration setting
             // to have higher priority
             else {
+                this.diagnosticsOutput.appendLine('Juliaup found.')
+
                 const configPath = this.getExecutablePath()
+
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.executablePath' is '${configPath}'.`)
 
                 if (configPath) {
                     await this.tryAndSetNewJuliaExePathAsync(configPath)
                 }
             }
+
+            if(this.actualJuliaExePath) {
+                this.diagnosticsOutput.appendLine(`The identified Julia executable is "${this.actualJuliaExePath.file}" with args "${this.actualJuliaExePath.args}".`)
+            }
+            else {
+                this.diagnosticsOutput.appendLine(`No Julia executable was identified.`)
+            }
+            this.diagnosticsOutput.appendLine(`The current PATH environment variable is "${process.env.PATH}".`)
         }
         return this.actualJuliaExePath
     }

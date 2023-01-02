@@ -3,6 +3,8 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { Disposable, MessageConnection } from 'vscode-jsonrpc'
+import { handleNewCrashReportFromException } from '../telemetry'
+import { wrapCrashReporting } from '../utils'
 import { getModuleForEditor } from './modules'
 import { onExit, onInit } from './repl'
 
@@ -17,13 +19,13 @@ const completionTriggerCharacters = [
 export function activate(context: vscode.ExtensionContext) {
     let completionSubscription: undefined | Disposable = undefined
     context.subscriptions.push(
-        onInit(conn => {
+        onInit(wrapCrashReporting(conn => {
             completionSubscription = vscode.languages.registerCompletionItemProvider(
                 selector,
                 completionItemProvider(conn),
                 ...completionTriggerCharacters
             )
-        }),
+        })),
         onExit(() => {
             if (completionSubscription) { completionSubscription.dispose() }
         })
@@ -43,13 +45,25 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
                 return
             }
             const completionPromise = (async () => {
-                const startPosition = new vscode.Position(position.line, 0)
-                const lineRange = new vscode.Range(startPosition, position)
-                const line = document.getText(lineRange)
-                const mod: string = await getModuleForEditor(document, position)
-                return {
-                    items: await conn.sendRequest(requestTypeGetCompletionItems, { line, mod }),
-                    isIncomplete: true
+                try {
+                    const startPosition = new vscode.Position(position.line, 0)
+                    const lineRange = new vscode.Range(startPosition, position)
+                    const line = document.getText(lineRange)
+
+                    const mod: string = await getModuleForEditor(document, position)
+                    if(token.isCancellationRequested) { return }
+
+                    const items = await conn.sendRequest(requestTypeGetCompletionItems, { line, mod })
+                    if(token.isCancellationRequested) { return }
+
+                    return {
+                        items: items,
+                        isIncomplete: true
+                    }
+                }
+                catch(err) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                    throw (err)
                 }
             })()
 

@@ -1,7 +1,8 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
-import { registerCommand } from '../utils'
+import { TestProcess } from '../testing/testFeature'
+import { registerCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
 import {
     notifyTypeDisplay,
@@ -113,6 +114,21 @@ export class NotebookNode extends SessionNode {
     }
 }
 
+export class TestProcessNode extends AbstractWorkspaceNode {
+    constructor(
+        public testProcess: TestProcess) {
+        super()
+    }
+
+    public async getChildren() {
+        return []
+    }
+
+    async stop() {
+        await this.testProcess.kill()
+    }
+}
+
 class REPLNode extends SessionNode {
     private variablesNodes: VariableNode[]
     private onEvalHook: vscode.Disposable
@@ -182,6 +198,7 @@ export class WorkspaceFeature {
 
     _REPLNode: REPLNode
     _NotebookNodes: NotebookNode[] = []
+    _TestProcessNodes: TestProcessNode[] = []
 
     constructor(private context: vscode.ExtensionContext) {
         this._REPLTreeDataProvider = new REPLTreeDataProvider(this)
@@ -193,7 +210,7 @@ export class WorkspaceFeature {
                 this._REPLTreeDataProvider
             ),
             // listeners
-            onInit((conn) => this.openREPL(conn)),
+            onInit(wrapCrashReporting(conn => this.openREPL(conn))),
             onExit((err) => this.closeREPL(err)),
             // commands
             registerCommand('language-julia.showInVSCode', (node: VariableNode) =>
@@ -250,6 +267,16 @@ export class WorkspaceFeature {
         })
         this._REPLTreeDataProvider.refresh()
     }
+
+    public async addTestProcess(testProcess: TestProcess) {
+        const node = new TestProcessNode(testProcess)
+        this._TestProcessNodes.push(node)
+        testProcess.onKilled((e) => {
+            this._TestProcessNodes = this._TestProcessNodes.filter(x => x !==node)
+            this._REPLTreeDataProvider.refresh()
+        })
+        this._REPLTreeDataProvider.refresh()
+    }
 }
 
 export class REPLTreeDataProvider
@@ -276,9 +303,10 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
                 return [
                     this.workspaceFeature._REPLNode,
                     ...this.workspaceFeature._NotebookNodes,
+                    ...this.workspaceFeature._TestProcessNodes
                 ]
             } else {
-                return [...this.workspaceFeature._NotebookNodes]
+                return [...this.workspaceFeature._NotebookNodes,...this.workspaceFeature._TestProcessNodes]
             }
         }
     }
@@ -313,6 +341,13 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             treeItem.tooltip = node.getTitle()
             treeItem.contextValue = 'juliakernel'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
+            return treeItem
+        } else if (node instanceof TestProcessNode) {
+            const treeItem = new vscode.TreeItem('Julia Test Process')
+            treeItem.description = node.testProcess.packageName
+            treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${node.testProcess.packagePath}\n\nThe project path is ${node.testProcess.projectPath}`)
+            treeItem.contextValue = 'juliatestprocess'
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None
             return treeItem
         }
     }

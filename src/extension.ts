@@ -8,7 +8,7 @@ import * as net from 'net'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions } from 'vscode-languageclient/node'
+import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State } from 'vscode-languageclient/node'
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
@@ -24,8 +24,11 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
+import { notifyTypeTextDocumentPublishTestitems, TestFeature } from './testing/testFeature'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
+import { handleNewCrashReportFromException } from './telemetry'
+import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -34,6 +37,7 @@ let g_context: vscode.ExtensionContext = null
 let g_watchedEnvironmentFile: string = null
 let g_startupNotification: vscode.StatusBarItem = null
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
+let g_testFeature: TestFeature = null
 
 let g_traceOutputChannel: vscode.OutputChannel = null
 let g_outputChannel: vscode.OutputChannel = null
@@ -42,11 +46,6 @@ export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:[
 export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
 
 export async function activate(context: vscode.ExtensionContext) {
-    if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
-        vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
-        return
-    }
-
     await telemetry.init(context)
     try {
         setContext('julia.isActive', true)
@@ -56,6 +55,9 @@ export async function activate(context: vscode.ExtensionContext) {
         telemetry.startLsCrashServer()
 
         g_context = context
+
+        const globalDiagnosticOutputFeature = new JuliaGlobalDiagnosticOutputFeature()
+        context.subscriptions.push(globalDiagnosticOutputFeature)
 
         console.debug('Activating extension language-julia')
 
@@ -75,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Active features from other files
         const compiledProvider = debugViewProvider.activate(context)
-        g_juliaExecutablesFeature = new JuliaExecutablesFeature(context)
+        g_juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
         repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
@@ -92,6 +94,8 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature))
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature))
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
+        g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature)
+        context.subscriptions.push(g_testFeature)
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
@@ -228,11 +232,11 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
         vscode.window.showErrorMessage(
-            'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.',
+            'Could not start the Julia language server. Make sure the `julia.executablePath` setting is valid.',
             'Open Settings'
         ).then(val => {
             if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
             }
         })
         g_startupNotification.hide()
@@ -333,6 +337,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: g_traceOutputChannel,
         outputChannel: g_outputChannel,
+        initializationOptions: {julialangTestItemIdentification: true},
     }
 
     // Create the language client and start the client.
@@ -348,6 +353,20 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
         else if (data.command === 'symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
+        }
+    })
+
+    languageClient.onDidChangeState(event => {
+        if (event.newState === State.Running) {
+            languageClient.onNotification(notifyTypeTextDocumentPublishTestitems, i=> {
+                try {
+                    g_testFeature.publishTestitemsHandler(i)
+                }
+                catch (err) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                    throw (err)
+                }
+            })
         }
     })
 
