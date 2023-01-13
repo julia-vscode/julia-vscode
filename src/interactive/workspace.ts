@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { TestProcess } from '../testing/testFeature'
-import { registerCommand, wrapCrashReporting } from '../utils'
+import { registerAsyncCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
 import {
     notifyTypeDisplay,
@@ -97,7 +97,7 @@ export class NotebookNode extends SessionNode {
         this.treeProvider.refresh()
     }
 
-    public async getChildren() {
+    public getChildren() {
         return this.variablesNodes
     }
 
@@ -105,12 +105,12 @@ export class NotebookNode extends SessionNode {
         return this.kernel.notebook.uri.fsPath.toString()
     }
 
-    async restart() {
-        await this.kernel.restart()
+    restart() {
+        this.kernel.restart()
     }
 
-    async stop() {
-        await this.kernel.stop()
+    stop() {
+        this.kernel.stop()
     }
 }
 
@@ -120,12 +120,12 @@ export class TestProcessNode extends AbstractWorkspaceNode {
         super()
     }
 
-    public async getChildren() {
+    public getChildren() {
         return []
     }
 
-    async stop() {
-        await this.testProcess.kill()
+    stop() {
+        this.testProcess.kill()
     }
 }
 
@@ -141,7 +141,8 @@ class REPLNode extends SessionNode {
 
         this.onEvalHook = onFinishEval(() => this.updateReplVariables())
 
-        this.updateReplVariables()
+        // TODO Is not using await here OK?
+        void this.updateReplVariables()
     }
 
     public getConnection() {
@@ -163,7 +164,7 @@ class REPLNode extends SessionNode {
         this.treeProvider.refresh()
     }
 
-    public async getChildren() {
+    public getChildren() {
         return this.variablesNodes
     }
 }
@@ -213,17 +214,17 @@ export class WorkspaceFeature {
             onInit(wrapCrashReporting(conn => this.openREPL(conn))),
             onExit((err) => this.closeREPL(err)),
             // commands
-            registerCommand('language-julia.showInVSCode', (node: VariableNode) =>
-                this.showInVSCode(node)
+            registerAsyncCommand('language-julia.showInVSCode', async (node: VariableNode) =>
+                await this.showInVSCode(node)
             ),
-            registerCommand('language-julia.workspaceGoToFile', (node: VariableNode) =>
-                this.openLocation(node)
+            registerAsyncCommand('language-julia.workspaceGoToFile', async (node: VariableNode) =>
+                await this.openLocation(node)
             ),
-            registerCommand('language-julia.showModules', () =>
-                this._REPLTreeDataProvider.toggleModules(true)
+            registerAsyncCommand('language-julia.showModules', async () =>
+                await this._REPLTreeDataProvider.toggleModules(true)
             ),
-            registerCommand('language-julia.hideModules', () =>
-                this._REPLTreeDataProvider.toggleModules(false)
+            registerAsyncCommand('language-julia.hideModules', async () =>
+                await this._REPLTreeDataProvider.toggleModules(false)
             )
         )
     }
@@ -243,7 +244,7 @@ export class WorkspaceFeature {
     }
 
     async openLocation(node: VariableNode) {
-        openFile(
+        await openFile(
             node.workspaceVariable.location.file,
             node.workspaceVariable.location.line
         )
@@ -253,13 +254,13 @@ export class WorkspaceFeature {
         // this.kernels.dispose()
     }
 
-    public async addNotebookKernel(kernel: JuliaKernel) {
+    public addNotebookKernel(kernel: JuliaKernel) {
         const node = new NotebookNode(kernel, this._REPLTreeDataProvider)
         this._NotebookNodes.push(node)
         kernel.onCellRunFinished((e) => node.updateReplVariables())
-        kernel.onConnected((e) => {
+        kernel.onConnected(async (e) => {
             kernel._msgConnection.onNotification(notifyTypeDisplay, (params) => displayPlot(params, kernel))
-            node.updateReplVariables()
+            await node.updateReplVariables()
         })
         kernel.onStopped((e) => {
             this._NotebookNodes = this._NotebookNodes.filter(x => x !== node)
@@ -268,7 +269,7 @@ export class WorkspaceFeature {
         this._REPLTreeDataProvider.refresh()
     }
 
-    public async addTestProcess(testProcess: TestProcess) {
+    public addTestProcess(testProcess: TestProcess) {
         const node = new TestProcessNode(testProcess)
         this._TestProcessNodes.push(node)
         testProcess.onKilled((e) => {
@@ -352,13 +353,13 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
         }
     }
 
-    toggleModules(show: boolean) {
+    async toggleModules(show: boolean) {
         this.workspaceFeature._REPLNode.toggleModules(show)
-        this.workspaceFeature._REPLNode.updateReplVariables()
-        this.workspaceFeature._NotebookNodes.forEach(node => {
+        await this.workspaceFeature._REPLNode.updateReplVariables()
+        for await (const node of this.workspaceFeature._NotebookNodes) {
             node.toggleModules(show)
-            node.updateReplVariables()
-        })
-        vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, true)
+            await node.updateReplVariables()
+        }
+        await vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, true)
     }
 }

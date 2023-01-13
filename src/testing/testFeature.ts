@@ -3,7 +3,7 @@ import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import { NotificationType, RequestType } from 'vscode-jsonrpc'
 import * as lsp from 'vscode-languageserver-protocol'
-import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
+import { generatePipeName, inferJuliaNumThreads, registerNonAsyncCommand } from '../utils'
 import * as net from 'net'
 import * as rpc from 'vscode-jsonrpc/node'
 import { Subject } from 'await-notify'
@@ -181,9 +181,9 @@ export class TestProcess {
             this._onKilled.fire()
         })
 
-        this.process.on('error', (err: Error) => {
+        this.process.on('error', async (err: Error) => {
             connected.notify()
-            handleNewCrashReportFromException(err, 'Extension')
+            await handleNewCrashReportFromException(err, 'Extension')
             this.launchError = err
         })
 
@@ -198,7 +198,7 @@ export class TestProcess {
         return await this.connection.sendRequest(requestTypeRevise, undefined)
     }
 
-    public async kill() {
+    public kill() {
         this.plannedKill = true
         this.process.kill()
     }
@@ -271,13 +271,13 @@ export class TestFeature {
                     await this.runHandler(request, token)
                 }
                 catch (err) {
-                    handleNewCrashReportFromException(err, 'Extension')
+                    await handleNewCrashReportFromException(err, 'Extension')
                     throw (err)
                 }
             }, true)
 
             context.subscriptions.push(
-                registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
+                registerNonAsyncCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
                     node.stop()
                 )
             )
@@ -287,7 +287,8 @@ export class TestFeature {
         // this.controller.createRunProfile('Coverage', vscode.TestRunProfileKind.Coverage, this.runHandler.bind(this), false)
         }
         catch (err) {
-            handleNewCrashReportFromException(err, 'Extension')
+            // TODO Is missing await here ok?
+            void handleNewCrashReportFromException(err, 'Extension')
             throw (err)
         }
     }
@@ -376,7 +377,7 @@ export class TestFeature {
                         const status = await testProcess.revise()
 
                         if (status !== 'success') {
-                            await testProcess.kill()
+                            testProcess.kill()
 
                             this.outputChannel.appendLine('RESTARTING TEST SERVER')
 

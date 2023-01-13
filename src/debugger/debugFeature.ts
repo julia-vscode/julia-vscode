@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as jlpkgenv from '../jlpkgenv'
 import { JuliaExecutablesFeature } from '../juliaexepath'
-import { registerCommand } from '../utils'
+import { registerAsyncCommand } from '../utils'
 import { JuliaDebugSession } from './juliaDebug'
 
 export class JuliaDebugFeature {
@@ -9,32 +9,32 @@ export class JuliaDebugFeature {
         const provider = new JuliaDebugConfigurationProvider(compiledProvider)
         const factory = new InlineDebugAdapterFactory(this.context, juliaExecutablesFeature)
 
-        compiledProvider.onDidChangeTreeData(() => {
+        compiledProvider.onDidChangeTreeData(async () => {
             if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
-                vscode.debug.activeDebugSession.customRequest('setCompiledItems', { compiledModulesOrFunctions: compiledProvider.getCompiledItems() })
+                await vscode.debug.activeDebugSession.customRequest('setCompiledItems', { compiledModulesOrFunctions: compiledProvider.getCompiledItems() })
             }
         })
-        compiledProvider.onDidChangeCompiledMode(mode => {
+        compiledProvider.onDidChangeCompiledMode(async mode => {
             if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
-                vscode.debug.activeDebugSession.customRequest('setCompiledMode', { compiledMode: mode })
+                await vscode.debug.activeDebugSession.customRequest('setCompiledMode', { compiledMode: mode })
             }
         })
 
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
             vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory),
-            registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
+            registerAsyncCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
                 return await jlpkgenv.getAbsEnvPath()
             }),
-            registerCommand('language-julia.runEditorContents', async (resource: vscode.Uri | undefined) => {
+            registerAsyncCommand('language-julia.runEditorContents', async (resource: vscode.Uri | undefined) => {
                 resource = getActiveUri(resource)
                 if (!resource) {
-                    vscode.window.showInformationMessage('No active editor found.')
+                    await vscode.window.showInformationMessage('No active editor found.')
                     return
                 }
                 const folder = vscode.workspace.getWorkspaceFolder(resource)
                 if (folder === undefined) {
-                    vscode.window.showInformationMessage('File not found in workspace.')
+                    await vscode.window.showInformationMessage('File not found in workspace.')
                     return
                 }
                 const success = await vscode.debug.startDebugging(folder, {
@@ -45,18 +45,18 @@ export class JuliaDebugFeature {
                     noDebug: true
                 })
                 if (!success) {
-                    vscode.window.showErrorMessage('Could not run editor content in new process.')
+                    await vscode.window.showErrorMessage('Could not run editor content in new process.')
                 }
             }),
-            registerCommand('language-julia.debugEditorContents', async (resource: vscode.Uri | undefined) => {
+            registerAsyncCommand('language-julia.debugEditorContents', async (resource: vscode.Uri | undefined) => {
                 resource = getActiveUri(resource)
                 if (!resource) {
-                    vscode.window.showInformationMessage('No active editor found.')
+                    await vscode.window.showInformationMessage('No active editor found.')
                     return
                 }
                 const folder = vscode.workspace.getWorkspaceFolder(resource)
                 if (folder === undefined) {
-                    vscode.window.showInformationMessage('File not found in workspace.')
+                    await vscode.window.showInformationMessage('File not found in workspace.')
                     return
                 }
                 const success = await vscode.debug.startDebugging(folder, {
@@ -68,7 +68,7 @@ export class JuliaDebugFeature {
                     compiledMode: compiledProvider.compiledMode
                 })
                 if (!success) {
-                    vscode.window.showErrorMessage('Could not debug editor content in new process.')
+                    await vscode.window.showErrorMessage('Could not debug editor content in new process.')
                 }
             })
         )

@@ -4,7 +4,7 @@ import { ResponseError } from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import * as telemetry from '../telemetry'
-import { registerCommand, wrapCrashReporting } from '../utils'
+import { registerAsyncCommand, wrapCrashReporting } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import { onExit, onInit } from './repl'
 
@@ -21,18 +21,18 @@ const requestTypeIsModuleLoaded = new rpc.RequestType<{ mod: string }, boolean, 
 const automaticallyChooseOption = 'Choose Automatically'
 
 
-export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(ed => {
+export async function activate(context: vscode.ExtensionContext) {
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async ed => {
         cancelCurrentGetModuleRequest()
         g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
-        updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
+        await updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
     }))
-    context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(changeEvent => {
+    context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(async changeEvent => {
         cancelCurrentGetModuleRequest()
         g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
-        updateModuleForSelectionEvent(changeEvent, g_currentGetModuleRequestCancelTokenSource.token)
+        await updateModuleForSelectionEvent(changeEvent, g_currentGetModuleRequestCancelTokenSource.token)
     }))
-    context.subscriptions.push(registerCommand('language-julia.chooseModule', chooseModule))
+    context.subscriptions.push(registerAsyncCommand('language-julia.chooseModule', chooseModule))
 
     context.subscriptions.push(onSetLanguageClient(languageClient => {
         g_languageClient = languageClient
@@ -46,17 +46,17 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.command = 'language-julia.chooseModule'
     statusBarItem.tooltip = 'Choose Current Module'
 
-    onInit(wrapCrashReporting(conn => {
+    onInit(wrapCrashReporting( async conn => {
         g_connection = conn
-        updateStatusBarItem()
+        await updateStatusBarItem()
     }))
-    onExit(hadError => {
+    onExit(async (_) => {
         g_connection = null
-        updateStatusBarItem()
+        await updateStatusBarItem()
     })
 
     context.subscriptions.push(statusBarItem)
-    updateStatusBarItem()
+    await updateStatusBarItem()
 }
 
 function cancelCurrentGetModuleRequest() {
@@ -104,8 +104,18 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
         }
     }
 
-    // We tried three times, now give up
-    return 'Main'
+        // We tried three times, now give up
+        return
+
+    } catch (err) {
+        if (err.message === 'Language client is not ready yet') {
+            vscode.window.showErrorMessage(err)
+        } else if (languageClient) {
+            console.error(err)
+            telemetry.handleNewCrashReportFromException(err, 'Extension')
+        }
+        return 'Main'
+    }
 }
 
 function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
@@ -140,7 +150,7 @@ async function isModuleLoaded(mod: string) {
         return await g_connection.sendRequest(requestTypeIsModuleLoaded, { mod: mod })
     } catch (err) {
         if (g_connection) {
-            telemetry.handleNewCrashReportFromException(err, 'Extension')
+            await telemetry.handleNewCrashReportFromException(err, 'Extension')
         }
         return false
     }
@@ -152,9 +162,9 @@ async function chooseModule() {
         possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     } catch (err) {
         if (g_connection) {
-            telemetry.handleNewCrashReportFromException(err, 'Extension')
+            await telemetry.handleNewCrashReportFromException(err, 'Extension')
         } else {
-            vscode.window.showInformationMessage('Setting a module requires an active REPL.')
+            await vscode.window.showInformationMessage('Setting a module requires an active REPL.')
         }
         return
     }
@@ -177,5 +187,5 @@ async function chooseModule() {
 
     cancelCurrentGetModuleRequest()
     g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
-    updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
+    await updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
 }

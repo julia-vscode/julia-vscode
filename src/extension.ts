@@ -25,7 +25,7 @@ import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
 import { notifyTypeTextDocumentPublishTestitems, TestFeature } from './testing/testFeature'
-import { registerCommand, setContext } from './utils'
+import { registerAsyncCommand, registerNonAsyncCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
@@ -48,7 +48,7 @@ export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally
 export async function activate(context: vscode.ExtensionContext) {
     await telemetry.init(context)
     try {
-        setContext('julia.isActive', true)
+        await setContext('julia.isActive', true)
 
         telemetry.traceEvent('activate')
 
@@ -80,14 +80,14 @@ export async function activate(context: vscode.ExtensionContext) {
         g_juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
-        repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
+        await repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
         weave.activate(context, g_juliaExecutablesFeature)
         documentation.activate(context)
         tasks.activate(context, g_juliaExecutablesFeature)
         smallcommands.activate(context)
         packagepath.activate(context, g_juliaExecutablesFeature)
         openpackagedirectory.activate(context)
-        jlpkgenv.activate(context, g_juliaExecutablesFeature)
+        await jlpkgenv.activate(context, g_juliaExecutablesFeature)
 
         const workspaceFeature = new WorkspaceFeature(context)
         context.subscriptions.push(workspaceFeature)
@@ -100,41 +100,41 @@ export async function activate(context: vscode.ExtensionContext) {
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
 
-        context.subscriptions.push(registerCommand('language-julia.showLanguageServerOutput', () => {
+        context.subscriptions.push(registerNonAsyncCommand('language-julia.showLanguageServerOutput', () => {
             if (g_languageClient) {
                 g_languageClient.outputChannel.show(true)
             }
         }))
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('symbolCacheDownload') === null) {
-            vscode.window.showInformationMessage('The extension will now download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.', 'Open Settings').then(val => {
-                if (val) {
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'julia.symbolCacheDownload')
-                }
-            })
-            vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, true)
+            const val = await vscode.window.showInformationMessage('The extension will now download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.', 'Open Settings')
+
+            if (val) {
+                await vscode.commands.executeCommand('workbench.action.openSettings', 'julia.symbolCacheDownload')
+            }
+
+            await vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, true)
         }
 
         // Start language server
-        startLanguageServer(g_juliaExecutablesFeature)
+        await startLanguageServer(g_juliaExecutablesFeature)
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
             const agree = 'Yes'
             const disagree = 'No'
-            vscode.window.showInformationMessage('To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use usage data. Do you agree to usage data collection?', agree, disagree)
-                .then(choice => {
-                    if (choice === agree) {
-                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true)
-                    } else if (choice === disagree) {
-                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', false, true)
-                    }
-                })
+            const choice = await vscode.window.showInformationMessage('To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use usage data. Do you agree to usage data collection?', agree, disagree)
+
+            if (choice === agree) {
+                await vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true)
+            } else if (choice === disagree) {
+                await vscode.workspace.getConfiguration('julia').update('enableTelemetry', false, true)
+            }
         }
 
         context.subscriptions.push(
             // commands
-            registerCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
-            registerCommand('language-julia.restartLanguageServer', restartLanguageServer)
+            registerAsyncCommand('language-julia.refreshLanguageServer', refreshLanguageServer),
+            registerAsyncCommand('language-julia.restartLanguageServer', restartLanguageServer)
         )
 
         const api = {
@@ -158,7 +158,7 @@ export async function activate(context: vscode.ExtensionContext) {
         return api
     }
     catch (err) {
-        telemetry.handleNewCrashReportFromException(err, 'Extension')
+        await telemetry.handleNewCrashReportFromException(err, 'Extension')
         throw (err)
     }
 }
@@ -183,7 +183,7 @@ function setLanguageClient(languageClient: LanguageClient = null) {
     g_languageClient = languageClient
 }
 
-export async function withLanguageClient(
+export function withLanguageClient(
     callback: (languageClient: LanguageClient) => any,
     callbackOnHandledErr: (err: Error) => any
 ) {
@@ -203,10 +203,10 @@ export async function withLanguageClient(
 
 const g_onDidChangeConfig = new vscode.EventEmitter<vscode.ConfigurationChangeEvent>()
 export const onDidChangeConfig = g_onDidChangeConfig.event
-function changeConfig(event: vscode.ConfigurationChangeEvent) {
+async function changeConfig(event: vscode.ConfigurationChangeEvent) {
     g_onDidChangeConfig.fire(event)
     if (event.affectsConfiguration('julia.executablePath')) {
-        restartLanguageServer()
+        await restartLanguageServer()
     }
 }
 
@@ -231,14 +231,13 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     try {
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
-        vscode.window.showErrorMessage(
+        const val = await vscode.window.showErrorMessage(
             'Could not start the Julia language server. Make sure the `julia.executablePath` setting is valid.',
             'Open Settings'
-        ).then(val => {
-            if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
-            }
-        })
+        )
+        if (val) {
+            await vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+        }
         g_startupNotification.hide()
         return
     }
@@ -266,14 +265,13 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     let juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
     if (juliaExecutable === undefined) {
-        vscode.window.showErrorMessage(
+        const val = await vscode.window.showErrorMessage(
             'Could not start the Julia language server. Make sure the `julia.executablePath` setting points to the Julia binary.',
             'Open Settings'
-        ).then(val => {
-            if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
-            }
-        })
+        )
+        if (val) {
+            await vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+        }
         g_startupNotification.hide()
         return
     }
@@ -299,6 +297,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     }
 
     const serverOptions: ServerOptions = Boolean(process.env.DETACHED_LS) ?
+        // eslint-disable-next-line @typescript-eslint/require-await
         async () => {
             // TODO Add some loop here that retries in case the LSP is not yet ready
             const conn = net.connect(7777)
@@ -343,13 +342,13 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     // Create the language client and start the client.
     const languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
     languageClient.registerProposedFeatures()
-    languageClient.onTelemetry((data: any) => {
+    languageClient.onTelemetry(async (data: any) => {
         if (data.command === 'trace_event') {
             telemetry.traceEvent(data.message)
         }
         else if (data.command === 'symserv_crash') {
             telemetry.traceEvent('symservererror')
-            telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace, 'Symbol Server')
+            await telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace, 'Symbol Server')
         }
         else if (data.command === 'symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
@@ -358,12 +357,12 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     languageClient.onDidChangeState(event => {
         if (event.newState === State.Running) {
-            languageClient.onNotification(notifyTypeTextDocumentPublishTestitems, i=> {
+            languageClient.onNotification(notifyTypeTextDocumentPublishTestitems, async i=> {
                 try {
                     g_testFeature.publishTestitemsHandler(i)
                 }
                 catch (err) {
-                    handleNewCrashReportFromException(err, 'Extension')
+                    await handleNewCrashReportFromException(err, 'Extension')
                     throw (err)
                 }
             })
@@ -392,11 +391,10 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         await languageClient.start()
     }
     catch (e) {
-        vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(val => {
-            if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
-            }
-        })
+        const val = await vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings')
+        if (val) {
+            await vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+        }
         setLanguageClient()
     }
     g_startupNotification.hide()
@@ -407,7 +405,7 @@ async function refreshLanguageServer(languageClient: LanguageClient = g_language
     try {
         await languageClient.sendNotification('julia/refreshLanguageServer')
     } catch (err) {
-        vscode.window.showErrorMessage('Failed to refresh the language server cache.', {
+        await vscode.window.showErrorMessage('Failed to refresh the language server cache.', {
             detail: err
         })
     }

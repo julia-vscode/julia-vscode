@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { constructCommandString, registerCommand, setContext } from '../utils'
+import { constructCommandString, registerAsyncCommand, registerNonAsyncCommand, setContext } from '../utils'
 
 const LINE_INF = 9999
 
@@ -45,7 +45,8 @@ export class Result {
         this.setContent(content)
         for (const selection of editor.selections) {
             if (isResultInLineRange(editor, this, selection)) {
-                setContext('julia.hasInlineResult', true)
+                // TODO Ok to not use await here?
+                void setContext('julia.hasInlineResult', true)
             }
         }
     }
@@ -178,7 +179,7 @@ const supportedLanguageIds = [
     'markdown'
 ]
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         // subscriptions
         vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)),
@@ -186,44 +187,44 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.onDidChangeTextEditorSelection(changeEvent => updateContextKeyForSelections(changeEvent.textEditor, changeEvent.selections)),
 
         // public commands
-        registerCommand('language-julia.clearAllInlineResults', removeAll),
-        registerCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
-        registerCommand('language-julia.clearCurrentInlineResult', () => {
+        registerNonAsyncCommand('language-julia.clearAllInlineResults', removeAll),
+        registerNonAsyncCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
+        registerNonAsyncCommand('language-julia.clearCurrentInlineResult', async () => {
             if (vscode.window.activeTextEditor) {
-                removeCurrent(vscode.window.activeTextEditor)
+                await removeCurrent(vscode.window.activeTextEditor)
             }
         }),
 
         // internal commands
-        registerCommand('language-julia.openFile', (locationArg: { path: string, line: number }) => {
-            openFile(locationArg.path, locationArg.line)
+        registerAsyncCommand('language-julia.openFile', async (locationArg: { path: string, line: number }) => {
+            await openFile(locationArg.path, locationArg.line)
         }),
-        registerCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
-        registerCommand('language-julia.gotoPreviousFrame', (frameArg: { frame: Frame }) => {
-            gotoPreviousFrame(frameArg.frame)
+        registerAsyncCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
+        registerAsyncCommand('language-julia.gotoPreviousFrame', async (frameArg: { frame: Frame }) => {
+            await gotoPreviousFrame(frameArg.frame)
         }),
-        registerCommand('language-julia.gotoNextFrame', (frameArg: { frame: Frame }) => {
-            gotoNextFrame(frameArg.frame)
+        registerAsyncCommand('language-julia.gotoNextFrame', async (frameArg: { frame: Frame }) => {
+            await gotoNextFrame(frameArg.frame)
         }),
-        registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
-        registerCommand('language-julia.clearStackTrace', clearStackTrace)
+        registerAsyncCommand('language-julia.gotoLastFrame', gotoLastFrame),
+        registerNonAsyncCommand('language-julia.clearStackTrace', clearStackTrace)
     )
-    setContext('julia.supportedLanguageIds', supportedLanguageIds)
+    await setContext('julia.supportedLanguageIds', supportedLanguageIds)
 }
 
-function updateContextKeyForSelections(editor: vscode.TextEditor, selections: readonly vscode.Selection[] = editor.selections) {
+async function updateContextKeyForSelections(editor: vscode.TextEditor, selections: readonly vscode.Selection[] = editor.selections) {
     if (!supportedLanguageIds.includes(editor.document.languageId)) {
         return
     }
     for (const selection of selections) {
         for (const r of results) {
             if (isResultInLineRange(editor, r, selection)) {
-                setContext('julia.hasInlineResult', true)
+                await setContext('julia.hasInlineResult', true)
                 return
             }
         }
     }
-    setContext('julia.hasInlineResult', false)
+    await setContext('julia.hasInlineResult', false)
 }
 
 export function deactivate() { }
@@ -393,11 +394,11 @@ export function removeAll(editor: undefined | vscode.TextEditor = undefined) {
     clearStackTrace()
 }
 
-export function removeCurrent(editor: vscode.TextEditor) {
+export async function removeCurrent(editor: vscode.TextEditor) {
     editor.selections.forEach(selection => {
         results.filter(r => isResultInLineRange(editor, r, selection)).forEach(removeResult)
     })
-    setContext('julia.hasInlineResult', false)
+    await setContext('julia.hasInlineResult', false)
 }
 
 function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: vscode.Selection | vscode.Range) {
@@ -430,24 +431,24 @@ export async function openFile(path: string, line: number | undefined = undefine
     })
 }
 
-function gotoFirstFrame() {
-    return gotoFrame(stackFrameHighlights.highlights[0].frame)
+async function gotoFirstFrame() {
+    return await gotoFrame(stackFrameHighlights.highlights[0].frame)
 }
 
-function gotoPreviousFrame(frame: Frame) {
+async function gotoPreviousFrame(frame: Frame) {
     const i = findFrameIndex(frame)
     if (i < 1) { return }
-    return gotoFrame(stackFrameHighlights.highlights[i - 1].frame)
+    return await gotoFrame(stackFrameHighlights.highlights[i - 1].frame)
 }
 
-function gotoNextFrame(frame: Frame) {
+async function gotoNextFrame(frame: Frame) {
     const i = findFrameIndex(frame)
     if (i === -1 || i >= stackFrameHighlights.highlights.length - 1) { return }
-    return gotoFrame(stackFrameHighlights.highlights[i + 1].frame)
+    return await gotoFrame(stackFrameHighlights.highlights[i + 1].frame)
 }
 
-function gotoLastFrame() {
-    return gotoFrame(stackFrameHighlights.highlights[stackFrameHighlights.highlights.length - 1].frame)
+async function gotoLastFrame() {
+    return await gotoFrame(stackFrameHighlights.highlights[stackFrameHighlights.highlights.length - 1].frame)
 }
 
 function findFrameIndex(frame: Frame) {

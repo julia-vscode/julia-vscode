@@ -3,7 +3,7 @@ import { homedir } from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
-import { registerCommand, setContext } from '../utils'
+import { registerAsyncCommand, registerNonAsyncCommand, setContext } from '../utils'
 import { displayTable } from './tables'
 import { JuliaKernel } from '../notebook/notebookKernel'
 
@@ -20,18 +20,18 @@ export function activate(context: vscode.ExtensionContext) {
     g_plotNavigatorProvider = new PlotNavigatorProvider(context)
 
     context.subscriptions.push(
-        registerCommand('language-julia.copy-plot', requestCopyPlot),
-        registerCommand('language-julia.save-plot', requestExportPlot),
-        registerCommand('language-julia.show-plotpane', showPlotPane),
-        registerCommand('language-julia.plotpane-enable', enablePlotPane),
-        registerCommand('language-julia.plotpane-disable', disablePlotPane),
-        registerCommand('language-julia.plotpane-previous', plotPanePrev),
-        registerCommand('language-julia.plotpane-next', plotPaneNext),
-        registerCommand('language-julia.plotpane-first', plotPaneFirst),
-        registerCommand('language-julia.plotpane-last', plotPaneLast),
-        registerCommand('language-julia.plotpane-delete', plotPaneDel),
-        registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll),
-        registerCommand('language-julia.show-plot-navigator', () => g_plotNavigatorProvider.showPlotNavigator()),
+        registerAsyncCommand('language-julia.copy-plot', requestCopyPlot),
+        registerAsyncCommand('language-julia.save-plot', requestExportPlot),
+        registerNonAsyncCommand('language-julia.show-plotpane', showPlotPane),
+        registerAsyncCommand('language-julia.plotpane-enable', enablePlotPane),
+        registerAsyncCommand('language-julia.plotpane-disable', disablePlotPane),
+        registerNonAsyncCommand('language-julia.plotpane-previous', plotPanePrev),
+        registerNonAsyncCommand('language-julia.plotpane-next', plotPaneNext),
+        registerNonAsyncCommand('language-julia.plotpane-first', plotPaneFirst),
+        registerNonAsyncCommand('language-julia.plotpane-last', plotPaneLast),
+        registerNonAsyncCommand('language-julia.plotpane-delete', plotPaneDel),
+        registerNonAsyncCommand('language-julia.plotpane-delete-all', plotPaneDelAll),
+        registerAsyncCommand('language-julia.show-plot-navigator', async () => await g_plotNavigatorProvider.showPlotNavigator()),
         vscode.window.registerWebviewViewProvider('julia-plot-navigator', g_plotNavigatorProvider)
     )
 }
@@ -60,13 +60,13 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
             enableCommandUris: true
         }
 
-        view.webview.onDidReceiveMessage(msg => {
+        view.webview.onDidReceiveMessage(async msg => {
             // msg.type could be used to determine messages
             switch (msg.type) {
             case 'toPlot': // switch current plot to plot at index (msg.value)
                 if (msg.value >= 0 && msg.value <= g_plots.length - 1) {
                     g_currentPlotIndex = msg.value
-                    updatePlotPane()
+                    await updatePlotPane()
                 }
                 break
             default:
@@ -150,9 +150,9 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         this.setHTML(this.getWebviewHTML(innerHTML))
     }
 
-    postMessageToWebview(message: any) {
+    async postMessageToWebview(message: any) {
         if (this.view) {
-            this.view.webview.postMessage(message)
+            await this.view.webview.postMessage(message)
         }
     }
 
@@ -236,7 +236,7 @@ function getPlotPaneContent(webview: vscode.Webview) {
     }
 }
 
-function plotPanelOnMessage(msg) {
+async function plotPanelOnMessage(msg) {
     switch (msg.type) {
     case 'thumbnail':
         {
@@ -252,21 +252,21 @@ function plotPanelOnMessage(msg) {
         }
         break
     case 'savePlot':
-        savePlot(msg.value)
+        await savePlot(msg.value)
         break
     case 'copyFailed':
         if (msg.value) {
-            vscode.window.showWarningMessage('Failed to copy plot: ' + msg.value)
+            await vscode.window.showWarningMessage('Failed to copy plot: ' + msg.value)
         } else {
-            vscode.window.showWarningMessage('Unknown: Failed to copy plot.')
+            await vscode.window.showWarningMessage('Unknown: Failed to copy plot.')
         }
         break
     case 'copySuccess':
-        vscode.window.showInformationMessage('Plot copied to clipboard.')
+        await vscode.window.showInformationMessage('Plot copied to clipboard.')
     }
 }
 
-export function showPlotPane() {
+export async function showPlotPane() {
     telemetry.traceEvent('command-showplotpane')
     const plotTitle = makeTitle()
 
@@ -283,13 +283,13 @@ export function showPlotPane() {
             }
         )
 
-        const viewStateListener = g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
-            g_context.globalState.update('juliaPlotPanelViewColumn', webviewPanel.viewColumn)
-            setContext(c_juliaPlotPanelActiveContextKey, webviewPanel.active)
+        const viewStateListener = g_plotPanel.onDidChangeViewState(async ({ webviewPanel }) => {
+            await g_context.globalState.update('juliaPlotPanelViewColumn', webviewPanel.viewColumn)
+            await setContext(c_juliaPlotPanelActiveContextKey, webviewPanel.active)
         })
 
         g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
-        setContext(c_juliaPlotPanelActiveContextKey, true)
+        await setContext(c_juliaPlotPanelActiveContextKey, true)
 
         const configListener = vscode.workspace.onDidChangeConfiguration(config => {
             if (config.affectsConfiguration('julia') && g_plotPanel) {
@@ -297,11 +297,11 @@ export function showPlotPane() {
             }
         })
         // Reset when the current panel is closed
-        g_plotPanel.onDidDispose(() => {
+        g_plotPanel.onDidDispose(async () => {
             configListener.dispose()
             viewStateListener.dispose()
             g_plotPanel = undefined
-            setContext(c_juliaPlotPanelActiveContextKey, false)
+            await setContext(c_juliaPlotPanelActiveContextKey, false)
         }, null, g_context.subscriptions)
 
         g_plotPanel.webview.onDidReceiveMessage(plotPanelOnMessage)
@@ -327,56 +327,56 @@ function makeTitle() {
     return plotTitle
 }
 
-function enablePlotPane() {
+async function enablePlotPane() {
     const conf = vscode.workspace.getConfiguration('julia')
-    conf.update('usePlotPane', true, true)
+    await conf.update('usePlotPane', true, true)
 }
 
-function disablePlotPane() {
+async function disablePlotPane() {
     const conf = vscode.workspace.getConfiguration('julia')
-    conf.update('usePlotPane', false, true)
+    await conf.update('usePlotPane', false, true)
 }
 
-function updatePlotPane() {
-    showPlotPane()
+async function updatePlotPane() {
+    await showPlotPane()
 }
 
-export function plotPanePrev() {
+export async function plotPanePrev() {
     telemetry.traceEvent('command-plotpaneprevious')
 
     if (g_currentPlotIndex > 0) {
         g_currentPlotIndex = g_currentPlotIndex - 1
-        updatePlotPane()
+        await updatePlotPane()
     }
 }
 
-export function plotPaneNext() {
+export async function plotPaneNext() {
     telemetry.traceEvent('command-plotpanenext')
 
     if (g_currentPlotIndex < g_plots.length - 1) {
         g_currentPlotIndex = g_currentPlotIndex + 1
-        updatePlotPane()
+        await updatePlotPane()
     }
 }
 
-export function plotPaneFirst() {
+export async function plotPaneFirst() {
     telemetry.traceEvent('command-plotpanefirst')
 
     if (g_plots.length > 0) {
         g_currentPlotIndex = 0
-        updatePlotPane()
+        await updatePlotPane()
     }
 }
 
-export function plotPaneLast() {
+export async function plotPaneLast() {
     telemetry.traceEvent('command-plotpanelast')
     if (g_plots.length > 0) {
         g_currentPlotIndex = g_plots.length - 1
-        updatePlotPane()
+        await updatePlotPane()
     }
 }
 
-export function plotPaneDel() {
+export async function plotPaneDel() {
     telemetry.traceEvent('command-plotpanedelete')
     if (g_plots.length > 0) {
         g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
@@ -387,17 +387,17 @@ export function plotPaneDel() {
         if (g_currentPlotIndex > g_plots.length - 1) {
             g_currentPlotIndex = g_plots.length - 1
         }
-        updatePlotPane()
+        await updatePlotPane()
     }
 }
 
-export function plotPaneDelAll() {
+export async function plotPaneDelAll() {
     telemetry.traceEvent('command-plotpanedeleteall')
     g_plotNavigatorProvider?.setPlotsInfo(() => [])
     if (g_plots.length > 0) {
         g_plots.splice(0, g_plots.length)
         g_currentPlotIndex = 0
-        updatePlotPane()
+        await updatePlotPane()
     }
 }
 
@@ -449,7 +449,7 @@ function wrapImagelike(srcString: string) {
         </html>`
 }
 
-export function displayPlot(params: { kind: string, data: string }, kernel?: JuliaKernel) {
+export async function displayPlot(params: { kind: string, data: string }, kernel?: JuliaKernel) {
     const kind = params.kind
     const payload = params.data
 
@@ -480,24 +480,24 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
         }
 
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'image/png') {
         const plotPaneContent = wrapImagelike(`data:image/png;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'image/gif') {
         const plotPaneContent = wrapImagelike(`data:image/gif;base64,${payload}`)
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'juliavscode/html') {
         g_currentPlotIndex = g_plots.push(payload) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v2+json') {
-        showPlotPane()
+        await showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js')))
@@ -533,10 +533,10 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v3+json') {
-        showPlotPane()
+        await showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')))
@@ -572,10 +572,10 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v4+json') {
-        showPlotPane()
+        await showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')))
@@ -611,10 +611,10 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v3+json') {
-        showPlotPane()
+        await showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')))
@@ -648,10 +648,10 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v4+json') {
-        showPlotPane()
+        await showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js')))
@@ -685,10 +685,10 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'application/vnd.vega.v5+json') {
-        showPlotPane()
+        await showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
         const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
         const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
@@ -722,10 +722,10 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                 </script>
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'application/vnd.plotly.v1+json') {
-        showPlotPane()
+        await showPlotPane()
         const uriPlotly = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')))
         const plotPaneContent = `
         <html>
@@ -752,7 +752,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
         </script>
         </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
-        showPlotPane()
+        await showPlotPane()
     }
     else if (kind === 'application/vnd.dataresource+json') {
         return displayTable(payload, g_context, false, kernel)
@@ -765,15 +765,15 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
     }
 
     if (vscode.workspace.getConfiguration('julia').get('focusPlotNavigator')) {
-        g_plotNavigatorProvider?.showPlotNavigator()
+        await g_plotNavigatorProvider?.showPlotNavigator()
     }
 }
 
 /**
  * Send export request(message) to the plot pane.
  */
-function requestExportPlot() {
-    g_plotPanel.webview.postMessage({
+async function requestExportPlot() {
+    await g_plotPanel.webview.postMessage({
         type: 'requestSavePlot',
         body: { index: g_currentPlotIndex },
     })
@@ -781,7 +781,7 @@ function requestExportPlot() {
 
 async function requestCopyPlot() {
     g_plotPanel.reveal(g_plotPanel.viewColumn, false)
-    g_plotPanel.webview.postMessage({
+    await g_plotPanel.webview.postMessage({
         type: 'requestCopyPlot',
         body: { index: g_currentPlotIndex },
     })
@@ -799,25 +799,25 @@ type FileLike = string | Buffer;
  * Write svg file of the plot to the plots directory.
  * @param plot
  */
-function savePlot(plot: ExportedPlot) {
+async function savePlot(plot: ExportedPlot) {
     const plotName = `plot_${plot.index + 1}`
 
     if (plot.svg !== null) {
         const fileName = `${plotName}.svg`
-        _writePlotFile(fileName, plot.svg)
+        await _writePlotFile(fileName, plot.svg)
     }
     else if (plot.png !== null) {
         const fileName = `${plotName}.png`
         const buffer = Buffer.from(plot.png, 'base64')
-        _writePlotFile(fileName, buffer)
+        await _writePlotFile(fileName, buffer)
     }
     else if (plot.gif !== null) {
         const fileName = `${plotName}.gif`
         const buffer = Buffer.from(plot.gif, 'base64')
-        _writePlotFile(fileName, buffer)
+        await _writePlotFile(fileName, buffer)
     }
     else {
-        vscode.window.showWarningMessage('Failed to save plot, supported formats are svg, png, and gif.')
+        await vscode.window.showWarningMessage('Failed to save plot, supported formats are svg, png, and gif.')
     }
 }
 
@@ -844,14 +844,13 @@ async function _writePlotFile(fileName: string, data: FileLike) {
             plotsDirFullPath = homedir()
         }
         const plotFileFullPath = path.join(plotsDirFullPath, fileName)
-        vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(plotFileFullPath) }).then(saveURI => {
-            if (saveURI) {
-                fs.writeFile(saveURI.fsPath, data)
-            }
-        })
+        const saveURI = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(plotFileFullPath) })
+        if (saveURI) {
+            await fs.writeFile(saveURI.fsPath, data)
+        }
     } catch (e) {
         console.error(e)
-        vscode.window.showWarningMessage('Failed to save plot.')
+        await vscode.window.showWarningMessage('Failed to save plot.')
 
     }
 }

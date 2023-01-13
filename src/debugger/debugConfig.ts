@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { onExit, onFinishEval, onInit } from '../interactive/repl'
-import { setContext, wrapCrashReporting } from '../utils'
+import { registerAsyncCommand, registerNonAsyncCommand, setContext, wrapCrashReporting } from '../utils'
 
 interface DebugConfigTreeItem {
     label: string
@@ -207,8 +207,8 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
         this.refresh()
     }
 
-    setCurrentAsDefault() {
-        vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), true)
+    async setCurrentAsDefault() {
+        await vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), true)
     }
 
     addNameToCompiled(name: string) {
@@ -232,35 +232,35 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     }
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     const provider = new DebugConfigTreeProvider()
     provider.applyDefaults()
-    setContext('julia.debuggerCompiledMode', false)
+    await setContext('julia.debuggerCompiledMode', false)
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('debugger-compiled', provider),
-        vscode.commands.registerCommand('language-julia.switchToCompiled', (item: DebugConfigTreeItem) => {
+        registerNonAsyncCommand('language-julia.switchToCompiled', (item: DebugConfigTreeItem) => {
             provider.switchStatus(item, true, false)
         }),
-        vscode.commands.registerCommand('language-julia.switchToInterpreted', (item: DebugConfigTreeItem) => {
+        registerNonAsyncCommand('language-julia.switchToInterpreted', (item: DebugConfigTreeItem) => {
             provider.switchStatus(item, false, false)
         }),
-        vscode.commands.registerCommand('language-julia.switchAllToCompiled', (item: DebugConfigTreeItem) => {
+        registerNonAsyncCommand('language-julia.switchAllToCompiled', (item: DebugConfigTreeItem) => {
             provider.switchStatus(item, true, true)
         }),
-        vscode.commands.registerCommand('language-julia.switchAllToInterpreted', (item: DebugConfigTreeItem) => {
+        registerNonAsyncCommand('language-julia.switchAllToInterpreted', (item: DebugConfigTreeItem) => {
             provider.switchStatus(item, false, true)
         }),
-        vscode.commands.registerCommand('language-julia.refreshCompiled', () => {
+        registerNonAsyncCommand('language-julia.refreshCompiled', () => {
             provider.refresh()
         }),
-        vscode.commands.registerCommand('language-julia.apply-compiled-defaults', () => {
+        registerNonAsyncCommand('language-julia.apply-compiled-defaults', () => {
             provider.applyDefaults()
         }),
-        vscode.commands.registerCommand('language-julia.reset-compiled', () => {
+        registerNonAsyncCommand('language-julia.reset-compiled', () => {
             provider.reset()
         }),
-        vscode.commands.registerCommand('language-julia.set-compiled-for-name', async () => {
+        registerAsyncCommand('language-julia.set-compiled-for-name', async () => {
             const name = await vscode.window.showInputBox({
                 prompt: 'Please enter a fully qualified module or function name you want the debugger to treat as compiled code (e.g. `Base.Math.sin` or `StaticArrays`). A trailing `.` will treat all submodules as compiled as well. A prefixed `-` will ensure that all methods of the specified function are always interpreted.'
             })
@@ -268,16 +268,16 @@ export function activate(context: vscode.ExtensionContext) {
                 provider.addNameToCompiled(name)
             }
         }),
-        vscode.commands.registerCommand('language-julia.set-current-as-default-compiled', async () => {
-            provider.setCurrentAsDefault()
+        registerAsyncCommand('language-julia.set-current-as-default-compiled', async () => {
+            await provider.setCurrentAsDefault()
         }),
-        vscode.commands.registerCommand('language-julia.enable-compiled-mode', async () => {
+        registerAsyncCommand('language-julia.enable-compiled-mode', async () => {
             provider.enableCompiledMode()
-            setContext('julia.debuggerCompiledMode', true)
+            await setContext('julia.debuggerCompiledMode', true)
         }),
-        vscode.commands.registerCommand('language-julia.disable-compiled-mode', async () => {
+        registerAsyncCommand('language-julia.disable-compiled-mode', async () => {
             provider.disableCompiledMode()
-            setContext('julia.debuggerCompiledMode', false)
+            await setContext('julia.debuggerCompiledMode', false)
         }),
         onInit(wrapCrashReporting(connection => {
             provider.setConnection(connection)

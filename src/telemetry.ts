@@ -104,15 +104,14 @@ export async function init(context: vscode.ExtensionContext) {
     extensionClient.context.tags[extensionClient.context.keys.userId] = vscode.env.machineId
 }
 
-export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
+export async function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
     if (name.startsWith('LSPrecompileFailure')) {
-        vscode.window.showErrorMessage('The Julia Language Server failed to precompile. Please check the FAQ and the local output.', 'Open FAQ', 'Open Logs').then(choice => {
-            if (choice === 'Open Logs') {
-                vscode.commands.executeCommand('language-julia.showLanguageServerOutput')
-            } else if (choice === 'Open FAQ') {
-                vscode.commands.executeCommand('vscode.open', vscode.Uri.parse('https://www.julia-vscode.org/docs/stable/faq'))
-            }
-        })
+        const choice = await vscode.window.showErrorMessage('The Julia Language Server failed to precompile. Please check the FAQ and the local output.', 'Open FAQ', 'Open Logs')
+        if (choice === 'Open Logs') {
+            await vscode.commands.executeCommand('language-julia.showLanguageServerOutput')
+        } else if (choice === 'Open FAQ') {
+            await vscode.commands.executeCommand('vscode.open', vscode.Uri.parse('https://www.julia-vscode.org/docs/stable/faq'))
+        }
     }
     crashReporterQueue.push({
         exception: {
@@ -129,11 +128,11 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
         sendCrashReportQueue()
     }
     else {
-        showCrashReporterUIConsent()
+        await showCrashReporterUIConsent()
     }
 }
 
-export function handleNewCrashReportFromException(exception: Error, cloudRole: string) {
+export async function handleNewCrashReportFromException(exception: Error, cloudRole: string) {
     crashReporterQueue.push({
         exception: exception,
         tagOverrides: {
@@ -145,7 +144,7 @@ export function handleNewCrashReportFromException(exception: Error, cloudRole: s
         sendCrashReportQueue()
     }
     else {
-        showCrashReporterUIConsent()
+        await showCrashReporterUIConsent()
     }
 }
 
@@ -156,11 +155,11 @@ export function startLsCrashServer() {
     const server = net.createServer(function (connection) {
         let accumulatingBuffer = Buffer.alloc(0)
 
-        connection.on('data', async function (c) {
+        connection.on('data', function (c) {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)])
         })
 
-        connection.on('close', async function (had_err) {
+        connection.on('close', async (had_err) => {
             const replResponse = accumulatingBuffer.toString().split('\n')
             const errorMessageLines = parseInt(replResponse[2])
             const errorMessage = replResponse.slice(3, 3 + errorMessageLines).join('\n')
@@ -168,7 +167,7 @@ export function startLsCrashServer() {
 
             traceEvent('jlerror')
 
-            handleNewCrashReport(replResponse[1], errorMessage, stacktrace, replResponse[0])
+            await handleNewCrashReport(replResponse[1], errorMessage, stacktrace, replResponse[0])
         })
     })
 
@@ -212,10 +211,10 @@ async function showCrashReporterUIConsent() {
             const disagree = 'No, never'
             const choice = await vscode.window.showInformationMessage('The Julia language extension crashed. Do you want to send more information about the problem to the development team? Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use crash reports and what data will be transmitted.', agree, agreeAlways, disagree)
             if (choice === disagree) {
-                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', false, true)
+                await vscode.workspace.getConfiguration('julia').update('enableCrashReporter', false, true)
             }
             if (choice === agreeAlways) {
-                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, true)
+                await vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, true)
             }
             if (choice === agree || choice === agreeAlways) {
                 sendCrashReportQueue()

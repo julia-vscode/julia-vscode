@@ -81,11 +81,14 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                         warning = vscode.window.showWarningMessage('Could not fetch table data. The Julia process is no longer available.', button)
                     }
 
-                    warning.then(r => {
-                        if (r === button) {
-                            panel.dispose()
-                        }
-                    })
+                    warning.then(
+                        r => {
+                            if (r === button) {
+                                panel.dispose()
+                            }
+                        },
+                        _ => {}
+                    )
 
                     response = {
                         type: 'getRows',
@@ -96,7 +99,7 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                     }
                 }
                 try {
-                    panel.webview.postMessage(response)
+                    await panel.webview.postMessage(response)
                 } catch (err) {
                     console.debug('Error while processing message: ', err)
                 }

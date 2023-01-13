@@ -2,23 +2,23 @@ import * as fs from 'async-file'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as telemetry from './telemetry'
-import { registerCommand } from './utils'
+import { registerAsyncCommand } from './utils'
 
-function toggleLinter() {
+async function toggleLinter() {
     telemetry.traceEvent('command-togglelinter')
 
     const cval = vscode.workspace.getConfiguration('julia').get('lint.run', false)
-    vscode.workspace.getConfiguration('julia').update('lint.run', !cval, true)
+    await vscode.workspace.getConfiguration('julia').update('lint.run', !cval, true)
 }
 
-function applyTextEdit(we) {
+async function applyTextEdit(we) {
     telemetry.traceEvent('command-applytextedit')
 
     const wse = new vscode.WorkspaceEdit()
     for (const edit of we.documentChanges[0].edits) {
         wse.replace(we.documentChanges[0].textDocument.uri, new vscode.Range(edit.range.start.line, edit.range.start.character, edit.range.end.line, edit.range.end.character), edit.newText)
     }
-    vscode.workspace.applyEdit(wse)
+    await vscode.workspace.applyEdit(wse)
 }
 
 // function lintPackage() {
@@ -69,7 +69,7 @@ async function newJuliaFile(uri?: vscode.Uri) {
             await vscode.languages.setTextDocumentLanguage(document, 'julia')
             await vscode.window.showTextDocument(document)
         } catch (err) {
-            vscode.window.showErrorMessage(`Failed to create ${targetUri.fsPath}`)
+            await vscode.window.showErrorMessage(`Failed to create ${targetUri.fsPath}`)
         }
     } else {
         // untitled editor
@@ -82,8 +82,8 @@ async function newJuliaFile(uri?: vscode.Uri) {
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
-        registerCommand('language-julia.applytextedit', applyTextEdit),
-        registerCommand('language-julia.toggleLinter', toggleLinter),
-        registerCommand('language-julia.newJuliaFile', newJuliaFile)
+        registerAsyncCommand('language-julia.applytextedit', applyTextEdit),
+        registerAsyncCommand('language-julia.toggleLinter', toggleLinter),
+        registerAsyncCommand('language-julia.newJuliaFile', newJuliaFile)
     )
 }
