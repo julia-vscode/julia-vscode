@@ -166,7 +166,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 deps = ["CSTParser"]
 path = "../../../packages/TestItemDetection"
 uuid = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
-version = "0.1.2-DEV"
+version = "0.2.1-DEV"
 
 [[Tokenize]]
 path = "../../../packages/Tokenize"
