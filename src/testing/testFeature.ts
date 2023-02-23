@@ -22,16 +22,29 @@ interface TestItemDetail {
     code_range?: lsp.Range
     option_default_imports?: boolean
     option_tags?: string[]
-    error?: string
 }
 
-interface PublishTestItemsParams {
+interface TestSetupDetail {
+    name: string
+    range: lsp.Range
+    code?: string
+    code_range?: lsp.Range
+}
+
+interface TestErrorDetail {
+    range: lsp.Range
+    error: string
+}
+
+interface PublishTestsParams {
     uri: lsp.URI
     version: number,
     project_path: string,
     package_path: string,
     package_name: string,
     testitemdetails: TestItemDetail[]
+    testsetupdetails: TestSetupDetail[]
+    testerrordetails: TestErrorDetail[]
 }
 
 interface TestserverRunTestitemRequestParams {
@@ -54,7 +67,7 @@ interface TestserverRunTestitemRequestParamsReturn {
     duration: number | null
 }
 
-export const notifyTypeTextDocumentPublishTestitems = new NotificationType<PublishTestItemsParams>('julia/publishTestitems')
+export const notifyTypeTextDocumentPublishTests = new NotificationType<PublishTestsParams>('julia/publishTests')
 const requestTypeExecuteTestitem = new RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
 const requestTypeRevise = new RequestType<void, string, void>('testserver/revise')
 
@@ -292,7 +305,7 @@ export class TestFeature {
         }
     }
 
-    public publishTestitemsHandler(params: PublishTestItemsParams) {
+    public publishTestsHandler(params: PublishTestsParams) {
         const uri = vscode.Uri.parse(params.uri)
 
         let fileTestitem = this.controller.items.get(params.uri)
@@ -307,13 +320,10 @@ export class TestFeature {
             this.controller.items.delete(fileTestitem.id)
         }
 
-        if (params.testitemdetails.length > 0 ) {
-            fileTestitem.children.replace(params.testitemdetails.map(i => {
+        fileTestitem.children.replace([
+            ...params.testitemdetails.map(i => {
                 const testitem = this.controller.createTestItem(i.id, i.label, vscode.Uri.parse(params.uri))
-                if (i.error) {
-                    testitem.error = i.error
-                }
-                else if (params.package_path==='') {
+                if (params.package_path==='') {
                     testitem.error = 'Unable to identify a Julia package for this test item.'
                 }
                 else {
@@ -323,8 +333,15 @@ export class TestFeature {
                 testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
 
                 return testitem
-            }))
-        }
+            }),
+            ...params.testerrordetails.map(i => {
+                const testitem = this.controller.createTestItem('Test error', 'Test error', vscode.Uri.parse(params.uri))
+                testitem.error = i.error
+                testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
+
+                return testitem
+            })
+        ])
     }
 
     walkTestTree(item: vscode.TestItem, itemsToRun: vscode.TestItem[]) {
