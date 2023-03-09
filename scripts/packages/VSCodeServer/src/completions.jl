@@ -25,35 +25,34 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
     if occursin(".", line)
         lineSplit = split(line, '.')
         partial = lineSplit[end]
-        identifier = lineSplit[end-1]
+        identifier = split(lineSplit[end-1], " ")[end]
         if isdefined(mod, Symbol(identifier))
             idtype = typeof(getfield(mod, Symbol(identifier)))
-            availableMethods = methodswith(idtype, supertypes=true)
-
-            for meth in availableMethods
-                methName = string(meth.name)
-                if occursin(partial, methName)
-                    # @info "method valid: $(methName)"
-                    if !haskey(dotMethods, methName)
-                        push!(dotMethodCompletions,
-                            (
-                                label=methName,
-                                detail=string("type method completion. ", string(idtype)),
-                                kind=completion_kind("")
+            if !(idtype isa Function)
+                availableMethods = methodswith(idtype, supertypes=true)
+                for meth in availableMethods
+                    methName = string(meth.name)
+                    if occursin(partial, methName)
+                        # @info "method valid: $(methName)"
+                        if !haskey(dotMethods, methName)
+                            push!(dotMethodCompletions,
+                                (
+                                    label=methName,
+                                    detail=string("type method completion. ", string(idtype)),
+                                    kind=completion_kind(""),
+                                    insertText="$(methName)($identifier ,)",
+                                    # additionalTextEdits=(range=(start=(line=)))
+                                )
                             )
-                        )
-                        dotMethods[methName] = 1
+                            dotMethods[methName] = 1
+                        end
                     end
                 end
             end
-        end
 
+        end
     end
     replCompletions = completion.(cs)
-    # if length(replCompletions) > 0
-    #     @info replCompletions[1], typeof(replCompletions[1]), typeof(replCompletions[1].label)
-    #     @info dotMethodCompletions[1], typeof(dotMethodCompletions[1]), typeof(dotMethodCompletions[1].label)
-    # end
     append!(replCompletions, dotMethodCompletions)
 end
 
@@ -68,7 +67,8 @@ end
 completion(c) = (
     label=completion_label(c),
     detail=string("REPL completion. ", completion_detail(c)),
-    kind=completion_kind(c)
+    kind=completion_kind(c),
+    insertText=completion_label(c)
 )
 
 completion_label(c) = completion_text(c)
