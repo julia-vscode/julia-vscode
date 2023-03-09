@@ -5,6 +5,7 @@ using REPL.REPLCompletions
 using REPL.REPLCompletions: Completion, KeywordCompletion, PathCompletion, ModuleCompletion,
     PackageCompletion, PropertyCompletion, FieldCompletion, MethodCompletion, BslashCompletion,
     ShellCompletion, DictCompletion
+using InteractiveUtils: methodswith
 
 function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
     mod, line = params.mod, params.line
@@ -13,27 +14,61 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
     cs = try
         first(Base.invokelatest(completions, line, lastindex(line), mod))
     catch err
-        @debug "completion error" exception=(err, catch_backtrace())
+        @debug "completion error" exception = (err, catch_backtrace())
         # might error when e.g. type inference fails
         Completion[]
     end
     filter!(is_target_completion, cs)
 
-    return completion.(cs)
+    dotMethodCompletions = []
+    dotMethods = Dict()
+    if occursin(".", line)
+        lineSplit = split(line, '.')
+        partial = lineSplit[end]
+        identifier = lineSplit[end-1]
+        if isdefined(mod, Symbol(identifier))
+            idtype = typeof(getfield(mod, Symbol(identifier)))
+            availableMethods = methodswith(idtype, supertypes=true)
+
+            for meth in availableMethods
+                methName = string(meth.name)
+                if occursin(partial, methName)
+                    # @info "method valid: $(methName)"
+                    if !haskey(dotMethods, methName)
+                        push!(dotMethodCompletions,
+                            (
+                                label=methName,
+                                detail=string("type method completion. ", string(idtype)),
+                                kind=completion_kind("")
+                            )
+                        )
+                        dotMethods[methName] = 1
+                    end
+                end
+            end
+        end
+
+    end
+    replCompletions = completion.(cs)
+    # if length(replCompletions) > 0
+    #     @info replCompletions[1], typeof(replCompletions[1]), typeof(replCompletions[1].label)
+    #     @info dotMethodCompletions[1], typeof(dotMethodCompletions[1]), typeof(dotMethodCompletions[1].label)
+    # end
+    append!(replCompletions, dotMethodCompletions)
 end
 
 repl_resolvecompletion_request(conn, completion_item) = completion_item # not used currently, return as is
 
 function is_target_completion(c)
     return c isa PropertyCompletion ||
-        c isa FieldCompletion ||
-        c isa DictCompletion
+           c isa FieldCompletion ||
+           c isa DictCompletion
 end
 
 completion(c) = (
-    label = completion_label(c),
-    detail = string("REPL completion. ", completion_detail(c)),
-    kind = completion_kind(c)
+    label=completion_label(c),
+    detail=string("REPL completion. ", completion_detail(c)),
+    kind=completion_kind(c)
 )
 
 completion_label(c) = completion_text(c)

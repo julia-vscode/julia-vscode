@@ -79,7 +79,7 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
                             isIncomplete: true
                         })
                     }
-                }, 500)
+                }, 5000)
             })
 
             return Promise.race([
