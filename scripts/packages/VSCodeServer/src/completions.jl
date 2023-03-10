@@ -9,6 +9,7 @@ using InteractiveUtils: methodswith
 
 function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
     mod, line = params.mod, params.line
+    lineNum, column = params.lineNum, params.column
     mod = module_from_string(mod)
 
     cs = try
@@ -34,14 +35,17 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
                     methName = string(meth.name)
                     if occursin(partial, methName)
                         # @info "method valid: $(methName)"
+                        # @info methName, NamedTuple{(:start, :end)}(((line=lineNum, character=column - length(identifier) - 1 - length(partial)),
+                        #     (line=lineNum, character=column + length(methName) + 3 - length(partial))))
                         if !haskey(dotMethods, methName)
                             push!(dotMethodCompletions,
                                 (
                                     label=methName,
                                     detail=string("type method completion. ", string(idtype)),
                                     kind=completion_kind(""),
-                                    insertText="$(methName)($identifier ,)",
-                                    # additionalTextEdits=(range=(start=(line=)))
+                                    insertText="$(methName)($identifier, )",
+                                    additionalTextEdits=[(range=NamedTuple{(:start, :end)}(((line=lineNum, character=column - length(identifier) - 1), (line=lineNum, character=column))),
+                                        newText="")]
                                 )
                             )
                             dotMethods[methName] = 1
@@ -52,7 +56,7 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
 
         end
     end
-    replCompletions = completion.(cs)
+    replCompletions = completion.(cs, lineNum, column)
     append!(replCompletions, dotMethodCompletions)
 end
 
@@ -64,11 +68,15 @@ function is_target_completion(c)
            c isa DictCompletion
 end
 
-completion(c) = (
+completion(c, lineNum, column) = (
     label=completion_label(c),
     detail=string("REPL completion. ", completion_detail(c)),
     kind=completion_kind(c),
-    insertText=completion_label(c)
+    insertText=completion_label(c),
+    # range=NamedTuple{(:start, :end)}(((line=lineNum, character=column),
+    #     (line=lineNum, character=column)))
+    additionalTextEdits=[(range=NamedTuple{(:start, :end)}(((line=lineNum, character=column), (line=lineNum, character=column))),
+        newText="")]
 )
 
 completion_label(c) = completion_text(c)

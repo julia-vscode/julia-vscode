@@ -43,12 +43,14 @@ JSONRPC.@dict_readable mutable struct ReplWorkspaceItem <: JSONRPC.Outbound
     value::String
     canshow::Bool
     type::String
-    location::Union{Nothing, Location}
+    location::Union{Nothing,Location}
 end
 
 JSONRPC.@dict_readable struct GetCompletionsRequestParams <: JSONRPC.Outbound
     line::String
     mod::String
+    lineNum::Int
+    column::Int
 end
 
 struct ParameterInformation
@@ -116,8 +118,8 @@ const repl_showingrid_notification_type = JSONRPC.NotificationType("repl/showing
 const repl_loadedModules_request_type = JSONRPC.RequestType("repl/loadedModules", Nothing, Vector{String})
 const repl_isModuleLoaded_request_type = JSONRPC.RequestType("repl/isModuleLoaded", NamedTuple{(:mod,),Tuple{String}}, Bool)
 const repl_startdebugger_notification_type = JSONRPC.NotificationType("repl/startdebugger", NamedTuple{(:debugPipename,),Tuple{String}})
-const repl_showprofileresult_notification_type = JSONRPC.NotificationType("repl/showprofileresult", NamedTuple{(:trace,:typ),Tuple{Dict{String,ProfileFrame}, String}})
-const repl_open_file_notification_type = JSONRPC.NotificationType("repl/openFile", NamedTuple{(:path, :line), Tuple{String, Int}})
+const repl_showprofileresult_notification_type = JSONRPC.NotificationType("repl/showprofileresult", NamedTuple{(:trace, :typ),Tuple{Dict{String,ProfileFrame},String}})
+const repl_open_file_notification_type = JSONRPC.NotificationType("repl/openFile", NamedTuple{(:path, :line),Tuple{String,Int}})
 const repl_toggle_plot_pane_notification_type = JSONRPC.NotificationType("repl/togglePlotPane", NamedTuple{(:enable,),Tuple{Bool}})
 const repl_toggle_diagnostics_notification_type = JSONRPC.NotificationType("repl/toggleDiagnostics", NamedTuple{(:enable,),Tuple{Bool}})
 const repl_toggle_progress_notification_type = JSONRPC.NotificationType("repl/toggleProgress", Bool)
