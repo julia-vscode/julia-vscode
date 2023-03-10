@@ -26,7 +26,7 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
     if occursin(".", line)
         lineSplit = split(line, '.')
         partial = lineSplit[end]
-        identifier = split(lineSplit[end-1], " ")[end]
+        identifier = strip(split(lineSplit[end-1], " ")[end])
         if isdefined(mod, Symbol(identifier))
             idtype = typeof(getfield(mod, Symbol(identifier)))
             if !(idtype isa Function)
