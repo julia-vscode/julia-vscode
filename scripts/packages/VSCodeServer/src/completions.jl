@@ -42,8 +42,9 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
                                 (
                                     label=methName,
                                     detail=string("type method completion. ", string(idtype)),
-                                    kind=completion_kind(""),
+                                    kind=1,
                                     insertText="$(methName)($identifier, )",
+                                    # insertText=(value = "$(methName)($identifier, \$1)"),
                                     additionalTextEdits=[(range=NamedTuple{(:start, :end)}(((line=lineNum, character=column - length(identifier) - 1), (line=lineNum, character=column))),
                                         newText="")]
                                 )
@@ -73,6 +74,7 @@ completion(c, lineNum, column) = (
     detail=string("REPL completion. ", completion_detail(c)),
     kind=completion_kind(c),
     insertText=completion_label(c),
+    # insertText=(value = completion_label(c)),
     # range=NamedTuple{(:start, :end)}(((line=lineNum, character=column),
     #     (line=lineNum, character=column)))
     additionalTextEdits=[(range=NamedTuple{(:start, :end)}(((line=lineNum, character=column), (line=lineNum, character=column))),
