@@ -102,9 +102,9 @@ uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
 version = "1.0.18"
 
 [[deps.JuliaSyntax]]
-git-tree-sha1 = "db2bdeda30e452485863799be4515f6305431a46"
+git-tree-sha1 = "5f0b864db9e8d7c109eba0fe7d306a108fda5056"
 uuid = "70703baa-626e-46a2-a12c-08ffd08c73b4"
-version = "0.3.2"
+version = "0.3.3"
 
 [[deps.JuliaWorkspaces]]
 deps = ["JuliaSyntax", "Pkg", "UUIDs"]
