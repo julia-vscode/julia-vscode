@@ -70,7 +70,7 @@ async function main() {
         'Crayons',
         'DataStructures',
         'JuliaFormatter',
-        'URIs',
+        // 'URIs',
         'Revise',
         'DelimitedFiles'
     ]) {
