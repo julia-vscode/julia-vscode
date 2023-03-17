@@ -76,9 +76,9 @@ uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
 version = "1.0.25"
 
 [[JuliaSyntax]]
-git-tree-sha1 = "c6ca86ffc29b2fbe9423ff275eaa542057725c7f"
+git-tree-sha1 = "db2bdeda30e452485863799be4515f6305431a46"
 uuid = "70703baa-626e-46a2-a12c-08ffd08c73b4"
-version = "0.3.0"
+version = "0.3.2"
 
 [[JuliaWorkspaces]]
 deps = ["JuliaSyntax", "Pkg", "UUIDs"]
@@ -208,7 +208,7 @@ version = "0.4.1"
 [[URIs]]
 path = "../../../packages/URIs"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
-version = "1.4.2"
+version = "1.4.0"
 
 [[UUIDs]]
 deps = ["Random"]

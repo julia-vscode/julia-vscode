@@ -253,7 +253,7 @@ version = "0.4.1"
 [[deps.URIs]]
 path = "../../../packages/URIs"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
-version = "1.4.2"
+version = "1.4.0"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
