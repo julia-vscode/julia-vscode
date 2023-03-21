@@ -130,14 +130,16 @@ export class JuliaNotebookFeature {
         // and prefer x64 builds
         const perfectMatchVersions = Array.from(this._controllers.entries())
             .filter(
-                ([_, juliaExec]) => juliaExec.getVersion() === semver.parse(version)
+                ([_, juliaExec]) => juliaExec.getVersion().toString() === semver.parse(version).toString()
             )
             .sort(([_, a], [__, b]) => {
+                // First, we give preference to official releases, rather than linked juliaup channels
                 if (a.officialChannel !== b.officialChannel) {
-                    // First, we give preference to official releases, rather than linked juliaup channels
                     return a.officialChannel ? -1 : 1
-                } else if (a.arch !== b.arch) {
-                    // Next we give preference to x64 builds
+                }
+                // Next we give preference to x64 builds
+                else if (a.arch !== b.arch) {
+
                     if (a.arch === 'x64') {
                         return -1
                     } else if (b.arch === 'x64') {
@@ -145,7 +147,20 @@ export class JuliaNotebookFeature {
                     } else {
                         return 0
                     }
-                } else {
+                }
+                // Then we give preference to release and lts channels
+                else if (a.channel==='release' || a.channel.startsWith('release~')) {
+                    return -1
+                }
+                else if (b.channel==='release' || b.channel.startsWith('release~')) {
+                    return 1
+                } else if (a.channel==='lts' || a.channel.startsWith('lts~')) {
+                    return -1
+                }
+                else if (b.channel==='lts' || b.channel.startsWith('lts~')) {
+                    return 1
+                }
+                else {
                     return 0
                 }
             })

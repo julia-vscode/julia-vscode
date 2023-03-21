@@ -134,7 +134,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                 suffix = string("\e[0m", SHELL.update_cwd(), SHELL.prompt_end())
                 try
                     mode = get_main_mode()
-                    prompt = mode.prompt
+                    prompt = LineEdit.prompt_string(mode.prompt)
                     LineEdit.write_prompt(stdout, mode)
                 catch err
                     print(stdout, prefix, prompt, suffix)

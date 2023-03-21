@@ -188,6 +188,7 @@ function serve_in_env(conn)
 end
 
 function serve(conn, project_path, package_path, package_name; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    @info "This test server instance was started with the following configuration." project_path package_path package_name
     if project_path==""
         Pkg.activate(temp=true)
 
