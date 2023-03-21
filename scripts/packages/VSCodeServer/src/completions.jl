@@ -5,7 +5,7 @@ using REPL.REPLCompletions
 using REPL.REPLCompletions: Completion, KeywordCompletion, PathCompletion, ModuleCompletion,
     PackageCompletion, PropertyCompletion, FieldCompletion, MethodCompletion, BslashCompletion,
     ShellCompletion, DictCompletion
-using InteractiveUtils: methodswith
+using InteractiveUtils: methodswith, supertypes
 
 function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
     mod, line = params.mod, params.line
@@ -30,7 +30,12 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
         if isdefined(mod, Symbol(identifier))
             idtype = typeof(getfield(mod, Symbol(identifier)))
             if !(idtype isa Function)
-                availableMethods = methodswith(idtype, supertypes=true)
+                searchInModules = Set(parentmodule.(supertypes(idtype)))
+                push!(searchInModules, Base)
+                availableMethods = []
+                for searchModule in searchInModules
+                    append!(availableMethods, methodswith(idtype, searchModule, supertypes=true))
+                end
                 for meth in availableMethods
                     methName = string(meth.name)
                     if occursin(partial, methName)
