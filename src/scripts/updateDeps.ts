@@ -59,18 +59,20 @@ async function main() {
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
+        'JuliaSyntax',
+        'JuliaWorkspaces',
         'Glob',
         'LoweredCodeUtils',
         'OrderedCollections',
         'PackageCompiler',
         'Tokenize',
         'URIParser',
-        'CommonMark',
+        // 'CommonMark', Took on deps on SnoopPrecompile that we don't support
         'Compat',
         'Crayons',
         'DataStructures',
-        'JuliaFormatter',
-        'URIs',
+        // 'JuliaFormatter', Took on deps on SnoopPrecompile that we don't support
+        // 'URIs', Not compatible with earlier than Julia 1.6 versions
         'Revise',
         'DelimitedFiles'
     ]) {
