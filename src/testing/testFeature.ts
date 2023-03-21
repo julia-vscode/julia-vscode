@@ -310,38 +310,40 @@ export class TestFeature {
 
         let fileTestitem = this.controller.items.get(params.uri)
 
-        if (!fileTestitem && params.testitemdetails.length > 0) {
-            const filename = vscode.workspace.asRelativePath(uri.fsPath)
+        if (params.testitemdetails.length > 0) {
+            if (!fileTestitem) {
+                const filename = vscode.workspace.asRelativePath(uri.fsPath)
 
-            fileTestitem = this.controller.createTestItem(params.uri, filename, uri)
-            this.controller.items.add(fileTestitem)
+                fileTestitem = this.controller.createTestItem(params.uri, filename, uri)
+                this.controller.items.add(fileTestitem)
+            }
+
+            fileTestitem.children.replace([
+                ...params.testitemdetails.map(i => {
+                    const testitem = this.controller.createTestItem(i.id, i.label, vscode.Uri.parse(params.uri))
+                    if (params.package_path==='') {
+                        testitem.error = 'Unable to identify a Julia package for this test item.'
+                    }
+                    else {
+                        testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
+                    }
+                    this.testitems.set(testitem, {testitem: i, projectPath: params.project_path, packagePath: params.package_path, packageName: params.package_name})
+                    testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
+
+                    return testitem
+                }),
+                ...params.testerrordetails.map(i => {
+                    const testitem = this.controller.createTestItem('Test error', 'Test error', vscode.Uri.parse(params.uri))
+                    testitem.error = i.error
+                    testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
+
+                    return testitem
+                })
+            ])
         }
-        else if (fileTestitem && params.testitemdetails.length === 0) {
+        else if (fileTestitem) {
             this.controller.items.delete(fileTestitem.id)
         }
-
-        fileTestitem.children.replace([
-            ...params.testitemdetails.map(i => {
-                const testitem = this.controller.createTestItem(i.id, i.label, vscode.Uri.parse(params.uri))
-                if (params.package_path==='') {
-                    testitem.error = 'Unable to identify a Julia package for this test item.'
-                }
-                else {
-                    testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
-                }
-                this.testitems.set(testitem, {testitem: i, projectPath: params.project_path, packagePath: params.package_path, packageName: params.package_name})
-                testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
-
-                return testitem
-            }),
-            ...params.testerrordetails.map(i => {
-                const testitem = this.controller.createTestItem('Test error', 'Test error', vscode.Uri.parse(params.uri))
-                testitem.error = i.error
-                testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
-
-                return testitem
-            })
-        ])
     }
 
     walkTestTree(item: vscode.TestItem, itemsToRun: vscode.TestItem[]) {
