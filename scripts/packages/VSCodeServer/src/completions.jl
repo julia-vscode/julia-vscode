@@ -4,7 +4,7 @@
 using REPL.REPLCompletions
 using REPL.REPLCompletions: Completion, KeywordCompletion, PathCompletion, ModuleCompletion,
     PackageCompletion, PropertyCompletion, FieldCompletion, MethodCompletion, BslashCompletion,
-    ShellCompletion, DictCompletion
+    ShellCompletion, DictCompletion, non_identifier_chars
 using InteractiveUtils: methodswith, supertypes
 
 function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
@@ -24,17 +24,36 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
     dotMethodCompletions = []
     dotMethods = Dict()
     if occursin(".", line)
-        lineSplit = split(line, '.')
+        lineSplit = rsplit(line, '.', limit=2)
         partial = lineSplit[end]
-        identifier = strip(split(lineSplit[end-1], " ")[end])
-        if isdefined(mod, Symbol(identifier))
-            idtype = typeof(getfield(mod, Symbol(identifier)))
+        identifier = strip(lineSplit[end-1], non_identifier_chars)
+        identifierSplit = split(identifier, ".")
+        parentIdentifier = identifier
+        if length(identifierSplit) > 1
+            parentIdentifier = identifierSplit[1]
+        end
+        if isdefined(mod, Symbol(parentIdentifier))
+            idtype = nothing
+            if length(identifierSplit) > 1
+                parentI = getfield(mod, Symbol(parentIdentifier))
+                getSubI = parentI
+                for subI in identifierSplit[2:end]
+                    getSubI = Base.invokelatest(getproperty, getSubI, Symbol(subI))
+                end
+                idtype = typeof(getSubI)
+            else
+                idtype = typeof(getfield(mod, Symbol(identifier)))
+            end
             if !(idtype isa Function)
                 searchInModules = Set(parentmodule.(supertypes(idtype)))
                 push!(searchInModules, Base)
                 availableMethods = []
-                for searchModule in searchInModules
-                    append!(availableMethods, methodswith(idtype, searchModule, supertypes=true))
+                availMethodsLock = ReentrantLock()
+                Threads.@threads for searchModule in collect(searchInModules)
+                    aMethods = methodswith(idtype, searchModule, supertypes=true)
+                    lock(availMethodsLock)
+                    append!(availableMethods, aMethods)
+                    unlock(availMethodsLock)
                 end
                 for meth in availableMethods
                     methName = string(meth.name)
