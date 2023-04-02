@@ -44,7 +44,10 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
                 idtype = typeof(getfield(mod, Symbol(identifier)))
             end
             if !(idtype isa Function)
-                supertypesOfid = supertypes(idtype)[1:end-1]
+                supertypesOfid = supertypes(idtype)
+                if length(supertypesOfid) > 1
+                    supertypesOfid = supertypesOfid[1:end-1]
+                end
                 searchInModules = Set(parentmodule.(supertypesOfid))
                 push!(searchInModules, Base)
                 availableMethods = []
