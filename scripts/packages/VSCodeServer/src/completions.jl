@@ -44,7 +44,7 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
                 idtype = typeof(getfield(mod, Symbol(identifier)))
             end
             if !(idtype isa Function)
-                supertypesOfid = supertypes(idtype)
+                supertypesOfid = supertypes(idtype)[1:end-1]
                 searchInModules = Set(parentmodule.(supertypesOfid))
                 push!(searchInModules, Base)
                 availableMethods = []
@@ -58,22 +58,20 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
                 for meth in availableMethods
                     methName = string(meth.name)
                     if occursin(partial, methName)
-                        # @info "method valid: $(methName)"
-                        # @info methName, NamedTuple{(:start, :end)}(((line=lineNum, character=column - length(identifier) - 1 - length(partial)),
-                        #     (line=lineNum, character=column + length(methName) + 3 - length(partial))))
                         preComma = ""
+                        detailMeth = string(meth.module) * ": " * string(meth.sig)
                         if hasproperty(meth.sig, :parameters)
                             idIndex = findfirst(in(supertypesOfid), meth.sig.parameters)
                             if isnothing(idIndex)
                                 idIndex = 0
                             end
                             preComma = ","^clamp(idIndex - 2, 0, 100)
+                            detailMeth = string(meth.module) * ": $(meth.name)" * string(meth.sig.parameters[2:end])[5:end]
                         end
-
                         push!(dotMethodCompletions,
                             (
                                 label=methName,
-                                detail=string(meth.sig),
+                                detail=detailMeth,
                                 kind=1,
                                 insertText="$(methName)($preComma$identifier, )",
                                 # insertText=(value = "$(methName)($identifier, \$1)"),
