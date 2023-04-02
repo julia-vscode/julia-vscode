@@ -22,7 +22,6 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
     filter!(is_target_completion, cs)
 
     dotMethodCompletions = []
-    dotMethods = Dict()
     if occursin(".", line)
         lineSplit = rsplit(line, '.', limit=2)
         partial = lineSplit[end]
@@ -45,7 +44,8 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
                 idtype = typeof(getfield(mod, Symbol(identifier)))
             end
             if !(idtype isa Function)
-                searchInModules = Set(parentmodule.(supertypes(idtype)))
+                supertypesOfid = supertypes(idtype)
+                searchInModules = Set(parentmodule.(supertypesOfid))
                 push!(searchInModules, Base)
                 availableMethods = []
                 availMethodsLock = ReentrantLock()
@@ -61,20 +61,26 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams)
                         # @info "method valid: $(methName)"
                         # @info methName, NamedTuple{(:start, :end)}(((line=lineNum, character=column - length(identifier) - 1 - length(partial)),
                         #     (line=lineNum, character=column + length(methName) + 3 - length(partial))))
-                        if !haskey(dotMethods, methName)
-                            push!(dotMethodCompletions,
-                                (
-                                    label=methName,
-                                    detail=string("type method completion. ", string(idtype)),
-                                    kind=1,
-                                    insertText="$(methName)($identifier, )",
-                                    # insertText=(value = "$(methName)($identifier, \$1)"),
-                                    additionalTextEdits=[(range=NamedTuple{(:start, :end)}(((line=lineNum, character=column - length(identifier) - 1), (line=lineNum, character=column))),
-                                        newText="")]
-                                )
-                            )
-                            dotMethods[methName] = 1
+                        preComma = ""
+                        if hasproperty(meth.sig, :parameters)
+                            idIndex = findfirst(in(supertypesOfid), meth.sig.parameters)
+                            if isnothing(idIndex)
+                                idIndex = 0
+                            end
+                            preComma = ","^clamp(idIndex - 2, 0, 100)
                         end
+
+                        push!(dotMethodCompletions,
+                            (
+                                label=methName,
+                                detail=string(meth.sig),
+                                kind=1,
+                                insertText="$(methName)($preComma$identifier, )",
+                                # insertText=(value = "$(methName)($identifier, \$1)"),
+                                additionalTextEdits=[(range=NamedTuple{(:start, :end)}(((line=lineNum, character=column - length(identifier) - 1), (line=lineNum, character=column))),
+                                    newText="")]
+                            )
+                        )
                     end
                 end
             end
