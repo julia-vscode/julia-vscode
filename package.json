@@ -653,12 +653,12 @@
                 },
                 {
                     "command": "language-julia.disable-compiled-mode",
-                    "when": "view == debugger-compiled && juliaCompiledMode == true",
+                    "when": "view == debugger-compiled && julia.debuggerCompiledMode == true",
                     "group": "navigation"
                 },
                 {
                     "command": "language-julia.enable-compiled-mode",
-                    "when": "view == debugger-compiled && juliaCompiledMode == false",
+                    "when": "view == debugger-compiled && julia.debuggerCompiledMode == false",
                     "group": "navigation"
                 },
                 {
