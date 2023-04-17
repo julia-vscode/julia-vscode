@@ -77,6 +77,7 @@ Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plo
 Base.Multimedia.displayable(_::InlineDisplay, mime::MIME) = PLOT_PANE_ENABLED[] && string(mime) in DISPLAYABLE_MIMES
 
 const DISPLAYABLE_MIMES = [
+    "application/vnd.vegalite.v5+json",
     "application/vnd.vegalite.v4+json",
     "application/vnd.vegalite.v3+json",
     "application/vnd.vegalite.v2+json",
