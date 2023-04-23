@@ -253,7 +253,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
         const task = new vscode.Task(
             {
-                type: 'julia-proc',
+                type: 'julia',
                 id: uuid(),
             },
             vscode.TaskScope.Workspace,
@@ -320,7 +320,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
         const task = new vscode.Task(
             {
-                type: 'julia-proc',
+                type: 'julia',
                 id: uuid(),
             },
             vscode.TaskScope.Workspace,
