@@ -75,7 +75,9 @@ async function main() {
         // 'JuliaFormatter', Took on deps on SnoopPrecompile that we don't support
         // 'URIs', Not compatible with earlier than Julia 1.6 versions
         'Revise',
-        'DelimitedFiles'
+        'DelimitedFiles',
+        'Preferences',
+        'PrecompileTools',
     ]) {
         await cp.exec('git fetch')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
