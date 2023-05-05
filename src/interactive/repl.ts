@@ -195,8 +195,8 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             shellArgs = [
                 <string>config.get('persistentSession.shellExecutionArgument'),
                 // create a new tmux session, set remain-on-exit to true, and attach; if the session already exists we just attach to the existing session
-                `tmux new -d -s ${sessionName} "${juliaAndArgs}" && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
-                tmux send-keys -t ${sessionName}.left ^A ^K ^H '${connectJuliaCode}' ENTER && tmux attach -t ${sessionName}`
+                `sessionNameSanitized=\`echo "${sessionName}" | sed "s/\\./_/g" \` && tmux new -d -s $sessionNameSanitized "${juliaAndArgs}" && tmux set -q remain-on-exit && tmux attach -t $sessionNameSanitized ||
+                tmux send-keys -t $sessionNameSanitized.left ^A ^K ^H '${connectJuliaCode}' ENTER && tmux attach -t $sessionNameSanitized`
             ]
         } else {
             shellPath = juliaExecutable.file
