@@ -4,7 +4,6 @@ import { assert } from 'console'
 import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
-import { exec } from 'promisify-child-process'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
@@ -65,7 +64,18 @@ async function stopREPL(onDeactivate=false) {
             const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
             const killSession = await confirmKill()
             if (killSession) {
-                await exec(`tmux kill-session -t ${sessionName}`)
+                const shellPath: string= config.get('persistentSession.shell')
+                const shellArgs: string[] = [<string>config.get('persistentSession.shellExecutionArgument'),`sessionNameSanitized=\`echo "${sessionName}" | sed "s/\\./_/g" \` && tmux kill-session -t $sessionNameSanitized && ${shellPath}`]
+                const env: any = {
+                    JULIA_EDITOR: getEditor()
+                }
+                vscode.window.createTerminal({
+                    name: `Julia REPL killed`,
+                    shellPath:  shellPath,
+                    shellArgs: shellArgs,
+                    isTransient: true,
+                    env: env,
+                } as any)
             }
         } catch (err) {
             vscode.window.showErrorMessage('Failed to close tmux session: ' + err.stderr)
