@@ -75,6 +75,7 @@ async function stopREPL(onDeactivate=false) {
                     shellArgs: shellArgs,
                     isTransient: true,
                     env: env,
+                    hideFromUser: true,
                 } as any)
             }
         } catch (err) {
