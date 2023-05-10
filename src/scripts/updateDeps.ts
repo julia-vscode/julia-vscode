@@ -60,7 +60,7 @@ async function main() {
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
-        'JuliaSyntax',
+        // 'JuliaSyntax', Need to update JuliaWorkspaces first
         'JuliaWorkspaces',
         'Glob',
         'LoweredCodeUtils',
