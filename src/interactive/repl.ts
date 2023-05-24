@@ -566,7 +566,7 @@ function stripMarkdown(code: string) {
     let out = ''
     let isJulia = false
     for (const line of code.split('\n')) {
-        if (/^```julia/.test(line)) {
+        if (/^```({?julia|@example|@setup)/.test(line)) {
             isJulia = true
             out += '\n'
             continue
@@ -677,7 +677,7 @@ let g_cellDelimiters = [
 function isCellBorder(s: string, isStart: boolean, isJmd: boolean) {
     if (isJmd) {
         if (isStart) {
-            return /^```julia/.test(s)
+            return /^```({?julia|@example|@setup)/.test(s)
         } else {
             return /^```(?!\w)/.test(s)
         }
