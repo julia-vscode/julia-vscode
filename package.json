@@ -1152,7 +1152,7 @@
                 "julia.persistentSession.warnOnKill": {
                     "type": "boolean",
                     "default": true,
-                    "scope": "application",
+                    "scope": "machine-overridable",
                     "description": "Warn when stopping a persistent session."
                 },
                 "julia.persistentSession.alwaysCopy": {
