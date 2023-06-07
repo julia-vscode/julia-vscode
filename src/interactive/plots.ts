@@ -1,4 +1,4 @@
-import * as fs from 'async-file'
+import * as fs from 'fs/promises'
 import { homedir } from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
@@ -874,13 +874,28 @@ async function _writePlotFile(fileName: string, data: FileLike) {
 
     let plotsDirFullPath: string = null
     if (rootPath) {
-        plotsDirFullPath = path.join(rootPath, defaultPlotsDir)
+        plotsDirFullPath = path.isAbsolute(defaultPlotsDir) ?
+            defaultPlotsDir :
+            path.join(rootPath, defaultPlotsDir)
     }
 
     try {
-        const isFile = plotsDirFullPath && await fs.exists(plotsDirFullPath)
+        let isFile = true
+        try {
+            await fs.access(plotsDirFullPath)
+        } catch (err) {
+            isFile = false
+        }
         if (!isFile) {
-            plotsDirFullPath = homedir()
+            const action = await vscode.window.showWarningMessage('The default plot path does not exist.', 'Create', 'Change')
+            if (action === 'Create') {
+                await fs.mkdir(plotsDirFullPath, { recursive: true })
+            } else if (action === 'Change') {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.plots.path')
+                return
+            } else {
+                plotsDirFullPath = homedir()
+            }
         }
         const plotFileFullPath = path.join(plotsDirFullPath, fileName)
         vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(plotFileFullPath) }).then(saveURI => {
@@ -891,6 +906,5 @@ async function _writePlotFile(fileName: string, data: FileLike) {
     } catch (e) {
         console.error(e)
         vscode.window.showWarningMessage('Failed to save plot.')
-
     }
 }
