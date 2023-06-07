@@ -613,6 +613,45 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
+    else if (kind === 'application/vnd.vegalite.v5+json') {
+        showPlotPane()
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
+        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
+        const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-5', 'vega-lite.min.js')))
+        const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
+        const plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriPanZoom}"></script>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaLite}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                    ${plotElementStyle}
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega-lite",
+                        actions: false,
+                        renderer: "svg"
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plot-element', spec, opt);
+                </script>
+            </html>`
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
+        showPlotPane()
+    }
     else if (kind === 'application/vnd.vega.v3+json') {
         showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
