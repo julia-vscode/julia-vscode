@@ -146,7 +146,7 @@ User type needs to implement a `show` method that returns a dictionary like the 
 Base.show(io::IO, ::MIME"application/vnd.julia-vscode.inlayHints", t::YourType) = Dict("/some/other/absolute/path.jl" => [(
     position = (4, 1), # line, column (0 indexed)
     label = "::R",
-    kind = 1, # optional; 1: Type, 2: Parameter
+    kind = 1, # optional; 1: Type, 2: Parameter, nothing: undefined
     tooltip = "test", # optional
     paddingLeft = false, # optional
     paddingRight = false # optional
