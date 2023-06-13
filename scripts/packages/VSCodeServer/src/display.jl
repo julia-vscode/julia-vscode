@@ -6,6 +6,7 @@ InlineDisplay() = InlineDisplay(false)
 
 const PLOT_PANE_ENABLED = Ref(true)
 const DIAGNOSTICS_ENABLED = Ref(true)
+const INLAY_HINTS_ENABLED = Ref(true)
 const PROGRESS_ENABLED = Ref(true)
 
 function toggle_plot_pane(_, params::NamedTuple{(:enable,),Tuple{Bool}})
@@ -14,6 +15,10 @@ end
 
 function toggle_diagnostics(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     DIAGNOSTICS_ENABLED[] = params.enable
+end
+
+function toggle_inlay_hints(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    INLAY_HINTS_ENABLED[] = params.enable
 end
 
 function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
@@ -132,6 +137,33 @@ function Base.Multimedia.display(d::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIM
     end
 end
 
+"""
+    INLAY_HINTS_MIME = "application/vnd.julia-vscode.inlayHints"
+
+User type needs to implement a `show` method that returns a dictionary like the following
+
+```
+Base.show(io::IO, ::MIME"application/vnd.julia-vscode.inlayHints", t::YourType) = Dict("/some/other/absolute/path.jl" => [(
+    position = (4, 1), # line, column (0 indexed)
+    label = "::R",
+    kind = 1, # optional; 1: Type, 2: Parameter
+    tooltip = "test", # optional
+    paddingLeft = false, # optional
+    paddingRight = false # optional
+)])
+```
+
+Anything printed to `io` is discarded.
+"""
+const INLAY_HINTS_MIME = "application/vnd.julia-vscode.inlayHints"
+Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(INLAY_HINTS_MIME)}) = INLAY_HINTS_ENABLED[]
+function Base.Multimedia.display(d::InlineDisplay, m::MIME{Symbol(INLAY_HINTS_MIME)}, inlay_hints)
+    sendDisplayMsg(INLAY_HINTS_MIME, show(IOBuffer(), m, inlay_hints))
+    if d.is_repl
+        display(MIME"text/plain"(), inlay_hints)
+    end
+end
+
 function is_table_like(x)
     if showable("application/vnd.dataresource+json", x)
         return true
@@ -168,6 +200,9 @@ function Base.display(d::InlineDisplay, x)
         end
     else
         return with_no_default_display(() -> display(x))
+    end
+    if INLAY_HINTS_ENABLED[] && showable(INLAY_HINTS_MIME, x)
+        return display(d, INLAY_HINTS_MIME, x)
     end
 
     throw(MethodError(display, (d, x)))
