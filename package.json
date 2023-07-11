@@ -1239,7 +1239,7 @@
                 },
                 "julia.plots.path": {
                     "type": "string",
-                    "description": "The output directory to save plots to",
+                    "description": "Default directory for saving plots. Can either be relative to the current workspace or absolute.",
                     "scope": "window"
                 },
                 "julia.workspace.showModules": {
