@@ -1533,6 +1533,6 @@
         "typescript": "^5",
         "vsce": "^2.7.0",
         "webpack": "^5.70.0",
-        "webpack-cli": "^5.1.4"
+        "webpack-cli": "^5"
     }
 }
