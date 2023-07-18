@@ -60,7 +60,7 @@ async function main() {
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
-        'JuliaSyntax',
+        // 'JuliaSyntax', Need to update JuliaWorkspaces first
         'JuliaWorkspaces',
         'Glob',
         'LoweredCodeUtils',
@@ -68,14 +68,17 @@ async function main() {
         'PackageCompiler',
         'Tokenize',
         'URIParser',
-        // 'CommonMark', Took on deps on SnoopPrecompile that we don't support
+        'CommonMark',
         'Compat',
         'Crayons',
         'DataStructures',
-        // 'JuliaFormatter', Took on deps on SnoopPrecompile that we don't support
+        'JuliaFormatter',
         // 'URIs', Not compatible with earlier than Julia 1.6 versions
         'Revise',
-        'DelimitedFiles'
+        'DelimitedFiles',
+        'Preferences',
+        'PrecompileTools',
+        'TestEnv',
     ]) {
         await cp.exec('git fetch')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
