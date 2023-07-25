@@ -21,6 +21,7 @@ import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
 import { Frame, openFile } from './results'
+import { createHash } from 'crypto'
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
@@ -215,6 +216,15 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
         g_terminal.show(preserveFocus)
         await juliaIsConnectedPromise.wait()
+        if (Boolean(config.get('persistentSession.enabled'))) {
+            const editors = vscode.window.visibleTextEditors
+            for (const ed of editors) {
+                if (ed !== undefined) {
+                    await load_results(ed)
+                }
+            }
+
+        }
     } else if (showTerminal) {
         g_terminal.show(preserveFocus)
     }
@@ -318,15 +328,48 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     showCodeInREPL: boolean,
     showResultInREPL: boolean,
     showErrorInREPL: boolean,
-    softscope: boolean
+    softscope: boolean,
+    persistentEnabled: boolean,
+    endLine: number,
+    endColumn: number,
 }, ReturnResult, void>('repl/runcode')
+interface PersistRange {
+    startLine: number,
+    startCol: number,
+    endLine: number,
+    endCol: number,
+    code_hash: string
+}
+interface PlotData{
+    range: PersistRange,
+    mime: string,
+    payload: string,
+    plotIndex: number
+}
+interface LoadPersistResult {
+    msg: string,
+    ranges: null | Array<PersistRange>,
+    results: null | Array<ReturnResult>,
+    plots: null | Array<PlotData>
+}
 
+const loadPersistResultsCode = new rpc.RequestType<{
+    filename: string,
+}, LoadPersistResult, void>('repl/loadpersistresults')
+
+interface rmPersistLineResult {
+    msg: string,
+}
+const rmPersistLineCode = new rpc.RequestType<{
+    filename: string,
+    endLine: number
+}, rmPersistLineResult, void>('repl/rmpersistline')
 interface DebugLaunchParams {
     code: string,
     filename: string
 }
 
-export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
+export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any ,startLine:number, startColumn: number, endLine: number, endColumn:number, filename: string, codeHash: string }>('display')
 const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams>('debugger/enter')
 const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams>('debugger/run')
 const notifyTypeReplStartDebugger = new rpc.NotificationType<{ debugPipename: string }>('repl/startdebugger')
@@ -471,7 +514,7 @@ function clearProgress() {
     }
 }
 
-function display(params: { kind: string, data: any }) {
+function display(params: { kind: string, data: any ,startLine:number, startColumn: number, endLine: number,endColumn:number, filename: string,codeHash: string}) {
     if (params.kind === 'application/vnd.julia-vscode.diagnostics') {
         displayDiagnostics(params.data)
     } else {
@@ -635,7 +678,10 @@ async function executeFile(uri?: vscode.Uri | string) {
             showCodeInREPL: false,
             showResultInREPL: true,
             showErrorInREPL: true,
-            softscope: false
+            softscope: false,
+            persistentEnabled: false,
+            endLine: 0,
+            endColumn: 0,
         }
     )
 }
@@ -875,6 +921,66 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     }
 }
 
+
+async function load_results(editor: vscode.TextEditor) {
+    const result: LoadPersistResult = await g_connection.sendRequest(
+        loadPersistResultsCode,
+        {
+            filename: editor.document.fileName,
+        }
+    )
+    if (result.msg === '') {
+        if (result.ranges === null) {
+            return
+        }
+        for (let i = 0; i < result.ranges.length; i++){
+            const curRange = new vscode.Range(new vscode.Position(result.ranges[i].startLine,result.ranges[i].startCol),new vscode.Position(result.ranges[i].endLine,result.ranges[i].endCol))
+            const code = editor.document.getText(curRange)
+            const code_hash = createHash('sha256').update(code).digest('hex')
+            const persist_hash = result.ranges[i].code_hash
+            if (code_hash === persist_hash) {
+                results.addResult(editor, curRange, result.results[i].inline, result.results[i].all)
+            } else {
+                await g_connection.sendRequest(
+                    rmPersistLineCode,
+                    {
+                        filename: editor.document.fileName,
+                        endLine: curRange.end.line
+                    }
+                )
+            }
+
+        }
+        if (result.plots !== null) {
+            for (const plt_data of result.plots) {
+                const curRange = new vscode.Range(new vscode.Position(plt_data.range.startLine,
+                    plt_data.range.startCol), new vscode.Position(plt_data.range.endLine, plt_data.range.endCol))
+                const code = editor.document.getText(curRange)
+                const code_hash = createHash('sha256').update(code).digest('hex')
+                const persist_hash = plt_data.range.code_hash
+                if (code_hash === persist_hash) {
+                    display({
+                        kind: plt_data.mime, data: plt_data.payload,
+                        startLine: plt_data.range.startLine, startColumn: plt_data.range.startCol,
+                        endLine: plt_data.range.endLine, endColumn: plt_data.range.endCol,
+                        filename: editor.document.fileName, codeHash: plt_data.range.code_hash
+                    })
+                } else {
+                    await g_connection.sendRequest(
+                        rmPersistLineCode,
+                        {
+                            filename: editor.document.fileName,
+                            endLine: curRange.end.line
+                        }
+                    )
+                }
+
+            }
+        }
+    } else {
+        vscode.window.showErrorMessage('Failed to load persist output: ' + result.msg)
+    }
+}
 // Returns false if the connection wasn't available
 async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string) {
     telemetry.traceEvent('command-evaluate')
@@ -882,7 +988,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
     const section = vscode.workspace.getConfiguration('julia')
     const resultType: string = section.get('execution.resultType')
     const codeInREPL: boolean = section.get('execution.codeInREPL')
-
+    const persistentEnabled: boolean = section.get('persistentSession.enabled')
     if (!g_connection) {
         return false
     }
@@ -903,7 +1009,10 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
                 showCodeInREPL: codeInREPL,
                 showResultInREPL: resultType === 'REPL' || resultType === 'both',
                 showErrorInREPL: resultType.indexOf('error') > -1,
-                softscope: true
+                softscope: true,
+                persistentEnabled: persistentEnabled,
+                endLine: range.end.line,
+                endColumn: range.end.character
             }
         )
         const isError = Boolean(result.stackframe)
@@ -970,7 +1079,7 @@ function executeSelectionCopyPaste() {
     executeCodeCopyPaste(text, selection.isEmpty)
 }
 
-export async function executeInREPL(code: string, { filename = 'code', line = 0, column = 0, mod = 'Main', showCodeInREPL = true, showResultInREPL = true, showErrorInREPL = false, softscope = true }): Promise<ReturnResult> {
+export async function executeInREPL(code: string, { filename = 'code', line = 0, column = 0, mod = 'Main', showCodeInREPL = true, showResultInREPL = true, showErrorInREPL = false, softscope = true, persistentEnabled=false, endLine=0,endColumn=0 }): Promise<ReturnResult> {
     await startREPL(true)
     return await g_connection.sendRequest(
         requestTypeReplRunCode,
@@ -983,7 +1092,10 @@ export async function executeInREPL(code: string, { filename = 'code', line = 0,
             showCodeInREPL,
             showResultInREPL,
             showErrorInREPL,
-            softscope
+            softscope,
+            persistentEnabled,
+            endLine,
+            endColumn,
         }
     )
 }
