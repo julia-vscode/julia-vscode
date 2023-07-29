@@ -123,6 +123,12 @@ function install_vscode_shell_integration(prompt)
     end
 end
 
+if VERSION > v"1.9-"
+    active_module = Base.active_module
+else
+    active_module() = Main
+end
+
 const HAS_REPL_TRANSFORM = Ref{Bool}(false)
 function hook_repl(repl)
     if HAS_REPL_TRANSFORM[]
@@ -150,7 +156,7 @@ function hook_repl(repl)
 
     main_mode.on_done = REPL.respond(repl, main_mode; pass_empty = false) do line
         quote
-            $(evalrepl)(Main, $line, $repl, $main_mode)
+            $(evalrepl)($(active_module)(), $line, $repl, $main_mode)
         end
     end
     @debug "legacy REPL hook installed"
@@ -160,7 +166,7 @@ end
 
 function transform_backend(ast, repl, main_mode)
     quote
-        $(evalrepl)(Main, $(QuoteNode(ast)), $repl, $main_mode)
+        $(evalrepl)($(active_module)(), $(QuoteNode(ast)), $repl, $main_mode)
     end
 end
 
