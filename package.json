@@ -995,7 +995,7 @@
                 "julia.showInlayHints": {
                     "type": "boolean",
                     "default": true,
-                    "markdownDescription": "Enable display of inlay hints. These diagnostics are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.inlayHints` MIME type."
+                    "markdownDescription": "Enable display of inlay hints. These hints are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.inlayHints` MIME type."
                 },
                 "julia.focusPlotNavigator": {
                     "type": "boolean",
