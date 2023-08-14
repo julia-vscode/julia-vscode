@@ -599,7 +599,7 @@ function stripMarkdown(code: string) {
     let out = ''
     let isJulia = false
     for (const line of code.split('\n')) {
-        if (/^```julia/.test(line)) {
+        if (/^```({?julia|@example|@setup)/.test(line)) {
             isJulia = true
             out += '\n'
             continue
