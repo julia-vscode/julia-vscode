@@ -1,4 +1,4 @@
-import * as fs from 'async-file'
+import * as fs from 'fs/promises'
 import { homedir } from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
@@ -613,6 +613,45 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
     }
+    else if (kind === 'application/vnd.vegalite.v5+json') {
+        showPlotPane()
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
+        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
+        const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-5', 'vega-lite.min.js')))
+        const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
+        const plotPaneContent = `
+            <html>
+                <head>
+                    <script src="${uriPanZoom}"></script>
+                    <script src="${uriVega}"></script>
+                    <script src="${uriVegaLite}"></script>
+                    <script src="${uriVegaEmbed}"></script>
+                </head>
+                <body>
+                    <div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;"></div>
+                </body>
+                <style media="screen">
+                    .vega-actions a {
+                        margin-right: 10px;
+                        font-family: sans-serif;
+                        font-size: x-small;
+                        font-style: italic;
+                    }
+                    ${plotElementStyle}
+                </style>
+                <script type="text/javascript">
+                    var opt = {
+                        mode: "vega-lite",
+                        actions: false,
+                        renderer: "svg"
+                    }
+                    var spec = ${payload}
+                    vegaEmbed('#plot-element', spec, opt);
+                </script>
+            </html>`
+        g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
+        showPlotPane()
+    }
     else if (kind === 'application/vnd.vega.v3+json') {
         showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
@@ -835,13 +874,28 @@ async function _writePlotFile(fileName: string, data: FileLike) {
 
     let plotsDirFullPath: string = null
     if (rootPath) {
-        plotsDirFullPath = path.join(rootPath, defaultPlotsDir)
+        plotsDirFullPath = path.isAbsolute(defaultPlotsDir) ?
+            defaultPlotsDir :
+            path.join(rootPath, defaultPlotsDir)
     }
 
     try {
-        const isFile = plotsDirFullPath && await fs.exists(plotsDirFullPath)
+        let isFile = true
+        try {
+            await fs.access(plotsDirFullPath)
+        } catch (err) {
+            isFile = false
+        }
         if (!isFile) {
-            plotsDirFullPath = homedir()
+            const action = await vscode.window.showWarningMessage('The default plot path does not exist.', 'Create', 'Change')
+            if (action === 'Create') {
+                await fs.mkdir(plotsDirFullPath, { recursive: true })
+            } else if (action === 'Change') {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.plots.path')
+                return
+            } else {
+                plotsDirFullPath = homedir()
+            }
         }
         const plotFileFullPath = path.join(plotsDirFullPath, fileName)
         vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(plotFileFullPath) }).then(saveURI => {
@@ -852,6 +906,5 @@ async function _writePlotFile(fileName: string, data: FileLike) {
     } catch (e) {
         console.error(e)
         vscode.window.showWarningMessage('Failed to save plot.')
-
     }
 }

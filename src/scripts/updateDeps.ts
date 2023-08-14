@@ -32,6 +32,7 @@ async function main() {
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@2', 'libs/vega-lite-2/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@3', 'libs/vega-lite-3/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@4', 'libs/vega-lite-4/vega-lite.min.js')
+    await our_download('https://cdn.jsdelivr.net/npm/vega-lite@5', 'libs/vega-lite-5/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega@3', 'libs/vega-3/vega.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega@4', 'libs/vega-4/vega.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega@5', 'libs/vega-5/vega.min.js')
@@ -59,18 +60,25 @@ async function main() {
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
+        // 'JuliaSyntax', Need to update JuliaWorkspaces first
+        'JuliaWorkspaces',
+        'Glob',
         'LoweredCodeUtils',
         'OrderedCollections',
         'PackageCompiler',
         'Tokenize',
         'URIParser',
         'CommonMark',
-        // 'Compat', # Compat 4 dropped Julia 1.0 support, so we keep it on an older version
-        // 'Crayons', # Crayons 4.1 dropped Julia 1.0 support, so we keep it on an older version
+        'Compat',
+        'Crayons',
         'DataStructures',
         'JuliaFormatter',
-        'URIs',
-        'Revise'
+        // 'URIs', Not compatible with earlier than Julia 1.6 versions
+        'Revise',
+        'DelimitedFiles',
+        'Preferences',
+        'PrecompileTools',
+        'TestEnv',
     ]) {
         await cp.exec('git fetch')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
@@ -90,7 +98,13 @@ async function main() {
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
-    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8']) {
+    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9']) {
+        try {
+            await cp.exec(`juliaup add ${v}`)
+        }
+        catch (err) {
+        }
+
         const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
         await fs.mkdir(env_path_ls, { recursive: true })
         await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })
@@ -119,13 +133,26 @@ async function main() {
 
     }
 
+    try {
+        await cp.exec(`juliaup add release`)
+    }
+    catch (err) {
+
+    }
+
+    try {
+        await cp.exec(`juliaup add alpha`)
+    }
+    catch (err) {
+    }
+
     // We also add a fallback release env in case a user has a Julia version we don't know about
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/languageserver/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/pkgdev/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback'), { recursive: true })
-    await cp.exec(`julia "+release" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver/fallback') })
-    await cp.exec(`julia "+release" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev/fallback') })
-    await cp.exec(`julia "+release" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback') })
+    await cp.exec(`julia "+alpha" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver/fallback') })
+    await cp.exec(`julia "+alpha" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev/fallback') })
+    await cp.exec(`julia "+alpha" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback') })
 
     // Julia 1.0 and 1.1 write backslash in relative paths in Manifest files, which we don't want
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/languageserver/v1.0'))

@@ -24,7 +24,7 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
-import { notifyTypeTextDocumentPublishTestitems, TestFeature } from './testing/testFeature'
+import { notifyTypeTextDocumentPublishTests, TestFeature } from './testing/testFeature'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
@@ -358,9 +358,9 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     languageClient.onDidChangeState(event => {
         if (event.newState === State.Running) {
-            languageClient.onNotification(notifyTypeTextDocumentPublishTestitems, i=> {
+            languageClient.onNotification(notifyTypeTextDocumentPublishTests, i=> {
                 try {
-                    g_testFeature.publishTestitemsHandler(i)
+                    g_testFeature.publishTestsHandler(i)
                 }
                 catch (err) {
                     handleNewCrashReportFromException(err, 'Extension')

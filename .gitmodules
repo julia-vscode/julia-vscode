@@ -78,7 +78,31 @@
 	url = https://github.com/timholy/Revise.jl
 [submodule "scripts/packages/TestEnv"]
 	path = scripts/packages/TestEnv
-	url = https://github.com/davidanthoff/TestEnv.jl
+	url = https://github.com/JuliaTesting/TestEnv.jl
 [submodule "scripts/packages/TestItemDetection"]
 	path = scripts/packages/TestItemDetection
 	url = https://github.com/julia-vscode/TestItemDetection.jl
+[submodule "scripts/packages/DelimitedFiles"]
+	path = scripts/packages/DelimitedFiles
+	url = https://github.com/JuliaData/DelimitedFiles.jl
+[submodule "scripts/packages-old/Compat"]
+	path = scripts/packages-old/Compat
+	url = https://github.com/JuliaLang/Compat.jl
+[submodule "scripts/packages-old/Crayons"]
+	path = scripts/packages-old/Crayons
+	url = https://github.com/KristofferC/Crayons.jl
+[submodule "scripts/packages/Glob"]
+	path = scripts/packages/Glob
+	url = https://github.com/vtjnash/Glob.jl
+[submodule "scripts/packages/JuliaSyntax"]
+	path = scripts/packages/JuliaSyntax
+	url = https://github.com/JuliaLang/JuliaSyntax.jl
+[submodule "scripts/packages/JuliaWorkspaces"]
+	path = scripts/packages/JuliaWorkspaces
+	url = https://github.com/julia-vscode/JuliaWorkspaces.jl
+[submodule "scripts/packages/PrecompileTools"]
+	path = scripts/packages/PrecompileTools
+	url = https://github.com/JuliaLang/PrecompileTools.jl
+[submodule "scripts/packages/Preferences"]
+	path = scripts/packages/Preferences
+	url = https://github.com/JuliaPackaging/Preferences.jl
