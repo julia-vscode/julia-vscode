@@ -398,7 +398,7 @@ function backtrace_string(bt)
 
         file = string(frame.file)
         full_file = fullpath(something(Base.find_source_file(file), file))
-        cmd = vscode_cmd_uri("language-julia.openFile"; path = full_file, line = frame.line)
+        cmd = vscode_cmd_uri("language-julia.openFile"; path = full_file, line = frame.line, preserveFocus=false)
 
         print(io, counter, ". `")
         Base.StackTraces.show_spec_linfo(io, frame)
