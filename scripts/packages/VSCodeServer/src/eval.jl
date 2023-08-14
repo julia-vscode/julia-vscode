@@ -223,7 +223,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                 else
                     try
                         if !ends_with_semicolon(source_code)
-                            Base.invokelatest(display, InlineDisplay(), res)
+                            with_no_default_display(() -> display(res))
                         end
                     catch err
                         if !(err isa MethodError && err.f === display)
