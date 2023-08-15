@@ -187,3 +187,7 @@ function revise()
         end
     end
 end
+
+function openfile(path::AbstractString, line::Integer; preserve_focus::Bool=false)
+    JSONRPC.send(conn_endpoint[], repl_open_file_notification_type, (; path=String(path), line=Int(line), preserveFocus=preserve_focus))
+end

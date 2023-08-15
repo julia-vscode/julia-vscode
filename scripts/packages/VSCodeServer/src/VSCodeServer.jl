@@ -28,7 +28,7 @@ function __init__()
     if VERSION >= v"1.4" && isdefined(InteractiveUtils, :EDITOR_CALLBACKS)
         pushfirst!(InteractiveUtils.EDITOR_CALLBACKS, function (cmd::Cmd, path::AbstractString, line::Integer)
             cmd == `code` || return false
-            JSONRPC.send(conn_endpoint[], repl_open_file_notification_type, (; path=String(path), line=Int(line)))
+            openfile(path, line)
             return true
         end)
     end

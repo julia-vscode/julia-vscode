@@ -334,7 +334,7 @@ const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
 const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: any, typ: string }>('repl/showprofileresult')
-const notifyTypeOpenFile = new rpc.NotificationType<{ path: string, line: number }>('repl/openFile')
+const notifyTypeOpenFile = new rpc.NotificationType<{ path: string, line: number, preserveFocus: boolean }>('repl/openFile')
 
 interface Progress {
     id: { value: number },
@@ -1219,7 +1219,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
                 data: data.trace,
                 type: data.typ
             }))
-            connection.onNotification(notifyTypeOpenFile, ({ path, line }) => openFile(path, line))
+            connection.onNotification(notifyTypeOpenFile, ({ path, line, preserveFocus }) => openFile(path, line, undefined, preserveFocus))
             connection.onNotification(notifyTypeProgress, updateProgress)
             setContext('julia.isEvaluating', false)
             setContext('julia.hasREPL', true)
