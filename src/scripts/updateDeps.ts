@@ -29,6 +29,8 @@ async function replace_backslash_in_manifest(project_path: string) {
 }
 
 async function main() {
+    await our_download('https://raw.githubusercontent.com/JuliaEditorSupport/atom-language-julia/master/grammars/julia_vscode.json', 'syntaxes/julia_vscode.json')
+
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@2', 'libs/vega-lite-2/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@3', 'libs/vega-lite-3/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@4', 'libs/vega-lite-4/vega-lite.min.js')
@@ -60,7 +62,7 @@ async function main() {
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
-        'JuliaSyntax',
+        // 'JuliaSyntax', Need to update JuliaWorkspaces first
         'JuliaWorkspaces',
         'Glob',
         'LoweredCodeUtils',
@@ -68,16 +70,17 @@ async function main() {
         'PackageCompiler',
         'Tokenize',
         'URIParser',
-        // 'CommonMark', Took on deps on SnoopPrecompile that we don't support
+        'CommonMark',
         'Compat',
         'Crayons',
         'DataStructures',
-        // 'JuliaFormatter', Took on deps on SnoopPrecompile that we don't support
+        'JuliaFormatter',
         // 'URIs', Not compatible with earlier than Julia 1.6 versions
         'Revise',
         'DelimitedFiles',
         'Preferences',
         'PrecompileTools',
+        'TestEnv',
     ]) {
         await cp.exec('git fetch')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })

@@ -197,7 +197,7 @@ export class ProfilerFeature {
         }
     }
 
-    createPanel() {
+    async createPanel() {
         if (this.panel) {
             return
         }
@@ -217,7 +217,11 @@ export class ProfilerFeature {
             }
         )
 
-        this.panel.webview.html = this.getContent()
+        let isProfilerPaneReady
+
+        const loadedPromise = new Promise((resolve) => {
+            isProfilerPaneReady = resolve
+        })
 
         const messageHandler = this.panel.webview.onDidReceiveMessage(
             (message: { type: string; node?: ProfilerFrame; selection?: string }) => {
@@ -232,11 +236,17 @@ export class ProfilerFeature {
                 } else if (message.type === 'selectionChange') {
                     this.selection = message.selection
                     this.setInlineTrace(this.profiles[this.currentProfileIndex].data)
+                } else if (message.type === 'profilerLoaded') {
+                    isProfilerPaneReady?.()
                 } else {
                     console.error('unknown message type received in profiler pane')
                 }
             }
         )
+
+        this.panel.webview.html = this.getContent()
+
+        await loadedPromise
 
         const viewStateListener = this.panel.onDidChangeViewState(
             ({ webviewPanel }) => {
@@ -257,9 +267,9 @@ export class ProfilerFeature {
         })
     }
 
-    show() {
+    async show() {
         this.selection = 'all'
-        this.createPanel()
+        await this.createPanel()
         this.panel.title = this.makeTitle()
 
         if (this.profileCount > 0) {
@@ -386,7 +396,10 @@ export class ProfilerFeature {
                             prof.setData(null)
                         }
                     });
-                })
+                    vscode.postMessage({
+                        type: "profilerLoaded",
+                    });
+                });
             </script>
         </body>
         </html>
