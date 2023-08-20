@@ -28,7 +28,7 @@ function __init__()
     if VERSION >= v"1.4" && isdefined(InteractiveUtils, :EDITOR_CALLBACKS)
         pushfirst!(InteractiveUtils.EDITOR_CALLBACKS, function (cmd::Cmd, path::AbstractString, line::Integer)
             cmd == `code` || return false
-            JSONRPC.send(conn_endpoint[], repl_open_file_notification_type, (; path=String(path), line=Int(line)))
+            openfile(path, line)
             return true
         end)
     end
@@ -132,6 +132,7 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_startdebugger_notification_type] = (conn, params) -> repl_startdebugger_request(conn, params, crashreporting_pipename)
         msg_dispatcher[repl_toggle_plot_pane_notification_type] = toggle_plot_pane
         msg_dispatcher[repl_toggle_diagnostics_notification_type] = toggle_diagnostics
+        msg_dispatcher[repl_toggle_inlay_hints_notification_type] = toggle_inlay_hints
         msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress
         msg_dispatcher[cd_notification_type] = cd_to_uri
         msg_dispatcher[activate_project_notification_type] = activate_uri

@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.47.0",
+    "version": "1.48.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -369,6 +369,10 @@
                 "title": "%julia.command.clearRuntimeDiagnosticsByProvider%"
             },
             {
+                "command": "language-julia.clearInlayHints",
+                "title": "Julia: Clear Inlay Hints"
+            },
+            {
                 "command": "language-julia.switchToInterpreted",
                 "title": "%julia.command.switchToInterpreted%",
                 "icon": "$(remove)"
@@ -664,12 +668,12 @@
                 },
                 {
                     "command": "language-julia.disable-compiled-mode",
-                    "when": "view == debugger-compiled && juliaCompiledMode == true",
+                    "when": "view == debugger-compiled && julia.debuggerCompiledMode == true",
                     "group": "navigation"
                 },
                 {
                     "command": "language-julia.enable-compiled-mode",
-                    "when": "view == debugger-compiled && juliaCompiledMode == false",
+                    "when": "view == debugger-compiled && julia.debuggerCompiledMode == false",
                     "group": "navigation"
                 },
                 {
@@ -988,6 +992,11 @@
                     "default": true,
                     "markdownDescription": "Enable display of runtime diagnostics. These diagnostics are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.diagnostics` MIME type."
                 },
+                "julia.showInlayHints": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Enable display of inlay hints. These hints are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.inlayHints` MIME type."
+                },
                 "julia.focusPlotNavigator": {
                     "type": "boolean",
                     "default": false,
@@ -1239,7 +1248,7 @@
                 },
                 "julia.plots.path": {
                     "type": "string",
-                    "description": "The output directory to save plots to",
+                    "description": "Default directory for saving plots. Can either be relative to the current workspace or absolute.",
                     "scope": "window"
                 },
                 "julia.workspace.showModules": {
@@ -1517,12 +1526,12 @@
         "@types/source-map-support": "^0.5.4",
         "@types/vscode": "1.78.0",
         "@typescript-eslint/parser": "^5.14.0",
+        "@vscode/vsce": "^2.19.0",
         "download": "^8.0.0",
         "eslint": "^8.11.0",
         "mocha": "^9.2.2",
         "ts-loader": "^9.2.8",
         "typescript": "^5",
-        "vsce": "^2.7.0",
         "webpack": "^5.70.0",
         "webpack-cli": "^5"
     }
