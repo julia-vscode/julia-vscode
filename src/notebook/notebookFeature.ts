@@ -86,7 +86,7 @@ export class JuliaNotebookFeature {
                 JupyterNotebookViewType,
                 displayName
             )
-            controller.supportedLanguages = ['julia']
+            controller.supportedLanguages = ['julia', 'raw']
             controller.supportsExecutionOrder = true
             controller.description = 'Julia VS Code extension'
             controller.detail = juliaVersion.getCommand()

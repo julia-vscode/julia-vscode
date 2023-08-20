@@ -344,7 +344,7 @@ const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
 const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: any, typ: string }>('repl/showprofileresult')
-const notifyTypeOpenFile = new rpc.NotificationType<{ path: string, line: number }>('repl/openFile')
+const notifyTypeOpenFile = new rpc.NotificationType<{ path: string, line: number, preserveFocus: boolean }>('repl/openFile')
 
 interface Progress {
     id: { value: number },
@@ -481,11 +481,44 @@ function clearProgress() {
     }
 }
 
+let g_inlayHintsProvider = null
 function display(params: { kind: string, data: any }) {
     if (params.kind === 'application/vnd.julia-vscode.diagnostics') {
         displayDiagnostics(params.data)
+    } else if (params.kind === 'application/vnd.julia-vscode.inlayHints') {
+        clearInlayHints()
+
+        const parsedInlayHints = {}
+        Object.keys(params.data).forEach(key => {
+            parsedInlayHints[vscode.Uri.file(key).fsPath] = params.data[key].map((hint) => {
+                const tmpInlayHint = new vscode.InlayHint(new vscode.Position(hint.position[0], hint.position[1]), hint.label, hint.kind)
+                if (hint.tooltip) {
+                    tmpInlayHint.tooltip = hint.tooltip
+                }
+                if (hint.paddingLeft) {
+                    tmpInlayHint.paddingLeft = hint.paddingLeft
+                }
+                if (hint.paddingRight) {
+                    tmpInlayHint.paddingRight = hint.paddingRight
+                }
+
+                return tmpInlayHint
+            })
+        })
+
+        g_inlayHintsProvider = vscode.languages.registerInlayHintsProvider('julia', {
+            provideInlayHints(document, range, token) {
+                return parsedInlayHints[document.uri.fsPath]
+            }
+        })
     } else {
         plots.displayPlot(params)
+    }
+}
+
+function clearInlayHints() {
+    if (!(g_inlayHintsProvider === null)) {
+        g_inlayHintsProvider.dispose()
     }
 }
 
@@ -576,7 +609,7 @@ function stripMarkdown(code: string) {
     let out = ''
     let isJulia = false
     for (const line of code.split('\n')) {
-        if (/^```julia/.test(line)) {
+        if (/^```({?julia|@example|@setup)/.test(line)) {
             isJulia = true
             out += '\n'
             continue
@@ -687,7 +720,7 @@ let g_cellDelimiters = [
 function isCellBorder(s: string, isStart: boolean, isJmd: boolean) {
     if (isJmd) {
         if (isStart) {
-            return /^```julia/.test(s)
+            return /^```({?julia|@example|@setup)/.test(s)
         } else {
             return /^```(?!\w)/.test(s)
         }
@@ -1221,7 +1254,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
                 data: data.trace,
                 type: data.typ
             }))
-            connection.onNotification(notifyTypeOpenFile, ({ path, line }) => openFile(path, line))
+            connection.onNotification(notifyTypeOpenFile, ({ path, line, preserveFocus }) => openFile(path, line, undefined, preserveFocus))
             connection.onNotification(notifyTypeProgress, updateProgress)
             setContext('julia.isEvaluating', false)
             setContext('julia.hasREPL', true)
@@ -1229,6 +1262,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         onExit(() => {
             results.removeAll()
             clearDiagnostics()
+            clearInlayHints()
             setContext('julia.isEvaluating', false)
             setContext('julia.hasREPL', false)
         }),
@@ -1261,6 +1295,16 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
             } else if (event.affectsConfiguration('julia.showRuntimeDiagnostics')) {
                 try {
                     await g_connection.sendNotification('repl/toggleDiagnostics', { enable: vscode.workspace.getConfiguration('julia').get('showRuntimeDiagnostics') })
+                } catch (err) {
+                    console.warn(err)
+                }
+            } else if (event.affectsConfiguration('julia.showInlayHints')) {
+                try {
+                    await g_connection.sendNotification('repl/toggleInlayHints', { enable: vscode.workspace.getConfiguration('julia').get('showInlayHints') })
+
+                    if (!vscode.workspace.getConfiguration('julia').get('showInlayHints')) {
+                        clearInlayHints()
+                    }
                 } catch (err) {
                     console.warn(err)
                 }
@@ -1307,6 +1351,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.activateFromDir', activateFromDir),
         registerCommand('language-julia.clearRuntimeDiagnostics', clearDiagnostics),
         registerCommand('language-julia.clearRuntimeDiagnosticsByProvider', clearDiagnosticsByProvider),
+        registerCommand('language-julia.clearInlayHints', clearInlayHints),
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
