@@ -882,7 +882,7 @@
                 },
                 "julia.lint.missingrefs": {
                     "type": "string",
-                    "default": "none",
+                    "default": "symbols",
                     "enum": [
                         "none",
                         "symbols",
