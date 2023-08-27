@@ -59,6 +59,8 @@ interface TestserverRunTestitemRequestParams {
 
 interface TestMessage {
     message: string
+    expectedOutput: string | null,
+    actualOutput: string | null,
     location: lsp.Location
 }
 interface TestserverRunTestitemRequestParamsReturn {
@@ -235,6 +237,10 @@ export class TestProcess {
                 const messages = result.message.map(i => {
                     const message = new vscode.TestMessage(i.message)
                     message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
+                    if (i.actualOutput !== null && i.expectedOutput !== null) {
+                        message.actualOutput = i.actualOutput
+                        message.expectedOutput = i.expectedOutput
+                    }
                     return message
                 })
                 testRun.failed(testItem, messages, result.duration)
