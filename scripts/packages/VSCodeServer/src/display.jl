@@ -34,10 +34,10 @@ function fix_displays(; is_repl = false)
     pushdisplay(InlineDisplay(is_repl))
 end
 
-function with_no_default_display(f)
+function with_no_default_display(f; allow_inline = false)
     stack = copy(Base.Multimedia.displays)
     filter!(Base.Multimedia.displays) do d
-        !(d isa REPL.REPLDisplay || d isa TextDisplay || d isa InlineDisplay)
+        !(d isa REPL.REPLDisplay || d isa TextDisplay || (!allow_inline && d isa InlineDisplay))
     end
     try
         return f()
