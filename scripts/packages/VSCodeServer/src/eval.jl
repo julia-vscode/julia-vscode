@@ -364,7 +364,7 @@ function Base.display_error(io::IO, err::EvalError)
     try
         Base.invokelatest(display_repl_error, io, unwrap_loaderror(err.err), err.bt)
     catch err
-        @error "Error trying to display an error."
+        @error "Error trying to display an error." ex = (err, catch_backtrace())
     end
 end
 
@@ -372,7 +372,7 @@ function Base.display_error(io::IO, err::EvalErrorStack)
     try
         Base.invokelatest(display_repl_error, io, err)
     catch err
-        @error "Error trying to display an error."
+        @error "Error trying to display an error." ex = (err, catch_backtrace())
     end
 end
 
@@ -386,7 +386,14 @@ function remove_kw_wrappers!(st::StackTraces.StackTrace)
 end
 
 function backtrace_string(bt)
-    io = IOBuffer()
+    limitflag = Ref(false)
+
+    iob = IOBuffer()
+    io = IOContext(
+        iob,
+        :stacktrace_types_limited => limitflag,
+        :displaysize => (120, 120)
+    )
 
     println(io, "Stacktrace:\n")
     i = 1
@@ -411,7 +418,7 @@ function backtrace_string(bt)
 
         print(io, counter, ". `")
         Base.StackTraces.show_spec_linfo(io, frame)
-        print(io, "` at [", file, "](", cmd, " \"", file, "\")")
+        print(io, "` at [", basename(file), "](", cmd, " \"", file, "\")")
         if repeated > 1
             print(io, " (repeats $repeated times)")
         end
@@ -420,5 +427,9 @@ function backtrace_string(bt)
         counter += 1
     end
 
-    return String(take!(io))
+    if limitflag[]
+        print(io, "Some type information was truncated. Use `show(err)` to see complete types.")
+    end
+
+    return String(take!(iob))
 end
