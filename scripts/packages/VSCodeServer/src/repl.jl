@@ -197,6 +197,7 @@ function evalrepl(m, line, repl, main_mode)
             display_repl_error(stderr, r.err, r.bt)
             nothing
         elseif r isa EvalErrorStack
+            set_error_global(r)
             display_repl_error(stderr, r)
             nothing
         else

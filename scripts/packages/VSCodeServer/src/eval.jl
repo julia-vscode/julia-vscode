@@ -98,6 +98,29 @@ end
 
 CAN_SET_ANS = Ref{Bool}(true)
 CAN_SET_ERR = Ref{Bool}(true)
+
+function set_error_global(errs)
+    if CAN_SET_ERR[]
+        try
+            errs isa EvalErrorStack || error()
+            istrivial = @static if isdefined(Base, :istrivialerror)
+                Base.istrivialerror(errs.stack)
+            else
+                true
+            end
+            @static if VERSION > v"1.10-"
+                istrivial || setglobal!(Base.MainInclude, :err, errs.stack)
+            elseif @isdefined setglobal!
+                istrivial || setglobal!(Main, :err, errs.stack)
+            else
+                istrivial || ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :err, errs.stack)
+            end
+        catch
+            CAN_SET_ERR[] = false
+        end
+    end
+end
+
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
     run_with_backend() do
         fix_displays()
@@ -182,23 +205,9 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     else
                         EvalError(err, catch_backtrace())
                     end
-                    if CAN_SET_ERR[]
-                        try
-                            errs isa EvalErrorStack || error()
-                            istrivial = @static if isdefined(Base, :istrivialerror)
-                                Base.istrivialerror(errs.stack)
-                            else
-                                true
-                            end
-                            @static if @isdefined setglobal!
-                                istrivial || setglobal!(Main, :err, errs.stack)
-                            else
-                                istrivial || ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :err, errs.stack)
-                            end
-                        catch
-                            CAN_SET_ERR[] = false
-                        end
-                    end
+
+                    set_error_global(errs)
+
                     errs
                 finally
                     try
@@ -208,7 +217,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     end
                 end
 
-                if show_error && res isa EvalError || res isa EvalErrorStack
+                if show_error && (res isa EvalError || res isa EvalErrorStack)
                     Base.display_error(stderr, res)
                 elseif show_result
                     if res isa EvalError || res isa EvalErrorStack
@@ -222,8 +231,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     end
                 else
                     try
-                        if !ends_with_semicolon(source_code)
-                            with_no_default_display(() -> display(res))
+                        if !ends_with_semicolon(source_code) && !(res isa EvalError || res isa EvalErrorStack)
+                            with_no_default_display(() -> display(res); allow_inline = true)
                         end
                     catch err
                         if !(err isa MethodError && err.f === display)
