@@ -5,12 +5,58 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.52.0] - 2023-09-18
+### Added
+* Timing breakdowns for language server startup ([#1243](https://github.com/julia-vscode/LanguageServer.jl/pull/1243))
+
+### Changed
+* Significant improvements to symbol cache downloads ([#263](https://github.com/julia-vscode/SymbolServer.jl/pull/263))
+* Added debug timer outputs for cache file downloads ([#274](https://github.com/julia-vscode/SymbolServer.jl/pull/274))
+* Removed precompile output for LanguageServer.jl ([#1222](https://github.com/julia-vscode/LanguageServer.jl/pull/1222))
+* Files larger than 2MB are now disregarded during parsing and linting, which can drastically improve performance ([#333](https://github.com/julia-vscode/StaticLint.jl/pull/333))
+
+### Fixed
+* Improved symbol cache generation to account for method overloads to functions defined in other packages ([#272](https://github.com/julia-vscode/SymbolServer.jl/pull/272))
+* Potential fix for a symbol cache corruption issue ([#266](https://github.com/julia-vscode/SymbolServer.jl/pull/266))
+* Function tooltips now list all methods applicable in the current context ([#1241](https://github.com/julia-vscode/LanguageServer.jl/pull/1241))
+* Reference detection now follows Julia's scoping rules more closely ([#1104](https://github.com/julia-vscode/LanguageServer.jl/pull/1104))
+* Type inference now correctly handles destructuring assignment ([#371](https://github.com/julia-vscode/StaticLint.jl/pull/371))
+* The check for unused function arguments now correctly handles `@nospecialized` keyword arguments ([#372](https://github.com/julia-vscode/StaticLint.jl/pull/372))
+* Method detection during symbol cache generation now correctly works on Julia 1.10 ([#273](https://github.com/julia-vscode/SymbolServer.jl/pull/273))
+
+## [1.51.0] - 2023-08-29
+### Changed
+* Use the built-in diff viewer for failed `@test`s ([#3378](https://github.com/julia-vscode/julia-vscode/pull/3378))
+
+### Fixed
+* Various fixes for inline eval display logic ([#3388](https://github.com/julia-vscode/julia-vscode/pull/3388))
+
+## [1.49.0] - 2023-08-25
+### Added
+* The REPL now also uses the `err` global variable to contain the most recent exception ([#3112](https://github.com/julia-vscode/julia-vscode/pull/3112)).
+* Added support for the custom `application/vnd.julia-vscode.inlayHints` MIME type to display custom inlay hints (e.g. types inline with source code) in the editor ([#3328](https://github.com/julia-vscode/julia-vscode/pull/3328))
+* Documenter code blocks can now be evaluated ([#3007](https://github.com/julia-vscode/julia-vscode/pull/3007))
+* Raw notebook cells are now supported ([#3206](https://github.com/julia-vscode/julia-vscode/pull/3206))
+
+### Changed
+* The `julia.plots.path` setting now supports absolute and non-existing paths ([#3323](https://github.com/julia-vscode/julia-vscode/pull/3323))
+
+### Fixed
+* Use full display stack for inline evaluation ([#3134](https://github.com/julia-vscode/julia-vscode/pull/3134))
+* REPL evaluation now supports the REPL's module switching ([#3367](https://github.com/julia-vscode/julia-vscode/pull/3367/))
+* The profiler pane is now correctly initiatlized on newer VS Code versions ([#3354](https://github.com/julia-vscode/julia-vscode/pull/3354))
+* The debugger pane now displays the correct icons for compiled and interpreted mode ([#3277](https://github.com/julia-vscode/julia-vscode/pull/3277))
+* More robust formatting range detection ([#1228](https://github.com/julia-vscode/LanguageServer.jl/pull/1228))
+
+## [1.6.30] - 2022-08-08
+### Fixed
+* Fix shell integration when using inline evaluation ([#2992](https://github.com/julia-vscode/julia-vscode/pull/2992/))
+
+## [1.6.29] - 2022-08-05
 ### Added
 * Inline results now support markdown-`show` methods ([#2933](https://github.com/julia-vscode/julia-vscode/pull/2933))
 * The Julia REPL works with VS Code's [shell integration](https://code.visualstudio.com/docs/editor/integrated-terminal#_shell-integration) feature ([#2941](https://github.com/julia-vscode/julia-vscode/pull/2941))
 * It's now possible to add a special `ALL_MODULES_EXCEPT_MAIN` token to the list of compiled modules when debugging ([#61](https://github.com/julia-vscode/DebugAdapter.jl/pull/61))
-* The REPL now also uses the `err` global variable to contain the most recent exception.
-* Added support for the custom `application/vnd.julia-vscode.inlayHints` MIME type to display custom inlay hints (e.g. types inline with source code) in the editor ([#3328](https://github.com/julia-vscode/julia-vscode/pull/3328))
 
 ### Changed
 * The language server now uses incremental sync ([#1105](https://github.com/julia-vscode/LanguageServer.jl/pull/1105))
