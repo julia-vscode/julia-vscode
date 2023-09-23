@@ -509,7 +509,7 @@
           ]
         },
         {
-          "begin": "(py)(\"\"\")",
+          "begin": "(py|@pyeval |@pyexec )(\"\"\")",
           "beginCaptures": {
             "1": {
               "name": "support.function.macro.julia"
@@ -519,6 +519,33 @@
             }
           },
           "end": "([\\s\\w]*)(\"\"\")",
+          "endCaptures": {
+            "2": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
+          "name": "embed.python.julia",
+          "contentName": "meta.embedded.inline.python",
+          "patterns": [
+            {
+              "include": "source.python"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(py|@pyeval |@pyexec )(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "([\\s\\w]*)(\")",
           "endCaptures": {
             "2": {
               "name": "punctuation.definition.string.end.julia"
