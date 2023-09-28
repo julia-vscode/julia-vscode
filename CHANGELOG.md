@@ -5,6 +5,19 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.54.0] - 2023-09-28
+### Added
+* Named `@testitem`s and `@testset`s now show up in the outline ([#1240](https://github.com/julia-vscode/LanguageServer.jl/pull/1240), [#1245](https://github.com/julia-vscode/LanguageServer.jl/pull/1245))
+
+### Changed
+* The linter now understands `Revise.includet` ([#373](https://github.com/julia-vscode/StaticLint.jl/pull/373))
+* Print diagnostics when parsing a file fails ([#377](https://github.com/julia-vscode/StaticLint.jl/pull/377))
+* Improved displayed types for bindings in the outline view ([#1245](https://github.com/julia-vscode/LanguageServer.jl/pull/1245))
+
+### Fixed
+* Fixed typo in destructuring assignment inference code ([#376](https://github.com/julia-vscode/StaticLint.jl/pull/376))
+* "Go to definition" now properly works for macros ([#374](https://github.com/julia-vscode/StaticLint.jl/pull/374))
+
 ## [1.52.0] - 2023-09-18
 ### Added
 * Timing breakdowns for language server startup ([#1243](https://github.com/julia-vscode/LanguageServer.jl/pull/1243))
