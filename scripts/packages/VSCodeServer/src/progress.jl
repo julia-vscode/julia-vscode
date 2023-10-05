@@ -1,7 +1,7 @@
 struct VSCodeLogger <: Logging.AbstractLogger
-    parent::Logging.AbstractLogger
+    parent::Union{Nothing, Logging.AbstractLogger}
 end
-VSCodeLogger() = VSCodeLogger(Logging.current_logger())
+VSCodeLogger() = VSCodeLogger(nothing)
 
 const logger_lock = ReentrantLock()
 function Logging.handle_message(j::VSCodeLogger, level, message, _module,
@@ -20,7 +20,7 @@ function Logging.handle_message(j::VSCodeLogger, level, message, _module,
         return nothing
     end
 
-    previous_logger = j.parent
+    previous_logger = something(j.parent, Logging.global_logger())
     # Pass through non-progress log messages to the global logger iff the global logger would handle it:
     if (Base.invokelatest(Logging.min_enabled_level, previous_logger) <= Logging.LogLevel(level) ||
         Base.CoreLogging.env_override_minlevel(group, _module)) &&
@@ -36,7 +36,7 @@ Logging.shouldlog(::VSCodeLogger, level, _module, group, id) = true
 Logging.catch_exceptions(::VSCodeLogger) = true
 
 function Logging.min_enabled_level(j::VSCodeLogger)
-    min(Base.invokelatest(Logging.min_enabled_level, j.parent), Logging.LogLevel(-1))
+    min(Base.invokelatest(Logging.min_enabled_level, something(j.parent, Logging.global_logger())), Logging.LogLevel(-1))
 end
 
 const progresslogging_pkgid = Base.PkgId(
