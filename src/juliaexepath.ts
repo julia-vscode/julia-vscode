@@ -43,7 +43,10 @@ export class JuliaExecutable {
                     '--history-file=no',
                     '-e',
                     'println(Sys.BINDIR)'
-                ]
+                ],
+                {
+                    shell: process.platform !== 'win32',
+                }
             )
 
             this._baseRootFolderPath = path.normalize(path.join(result.stdout.toString().trim(), '..', 'share', 'julia', 'base'))
@@ -99,7 +102,7 @@ export class JuliaExecutablesFeature {
                     parsedArgs = argv.slice(1)
                 }
             }
-            const { stdout, } = await execFile(parsedPath, [...parsedArgs, '--version'])
+            const { stdout, } = await execFile(parsedPath, [...parsedArgs, '--version'], {shell: process.platform !== 'win32',})
 
             const versionStringFromJulia = stdout.toString().trim()
 
@@ -213,7 +216,7 @@ export class JuliaExecutablesFeature {
     async tryJuliaup() {
         this.usingJuliaup = false
         try {
-            const { stdout, } = await execFile('juliaup', ['api', 'getconfig1'])
+            const { stdout, } =  await execFile('juliaup', ['api', 'getconfig1'], {shell: process.platform !== 'win32',})
 
             const apiResult = stdout.toString().trim()
 
