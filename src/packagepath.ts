@@ -21,7 +21,12 @@ export async function getPkgPath() {
                 '--history-file=no',
                 '-e',
                 'using Pkg; println(Pkg.depots()[1])'
-            ]
+            ],
+            {
+                env: {
+                    JULIA_VSCODE_INTERNAL: '1',
+                }
+            }
         )
         juliaPackagePath = join(res.stdout.toString().trim(), 'dev')
     }
@@ -38,7 +43,12 @@ export async function getPkgDepotPath() {
                 '--history-file=no',
                 '-e',
                 'using Pkg; println.(Pkg.depots())'
-            ]
+            ],
+            {
+                env: {
+                    JULIA_VSCODE_INTERNAL: '1',
+                }
+            }
         )
         juliaDepotPath = res.stdout.toString().trim().split('\n')
     }
