@@ -181,7 +181,9 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     val = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
                     if CAN_SET_ANS[]
                         try
-                            @static if @isdefined setglobal!
+                            @static if VERSION > v"1.10-"
+                                setglobal!(Base.MainInclude, :ans, val)
+                            elseif @isdefined setglobal!
                                 setglobal!(Main, :ans, val)
                             else
                                 ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :ans, val)
