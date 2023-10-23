@@ -180,6 +180,10 @@ interface BreakpointLocationsResponseArguments {
     breakpoints: DebugProtocol.BreakpointLocation[]
 }
 
+interface CompletionsResponseArguments {
+    targets: DebugProtocol.CompletionItem[];
+}
+
 export const requestTypeDisconnect = new RequestType<DebugProtocol.DisconnectArguments, DisconnectResponseArguments, void>('disconnect')
 export const requestTypeSetBreakpoints = new RequestType<DebugProtocol.SetBreakpointsArguments, SetBreakpointsResponseArguments, void>('setBreakpoints')
 export const requestTypeSetExceptionBreakpoints = new RequestType<DebugProtocol.SetExceptionBreakpointsArguments, SetExceptionBreakpointsResponseArguments, void>('setExceptionBreakpoints')
@@ -198,6 +202,7 @@ export const requestTypeTerminate = new RequestType<DebugProtocol.TerminateArgum
 export const requestTypeExceptionInfo = new RequestType<DebugProtocol.ExceptionInfoArguments, ExceptionInfoResponseArguments, void>('exceptionInfo')
 export const requestTypeRestartFrame = new RequestType<DebugProtocol.RestartFrameArguments, RestartFrameResponseArguments, void>('restartFrame')
 export const requestTypeSetVariable = new RequestType<DebugProtocol.SetVariableArguments, SetVariableResponseArguments, void>('setVariable')
+export const requestTypeCompletions = new RequestType<DebugProtocol.CompletionsArguments, CompletionsResponseArguments, void>('completions')
 export const requestTypeThreads = new RequestType0<ThreadsResponseArguments, void>('threads')
 export const requestTypeBreakpointLocations = new RequestType<DebugProtocol.BreakpointLocationsArguments, BreakpointLocationsResponseArguments, void>('breakpointLocations')
 export const notifyTypeRun = new NotificationType<{ program: string }>('run')

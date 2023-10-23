@@ -10,7 +10,7 @@ import { replStartDebugger } from '../interactive/repl'
 import { JuliaExecutable } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
-import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, notifyTypeSetCompiledItems, notifyTypeSetCompiledMode, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepInTargets, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables } from './debugProtocol'
+import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, notifyTypeSetCompiledItems, notifyTypeSetCompiledMode, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepInTargets, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables, requestTypeCompletions } from './debugProtocol'
 
 /**
  * This interface describes the Julia specific launch attributes
@@ -88,7 +88,7 @@ export class JuliaDebugSession extends LoggingDebugSession {
         response.body.supportsDataBreakpoints = false
 
         // make VS Code to support completion in REPL
-        response.body.supportsCompletionsRequest = false
+        response.body.supportsCompletionsRequest = true
         // response.body.completionTriggerCharacters = [".", "["];
 
         // make VS Code to send cancelRequests
@@ -386,6 +386,11 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
     protected async threadsRequest(response: DebugProtocol.ThreadsResponse) {
         response.body = await this._connection.sendRequest(requestTypeThreads)
+        this.sendResponse(response)
+    }
+
+    protected async completionsRequest(response: DebugProtocol.CompletionsResponse, args: DebugProtocol.CompletionsArguments) {
+        response.body = await this._connection.sendRequest(requestTypeCompletions, args)
         this.sendResponse(response)
     }
 
