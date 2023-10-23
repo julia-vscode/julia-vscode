@@ -5,6 +5,20 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.55.0] - 2023-10-23
+### Changed
+* `JULIA_VSCODE_INTERNAL` is now set for all internal Julia processes ([#3433](https://github.com/julia-vscode/julia-vscode/pull/3433))
+* `VSCodeLogger` can now optionally take a parent logger ([#3428](https://github.com/julia-vscode/julia-vscode/pull/3428))
+
+### Fixed
+* `ans` is now set correctly in Julia 1.10 and newer ([#3440](https://github.com/julia-vscode/julia-vscode/pull/3440))
+* More correct auto completion logic for mismatched case ([#1177](https://github.com/julia-vscode/LanguageServer.jl/pull/1177))
+* "Expand function" action no longer removes whitespace and comments ([#1196](https://github.com/julia-vscode/LanguageServer.jl/pull/1196))
+* Diagnostics are now more reliably published for documents open when the editor starts ([#1254](https://github.com/julia-vscode/LanguageServer.jl/pull/1254))
+* TOML files are now longer parsed or linted with the Julia linter ([#1251](https://github.com/julia-vscode/LanguageServer.jl/pull/1251))
+*
+* Fixed an issue with doc search ([#1250](https://github.com/julia-vscode/LanguageServer.jl/pull/1250))
+
 ## [1.54.0] - 2023-09-28
 ### Added
 * Named `@testitem`s and `@testset`s now show up in the outline ([#1240](https://github.com/julia-vscode/LanguageServer.jl/pull/1240), [#1245](https://github.com/julia-vscode/LanguageServer.jl/pull/1245))
