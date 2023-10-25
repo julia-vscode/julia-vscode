@@ -46,6 +46,7 @@ export class JuliaExecutable {
                 ],
                 {
                     env: {
+                        ...process.env,
                         JULIA_VSCODE_INTERNAL: '1',
                     }
                 }
@@ -109,6 +110,7 @@ export class JuliaExecutablesFeature {
                 [...parsedArgs, '--version'],
                 {
                     env: {
+                        ...process.env,
                         JULIA_VSCODE_INTERNAL: '1',
                     }
                 }
