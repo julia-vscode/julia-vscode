@@ -85,6 +85,7 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
             ],
             {
                 env: {
+                    ...process.env,
                     JULIA_VSCODE_INTERNAL: '1',
                 }
             }
@@ -208,6 +209,7 @@ async function getDefaultEnvPath() {
             ],
             {
                 env: {
+                    ...process.env,
                     JULIA_VSCODE_INTERNAL: '1',
                 }
             })

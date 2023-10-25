@@ -24,6 +24,7 @@ export async function getPkgPath() {
             ],
             {
                 env: {
+                    ...process.env,
                     JULIA_VSCODE_INTERNAL: '1',
                 }
             }
@@ -46,6 +47,7 @@ export async function getPkgDepotPath() {
             ],
             {
                 env: {
+                    ...process.env,
                     JULIA_VSCODE_INTERNAL: '1',
                 }
             }
