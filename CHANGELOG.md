@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* Toggling progress display now works correctly ([#3450](https://github.com/julia-vscode/julia-vscode/pull/3450))
+
 ## [1.56.0] - 2023-10-23
 ### Fixed
 * Julia exe path is once again properly determined ([#3447](https://github.com/julia-vscode/julia-vscode/pull/3447))
