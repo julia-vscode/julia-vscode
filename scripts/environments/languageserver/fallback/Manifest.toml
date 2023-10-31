@@ -30,7 +30,7 @@ version = "0.8.12"
 deps = ["UUIDs"]
 path = "../../../packages/Compat"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.9.0"
+version = "4.10.0"
 
     [deps.Compat.extensions]
     CompatLinearAlgebraExt = "LinearAlgebra"
@@ -69,7 +69,7 @@ version = "1.6.0"
 deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
 path = "../../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.20"
+version = "0.9.21"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -99,7 +99,7 @@ version = "1.3.7-DEV"
 deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "Pkg", "PrecompileTools", "Tokenize"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "1.0.35"
+version = "1.0.42"
 
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
@@ -183,7 +183,7 @@ version = "1.2.0"
 deps = ["TOML"]
 path = "../../../packages/Preferences"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.4.0"
+version = "1.4.1"
 
 [[deps.Printf]]
 deps = ["Unicode"]
