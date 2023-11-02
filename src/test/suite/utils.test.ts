@@ -8,6 +8,7 @@ suite('Test JULIA_NUM_THREADS config', () => {
     test('null config and defined environment var', () => {
         assert.equal(utils.inferJuliaNumThreads(), '')
     })
+
     test('null config and defined environment var', () => {
         assert.equal(utils.inferJuliaNumThreads(), '')
 
