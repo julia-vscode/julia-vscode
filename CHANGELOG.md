@@ -5,6 +5,10 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.57.0] - 2023-11-10
+### Added
+* Support for Julia 1.10 and 1.11
+
 ## [1.56.0] - 2023-10-23
 ### Fixed
 * Julia exe path is once again properly determined ([#3447](https://github.com/julia-vscode/julia-vscode/pull/3447))
@@ -20,7 +24,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * "Expand function" action no longer removes whitespace and comments ([#1196](https://github.com/julia-vscode/LanguageServer.jl/pull/1196))
 * Diagnostics are now more reliably published for documents open when the editor starts ([#1254](https://github.com/julia-vscode/LanguageServer.jl/pull/1254))
 * TOML files are now longer parsed or linted with the Julia linter ([#1251](https://github.com/julia-vscode/LanguageServer.jl/pull/1251))
-*
 * Fixed an issue with doc search ([#1250](https://github.com/julia-vscode/LanguageServer.jl/pull/1250))
 
 ## [1.54.0] - 2023-09-28
