@@ -6,7 +6,7 @@
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.78.0"
+        "vscode": "^1.82.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -1512,7 +1512,7 @@
         "source-map-support": "^0.5.21",
         "string-argv": "^0.3.1",
         "uuidv4": "^6.2.12",
-        "vscode-jsonrpc": "8.1.0",
+        "vscode-jsonrpc": "^8.2.0",
         "vscode-languageclient": "^9.0.0",
         "which": "^2.0.2"
     },
@@ -1523,7 +1523,7 @@
         "@types/node": "^18",
         "@types/semver": "^7.3.9",
         "@types/source-map-support": "^0.5.4",
-        "@types/vscode": "1.78.0",
+        "@types/vscode": "1.82.0",
         "@typescript-eslint/parser": "^5.14.0",
         "@vscode/test-cli": "^0.0.4",
         "@vscode/test-electron": "^2.3.6",
