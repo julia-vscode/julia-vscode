@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.58.0] - 2023-11-13
 ### Fixed
 * Toggling progress display now works correctly ([#3450](https://github.com/julia-vscode/julia-vscode/pull/3450))
 * `|>` is now interpreted by default so that breakpoints in piped functions work ([#3459](https://github.com/julia-vscode/julia-vscode/pull/3459))
