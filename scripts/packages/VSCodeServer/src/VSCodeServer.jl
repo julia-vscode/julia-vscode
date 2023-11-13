@@ -140,6 +140,8 @@ function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractStr
         msg_dispatcher[repl_gettabledata_request_type] = get_table_data
         msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
 
+        send_queued_notifications!()
+
         @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
             msg = JSONRPC.get_next_message(conn_endpoint[])
 
