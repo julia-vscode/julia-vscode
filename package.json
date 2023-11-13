@@ -1181,6 +1181,7 @@
                     "default": [
                         "Base.",
                         "-Base.!",
+                        "-Base.|>",
                         "-Base.all",
                         "-Base.all!",
                         "-Base.any",
