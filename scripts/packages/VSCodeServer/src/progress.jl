@@ -11,6 +11,9 @@ function Logging.handle_message(j::VSCodeLogger, level, message, _module,
         try
             JSONRPC.send_notification(conn_endpoint[], "repl/updateProgress", progress)
             JSONRPC.flush(conn_endpoint[])
+        catch err
+            @debug "Failed to send 'repl/updateProgress' message" exception=(err, catch_backtrace())
+            return nothing
         finally
             unlock(logger_lock)
         end
