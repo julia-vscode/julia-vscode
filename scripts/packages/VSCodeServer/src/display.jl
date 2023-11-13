@@ -47,9 +47,15 @@ function with_no_default_display(f; allow_inline = false)
     end
 end
 
+
 function sendDisplayMsg(kind, data)
-    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data))
-    JSONRPC.flush(conn_endpoint[])
+    msg = Dict{String,Any}("kind" => kind, "data" => data)
+    try
+        JSONRPC.send_notification(conn_endpoint[], "display", msg)
+        JSONRPC.flush(conn_endpoint[])
+    catch
+        maybe_queue_notification!("display", msg) || rethrow()
+    end
 end
 
 function Base.display(d::InlineDisplay, m::MIME, x)

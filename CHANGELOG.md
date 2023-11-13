@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Toggling progress display now works correctly ([#3450](https://github.com/julia-vscode/julia-vscode/pull/3450))
 * `|>` is now interpreted by default so that breakpoints in piped functions work ([#3459](https://github.com/julia-vscode/julia-vscode/pull/3459))
 
+### Changed
+* Plotting within a disconnected Julia session now does not throw an error and shows the 100 newest plots in the UI ([#3460](https://github.com/julia-vscode/julia-vscode/pull/3460))
+
 ## [1.57.0] - 2023-11-10
 ### Added
 * Support for Julia 1.10 and 1.11
