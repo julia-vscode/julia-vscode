@@ -5,6 +5,7 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.59.0] - 2023-11-13
 ### Fixed
 * Progress logging now works in detached persistent session ([#3461](https://github.com/julia-vscode/julia-vscode/pull/3461))
 
