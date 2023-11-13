@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Fixed
 * Toggling progress display now works correctly ([#3450](https://github.com/julia-vscode/julia-vscode/pull/3450))
+* `|>` is now interpreted by default so that breakpoints in piped functions work ([#3459](https://github.com/julia-vscode/julia-vscode/pull/3459))
 
 ## [1.57.0] - 2023-11-10
 ### Added
