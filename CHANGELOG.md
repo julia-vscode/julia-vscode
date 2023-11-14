@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ## [1.60.0] - 2023-11-14
 ### Fixed
-* Relaxed VS Code version requirement to 1.78 ([#3463](https://github.com/julia-vscode/julia-vscode/pull/3462))
+* Relaxed VS Code version requirement to 1.78
 
 ## [1.59.0] - 2023-11-13
 ### Fixed
