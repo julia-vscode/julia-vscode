@@ -684,7 +684,7 @@ async function getBlockRange(params: VersionedTextDocumentPositionParams): Promi
             vscode.window.showErrorMessage(err.message)
         } else {
             console.error(err)
-            vscode.window.showErrorMessage('Error while communicating with the LS. Check Outputs > Julia Language Server for additional information.')
+            vscode.window.showErrorMessage('Error while communicating with the LS. Check Output > Julia Language Server for additional information.')
         }
         return zeroReturn
     }
