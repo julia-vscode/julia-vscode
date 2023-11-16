@@ -1382,7 +1382,7 @@
                         "stopOnEntry": false,
                         "cwd": "${workspaceFolder}",
                         "juliaEnv": "${command:activeJuliaEnvironment}",
-                        "sysImage": null
+                        "sysImage": ""
                     }
                 ],
                 "configurationSnippets": [
