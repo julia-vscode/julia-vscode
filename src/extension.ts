@@ -259,6 +259,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
             HOME: process.env.HOME ? process.env.HOME : os.homedir(),
             JULIA_LANGUAGESERVER: '1',
+            JULIA_VSCODE_LANGUAGESERVER: '1',
+            JULIA_VSCODE_INTERNAL: '1',
             PATH: process.env.PATH
         }
     }

@@ -1,7 +1,6 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
-import { NotificationType, RequestType } from 'vscode-jsonrpc'
 import * as lsp from 'vscode-languageserver-protocol'
 import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
 import * as net from 'net'
@@ -59,6 +58,8 @@ interface TestserverRunTestitemRequestParams {
 
 interface TestMessage {
     message: string
+    expectedOutput: string | null,
+    actualOutput: string | null,
     location: lsp.Location
 }
 interface TestserverRunTestitemRequestParamsReturn {
@@ -67,14 +68,14 @@ interface TestserverRunTestitemRequestParamsReturn {
     duration: number | null
 }
 
-export const notifyTypeTextDocumentPublishTests = new NotificationType<PublishTestsParams>('julia/publishTests')
-const requestTypeExecuteTestitem = new RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
-const requestTypeRevise = new RequestType<void, string, void>('testserver/revise')
+export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams,void>('julia/publishTests')
+const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
+const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
 
 export class TestProcess {
 
     private process: ChildProcessWithoutNullStreams
-    private connection: lsp.MessageConnection
+    private connection: rpc.MessageConnection
     public testRun: vscode.TestRun | null = null
     public launchError: Error | null = null
 
@@ -235,6 +236,10 @@ export class TestProcess {
                 const messages = result.message.map(i => {
                     const message = new vscode.TestMessage(i.message)
                     message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
+                    if (i.actualOutput !== null && i.expectedOutput !== null) {
+                        message.actualOutput = i.actualOutput
+                        message.expectedOutput = i.expectedOutput
+                    }
                     return message
                 })
                 testRun.failed(testItem, messages, result.duration)

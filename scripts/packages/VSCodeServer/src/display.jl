@@ -34,10 +34,10 @@ function fix_displays(; is_repl = false)
     pushdisplay(InlineDisplay(is_repl))
 end
 
-function with_no_default_display(f)
+function with_no_default_display(f; allow_inline = false)
     stack = copy(Base.Multimedia.displays)
     filter!(Base.Multimedia.displays) do d
-        !(d isa REPL.REPLDisplay || d isa TextDisplay || d isa InlineDisplay)
+        !(d isa REPL.REPLDisplay || d isa TextDisplay || (!allow_inline && d isa InlineDisplay))
     end
     try
         return f()
@@ -47,9 +47,15 @@ function with_no_default_display(f)
     end
 end
 
+
 function sendDisplayMsg(kind, data)
-    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data))
-    JSONRPC.flush(conn_endpoint[])
+    msg = Dict{String,Any}("kind" => kind, "data" => data)
+    try
+        JSONRPC.send_notification(conn_endpoint[], "display", msg)
+        JSONRPC.flush(conn_endpoint[])
+    catch
+        maybe_queue_notification!("display", msg) || rethrow()
+    end
 end
 
 function Base.display(d::InlineDisplay, m::MIME, x)
