@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+* Support syntax highlight and cell execution for `Documenter`'s `@repl` blocks ([#3469](https://github.com/julia-vscode/julia-vscode/pull/3469))
+
 ## [1.60.0] - 2023-11-14
 ### Fixed
 * Relaxed VS Code version requirement to 1.78
