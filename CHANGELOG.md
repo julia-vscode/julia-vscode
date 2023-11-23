@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 * Support syntax highlight and cell execution for `Documenter`'s `@repl` blocks ([#3469](https://github.com/julia-vscode/julia-vscode/pull/3469))
 
+### Fixed
+* Cthulhu inlay hints are now displayed even when the plot pane is disabled ([#3472](https://github.com/julia-vscode/julia-vscode/pull/3472))
+
 ## [1.60.0] - 2023-11-14
 ### Fixed
 * Relaxed VS Code version requirement to 1.78
