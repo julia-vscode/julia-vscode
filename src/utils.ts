@@ -102,6 +102,7 @@ export function resolvePath(p: string, normalize: boolean = true) {
  * Specifically, we support:
  *  - ${userHome}
  *  - ${workspaceFolder}
+ *  - ${workspaceFolder:<FOLDER_NAME>}
  *  - ${pathSeparator}
  *  - ${env:<ENVIRONMENT_VARIABLE>}
  *
@@ -110,11 +111,23 @@ export function resolvePath(p: string, normalize: boolean = true) {
  */
 function parseVSCodeVariables(p: string) {
     p = p.replace(/\${userHome}/g, os.homedir())
-    p = p.replace(/\${workspaceFolder}/g, (_) => {
-        const workspace_folders = vscode.workspace.workspaceFolders
-        // We do not support multi-root workspaces.
-        return workspace_folders.length == 1 ? vscode.workspace.workspaceFolders[0].uri.fsPath : null;
+
+    const workspace_paths = vscode.workspace.workspaceFolders.map((folder) => {
+        return folder.uri.fsPath
     })
+    p = p.replace(/\${workspaceFolder}/g, (_) => {
+        // We do not support multi-root workspaces here.
+        // In that case the user should use the ${workspaceFolder:<FOLDER_NAME>} syntax.
+        return workspace_paths.length == 1 ? workspace_paths[0] : null;
+    })
+    p = p.replace(/\${workspaceFolder:(.*?)}/g, (_, desired_basename) => {
+        const filtered_paths = workspace_paths.filter((workspace_path) => {
+             return desired_basename == path.basename(workspace_path)
+        })
+        // If we have zero or more than one matches, we cannot proceed.
+        return filtered_paths.length == 1 ? filtered_paths[0] : null;
+    })
+
     p = p.replace(/\${pathSeparator}/g, path.sep);
     p = p.replace(/\${env:(.*?)}/g, (_, variable) => {
         return process.env[variable] || ''
