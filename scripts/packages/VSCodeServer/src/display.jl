@@ -198,6 +198,9 @@ function Base.display(d::InlineDisplay, x)
     if DIAGNOSTICS_ENABLED[] && showable(DIAGNOSTIC_MIME, x)
         return display(d, DIAGNOSTIC_MIME, x)
     end
+    if INLAY_HINTS_ENABLED[] && showable(INLAY_HINTS_MIME, x)
+        return display(d, INLAY_HINTS_MIME, x)
+    end
     if PLOT_PANE_ENABLED[]
         for mime in DISPLAYABLE_MIMES
             if showable(mime, x)
@@ -206,9 +209,6 @@ function Base.display(d::InlineDisplay, x)
         end
     else
         return with_no_default_display(() -> display(x))
-    end
-    if INLAY_HINTS_ENABLED[] && showable(INLAY_HINTS_MIME, x)
-        return display(d, INLAY_HINTS_MIME, x)
     end
 
     throw(MethodError(display, (d, x)))
