@@ -108,6 +108,10 @@ export function resolvePath(p: string, normalize: boolean = true) {
  *
  * See https://code.visualstudio.com/docs/editor/variables-reference for definitions of the
  * above.
+ *
+ * TODO: this replicates functionality present in core VSCode! The implementation of this
+ *  function be replaced once this issue is resolved:
+ *      https://github.com/microsoft/vscode/issues/46471
  */
 function parseVSCodeVariables(p: string) {
     p = p.replace(/\${userHome}/g, os.homedir())
