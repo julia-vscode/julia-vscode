@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
+* The integrated table viewer now shows column labels ([#3479](https://github.com/julia-vscode/julia-vscode/pull/3479))
 * Support syntax highlight and cell execution for `Documenter`'s `@repl` blocks ([#3469](https://github.com/julia-vscode/julia-vscode/pull/3469))
 
 ### Fixed
