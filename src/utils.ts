@@ -91,6 +91,7 @@ export function wrapCrashReporting(f) {
 
 export function resolvePath(p: string, normalize: boolean = true) {
     p = parseEnvVariables(p)
+    p = parseWorkspaceFolder(p)
     p = p.replace(/^~/, os.homedir())
     p = normalize ? path.normalize(p) : p
     return p
@@ -99,5 +100,12 @@ export function resolvePath(p: string, normalize: boolean = true) {
 function parseEnvVariables(p: string) {
     return p.replace(/\${env:(.*?)}/g, (_, variable) => {
         return process.env[variable] || ''
+    })
+}
+
+function parseWorkspaceFolder(p: string) {
+    return p.replace(/\${workspaceFolder}/g, (_) => {
+        const workspace_folders = vscode.workspace.workspaceFolders
+        return workspace_folders.length > 0 ? vscode.workspace.workspaceFolders[0].uri.fsPath : null;
     })
 }
