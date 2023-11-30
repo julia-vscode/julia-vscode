@@ -90,22 +90,34 @@ export function wrapCrashReporting(f) {
 }
 
 export function resolvePath(p: string, normalize: boolean = true) {
-    p = parseEnvVariables(p)
-    p = parseWorkspaceFolder(p)
+    p = parseVSCodeVariables(p)
     p = p.replace(/^~/, os.homedir())
     p = normalize ? path.normalize(p) : p
     return p
 }
 
-function parseEnvVariables(p: string) {
-    return p.replace(/\${env:(.*?)}/g, (_, variable) => {
+/**
+ * Parse a subset of VSCode 'variables' in `p`, and return a string with the replacements.
+ *
+ * Specifically, we support:
+ *  - ${userHome}
+ *  - ${workspaceFolder}
+ *  - ${pathSeparator}
+ *  - ${env:<ENVIRONMENT_VARIABLE>}
+ *
+ * See https://code.visualstudio.com/docs/editor/variables-reference for definitions of the
+ * above.
+ */
+function parseVSCodeVariables(p: string) {
+    p = p.replace(/\${userHome}/g, os.homedir())
+    p = p.replace(/\${workspaceFolder}/g, (_) => {
+        const workspace_folders = vscode.workspace.workspaceFolders
+        // We do not support multi-root workspaces.
+        return workspace_folders.length == 1 ? vscode.workspace.workspaceFolders[0].uri.fsPath : null;
+    })
+    p = p.replace(/\${pathSeparator}/g, path.sep);
+    p = p.replace(/\${env:(.*?)}/g, (_, variable) => {
         return process.env[variable] || ''
     })
-}
-
-function parseWorkspaceFolder(p: string) {
-    return p.replace(/\${workspaceFolder}/g, (_) => {
-        const workspace_folders = vscode.workspace.workspaceFolders
-        return workspace_folders.length > 0 ? vscode.workspace.workspaceFolders[0].uri.fsPath : null;
-    })
+    return p
 }
