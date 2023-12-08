@@ -315,7 +315,7 @@ export class JuliaKernel {
                 env['JULIA_NUM_THREADS'] = nthreads
             }
 
-            this.outputChannel.appendLine(`Now strating the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`)
+            this.outputChannel.appendLine(`Now starting the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`)
 
             this._kernelProcess = spawn(
                 this.juliaExecutable.file,
