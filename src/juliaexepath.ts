@@ -230,7 +230,7 @@ export class JuliaExecutablesFeature {
     async tryJuliaup() {
         this.usingJuliaup = false
         try {
-            const { stdout, } = await execFile('juliaup', ['api', 'getconfig1'])
+            const { stdout, } = await execFile('juliaup', ['api', 'getconfig1'], {shell: process.platform === 'win32' ? false : true})
 
             const apiResult = stdout.toString().trim()
 
