@@ -102,7 +102,7 @@ export function resolvePath(p: string, normalize: boolean = true) {
  * Specifically, we support:
  *  - ${userHome}
  *  - ${workspaceFolder}
- *  - ${workspaceFolder:<FOLDER_NAME>}
+ *  - ${workspaceFolder:<FOLDER_NAME>}  (For a multi-root project, use the first folder)
  *  - ${pathSeparator}
  *  - ${env:<ENVIRONMENT_VARIABLE>}
  *
