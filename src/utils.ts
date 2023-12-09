@@ -120,9 +120,8 @@ function parseVSCodeVariables(p: string) {
         return folder.uri.fsPath
     })
     p = p.replace(/\${workspaceFolder}/g, (_) => {
-        // We do not support multi-root workspaces here.
-        // In that case the user should use the ${workspaceFolder:<FOLDER_NAME>} syntax.
-        return workspace_paths.length === 1 ? workspace_paths[0] : null
+        // In the case of a multi-root workspace, we return the first one.
+        return workspace_paths.length >= 1 ? workspace_paths[0] : null
     })
     p = p.replace(/\${workspaceFolder:(.*?)}/g, (_, desired_basename) => {
         const filtered_paths = workspace_paths.filter((workspace_path) => {
