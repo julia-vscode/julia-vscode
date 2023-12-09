@@ -44,7 +44,7 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                 <div ref="eLabel" class="ag-header-cell-label" role="presentation">
                     <div class="header-cell-title-container">
                         <span ref="eText" class="ag-header-cell-text">b</span>
-                        <small class="header-cell-subtitle">\${label}</small>
+                        \${label ? \`<small class="header-cell-subtitle">\${label}</small>\` : ''}
                     </div>
                     <span ref="eFilter" class="ag-header-icon ag-header-label-icon ag-filter-icon" aria-hidden="true"></span>
                     <span ref="eSortOrder" class="ag-header-icon ag-header-label-icon ag-sort-order" aria-hidden="true"></span>
@@ -243,8 +243,6 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
             </script>
         `
     }
-
-    console.log(script)
 
     panel.webview.html = `
         <html>
