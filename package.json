@@ -769,7 +769,7 @@
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
-                "key": "Ctrl+I Ctrl+C",
+                "key": "Alt+I Alt+C",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
