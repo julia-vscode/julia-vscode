@@ -102,9 +102,11 @@ export function resolvePath(p: string, normalize: boolean = true) {
  * Specifically, we support:
  *  - ${userHome}
  *  - ${workspaceFolder}
+ *  - ${workspaceFolderBasename}
  *  - ${workspaceFolder:<FOLDER_NAME>}  (For a multi-root project, use the first folder)
  *  - ${pathSeparator}
  *  - ${env:<ENVIRONMENT_VARIABLE>}
+ *  - ${config:<CONFIG_VARIABLE>}
  *
  * See https://code.visualstudio.com/docs/editor/variables-reference for definitions of the
  * above.
@@ -113,11 +115,17 @@ export function resolvePath(p: string, normalize: boolean = true) {
  *  function be replaced once this issue is resolved:
  *      https://github.com/microsoft/vscode/issues/46471
  */
-function parseVSCodeVariables(p: string) {
+export function parseVSCodeVariables(p: string) {
     p = p.replace(/\${userHome}/g, os.homedir())
 
     const workspace_paths = vscode.workspace.workspaceFolders.map((folder) => {
         return folder.uri.fsPath
+    })
+    p = p.replace(/\${workspaceFolderBasename}/g, (_) => {
+        if (workspace_paths.length === 0) {
+            return null
+        }
+        return path.basename(workspace_paths[0])
     })
     p = p.replace(/\${workspaceFolder}/g, (_) => {
         // In the case of a multi-root workspace, we return the first one.
@@ -134,6 +142,12 @@ function parseVSCodeVariables(p: string) {
     p = p.replace(/\${pathSeparator}/g, path.sep)
     p = p.replace(/\${env:(.*?)}/g, (_, variable) => {
         return process.env[variable] || ''
+    })
+    p = p.replace(/\${config:(.*?)}/g, (_, variable: String) => {
+        const parts = variable.split('.')
+        const leaf = parts.pop()
+        const section = parts.length > 0 ? parts.join('.') : undefined
+        return vscode.workspace.getConfiguration(section).get(leaf) || ''
     })
     return p
 }

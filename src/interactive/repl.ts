@@ -14,7 +14,7 @@ import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import { JuliaExecutablesFeature } from '../juliaexepath'
 import * as telemetry from '../telemetry'
-import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerCommand, setContext, wrapCrashReporting } from '../utils'
+import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerCommand, setContext, wrapCrashReporting, parseVSCodeVariables } from '../utils'
 import * as completions from './completions'
 import { VersionedTextDocumentPositionParams } from './misc'
 import * as modules from './modules'
@@ -96,19 +96,7 @@ function sanitize(str: string) {
     return str.toLowerCase().replace(/[^\p{L}\p{N}_-]+/ug, '-')
 }
 function parseSessionArgs(name: string) {
-    if (name.match(/\$\[workspace\]/)){
-        const ed = vscode.window.activeTextEditor
-        if (ed) {
-            const folder = vscode.workspace.getWorkspaceFolder(ed.document.uri)
-            if (folder) {
-                return name.replace('$[workspace]', sanitize(folder.name))
-            } else {
-                return name.replace('$[workspace]', '')
-            }
-        }
-    }
-
-    return name
+    return sanitize(parseVSCodeVariables(name))
 }
 
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
@@ -178,40 +166,46 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                     vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
                 }
             }
-            jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(sysImageArgs).concat(config.get('additionalArgs'))
+            jlarg1 = ['-i', '--banner=no', `--project="${pkgenvpath}"`].concat(sysImageArgs).concat(config.get('additionalArgs'))
         }
 
         let shellPath: string, shellArgs: string[]
 
         if (Boolean(config.get('persistentSession.enabled'))) {
             shellPath = config.get('persistentSession.shell')
+            const shellExecutionArg: string = config.get('persistentSession.shellExecutionArgument')
             const connectJuliaCode = juliaConnector(pipename)
             const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
-            const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
+            const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
                 ...juliaExecutable.args,
                 ...jlarg1,
                 ...getArgs()
             ].join(' ')}`.replace(/"/g, '\\"')
+            const shellJuliaAndArgs = `${shellPath} ${shellExecutionArg} "${juliaAndArgs}"`.replace(/((?:\\)*)"/g, (_, cap) => {
+                if (cap.length === 0) {
+                    return '\\"'
+                } else {
+                    return '\\\\' + cap + '"'
+                }
+            })
             shellArgs = [
-                <string>config.get('persistentSession.shellExecutionArgument'),
+                shellExecutionArg,
                 // create a new tmux session, set remain-on-exit to true, and attach; if the session already exists we just attach to the existing session
-                `tmux new -d -s ${sessionName} "${juliaAndArgs}" && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
+                `tmux new -d -s ${sessionName} "${shellJuliaAndArgs}" && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
                 tmux send-keys -t ${sessionName}.left ^A ^K ^H '${connectJuliaCode}' ENTER && tmux attach -t ${sessionName}`
             ]
         } else {
             shellPath = juliaExecutable.file
             shellArgs = [...juliaExecutable.args, ...jlarg1, ...getArgs()]
         }
-        // start a new transient terminal
-        // that option isn't available on pre 1.65 versions of VS Code,
-        // so we cast the options to `any`
+
         g_terminal = vscode.window.createTerminal({
             name: `Julia REPL (v${juliaExecutable.getVersion()})`,
             shellPath: shellPath,
             shellArgs: shellArgs,
             isTransient: true,
             env: env,
-        } as any)
+        })
 
         g_terminal.show(preserveFocus)
         await juliaIsConnectedPromise.wait()
