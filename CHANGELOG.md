@@ -6,13 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
-* Support additional VSCode variables in `environmentPath` ([#3477](https://github.com/julia-vscode/julia-vscode/pull/3477))
+* Support additional VS Code variables in the `julia.environmentPath` and `julia.persistentSession.tmuxSessionName` settings ([#3477](https://github.com/julia-vscode/julia-vscode/pull/3477), [#3489](https://github.com/julia-vscode/julia-vscode/pull/3489))
 
 ### Fixed
 * Table headers no longer show `null` if no column label existss ([#3486](https://github.com/julia-vscode/julia-vscode/pull/3486))
+* Workspace directories with spaces in the path are now handled more correctly ([#3489](https://github.com/julia-vscode/julia-vscode/pull/3489))
+* Persistent sessions now use the shell specified in `julia.persistentSession.shell` inside of the tmux session as well ([#3489](https://github.com/julia-vscode/julia-vscode/pull/3489))
 
 ### Changed
 * The default keybinding for the `Julia: Clear All Inline Results` command changed from `Ctrl+I Ctrl+C` to `Alt+I Alt+C` to prevent a clash with the Copilot Chat extension ([#3487](https://github.com/julia-vscode/julia-vscode/pull/3487))
+* The `julia.persistentSession.shellExecutionArgument` setting now accepts a space-separated list of arguments ([#3489](https://github.com/julia-vscode/julia-vscode/pull/3489))
 
 ## [1.61.0] - 2023-11-30
 ### Added
