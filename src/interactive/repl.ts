@@ -173,7 +173,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
         if (Boolean(config.get('persistentSession.enabled'))) {
             shellPath = config.get('persistentSession.shell')
-            const shellExecutionArg: string = config.get('persistentSession.shellExecutionArgument')
+            const shellExecutionArgs = (<string|undefined>config.get('persistentSession.shellExecutionArgument') ?? '-c').split(' ')
             const connectJuliaCode = juliaConnector(pipename)
             const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
             const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
@@ -181,7 +181,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                 ...jlarg1,
                 ...getArgs()
             ].join(' ')}`.replace(/"/g, '\\"')
-            const shellJuliaAndArgs = `${shellPath} ${shellExecutionArg} "${juliaAndArgs}"`.replace(/((?:\\)*)"/g, (_, cap) => {
+            const shellJuliaAndArgs = `${shellPath} ${shellExecutionArgs.join(' ')} "${juliaAndArgs}"`.replace(/((?:\\)*)"/g, (_, cap) => {
                 if (cap.length === 0) {
                     return '\\"'
                 } else {
@@ -189,7 +189,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                 }
             })
             shellArgs = [
-                shellExecutionArg,
+                ...shellExecutionArgs,
                 // create a new tmux session, set remain-on-exit to true, and attach; if the session already exists we just attach to the existing session
                 `tmux new -d -s ${sessionName} "${shellJuliaAndArgs}" && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
                 tmux send-keys -t ${sessionName}.left ^A ^K ^H '${connectJuliaCode}' ENTER && tmux attach -t ${sessionName}`

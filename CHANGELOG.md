@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * The default keybinding for the `Julia: Clear All Inline Results` command changed from `Ctrl+I Ctrl+C` to `Alt+I Alt+C` to prevent a clash with the Copilot Chat extension ([#3487](https://github.com/julia-vscode/julia-vscode/pull/3487))
+* The `julia.persistentSession.shellExecutionArgument` setting now accepts a space-separated list of arguments ([#3489](https://github.com/julia-vscode/julia-vscode/pull/3489))
 
 ## [1.61.0] - 2023-11-30
 ### Added

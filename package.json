@@ -1150,7 +1150,7 @@
                     "type": "string",
                     "default": "-c",
                     "scope": "machine",
-                    "markdownDescription": "Argument to execute code in the configured shell, e.g. `-c` for sh-likes or `/c` for `cmd`."
+                    "markdownDescription": "Argument to execute code in the configured shell, e.g. `-c` for sh-likes or `/c` for `cmd`. Can contain multiple arguments separated by spaces."
                 },
                 "julia.persistentSession.tmuxSessionName": {
                     "type": "string",
