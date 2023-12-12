@@ -118,7 +118,7 @@ export function resolvePath(p: string, normalize: boolean = true) {
 export function parseVSCodeVariables(p: string) {
     p = p.replace(/\${userHome}/g, os.homedir())
 
-    const workspace_paths = vscode.workspace.workspaceFolders.map((folder) => {
+    const workspace_paths = (vscode.workspace.workspaceFolders ?? []).map((folder) => {
         return folder.uri.fsPath
     })
     p = p.replace(/\${workspaceFolderBasename}/g, (_) => {

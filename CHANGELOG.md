@@ -5,6 +5,10 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.64.0] - 2023-12-12
+### Fixed
+* Properly substitute VS Code variables when no workspace folders are open ([#3490](https://github.com/julia-vscode/julia-vscode/pull/3490))
+
 ## [1.63.0] - 2023-12-12
 ### Fixed
 * Syntax highlighting for interpolated generators and comprehensions ([#268](https://github.com/JuliaEditorSupport/atom-language-julia/pull/268))
