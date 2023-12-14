@@ -30,6 +30,8 @@ let g_terminal: vscode.Terminal = null
 
 export let g_connection: rpc.MessageConnection = undefined
 
+let g_terminal_is_persistent: boolean = false
+
 let g_juliaExecutablesFeature: JuliaExecutablesFeature
 
 function startREPLCommand() {
@@ -38,29 +40,37 @@ function startREPLCommand() {
     startREPL(false, true)
 }
 async function confirmKill() {
-    if (vscode.workspace.getConfiguration('julia').get<boolean>('persistentSession.warnOnKill') === false) {
+    const strategy = vscode.workspace.getConfiguration('julia').get<string>('persistentSession.closeStrategy')
+
+    if (strategy === 'close') {
         return true
     }
-    else {
-        const agree = 'Yes'
-        const agreeAlways = 'Yes, always'
-        const disagree = 'No'
-        const choice = await vscode.window.showInformationMessage('This is a persistent tmux session. Do you want to close it?', agree, agreeAlways, disagree)
-        if (choice === disagree) {
-            return false
-        }
-        if (choice === agreeAlways) {
-            vscode.workspace.getConfiguration('julia').update('persistentSession.warnOnKill', false, true)
-        }
-        if (choice === agree || choice === agreeAlways) {
-            return true
-        }
+    if (strategy === 'disconnect') {
         return false
+    }
+
+    const disconnect = 'Disconnect'
+    const close = 'Close'
+    const disconnectAlways = 'Always disconnect'
+    const closeAlways = 'Always close'
+    const choice = await vscode.window.showInformationMessage(
+        'This is a persistent tmux session. Do you want to close it or disconnect from it?',
+        disconnect, close, disconnectAlways, closeAlways
+    )
+    switch (choice) {
+    case disconnectAlways:
+        vscode.workspace.getConfiguration('julia').update('persistentSession.closeStrategy', 'disconnect', true)
+    case disconnect:
+        return false
+    case closeAlways:
+        vscode.workspace.getConfiguration('julia').update('persistentSession.closeStrategy', 'close', true)
+    case close:
+        return true
     }
 }
 async function stopREPL(onDeactivate=false) {
     const config = vscode.workspace.getConfiguration('julia')
-    if (Boolean(config.get('persistentSession.enabled')) && !onDeactivate) {
+    if (g_terminal_is_persistent && !onDeactivate) {
         try {
             const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
             const killSession = await confirmKill()
@@ -99,83 +109,118 @@ function parseSessionArgs(name: string) {
     return sanitize(parseVSCodeVariables(name))
 }
 
+// FIXME: refactor this!
 async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
-    if (isConnected()) {
-        if (g_terminal && showTerminal) {
-            g_terminal.show(preserveFocus)
-        }
+    const config = vscode.workspace.getConfiguration('julia')
+    const isPersistentSession = Boolean(config.get('persistentSession.enabled'))
+
+    if (g_terminal) {
         return
     }
 
-    const config = vscode.workspace.getConfiguration('julia')
+    if (isConnected()) {
+        if (g_terminal) {
+            if (showTerminal) {
+                g_terminal.show(preserveFocus)
+            }
+            return
+        }
+    }
+
     const terminalConfig = vscode.workspace.getConfiguration('terminal')
-    if (g_terminal === null) {
-        const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
-        const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
-        const nthreads = inferJuliaNumThreads()
+    const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
+    const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
+    const nthreads = inferJuliaNumThreads()
 
-        // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
-        function getArgs() {
-            const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
-            jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
-            jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
-            jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
-            jlarg2.push(`ENABLE_SHELL_INTEGRATION=${terminalConfig.get('integrated.shellIntegration.enabled')}`)
-            jlarg2.push(`DEBUG_MODE=${Boolean(process.env.DEBUG_MODE)}`)
+    // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
+    function getArgs() {
+        const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
+        jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
+        jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
+        jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
+        jlarg2.push(`ENABLE_SHELL_INTEGRATION=${terminalConfig.get('integrated.shellIntegration.enabled')}`)
+        jlarg2.push(`DEBUG_MODE=${Boolean(process.env.DEBUG_MODE)}`)
 
-            if (nthreads === 'auto') {
-                jlarg2.splice(0, 0, '--threads=auto')
+        if (nthreads === 'auto') {
+            jlarg2.splice(0, 0, '--threads=auto')
+        }
+
+        return jlarg2
+    }
+
+    const env: any = {
+        JULIA_EDITOR: getEditor()
+    }
+
+    if (nthreads !== 'auto') {
+        env['JULIA_NUM_THREADS'] = nthreads
+    }
+
+    const pkgServer: string = config.get('packageServer')
+    if (pkgServer.length !== 0) {
+        env['JULIA_PKG_SERVER'] = pkgServer
+    }
+
+    let shellPath: string, shellArgs: string[]
+    const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+
+    if (g_terminal_is_persistent && isConnected()) {
+        shellPath = config.get('persistentSession.shell')
+        const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
+        const shellExecutionArgs = (<string|undefined>config.get('persistentSession.shellExecutionArgument') ?? '-c').split(' ')
+        shellArgs = [...shellExecutionArgs, `tmux attach -t ${sessionName}`]
+
+        g_terminal = vscode.window.createTerminal({
+            name: `Julia REPL (v${juliaExecutable.getVersion()})`,
+            shellPath: shellPath,
+            shellArgs: shellArgs,
+            isTransient: true,
+            env: env,
+        })
+        g_terminal_is_persistent = true
+        g_terminal.show(preserveFocus)
+        return
+    }
+
+    const juliaIsConnectedPromise = startREPLMsgServer(pipename)
+
+    let jlarg1: string[]
+    const pkgenvpath = await jlpkgenv.getAbsEnvPath()
+    if (pkgenvpath === null) {
+        jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
+    } else {
+        const env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath)
+
+        let sysImageArgs = []
+        if (config.get('useCustomSysimage') && env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
+            const date_sysimage = await fs.stat(env_file_paths.sysimage_path)
+            const date_manifest = await fs.stat(env_file_paths.manifest_toml_path)
+
+            if (date_sysimage.mtime > date_manifest.mtime) {
+                sysImageArgs = ['-J', env_file_paths.sysimage_path]
             }
-
-            return jlarg2
+            else {
+                vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
+            }
         }
-
-        const env: any = {
-            JULIA_EDITOR: getEditor()
-        }
-
-        if (nthreads !== 'auto') {
-            env['JULIA_NUM_THREADS'] = nthreads
-        }
-
-        const pkgServer: string = config.get('packageServer')
-        if (pkgServer.length !== 0) {
-            env['JULIA_PKG_SERVER'] = pkgServer
-        }
-
-        const juliaIsConnectedPromise = startREPLMsgServer(pipename)
-
-        const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
-
-        let jlarg1: string[]
-        const pkgenvpath = await jlpkgenv.getAbsEnvPath()
-        if (pkgenvpath === null) {
-            jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
+        jlarg1 = ['-i', '--banner=no']
+        if (isPersistentSession) {
+            jlarg1.push(`--project="${pkgenvpath}"`)
         } else {
-            const env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath)
-
-            let sysImageArgs = []
-            if (config.get('useCustomSysimage') && env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
-                const date_sysimage = await fs.stat(env_file_paths.sysimage_path)
-                const date_manifest = await fs.stat(env_file_paths.manifest_toml_path)
-
-                if (date_sysimage.mtime > date_manifest.mtime) {
-                    sysImageArgs = ['-J', env_file_paths.sysimage_path]
-                }
-                else {
-                    vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
-                }
-            }
-            jlarg1 = ['-i', '--banner=no', `--project="${pkgenvpath}"`].concat(sysImageArgs).concat(config.get('additionalArgs'))
+            jlarg1.push(`--project=${pkgenvpath}`)
         }
+        jlarg1 = jlarg1.concat(sysImageArgs).concat(config.get('additionalArgs'))
+    }
 
-        let shellPath: string, shellArgs: string[]
-
-        if (Boolean(config.get('persistentSession.enabled'))) {
-            shellPath = config.get('persistentSession.shell')
-            const shellExecutionArgs = (<string|undefined>config.get('persistentSession.shellExecutionArgument') ?? '-c').split(' ')
+    if (isPersistentSession) {
+        shellPath = config.get('persistentSession.shell')
+        const shellExecutionArgs = (<string|undefined>config.get('persistentSession.shellExecutionArgument') ?? '-c').split(' ')
+        const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
+        if (isConnected()) {
+            shellArgs = [...shellExecutionArgs, `tmux attach -t ${sessionName}`]
+        } else {
             const connectJuliaCode = juliaConnector(pipename)
-            const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
+
             const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
                 ...juliaExecutable.args,
                 ...jlarg1,
@@ -194,24 +239,24 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
                 `tmux new -d -s ${sessionName} "${shellJuliaAndArgs}" && tmux set -q remain-on-exit && tmux attach -t ${sessionName} ||
                 tmux send-keys -t ${sessionName}.left ^A ^K ^H '${connectJuliaCode}' ENTER && tmux attach -t ${sessionName}`
             ]
-        } else {
-            shellPath = juliaExecutable.file
-            shellArgs = [...juliaExecutable.args, ...jlarg1, ...getArgs()]
         }
-
-        g_terminal = vscode.window.createTerminal({
-            name: `Julia REPL (v${juliaExecutable.getVersion()})`,
-            shellPath: shellPath,
-            shellArgs: shellArgs,
-            isTransient: true,
-            env: env,
-        })
-
-        g_terminal.show(preserveFocus)
-        await juliaIsConnectedPromise.wait()
-    } else if (showTerminal) {
-        g_terminal.show(preserveFocus)
+        g_terminal_is_persistent = true
+    } else {
+        shellPath = juliaExecutable.file
+        shellArgs = [...juliaExecutable.args, ...jlarg1, ...getArgs()]
+        g_terminal_is_persistent = false
     }
+
+    g_terminal = vscode.window.createTerminal({
+        name: `Julia REPL (v${juliaExecutable.getVersion()})`,
+        shellPath: shellPath,
+        shellArgs: shellArgs,
+        isTransient: true,
+        env: env,
+    })
+
+    g_terminal.show(preserveFocus)
+    await juliaIsConnectedPromise.wait()
 }
 
 function juliaConnector(pipename: string, start = false) {
@@ -262,7 +307,7 @@ async function _connectREPL(juliaIsConnectedPromise) {
 
 function disconnectREPL() {
     if (g_terminal) {
-        vscode.window.showInformationMessage('Cannot disconnect from integrated REPL.')
+        vscode.window.showWarningMessage('Cannot disconnect from integrated REPL.')
     } else {
         if (isConnected()) {
             g_connection.end()

@@ -5,6 +5,14 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.64.0] - 2023-12-14
+### Fixed
+* Fixed a regression introduced in 1.62 that introduced an additional `"` into environments automatically opened ([#3490](https://github.com/julia-vscode/julia-vscode/pull/3491))
+
+### Changed
+* The first workspace folder is now more consistently set as the active environment ([#3490](https://github.com/julia-vscode/julia-vscode/pull/3491))
+* Removed the `julia.persistentSession.warnOnKill` setting in favour of `julia.persistentSession.closeStrategy`. It is now possible to always close the tmux session or always disconnect ([#3490](https://github.com/julia-vscode/julia-vscode/pull/3491))
+
 ## [1.64.0] - 2023-12-12
 ### Fixed
 * Properly substitute VS Code variables when no workspace folders are open ([#3490](https://github.com/julia-vscode/julia-vscode/pull/3490))
