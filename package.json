@@ -1158,11 +1158,21 @@
                     "scope": "machine-overridable",
                     "markdownDescription": "Name of the `tmux` session. Explicitly supports substitution for the `${userHome}`, `${workspaceFolder}`, `${workspaceFolderBasename}`, `${workspaceFolder:<FOLDER_NAME>}`, `${pathSeparator}`, `${env:<ENVIRONMENT_VARIABLE>}`, `${config:<CONFIG_VARIABLE>} tokens."
                 },
-                "julia.persistentSession.warnOnKill": {
-                    "type": "boolean",
-                    "default": true,
+                "julia.persistentSession.closeStrategy": {
+                    "type": "string",
+                    "enum": [
+                        "ask",
+                        "close",
+                        "disconnect"
+                    ],
+                    "default": "ask",
                     "scope": "application",
-                    "description": "Warn when stopping a persistent session."
+                    "description": "Behaviour when stopping a persistent session.",
+                    "enumDescriptions": [
+                        "Always ask",
+                        "Close the tmux session",
+                        "Disconnect, but keep the tmux session"
+                    ]
                 },
                 "julia.persistentSession.alwaysCopy": {
                     "type": "boolean",

@@ -223,31 +223,31 @@ async function getEnvPath() {
         const section = vscode.workspace.getConfiguration('julia')
         const envPathConfig = section.get<string>('environmentPath')
         if (envPathConfig) {
-            if (await fs.exists(absEnvPath(resolvePath(envPathConfig)))) {
+            if (await fs.exists(await absEnvPath(resolvePath(envPathConfig)))) {
                 g_path_of_current_environment = envPathConfig
                 return g_path_of_current_environment
             }
         }
-        g_path_of_current_environment = await getDefaultEnvPath()
+        g_path_of_current_environment = await absEnvPath('')
     }
     return g_path_of_current_environment
 }
 
-function absEnvPath(p: string) {
+async function absEnvPath(p: string) {
     if (path.isAbsolute(p)) {
         return p
     } else {
         if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
             return path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, p)
         } else {
-            return path.join(os.homedir(), p)
+            return await getDefaultEnvPath()
         }
     }
 }
 
 export async function getAbsEnvPath() {
     const envPath = await getEnvPath()
-    return absEnvPath(resolvePath(envPath))
+    return await absEnvPath(resolvePath(envPath))
 }
 
 export async function getEnvName() {
