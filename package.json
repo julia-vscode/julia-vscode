@@ -1166,7 +1166,7 @@
                         "disconnect"
                     ],
                     "default": "ask",
-                    "scope": "application",
+                    "scope": "machine-overridable",
                     "description": "Behaviour when stopping a persistent session.",
                     "enumDescriptions": [
                         "Always ask",
