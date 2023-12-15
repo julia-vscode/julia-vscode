@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+* default of `julia.persistentSession.closeStrategy` changed to overridable ([#3494](https://github.com/julia-vscode/julia-vscode/pull/3494))
+  
 ## [1.65.0] - 2023-12-14
 ### Fixed
 * Fixed a regression introduced in 1.62 that introduced an additional `"` into environments automatically opened ([#3490](https://github.com/julia-vscode/julia-vscode/pull/3491))
