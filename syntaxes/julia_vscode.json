@@ -315,6 +315,10 @@
           "name": "keyword.control.export.julia"
         },
         {
+          "match": "\\b(?<![:_])(?:public)\\b",
+          "name": "keyword.control.public.julia"
+        },
+        {
           "match": "\\b(?<![:_])(?:import)\\b",
           "name": "keyword.control.import.julia"
         },
