@@ -115,16 +115,14 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     const isPersistentSession = Boolean(config.get('persistentSession.enabled'))
 
     if (g_terminal) {
+        if (showTerminal) {
+            g_terminal.show(preserveFocus)
+        }
         return
     }
 
     if (isConnected()) {
-        if (g_terminal) {
-            if (showTerminal) {
-                g_terminal.show(preserveFocus)
-            }
-            return
-        }
+        return
     }
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal')
