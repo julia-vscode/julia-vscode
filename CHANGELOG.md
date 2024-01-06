@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Changed
 * Default of `julia.persistentSession.closeStrategy` changed to overridable ([#3494](https://github.com/julia-vscode/julia-vscode/pull/3494))
+* Key combination for `language-julia.clearAllInlineResultsInEditor` changed from Alt+I Alt+C to Alt+J Alt+C to avoid clashes with the key combination for typing `|` (which is Alt+I on some keyboards) ([#3509](https://github.com/julia-vscode/julia-vscode/pull/3509))
 
 ### Fixed
 * Code execution now works properly when connected to an external REPL ([#3506](https://github.com/julia-vscode/julia-vscode/pull/3506))
