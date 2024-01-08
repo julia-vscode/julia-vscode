@@ -18,7 +18,7 @@
     "files.insertFinalNewline": true,
     "eslint.format.enable": true,
     "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": true
+        "source.fixAll.eslint": "explicit"
     },
     "eslint.lintTask.enable": true,
     "julia.environmentPath": "./scripts/environments/development"
