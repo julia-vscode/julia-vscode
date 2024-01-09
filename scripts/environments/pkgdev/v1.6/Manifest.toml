@@ -21,9 +21,9 @@ version = "0.1.8"
 
 [[CSTParser]]
 deps = ["Tokenize"]
-git-tree-sha1 = "3ddd48d200eb8ddf9cb3e0189fc059fd49b97c1f"
+git-tree-sha1 = "1dd0361befc505b9c6db4b5ab7eb874837de0569"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.3.6"
+version = "3.4.0"
 
 [[CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -61,9 +61,9 @@ version = "1.15.0"
 
 [[DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "3dbd312d370723b6bb43ba9d02fc36abade4518d"
+git-tree-sha1 = "ac67408d9ddf207de5cfa9a97e114352430f01ed"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.15"
+version = "0.18.16"
 
 [[DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -86,9 +86,9 @@ uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 
 [[ExceptionUnwrapping]]
 deps = ["Test"]
-git-tree-sha1 = "e90caa41f5a86296e014e148ee061bd6c3edec96"
+git-tree-sha1 = "dcb08a0d93ec0b1cdc4af184b26b591e9695423a"
 uuid = "460bff9d-24e4-43bc-9d9f-a8973cb893f4"
-version = "0.1.9"
+version = "0.1.10"
 
 [[FilePathsBase]]
 deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
@@ -220,9 +220,9 @@ version = "1.6.3"
 
 [[Parsers]]
 deps = ["Dates", "PrecompileTools", "UUIDs"]
-git-tree-sha1 = "a935806434c9d4c506ba941871b327b96d41f2bf"
+git-tree-sha1 = "8489905bcdbcfac64d1daa51ca07c0d8f0283821"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.8.0"
+version = "2.8.1"
 
 [[Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -230,9 +230,9 @@ uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[PkgButlerEngine]]
 deps = ["Mustache", "Pkg"]
-git-tree-sha1 = "c8c51be0d37183d8259ab28e6f01fcc018a0f7a2"
+git-tree-sha1 = "d7a73e175672f59255a49eefc3bf800156e13c9e"
 uuid = "5c9c0fc8-7103-448b-bb0a-c427020e3b0b"
-version = "1.12.2"
+version = "1.12.3"
 
 [[PkgDev]]
 deps = ["Base64", "DocumentFormat", "FilePathsBase", "GitHub", "JSON", "LibGit2", "Pkg", "PkgButlerEngine", "RegistryTools", "TOML", "URIs", "UUIDs"]
@@ -315,9 +315,9 @@ deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Tokenize]]
-git-tree-sha1 = "0454d9a9bad2400c7ccad19ca832a2ef5a8bc3a1"
+git-tree-sha1 = "5b5a892ba7704c0977013bd0f9c30f5d962181e0"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.26"
+version = "0.5.28"
 
 [[TranscodingStreams]]
 deps = ["Random", "Test"]
