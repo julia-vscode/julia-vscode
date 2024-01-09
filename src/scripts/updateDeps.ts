@@ -85,6 +85,7 @@ async function main() {
         'TestEnv',
     ]) {
         await cp.exec('git fetch')
+        await cp.exec('git fetch --tags')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
 
         const newestTag = tags.stdout.toString().split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))[0]
