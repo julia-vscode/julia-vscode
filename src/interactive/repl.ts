@@ -1300,11 +1300,11 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
                 } catch (err) {
                     console.warn(err)
                 }
-            } else if (event.affectsConfiguration('julia.showInlayHints')) {
+            } else if (event.affectsConfiguration('julia.inlayHints.runtime.enabled')) {
                 try {
-                    await g_connection.sendNotification('repl/toggleInlayHints', { enable: vscode.workspace.getConfiguration('julia').get('showInlayHints') })
+                    await g_connection.sendNotification('repl/toggleInlayHints', { enable: vscode.workspace.getConfiguration('julia').get('inlayHints.runtime.enabled') })
 
-                    if (!vscode.workspace.getConfiguration('julia').get('showInlayHints')) {
+                    if (!vscode.workspace.getConfiguration('julia').get('inlayHints.runtime.enabled')) {
                         clearInlayHints()
                     }
                 } catch (err) {

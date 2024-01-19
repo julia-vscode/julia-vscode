@@ -992,10 +992,26 @@
                     "default": true,
                     "markdownDescription": "Enable display of runtime diagnostics. These diagnostics are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.diagnostics` MIME type."
                 },
-                "julia.showInlayHints": {
+                "julia.inlayHints.runtime.enabled": {
                     "type": "boolean",
                     "default": true,
-                    "markdownDescription": "Enable display of inlay hints. These hints are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.inlayHints` MIME type."
+                    "markdownDescription": "Enable display of runtime inlay hints. These hints are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.inlayHints` MIME type."
+                },
+                "julia.inlayHints.static.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Enable display of static inlay hints."
+                },
+                "julia.inlayHints.static.variableTypes.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Enable type hints for variable definitions:\n```julia\nfoo #=::Int64=# = 42\n```"
+                },
+                "julia.inlayHints.static.parameterNames.enabled": {
+                    "type": "string",
+                    "default":"literals",
+                    "enum": ["none", "literals", "all"],
+                    "markdownDescription": "Enable name hints for function parameters:\n```julia\nfoo(#= bar: =# 42)\n```"
                 },
                 "julia.focusPlotNavigator": {
                     "type": "boolean",
