@@ -58,7 +58,7 @@ function sendDisplayMsg(kind, data)
     end
 end
 
-function Base.display(d::InlineDisplay, m::MIME, x)
+function Base.display(d::InlineDisplay, m::MIME, @nospecialize(x))
     if !PLOT_PANE_ENABLED[]
         with_no_default_display(() -> display(m, x))
     else
@@ -194,7 +194,7 @@ function can_display(x)
     return is_table_like(x)
 end
 
-function Base.display(d::InlineDisplay, x)
+function Base.display(d::InlineDisplay, @nospecialize(x))
     if DIAGNOSTICS_ENABLED[] && showable(DIAGNOSTIC_MIME, x)
         return display(d, DIAGNOSTIC_MIME, x)
     end
