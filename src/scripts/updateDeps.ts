@@ -61,6 +61,7 @@ async function main() {
 
     for (const pkg of [
         'CodeTracking',
+        'Combinatorics',
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
