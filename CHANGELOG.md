@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* Only update notebook metadata when it has actually changed ([#3530](https://github.com/julia-vscode/julia-vscode/pull/3530))
+
 ## [1.66.0] - 2024-01-09
 ### Changed
 * Default of `julia.persistentSession.closeStrategy` changed to overridable ([#3494](https://github.com/julia-vscode/julia-vscode/pull/3494))
