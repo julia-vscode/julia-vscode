@@ -1515,6 +1515,7 @@
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
+        "lodash.isequal": "^4.5.0",
         "markdown-it": "^12.3.2",
         "markdown-it-footnote": "^3.0.3",
         "promised-temp": "^v0.1.0",
@@ -1529,6 +1530,7 @@
     },
     "devDependencies": {
         "@types/download": "^8.0.1",
+        "@types/lodash.isequal": "^4.5.8",
         "@types/markdown-it": "^12.2.3",
         "@types/mocha": "^10",
         "@types/node": "^18",
