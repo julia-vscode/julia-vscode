@@ -44,6 +44,9 @@
     },
     {
       "include": "#symbol"
+    },
+    {
+      "include": "#punctuation"
     }
   ],
   "repository": {
@@ -313,6 +316,10 @@
         {
           "match": "\\b(?<![:_])(?:export)\\b",
           "name": "keyword.control.export.julia"
+        },
+        {
+          "match": "\\b(?<![:_])(?:public)\\b",
+          "name": "keyword.control.public.julia"
         },
         {
           "match": "\\b(?<![:_])(?:import)\\b",
@@ -1057,6 +1064,21 @@
         },
         {
           "include": "#symbol"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "match": ",",
+          "name": "punctuation.separator.comma.julia"
+        },
+        {
+          "match": ";",
+          "name": "punctuation.separator.semicolon.julia"
         }
       ]
     }

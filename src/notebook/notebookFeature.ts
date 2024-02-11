@@ -5,6 +5,7 @@ import { NotebookNode, WorkspaceFeature } from '../interactive/workspace'
 import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
 import { registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
+import isEqual from 'lodash.isequal'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
 type JupyterNotebookMetadata = Partial<{
@@ -284,7 +285,7 @@ export class JuliaNotebookFeature {
             },
         }
 
-        if (this.vscodeIpynbApi) {
+        if (this.vscodeIpynbApi && !isEqual(notebook.metadata?.custom?.metadata, metadata)) {
             this.vscodeIpynbApi.setNotebookMetadata(notebook.uri, metadata)
         }
     }

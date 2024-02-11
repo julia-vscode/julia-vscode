@@ -1,4 +1,4 @@
-import * as download from 'download'
+import download from 'download'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import * as process from 'process'
@@ -61,6 +61,7 @@ async function main() {
 
     for (const pkg of [
         'CodeTracking',
+        'Combinatorics',
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
