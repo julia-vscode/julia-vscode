@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.70.0",
+    "version": "1.71.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -1009,8 +1009,12 @@
                 },
                 "julia.inlayHints.static.parameterNames.enabled": {
                     "type": "string",
-                    "default":"literals",
-                    "enum": ["none", "literals", "all"],
+                    "default": "literals",
+                    "enum": [
+                        "none",
+                        "literals",
+                        "all"
+                    ],
                     "markdownDescription": "Enable name hints for function parameters:\n```julia\nfoo(#= bar: =# 42)\n```"
                 },
                 "julia.focusPlotNavigator": {
