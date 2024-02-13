@@ -44,7 +44,7 @@ jobs:
         isPR:
           - ${{github.event_name == 'pull_request'}}
         exclude:
-          - { isPR: true }
+          - isPR: true
         include:
           - julia_version: '1.0'
             os: 'ubuntu-latest'
