@@ -999,7 +999,7 @@
                 },
                 "julia.inlayHints.static.enabled": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "markdownDescription": "Enable display of static inlay hints."
                 },
                 "julia.inlayHints.static.variableTypes.enabled": {
