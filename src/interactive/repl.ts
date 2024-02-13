@@ -515,6 +515,16 @@ function display(params: { kind: string, data: any }) {
     } else if (params.kind === 'application/vnd.julia-vscode.inlayHints') {
         clearInlayHints()
 
+        if (vscode.workspace.getConfiguration('julia').get<boolean>('inlayHints.static.enabled')) {
+            vscode.workspace.getConfiguration('julia').update('inlayHints.static.enabled', false, true)
+            vscode.window.showInformationMessage('Disabled static inlay hints for Julia to prevent duplicates.', 'Ok', 'Revert').then(val => {
+                if (val === 'Revert') {
+                    clearInlayHints()
+                    vscode.workspace.getConfiguration('julia').update('inlayHints.static.enabled', true, true)
+                }
+            })
+        }
+
         const parsedInlayHints = {}
         Object.keys(params.data).forEach(key => {
             parsedInlayHints[vscode.Uri.file(key).fsPath] = params.data[key].map((hint) => {
