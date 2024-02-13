@@ -14,15 +14,7 @@ on:
       - scripts/testenvironments/vscodedebugger/**
       - scripts/testenvironments/vscodeserver/*
       - scripts/testenvironments/vscodeserver/**
-    branches:
-      - main
-  check_run:
-    types: [rerequested, requested_action]
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-  workflow_call:
+
 
 concurrency:
   group: ${{ github.head_ref || github.ref_name || github.run_id }} julia
