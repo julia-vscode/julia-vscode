@@ -2,19 +2,6 @@ name: Julia packages
 
 on:
   pull_request:
-    paths:
-      - scripts/packages/[!VSCode]*
-      - scripts/packages/[!VSCode]*/*
-      - scripts/packages/[!VSCode]*/**
-      - scripts/environments/languageserver/*
-      - scripts/environments/languageserver/**
-      - scripts/testenvironments/debugadapter/*
-      - scripts/testenvironments/debugadapter/**
-      - scripts/testenvironments/vscodedebugger/*
-      - scripts/testenvironments/vscodedebugger/**
-      - scripts/testenvironments/vscodeserver/*
-      - scripts/testenvironments/vscodeserver/**
-
 
 concurrency:
   group: ${{ github.head_ref || github.ref_name || github.run_id }} julia
