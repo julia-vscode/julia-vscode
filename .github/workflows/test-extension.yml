@@ -30,8 +30,6 @@ jobs:
           submodules: 'recursive'
       - name: Install Node.js
         uses: actions/setup-node@v4
-        with:
-          node-version: 16.x
       - run: npm ci
       - run: npx eslint -c .eslintrc.json --ext .ts src
   test:
@@ -58,8 +56,6 @@ jobs:
         with:
           submodules: 'recursive'
       - uses: actions/setup-node@v4
-        with:
-          node-version: 16.x
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{matrix.julia_version}}

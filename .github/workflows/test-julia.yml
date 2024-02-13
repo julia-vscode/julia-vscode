@@ -46,7 +46,12 @@ jobs:
         exclude:
           - { isPR: true }
         include:
-          - { julia_version: ['1.0', '1.6', '1.10']}
+          - julia_version: '1.0'
+            os: 'ubuntu-latest'
+          - julia_version: '1.6'
+            os: 'ubuntu-latest'
+          - julia_version: '1.10'
+            os: 'ubuntu-latest'
     steps:
       - uses: actions/checkout@v4
         with:
