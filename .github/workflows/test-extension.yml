@@ -45,11 +45,14 @@ jobs:
         isPR:
           - ${{github.event_name == 'pull_request'}}
         exclude:
-          - isPR: 'true'
+          - isPR: true
         include:
           - julia_version: '1.0'
+            os: 'ubuntu-latest'
           - julia_version: '1.6'
+            os: 'ubuntu-latest'
           - julia_version: '1.10'
+            os: 'ubuntu-latest'
     steps:
       - uses: actions/checkout@v4
         with:
