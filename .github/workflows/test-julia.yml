@@ -2,6 +2,27 @@ name: Julia packages
 
 on:
   pull_request:
+    paths:
+      - scripts/packages/[!VSCode]*
+      - scripts/packages/[!VSCode]*/*
+      - scripts/packages/[!VSCode]*/**
+      - scripts/environments/languageserver/*
+      - scripts/environments/languageserver/**
+      - scripts/testenvironments/debugadapter/*
+      - scripts/testenvironments/debugadapter/**
+      - scripts/testenvironments/vscodedebugger/*
+      - scripts/testenvironments/vscodedebugger/**
+      - scripts/testenvironments/vscodeserver/*
+      - scripts/testenvironments/vscodeserver/**
+    branches:
+      - main
+  check_run:
+    types: [rerequested, requested_action]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: ${{ github.head_ref || github.ref_name || github.run_id }} julia
@@ -20,6 +41,17 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         julia_version: ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10']
+        isPR:
+          - ${{github.event_name == 'pull_request'}}
+        exclude:
+          - isPR: true
+        include:
+          - julia_version: '1.0'
+            os: 'ubuntu-latest'
+          - julia_version: '1.6'
+            os: 'ubuntu-latest'
+          - julia_version: '1.10'
+            os: 'ubuntu-latest'
     steps:
       - uses: actions/checkout@v4
         with:
