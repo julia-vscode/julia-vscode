@@ -42,12 +42,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         julia_version: ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10']
-        # isPR:
-        #   - ${{ github.event_name == 'pull_request' }}
+        isPR:
+          - ${{github.event_name == 'pull_request'}}
         exclude:
-          - os: 'ubuntu-latest'
+          - isPR: 'true'
         include:
           - julia_version: '1.0'
+          - julia_version: '1.6'
+          - julia_version: '1.10'
     steps:
       - uses: actions/checkout@v4
         with:
