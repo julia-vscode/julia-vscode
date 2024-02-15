@@ -6,8 +6,11 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
         Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(popfirst!(LOAD_PATH)))
     else
         pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
-        using VSCodeServer
-        popfirst!(LOAD_PATH)
+        try
+            using VSCodeServer
+        finally
+            popfirst!(LOAD_PATH)
+        end
     end
 end
 
