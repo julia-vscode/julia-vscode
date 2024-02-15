@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Fixed
 * Static inlay hints are now automatically disabled when runtime hints are displayed ([#3539](https://github.com/julia-vscode/julia-vscode/pull/3539))
+* Even if loading a Julia vs-code component fails the Julia LOAD_PATH does not get poluted.
 
 ### Changed
 * Static inlay hints are now disabled by default ([#3539](https://github.com/julia-vscode/julia-vscode/pull/3539))
