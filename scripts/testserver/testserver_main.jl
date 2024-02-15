@@ -1,8 +1,11 @@
 @info "Starting the Julia Test Server"
 
 pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
-using VSCodeTestServer
-popfirst!(LOAD_PATH)
+try
+    using VSCodeTestServer
+finally
+    popfirst!(LOAD_PATH)
+end
 
 include("../error_handler.jl")
 
