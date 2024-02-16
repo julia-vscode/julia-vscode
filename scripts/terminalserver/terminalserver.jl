@@ -2,12 +2,18 @@
 let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), "Distributed")
     if haskey(Base.loaded_modules, distributed) && (Distributed = Base.loaded_modules[distributed]).nprocs() > 1
         Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(pushfirst!(LOAD_PATH, joinpath($(@__DIR__), "..", "packages"))))
-        using VSCodeServer
-        Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(popfirst!(LOAD_PATH)))
+        try
+            using VSCodeServer
+        finally
+            Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(popfirst!(LOAD_PATH)))
+        end
     else
         pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
-        using VSCodeServer
-        popfirst!(LOAD_PATH)
+        try
+            using VSCodeServer
+        finally
+            popfirst!(LOAD_PATH)
+        end
     end
 end
 
