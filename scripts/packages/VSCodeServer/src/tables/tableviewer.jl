@@ -126,13 +126,16 @@ const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
 const dataapi_uuid = UUIDs.UUID("9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a")
 function on_pkg_load(pkg)
     if pkg.uuid == tabletraits_uuid
-        TableTraits = Base.require(pkg)
+        TableTraits = get(Base.loaded_modules, pkg) do
+            Base.require(pkg)
+        end
 
         global _isiterabletable = TableTraits.isiterabletable
         global _getiterator = TableTraits.getiterator
     elseif pkg.uuid == datavalues_uuid
-        DataValues = Base.require(pkg)
-
+        DataValues = get(Base.loaded_modules, pkg) do
+            Base.require(pkg)
+        end
         eval(
             quote
                 function json_sprint(val::$(DataValues.DataValue))
@@ -141,7 +144,10 @@ function on_pkg_load(pkg)
             end
         )
     elseif pkg.uuid == dataapi_uuid
-        DataAPI = Base.require(pkg)
+        DataAPI = get(Base.loaded_modules, pkg) do
+            Base.require(pkg)
+        end
+
         global _get_label = (x, col) -> try
             return DataAPI.colmetadata(x, col, "label"; style = false)
         catch err
