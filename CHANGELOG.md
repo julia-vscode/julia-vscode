@@ -5,6 +5,7 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.71.0] - 2024-02-16
 ### Fixed
 * Static inlay hints are now automatically disabled when runtime hints are displayed ([#3539](https://github.com/julia-vscode/julia-vscode/pull/3539))
 * Stackoverflow in `package_callbacks` ([#3546](https://github.com/julia-vscode/julia-vscode/issues/3546))
