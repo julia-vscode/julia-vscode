@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.0"
+julia_version = "1.10.1"
 manifest_format = "2.0"
 project_hash = "66f1c20ccb04eee7b71eb83d45915b0a160cba88"
 
@@ -282,7 +282,7 @@ version = "8.2.0"
 deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "../../packages/SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
-version = "7.3.0"
+version = "7.3.1"
 
 [[deps.TOML]]
 deps = ["Dates"]

@@ -5,6 +5,10 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.73.0] - 2024-02-20
+### Fixed
+* Fixed an edge case of `where` parsing in the presence of curlies and operators ([#384](https://github.com/julia-vscode/CSTParser.jl/pull/384))
+
 ## [1.72.0] - 2024-02-16
 ### Fixed
 * Static inlay hints are now automatically disabled when runtime hints are displayed ([#3539](https://github.com/julia-vscode/julia-vscode/pull/3539))
