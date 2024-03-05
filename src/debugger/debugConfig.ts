@@ -208,7 +208,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     }
 
     setCurrentAsDefault() {
-        vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), true)
+        vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), vscode.ConfigurationTarget.Global)
     }
 
     addNameToCompiled(name: string) {
