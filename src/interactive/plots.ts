@@ -329,12 +329,12 @@ function makeTitle() {
 
 function enablePlotPane() {
     const conf = vscode.workspace.getConfiguration('julia')
-    conf.update('usePlotPane', true, true)
+    conf.update('usePlotPane', true, vscode.ConfigurationTarget.Global)
 }
 
 function disablePlotPane() {
     const conf = vscode.workspace.getConfiguration('julia')
-    conf.update('usePlotPane', false, true)
+    conf.update('usePlotPane', false, vscode.ConfigurationTarget.Global)
 }
 
 function updatePlotPane() {

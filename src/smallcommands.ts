@@ -8,7 +8,7 @@ function toggleLinter() {
     telemetry.traceEvent('command-togglelinter')
 
     const cval = vscode.workspace.getConfiguration('julia').get('lint.run', false)
-    vscode.workspace.getConfiguration('julia').update('lint.run', !cval, true)
+    vscode.workspace.getConfiguration('julia').update('lint.run', !cval, vscode.ConfigurationTarget.Global)
 }
 
 function applyTextEdit(we) {

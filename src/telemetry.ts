@@ -212,10 +212,10 @@ async function showCrashReporterUIConsent() {
             const disagree = 'No, never'
             const choice = await vscode.window.showInformationMessage('The Julia language extension crashed. Do you want to send more information about the problem to the development team? Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use crash reports and what data will be transmitted.', agree, agreeAlways, disagree)
             if (choice === disagree) {
-                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', false, true)
+                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', false, vscode.ConfigurationTarget.Global)
             }
             if (choice === agreeAlways) {
-                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, true)
+                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, vscode.ConfigurationTarget.Global)
             }
             if (choice === agree || choice === agreeAlways) {
                 sendCrashReportQueue()

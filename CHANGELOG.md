@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* The `Always copy code` option should now work properly on remote machines ([3559](https://github.com/julia-vscode/julia-vscode/pull/3559))
+
 ## [1.73.0] - 2024-02-20
 ### Fixed
 * Fixed an edge case of `where` parsing in the presence of curlies and operators ([#384](https://github.com/julia-vscode/CSTParser.jl/pull/384))
