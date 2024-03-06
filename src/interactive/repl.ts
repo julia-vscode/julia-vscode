@@ -59,11 +59,11 @@ async function confirmKill() {
     )
     switch (choice) {
     case disconnectAlways:
-        vscode.workspace.getConfiguration('julia').update('persistentSession.closeStrategy', 'disconnect', true)
+        vscode.workspace.getConfiguration('julia').update('persistentSession.closeStrategy', 'disconnect', vscode.ConfigurationTarget.Global)
     case disconnect:
         return false
     case closeAlways:
-        vscode.workspace.getConfiguration('julia').update('persistentSession.closeStrategy', 'close', true)
+        vscode.workspace.getConfiguration('julia').update('persistentSession.closeStrategy', 'close', vscode.ConfigurationTarget.Global)
     case close:
         return true
     }
@@ -260,7 +260,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 function juliaConnector(pipename: string, start = false) {
     const connect = `VSCodeServer.serve(raw"${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, crashreporting_pipename = raw"${telemetry.getCrashReportingPipename()}");nothing # re-establishing connection with VSCode`
     if (start) {
-        return `pushfirst!(LOAD_PATH, raw"${path.join(g_context.extensionPath, 'scripts', 'packages')}");using VSCodeServer;popfirst!(LOAD_PATH);` + connect
+        return `pushfirst!(LOAD_PATH, raw"${path.join(g_context.extensionPath, 'scripts', 'packages')}");try using VSCodeServer; finally popfirst!(LOAD_PATH) end;` + connect
     } else {
         return connect
     }
@@ -285,7 +285,7 @@ async function connectREPL() {
             always, copy
         )
         if (click === always) {
-            config.update('persistentSession.alwaysCopy', true)
+            config.update('persistentSession.alwaysCopy', true, vscode.ConfigurationTarget.Global)
         }
         if (click) {
             vscode.env.clipboard.writeText(connectJuliaCode)
@@ -514,6 +514,16 @@ function display(params: { kind: string, data: any }) {
         displayDiagnostics(params.data)
     } else if (params.kind === 'application/vnd.julia-vscode.inlayHints') {
         clearInlayHints()
+
+        if (vscode.workspace.getConfiguration('julia').get<boolean>('inlayHints.static.enabled')) {
+            vscode.workspace.getConfiguration('julia').update('inlayHints.static.enabled', false, vscode.ConfigurationTarget.Global)
+            vscode.window.showInformationMessage('Disabled static inlay hints for Julia to prevent duplicates.', 'Ok', 'Revert').then(val => {
+                if (val === 'Revert') {
+                    clearInlayHints()
+                    vscode.workspace.getConfiguration('julia').update('inlayHints.static.enabled', true, vscode.ConfigurationTarget.Global)
+                }
+            })
+        }
 
         const parsedInlayHints = {}
         Object.keys(params.data).forEach(key => {
@@ -1360,7 +1370,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
     const shellSkipCommands: Array<String> = terminalConfig.get('commandsToSkipShell')
     if (shellSkipCommands.indexOf('language-julia.interrupt') === -1) {
         shellSkipCommands.push('language-julia.interrupt')
-        terminalConfig.update('commandsToSkipShell', shellSkipCommands, true)
+        terminalConfig.update('commandsToSkipShell', shellSkipCommands, vscode.ConfigurationTarget.Global)
     }
 
     updateCellDelimiters()

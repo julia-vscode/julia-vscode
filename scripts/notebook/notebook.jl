@@ -1,8 +1,11 @@
 println(Base.stderr, "Starting notebook kernel server")
 
 pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
-using VSCodeServer
-popfirst!(LOAD_PATH)
+try
+    using VSCodeServer
+finally
+    popfirst!(LOAD_PATH)
+end
 
 println(Base.stderr, "Core notebook support loaded")
 

@@ -112,7 +112,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     vscode.commands.executeCommand('workbench.action.openSettings', 'julia.symbolCacheDownload')
                 }
             })
-            vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, true)
+            vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, vscode.ConfigurationTarget.Global)
         }
 
         // Start language server
@@ -124,9 +124,9 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage('To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use usage data. Do you agree to usage data collection?', agree, disagree)
                 .then(choice => {
                     if (choice === agree) {
-                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true)
+                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, vscode.ConfigurationTarget.Global)
                     } else if (choice === disagree) {
-                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', false, true)
+                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', false, vscode.ConfigurationTarget.Global)
                     }
                 })
         }

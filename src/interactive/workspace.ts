@@ -359,6 +359,6 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             node.toggleModules(show)
             node.updateReplVariables()
         })
-        vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, true)
+        vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, vscode.ConfigurationTarget.Global)
     }
 }

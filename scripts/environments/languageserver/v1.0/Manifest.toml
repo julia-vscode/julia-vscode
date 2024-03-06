@@ -181,7 +181,7 @@ uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "../../../packages/SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
-version = "7.3.0"
+version = "7.3.1"
 
 [[TOML]]
 deps = ["Dates"]

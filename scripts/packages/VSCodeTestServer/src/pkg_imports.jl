@@ -20,7 +20,7 @@ using ..JuliaInterpreter
 using ..JuliaInterpreter: SSAValue, SlotNumber, Frame
 using ..JuliaInterpreter: @lookup, moduleof, pc_expr, step_expr!, is_global_ref, is_quotenode_egal, whichtt,
     next_until!, finish_and_return!, get_return, nstatements, codelocation, linetable,
-    is_return, lookup_return, is_GotoIfNot, is_ReturnNode
+    is_return, lookup_return
 
 include("../../LoweredCodeUtils/src/packagedef.jl")
 end
@@ -33,7 +33,7 @@ using ..JuliaInterpreter
 using ..CodeTracking: PkgFiles, basedir, srcfiles, line_is_decl, basepath
 using ..JuliaInterpreter: whichtt, is_doc_expr, step_expr!, finish_and_return!, get_return,
     @lookup, moduleof, scopeof, pc_expr, is_quotenode_egal,
-    linetable, codelocs, LineTypes, is_GotoIfNot, isassign, isidentical
+    linetable, codelocs, LineTypes, isassign, isidentical
 using ..LoweredCodeUtils: next_or_nothing!, trackedheads, callee_matches
 include("../../Revise/src/packagedef.jl")
 end

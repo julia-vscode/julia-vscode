@@ -5,6 +5,24 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* The `Always copy code` option should now work properly on remote machines ([3559](https://github.com/julia-vscode/julia-vscode/pull/3559))
+
+## [1.73.0] - 2024-02-20
+### Fixed
+* Fixed an edge case of `where` parsing in the presence of curlies and operators ([#384](https://github.com/julia-vscode/CSTParser.jl/pull/384))
+
+## [1.72.0] - 2024-02-16
+### Fixed
+* Static inlay hints are now automatically disabled when runtime hints are displayed ([#3539](https://github.com/julia-vscode/julia-vscode/pull/3539))
+* Stackoverflow in `package_callbacks` ([#3546](https://github.com/julia-vscode/julia-vscode/issues/3546))
+* `UndefVarError` on starting Julia Test Server ([#3541](https://github.com/julia-vscode/julia-vscode/pull/3541))
+* Even if loading a Julia vs-code component fails the Julia LOAD_PATH does not get poluted.
+
+### Changed
+* Static inlay hints are now disabled by default ([#3539](https://github.com/julia-vscode/julia-vscode/pull/3539))
+
+## [1.70.0] - 2024-02-10
 ### Added
 * Added static inlay hints for variable definitions and function parameters ([#3519](https://github.com/julia-vscode/julia-vscode/pull/3519), [#1077](https://github.com/julia-vscode/LanguageServer.jl/pull/1077))
 
