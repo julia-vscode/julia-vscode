@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Fixed
 * The `Always copy code` option should now work properly on remote machines ([3559](https://github.com/julia-vscode/julia-vscode/pull/3559))
+* Handle `\r` characters for improved rendering of progress bars and the like in Notebook Outputs ([3561](https://github.com/julia-vscode/julia-vscode/issues/3561))
 
 ## [1.73.0] - 2024-02-20
 ### Fixed
