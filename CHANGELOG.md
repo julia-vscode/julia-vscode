@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.74.0] - 2024-03-07
 ### Fixed
 * The `Always copy code` option should now work properly on remote machines ([3559](https://github.com/julia-vscode/julia-vscode/pull/3559))
 * Handle `\r` characters for improved rendering of progress bars and the like in Notebook Outputs ([3561](https://github.com/julia-vscode/julia-vscode/issues/3561))
