@@ -117,7 +117,7 @@ async function main() {
         await fs.mkdir(env_path_ls, { recursive: true })
         await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })
 
-        if(new semver.SemVer(`${v}.0`)>=new semver.SemVer('1.6.0')) {
+        if(semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.6.0'))) {
             const env_path_pkgdev = path.join(process.cwd(), 'scripts/environments/pkgdev', `v${v}`)
             await fs.mkdir(env_path_pkgdev, { recursive: true })
             await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: env_path_pkgdev })
