@@ -42,7 +42,7 @@ version = "1.3.7-DEV"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.28"
+version = "0.9.29"
 
 [[deps.Markdown]]
 deps = ["Base64"]

@@ -1,6 +1,5 @@
 [deps]
 CSTParser = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 CommonMark = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"

@@ -106,6 +106,3 @@
 [submodule "scripts/packages/Preferences"]
 	path = scripts/packages/Preferences
 	url = https://github.com/JuliaPackaging/Preferences.jl
-[submodule "scripts/packages/Combinatorics"]
-	path = scripts/packages/Combinatorics
-	url = https://github.com/JuliaMath/Combinatorics.jl
