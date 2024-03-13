@@ -266,11 +266,15 @@ function plotPanelOnMessage(msg) {
     }
 }
 
-export function showPlotPane() {
+export function showPlotPane(lazy = false) {
     telemetry.traceEvent('command-showplotpane')
     const plotTitle = makeTitle()
 
     if (!g_plotPanel) {
+        if (lazy) {
+            return
+        }
+
         g_plotPanel = vscode.window.createWebviewPanel(
             'jlplotpane',
             plotTitle,
@@ -311,7 +315,7 @@ export function showPlotPane() {
     } else {
         g_plotPanel.title = plotTitle
         g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
-        if (!g_plotPanel.visible) {
+        if (!lazy && !g_plotPanel.visible) {
             g_plotPanel.reveal(g_plotPanel.viewColumn, true)
         }
     }
@@ -337,8 +341,8 @@ function disablePlotPane() {
     conf.update('usePlotPane', false, vscode.ConfigurationTarget.Global)
 }
 
-function updatePlotPane() {
-    showPlotPane()
+function updatePlotPane(lazy = false) {
+    showPlotPane(lazy)
 }
 
 export function plotPanePrev() {
@@ -387,7 +391,7 @@ export function plotPaneDel() {
         if (g_currentPlotIndex > g_plots.length - 1) {
             g_currentPlotIndex = g_plots.length - 1
         }
-        updatePlotPane()
+        updatePlotPane(true)
     }
 }
 
@@ -397,7 +401,7 @@ export function plotPaneDelAll() {
     if (g_plots.length > 0) {
         g_plots.splice(0, g_plots.length)
         g_currentPlotIndex = 0
-        updatePlotPane()
+        updatePlotPane(true)
     }
 }
 
