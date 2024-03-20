@@ -1394,6 +1394,11 @@
                                 "type": "string",
                                 "description": "Absolute path to the Julia environment.",
                                 "default": "${command:activeJuliaEnvironment}"
+                            },
+                            "sysImage": {
+                                "type": "string",
+                                "description": "Absolute path to the Julia sysimage.",
+                                "default": ""
                             }
                         }
                     }
@@ -1406,7 +1411,8 @@
                         "program": "${file}",
                         "stopOnEntry": false,
                         "cwd": "${workspaceFolder}",
-                        "juliaEnv": "${command:activeJuliaEnvironment}"
+                        "juliaEnv": "${command:activeJuliaEnvironment}",
+                        "sysImage": ""
                     }
                 ],
                 "configurationSnippets": [
@@ -1566,7 +1572,7 @@
         "mocha": "^10",
         "ts-loader": "^9.2.8",
         "typescript": "^5",
-        "webpack": "^5.70.0",
-        "webpack-cli": "^5"
+        "webpack": "^5.89.0",
+        "webpack-cli": "^5.1.4"
     }
 }
