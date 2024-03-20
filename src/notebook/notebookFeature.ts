@@ -9,22 +9,27 @@ import isEqual from 'lodash.isequal'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
 type JupyterNotebookMetadata = Partial<{
-    custom: {
-        metadata: {
-            kernelspec: {
-                display_name: string
-                language: string
-                name: string
-            }
-            language_info: {
-                name: string
-                version: string
-                mimetype: string
-                file_extension: string
-            }
+    metadata: {
+        kernelspec: {
+            display_name: string
+            language: string
+            name: string
+        }
+        language_info: {
+            name: string
+            version: string
+            mimetype: string
+            file_extension: string
         }
     }
 }>
+
+function getNotebookMetadata(notebook: vscode.NotebookDocument): JupyterNotebookMetadata['metadata'] | undefined{
+    if (notebook.metadata && 'custom' in notebook.metadata){
+        return notebook.metadata.custom?.metadata;
+    }
+    return notebook.metadata?.metadata as any;
+}
 
 export class JuliaNotebookFeature {
     private readonly _controllers = new Map<
@@ -261,8 +266,7 @@ export class JuliaNotebookFeature {
     private getNotebookLanguageVersion(
         notebook: vscode.NotebookDocument
     ): string {
-        const metadata = (notebook.metadata as JupyterNotebookMetadata)?.custom
-            .metadata
+        const metadata = getNotebookMetadata(notebook)
         const version = metadata?.language_info?.version || ''
         return this.isJuliaNotebook(notebook) ? version : ''
     }
@@ -285,7 +289,7 @@ export class JuliaNotebookFeature {
             },
         }
 
-        if (this.vscodeIpynbApi && !isEqual(notebook.metadata?.custom?.metadata, metadata)) {
+        if (this.vscodeIpynbApi && !isEqual(getNotebookMetadata(notebook), metadata)) {
             this.vscodeIpynbApi.setNotebookMetadata(notebook.uri, metadata)
         }
     }
@@ -295,10 +299,7 @@ export class JuliaNotebookFeature {
             return false
         }
 
-        return (
-            (
-                notebook.metadata as JupyterNotebookMetadata
-            )?.custom.metadata?.language_info?.name?.toLocaleLowerCase() === 'julia'
+        return (getNotebookMetadata(notebook)?.language_info?.name?.toLocaleLowerCase() === 'julia'
         )
     }
 
