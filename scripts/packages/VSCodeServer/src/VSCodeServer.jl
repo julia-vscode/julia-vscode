@@ -10,7 +10,10 @@ import Profile
 import Logging
 import InteractiveUtils
 
+const FALLBACK_CONSOLE_LOGGER_REF = Ref{Logging.AbstractLogger}()
+
 function __init__()
+    FALLBACK_CONSOLE_LOGGER_REF[] = Logging.ConsoleLogger()
     atreplinit() do repl
         @async try
             hook_repl(repl)

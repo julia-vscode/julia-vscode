@@ -23,7 +23,8 @@ function Logging.handle_message(j::VSCodeLogger, level, message, _module,
         return nothing
     end
 
-    previous_logger = something(j.parent, Logging.global_logger())
+    previous_logger = get_previous_logger(j)
+
     # Pass through non-progress log messages to the global logger iff the global logger would handle it:
     if (Base.invokelatest(Logging.min_enabled_level, previous_logger) <= Logging.LogLevel(level) ||
         Base.CoreLogging.env_override_minlevel(group, _module)) &&
@@ -39,8 +40,18 @@ Logging.shouldlog(::VSCodeLogger, level, _module, group, id) = true
 Logging.catch_exceptions(::VSCodeLogger) = true
 
 function Logging.min_enabled_level(j::VSCodeLogger)
-    min(Base.invokelatest(Logging.min_enabled_level, something(j.parent, Logging.global_logger())), Logging.LogLevel(-1))
+    min(Base.invokelatest(Logging.min_enabled_level, get_previous_logger(j)), Logging.LogLevel(-1))
 end
+
+prevent_logger_recursion(l) = l
+function prevent_logger_recursion(::VSCodeLogger)
+    l = FALLBACK_CONSOLE_LOGGER_REF[]
+    Logging.with_logger(l) do
+        @warn "Infinite recursion detected in logger setup. `VSCodeServer.VSCodeLogger` may not be used as a global logger!" _id=:vslogrecwarn maxlog=1
+    end
+    return l
+end
+get_previous_logger(j::VSCodeLogger) = prevent_logger_recursion(something(j.parent, Logging.global_logger()))
 
 const progresslogging_pkgid = Base.PkgId(
     Base.UUID("33c8b6b6-d38a-422a-b730-caa89a2f386c"),
