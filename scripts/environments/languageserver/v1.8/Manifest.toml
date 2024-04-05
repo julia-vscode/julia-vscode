@@ -91,7 +91,7 @@ version = "1.3.7-DEV"
 deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "Pkg", "PrecompileTools", "Tokenize"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "1.0.52"
+version = "1.0.53"
 
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
@@ -212,7 +212,7 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 deps = ["CSTParser", "Serialization", "SymbolServer"]
 path = "../../../packages/StaticLint"
 uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
-version = "8.2.0"
+version = "8.2.1"
 
 [[deps.SymbolServer]]
 deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]

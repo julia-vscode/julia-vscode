@@ -5,10 +5,14 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.75.0] - 2024-04-05
 ### Fixed
 * Deleting plots stops opening the plot pane if it's not visible ([#3564](https://github.com/julia-vscode/julia-vscode/pull/3564))
 * Stopped infinite recursion when the global logger got incorrectly set to an instance of `VSCodeLogger` ([#3572](https://github.com/julia-vscode/julia-vscode/pull/3572))
 * Changes to how Jupyter Notebook Metadata is accessed ([#3569](https://github.com/julia-vscode/julia-vscode/pull/3569))
+* Fixed an issue with Symbolics.jl sometimes getting misanalyzed, which would end up crashing the language server ([#383](https://github.com/julia-vscode/StaticLint.jl/pull/383))
+* `@kwdef mutable struct` with `const` fields are now analyzed correctly ([#384](https://github.com/julia-vscode/StaticLint.jl/pull/384))
+* More operators are now correctly highlighted ([#279](https://github.com/JuliaEditorSupport/atom-language-julia/pull/279))
 
 ## [1.74.0] - 2024-03-07
 ### Fixed
