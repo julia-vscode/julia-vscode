@@ -123,6 +123,12 @@ function install_vscode_shell_integration(prompt)
     end
 end
 
+if VERSION > v"1.9-"
+    active_module = Base.active_module
+else
+    active_module() = Main
+end
+
 const HAS_REPL_TRANSFORM = Ref{Bool}(false)
 function hook_repl(repl)
     if HAS_REPL_TRANSFORM[]
@@ -150,7 +156,7 @@ function hook_repl(repl)
 
     main_mode.on_done = REPL.respond(repl, main_mode; pass_empty = false) do line
         quote
-            $(evalrepl)(Main, $line, $repl, $main_mode)
+            $(evalrepl)($(active_module)(), $line, $repl, $main_mode)
         end
     end
     @debug "legacy REPL hook installed"
@@ -160,7 +166,7 @@ end
 
 function transform_backend(ast, repl, main_mode)
     quote
-        $(evalrepl)(Main, $(QuoteNode(ast)), $repl, $main_mode)
+        $(evalrepl)($(active_module)(), $(QuoteNode(ast)), $repl, $main_mode)
     end
 end
 
@@ -191,6 +197,7 @@ function evalrepl(m, line, repl, main_mode)
             display_repl_error(stderr, r.err, r.bt)
             nothing
         elseif r isa EvalErrorStack
+            set_error_global(r)
             display_repl_error(stderr, r)
             nothing
         else
@@ -222,21 +229,39 @@ end
     return Base.eval(m, code)
 end
 
+replcontext(io, limitflag) = IOContext(
+    io,
+    :limit => true,
+    :displaysize => get(stdout, :displaysize, (60, 120)),
+    :stacktrace_types_limited => limitflag,
+)
+
 # basically the same as Base's `display_error`, with internal frames removed
 function display_repl_error(io, err, bt)
+    limitflag = Ref(false)
+
     st = stacktrace(crop_backtrace(bt))
     printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
-    showerror(IOContext(io, :limit => true), err, st)
+    showerror(replcontext(io, limitflag), err, st)
+    if limitflag[]
+        print(io, "Some type information was truncated. Use `show(err)` to see complete types.")
+    end
     println(io)
 end
 
 function display_repl_error(io, stack::EvalErrorStack)
+    limitflag = Ref(false)
+
     printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
     for (i, (err, bt)) in enumerate(reverse(stack.stack))
         i !== 1 && print(io, "\ncaused by: ")
         st = stacktrace(crop_backtrace(bt))
-        showerror(IOContext(io, :limit => true), i == 1 ? unwrap_loaderror(err) : err, st)
+        showerror(replcontext(io, limitflag), i == 1 ? unwrap_loaderror(err) : err, st)
         println(io)
+    end
+
+    if limitflag[]
+        println(io, "Some type information was truncated. Use `show(err)` to see complete types.")
     end
 end
 

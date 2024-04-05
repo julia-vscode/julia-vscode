@@ -1,4 +1,7 @@
-struct VSCodeLogger <: Logging.AbstractLogger end
+struct VSCodeLogger <: Logging.AbstractLogger
+    parent::Union{Nothing, Logging.AbstractLogger}
+end
+VSCodeLogger() = VSCodeLogger(nothing)
 
 const logger_lock = ReentrantLock()
 function Logging.handle_message(j::VSCodeLogger, level, message, _module,
@@ -8,6 +11,9 @@ function Logging.handle_message(j::VSCodeLogger, level, message, _module,
         try
             JSONRPC.send_notification(conn_endpoint[], "repl/updateProgress", progress)
             JSONRPC.flush(conn_endpoint[])
+        catch err
+            @debug "Failed to send 'repl/updateProgress' message" exception=(err, catch_backtrace())
+            return nothing
         finally
             unlock(logger_lock)
         end
@@ -17,7 +23,8 @@ function Logging.handle_message(j::VSCodeLogger, level, message, _module,
         return nothing
     end
 
-    previous_logger = Logging.global_logger()
+    previous_logger = get_previous_logger(j)
+
     # Pass through non-progress log messages to the global logger iff the global logger would handle it:
     if (Base.invokelatest(Logging.min_enabled_level, previous_logger) <= Logging.LogLevel(level) ||
         Base.CoreLogging.env_override_minlevel(group, _module)) &&
@@ -32,9 +39,19 @@ Logging.shouldlog(::VSCodeLogger, level, _module, group, id) = true
 
 Logging.catch_exceptions(::VSCodeLogger) = true
 
-function Logging.min_enabled_level(::VSCodeLogger)
-    min(Base.invokelatest(Logging.min_enabled_level, Logging.global_logger()), Logging.LogLevel(-1))
+function Logging.min_enabled_level(j::VSCodeLogger)
+    min(Base.invokelatest(Logging.min_enabled_level, get_previous_logger(j)), Logging.LogLevel(-1))
 end
+
+prevent_logger_recursion(l) = l
+function prevent_logger_recursion(::VSCodeLogger)
+    l = FALLBACK_CONSOLE_LOGGER_REF[]
+    Logging.with_logger(l) do
+        @warn "Infinite recursion detected in logger setup. `VSCodeServer.VSCodeLogger` may not be used as a global logger!" _id=:vslogrecwarn maxlog=1
+    end
+    return l
+end
+get_previous_logger(j::VSCodeLogger) = prevent_logger_recursion(something(j.parent, Logging.global_logger()))
 
 const progresslogging_pkgid = Base.PkgId(
     Base.UUID("33c8b6b6-d38a-422a-b730-caa89a2f386c"),

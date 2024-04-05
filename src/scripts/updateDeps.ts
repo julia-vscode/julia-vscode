@@ -1,4 +1,4 @@
-import * as download from 'download'
+import download from 'download'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import * as process from 'process'
@@ -29,9 +29,12 @@ async function replace_backslash_in_manifest(project_path: string) {
 }
 
 async function main() {
+    await our_download('https://raw.githubusercontent.com/JuliaEditorSupport/atom-language-julia/master/grammars/julia_vscode.json', 'syntaxes/julia_vscode.json')
+
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@2', 'libs/vega-lite-2/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@3', 'libs/vega-lite-3/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-lite@4', 'libs/vega-lite-4/vega-lite.min.js')
+    await our_download('https://cdn.jsdelivr.net/npm/vega-lite@5', 'libs/vega-lite-5/vega-lite.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega@3', 'libs/vega-3/vega.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega@4', 'libs/vega-4/vega.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega@5', 'libs/vega-5/vega.min.js')
@@ -44,11 +47,13 @@ async function main() {
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css', 'libs/fontawesome/brands.min.css')
 
     for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'StaticLint', 'SymbolServer', 'DebugAdapter']) {
+        console.log(`Updating ${pkg} to latest master`)
         await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
     for (const pkg of ['IJuliaCore', 'TestItemDetection']) {
+        console.log(`Updating ${pkg} to latest main`)
         await cp.exec('git checkout main', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
@@ -59,24 +64,33 @@ async function main() {
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
+        // 'JuliaSyntax', Need to update JuliaWorkspaces first
+        'JuliaWorkspaces',
+        'Glob',
         'LoweredCodeUtils',
         'OrderedCollections',
         'PackageCompiler',
         'Tokenize',
         'URIParser',
         'CommonMark',
-        // 'Compat', # Compat 4 dropped Julia 1.0 support, so we keep it on an older version
-        // 'Crayons', # Crayons 4.1 dropped Julia 1.0 support, so we keep it on an older version
+        'Compat',
+        'Crayons',
         'DataStructures',
         'JuliaFormatter',
-        'URIs',
-        'Revise'
+        // 'URIs', Not compatible with earlier than Julia 1.6 versions
+        'Revise',
+        'DelimitedFiles',
+        'Preferences',
+        'PrecompileTools',
+        'TestEnv',
     ]) {
         await cp.exec('git fetch')
+        await cp.exec('git fetch --tags')
         const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
 
         const newestTag = tags.stdout.toString().split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))[0]
 
+        console.log(`Updating ${pkg} to latest tag: ${newestTag.original}`)
         await cp.exec(`git checkout ${newestTag.original}`, { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
@@ -90,12 +104,20 @@ async function main() {
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
-    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8']) {
+    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10']) {
+        console.log(`Adding Julia ${v} via juliaup`)
+        try {
+            await cp.exec(`juliaup add ${v}`)
+        }
+        catch (err) {
+        }
+
+        console.log(`Updating environments for Julia ${v}...`)
         const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
         await fs.mkdir(env_path_ls, { recursive: true })
         await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })
 
-        if(new semver.SemVer(`${v}.0`)>=new semver.SemVer('1.6.0')) {
+        if(semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.6.0'))) {
             const env_path_pkgdev = path.join(process.cwd(), 'scripts/environments/pkgdev', `v${v}`)
             await fs.mkdir(env_path_pkgdev, { recursive: true })
             await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: env_path_pkgdev })
@@ -119,13 +141,26 @@ async function main() {
 
     }
 
+    try {
+        await cp.exec(`juliaup add release`)
+    }
+    catch (err) {
+
+    }
+
+    try {
+        await cp.exec(`juliaup add nightly`)
+    }
+    catch (err) {
+    }
+
     // We also add a fallback release env in case a user has a Julia version we don't know about
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/languageserver/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/pkgdev/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback'), { recursive: true })
-    await cp.exec(`julia "+release" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver/fallback') })
-    await cp.exec(`julia "+release" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev/fallback') })
-    await cp.exec(`julia "+release" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback') })
+    await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver/fallback') })
+    await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev/fallback') })
+    await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback') })
 
     // Julia 1.0 and 1.1 write backslash in relative paths in Manifest files, which we don't want
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/languageserver/v1.0'))
@@ -141,6 +176,7 @@ async function main() {
     // We keep the dev environment on the latest release version always
     await cp.exec(`julia "+release" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/development') })
 
+    console.log('npm update')
     await cp.exec('npm update', { cwd: process.cwd() })
 }
 

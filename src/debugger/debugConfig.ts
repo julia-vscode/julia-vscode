@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { onExit, onFinishEval, onInit } from '../interactive/repl'
-import { setContext } from '../utils'
+import { setContext, wrapCrashReporting } from '../utils'
 
 interface DebugConfigTreeItem {
     label: string
@@ -208,7 +208,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     }
 
     setCurrentAsDefault() {
-        vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), true)
+        vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), vscode.ConfigurationTarget.Global)
     }
 
     addNameToCompiled(name: string) {
@@ -279,10 +279,10 @@ export function activate(context: vscode.ExtensionContext) {
             provider.disableCompiledMode()
             setContext('julia.debuggerCompiledMode', false)
         }),
-        onInit(connection => {
+        onInit(wrapCrashReporting(connection => {
             provider.setConnection(connection)
             provider.refresh()
-        }),
+        })),
         onFinishEval(_ => provider.refresh()),
         onExit(e => {
             provider.setConnection(null)

@@ -160,13 +160,42 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
             return TestserverRunTestitemRequestParamsReturn(
                 "failed",
-                [TestMessage(sprint(Base.show, i), Location(filepath2uri(string(i.source.file)), Range(Position(i.source.line - 1, 0), Position(i.source.line - 1, 0)))) for i in failed_tests],
+                [ create_test_message_for_failed(i) for i in failed_tests],
                 elapsed_time
             )
         else
             rethrow(err)
         end
     end
+end
+
+function create_test_message_for_failed(i)
+    (expected, actual) = extract_expected_and_actual(i)
+    return TestMessage(sprint(Base.show, i),
+        expected,
+        actual,
+        Location(filepath2uri(string(i.source.file)), Range(Position(i.source.line - 1, 0), Position(i.source.line - 1, 0))))
+end
+
+function extract_expected_and_actual(result)
+    if isa(result, Test.Fail)
+        s = result.data
+        if isa(s, String)
+            m = match(r"\"(.*)\" == \"(.*)\"", s)
+            if m !== nothing
+                try
+                    expected = unescape_string(m.captures[1])
+                    actual = unescape_string(m.captures[2])
+                    return (expected, actual)
+                catch err
+                    # theoretically possible if a user registers a Fail instance that matches
+                    # above regexp, but doesn't contain two escaped strings.
+                    # just return nothing in this unlikely case, meaning no diff will be shown.
+                end
+            end
+        end
+    end
+    return (nothing, nothing)
 end
 
 function serve_in_env(conn)
@@ -188,6 +217,7 @@ function serve_in_env(conn)
 end
 
 function serve(conn, project_path, package_path, package_name; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    @info "This test server instance was started with the following configuration." project_path package_path package_name
     if project_path==""
         Pkg.activate(temp=true)
 

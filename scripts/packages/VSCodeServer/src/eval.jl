@@ -97,6 +97,30 @@ function add_code_to_repl_history(code)
 end
 
 CAN_SET_ANS = Ref{Bool}(true)
+CAN_SET_ERR = Ref{Bool}(true)
+
+function set_error_global(errs)
+    if CAN_SET_ERR[]
+        try
+            errs isa EvalErrorStack || error()
+            istrivial = @static if isdefined(Base, :istrivialerror)
+                Base.istrivialerror(errs.stack)
+            else
+                true
+            end
+            @static if VERSION > v"1.10-"
+                istrivial || setglobal!(Base.MainInclude, :err, errs.stack)
+            elseif @isdefined setglobal!
+                istrivial || setglobal!(Main, :err, errs.stack)
+            else
+                istrivial || ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :err, errs.stack)
+            end
+        catch
+            CAN_SET_ERR[] = false
+        end
+    end
+end
+
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
     run_with_backend() do
         fix_displays()
@@ -134,7 +158,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                 suffix = string("\e[0m", SHELL.update_cwd(), SHELL.prompt_end())
                 try
                     mode = get_main_mode()
-                    prompt = mode.prompt
+                    prompt = LineEdit.prompt_string(mode.prompt)
                     LineEdit.write_prompt(stdout, mode)
                 catch err
                     print(stdout, prefix, prompt, suffix)
@@ -157,7 +181,9 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     val = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
                     if CAN_SET_ANS[]
                         try
-                            @static if @isdefined setglobal!
+                            @static if VERSION > v"1.10-"
+                                setglobal!(Base.MainInclude, :ans, val)
+                            elseif @isdefined setglobal!
                                 setglobal!(Main, :ans, val)
                             else
                                 ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :ans, val)
@@ -174,13 +200,17 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     if show_code
                         REPL_PROMPT_STATE[] = REPLPromptStates.Error
                     end
-                    @static if isdefined(Base, :current_exceptions)
+                    errs = @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
                     elseif isdefined(Base, :catch_stack)
                         EvalErrorStack(Base.catch_stack())
                     else
                         EvalError(err, catch_backtrace())
                     end
+
+                    set_error_global(errs)
+
+                    errs
                 finally
                     try
                         JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
@@ -189,7 +219,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     end
                 end
 
-                if show_error && res isa EvalError || res isa EvalErrorStack
+                if show_error && (res isa EvalError || res isa EvalErrorStack)
                     Base.display_error(stderr, res)
                 elseif show_result
                     if res isa EvalError || res isa EvalErrorStack
@@ -203,8 +233,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     end
                 else
                     try
-                        if !ends_with_semicolon(source_code)
-                            Base.invokelatest(display, InlineDisplay(), res)
+                        if !ends_with_semicolon(source_code) && !(res isa EvalError || res isa EvalErrorStack)
+                            with_no_default_display(() -> display(res); allow_inline = true)
                         end
                     catch err
                         if !(err isa MethodError && err.f === display)
@@ -336,7 +366,7 @@ function Base.display_error(io::IO, err::EvalError)
     try
         Base.invokelatest(display_repl_error, io, unwrap_loaderror(err.err), err.bt)
     catch err
-        @error "Error trying to display an error."
+        @error "Error trying to display an error." ex = (err, catch_backtrace())
     end
 end
 
@@ -344,7 +374,7 @@ function Base.display_error(io::IO, err::EvalErrorStack)
     try
         Base.invokelatest(display_repl_error, io, err)
     catch err
-        @error "Error trying to display an error."
+        @error "Error trying to display an error." ex = (err, catch_backtrace())
     end
 end
 
@@ -358,7 +388,14 @@ function remove_kw_wrappers!(st::StackTraces.StackTrace)
 end
 
 function backtrace_string(bt)
-    io = IOBuffer()
+    limitflag = Ref(false)
+
+    iob = IOBuffer()
+    io = IOContext(
+        iob,
+        :stacktrace_types_limited => limitflag,
+        :displaysize => (120, 120)
+    )
 
     println(io, "Stacktrace:\n")
     i = 1
@@ -383,7 +420,7 @@ function backtrace_string(bt)
 
         print(io, counter, ". `")
         Base.StackTraces.show_spec_linfo(io, frame)
-        print(io, "` at [", file, "](", cmd, " \"", file, "\")")
+        print(io, "` at [", basename(file), "](", cmd, " \"", file, "\")")
         if repeated > 1
             print(io, " (repeats $repeated times)")
         end
@@ -392,5 +429,9 @@ function backtrace_string(bt)
         counter += 1
     end
 
-    return String(take!(io))
+    if limitflag[]
+        print(io, "Some type information was truncated. Use `show(err)` to see complete types.")
+    end
+
+    return String(take!(iob))
 end

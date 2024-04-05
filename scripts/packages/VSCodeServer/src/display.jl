@@ -6,6 +6,7 @@ InlineDisplay() = InlineDisplay(false)
 
 const PLOT_PANE_ENABLED = Ref(true)
 const DIAGNOSTICS_ENABLED = Ref(true)
+const INLAY_HINTS_ENABLED = Ref(true)
 const PROGRESS_ENABLED = Ref(true)
 
 function toggle_plot_pane(_, params::NamedTuple{(:enable,),Tuple{Bool}})
@@ -14,6 +15,10 @@ end
 
 function toggle_diagnostics(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     DIAGNOSTICS_ENABLED[] = params.enable
+end
+
+function toggle_inlay_hints(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+    INLAY_HINTS_ENABLED[] = params.enable
 end
 
 function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
@@ -29,10 +34,10 @@ function fix_displays(; is_repl = false)
     pushdisplay(InlineDisplay(is_repl))
 end
 
-function with_no_default_display(f)
+function with_no_default_display(f; allow_inline = false)
     stack = copy(Base.Multimedia.displays)
     filter!(Base.Multimedia.displays) do d
-        !(d isa REPL.REPLDisplay || d isa TextDisplay || d isa InlineDisplay)
+        !(d isa REPL.REPLDisplay || d isa TextDisplay || (!allow_inline && d isa InlineDisplay))
     end
     try
         return f()
@@ -42,12 +47,18 @@ function with_no_default_display(f)
     end
 end
 
+
 function sendDisplayMsg(kind, data)
-    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data))
-    JSONRPC.flush(conn_endpoint[])
+    msg = Dict{String,Any}("kind" => kind, "data" => data)
+    try
+        JSONRPC.send_notification(conn_endpoint[], "display", msg)
+        JSONRPC.flush(conn_endpoint[])
+    catch
+        maybe_queue_notification!("display", msg) || rethrow()
+    end
 end
 
-function Base.display(d::InlineDisplay, m::MIME, x)
+function Base.display(d::InlineDisplay, m::MIME, @nospecialize(x))
     if !PLOT_PANE_ENABLED[]
         with_no_default_display(() -> display(m, x))
     else
@@ -77,6 +88,7 @@ Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plo
 Base.Multimedia.displayable(_::InlineDisplay, mime::MIME) = PLOT_PANE_ENABLED[] && string(mime) in DISPLAYABLE_MIMES
 
 const DISPLAYABLE_MIMES = [
+    "application/vnd.vegalite.v5+json",
     "application/vnd.vegalite.v4+json",
     "application/vnd.vegalite.v3+json",
     "application/vnd.vegalite.v2+json",
@@ -131,6 +143,33 @@ function Base.Multimedia.display(d::InlineDisplay, m::MIME{Symbol(DIAGNOSTIC_MIM
     end
 end
 
+"""
+    INLAY_HINTS_MIME = "application/vnd.julia-vscode.inlayHints"
+
+User type needs to implement a `show` method that returns a dictionary like the following
+
+```
+Base.show(io::IO, ::MIME"application/vnd.julia-vscode.inlayHints", t::YourType) = Dict("/some/other/absolute/path.jl" => [(
+    position = (4, 1), # line, column (0 indexed)
+    label = "::R",
+    kind = 1, # optional; 1: Type, 2: Parameter, nothing: undefined
+    tooltip = "test", # optional
+    paddingLeft = false, # optional
+    paddingRight = false # optional
+)])
+```
+
+Anything printed to `io` is discarded.
+"""
+const INLAY_HINTS_MIME = "application/vnd.julia-vscode.inlayHints"
+Base.Multimedia.displayable(::InlineDisplay, ::MIME{Symbol(INLAY_HINTS_MIME)}) = INLAY_HINTS_ENABLED[]
+function Base.Multimedia.display(d::InlineDisplay, m::MIME{Symbol(INLAY_HINTS_MIME)}, inlay_hints)
+    sendDisplayMsg(INLAY_HINTS_MIME, show(IOBuffer(), m, inlay_hints))
+    if d.is_repl
+        display(MIME"text/plain"(), inlay_hints)
+    end
+end
+
 function is_table_like(x)
     if showable("application/vnd.dataresource+json", x)
         return true
@@ -155,9 +194,12 @@ function can_display(x)
     return is_table_like(x)
 end
 
-function Base.display(d::InlineDisplay, x)
+function Base.display(d::InlineDisplay, @nospecialize(x))
     if DIAGNOSTICS_ENABLED[] && showable(DIAGNOSTIC_MIME, x)
         return display(d, DIAGNOSTIC_MIME, x)
+    end
+    if INLAY_HINTS_ENABLED[] && showable(INLAY_HINTS_MIME, x)
+        return display(d, INLAY_HINTS_MIME, x)
     end
     if PLOT_PANE_ENABLED[]
         for mime in DISPLAYABLE_MIMES

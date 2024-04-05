@@ -82,7 +82,13 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                     println(false)
                 end`,
                 `${case_adjusted}`
-            ]
+            ],
+            {
+                env: {
+                    ...process.env,
+                    JULIA_VSCODE_INTERNAL: '1',
+                }
+            }
         )
 
         if (res.stdout.toString().trim() === 'false') {
@@ -200,7 +206,13 @@ async function getDefaultEnvPath() {
                 '--startup-file=no',
                 '--history-file=no',
                 '-e', 'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))'
-            ])
+            ],
+            {
+                env: {
+                    ...process.env,
+                    JULIA_VSCODE_INTERNAL: '1',
+                }
+            })
         g_path_of_default_environment = res.stdout.toString().trim()
     }
     return g_path_of_default_environment

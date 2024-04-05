@@ -46,7 +46,7 @@ ag_filter_type(::Type{T}) where {T<:Number} = "agNumberColumnFilter"
 ag_filter_type(::Type{T}) where {T<:Union{Dates.Date,Dates.DateTime}} = "agDateColumnFilter"
 
 # for small tables only
-function print_table(io::IO, source, col_names, fixed_col_names, col_types, title = "")
+function print_table(io::IO, source, col_names, fixed_col_names, col_types, col_labels, title = "")
     ctx = JSON.Writer.CompactContext(io)
 
     JSON.begin_object(ctx)
@@ -54,7 +54,7 @@ function print_table(io::IO, source, col_names, fixed_col_names, col_types, titl
     JSON.show_pair(ctx, JSON.StandardSerialization(), "name", title)
 
     JSON.show_key(ctx, "schema")
-    print_schema(ctx, col_names, fixed_col_names, col_types, filterable = true)
+    print_schema(ctx, col_names, fixed_col_names, col_types, col_labels, filterable = true)
 
     JSON.show_key(ctx, "data")
     print_body(ctx, source, fixed_col_names)
@@ -63,7 +63,7 @@ function print_table(io::IO, source, col_names, fixed_col_names, col_types, titl
 end
 
 # https://specs.frictionlessdata.io/table-schema
-function print_schema(ctx, col_names, fixed_col_names, col_types; filterable = false, sortable = false)
+function print_schema(ctx, col_names, fixed_col_names, col_types, col_labels; filterable = false, sortable = false)
     ser = JSON.StandardSerialization()
 
     JSON.begin_object(ctx)
@@ -78,6 +78,7 @@ function print_schema(ctx, col_names, fixed_col_names, col_types; filterable = f
         JSON.show_pair(ctx, ser, "type", schema_type(col_types[i]))
         # custom fields
         JSON.show_pair(ctx, ser, "jl_type", julia_type(col_types[i]))
+        JSON.show_pair(ctx, ser, "jl_label", col_labels[i])
         JSON.show_pair(ctx, ser, "ag_type", ag_schema_type(col_types[i]))
         JSON.show_pair(ctx, ser, "ag_filter", filterable ? ag_filter_type(col_types[i]) : false)
         JSON.show_pair(ctx, ser, "ag_sortable", sortable)
@@ -118,18 +119,23 @@ end
 
 _isiterabletable = x -> false
 _getiterator = x -> x
+_get_label = (x, col) -> nothing
 
 const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
 const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
+const dataapi_uuid = UUIDs.UUID("9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a")
 function on_pkg_load(pkg)
     if pkg.uuid == tabletraits_uuid
-        TableTraits = Base.require(pkg)
+        TableTraits = get(Base.loaded_modules, pkg) do
+            Base.require(pkg)
+        end
 
         global _isiterabletable = TableTraits.isiterabletable
         global _getiterator = TableTraits.getiterator
     elseif pkg.uuid == datavalues_uuid
-        DataValues = Base.require(pkg)
-
+        DataValues = get(Base.loaded_modules, pkg) do
+            Base.require(pkg)
+        end
         eval(
             quote
                 function json_sprint(val::$(DataValues.DataValue))
@@ -137,6 +143,17 @@ function on_pkg_load(pkg)
                 end
             end
         )
+    elseif pkg.uuid == dataapi_uuid
+        DataAPI = get(Base.loaded_modules, pkg) do
+            Base.require(pkg)
+        end
+
+        global _get_label = (x, col) -> try
+            return DataAPI.colmetadata(x, col, "label"; style = false)
+        catch err
+            @debug "Could not get column label for $col" exception=(err, catch_backtrace())
+            return nothing
+        end
     end
 end
 
@@ -173,6 +190,7 @@ function showtable(table::T, title = "") where {T}
         col_types = [fieldtype(eltype(iter), i) for i = 1:length(col_names)]
     end
     fixed_col_names = col_name_fixer.(col_names)
+    col_labels = [_get_label(table, colname) for colname in col_names]
 
     if length(fixed_col_names) == 0
         throw(ErrorException("Input table does not seem to have columns."))
@@ -201,7 +219,7 @@ function showtable(table::T, title = "") where {T}
 
         io = IOBuffer()
         ctx = JSON.Writer.CompactContext(io)
-        print_schema(ctx, col_names, fixed_col_names, col_types, sortable = should_copy, filterable = should_copy)
+        print_schema(ctx, col_names, fixed_col_names, col_types, col_labels; sortable = should_copy, filterable = should_copy)
 
         schema = JSON.JSONText(String(take!(io)))
 
@@ -214,7 +232,7 @@ function showtable(table::T, title = "") where {T}
         sendDisplayMsg("application/vnd.dataresource+lazy", JSON.json(payload))
     else
         io = IOBuffer()
-        print_table(io, iter, col_names, fixed_col_names, col_types, title)
+        print_table(io, iter, col_names, fixed_col_names, col_types, col_labels, title)
         sendDisplayMsg("application/vnd.dataresource+json", String(take!(io)))
     end
 end

@@ -1,9 +1,10 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
+import { ResponseError } from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import * as telemetry from '../telemetry'
-import { registerCommand } from '../utils'
+import { registerCommand, wrapCrashReporting } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import { onExit, onInit } from './repl'
 
@@ -45,10 +46,10 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.command = 'language-julia.chooseModule'
     statusBarItem.tooltip = 'Choose Current Module'
 
-    onInit(conn => {
+    onInit(wrapCrashReporting(conn => {
         g_connection = conn
         updateStatusBarItem()
-    })
+    }))
     onExit(hadError => {
         g_connection = null
         updateStatusBarItem()
@@ -65,51 +66,46 @@ function cancelCurrentGetModuleRequest() {
     }
 }
 
-export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position, token?: vscode.CancellationToken) {
+export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position, token?: vscode.CancellationToken): Promise<string> {
     const manuallySetModule = manuallySetDocuments[document.fileName]
     if (manuallySetModule) { return manuallySetModule }
 
     const languageClient = g_languageClient
 
     if (!languageClient) { return 'Main' }
-    if (!languageClient.isRunning) { return 'Main' }
-    try {
-        const params: VersionedTextDocumentPositionParams = {
-            textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
-            version: document.version,
-            position: position
-        }
 
-        for (let i = 0; i < 3; i++) {
-            if (token === undefined || !token.isCancellationRequested) {
-                try {
-                    return await languageClient.sendRequest<string>('julia/getModuleAt', params)
-                }
-                catch (err) {
-                    // Is this a version mismatch situation? Only if not, rethrow
-                    if (err.code !== -32099) {
-                        throw err
-                    }
-                }
-            }
-            else {
-                // We were canceled, so we give up
-                return
-            }
-        }
-
-        // We tried three times, now give up
-        return
-
-    } catch (err) {
-        if (err.message === 'Language client is not ready yet') {
-            vscode.window.showErrorMessage(err)
-        } else if (languageClient) {
-            console.error(err)
-            telemetry.handleNewCrashReportFromException(err, 'Extension')
-        }
-        return 'Main'
+    const params: VersionedTextDocumentPositionParams = {
+        textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
+        version: document.version,
+        position: position
     }
+
+    for (let i = 0; i < 3; i++) {
+        if (token === undefined || !token.isCancellationRequested) {
+            try {
+                return await languageClient.sendRequest<string>('julia/getModuleAt', params)
+            }
+            catch (err) {
+                if (err instanceof ResponseError && err.code===rpc.ErrorCodes.ConnectionInactive) {
+                    return 'Main'
+                }
+                else if (err instanceof ResponseError && err.code===-33101) {
+                    // This is a version out of sync situation
+                    return 'Main'
+                }
+                else {
+                    throw err
+                }
+            }
+        }
+        else {
+            // We were canceled, so we give up
+            return 'Main'
+        }
+    }
+
+    // We tried three times, now give up
+    return 'Main'
 }
 
 function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {

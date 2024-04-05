@@ -24,7 +24,7 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
-import { notifyTypeTextDocumentPublishTestitems, TestFeature } from './testing/testFeature'
+import { notifyTypeTextDocumentPublishTests, TestFeature } from './testing/testFeature'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
@@ -46,11 +46,6 @@ export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:[
 export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
 
 export async function activate(context: vscode.ExtensionContext) {
-    if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
-        vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
-        return
-    }
-
     await telemetry.init(context)
     try {
         setContext('julia.isActive', true)
@@ -117,7 +112,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     vscode.commands.executeCommand('workbench.action.openSettings', 'julia.symbolCacheDownload')
                 }
             })
-            vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, true)
+            vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, vscode.ConfigurationTarget.Global)
         }
 
         // Start language server
@@ -129,9 +124,9 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage('To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use usage data. Do you agree to usage data collection?', agree, disagree)
                 .then(choice => {
                     if (choice === agree) {
-                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true)
+                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, vscode.ConfigurationTarget.Global)
                     } else if (choice === disagree) {
-                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', false, true)
+                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', false, vscode.ConfigurationTarget.Global)
                     }
                 })
         }
@@ -237,11 +232,11 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
         vscode.window.showErrorMessage(
-            'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.',
+            'Could not start the Julia language server. Make sure the `julia.executablePath` setting is valid.',
             'Open Settings'
         ).then(val => {
             if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
             }
         })
         g_startupNotification.hide()
@@ -264,6 +259,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
             HOME: process.env.HOME ? process.env.HOME : os.homedir(),
             JULIA_LANGUAGESERVER: '1',
+            JULIA_VSCODE_LANGUAGESERVER: '1',
+            JULIA_VSCODE_INTERNAL: '1',
             PATH: process.env.PATH
         }
     }
@@ -363,9 +360,9 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     languageClient.onDidChangeState(event => {
         if (event.newState === State.Running) {
-            languageClient.onNotification(notifyTypeTextDocumentPublishTestitems, i=> {
+            languageClient.onNotification(notifyTypeTextDocumentPublishTests, i=> {
                 try {
-                    g_testFeature.publishTestitemsHandler(i)
+                    g_testFeature.publishTestsHandler(i)
                 }
                 catch (err) {
                     handleNewCrashReportFromException(err, 'Extension')

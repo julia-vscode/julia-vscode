@@ -168,6 +168,34 @@ end
 
 vscode_cmd_uri(cmd; cmdargs...) = string("command:", cmd, '?', encode_uri_component(JSON.json(cmdargs)))
 
+# Notificataion queueing
+const MAX_NOTIFICATION_BUFFER_SIZE = 100
+const NOTIFICATION_BUFFER = Tuple{String, Any}[]
+
+function maybe_queue_notification!(type, content)
+    if conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && conn_endpoint[].status !== :running
+        push!(NOTIFICATION_BUFFER, (type, content))
+
+        if length(NOTIFICATION_BUFFER) > MAX_NOTIFICATION_BUFFER_SIZE
+            popfirst!(NOTIFICATION_BUFFER)
+        end
+        return true
+    end
+    return false
+end
+
+function send_queued_notifications!()
+    while !isempty(NOTIFICATION_BUFFER)
+        (type, content) = popfirst!(NOTIFICATION_BUFFER)
+        try
+            JSONRPC.send_notification(conn_endpoint[], type, content)
+        catch err
+            @debug "Could not send enqueued notification" exception=(err, catch_backtrace())
+        end
+    end
+    JSONRPC.flush(conn_endpoint[])
+end
+
 # Misc handlers
 function cd_to_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
     cd(params.uri)
@@ -186,4 +214,8 @@ function revise()
             mode == "auto" && Base.invokelatest(Main.Revise.revise)
         end
     end
+end
+
+function openfile(path::AbstractString, line::Integer; preserve_focus::Bool=false)
+    JSONRPC.send(conn_endpoint[], repl_open_file_notification_type, (; path=String(path), line=Int(line), preserveFocus=preserve_focus))
 end

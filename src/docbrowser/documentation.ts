@@ -1,4 +1,4 @@
-import * as markdownit from 'markdown-it'
+import markdownit from 'markdown-it'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { withLanguageClient } from '../extension'

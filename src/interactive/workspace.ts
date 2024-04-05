@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { TestProcess } from '../testing/testFeature'
-import { registerCommand } from '../utils'
+import { registerCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
 import {
     notifyTypeDisplay,
@@ -210,7 +210,7 @@ export class WorkspaceFeature {
                 this._REPLTreeDataProvider
             ),
             // listeners
-            onInit((conn) => this.openREPL(conn)),
+            onInit(wrapCrashReporting(conn => this.openREPL(conn))),
             onExit((err) => this.closeREPL(err)),
             // commands
             registerCommand('language-julia.showInVSCode', (node: VariableNode) =>
@@ -359,6 +359,6 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             node.toggleModules(show)
             node.updateReplVariables()
         })
-        vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, true)
+        vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, vscode.ConfigurationTarget.Global)
     }
 }

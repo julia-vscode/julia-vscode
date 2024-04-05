@@ -1,7 +1,6 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { uuid } from 'uuidv4'
 import * as vscode from 'vscode'
-import { NotificationType, RequestType } from 'vscode-jsonrpc'
 import * as lsp from 'vscode-languageserver-protocol'
 import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
 import * as net from 'net'
@@ -22,16 +21,29 @@ interface TestItemDetail {
     code_range?: lsp.Range
     option_default_imports?: boolean
     option_tags?: string[]
-    error?: string
 }
 
-interface PublishTestItemsParams {
+interface TestSetupDetail {
+    name: string
+    range: lsp.Range
+    code?: string
+    code_range?: lsp.Range
+}
+
+interface TestErrorDetail {
+    range: lsp.Range
+    error: string
+}
+
+interface PublishTestsParams {
     uri: lsp.URI
     version: number,
     project_path: string,
     package_path: string,
     package_name: string,
     testitemdetails: TestItemDetail[]
+    testsetupdetails: TestSetupDetail[]
+    testerrordetails: TestErrorDetail[]
 }
 
 interface TestserverRunTestitemRequestParams {
@@ -46,6 +58,8 @@ interface TestserverRunTestitemRequestParams {
 
 interface TestMessage {
     message: string
+    expectedOutput: string | null,
+    actualOutput: string | null,
     location: lsp.Location
 }
 interface TestserverRunTestitemRequestParamsReturn {
@@ -54,14 +68,14 @@ interface TestserverRunTestitemRequestParamsReturn {
     duration: number | null
 }
 
-export const notifyTypeTextDocumentPublishTestitems = new NotificationType<PublishTestItemsParams>('julia/publishTestitems')
-const requestTypeExecuteTestitem = new RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
-const requestTypeRevise = new RequestType<void, string, void>('testserver/revise')
+export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams,void>('julia/publishTests')
+const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
+const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
 
 export class TestProcess {
 
     private process: ChildProcessWithoutNullStreams
-    private connection: lsp.MessageConnection
+    private connection: rpc.MessageConnection
     public testRun: vscode.TestRun | null = null
     public launchError: Error | null = null
 
@@ -222,6 +236,10 @@ export class TestProcess {
                 const messages = result.message.map(i => {
                     const message = new vscode.TestMessage(i.message)
                     message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
+                    if (i.actualOutput !== null && i.expectedOutput !== null) {
+                        message.actualOutput = i.actualOutput
+                        message.expectedOutput = i.expectedOutput
+                    }
                     return message
                 })
                 testRun.failed(testItem, messages, result.duration)
@@ -292,38 +310,44 @@ export class TestFeature {
         }
     }
 
-    public publishTestitemsHandler(params: PublishTestItemsParams) {
+    public publishTestsHandler(params: PublishTestsParams) {
         const uri = vscode.Uri.parse(params.uri)
 
         let fileTestitem = this.controller.items.get(params.uri)
 
-        if (!fileTestitem && params.testitemdetails.length > 0) {
-            const filename = vscode.workspace.asRelativePath(uri.fsPath)
+        if (params.testitemdetails.length > 0) {
+            if (!fileTestitem) {
+                const filename = vscode.workspace.asRelativePath(uri.fsPath)
 
-            fileTestitem = this.controller.createTestItem(params.uri, filename, uri)
-            this.controller.items.add(fileTestitem)
-        }
-        else if (fileTestitem && params.testitemdetails.length === 0) {
-            this.controller.items.delete(fileTestitem.id)
-        }
+                fileTestitem = this.controller.createTestItem(params.uri, filename, uri)
+                this.controller.items.add(fileTestitem)
+            }
 
-        if (params.testitemdetails.length > 0 ) {
-            fileTestitem.children.replace(params.testitemdetails.map(i => {
-                const testitem = this.controller.createTestItem(i.id, i.label, vscode.Uri.parse(params.uri))
-                if (i.error) {
+            fileTestitem.children.replace([
+                ...params.testitemdetails.map(i => {
+                    const testitem = this.controller.createTestItem(i.id, i.label, vscode.Uri.parse(params.uri))
+                    if (params.package_path==='') {
+                        testitem.error = 'Unable to identify a Julia package for this test item.'
+                    }
+                    else {
+                        testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
+                    }
+                    this.testitems.set(testitem, {testitem: i, projectPath: params.project_path, packagePath: params.package_path, packageName: params.package_name})
+                    testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
+
+                    return testitem
+                }),
+                ...params.testerrordetails.map(i => {
+                    const testitem = this.controller.createTestItem('Test error', 'Test error', vscode.Uri.parse(params.uri))
                     testitem.error = i.error
-                }
-                else if (params.package_path==='') {
-                    testitem.error = 'Unable to identify a Julia package for this test item.'
-                }
-                else {
-                    testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
-                }
-                this.testitems.set(testitem, {testitem: i, projectPath: params.project_path, packagePath: params.package_path, packageName: params.package_name})
-                testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
+                    testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
 
-                return testitem
-            }))
+                    return testitem
+                })
+            ])
+        }
+        else if (fileTestitem) {
+            this.controller.items.delete(fileTestitem.id)
         }
     }
 

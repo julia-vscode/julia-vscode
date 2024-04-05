@@ -410,7 +410,7 @@ function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: v
 
 // goto frame utilties
 
-export async function openFile(path: string, line: number | undefined = undefined, column: vscode.ViewColumn | undefined = undefined) {
+export async function openFile(path: string, line: number | undefined = undefined, column: vscode.ViewColumn | undefined = undefined, preserveFocus: boolean | undefined = undefined) {
     const newLine = line || 1
     const start = new vscode.Position(newLine - 1, 0)
     const end = new vscode.Position(newLine - 1, 0)
@@ -424,6 +424,7 @@ export async function openFile(path: string, line: number | undefined = undefine
         uri = vscode.Uri.file(path)
     }
     return vscode.window.showTextDocument(uri, {
+        preserveFocus: preserveFocus,
         preview: true,
         selection: range,
         viewColumn: column

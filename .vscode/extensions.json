@@ -4,10 +4,7 @@
     // List of extensions which should be recommended for users of this workspace.
     "recommendations": [
         "dbaeumer.vscode-eslint",
-        "julialang.language-julia"
+        "julialang.language-julia",
+        "ms-vscode.extension-test-runner"
     ],
-    // List of extensions recommended by VS Code that should not be recommended for users of this workspace.
-    "unwantedRecommendations": [
-        "julialang.language-julia-insider"
-    ]
 }

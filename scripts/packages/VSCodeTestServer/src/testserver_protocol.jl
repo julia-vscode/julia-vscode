@@ -18,10 +18,12 @@ end
 
 @dict_readable struct TestMessage
     message::String
-    # expectedOutput?: string;
-    # actualOutput?: string;
+    expectedOutput::Union{String,Nothing}
+    actualOutput::Union{String,Nothing}
     location::Union{Nothing,Location}
 end
+
+TestMessage(message, location) = TestMessage(message, nothing, nothing, location)
 
 JSONRPC.@dict_readable struct TestserverRunTestitemRequestParams <: JSONRPC.Outbound
     uri::String
