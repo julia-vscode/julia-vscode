@@ -1,0 +1,67 @@
+name: Extension
+
+on:
+  pull_request:
+  check_run:
+    types: [rerequested, requested_action]
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: ${{ github.head_ref || github.ref_name || github.run_id }} ext
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - run: npm ci
+      - run: npx eslint -c .eslintrc.json --ext .ts src
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        julia_version: ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10']
+        isPR:
+          - ${{github.event_name == 'pull_request'}}
+        exclude:
+          - isPR: true
+        include:
+          - julia_version: '1.0'
+            os: 'ubuntu-latest'
+          - julia_version: '1.6'
+            os: 'ubuntu-latest'
+          - julia_version: '1.10'
+            os: 'ubuntu-latest'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - uses: actions/setup-node@v4
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{matrix.julia_version}}
+      - run: npm ci
+      - run: npm run compile
+      - run: xvfb-run -a npm test
+        if: runner.os == 'Linux'
+      - run: npm test
+        if: runner.os != 'Linux'
