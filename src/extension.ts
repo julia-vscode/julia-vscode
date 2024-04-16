@@ -12,7 +12,7 @@ import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOpt
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
-import { CodelensProvider } from './interactive/codelens'
+import { CodelensProvider } from './interactive/codecells'
 import { ProfilerFeature } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import { WorkspaceFeature } from './interactive/workspace'
