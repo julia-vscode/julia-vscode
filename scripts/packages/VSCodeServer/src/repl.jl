@@ -237,7 +237,9 @@ replcontext(io, limitflag) = IOContext(
 )
 
 # basically the same as Base's `display_error`, with internal frames removed
-function display_repl_error(io, err, bt)
+display_repl_error(io, err::EvalError; unwrap=false) = display_repl_error(io, err.err, err.bt; unwrap = unwrap)
+
+function display_repl_error(io, err, bt; unwrap = false)
     limitflag = Ref(false)
 
     st = stacktrace(crop_backtrace(bt))
@@ -249,14 +251,14 @@ function display_repl_error(io, err, bt)
     println(io)
 end
 
-function display_repl_error(io, stack::EvalErrorStack)
+function display_repl_error(io, stack::EvalErrorStack; unwrap = false)
     limitflag = Ref(false)
 
     printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
     for (i, (err, bt)) in enumerate(reverse(stack.stack))
         i !== 1 && print(io, "\ncaused by: ")
         st = stacktrace(crop_backtrace(bt))
-        showerror(replcontext(io, limitflag), i == 1 ? unwrap_loaderror(err) : err, st)
+        showerror(replcontext(io, limitflag), unwrap && i == 1 ? unwrap_loaderror(err) : err, st)
         println(io)
     end
 

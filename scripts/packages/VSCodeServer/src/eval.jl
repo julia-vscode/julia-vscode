@@ -220,10 +220,10 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                 end
 
                 if show_error && (res isa EvalError || res isa EvalErrorStack)
-                    Base.display_error(stderr, res)
+                    display_repl_error(stderr, res; unwrap=true)
                 elseif show_result
                     if res isa EvalError || res isa EvalErrorStack
-                        Base.display_error(stderr, res)
+                        display_repl_error(stderr, res; unwrap=true)
                     elseif res !== nothing && !ends_with_semicolon(source_code)
                         try
                             Base.invokelatest(display, res)
