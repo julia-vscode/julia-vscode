@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Fixed
 * Add Julia 1.11 support ([#3583](https://github.com/julia-vscode/julia-vscode/pull/3583))
+* `LoadError`s are not unconditionally unwrapped when displayed ([#3592](https://github.com/julia-vscode/julia-vscode/pull/3592))
+
 ## [1.76.0] - 2024-04-05
 ### Fixed
 * Deleting plots stops opening the plot pane if it's not visible ([#3564](https://github.com/julia-vscode/julia-vscode/pull/3564))
