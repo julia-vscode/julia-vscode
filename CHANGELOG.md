@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Add Julia 1.11 support ([#3583](https://github.com/julia-vscode/julia-vscode/pull/3583))
 * `LoadError`s are not unconditionally unwrapped when displayed ([#3592](https://github.com/julia-vscode/julia-vscode/pull/3592))
+* Internals are now more reliably excluded from stacktraces ([#3593](https://github.com/julia-vscode/julia-vscode/pull/3593))
 
 ## [1.76.0] - 2024-04-05
 ### Fixed
