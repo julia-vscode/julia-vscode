@@ -5,8 +5,10 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.77.0] - 2024-04-24
 ### Fixed
-* Add Julia 1.11 support ([#3583](https://github.com/julia-vscode/julia-vscode/pull/3583))
+* Add Julia 1.11 support ([#3583](https://github.com/julia-vscode/julia-vscode/pull/3583), [#388](https://github.com/julia-vscode/CSTParser.jl/pull/388))
 * `LoadError`s are not unconditionally unwrapped when displayed ([#3592](https://github.com/julia-vscode/julia-vscode/pull/3592))
 * Internals are now more reliably excluded from stacktraces ([#3593](https://github.com/julia-vscode/julia-vscode/pull/3593))
 * Stacktraces printing now works on Julia 1.12 ([#3595](https://github.com/julia-vscode/julia-vscode/pull/3595))
