@@ -34,7 +34,7 @@ function find_first_trace_entry(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}
         st = Base.StackTraces.lookup(ip)
         ind = findfirst(st) do frame
             linfo = frame.linfo
-            if linfo isa Core.CodeInfo
+            if linfo isa Core.CodeInfo && hasproperty(linfo, :linetable)
                 linetable = linfo.linetable
                 if isa(linetable, Vector) && length(linetable) ≥ 1
                     lin = first(linetable)
