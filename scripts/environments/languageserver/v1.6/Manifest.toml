@@ -13,7 +13,7 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 deps = ["Tokenize"]
 path = "../../../packages/CSTParser"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.4.2"
+version = "3.4.3"
 
 [[CommonMark]]
 deps = ["Crayons", "JSON", "PrecompileTools", "URIs"]
@@ -214,7 +214,7 @@ version = "0.2.1-DEV"
 [[Tokenize]]
 path = "../../../packages/Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.28"
+version = "0.5.29"
 
 [[URIParser]]
 deps = ["Unicode"]
