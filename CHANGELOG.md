@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * `LoadError`s are not unconditionally unwrapped when displayed ([#3592](https://github.com/julia-vscode/julia-vscode/pull/3592))
 * Internals are now more reliably excluded from stacktraces ([#3593](https://github.com/julia-vscode/julia-vscode/pull/3593))
 
+### Changed
+* Items in the environment selector are now sorted more naturally and Pluto-internal environments are filtered out ([#3594](https://github.com/julia-vscode/julia-vscode/pull/3594))
+
 ## [1.76.0] - 2024-04-05
 ### Fixed
 * Deleting plots stops opening the plot pane if it's not visible ([#3564](https://github.com/julia-vscode/julia-vscode/pull/3564))
