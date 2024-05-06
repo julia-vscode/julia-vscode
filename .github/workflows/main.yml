@@ -72,7 +72,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-13]
         exclude:
           - os: macos-13
-          - julia-version: 1.4
+            julia-version: 1.4
     steps:
       - uses: actions/checkout@v4
         with:
