@@ -33,7 +33,7 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 20.x
       - run: npm ci
       - run: npx eslint -c .eslintrc.json --ext .ts src
 
@@ -54,7 +54,7 @@ jobs:
           submodules: 'recursive'
       - uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 20.x
       - uses: julia-actions/install-juliaup@v1
         with:
           julia-version: ${{matrix.julia_version}}
@@ -108,7 +108,7 @@ jobs:
           submodules: 'recursive'
       - uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 20.x
       - run: npm ci
       - name: Install vsce
         run: npm install -g vsce
@@ -140,7 +140,7 @@ jobs:
           fetch-depth: '0'
       - uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 20.x
       - name: Configure git
         run: |
           git config user.name github-actions
@@ -202,7 +202,7 @@ jobs:
           ref: ${{env.PRERELEASE_VERSION_NUMBER}}
       - uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 20.x
       - name: Configure git
         run: |
           git config user.name github-actions
