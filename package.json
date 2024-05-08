@@ -1509,6 +1509,12 @@
                     "highContrastLight": "#4063dd32"
                 }
             }
+        ],
+        "semanticTokenTypes": [
+            {
+              "id": "testitemBlock",
+              "description": "A testitem"
+            }
         ]
     },
     "scripts": {
