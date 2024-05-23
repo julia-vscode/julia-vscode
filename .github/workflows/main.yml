@@ -83,6 +83,31 @@ jobs:
       - name: 'Run the Julia tests'
         run: |
           julia -e 'using InteractiveUtils; versioninfo()'
+          julia --project=./scripts/testenvironments/debugadapter/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("DebugAdapter", coverage=true)'
+          julia --project=./scripts/testenvironments/vscodedebugger/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
+          julia --project=./scripts/testenvironments/vscodeserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
+
+  testJuliaLSPackages:
+    name: Test Julia LS Packages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.6', '1.7', '1.8', '1.9', '1.10', '1.11']
+        os: [ubuntu-latest, windows-latest, macos-13]
+        exclude:
+          - os: macos-13
+            julia-version: 1.4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - uses: julia-actions/install-juliaup@v1
+        with:
+          julia-version: ${{matrix.julia-version}}
+      - name: 'Run the Julia tests'
+        run: |
+          julia -e 'using InteractiveUtils; versioninfo()'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.resolve()'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("CSTParser", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("JSONRPC", coverage=true)'
@@ -90,13 +115,10 @@ jobs:
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("TestItemDetection", coverage=true)'
-          julia --project=./scripts/testenvironments/debugadapter/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("DebugAdapter", coverage=true)'
-          julia --project=./scripts/testenvironments/vscodedebugger/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
-          julia --project=./scripts/testenvironments/vscodeserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
 
   deployOriginalTag:
     name: Deploy Tag Version
-    needs: [lintExtension, testExtension, testJuliaPackages]
+    needs: [lintExtension, testExtension, testJuliaPackages, testJuliaLSPackages]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
@@ -126,7 +148,7 @@ jobs:
 
   deployPreRelease:
     name: Deploy Pre-release Version
-    needs: [lintExtension, testExtension, testJuliaPackages]
+    needs: [lintExtension, testExtension, testJuliaPackages, testJuliaLSPackages]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     environment: insider-channel
