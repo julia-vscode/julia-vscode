@@ -16,7 +16,7 @@ import { ProfilerFeature } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import { WorkspaceFeature } from './interactive/workspace'
 import * as jlpkgenv from './jlpkgenv'
-import { JuliaExecutablesFeature } from './juliaexepath'
+import { JuliaExecutable, JuliaExecutablesFeature } from './juliaexepath'
 import { JuliaNotebookFeature } from './notebook/notebookFeature'
 import * as openpackagedirectory from './openpackagedirectory'
 import { JuliaPackageDevFeature } from './packagedevtools'
@@ -29,6 +29,7 @@ import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
+import * as semver from 'semver'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -265,38 +266,38 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
     }
 
-    let juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+    let juliaExecutable: JuliaExecutable | null = null
 
-    if (juliaExecutable === undefined) {
-        vscode.window.showErrorMessage(
-            'Could not start the Julia language server. Make sure the `julia.executablePath` setting points to the Julia binary.',
-            'Open Settings'
-        ).then(val => {
-            if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
-            }
-        })
-        g_startupNotification.hide()
-        return
+    if(await juliaExecutablesFeature.isJuliaup()) {
+        const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
+
+        const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
+
+        if(releaseChannelExe.length>0) {
+            juliaExecutable = releaseChannelExe[0]
+        }
+        else {
+            vscode.window.showErrorMessage('You must have the "release" channel in Juliaup installed for the best Julia experience in VS Code.')
+            g_startupNotification.hide()
+            return
+        }
     }
+    else {
+        const legacyJuliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
-    // Special case the situation where a user configured something like `julia +lts`
-    // If the user is using juliaup, we need to prevent the LS process to try to use a juliaup
-    // install in our LS depot, which would normally happen becuse we set the JULIA_DEPOT_PATH
-    // env variable. This here works around that.
-    if (juliaExecutablesFeature.isJuliaup() &&
-        juliaExecutable.file.toLocaleLowerCase() === 'julia' &&
-        juliaExecutable.args.length > 0 &&
-        juliaExecutable.args[0].startsWith('+')) {
+        if (legacyJuliaExecutable === undefined) {
+            vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            g_startupNotification.hide()
+            return
+        }
 
-        const channel = juliaExecutable.args[0].slice(1)
-
-        const juliaExePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
-
-        const channelExecutable = juliaExePaths.find(i => i.channel === channel)
-
-        if (channelExecutable) {
-            juliaExecutable = channelExecutable
+        if(semver.gte(legacyJuliaExecutable.getVersion(), '1.6.0')) {
+            juliaExecutable = legacyJuliaExecutable
+        }
+        else {
+            vscode.window.showErrorMessage('You must have at least Julia 1.6 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            g_startupNotification.hide()
+            return
         }
     }
 
