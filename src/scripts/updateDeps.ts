@@ -113,11 +113,12 @@ async function main() {
         }
 
         console.log(`Updating environments for Julia ${v}...`)
-        const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
-        await fs.mkdir(env_path_ls, { recursive: true })
-        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })
 
         if(semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.6.0'))) {
+            const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
+            await fs.mkdir(env_path_ls, { recursive: true })
+            await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })
+
             const env_path_pkgdev = path.join(process.cwd(), 'scripts/environments/pkgdev', `v${v}`)
             await fs.mkdir(env_path_pkgdev, { recursive: true })
             await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: env_path_pkgdev })
@@ -163,8 +164,6 @@ async function main() {
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback') })
 
     // Julia 1.0 and 1.1 write backslash in relative paths in Manifest files, which we don't want
-    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/languageserver/v1.0'))
-    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/languageserver/v1.1'))
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/sysimagecompile/v1.0'))
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/debugadapter/v1.0'))
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/debugadapter/v1.1'))
