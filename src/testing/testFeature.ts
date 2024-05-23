@@ -16,6 +16,9 @@ import { cpus } from 'os'
 interface TestItemDetail {
     id: string,
     label: string
+    project_uri?: lsp.URI
+    package_uri?: lsp.URI
+    package_name: string
     range: lsp.Range
     code?: string
     code_range?: lsp.Range
@@ -25,6 +28,8 @@ interface TestItemDetail {
 
 interface TestSetupDetail {
     name: string
+    package_uri?: lsp.URI
+    package_name: string
     range: lsp.Range
     code?: string
     code_range?: lsp.Range
@@ -38,9 +43,6 @@ interface TestErrorDetail {
 interface PublishTestsParams {
     uri: lsp.URI
     version: number,
-    project_path: string,
-    package_path: string,
-    package_name: string,
     testitemdetails: TestItemDetail[]
     testsetupdetails: TestSetupDetail[]
     testerrordetails: TestErrorDetail[]
@@ -84,8 +86,8 @@ export class TestProcess {
     private _onKilled = new vscode.EventEmitter<void>()
     public onKilled = this._onKilled.event
 
-    public projectPath: string | null = null
-    public packagePath: string | null = null
+    public project_uri: lsp.URI | null = null
+    public package_uri: lsp.URI | null = null
     public packageName: string | null = null
 
     isConnected() {
@@ -96,9 +98,9 @@ export class TestProcess {
         return this.testRun!==null
     }
 
-    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, projectPath: string, packagePath: string, packageName: string) {
-        this.projectPath = projectPath
-        this.packagePath = packagePath
+    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, project_uri: lsp.URI | null, package_uri: lsp.URI | null, packageName: string) {
+        this.project_uri = project_uri
+        this.package_uri = package_uri
         this.packageName = packageName
 
         const pipename = generatePipeName(uuid(), 'vsc-jl-ts')
@@ -156,8 +158,8 @@ export class TestProcess {
                 ...jlArgs,
                 join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
                 pipename,
-                `v:${projectPath}`,
-                `v:${packagePath}`,
+                `v:${project_uri ? vscode.Uri.parse(project_uri).fsPath : ''}`,
+                `v:${package_uri ? vscode.Uri.parse(package_uri).fsPath : ''}`,
                 `v:${packageName}`,
                 getCrashReportingPipename()
             ],
@@ -269,7 +271,7 @@ export class TestProcess {
 
 export class TestFeature {
     private controller: vscode.TestController
-    private testitems: WeakMap<vscode.TestItem, { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }> = new WeakMap<vscode.TestItem, { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }>()
+    private testitems: WeakMap<vscode.TestItem, TestItemDetail> = new WeakMap<vscode.TestItem, TestItemDetail>()
     private testProcesses: Map<string, TestProcess[]> = new Map<string, TestProcess[]>()
     private outputChannel: vscode.OutputChannel
     private someTestItemFinished = new Subject()
@@ -326,13 +328,13 @@ export class TestFeature {
             fileTestitem.children.replace([
                 ...params.testitemdetails.map(i => {
                     const testitem = this.controller.createTestItem(i.id, i.label, vscode.Uri.parse(params.uri))
-                    if (params.package_path==='') {
+                    if (!i.package_uri) {
                         testitem.error = 'Unable to identify a Julia package for this test item.'
                     }
                     else {
                         testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
                     }
-                    this.testitems.set(testitem, {testitem: i, projectPath: params.project_path, packagePath: params.package_path, packageName: params.package_name})
+                    this.testitems.set(testitem, i)
                     testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
 
                     return testitem
@@ -360,16 +362,16 @@ export class TestFeature {
         }
     }
 
-    async launchNewProcess(details: { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }) {
+    async launchNewProcess(details: TestItemDetail) {
         const testProcess = new TestProcess()
-        await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.projectPath, details.packagePath, details.packageName)
+        await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.project_uri, details.package_uri, details.package_name)
         this.workspaceFeature.addTestProcess(testProcess)
 
-        if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
-            this.testProcesses.set(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}), [])
+        if(!this.testProcesses.has(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}))) {
+            this.testProcesses.set(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}), [])
         }
 
-        const processes = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
+        const processes = this.testProcesses.get(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}))
 
         processes.push(testProcess)
 
@@ -380,14 +382,14 @@ export class TestFeature {
         return testProcess
     }
 
-    async getFreeTestProcess(details: { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }) {
-        if(!this.testProcesses.has(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))) {
+    async getFreeTestProcess(details: TestItemDetail) {
+        if(!this.testProcesses.has(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}))) {
             const testProcess = await this.launchNewProcess(details)
 
             return testProcess
         }
         else {
-            const testProcesses = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
+            const testProcesses = this.testProcesses.get(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}))
 
             for(let testProcess of testProcesses) {
                 if(!testProcess.isBusy()) {
@@ -495,14 +497,14 @@ export class TestFeature {
 
                             if(testProcess.isConnected()) {
 
-                                const code = details.testitem.code
+                                const code = details.code
 
                                 const location = {
                                     uri: i.uri.toString(),
-                                    range: details.testitem.code_range
+                                    range: details.code_range
                                 }
 
-                                const executionPromise = testProcess.executeTest(i, details.packageName, details.testitem.option_default_imports, location, code, testRun, this.someTestItemFinished)
+                                const executionPromise = testProcess.executeTest(i, details.package_name, details.option_default_imports, location, code, testRun, this.someTestItemFinished)
 
                                 executionPromises.push(executionPromise)
                             }
