@@ -1,5 +1,5 @@
-if VERSION < v"1.0.0"
-    error("VS Code julia language server only works with julia 1.0.0+")
+if VERSION < v"1.6.0"
+    error("VS Code julia language server only works with julia 1.6.0 or newer")
 end
 
 import Pkg
