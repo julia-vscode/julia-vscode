@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Add `julia.lint.ignoredDirs` option to specify regular expressions where no linting is run when matched against the workspace folders ([3611](https://github.com/julia-vscode/julia-vscode/pull/3611), [#1291](https://github.com/julia-vscode/LanguageServer.jl/pull/1291)).
 
+### Changed
+- Drop support for pre 1.6 Julia versions in the language server ([#3610](https://github.com/julia-vscode/julia-vscode/pull/3610))
+
 ## [1.77.0] - 2024-04-24
 ### Fixed
 * Add Julia 1.11 support ([#3583](https://github.com/julia-vscode/julia-vscode/pull/3583), [#388](https://github.com/julia-vscode/CSTParser.jl/pull/388))
