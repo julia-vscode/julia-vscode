@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* Add `julia.lint.ignoredDirs` option to specify regular expressions where no linting is run when matched against the workspace folders ([3611](https://github.com/julia-vscode/julia-vscode/pull/3611), [#1291](https://github.com/julia-vscode/LanguageServer.jl/pull/1291)).
 
 ## [1.77.0] - 2024-04-24
 ### Fixed
