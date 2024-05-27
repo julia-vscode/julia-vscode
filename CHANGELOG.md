@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+* Add `julia.lint.ignoredGlobs` option to specify regular expressions where no linting is run when matched against the workspace folders and files ([3611](https://github.com/julia-vscode/julia-vscode/pull/3611), [#1291](https://github.com/julia-vscode/LanguageServer.jl/pull/1291)).
+
 ### Changed
 - Drop support for pre 1.6 Julia versions in the language server ([#3610](https://github.com/julia-vscode/julia-vscode/pull/3610))
 
