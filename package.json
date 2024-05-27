@@ -898,6 +898,11 @@
                     ],
                     "markdownDescription": "Specifies sub-directories in [a package directory](https://docs.julialang.org/en/v1/manual/code-loading/#Package-directories-1) where only basic linting is. This drastically lowers the chance for false positives."
                 },
+                "julia.lint.ignoredDirs": {
+                    "type": "array",
+                    "default": [],
+                    "markdownDescription": "Specifies regular expressions where no linting is run when matched against the workspace folders."
+                },
                 "julia.lint.call": {
                     "type": "boolean",
                     "default": true,
