@@ -271,13 +271,13 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 deps = ["CSTParser", "Serialization", "SymbolServer"]
 path = "../../packages/StaticLint"
 uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
-version = "8.2.1"
+version = "8.2.3-DEV"
 
 [[deps.SymbolServer]]
 deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "../../packages/SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
-version = "7.3.1"
+version = "8.0.1-DEV"
 
 [[deps.TOML]]
 deps = ["Dates"]
