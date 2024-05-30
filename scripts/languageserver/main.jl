@@ -30,7 +30,7 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
 end
 
 try
-    if length(Base.ARGS) != 8
+    if length(Base.ARGS) != 10
         error("Invalid number of arguments passed to julia language server.")
     end
 
@@ -98,7 +98,8 @@ try
         (err, bt) -> global_err_handler(err, bt, Base.ARGS[3], "Language Server"),
         symserver_store_path,
         ARGS[6] == "download",
-        Base.ARGS[7]
+        Base.ARGS[7],
+        (path=Base.ARGS[9], version=VersionNumber(ARGS[10]))
     )
     @info "Starting LS at $(round(Int, time()))"
     run(server)
