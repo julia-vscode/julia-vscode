@@ -227,6 +227,45 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     g_startupNotification.text = 'Julia: Starting Language Server…'
     g_startupNotification.show()
 
+    let juliaLSExecutable: JuliaExecutable | null = null
+    const juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+
+    if(await juliaExecutablesFeature.isJuliaup()) {
+        const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
+
+        const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
+
+        if(releaseChannelExe.length>0) {
+            juliaLSExecutable = releaseChannelExe[0]
+        }
+        else {
+            vscode.window.showErrorMessage('You must have the "release" channel in Juliaup installed for the best Julia experience in VS Code.')
+            g_startupNotification.hide()
+            return
+        }
+
+        if (juliaExecutable===undefined) {
+            vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            g_startupNotification.hide()
+            return
+        }
+    }
+    else {
+        if (juliaExecutable === undefined) {
+            vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            g_startupNotification.hide()
+            return
+        }
+
+        if(semver.gte(juliaExecutable.getVersion(), '1.6.0')) {
+            juliaLSExecutable = juliaExecutable
+        }
+        else {
+            vscode.window.showErrorMessage('You must have at least Julia 1.6 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            g_startupNotification.hide()
+            return
+        }
+    }
 
     let jlEnvPath = ''
     try {
@@ -251,8 +290,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     const languageServerDepotPath = path.join(storagePath, 'lsdepot', 'v1')
     await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
-    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
-    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
+    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no', juliaExecutable.getCommand(), juliaExecutable.version]
+    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no', juliaExecutable.getCommand(), juliaExecutable.version]
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -266,41 +305,6 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
     }
 
-    let juliaExecutable: JuliaExecutable | null = null
-
-    if(await juliaExecutablesFeature.isJuliaup()) {
-        const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
-
-        const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
-
-        if(releaseChannelExe.length>0) {
-            juliaExecutable = releaseChannelExe[0]
-        }
-        else {
-            vscode.window.showErrorMessage('You must have the "release" channel in Juliaup installed for the best Julia experience in VS Code.')
-            g_startupNotification.hide()
-            return
-        }
-    }
-    else {
-        const legacyJuliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
-
-        if (legacyJuliaExecutable === undefined) {
-            vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
-            g_startupNotification.hide()
-            return
-        }
-
-        if(semver.gte(legacyJuliaExecutable.getVersion(), '1.6.0')) {
-            juliaExecutable = legacyJuliaExecutable
-        }
-        else {
-            vscode.window.showErrorMessage('You must have at least Julia 1.6 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
-            g_startupNotification.hide()
-            return
-        }
-    }
-
     const serverOptions: ServerOptions = Boolean(process.env.DETACHED_LS) ?
         async () => {
             // TODO Add some loop here that retries in case the LSP is not yet ready
@@ -308,8 +312,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             return { reader: conn, writer: conn, detached: true }
         } :
         {
-            run: { command: juliaExecutable.file, args: [...juliaExecutable.args, ...serverArgsRun], options: spawnOptions },
-            debug: { command: juliaExecutable.file, args: [...juliaExecutable.args, ...serverArgsDebug], options: spawnOptions }
+            run: { command: juliaLSExecutable.file, args: [...juliaLSExecutable.args, ...serverArgsRun], options: spawnOptions },
+            debug: { command: juliaLSExecutable.file, args: [...juliaLSExecutable.args, ...serverArgsDebug], options: spawnOptions }
         }
 
     const selector = []
