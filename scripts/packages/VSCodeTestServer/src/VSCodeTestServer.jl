@@ -56,6 +56,10 @@ end
 function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     mod = Core.eval(Main, :(module $(gensym()) end))
 
+    @static if VERSION >= v"1.12.0-"
+        @ccall jl_clear_coverage_data()::Cvoid
+    end
+
     if params.useDefaultUsings
         try
             Core.eval(mod, :(using Test))
@@ -71,6 +75,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                         )
                     )
                 ],
+                nothing,
                 nothing
             )
         end
@@ -93,6 +98,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                             )
                         )
                     ],
+                    nothing,
                     nothing
                 )
             end
@@ -144,7 +150,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                     )
                 )
             ],
-            elapsed_time
+            elapsed_time,
+            nothing
         )
     end
 
@@ -153,7 +160,15 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     try
         Test.finish(ts)
 
-        return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time)
+        @static if VERSION >= v"1.12.0-"
+            lcov_filename = tempname() * ".info"
+            @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
+            coverage_info = read(lcov_filename, String)
+        else
+            coverage_info = ""
+        end
+
+        return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time, coverage_info)
     catch err
         if err isa Test.TestSetException
             failed_tests = Test.filter_errors(ts)
@@ -161,7 +176,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
             return TestserverRunTestitemRequestParamsReturn(
                 "failed",
                 [ create_test_message_for_failed(i) for i in failed_tests],
-                elapsed_time
+                elapsed_time,
+                nothing
             )
         else
             rethrow(err)

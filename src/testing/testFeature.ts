@@ -7,11 +7,12 @@ import * as net from 'net'
 import * as rpc from 'vscode-jsonrpc/node'
 import { Subject } from 'await-notify'
 import { JuliaExecutablesFeature } from '../juliaexepath'
-import { join } from 'path'
+import * as path from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { getAbsEnvPath } from '../jlpkgenv'
 import { TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
+import * as lcovParser from '@friedemannsommer/lcov-parser'
 
 interface TestItemDetail {
     id: string,
@@ -65,12 +66,23 @@ interface TestMessage {
 interface TestserverRunTestitemRequestParamsReturn {
     status: string
     message: TestMessage[] | null,
-    duration: number | null
+    duration: number | null,
+    coverage: string | null
 }
 
 export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams,void>('julia/publishTests')
 const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
 const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
+
+class MyFileCoverage extends vscode.FileCoverage {
+    details: lcovParser.LineEntry[]
+
+    constructor(uri: vscode.Uri, statementCoverage: vscode.TestCoverageCount, details: lcovParser.LineEntry[]) {
+        super(uri, statementCoverage)
+        this.details = details
+    }
+}
+
 
 export class TestProcess {
 
@@ -132,7 +144,8 @@ export class TestProcess {
             `--project=${pkgenvpath}`,
             '--startup-file=no',
             '--history-file=no',
-            '--depwarn=no'
+            '--depwarn=no',
+            '--code-coverage=user'
         ]
 
         const nthreads = inferJuliaNumThreads()
@@ -154,7 +167,7 @@ export class TestProcess {
             [
                 ...juliaExecutable.args,
                 ...jlArgs,
-                join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
+                path.join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
                 pipename,
                 `v:${projectPath}`,
                 `v:${packagePath}`,
@@ -225,6 +238,25 @@ export class TestProcess {
             const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code })
 
             if (result.status === 'passed') {
+                const sections = await lcovParser.lcovParser({from: result.coverage})
+
+                for(const i of sections) {
+                    let filePath = i.path
+                    if (filePath.startsWith('\\')) {
+                        filePath = 'c:' + filePath
+                    }
+
+
+                    if (path.isAbsolute(filePath)) {
+
+                        const pathAsUri = vscode.Uri.file(filePath)
+
+                        if (vscode.workspace.workspaceFolders.filter(j => pathAsUri.toString().startsWith(j.uri.toString())).length>0) {
+                            testRun.addCoverage(new MyFileCoverage(pathAsUri, {covered: i.lines.hit, total: i.lines.instrumented}, i.lines.details))
+                        }
+                    }
+                }
+
                 testRun.passed(testItem, result.duration)
             }
             else if (result.status === 'errored') {
@@ -284,7 +316,7 @@ export class TestFeature {
                 'Julia Tests'
             )
 
-            this.controller.createRunProfile('Run', vscode.TestRunProfileKind.Run, async (request, token) => {
+            const profile = this.controller.createRunProfile('Run', vscode.TestRunProfileKind.Run, async (request, token) => {
                 try {
                     await this.runHandler(request, token)
                 }
@@ -293,6 +325,12 @@ export class TestFeature {
                     throw (err)
                 }
             }, true)
+
+            profile.loadDetailedCoverage = async (testRun, fileCoverage: MyFileCoverage, token) => {
+                return fileCoverage.details.map(i => {
+                    return new vscode.StatementCoverage(i.hit, new vscode.Position(i.line-1, 0))
+                })
+            }
 
             context.subscriptions.push(
                 registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
