@@ -106,3 +106,15 @@
 [submodule "scripts/packages/Preferences"]
 	path = scripts/packages/Preferences
 	url = https://github.com/JuliaPackaging/Preferences.jl
+[submodule "scripts/packages/Salsa"]
+	path = scripts/packages/Salsa
+	url = https://github.com/RelationalAI-oss/Salsa.jl
+[submodule "scripts/packages/ExceptionUnwrapping"]
+	path = scripts/packages/ExceptionUnwrapping
+	url = https://github.com/JuliaServices/ExceptionUnwrapping.jl
+[submodule "scripts/packages/MacroTools"]
+	path = scripts/packages/MacroTools
+	url = https://github.com/FluxML/MacroTools.jl
+[submodule "scripts/packages/AutoHashEquals"]
+	path = scripts/packages/AutoHashEquals
+	url = https://github.com/JuliaServices/AutoHashEquals.jl
