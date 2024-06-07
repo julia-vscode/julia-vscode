@@ -12,13 +12,12 @@ import { getCrashReportingPipename, handleNewCrashReportFromException } from '..
 import { getAbsEnvPath } from '../jlpkgenv'
 import { TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
+import * as vslc from 'vscode-languageclient/node'
+import { onSetLanguageClient } from '../extension'
 
 interface TestItemDetail {
     id: string,
     label: string
-    project_uri?: lsp.URI
-    package_uri?: lsp.URI
-    package_name: string
     range: lsp.Range
     code?: string
     code_range?: lsp.Range
@@ -28,8 +27,6 @@ interface TestItemDetail {
 
 interface TestSetupDetail {
     name: string
-    package_uri?: lsp.URI
-    package_name: string
     range: lsp.Range
     code?: string
     code_range?: lsp.Range
@@ -70,7 +67,19 @@ interface TestserverRunTestitemRequestParamsReturn {
     duration: number | null
 }
 
+// interface GetTestEnvRequestParams {
+//     uri: lsp.URI
+// }
+
+interface GetTestEnvRequestParamsReturn {
+    package_name: string
+    package_uri?: lsp.URI
+    project_uri?: lsp.URI
+    env_content_hash?: number
+}
+
 export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams,void>('julia/publishTests')
+// const requestGetTestEnv = new lsp.ProtocolRequestType<GetTestEnvRequestParams,GetTestEnvRequestParamsReturn,void,void,void>('julia/getTestEnv')
 const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
 const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
 
@@ -89,6 +98,7 @@ export class TestProcess {
     public project_uri: lsp.URI | null = null
     public package_uri: lsp.URI | null = null
     public packageName: string | null = null
+    public testEnvContentHash: number
 
     isConnected() {
         return this.connection
@@ -98,10 +108,11 @@ export class TestProcess {
         return this.testRun!==null
     }
 
-    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, project_uri: lsp.URI | null, package_uri: lsp.URI | null, packageName: string) {
+    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, project_uri: lsp.URI | null, package_uri: lsp.URI | null, packageName: string, testEnvContentHash: number) {
         this.project_uri = project_uri
         this.package_uri = package_uri
         this.packageName = packageName
+        this.testEnvContentHash = testEnvContentHash
 
         const pipename = generatePipeName(uuid(), 'vsc-jl-ts')
 
@@ -276,6 +287,7 @@ export class TestFeature {
     private outputChannel: vscode.OutputChannel
     private someTestItemFinished = new Subject()
     private cpuLength: number | null = null
+    private languageClient: vslc.LanguageClient = null
 
     constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature, private workspaceFeature: WorkspaceFeature) {
         try {
@@ -303,6 +315,10 @@ export class TestFeature {
             )
 
             this.cpuLength = cpus().length
+
+            context.subscriptions.push(onSetLanguageClient(languageClient => {
+                this.languageClient = languageClient
+            }))
         // this.controller.createRunProfile('Debug', vscode.TestRunProfileKind.Debug, this.runHandler.bind(this), false)
         // this.controller.createRunProfile('Coverage', vscode.TestRunProfileKind.Coverage, this.runHandler.bind(this), false)
         }
@@ -328,12 +344,7 @@ export class TestFeature {
             fileTestitem.children.replace([
                 ...params.testitemdetails.map(i => {
                     const testitem = this.controller.createTestItem(i.id, i.label, vscode.Uri.parse(params.uri))
-                    if (!i.package_uri) {
-                        testitem.error = 'Unable to identify a Julia package for this test item.'
-                    }
-                    else {
-                        testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
-                    }
+                    testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
                     this.testitems.set(testitem, i)
                     testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
 
@@ -362,16 +373,20 @@ export class TestFeature {
         }
     }
 
-    async launchNewProcess(details: TestItemDetail) {
+    stringifyTestItemDetail(testEnv: GetTestEnvRequestParamsReturn) {
+        return JSON.stringify({projectPath: testEnv.project_uri, packagePath: testEnv.package_uri, packageName: testEnv.package_name})
+    }
+
+    async launchNewProcess(testEnv: GetTestEnvRequestParamsReturn) {
         const testProcess = new TestProcess()
-        await testProcess.start(this.context, this.executableFeature, this.outputChannel, details.project_uri, details.package_uri, details.package_name)
+        await testProcess.start(this.context, this.executableFeature, this.outputChannel, testEnv.project_uri, testEnv.package_uri, testEnv.package_name, testEnv.env_content_hash)
         this.workspaceFeature.addTestProcess(testProcess)
 
-        if(!this.testProcesses.has(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}))) {
-            this.testProcesses.set(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}), [])
+        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv))) {
+            this.testProcesses.set(this.stringifyTestItemDetail(testEnv), [])
         }
 
-        const processes = this.testProcesses.get(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}))
+        const processes = this.testProcesses.get(this.stringifyTestItemDetail(testEnv))
 
         processes.push(testProcess)
 
@@ -382,20 +397,28 @@ export class TestFeature {
         return testProcess
     }
 
-    async getFreeTestProcess(details: TestItemDetail) {
-        if(!this.testProcesses.has(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}))) {
-            const testProcess = await this.launchNewProcess(details)
+    async getFreeTestProcess(testEnv: GetTestEnvRequestParamsReturn) {
+        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv))) {
+            const testProcess = await this.launchNewProcess(testEnv)
 
             return testProcess
         }
         else {
-            const testProcesses = this.testProcesses.get(JSON.stringify({projectPath: details.project_uri, packagePath: details.package_uri, packageName: details.package_name}))
+            const testProcesses = this.testProcesses.get(this.stringifyTestItemDetail(testEnv))
 
             for(let testProcess of testProcesses) {
+                // TODO Salsa Kill outdated test env processes here somewhere
                 if(!testProcess.isBusy()) {
                     let needsNewProcess = false
 
                     if (!testProcess.isConnected()) {
+                        needsNewProcess = true
+                    }
+                    else if(testProcess.testEnvContentHash !== testEnv.env_content_hash) {
+                        await testProcess.kill()
+
+                        this.outputChannel.appendLine('RESTARTING TEST SERVER BECAUSE ENVIRONMENT CHANGED')
+
                         needsNewProcess = true
                     }
                     else {
@@ -404,7 +427,7 @@ export class TestFeature {
                         if (status !== 'success') {
                             await testProcess.kill()
 
-                            this.outputChannel.appendLine('RESTARTING TEST SERVER')
+                            this.outputChannel.appendLine('RESTARTING TEST SERVER BECAUSE REVISE FAILED')
 
                             needsNewProcess = true
                         }
@@ -412,7 +435,7 @@ export class TestFeature {
                     }
 
                     if (needsNewProcess) {
-                        testProcess = await this.launchNewProcess(details)
+                        testProcess = await this.launchNewProcess(testEnv)
                     }
 
                     return testProcess
@@ -426,7 +449,7 @@ export class TestFeature {
             }
 
             if(testProcesses.length < maxNumProcesses) {
-                const testProcess = await this.launchNewProcess(details)
+                const testProcess = await this.launchNewProcess(testEnv)
 
                 return testProcess
             }
@@ -472,6 +495,8 @@ export class TestFeature {
 
             const executionPromises = []
 
+            const testEnvPerFile = new Map<vscode.Uri,GetTestEnvRequestParamsReturn>()
+
             for (const i of itemsToRun) {
                 if(testRun.token.isCancellationRequested) {
                     testRun.skipped(i)
@@ -483,12 +508,21 @@ export class TestFeature {
                         testRun.errored(i, new vscode.TestMessage(i.error))
                     }
                     else {
+                        let testEnv: GetTestEnvRequestParamsReturn = undefined
 
-                        let testProcess: TestProcess = await this.getFreeTestProcess(details)
+                        if (testEnvPerFile.has(i.uri)) {
+                            testEnv = testEnvPerFile.get(i.uri)
+                        }
+                        else {
+                            testEnv = await this.languageClient.sendRequest<GetTestEnvRequestParamsReturn>('julia/getTestEnv', {uri: i.uri.toString()})
+                            testEnvPerFile.set(i.uri, testEnv)
+                        }
+
+                        let testProcess: TestProcess = await this.getFreeTestProcess(testEnv)
 
                         while(testProcess===null && !testRun.token.isCancellationRequested) {
                             await this.someTestItemFinished.wait()
-                            testProcess = await this.getFreeTestProcess(details)
+                            testProcess = await this.getFreeTestProcess(testEnv)
                         }
 
                         if(testProcess!==null) {
@@ -504,7 +538,7 @@ export class TestFeature {
                                     range: details.code_range
                                 }
 
-                                const executionPromise = testProcess.executeTest(i, details.package_name, details.option_default_imports, location, code, testRun, this.someTestItemFinished)
+                                const executionPromise = testProcess.executeTest(i, testEnv.package_name, details.option_default_imports, location, code, testRun, this.someTestItemFinished)
 
                                 executionPromises.push(executionPromise)
                             }
