@@ -68,8 +68,6 @@ end
 module DebugAdapter
 import ..JuliaInterpreter
 import ..JSON
-import ..JSONRPC
-import ..JSONRPC: @dict_readable, Outbound
 
 include("../../DebugAdapter/src/packagedef.jl")
 end

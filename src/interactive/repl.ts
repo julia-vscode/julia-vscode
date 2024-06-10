@@ -323,7 +323,8 @@ function debuggerRun(params: DebugLaunchParams) {
         file: params.filename,
         stopOnEntry: false,
         compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
-        compiledMode: g_compiledProvider.compiledMode
+        compiledMode: g_compiledProvider.compiledMode,
+        pipename: params.pipename
     })
 }
 
@@ -361,6 +362,7 @@ const requestTypeReplRunCode = new rpc.RequestType<{
 interface DebugLaunchParams {
     code: string,
     filename: string
+    pipename: String,
 }
 
 export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')

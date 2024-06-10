@@ -98,7 +98,45 @@ macro enter(command)
     :(JSONRPC.send_notification(conn_endpoint[], "debugger/enter", (code = $(string(command)), filename = $(string(__source__.file)))))
 end
 
+function generate_pipe_name(pid::String, name::String)
+    if Sys.iswindows()
+        return "\\\\.\\pipe\\$name-$pid"
+    else
+        return join(tempdir(), "$name-$pid")
+    end
+end
+
 macro run(command)
     remove_lln!(command)
-    :(JSONRPC.send_notification(conn_endpoint[], "debugger/run", (code = $(string(command)), filename = $(string(__source__.file)))))
+    quote
+        let
+            hideprompt() do
+                pipename = generate_pipe_name(string(uuid4()), "jlrepldbg")
+                server = Sockets.listen(pipename)
+                try
+                    JSONRPC.send_notification(conn_endpoint[], "debugger/run", (code = $(string(command)), filename = $(string(__source__.file)), pipename=pipename))
+
+                    conn = Sockets.accept(server)
+                    try
+                        println("ABouT TO START DEBUG SESSION")
+                        DebugAdapter.startdebug(conn, function (err, bt)
+                            if is_disconnected_exception(err)
+                                @debug "connection closed"
+                            else
+                                printstyled(stderr, "Error while running the debugger", color = :red, bold = true)
+                                printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color = :red)
+                                Base.display_error(stderr, err, bt)
+                            end
+                        end)
+
+                        println("WE FINISHED")
+                    finally
+                        close(conn)
+                    end
+                finally
+                    close(server)
+                end
+            end
+        end
+    end
 end

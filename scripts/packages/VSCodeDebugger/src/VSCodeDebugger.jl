@@ -17,35 +17,32 @@ module JuliaInterpreter
     end
 end
 
-module JSONRPC
-    import ..JSON
-    import UUIDs
-
-    include("../../JSONRPC/src/packagedef.jl")
-end
-
 module DebugAdapter
     import ..JuliaInterpreter
     import ..JSON
-    import ..JSONRPC
-    import ..JSONRPC: @dict_readable, Outbound
 
     include("../../DebugAdapter/src/packagedef.jl")
 end
 
 function startdebugger()
-    pipenames = DebugAdapter.clean_up_ARGS_in_launch_mode()
+    # pipenames = DebugAdapter.clean_up_ARGS_in_launch_mode()
     try
-        @debug "Trying to connect to debug adapter."
-        socket = Sockets.connect(pipenames[1])
-        printstyled("Done!\n\n", bold = true)
+        # Start a socket server and listen
+        server = Sockets.listen(ARGS[2])
+
+        # Notify the client that we are ready to accept a connection
+        client_socket = Sockets.connect(ARGS[1])
+        println(client_socket, ARGS[2])
+        close(client_socket)
+
+        session = Sockets.accept(server)
         try
-            DebugAdapter.startdebug(socket, (err, bt)->global_err_handler(err, bt, pipenames[2], "Debugger"))
+            DebugAdapter.startdebug(session, (err, bt)->global_err_handler(err, bt, ARGS[3], "Debugger"))
         finally
-            close(socket)
+            close(session)
         end
     catch err
-        global_err_handler(err, catch_backtrace(), pipenames[2], "Debugger")
+        global_err_handler(err, catch_backtrace(), ARGS[3], "Debugger")
     end
 end
 
