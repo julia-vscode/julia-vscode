@@ -66,6 +66,7 @@ end
 end
 
 module DebugAdapter
+import Pkg
 import ..JuliaInterpreter
 import ..JSON
 

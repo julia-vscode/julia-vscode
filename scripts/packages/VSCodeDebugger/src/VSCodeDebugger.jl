@@ -18,6 +18,7 @@ module JuliaInterpreter
 end
 
 module DebugAdapter
+    import Pkg
     import ..JuliaInterpreter
     import ..JSON
 
@@ -25,7 +26,6 @@ module DebugAdapter
 end
 
 function startdebugger()
-    # pipenames = DebugAdapter.clean_up_ARGS_in_launch_mode()
     try
         # Start a socket server and listen
         server = Sockets.listen(ARGS[2])

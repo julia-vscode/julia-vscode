@@ -5,7 +5,7 @@ import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../util
 import { uuid } from 'uuidv4'
 import { Subject } from 'await-notify'
 import * as net from 'net'
-import { join } from 'path'
+import { basename, join } from 'path'
 import { getCrashReportingPipename } from '../telemetry'
 
 // /**
@@ -37,8 +37,8 @@ import { getCrashReportingPipename } from '../telemetry'
 // }
 
 export class JuliaDebugFeature {
-    public debugSession2Task: WeakMap<vscode.DebugSession, vscode.TaskExecution> = new WeakMap<vscode.DebugSession, vscode.TaskExecution>()
-    public taskExecution2ProcessId: WeakMap<vscode.TaskExecution, number> = new WeakMap<vscode.TaskExecution, number>()
+    public debugSessionsThatNeedTermination: WeakMap<vscode.DebugSession, number | null> = new WeakMap<vscode.DebugSession, number | null>()
+    public taskExecutionsForLaunchedDebugSessions: WeakMap<vscode.TaskExecution,vscode.DebugSession> = new WeakMap<vscode.TaskExecution,vscode.DebugSession>()
 
     constructor(private context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature) {
         const provider = new JuliaDebugConfigurationProvider(compiledProvider)
@@ -55,25 +55,14 @@ export class JuliaDebugFeature {
             }
         })
 
-        vscode.tasks.onDidStartTaskProcess(e => this.taskExecution2ProcessId.set(e.execution, e.processId))
-
-        vscode.debug.onDidTerminateDebugSession((debugSession: vscode.DebugSession) => {
-            const taskExecution = this.debugSession2Task.get(debugSession)
-            const procid = this.taskExecution2ProcessId.get(taskExecution)
-
-            this.debugSession2Task.delete(debugSession)
-            this.taskExecution2ProcessId.delete(taskExecution)
-
-            // If the debug process did not terminate, we kill it here
-            try {
-                process.kill(procid)
+        vscode.tasks.onDidStartTaskProcess(e => {
+            if(this.taskExecutionsForLaunchedDebugSessions.has(e.execution)) {
+                this.debugSessionsThatNeedTermination.set(this.taskExecutionsForLaunchedDebugSessions.get(e.execution), e.processId)
             }
-            catch(err) {
-            }
-        },
-        this,
-        this.context.subscriptions
-        )
+        })
+
+        const debugSessionsThatNeedTermination = this.debugSessionsThatNeedTermination
+        // const taskExecutionsForLaunchedDebugSessions = this.taskExecutionsForLaunchedDebugSessions
 
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
@@ -124,6 +113,35 @@ export class JuliaDebugFeature {
                 })
                 if (!success) {
                     vscode.window.showErrorMessage('Could not debug editor content in new process.')
+                }
+            }),
+            vscode.debug.registerDebugAdapterTrackerFactory('julia', {
+                createDebugAdapterTracker(session: vscode.DebugSession) {
+                    return {
+                        onWillReceiveMessage: m => {
+                            if(m.type==='request' && m.command==='terminate') {
+                                if(debugSessionsThatNeedTermination.has(session)) {
+                                    const processId = debugSessionsThatNeedTermination.get(session)
+
+                                    debugSessionsThatNeedTermination.delete(session)
+                                    // TODO taskExecutionsForLaunchedDebugSessions.delete()
+
+                                    if(processId) {
+                                        setTimeout(() => {
+                                            process.kill(processId)
+                                        }, 500)
+                                    }
+                                }
+                            }
+                            console.log(`> ${JSON.stringify(m, undefined)}`)
+                        },
+                        onDidSendMessage: m => {
+                            console.log(`< ${JSON.stringify(m, undefined)}`)
+                        },
+                        onWillStopSession: () => {
+                            console.log('WE ARE ABOUT TO STOP')
+                        }
+                    }
                 }
             })
         )
@@ -202,7 +220,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
     }
 
     async createDebugAdapterDescriptor(session: vscode.DebugSession): Promise<vscode.ProviderResult<vscode.DebugAdapterDescriptor>> {
-        if(session.configuration.request=='launch') {
+        if(session.configuration.request==='launch') {
             const dap_pn = generatePipeName(uuid(), 'vsc-jl-dbg')
             const ready_pn = generatePipeName(uuid(), 'vsc-jl-dbg')
 
@@ -227,7 +245,6 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
                 '--color=yes',
                 '--startup-file=no',
                 '--history-file=no',
-                // `--project=${args.juliaEnv}`,
                 join(
                     this.context.extensionPath,
                     'scripts',
@@ -239,11 +256,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
                 getCrashReportingPipename(),
             ]
 
-            const env = {
-            // JL_ARGS: args.args
-            //     ? args.args.map((i) => Buffer.from(i).toString('base64')).join(';')
-            //     : '',
-            }
+            const env = { }
 
             if (nthreads === 'auto') {
                 jlargs.splice(1, 0, '--threads=auto')
@@ -257,20 +270,19 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
                     id: uuid(),
                 },
                 vscode.TaskScope.Workspace,
-                // TODO `Debug ${basename(args.program)}`,
-                'something',
+                `${session.configuration.noDebug === true ? 'Run' : 'Debug' } ${basename(session.configuration.program)}`,
                 'Julia',
 
                 new vscode.ProcessExecution(juliaExecutable.file, jlargs, {
                     env: env,
-                // TODO cwd: args.cwd,
                 })
             )
             task.presentationOptions.echo = false
 
             const task2 = await vscode.tasks.executeTask(task)
 
-            this.juliaDebugFeature.debugSession2Task.set(session, task2)
+            this.juliaDebugFeature.debugSessionsThatNeedTermination.set(session, null)
+            this.juliaDebugFeature.taskExecutionsForLaunchedDebugSessions.set(task2, session)
 
             await connectedPromise.wait()
 

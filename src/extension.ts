@@ -116,18 +116,6 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, vscode.ConfigurationTarget.Global)
         }
 
-        vscode.debug.registerDebugAdapterTrackerFactory('julia', {
-            createDebugAdapterTracker(session: vscode.DebugSession) {
-                return {
-                    onWillReceiveMessage: m => console.log(`> ${JSON.stringify(m, undefined)}`),
-                    onDidSendMessage: m => console.log(`< ${JSON.stringify(m, undefined)}`),
-                    onWillStopSession: () => {
-                        console.log('WE ARE ABOUT TO STOP')
-                    }
-                }
-            }
-        })
-
         // Start language server
         startLanguageServer(g_juliaExecutablesFeature)
 
