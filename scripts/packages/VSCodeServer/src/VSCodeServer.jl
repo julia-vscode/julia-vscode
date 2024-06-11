@@ -135,7 +135,6 @@ function serve(conn_pipename, debug_pipename; is_dev=false, crashreporting_pipen
         msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
         msg_dispatcher[repl_getcompletions_request_type] = repl_getcompletions_request
         msg_dispatcher[repl_resolvecompletion_request_type] = repl_resolvecompletion_request
-        msg_dispatcher[repl_startdebugger_notification_type] = (conn, params) -> repl_startdebugger_request(conn, params, crashreporting_pipename)
         msg_dispatcher[repl_toggle_plot_pane_notification_type] = toggle_plot_pane
         msg_dispatcher[repl_toggle_diagnostics_notification_type] = toggle_diagnostics
         msg_dispatcher[repl_toggle_inlay_hints_notification_type] = toggle_inlay_hints

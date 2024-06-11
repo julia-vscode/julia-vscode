@@ -115,7 +115,6 @@ const repl_getlazy_request_type = JSONRPC.RequestType("repl/getlazy", NamedTuple
 const repl_showingrid_notification_type = JSONRPC.NotificationType("repl/showingrid", NamedTuple{(:code,),Tuple{String}})
 const repl_loadedModules_request_type = JSONRPC.RequestType("repl/loadedModules", Nothing, Vector{String})
 const repl_isModuleLoaded_request_type = JSONRPC.RequestType("repl/isModuleLoaded", NamedTuple{(:mod,),Tuple{String}}, Bool)
-const repl_startdebugger_notification_type = JSONRPC.NotificationType("repl/startdebugger", NamedTuple{(:debugPipename,),Tuple{String}})
 const repl_showprofileresult_notification_type = JSONRPC.NotificationType("repl/showprofileresult", NamedTuple{(:trace,:typ),Tuple{Dict{String,ProfileFrame}, String}})
 const repl_open_file_notification_type = JSONRPC.NotificationType("repl/openFile", NamedTuple{(:path, :line, :preserveFocus), Tuple{String, Int, Bool}})
 const repl_toggle_plot_pane_notification_type = JSONRPC.NotificationType("repl/togglePlotPane", NamedTuple{(:enable,),Tuple{Bool}})

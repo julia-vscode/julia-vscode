@@ -315,33 +315,6 @@ function disconnectREPL() {
     }
 }
 
-function debuggerRun(params: DebugLaunchParams) {
-    vscode.debug.startDebugging(undefined, {
-        type: 'julia',
-        request: 'attach',
-        name: 'Julia REPL',
-        code: params.code,
-        file: params.filename,
-        stopOnEntry: false,
-        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
-        compiledMode: g_compiledProvider.compiledMode,
-        pipename: params.pipename
-    })
-}
-
-function debuggerEnter(params: DebugLaunchParams) {
-    vscode.debug.startDebugging(undefined, {
-        type: 'julia',
-        request: 'attach',
-        name: 'Julia REPL',
-        code: params.code,
-        file: params.filename,
-        stopOnEntry: true,
-        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
-        compiledMode: g_compiledProvider.compiledMode
-    })
-}
-
 function debuggerAttach(params: {stopOnEntry: boolean, pipename: string}){
     vscode.debug.startDebugging(undefined, {
         type: 'julia',
@@ -372,16 +345,13 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     softscope: boolean
 }, ReturnResult, void>('repl/runcode')
 
-interface DebugLaunchParams {
-    code: string,
-    filename: string
-    pipename: String,
-}
+// interface DebugLaunchParams {
+//     code: string,
+//     filename: string
+//     pipename: String,
+// }
 
 export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
-const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams>('debugger/enter')
-const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams>('debugger/run')
-const notifyTypeReplStartDebugger = new rpc.NotificationType<{ debugPipename: string }>('repl/startdebugger')
 const notifyTypeReplAttachDebgger = new rpc.NotificationType<{pipename: string}>('debugger/attach')
 const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
@@ -1255,12 +1225,6 @@ function isMarkdownEditor(editor: vscode.TextEditor) {
     return editor.document.languageId === 'juliamarkdown' || editor.document.languageId === 'markdown'
 }
 
-export async function replStartDebugger(pipename: string) {
-    await startREPL(true)
-
-    await g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
-}
-
 export function activate(context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, profilerFeature) {
     g_context = context
     g_juliaExecutablesFeature = juliaExecutablesFeature
@@ -1274,8 +1238,6 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         }),
         onInit(wrapCrashReporting(connection => {
             connection.onNotification(notifyTypeDisplay, display)
-            connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
-            connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
             connection.onNotification(notifyTypeReplAttachDebgger, debuggerAttach)
             connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
             connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
