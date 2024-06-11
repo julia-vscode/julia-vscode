@@ -150,9 +150,14 @@ async function changeJuliaEnvironment() {
 
         const folderExists = await fs.exists(envFolderForThisDepot)
         if (folderExists) {
-            const envirsForThisDepot = await fs.readdir(envFolderForThisDepot)
+            const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'})
+            const envirsForThisDepot = (await fs.readdir(envFolderForThisDepot)).sort(collator.compare)
 
             for (const envFolder of envirsForThisDepot) {
+                // special case some auto-generated pluto envs
+                if (envFolder.startsWith('__')) {
+                    continue
+                }
                 envFolders.push({ label: envFolder, description: path.join(envFolderForThisDepot, envFolder) })
             }
         }

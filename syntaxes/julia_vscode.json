@@ -318,7 +318,7 @@
           "name": "keyword.control.export.julia"
         },
         {
-          "match": "\\b(?<![:_])(?:public)\\b",
+          "match": "^(?:public)\\b",
           "name": "keyword.control.public.julia"
         },
         {

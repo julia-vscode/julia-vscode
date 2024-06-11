@@ -2,11 +2,11 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.76.0",
+    "version": "1.81.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.78.0"
+        "vscode": "^1.90.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -1529,15 +1529,15 @@
         "tagmajor": "npm version major && git push --tags && git push"
     },
     "dependencies": {
-        "@traptitech/markdown-it-katex": "^3.5.0",
+        "@traptitech/markdown-it-katex": "^3.6.0",
         "@vscode/debugadapter": "^1.55.1",
         "@vscode/debugprotocol": "^1.55.1",
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
         "await-notify": "^1.0.1",
         "lodash.isequal": "^4.5.0",
-        "markdown-it": "^12.3.2",
-        "markdown-it-footnote": "^3.0.3",
+        "markdown-it": "^14.1.0",
+        "markdown-it-footnote": "^4.0.0",
         "promised-temp": "^v0.1.0",
         "promisify-child-process": "^4.1.1",
         "semver": "^7.3.5",
@@ -1551,12 +1551,12 @@
     "devDependencies": {
         "@types/download": "^8.0.1",
         "@types/lodash.isequal": "^4.5.8",
-        "@types/markdown-it": "^12.2.3",
+        "@types/markdown-it": "^14.1.1",
         "@types/mocha": "^10",
         "@types/node": "^18",
         "@types/semver": "^7.3.9",
         "@types/source-map-support": "^0.5.4",
-        "@types/vscode": "1.78.0",
+        "@types/vscode": "1.90.0",
         "@typescript-eslint/parser": "^5.14.0",
         "@vscode/test-cli": "^0.0.4",
         "@vscode/test-electron": "^2.3.6",

@@ -5,8 +5,19 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- Drop support for pre 1.6 Julia versions in the language server ([#3610](https://github.com/julia-vscode/julia-vscode/pull/3610))
+
+## [1.77.0] - 2024-04-24
 ### Fixed
-* Add Julia 1.11 support ([#3583](https://github.com/julia-vscode/julia-vscode/pull/3583))
+* Add Julia 1.11 support ([#3583](https://github.com/julia-vscode/julia-vscode/pull/3583), [#388](https://github.com/julia-vscode/CSTParser.jl/pull/388))
+* `LoadError`s are not unconditionally unwrapped when displayed ([#3592](https://github.com/julia-vscode/julia-vscode/pull/3592))
+* Internals are now more reliably excluded from stacktraces ([#3593](https://github.com/julia-vscode/julia-vscode/pull/3593))
+* Stacktraces printing now works on Julia 1.12 ([#3595](https://github.com/julia-vscode/julia-vscode/pull/3595))
+
+### Changed
+* Items in the environment selector are now sorted more naturally and Pluto-internal environments are filtered out ([#3594](https://github.com/julia-vscode/julia-vscode/pull/3594))
+
 ## [1.76.0] - 2024-04-05
 ### Fixed
 * Deleting plots stops opening the plot pane if it's not visible ([#3564](https://github.com/julia-vscode/julia-vscode/pull/3564))

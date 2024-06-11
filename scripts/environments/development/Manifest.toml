@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.4"
 manifest_format = "2.0"
 project_hash = "66f1c20ccb04eee7b71eb83d45915b0a160cba88"
 
@@ -18,7 +18,7 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 deps = ["Tokenize"]
 path = "../../packages/CSTParser"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.4.2"
+version = "3.4.3"
 
 [[deps.CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
@@ -36,7 +36,7 @@ version = "0.8.12"
 deps = ["TOML", "UUIDs"]
 path = "../../packages/Compat"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.14.0"
+version = "4.15.0"
 
     [deps.Compat.extensions]
     CompatLinearAlgebraExt = "LinearAlgebra"
@@ -48,7 +48,7 @@ version = "4.14.0"
 [[deps.CoverageTools]]
 path = "../../packages/CoverageTools"
 uuid = "c36e975a-824b-4404-a568-ef97ca766997"
-version = "1.3.0"
+version = "1.3.1"
 
 [[deps.Crayons]]
 path = "../../packages/Crayons"
@@ -179,7 +179,7 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 deps = ["JuliaInterpreter"]
 path = "../../packages/LoweredCodeUtils"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "2.4.5"
+version = "2.4.6"
 
 [[deps.Markdown]]
 deps = ["Base64"]
@@ -271,13 +271,13 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 deps = ["CSTParser", "Serialization", "SymbolServer"]
 path = "../../packages/StaticLint"
 uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
-version = "8.2.1"
+version = "8.2.3-DEV"
 
 [[deps.SymbolServer]]
 deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "../../packages/SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
-version = "7.3.1"
+version = "8.0.1-DEV"
 
 [[deps.TOML]]
 deps = ["Dates"]
@@ -302,7 +302,7 @@ version = "0.2.1-DEV"
 [[deps.Tokenize]]
 path = "../../packages/Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.28"
+version = "0.5.29"
 
 [[deps.URIParser]]
 deps = ["Unicode"]
