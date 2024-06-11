@@ -10,33 +10,6 @@ import Profile
 import Logging
 import InteractiveUtils
 
-const FALLBACK_CONSOLE_LOGGER_REF = Ref{Logging.AbstractLogger}()
-
-function __init__()
-    FALLBACK_CONSOLE_LOGGER_REF[] = Logging.ConsoleLogger()
-    atreplinit() do repl
-        @async try
-            hook_repl(repl)
-        catch err
-            Base.display_error(err, catch_backtrace())
-        end
-    end
-
-    push!(Base.package_callbacks, on_pkg_load)
-
-    for pkgid in keys(Base.loaded_modules)
-        on_pkg_load(pkgid)
-    end
-
-    if VERSION >= v"1.4" && isdefined(InteractiveUtils, :EDITOR_CALLBACKS)
-        pushfirst!(InteractiveUtils.EDITOR_CALLBACKS, function (cmd::Cmd, path::AbstractString, line::Integer)
-            cmd == `code` || return false
-            openfile(path, line)
-            return true
-        end)
-    end
-end
-
 include("../../JSON/src/JSON.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
 
@@ -73,6 +46,36 @@ import ..JSON
 include("../../DebugAdapter/src/packagedef.jl")
 end
 
+const FALLBACK_CONSOLE_LOGGER_REF = Ref{Logging.AbstractLogger}()
+const DEBUG_SESSION = Ref{Channel{DebugAdapter.DebugSession}}()
+const DEBUG_PIPENAME = Ref{String}()
+
+function __init__()
+    FALLBACK_CONSOLE_LOGGER_REF[] = Logging.ConsoleLogger()
+    DEBUG_SESSION[] = Channel{DebugAdapter.DebugSession}(1)
+    atreplinit() do repl
+        @async try
+            hook_repl(repl)
+        catch err
+            Base.display_error(err, catch_backtrace())
+        end
+    end
+
+    push!(Base.package_callbacks, on_pkg_load)
+
+    for pkgid in keys(Base.loaded_modules)
+        on_pkg_load(pkgid)
+    end
+
+    if VERSION >= v"1.4" && isdefined(InteractiveUtils, :EDITOR_CALLBACKS)
+        pushfirst!(InteractiveUtils.EDITOR_CALLBACKS, function (cmd::Cmd, path::AbstractString, line::Integer)
+            cmd == `code` || return false
+            openfile(path, line)
+            return true
+        end)
+    end
+end
+
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 
 include("../../../error_handler.jl")
@@ -103,18 +106,20 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     end
 end
 
-function serve(args...; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve(conn_pipename, debug_pipename; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
     if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
         hook_repl(Base.active_repl)
     end
 
     @debug "connecting to pipe"
-    conn = connect(args...)
+    conn = connect(conn_pipename)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
     @debug "connected"
     if EVAL_BACKEND_TASK[] === nothing
         start_eval_backend()
     end
+    DEBUG_PIPENAME[] = debug_pipename
+    start_debug_backend(debug_pipename)
     run(conn_endpoint[])
     @debug "running"
 

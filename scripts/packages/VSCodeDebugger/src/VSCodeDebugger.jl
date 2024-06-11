@@ -38,11 +38,13 @@ function startdebugger()
         println(client_socket, server_pipename)
         close(client_socket)
 
-        session = Sockets.accept(server)
+        conn = Sockets.accept(server)
         try
-            DebugAdapter.startdebug(session, (err, bt)->global_err_handler(err, bt, error_pipename, "Debugger"))
+            debugsession = DebugAdapter.DebugSession(conn)
+
+            run(debugsession, (err, bt)->global_err_handler(err, bt, error_pipename, "Debugger"))
         finally
-            close(session)
+            close(conn)
         end
     catch err
         global_err_handler(err, catch_backtrace(), error_pipename, "Debugger")

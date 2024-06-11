@@ -127,12 +127,13 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal')
     const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
+    const debugPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
     const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
     const nthreads = inferJuliaNumThreads()
 
     // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
     function getArgs() {
-        const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
+        const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename()]
         jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
         jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
         jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
@@ -341,6 +342,18 @@ function debuggerEnter(params: DebugLaunchParams) {
     })
 }
 
+function debuggerAttach(params: {stopOnEntry: boolean, pipename: string}){
+    vscode.debug.startDebugging(undefined, {
+        type: 'julia',
+        request: 'attach',
+        name: 'Julia REPL',
+        pipename: params.pipename,
+        stopOnEntry: params.stopOnEntry,
+        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
+        compiledMode: g_compiledProvider.compiledMode
+    })
+}
+
 interface ReturnResult {
     inline: string,
     all: string,
@@ -369,6 +382,7 @@ export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: 
 const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams>('debugger/enter')
 const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams>('debugger/run')
 const notifyTypeReplStartDebugger = new rpc.NotificationType<{ debugPipename: string }>('repl/startdebugger')
+const notifyTypeReplAttachDebgger = new rpc.NotificationType<{pipename: string}>('debugger/attach')
 const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
@@ -1262,6 +1276,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
             connection.onNotification(notifyTypeDisplay, display)
             connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
             connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
+            connection.onNotification(notifyTypeReplAttachDebgger, debuggerAttach)
             connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
             connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
             connection.onNotification(notifyTypeShowProfilerResult, (data) => profilerFeature.showTrace({

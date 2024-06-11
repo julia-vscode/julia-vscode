@@ -95,48 +95,86 @@ end
 
 macro enter(command)
     remove_lln!(command)
-    :(JSONRPC.send_notification(conn_endpoint[], "debugger/enter", (code = $(string(command)), filename = $(string(__source__.file)))))
-end
+    quote
+        let
+            JSONRPC.send_notification(conn_endpoint[], "debugger/attach", (pipename=DEBUG_PIPENAME[], stopOnEntry=true))
 
-function generate_pipe_name(pid::String, name::String)
-    if Sys.iswindows()
-        return "\\\\.\\pipe\\$name-$pid"
-    else
-        return join(tempdir(), "$name-$pid")
+            debug_session = wait_for_debug_session()
+
+            DebugAdapter.debug_code(debug_session, $(string(command)), $(string(__source__.file)))
+
+            DebugAdapter.terminate(debug_session)
+
+            # TODO Replace with return value
+
+            nothing
+
+            # DebugAdapter.startdebug(conn, function (err, bt)
+            #     if is_disconnected_exception(err)
+            #         @debug "connection closed"
+            #     else
+            #         printstyled(stderr, "Error while running the debugger", color = :red, bold = true)
+            #         printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color = :red)
+            #         Base.display_error(stderr, err, bt)
+            #     end
+            # end)
+        end
     end
+    # :(JSONRPC.send_notification(conn_endpoint[], "debugger/enter", (code = $(string(command)), filename = $(string(__source__.file)))))
 end
 
 macro run(command)
     remove_lln!(command)
     quote
         let
-            hideprompt() do
-                pipename = generate_pipe_name(string(uuid4()), "jlrepldbg")
-                server = Sockets.listen(pipename)
-                try
-                    JSONRPC.send_notification(conn_endpoint[], "debugger/run", (code = $(string(command)), filename = $(string(__source__.file)), pipename=pipename))
+            JSONRPC.send_notification(conn_endpoint[], "debugger/attach", (pipename=DEBUG_PIPENAME[], stopOnEntry=false))
 
-                    conn = Sockets.accept(server)
-                    try
-                        println("ABouT TO START DEBUG SESSION")
-                        DebugAdapter.startdebug(conn, function (err, bt)
-                            if is_disconnected_exception(err)
-                                @debug "connection closed"
-                            else
-                                printstyled(stderr, "Error while running the debugger", color = :red, bold = true)
-                                printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color = :red)
-                                Base.display_error(stderr, err, bt)
-                            end
-                        end)
+            debug_session = wait_for_debug_session()
 
-                        println("WE FINISHED")
-                    finally
-                        close(conn)
-                    end
-                finally
-                    close(server)
-                end
-            end
+            DebugAdapter.debug_code(debug_session, $(string(command)), $(string(__source__.file)))
+
+            DebugAdapter.terminate(debug_session)
+
+            # TODO Replace with return value
+            nothing
+
+            # DebugAdapter.startdebug(conn, function (err, bt)
+            #     if is_disconnected_exception(err)
+            #         @debug "connection closed"
+            #     else
+            #         printstyled(stderr, "Error while running the debugger", color = :red, bold = true)
+            #         printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color = :red)
+            #         Base.display_error(stderr, err, bt)
+            #     end
+            # end)
         end
     end
+end
+
+function start_debug_backend(debug_pipename)
+    @async try
+        server = Sockets.listen(debug_pipename)
+
+        while true
+            conn = Sockets.accept(server)
+
+            debug_session = DebugAdapter.DebugSession(conn)
+
+            global DEBUG_SESSION
+
+            put!(DEBUG_SESSION[], debug_session)
+
+            try
+                run(debug_session)
+            finally
+                take!(DEBUG_SESSION[])
+            end
+        end
+    catch err
+        println("WE HAVE AN ERRR ", err)
+    end
+end
+
+function wait_for_debug_session()
+    fetch(DEBUG_SESSION[])
 end
