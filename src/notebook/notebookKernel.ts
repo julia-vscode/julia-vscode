@@ -59,6 +59,9 @@ export class JuliaKernel {
 
     private _tokenSource = new vscode.CancellationTokenSource()
 
+    private debuggerPipename: string | null
+    private debuggerActive: boolean = false
+
     constructor(
         private extensionPath: string,
         public controller: vscode.NotebookController,
@@ -144,6 +147,23 @@ export class JuliaKernel {
             }
 
             await this._processExecutionRequests.wait()
+        }
+    }
+
+    async toggleDebugging() {
+        if(this.debuggerActive) {
+            this.debuggerActive = false
+        }
+        else {
+            this.debuggerActive = await vscode.debug.startDebugging(undefined, {
+                type: 'julia',
+                request: 'attach',
+                name: 'Julia Notebook',
+                pipename: this.debuggerPipename,
+                stopOnEntry: true
+                // compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
+                // compiledMode: g_compiledProvider.compiledMode
+            })
         }
     }
 
@@ -318,6 +338,8 @@ export class JuliaKernel {
 
             this.outputChannel.appendLine(`Now starting the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`)
 
+            this.debuggerPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
+
             this._kernelProcess = spawn(
                 this.juliaExecutable.file,
                 [
@@ -325,6 +347,7 @@ export class JuliaKernel {
                     ...args,
                     path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
                     pn,
+                    this.debuggerPipename,
                     getCrashReportingPipename(),
                 ],
                 {

@@ -63,7 +63,16 @@ export class JuliaNotebookFeature {
             ),
             registerCommand('language-julia.restartKernel', (node) =>
                 this.restartKernel(node)
-            )
+            ),
+            vscode.commands.registerCommand('language-julia.toggleDebugging', () => {
+                if (vscode.window.activeNotebookEditor) {
+                    const { notebook: notebookDocument } = vscode.window.activeNotebookEditor;
+                    const juliaKernel = this.kernels.get(notebookDocument)
+                    if (juliaKernel) {
+                        juliaKernel.toggleDebugging();
+                    }
+                }
+            }),
         )
     }
 

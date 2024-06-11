@@ -440,7 +440,12 @@
             {
                 "command": "language-julia.hideModules",
                 "title": "Hide modules in Workspace"
-            }
+            },
+            {
+				"title": "Toggle Debugging",
+				"command": "language-julia.toggleDebugging",
+				"icon": "$(bug)"
+			}
         ],
         "menus": {
             "explorer/context": [
@@ -708,6 +713,11 @@
                 {
                     "command": "language-julia.stopKernel",
                     "group": "navigation/execute@2",
+                    "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted && notebookKernel =~ /julialang/"
+                },
+                {
+                    "command": "language-julia.toggleDebugging",
+                    "group": "navigation/execute@3",
                     "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted && notebookKernel =~ /julialang/"
                 }
             ],
