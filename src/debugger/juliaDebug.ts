@@ -11,6 +11,7 @@ import { JuliaExecutable } from '../juliaexepath'
 import { getCrashReportingPipename } from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { notifyTypeDebug, notifyTypeExec, notifyTypeOurFinished, notifyTypeRun, notifyTypeSetCompiledItems, notifyTypeSetCompiledMode, notifyTypeStopped, requestTypeBreakpointLocations, requestTypeContinue, requestTypeDisconnect, requestTypeEvaluate, requestTypeExceptionInfo, requestTypeNext, requestTypeRestartFrame, requestTypeScopes, requestTypeSetBreakpoints, requestTypeSetExceptionBreakpoints, requestTypeSetFunctionBreakpoints, requestTypeSetVariable, requestTypeSource, requestTypeStackTrace, requestTypeStepIn, requestTypeStepInTargets, requestTypeStepOut, requestTypeTerminate, requestTypeThreads, requestTypeVariables } from './debugProtocol'
+import * as jlpkgenv from '../jlpkgenv'
 
 /**
  * This interface describes the Julia specific launch attributes
@@ -25,6 +26,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
     stopOnEntry?: boolean
     cwd?: string
     juliaEnv?: string
+    sysImage?: string
     /** enable logging the Debug Adapter Protocol */
     trace?: boolean
     args?: string[]
@@ -222,9 +224,24 @@ export class JuliaDebugSession extends LoggingDebugSession {
 
         await serverListeningPromise.wait()
 
+        // try to obtain sysimage
+        // if it is not defined, the program automatically search the project root to look up for JuliaSysimage.so(/.dylib/.dll)
+        // if users do not want to use sysimage, the argument `sysImage` can be set as an empty stringt `""`.
+        let sysimage = args.sysImage
+        let sysImageArgs = []
+        if (sysimage == undefined)
+        {
+            sysimage = (await jlpkgenv.getProjectFilePaths(args.juliaEnv)).sysimage_path
+        }
+        if (sysimage != undefined && sysimage.length > 0)
+        {
+            sysImageArgs.push(`--sysimage=${sysimage}`)
+        }
+
         const nthreads = inferJuliaNumThreads()
         const jlargs = [
             ...this.juliaExecutable.args,
+            ...sysImageArgs,
             '--color=yes',
             '--startup-file=no',
             '--history-file=no',
@@ -238,6 +255,8 @@ export class JuliaDebugSession extends LoggingDebugSession {
             pn,
             getCrashReportingPipename(),
         ]
+        console.log(jlargs)
+        console.log("hello~ this is bowen")
 
         const env = {
             JL_ARGS: args.args
