@@ -97,45 +97,45 @@
         "commands": [
             {
                 "command": "language-julia.newJuliaFile",
-                "title": "Julia: New Julia File",
+                "title": "%julia.command.newJuliaFile%",
                 "shortTitle": "Julia File"
             },
             {
                 "command": "language-julia.refreshLanguageServer",
-                "title": "Julia: Re-Index Language Server Cache"
+                "title": "%julia.command.refreshLanguageServer%"
             },
             {
                 "command": "language-julia.restartLanguageServer",
-                "title": "Julia: Restart Language Server"
+                "title": "%julia.command.restartLanguageServer%"
             },
             {
                 "command": "language-julia.openPackageDirectory",
-                "title": "Julia: Open Package Directory in New Window"
+                "title": "%julia.command.openPackageDirectory%"
             },
             {
                 "command": "language-julia.tagNewPackageVersion",
-                "title": "Julia: Tag new package version (experimental)"
+                "title": "%julia.command.tagNewPackageVersion%"
             },
             {
                 "command": "language-julia.changeCurrentEnvironment",
-                "title": "Julia: Change Current Environment"
+                "title": "%julia.command.changeCurrentEnvironment%"
             },
             {
                 "command": "language-julia.startREPL",
-                "title": "Julia: Start REPL"
+                "title": "%julia.command.startREPL%"
             },
             {
                 "command": "language-julia.connectREPL",
-                "title": "Julia: Connect external REPL"
+                "title": "%julia.command.connectREPL%"
             },
             {
                 "command": "language-julia.stopREPL",
-                "title": "Julia: Stop REPL",
+                "title": "%julia.command.stopREPL%",
                 "icon": "$(debug-stop)"
             },
             {
                 "command": "language-julia.restartREPL",
-                "title": "Julia: Restart REPL",
+                "title": "%julia.command.restartREPL%",
                 "icon": "$(debug-restart)"
             },
             {
@@ -145,228 +145,228 @@
             },
             {
                 "command": "language-julia.disconnectREPL",
-                "title": "Julia: Disconnect external REPL"
+                "title": "%julia.command.disconnectREPL%"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelection",
-                "title": "Julia: Execute Code in REPL"
+                "title": "%julia.command.executeCodeBlockOrSelection%"
             },
             {
                 "command": "language-julia.executeJuliaCodeInREPL",
-                "title": "Julia: Send Current Line or Selection to REPL"
+                "title": "%julia.command.executeJuliaCodeInREPL%"
             },
             {
                 "command": "language-julia.executeCodeBlockOrSelectionAndMove",
-                "title": "Julia: Execute Code in REPL and Move"
+                "title": "%julia.command.executeCodeBlockOrSelectionAndMove%"
             },
             {
                 "command": "language-julia.executeFile",
-                "title": "Julia: Execute File in REPL",
+                "title": "%julia.command.executeFile%",
                 "icon": "$(play)"
             },
             {
                 "command": "language-julia.executeActiveFile",
-                "title": "Julia: Execute active File in REPL",
+                "title": "%julia.command.executeActiveFile%",
                 "icon": "$(play)"
             },
             {
                 "command": "language-julia.interrupt",
-                "title": "Julia: Interrupt Execution",
+                "title": "%julia.command.interrupt%",
                 "icon": "$(debug-pause)",
                 "enablement": "julia.isEvaluating"
             },
             {
                 "command": "language-julia.toggleLinter",
-                "title": "Julia: Toggle Linter"
+                "title": "%julia.command.toggleLinter%"
             },
             {
                 "command": "language-julia.weave-open-preview",
-                "title": "Julia Weave: Open Preview"
+                "title": "%julia.command.weave-open-preview%"
             },
             {
                 "command": "language-julia.weave-open-preview-side",
-                "title": "Julia Weave: Open Preview to the Side"
+                "title": "%julia.command.weave-open-preview-side%"
             },
             {
                 "command": "language-julia.weave-save",
-                "title": "Julia Weave: Save to File..."
+                "title": "%julia.command.weave-save%"
             },
             {
                 "command": "language-julia.show-documentation",
-                "title": "Julia: Show Documentation"
+                "title": "%julia.command.show-documentation%"
             },
             {
                 "command": "language-julia.show-documentation-pane",
-                "title": "Julia: Show Documentation Pane"
+                "title": "%julia.command.show-documentation-pane%"
             },
             {
                 "command": "language-julia.openProfiler",
-                "title": "Julia: Show Profiler"
+                "title": "%julia.command.openProfiler%"
             },
             {
                 "command": "language-julia.nextProfile",
-                "title": "Julia: Next Profiler",
+                "title": "%julia.command.nextProfile%",
                 "icon": "$(arrow-right)"
             },
             {
                 "command": "language-julia.previousProfile",
-                "title": "Julia: Previous Profile",
+                "title": "%julia.command.previousProfile%",
                 "icon": "$(arrow-left)"
             },
             {
                 "command": "language-julia.deleteProfile",
-                "title": "Julia: Delete Profile",
+                "title": "%julia.command.deleteProfile%",
                 "icon": "$(trash)"
             },
             {
                 "command": "language-julia.deleteAllProfiles",
-                "title": "Julia: Delete All Profiles"
+                "title": "%julia.command.deleteAllProfiles%"
             },
             {
                 "command": "language-julia.saveProfileToFile",
-                "title": "Julia: Save Profile",
+                "title": "%julia.command.saveProfileToFile%",
                 "icon": "$(save)"
             },
             {
                 "command": "language-julia.show-plot-navigator",
-                "title": "Julia: Show Plot Navigator"
+                "title": "%julia.command.show-plot-navigator%"
             },
             {
                 "command": "language-julia.browse-back-documentation",
-                "title": "Julia: Browse Back Documentation",
+                "title": "%julia.command.browse-back-documentation%",
                 "icon": "$(arrow-left)"
             },
             {
                 "command": "language-julia.browse-forward-documentation",
-                "title": "Julia: Browse Forward Documentation",
+                "title": "%julia.command.browse-forward-documentation%",
                 "icon": "$(arrow-right)"
             },
             {
                 "command": "language-julia.show-plotpane",
-                "title": "Julia: Show Plot"
+                "title": "%julia.command.show-plotpane%"
             },
             {
                 "command": "language-julia.plotpane-next",
-                "title": "Julia: Show Next Plot",
+                "title": "%julia.command.plotpane-next%",
                 "icon": "$(arrow-right)"
             },
             {
                 "command": "language-julia.plotpane-previous",
-                "title": "Julia: Show Previous Plot",
+                "title": "%julia.command.plotpane-previous%",
                 "icon": "$(arrow-left)"
             },
             {
                 "command": "language-julia.plotpane-first",
-                "title": "Julia: Show First Plot"
+                "title": "%julia.command.plotpane-first%"
             },
             {
                 "command": "language-julia.plotpane-enable",
-                "title": "Julia: Enable Plot Pane",
+                "title": "%julia.command.plotpane-enable%",
                 "icon": "$(circle-large-outline)"
             },
             {
                 "command": "language-julia.plotpane-disable",
-                "title": "Julia: Disable Plot Pane",
+                "title": "%julia.command.plotpane-disable%",
                 "icon": "$(pass-filled)"
             },
             {
                 "command": "language-julia.plotpane-last",
-                "title": "Julia: Show Last Plot"
+                "title": "%julia.command.plotpane-last%"
             },
             {
                 "command": "language-julia.plotpane-delete",
-                "title": "Julia: Delete plot",
+                "title": "%julia.command.plotpane-delete%",
                 "icon": "$(trash)"
             },
             {
                 "command": "language-julia.copy-plot",
-                "title": "Julia: Copy Plot",
+                "title": "%julia.command.copy-plot%",
                 "icon": "$(explorer-view-icon)"
             },
             {
                 "command": "language-julia.save-plot",
-                "title": "Julia: Save Plot",
+                "title": "%julia.command.save-plot%",
                 "icon": "$(save)"
             },
             {
                 "command": "language-julia.plotpane-delete-all",
-                "title": "Julia: Delete All Plots"
+                "title": "%julia.command.plotpane-delete-all%"
             },
             {
                 "command": "language-julia.executeCell",
-                "title": "Julia: Execute Code Cell in REPL"
+                "title": "%julia.command.executeCell%"
             },
             {
                 "command": "language-julia.executeCellAndMove",
-                "title": "Julia: Execute Code Cell in REPL and Move"
+                "title": "%julia.command.executeCellAndMove%"
             },
             {
                 "command": "language-julia.moveCellUp",
-                "title": "Julia: Move to Previous Cell"
+                "title": "%julia.command.moveCellUp%"
             },
             {
                 "command": "language-julia.moveCellDown",
-                "title": "Julia: Move to Next Cell"
+                "title": "%julia.command.moveCellDown%"
             },
             {
                 "command": "language-julia.selectBlock",
-                "title": "Julia: Select Code Block"
+                "title": "%julia.command.selectBlock%"
             },
             {
                 "command": "language-julia.showInVSCode",
-                "title": "Open in VS Code",
+                "title": "%julia.command.showInVSCode%",
                 "icon": "$(preview)"
             },
             {
                 "command": "language-julia.workspaceGoToFile",
-                "title": "Go to definition",
+                "title": "%julia.command.workspaceGoToFile%",
                 "icon": "$(go-to-file)"
             },
             {
                 "command": "language-julia.clearAllInlineResults",
-                "title": "Julia: Clear All Inline Results"
+                "title": "%julia.command.clearAllInlineResults%"
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
-                "title": "Julia: Clear Inline Results In Editor"
+                "title": "%julia.command.clearAllInlineResultsInEditor%"
             },
             {
                 "command": "language-julia.clearCurrentInlineResult",
-                "title": "Julia: Clear Current Inline Result"
+                "title": "%julia.command.clearCurrentInlineResult%"
             },
             {
                 "command": "language-julia.chooseModule",
-                "title": "Julia: Select Current Module"
+                "title": "%julia.command.chooseModule%"
             },
             {
                 "command": "language-julia.runEditorContents",
-                "title": "Julia: Run File in New Process",
+                "title": "%julia.command.runEditorContents%",
                 "icon": "$(play)"
             },
             {
                 "command": "language-julia.debugEditorContents",
-                "title": "Julia: Debug File in New Process",
+                "title": "%julia.command.debugEditorContents%",
                 "icon": "$(debug-alt)"
             },
             {
                 "command": "language-julia.cdHere",
-                "title": "Julia: Change to This Directory"
+                "title": "%julia.command.cdHere%"
             },
             {
                 "command": "language-julia.activateHere",
-                "title": "Julia: Activate This Environment"
+                "title": "%julia.command.activateHere%"
             },
             {
                 "command": "language-julia.activateFromDir",
-                "title": "Julia: Activate Parent Environment"
+                "title": "%julia.command.activateFromDir%"
             },
             {
                 "command": "language-julia.clearRuntimeDiagnostics",
-                "title": "Julia: Clear Runtime Diagnostics"
+                "title": "%julia.command.clearRuntimeDiagnostics%"
             },
             {
                 "command": "language-julia.clearRuntimeDiagnosticsByProvider",
-                "title": "Julia: Clear Runtime Diagnostics by Provider"
+                "title": "%julia.command.clearRuntimeDiagnosticsByProvider%"
             },
             {
                 "command": "language-julia.clearInlayHints",
@@ -374,72 +374,72 @@
             },
             {
                 "command": "language-julia.switchToInterpreted",
-                "title": "Remove from compiled modules/functions",
+                "title": "%julia.command.switchToInterpreted%",
                 "icon": "$(remove)"
             },
             {
                 "command": "language-julia.switchToCompiled",
-                "title": "Julia: Add to compiled modules/functions",
+                "title": "%julia.command.switchToCompiled%",
                 "icon": "$(add)"
             },
             {
                 "command": "language-julia.switchAllToInterpreted",
-                "title": "Julia: Switch all to interpreted"
+                "title": "%julia.command.switchAllToInterpreted%"
             },
             {
                 "command": "language-julia.switchAllToCompiled",
-                "title": "Julia: Switch all to compiled",
+                "title": "%julia.command.switchAllToCompiled%",
                 "icon": "$(diff-added)"
             },
             {
                 "command": "language-julia.apply-compiled-defaults",
-                "title": "Julia: Apply default compiled modules/functions"
+                "title": "%julia.command.apply-compiled-defaults%"
             },
             {
                 "command": "language-julia.reset-compiled",
-                "title": "Julia: Clear compiled modules/functions",
+                "title": "%julia.command.reset-compiled%",
                 "icon": "$(remove)"
             },
             {
                 "command": "language-julia.refreshCompiled",
-                "title": "Julia: Refresh Compiled/Interpreted Pane"
+                "title": "%julia.command.refreshCompiled%"
             },
             {
                 "command": "language-julia.set-compiled-for-name",
-                "title": "Julia: Add symbol to compiled modules/functions",
+                "title": "%julia.command.set-compiled-for-name%",
                 "icon": "$(add)"
             },
             {
                 "command": "language-julia.set-current-as-default-compiled",
-                "title": "Julia: Set current compiled modules/functions as default"
+                "title": "%julia.command.set-current-as-default-compiled%"
             },
             {
                 "command": "language-julia.enable-compiled-mode",
-                "title": "Julia: Enable Compiled Mode for the debugger",
+                "title": "%julia.command.enable-compiled-mode%",
                 "icon": "$(debug-breakpoint)"
             },
             {
                 "command": "language-julia.disable-compiled-mode",
-                "title": "Julia: Disable Compiled Mode for the debugger",
+                "title": "%julia.command.disable-compiled-mode%",
                 "icon": "$(debug-breakpoint-unverified)"
             },
             {
                 "command": "language-julia.restartKernel",
-                "title": "Restart",
+                "title": "%julia.command.restartKernel%",
                 "icon": "$(debug-restart)"
             },
             {
                 "command": "language-julia.stopKernel",
-                "title": "Stop",
+                "title": "%julia.command.stopKernel%",
                 "icon": "$(debug-stop)"
             },
             {
                 "command": "language-julia.showModules",
-                "title": "Show modules in Workspace"
+                "title": "%julia.command.showModules%"
             },
             {
                 "command": "language-julia.hideModules",
-                "title": "Hide modules in Workspace"
+                "title": "%julia.command.hideModules%"
             }
         ],
         "menus": {
