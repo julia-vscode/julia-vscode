@@ -9,6 +9,7 @@ import Dates
 import Profile
 import Logging
 import InteractiveUtils
+import FileWatching
 
 const FALLBACK_CONSOLE_LOGGER_REF = Ref{Logging.AbstractLogger}()
 
