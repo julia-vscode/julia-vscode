@@ -3,13 +3,18 @@ module VSCodeTestServer
 include("pkg_imports.jl")
 
 import .JSONRPC: @dict_readable
-import Test, Pkg
+import Test, Pkg, Sockets
 
 include("testserver_protocol.jl")
 include("helper.jl")
 include("vscode_testset.jl")
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
+const DEBUG_SESSION = Ref{Channel{DebugAdapter.DebugSession}}()
+
+function __init__()
+    DEBUG_SESSION[] = Channel{DebugAdapter.DebugSession}(1)
+end
 
 function withpath(f, path)
     tls = task_local_storage()
@@ -112,7 +117,13 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     t0 = time_ns()
     try
         withpath(filepath) do
-            Base.invokelatest(include_string, mod, code, filepath)
+
+            if params.debug
+                debug_session = wait_for_debug_session()
+                DebugAdapter.debug_code(debug_session, mod, code, filepath, false)
+            else
+                Base.invokelatest(include_string, mod, code, filepath)
+            end
             elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
         end
     catch err
@@ -216,7 +227,53 @@ function serve_in_env(conn)
     end
 end
 
-function serve(conn, project_path, package_path, package_name; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function start_debug_backend(debug_pipename)
+    ready = Channel{Bool}(1)
+    @async try
+        server = Sockets.listen(debug_pipename)
+
+        put!(ready, true)
+
+        while true
+            conn = Sockets.accept(server)
+
+            debug_session = DebugAdapter.DebugSession(conn)
+
+            global DEBUG_SESSION
+
+            put!(DEBUG_SESSION[], debug_session)
+
+            try
+                run(debug_session)
+            finally
+                take!(DEBUG_SESSION[])
+            end
+        end
+    catch err
+        println("ERROR ", err)
+        Base.display_error(catch_backtrace())
+    end
+
+    take!(ready)
+end
+
+function wait_for_debug_session()
+    fetch(DEBUG_SESSION[])
+end
+
+function get_debug_session_if_present()
+    if isready(DEBUG_SESSION[])
+        return fetch(DEBUG_SESSION[])
+    else
+        return nothing
+    end
+end
+
+function serve(pipename, debug_pipename, project_path, package_path, package_name; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+    start_debug_backend(debug_pipename)
+
+    conn = Sockets.connect(pipename)
+
     @info "This test server instance was started with the following configuration." project_path package_path package_name
     if project_path==""
         Pkg.activate(temp=true)

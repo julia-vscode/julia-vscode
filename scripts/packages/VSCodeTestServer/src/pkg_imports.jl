@@ -38,7 +38,7 @@ using ..LoweredCodeUtils: next_or_nothing!, trackedheads, callee_matches
 include("../../Revise/src/packagedef.jl")
 end
 
-module DebugAdapater
+module DebugAdapter
     import Pkg
     import ..JuliaInterpreter
     import ..JSON

@@ -54,6 +54,7 @@ interface TestserverRunTestitemRequestParams {
     line: number
     column: number
     code: string
+    debug: boolean
 }
 
 interface TestMessage {
@@ -74,6 +75,7 @@ const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/re
 
 export class TestProcess {
 
+
     private process: ChildProcessWithoutNullStreams
     private connection: rpc.MessageConnection
     public testRun: vscode.TestRun | null = null
@@ -87,6 +89,9 @@ export class TestProcess {
     public projectPath: string | null = null
     public packagePath: string | null = null
     public packageName: string | null = null
+
+    public debugPipename: string = generatePipeName(uuid(), 'vsc-jl-td')
+    public activeDebugSession: vscode.DebugSession | null = null
 
     isConnected() {
         return this.connection
@@ -156,6 +161,7 @@ export class TestProcess {
                 ...jlArgs,
                 join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
                 pipename,
+                this.debugPipename,
                 `v:${projectPath}`,
                 `v:${packagePath}`,
                 `v:${packageName}`,
@@ -218,11 +224,11 @@ export class TestProcess {
     }
 
 
-    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, testRun: vscode.TestRun, someTestItemFinished: Subject) {
+    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, debug: boolean, testRun: vscode.TestRun, someTestItemFinished: Subject) {
         this.testRun = testRun
 
         try {
-            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code })
+            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code, debug: debug })
 
             if (result.status === 'passed') {
                 testRun.passed(testItem, result.duration)
@@ -265,12 +271,34 @@ export class TestProcess {
             }
         }
     }
+
+    public startDebugging() {
+        vscode.debug.startDebugging(
+            undefined,
+            {
+                type: 'julia',
+                request: 'attach',
+                name: 'Julia Testitem',
+                pipename: this.debugPipename,
+                stopOnEntry: false,
+                // compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
+                // compiledMode: g_compiledProvider.compiledMode
+            }
+        )
+    }
+
+    stopDebugging() {
+        if(this.activeDebugSession) {
+            vscode.debug.stopDebugging(this.activeDebugSession)
+        }
+    }
 }
 
 export class TestFeature {
     private controller: vscode.TestController
     private testitems: WeakMap<vscode.TestItem, { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }> = new WeakMap<vscode.TestItem, { testitem: TestItemDetail, projectPath: string, packagePath: string, packageName: string }>()
     private testProcesses: Map<string, TestProcess[]> = new Map<string, TestProcess[]>()
+    public debugPipename2TestProcess: Map<string, TestProcess> = new Map<string, TestProcess>()
     private outputChannel: vscode.OutputChannel
     private someTestItemFinished = new Subject()
     private cpuLength: number | null = null
@@ -284,15 +312,35 @@ export class TestFeature {
                 'Julia Tests'
             )
 
-            this.controller.createRunProfile('Run', vscode.TestRunProfileKind.Run, async (request, token) => {
-                try {
-                    await this.runHandler(request, token)
-                }
-                catch (err) {
-                    handleNewCrashReportFromException(err, 'Extension')
-                    throw (err)
-                }
-            }, true)
+            this.controller.createRunProfile(
+                'Run',
+                vscode.TestRunProfileKind.Run,
+                async (request, token) => {
+                    try {
+                        await this.runHandler(request, false, token)
+                    }
+                    catch (err) {
+                        handleNewCrashReportFromException(err, 'Extension')
+                        throw (err)
+                    }
+                },
+                true
+            )
+
+            this.controller.createRunProfile(
+                'Debug',
+                vscode.TestRunProfileKind.Debug,
+                async (request, token) => {
+                    try {
+                        await this.runHandler(request, true, token)
+                    }
+                    catch (err) {
+                        handleNewCrashReportFromException(err, 'Extension')
+                        throw (err)
+                    }
+                },
+                false
+            )
 
             context.subscriptions.push(
                 registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
@@ -301,8 +349,6 @@ export class TestFeature {
             )
 
             this.cpuLength = cpus().length
-        // this.controller.createRunProfile('Debug', vscode.TestRunProfileKind.Debug, this.runHandler.bind(this), false)
-        // this.controller.createRunProfile('Coverage', vscode.TestRunProfileKind.Coverage, this.runHandler.bind(this), false)
         }
         catch (err) {
             handleNewCrashReportFromException(err, 'Extension')
@@ -372,9 +418,11 @@ export class TestFeature {
         const processes = this.testProcesses.get(JSON.stringify({projectPath: details.projectPath, packagePath: details.packagePath, packageName: details.packageName}))
 
         processes.push(testProcess)
+        this.debugPipename2TestProcess.set(testProcess.debugPipename, testProcess)
 
         testProcess.onKilled((e) => {
             processes.splice(processes.indexOf(testProcess))
+            this.debugPipename2TestProcess.delete(testProcess.debugPipename)
         })
 
         return testProcess
@@ -437,6 +485,7 @@ export class TestFeature {
 
     async runHandler(
         request: vscode.TestRunRequest,
+        debugMode: boolean,
         token: vscode.CancellationToken
     ) {
         const testRun = this.controller.createTestRun(request, undefined, true)
@@ -470,6 +519,8 @@ export class TestFeature {
 
             const executionPromises = []
 
+            const debugProcesses = new Set<TestProcess>()
+
             for (const i of itemsToRun) {
                 if(testRun.token.isCancellationRequested) {
                     testRun.skipped(i)
@@ -494,6 +545,10 @@ export class TestFeature {
                             testRun.started(i)
 
                             if(testProcess.isConnected()) {
+                                if(debugMode) {
+                                    testProcess.startDebugging()
+                                    debugProcesses.add(testProcess)
+                                }
 
                                 const code = details.testitem.code
 
@@ -502,7 +557,7 @@ export class TestFeature {
                                     range: details.testitem.code_range
                                 }
 
-                                const executionPromise = testProcess.executeTest(i, details.packageName, details.testitem.option_default_imports, location, code, testRun, this.someTestItemFinished)
+                                const executionPromise = testProcess.executeTest(i, details.packageName, details.testitem.option_default_imports, location, code, debugMode, testRun, this.someTestItemFinished)
 
                                 executionPromises.push(executionPromise)
                             }
@@ -520,6 +575,10 @@ export class TestFeature {
             }
 
             await Promise.all(executionPromises)
+
+            for(const i of debugProcesses) {
+                i.stopDebugging()
+            }
         }
         finally {
             testRun.end()

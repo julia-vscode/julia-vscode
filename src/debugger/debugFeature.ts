@@ -10,6 +10,7 @@ import { getCrashReportingPipename } from '../telemetry'
 import { DebugProtocol } from '@vscode/debugprotocol'
 import { JuliaNotebookFeature } from '../notebook/notebookFeature'
 import { JuliaKernel } from '../notebook/notebookKernel'
+import { TestFeature, TestProcess } from '../testing/testFeature'
 
 // /**
 //  * This interface describes the Julia specific launch attributes
@@ -120,7 +121,7 @@ export class JuliaDebugFeature {
 
 
 
-    constructor(private context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, notebookFeature: JuliaNotebookFeature) {
+    constructor(private context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, notebookFeature: JuliaNotebookFeature, testFeature: TestFeature) {
         const provider = new JuliaDebugConfigurationProvider(compiledProvider)
         const factory = new InlineDebugAdapterFactory(this.context, this, juliaExecutablesFeature)
 
@@ -198,11 +199,16 @@ export class JuliaDebugFeature {
             vscode.debug.registerDebugAdapterTrackerFactory('julia', {
                 createDebugAdapterTracker(session: vscode.DebugSession) {
                     let kernel: JuliaKernel = null
+                    let testprocess: TestProcess = null
 
                     if(session.configuration.pipename && notebookFeature.debugPipenameToKernel.has(session.configuration.pipename)) {
                         kernel = notebookFeature.getKernelByDebugPipename(session.configuration.pipename)
 
                         kernel.activeDebugSession = session
+                    }
+                    else if(session.configuration.pipename && testFeature.debugPipename2TestProcess.has(session.configuration.pipename)) {
+                        testprocess = testFeature.debugPipename2TestProcess.get(session.configuration.pipename)
+                        testprocess.activeDebugSession = session
                     }
 
                     return {
@@ -253,6 +259,9 @@ export class JuliaDebugFeature {
                         onWillStopSession: () => {
                             if(kernel) {
                                 kernel.activeDebugSession = null
+                            }
+                            else if(testprocess) {
+                                testprocess.activeDebugSession = null
                             }
                             console.log('WE ARE ABOUT TO STOP')
                         }
