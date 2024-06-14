@@ -76,7 +76,7 @@ macro enter(command)
 
             debug_session = wait_for_debug_session()
 
-            DebugAdapter.debug_code(debug_session, $(string(command)), $(string(__source__.file)))
+            DebugAdapter.debug_code(debug_session, Main, $(string(command)), $(string(__source__.file)))
 
             DebugAdapter.terminate(debug_session)
 
@@ -105,7 +105,7 @@ macro run(command)
 
             debug_session = take!(DEBUG_SESSION[])
 
-            DebugAdapter.debug_code(debug_session, $(string(command)), $(string(__source__.file)), true)
+            DebugAdapter.debug_code(debug_session, Main, $(string(command)), $(string(__source__.file)), true)
 
             # TODO Replace with return value
             nothing
