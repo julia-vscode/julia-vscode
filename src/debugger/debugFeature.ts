@@ -5,8 +5,11 @@ import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../util
 import { uuid } from 'uuidv4'
 import { Subject } from 'await-notify'
 import * as net from 'net'
-import { basename, join } from 'path'
+import path, { basename, join } from 'path'
 import { getCrashReportingPipename } from '../telemetry'
+import { DebugProtocol } from '@vscode/debugprotocol'
+import { JuliaNotebookFeature } from '../notebook/notebookFeature'
+import { JuliaKernel } from '../notebook/notebookKernel'
 
 // /**
 //  * This interface describes the Julia specific launch attributes
@@ -36,11 +39,88 @@ import { getCrashReportingPipename } from '../telemetry'
 //     compiledMode?: Boolean
 // }
 
+// this vistor could be moved into the DAP npm module (it must be kept in sync with the DAP spec)
+function visitSources(msg: DebugProtocol.ProtocolMessage, visitor: (source: DebugProtocol.Source) => void): void {
+
+    const sourceHook = (source: DebugProtocol.Source | undefined) => {
+        if (source) {
+            visitor(source)
+        }
+    }
+
+    switch (msg.type) {
+    case 'event':
+        const event = <DebugProtocol.Event>msg
+        switch (event.event) {
+        case 'output':
+            sourceHook((<DebugProtocol.OutputEvent>event).body.source)
+            break
+        case 'loadedSource':
+            sourceHook((<DebugProtocol.LoadedSourceEvent>event).body.source)
+            break
+        case 'breakpoint':
+            sourceHook((<DebugProtocol.BreakpointEvent>event).body.breakpoint.source)
+            break
+        default:
+            break
+        }
+        break
+    case 'request':
+        const request = <DebugProtocol.Request>msg
+        switch (request.command) {
+        case 'setBreakpoints':
+            sourceHook((<DebugProtocol.SetBreakpointsArguments>request.arguments).source)
+            break
+        case 'breakpointLocations':
+            sourceHook((<DebugProtocol.BreakpointLocationsArguments>request.arguments).source)
+            break
+        case 'source':
+            sourceHook((<DebugProtocol.SourceArguments>request.arguments).source)
+            break
+        case 'gotoTargets':
+            sourceHook((<DebugProtocol.GotoTargetsArguments>request.arguments).source)
+            break
+        case 'launchVSCode':
+            //request.arguments.args.forEach(arg => fixSourcePath(arg));
+            break
+        default:
+            break
+        }
+        break
+    case 'response':
+        const response = <DebugProtocol.Response>msg
+        if (response.success && response.body) {
+            switch (response.command) {
+            case 'stackTrace':
+                (<DebugProtocol.StackTraceResponse>response).body.stackFrames.forEach(frame => sourceHook(frame.source))
+                break
+            case 'loadedSources':
+                (<DebugProtocol.LoadedSourcesResponse>response).body.sources.forEach(source => sourceHook(source))
+                break
+            case 'scopes':
+                (<DebugProtocol.ScopesResponse>response).body.scopes.forEach(scope => sourceHook(scope.source))
+                break
+            case 'setFunctionBreakpoints':
+                (<DebugProtocol.SetFunctionBreakpointsResponse>response).body.breakpoints.forEach(bp => sourceHook(bp.source))
+                break
+            case 'setBreakpoints':
+                (<DebugProtocol.SetBreakpointsResponse>response).body.breakpoints.forEach(bp => sourceHook(bp.source))
+                break
+            default:
+                break
+            }
+        }
+        break
+    }
+}
+
 export class JuliaDebugFeature {
     public debugSessionsThatNeedTermination: WeakMap<vscode.DebugSession, number | null> = new WeakMap<vscode.DebugSession, number | null>()
     public taskExecutionsForLaunchedDebugSessions: WeakMap<vscode.TaskExecution,vscode.DebugSession> = new WeakMap<vscode.TaskExecution,vscode.DebugSession>()
 
-    constructor(private context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature) {
+
+
+    constructor(private context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, notebookFeature: JuliaNotebookFeature) {
         const provider = new JuliaDebugConfigurationProvider(compiledProvider)
         const factory = new InlineDebugAdapterFactory(this.context, this, juliaExecutablesFeature)
 
@@ -117,6 +197,14 @@ export class JuliaDebugFeature {
             }),
             vscode.debug.registerDebugAdapterTrackerFactory('julia', {
                 createDebugAdapterTracker(session: vscode.DebugSession) {
+                    let kernel: JuliaKernel = null
+
+                    if(session.configuration.pipename && notebookFeature.debugPipenameToKernel.has(session.configuration.pipename)) {
+                        kernel = notebookFeature.getKernelByDebugPipename(session.configuration.pipename)
+
+                        kernel.activeDebugSession = session
+                    }
+
                     return {
                         onWillReceiveMessage: m => {
                             if(m.type==='request' && m.command==='terminate') {
@@ -133,12 +221,39 @@ export class JuliaDebugFeature {
                                     }
                                 }
                             }
+                            else if(kernel) {
+                                visitSources(m, source => {
+                                    if (source.path && source.path.startsWith('vscode-notebook-cell:')) {
+                                        const cellPath = kernel.mapCellToPath(source.path)
+                                        source.path = cellPath
+                                    }
+                                })
+                            }
+
                             console.log(`> ${JSON.stringify(m, undefined)}`)
                         },
                         onDidSendMessage: m => {
+                            visitSources(m, source => {
+                                if (source.path) {
+                                    const cell = notebookFeature.pathToCell.get(source.path)
+                                    if (cell) {
+                                        source.path = cell.document.uri.toString()
+                                        source.name = path.basename(cell.document.uri.fsPath)
+                                        // append cell index to name
+                                        const cellIndex = cell.notebook.getCells().indexOf(cell)
+                                        if (cellIndex >= 0) {
+                                            source.name += `, Cell ${cellIndex + 1}`
+                                        }
+                                    }
+                                }
+                            })
+
                             console.log(`< ${JSON.stringify(m, undefined)}`)
                         },
                         onWillStopSession: () => {
+                            if(kernel) {
+                                kernel.activeDebugSession = null
+                            }
                             console.log('WE ARE ABOUT TO STOP')
                         }
                     }

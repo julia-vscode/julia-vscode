@@ -19,7 +19,7 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
             if isready(DEBUG_SESSION[])
                 debug_session = fetch(DEBUG_SESSION[])
 
-                DebugAdapter.debug_code(debug_session, code, params.filename)
+                DebugAdapter.debug_code(debug_session, code, params.filename, false)
             else
                 Base.invokelatest(include_string, args...)
             end

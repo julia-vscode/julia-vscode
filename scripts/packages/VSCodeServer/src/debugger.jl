@@ -103,11 +103,9 @@ macro run(command)
         let
             JSONRPC.send_notification(conn_endpoint[], "debugger/attach", (pipename=DEBUG_PIPENAME[], stopOnEntry=false))
 
-            debug_session = wait_for_debug_session()
+            debug_session = take!(DEBUG_SESSION[])
 
-            DebugAdapter.debug_code(debug_session, $(string(command)), $(string(__source__.file)))
-
-            DebugAdapter.terminate(debug_session)
+            DebugAdapter.debug_code(debug_session, $(string(command)), $(string(__source__.file)), true)
 
             # TODO Replace with return value
             nothing
@@ -145,7 +143,7 @@ function start_debug_backend(debug_pipename)
             end
         end
     catch err
-        println("WE HAVE AN ERRR ", err)
+        Base.display_error(our_stderr, catch_backtrace())
     end
 end
 

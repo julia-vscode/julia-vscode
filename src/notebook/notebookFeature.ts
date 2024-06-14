@@ -44,6 +44,10 @@ export class JuliaNotebookFeature {
     private readonly disposables: vscode.Disposable[] = [];
     private vscodeIpynbApi = undefined;
 
+    public pathToCell: Map<string, vscode.NotebookCell> = new Map()
+
+    public debugPipenameToKernel: Map<string,JuliaKernel> = new Map<string,JuliaKernel>()
+
     constructor(
         private context: vscode.ExtensionContext,
         private juliaExecutableFeature: JuliaExecutablesFeature,
@@ -74,6 +78,10 @@ export class JuliaNotebookFeature {
                 }
             }),
         )
+    }
+
+    getKernelByDebugPipename(pipename: any) {
+        return this.debugPipenameToKernel.get(pipename)
     }
 
     private async init() {

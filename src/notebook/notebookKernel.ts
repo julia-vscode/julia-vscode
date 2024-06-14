@@ -60,7 +60,7 @@ export class JuliaKernel {
     private _tokenSource = new vscode.CancellationTokenSource()
 
     private debuggerPipename: string | null
-    private debuggerActive: boolean = false
+    public activeDebugSession: vscode.DebugSession | null
 
     constructor(
         private extensionPath: string,
@@ -76,6 +76,19 @@ export class JuliaKernel {
     public dispose() {
         this.stop()
         this._localDisposables.forEach((d) => d.dispose())
+    }
+
+    public mapCellToPath(uri: string) {
+        const cellUri = vscode.Uri.parse(uri, true)
+
+        // find cell in document by matching its URI
+        const cell = this.notebook.getCells().find(c => c.document.uri.toString() === uri)
+
+        const cellPath = path.join(path.dirname(cellUri.fsPath), `jl_notebook_cell_df34fa98e69747e1a8f8a730347b8e2f_${cellUri.fragment}.jl`)
+
+        this.notebookFeature.pathToCell.set(cellPath, cell)
+
+        return cellPath
     }
 
     public async queueCell(cell: vscode.NotebookCell): Promise<void> {
@@ -113,13 +126,15 @@ export class JuliaKernel {
                     const executionOrder = ++this._current_request_id
                     this._currentExecutionRequest.executionOrder = executionOrder
 
+                    const cellPath = this.mapCellToPath(this._currentExecutionRequest.cell.document.uri.toString())
+
                     const runStartTime = Date.now()
                     this._currentExecutionRequest.start(runStartTime)
 
                     const result = await this._msgConnection.sendRequest(
                         requestTypeRunCell,
                         {
-                            filename: this.notebook.uri.fsPath,
+                            filename: cellPath,
                             line: 0,
                             column: 0,
                             code: this._currentExecutionRequest.cell.document.getText(),
@@ -151,16 +166,16 @@ export class JuliaKernel {
     }
 
     async toggleDebugging() {
-        if(this.debuggerActive) {
-            this.debuggerActive = false
+        if(this.activeDebugSession) {
+            vscode.debug.stopDebugging(this.activeDebugSession)
         }
         else {
-            this.debuggerActive = await vscode.debug.startDebugging(undefined, {
+            await vscode.debug.startDebugging(undefined, {
                 type: 'julia',
                 request: 'attach',
                 name: 'Julia Notebook',
                 pipename: this.debuggerPipename,
-                stopOnEntry: true
+                stopOnEntry: false
                 // compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
                 // compiledMode: g_compiledProvider.compiledMode
             })
@@ -339,6 +354,8 @@ export class JuliaKernel {
             this.outputChannel.appendLine(`Now starting the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`)
 
             this.debuggerPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
+
+            this.notebookFeature.debugPipenameToKernel.set(this.debuggerPipename, this)
 
             this._kernelProcess = spawn(
                 this.juliaExecutable.file,
