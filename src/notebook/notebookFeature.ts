@@ -75,8 +75,28 @@ export class JuliaNotebookFeature {
                     if (juliaKernel) {
                         juliaKernel.toggleDebugging();
                     }
+                    else {
+                        // TODO Figure out how we can start debugging in this scneario
+                    }
                 }
             }),
+            vscode.commands.registerCommand('language-julia.runAndDebugCell', async (cell: vscode.NotebookCell | undefined) => {
+                if(cell) {
+                    const kernel = this.kernels.get(cell.notebook)
+                    if(!kernel.activeDebugSession) {
+                        await kernel.toggleDebugging()
+                        kernel.stopDebugSessionAfterExecution = true
+                    }
+
+                    await vscode.commands.executeCommand(
+                        'notebook.cell.execute',
+                        {
+                            ranges: [{ start: cell.index, end: cell.index + 1 }],
+                            document: cell.document.uri
+                        }
+                    )
+                }
+            })
         )
     }
 

@@ -445,7 +445,12 @@
 				"title": "Toggle Debugging",
 				"command": "language-julia.toggleDebugging",
 				"icon": "$(bug)"
-			}
+			},
+            {
+                "title": "Debug Cell",
+                "command": "language-julia.runAndDebugCell",
+                "icon": "$(debug-alt-small)"
+            }
         ],
         "menus": {
             "explorer/context": [
@@ -719,6 +724,12 @@
                     "command": "language-julia.toggleDebugging",
                     "group": "navigation/execute@3",
                     "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted && notebookKernel =~ /julialang/"
+                }
+            ],
+            "notebook/cell/execute": [
+                {
+                    "command": "language-julia.runAndDebugCell",
+                    "when": "notebookType == jupyter-notebook && isWorkspaceTrusted && notebookCellType == code  && notebookKernel =~ /julialang/"
                 }
             ],
             "commandPalette": [

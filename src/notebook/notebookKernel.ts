@@ -61,6 +61,7 @@ export class JuliaKernel {
 
     private debuggerPipename: string | null
     public activeDebugSession: vscode.DebugSession | null
+    public stopDebugSessionAfterExecution: boolean
 
     constructor(
         private extensionPath: string,
@@ -141,6 +142,10 @@ export class JuliaKernel {
                         }
                     )
 
+                    if(this.stopDebugSessionAfterExecution && this.activeDebugSession) {
+                        vscode.debug.stopDebugging(this.activeDebugSession)
+                    }
+
                     if (!result.success) {
                         this._currentExecutionRequest.appendOutput(
                             new vscode.NotebookCellOutput([
@@ -165,11 +170,12 @@ export class JuliaKernel {
         }
     }
 
-    async toggleDebugging() {
+    public async toggleDebugging() {
         if(this.activeDebugSession) {
             vscode.debug.stopDebugging(this.activeDebugSession)
         }
         else {
+            this.stopDebugSessionAfterExecution = false
             await vscode.debug.startDebugging(undefined, {
                 type: 'julia',
                 request: 'attach',
