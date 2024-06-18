@@ -272,8 +272,8 @@ export class TestProcess {
         }
     }
 
-    public startDebugging() {
-        vscode.debug.startDebugging(
+    public async startDebugging() {
+        await vscode.debug.startDebugging(
             undefined,
             {
                 type: 'julia',
@@ -347,6 +347,20 @@ export class TestFeature {
                     node.stop()
                 )
             )
+
+            vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
+                if(session.configuration.pipename && this.debugPipename2TestProcess.has(session.configuration.pipename)) {
+                    const testprocess = this.debugPipename2TestProcess.get(session.configuration.pipename)
+                    testprocess.activeDebugSession = session
+                }
+            })
+
+            vscode.debug.onDidTerminateDebugSession((session: vscode.DebugSession) => {
+                if(session.configuration.pipename && this.debugPipename2TestProcess.has(session.configuration.pipename)) {
+                    const testprocess = this.debugPipename2TestProcess.get(session.configuration.pipename)
+                    testprocess.activeDebugSession = null
+                }
+            })
 
             this.cpuLength = cpus().length
         }
@@ -545,8 +559,8 @@ export class TestFeature {
                             testRun.started(i)
 
                             if(testProcess.isConnected()) {
-                                if(debugMode) {
-                                    testProcess.startDebugging()
+                                if(debugMode && !testProcess.activeDebugSession) {
+                                    await testProcess.startDebugging()
                                     debugProcesses.add(testProcess)
                                 }
 
