@@ -12,6 +12,7 @@ import { getCrashReportingPipename, handleNewCrashReportFromException } from '..
 import { getAbsEnvPath } from '../jlpkgenv'
 import { TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
+import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
 interface TestItemDetail {
     id: string,
@@ -272,7 +273,7 @@ export class TestProcess {
         }
     }
 
-    public async startDebugging() {
+    public async startDebugging(compiledProvider) {
         await vscode.debug.startDebugging(
             undefined,
             {
@@ -281,8 +282,8 @@ export class TestProcess {
                 name: 'Julia Testitem',
                 pipename: this.debugPipename,
                 stopOnEntry: false,
-                // compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
-                // compiledMode: g_compiledProvider.compiledMode
+                compiledModulesOrFunctions: compiledProvider.getCompiledItems(),
+                compiledMode: compiledProvider.compiledMode
             }
         )
     }
@@ -303,7 +304,7 @@ export class TestFeature {
     private someTestItemFinished = new Subject()
     private cpuLength: number | null = null
 
-    constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature, private workspaceFeature: WorkspaceFeature) {
+    constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature, private workspaceFeature: WorkspaceFeature,private compiledProvider: DebugConfigTreeProvider) {
         try {
             this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
 
@@ -560,7 +561,7 @@ export class TestFeature {
 
                             if(testProcess.isConnected()) {
                                 if(debugMode && !testProcess.activeDebugSession) {
-                                    await testProcess.startDebugging()
+                                    await testProcess.startDebugging(this.compiledProvider)
                                     debugProcesses.add(testProcess)
                                 }
 

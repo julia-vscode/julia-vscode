@@ -19,6 +19,7 @@ import { JuliaExecutable } from '../juliaexepath'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
+import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
 const notifyTypeDisplay = new NotificationType<{
     items: { mimetype: string; data: string }[]
@@ -69,7 +70,8 @@ export class JuliaKernel {
         public notebook: vscode.NotebookDocument,
         public juliaExecutable: JuliaExecutable,
         private outputChannel: vscode.OutputChannel,
-        private notebookFeature: JuliaNotebookFeature
+        private notebookFeature: JuliaNotebookFeature,
+        private compiledProvider: DebugConfigTreeProvider
     ) {
         this.run(this._tokenSource.token)
     }
@@ -181,9 +183,9 @@ export class JuliaKernel {
                 request: 'attach',
                 name: 'Julia Notebook',
                 pipename: this.debuggerPipename,
-                stopOnEntry: false
-                // compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
-                // compiledMode: g_compiledProvider.compiledMode
+                stopOnEntry: false,
+                compiledModulesOrFunctions: this.compiledProvider.getCompiledItems(),
+                compiledMode: this.compiledProvider.compiledMode
             })
         }
     }

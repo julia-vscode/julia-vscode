@@ -6,6 +6,7 @@ import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
 import { registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
 import isEqual from 'lodash.isequal'
+import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
 type JupyterNotebookMetadata = Partial<{
@@ -51,7 +52,8 @@ export class JuliaNotebookFeature {
     constructor(
         private context: vscode.ExtensionContext,
         private juliaExecutableFeature: JuliaExecutablesFeature,
-        private workspaceFeature: WorkspaceFeature
+        private workspaceFeature: WorkspaceFeature,
+        private compiledProvider: DebugConfigTreeProvider
     ) {
         this.init()
 
@@ -364,7 +366,8 @@ export class JuliaNotebookFeature {
             notebook,
             this._controllers.get(controller),
             this._outputChannel,
-            this
+            this,
+            this.compiledProvider
         )
         await this.workspaceFeature.addNotebookKernel(kernel)
         this.kernels.set(notebook, kernel)
