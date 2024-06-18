@@ -1401,6 +1401,14 @@
                                     "type": "string"
                                 }
                             },
+                            "env": {
+                                "additionalProperties": {
+                                    "type": "string"
+                                },
+                                "default": {},
+                                "description": "Environment variables defined as a key value pair. Property ends up being the Environment Variable and the value of the property ends up being the value of the Env Variable.",
+                                "type": "object"
+                            },
                             "juliaEnv": {
                                 "type": "string",
                                 "description": "Absolute path to the Julia environment.",
@@ -1417,6 +1425,7 @@
                         "program": "${file}",
                         "stopOnEntry": false,
                         "cwd": "${workspaceFolder}",
+                        "env": {},
                         "juliaEnv": "${command:activeJuliaEnvironment}"
                     }
                 ],

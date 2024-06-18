@@ -332,6 +332,10 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
             config.juliaEnv = '${command:activeJuliaEnvironment}'
         }
 
+        if (!config.env && config.request !== 'attach') {
+            config.env = {}
+        }
+
         console.log(config)
 
         return config
