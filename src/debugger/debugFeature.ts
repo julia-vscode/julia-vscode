@@ -201,8 +201,6 @@ export class JuliaDebugFeature {
 
                     if(session.configuration.pipename && notebookFeature.debugPipenameToKernel.has(session.configuration.pipename)) {
                         kernel = notebookFeature.getKernelByDebugPipename(session.configuration.pipename)
-
-                        kernel.activeDebugSession = session
                     }
 
                     return {
@@ -249,11 +247,6 @@ export class JuliaDebugFeature {
                             })
 
                             console.log(`< ${JSON.stringify(m, undefined)}`)
-                        },
-                        onWillStopSession: () => {
-                            if(kernel) {
-                                kernel.activeDebugSession = null
-                            }
                         }
                     }
                 }

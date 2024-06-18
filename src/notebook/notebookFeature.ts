@@ -98,6 +98,20 @@ export class JuliaNotebookFeature {
                 }
             })
         )
+
+        vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
+            if(session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
+                const kernel = this.getKernelByDebugPipename(session.configuration.pipename)
+                kernel.activeDebugSession = session
+            }
+        })
+
+        vscode.debug.onDidTerminateDebugSession((session: vscode.DebugSession) => {
+            if(session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
+                const kernel = this.debugPipenameToKernel.get(session.configuration.pipename)
+                kernel.activeDebugSession = null
+            }
+        })
     }
 
     getKernelByDebugPipename(pipename: any) {
