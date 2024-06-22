@@ -90,6 +90,7 @@ jobs:
   testJuliaLSPackages:
     name: Test Julia LS Packages
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.julia-version == '1.11' }}
     strategy:
       fail-fast: false
       matrix:
