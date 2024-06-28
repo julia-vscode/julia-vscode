@@ -20,7 +20,9 @@ packages_to_dev = [
     PackageSpec(path="../../../packages/Tokenize"),
     PackageSpec(path="../../../packages/URIParser"),
     PackageSpec(path="../../../packages/URIs"),
-    PackageSpec(path="../../../packages/TestItemDetection"),
+    PackageSpec(path="../../../packages/ExceptionUnwrapping"),
+    PackageSpec(path="../../../packages/MacroTools"),
+    PackageSpec(path="../../../packages/Salsa"),
 ]
 
 if VERSION>=v"1.9-DEV"
@@ -33,6 +35,12 @@ if VERSION>=v"1.6.0"
 else
     push!(packages_to_dev, PackageSpec(path="../../../packages-old/Compat"))
     push!(packages_to_dev, PackageSpec(path="../../../packages-old/Crayons"))
+end
+
+if VERSION>=v"1.8.0"
+    push!(packages_to_dev, PackageSpec(path="../../../packages/AutoHashEquals"))
+else
+    push!(packages_to_dev, PackageSpec(path="../../../packages-old/v1.7/AutoHashEquals"))
 end
 
 Pkg.develop(packages_to_dev)

@@ -6,6 +6,7 @@ import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
 import { registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
 import isEqual from 'lodash.isequal'
+import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
 type JupyterNotebookMetadata = Partial<{
@@ -44,10 +45,15 @@ export class JuliaNotebookFeature {
     private readonly disposables: vscode.Disposable[] = [];
     private vscodeIpynbApi = undefined;
 
+    public pathToCell: Map<string, vscode.NotebookCell> = new Map()
+
+    public debugPipenameToKernel: Map<string,JuliaKernel> = new Map<string,JuliaKernel>()
+
     constructor(
         private context: vscode.ExtensionContext,
         private juliaExecutableFeature: JuliaExecutablesFeature,
-        private workspaceFeature: WorkspaceFeature
+        private workspaceFeature: WorkspaceFeature,
+        private compiledProvider: DebugConfigTreeProvider
     ) {
         this.init()
 
@@ -63,8 +69,55 @@ export class JuliaNotebookFeature {
             ),
             registerCommand('language-julia.restartKernel', (node) =>
                 this.restartKernel(node)
-            )
+            ),
+            // vscode.commands.registerCommand('language-julia.toggleDebugging', () => {
+            //     if (vscode.window.activeNotebookEditor) {
+            //         const { notebook: notebookDocument } = vscode.window.activeNotebookEditor;
+            //         const juliaKernel = this.kernels.get(notebookDocument)
+            //         if (juliaKernel) {
+            //             juliaKernel.toggleDebugging();
+            //         }
+            //         else {
+            //             // TODO Figure out how we can start debugging in this scneario
+            //         }
+            //     }
+            // }),
+            vscode.commands.registerCommand('language-julia.runAndDebugCell', async (cell: vscode.NotebookCell | undefined) => {
+                if(cell) {
+                    const kernel = this.kernels.get(cell.notebook)
+                    if(!kernel.activeDebugSession) {
+                        await kernel.toggleDebugging()
+                        kernel.stopDebugSessionAfterExecution = true
+                    }
+
+                    await vscode.commands.executeCommand(
+                        'notebook.cell.execute',
+                        {
+                            ranges: [{ start: cell.index, end: cell.index + 1 }],
+                            document: cell.document.uri
+                        }
+                    )
+                }
+            })
         )
+
+        vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
+            if(session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
+                const kernel = this.getKernelByDebugPipename(session.configuration.pipename)
+                kernel.activeDebugSession = session
+            }
+        })
+
+        vscode.debug.onDidTerminateDebugSession((session: vscode.DebugSession) => {
+            if(session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
+                const kernel = this.debugPipenameToKernel.get(session.configuration.pipename)
+                kernel.activeDebugSession = null
+            }
+        })
+    }
+
+    getKernelByDebugPipename(pipename: any) {
+        return this.debugPipenameToKernel.get(pipename)
     }
 
     private async init() {
@@ -313,7 +366,8 @@ export class JuliaNotebookFeature {
             notebook,
             this._controllers.get(controller),
             this._outputChannel,
-            this
+            this,
+            this.compiledProvider
         )
         await this.workspaceFeature.addNotebookKernel(kernel)
         this.kernels.set(notebook, kernel)

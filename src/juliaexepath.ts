@@ -150,6 +150,8 @@ export class JuliaExecutablesFeature {
         let pathsToSearch = []
         if (process.platform === 'win32') {
             pathsToSearch = ['julia.exe',
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.11.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.11.1', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.11.0', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.10.5', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.10.4', 'bin', 'julia.exe'),

@@ -15,9 +15,9 @@ version = "0.2.0"
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[BitFlags]]
-git-tree-sha1 = "2dc09997850d68179b69dafb58ae806167a32b1b"
+git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
-version = "0.1.8"
+version = "0.1.9"
 
 [[CSTParser]]
 deps = ["Tokenize"]
@@ -230,9 +230,9 @@ uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[PkgButlerEngine]]
 deps = ["Mustache", "Pkg"]
-git-tree-sha1 = "d7a73e175672f59255a49eefc3bf800156e13c9e"
+git-tree-sha1 = "76c8dd8965e9b4c8639012c8815e1842c1306a66"
 uuid = "5c9c0fc8-7103-448b-bb0a-c427020e3b0b"
-version = "1.12.3"
+version = "1.13.0"
 
 [[PkgDev]]
 deps = ["Base64", "DocumentFormat", "FilePathsBase", "GitHub", "JSON", "LibGit2", "Pkg", "PkgButlerEngine", "RegistryTools", "TOML", "URIs", "UUIDs"]
@@ -321,9 +321,9 @@ version = "0.5.29"
 
 [[TranscodingStreams]]
 deps = ["Random", "Test"]
-git-tree-sha1 = "a947ea21087caba0a798c5e494d0bb78e3a1a3a0"
+git-tree-sha1 = "d73336d81cafdc277ff45558bb7eaa2b04a8e472"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.10.9"
+version = "0.10.10"
 
 [[URIs]]
 git-tree-sha1 = "67db6cc7b3821e19ebe75791a9dd19c9b1188f2b"

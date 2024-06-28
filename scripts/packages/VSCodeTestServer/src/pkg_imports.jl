@@ -38,11 +38,10 @@ using ..LoweredCodeUtils: next_or_nothing!, trackedheads, callee_matches
 include("../../Revise/src/packagedef.jl")
 end
 
-# module DebugAdapter
-# import ..JuliaInterpreter
-# import ..JSON
-# import ..JSONRPC
-# import ..JSONRPC: @dict_readable, Outbound
+module DebugAdapter
+    import Pkg
+    import ..JuliaInterpreter
+    import ..JSON
 
-# include("../../DebugAdapter/src/packagedef.jl")
-# end
+    include("../../DebugAdapter/src/packagedef.jl")
+end

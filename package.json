@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.81.0",
+    "version": "1.83.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -440,6 +440,11 @@
             {
                 "command": "language-julia.hideModules",
                 "title": "Hide modules in Workspace"
+            },
+            {
+                "title": "Debug Cell",
+                "command": "language-julia.runAndDebugCell",
+                "icon": "$(debug-alt-small)"
             }
         ],
         "menus": {
@@ -709,6 +714,12 @@
                     "command": "language-julia.stopKernel",
                     "group": "navigation/execute@2",
                     "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted && notebookKernel =~ /julialang/"
+                }
+            ],
+            "notebook/cell/execute": [
+                {
+                    "command": "language-julia.runAndDebugCell",
+                    "when": "notebookType == jupyter-notebook && isWorkspaceTrusted && notebookCellType == code  && notebookKernel =~ /julialang/"
                 }
             ],
             "commandPalette": [
@@ -1390,6 +1401,14 @@
                                     "type": "string"
                                 }
                             },
+                            "env": {
+                                "additionalProperties": {
+                                    "type": "string"
+                                },
+                                "default": {},
+                                "description": "Environment variables defined as a key value pair. Property ends up being the Environment Variable and the value of the property ends up being the value of the Env Variable.",
+                                "type": "object"
+                            },
                             "juliaEnv": {
                                 "type": "string",
                                 "description": "Absolute path to the Julia environment.",
@@ -1406,6 +1425,7 @@
                         "program": "${file}",
                         "stopOnEntry": false,
                         "cwd": "${workspaceFolder}",
+                        "env": {},
                         "juliaEnv": "${command:activeJuliaEnvironment}"
                     }
                 ],

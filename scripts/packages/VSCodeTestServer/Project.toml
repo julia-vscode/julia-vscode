@@ -2,6 +2,7 @@ name = "VSCodeTestServer"
 uuid = "9fc3453c-ee28-4e9a-8c0f-49f694b5a294"
 
 [deps]
+Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 FileWatching = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -14,6 +15,7 @@ REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [compat]
 julia = "1"

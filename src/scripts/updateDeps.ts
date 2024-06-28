@@ -52,7 +52,7 @@ async function main() {
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
-    for (const pkg of ['IJuliaCore', 'TestItemDetection']) {
+    for (const pkg of ['IJuliaCore', 'JuliaWorkspaces']) {
         console.log(`Updating ${pkg} to latest main`)
         await cp.exec('git checkout main', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
@@ -60,12 +60,15 @@ async function main() {
 
 
     for (const pkg of [
+        'AutoHashEquals',
+        'ExceptionUnwrapping',
+        'MacroTools',
+        'Salsa',
         'CodeTracking',
         'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
-        // 'JuliaSyntax', Need to update JuliaWorkspaces first
-        'JuliaWorkspaces',
+        'JuliaSyntax',
         'Glob',
         'LoweredCodeUtils',
         'OrderedCollections',

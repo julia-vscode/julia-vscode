@@ -1,5 +1,4 @@
 # ENV["JULIA_DEBUG"] = "all"
-print("> Connecting to debugger... ")
 
 pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
 try

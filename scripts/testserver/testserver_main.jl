@@ -12,10 +12,10 @@ include("../error_handler.jl")
 import Sockets
 
 try
-    conn = Sockets.connect(ARGS[1])
 
-    VSCodeTestServer.serve(conn, ARGS[2][3:end], ARGS[3][3:end], ARGS[4][3:end])
+
+    VSCodeTestServer.serve(ARGS[1], ARGS[2], ARGS[3][3:end], ARGS[4][3:end], ARGS[5][3:end])
 
 catch err
-    global_err_handler(err, catch_backtrace(), Base.ARGS[5], "Test Server")
+    global_err_handler(err, catch_backtrace(), Base.ARGS[6], "Test Server")
 end
