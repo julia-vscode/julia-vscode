@@ -74,8 +74,9 @@ jobs:
           - os: macos-latest
             julia-version: 1.4
         include:
-          - os: macos-12
-            julia-version: 1.4
+          - julia-version: 1.4
+            os: macos-12
+
     steps:
       - uses: actions/checkout@v4
         with:
