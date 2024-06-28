@@ -177,7 +177,11 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
             if params.mode == "Coverage"
                 lcov_filename = tempname() * ".info"
                 @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
-                coverage_info = read(lcov_filename, String)
+                coverage_info = try
+                     read(lcov_filename, String)
+                finally
+                    rm(lcov_filename)
+                end
             else
                 coverage_info = nothing
             end
