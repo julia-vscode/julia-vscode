@@ -20,7 +20,6 @@ packages_to_dev = [
     PackageSpec(path="../../../packages/Tokenize"),
     PackageSpec(path="../../../packages/URIParser"),
     PackageSpec(path="../../../packages/URIs"),
-    PackageSpec(path="../../../packages/TestItemDetection"),
     PackageSpec(path="../../../packages/ExceptionUnwrapping"),
     PackageSpec(path="../../../packages/MacroTools"),
     PackageSpec(path="../../../packages/Salsa"),

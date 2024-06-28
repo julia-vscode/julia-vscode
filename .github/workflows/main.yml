@@ -115,7 +115,7 @@ jobs:
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
-          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("TestItemDetection", coverage=true)'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("JuliaWorkspaces", coverage=true)'
 
   deployOriginalTag:
     name: Deploy Tag Version
