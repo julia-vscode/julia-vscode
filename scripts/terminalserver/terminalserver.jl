@@ -18,7 +18,7 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
 end
 
 let
-    args = [popfirst!(Base.ARGS) for _ in 1:7]
+    args = [popfirst!(Base.ARGS) for _ in 1:8]
     # load Revise ?
     if "USE_REVISE=true" in args
         try
@@ -41,6 +41,6 @@ let
         VSCodeServer.toggle_progress(nothing, (;enable="USE_PROGRESS=true" in args))
     end
 
-    conn_pipeline, telemetry_pipeline = args[1:2]
-    VSCodeServer.serve(conn_pipeline; is_dev="DEBUG_MODE=true" in args, crashreporting_pipename=telemetry_pipeline)
+    conn_pipename, debug_pipename, telemetry_pipename = args[1:3]
+    VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, crashreporting_pipename=telemetry_pipename)
 end
