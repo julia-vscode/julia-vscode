@@ -62,7 +62,9 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     mod = Core.eval(Main, :(module $(gensym()) end))
 
     @static if VERSION >= v"1.12.0-"
-        @ccall jl_clear_coverage_data()::Cvoid
+        if params.mode == "Coverage"
+            @ccall jl_clear_coverage_data()::Cvoid
+        end
     end
 
     if params.useDefaultUsings
@@ -124,7 +126,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     try
         withpath(filepath) do
 
-            if params.debug
+            if params.mode == "Debug"
                 debug_session = wait_for_debug_session()
                 DebugAdapter.debug_code(debug_session, mod, code, filepath, false)
             else
@@ -172,11 +174,15 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
         Test.finish(ts)
 
         @static if VERSION >= v"1.12.0-"
-            lcov_filename = tempname() * ".info"
-            @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
-            coverage_info = read(lcov_filename, String)
+            if params.mode == "Coverage"
+                lcov_filename = tempname() * ".info"
+                @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
+                coverage_info = read(lcov_filename, String)
+            else
+                coverage_info = nothing
+            end
         else
-            coverage_info = ""
+            coverage_info = nothing
         end
 
         return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time, coverage_info)

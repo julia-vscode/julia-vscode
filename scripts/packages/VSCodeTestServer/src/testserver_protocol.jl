@@ -33,7 +33,7 @@ JSONRPC.@dict_readable struct TestserverRunTestitemRequestParams <: JSONRPC.Outb
     line::Int
     column::Int
     code::String
-    debug::Bool
+    mode::String
 end
 
 JSONRPC.@dict_readable struct TestserverRunTestitemRequestParamsReturn <: JSONRPC.Outbound

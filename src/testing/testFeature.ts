@@ -17,6 +17,12 @@ import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
+enum TestRunMode {
+    Normal,
+    Debug,
+    Coverage,
+  }
+
 interface TestItemDetail {
     id: string,
     label: string
@@ -55,7 +61,7 @@ interface TestserverRunTestitemRequestParams {
     line: number
     column: number
     code: string
-    debug: boolean
+    mode: string
 }
 
 interface TestMessage {
@@ -118,6 +124,8 @@ export class TestProcess {
     public debugPipename: string = generatePipeName(uuid(), 'vsc-jl-td')
     public activeDebugSession: vscode.DebugSession | null = null
 
+    constructor(public coverage: boolean) {}
+
     isConnected() {
         return this.connection
     }
@@ -163,9 +171,12 @@ export class TestProcess {
             `--project=${pkgenvpath}`,
             '--startup-file=no',
             '--history-file=no',
-            '--depwarn=no',
-            '--code-coverage=user'
+            '--depwarn=no'
         ]
+
+        if(this.coverage) {
+            jlArgs.push('--code-coverage=user')
+        }
 
         const nthreads = inferJuliaNumThreads()
 
@@ -251,21 +262,17 @@ export class TestProcess {
     }
 
 
-    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, debug: boolean, testRun: vscode.TestRun, someTestItemFinished: Subject) {
+    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, mode: TestRunMode, testRun: vscode.TestRun, someTestItemFinished: Subject) {
         this.testRun = testRun
 
         try {
-            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code, debug: debug })
+            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code, mode: mode.toString() })
 
             if (result.status === 'passed') {
                 const sections = await lcovParser.lcovParser({from: result.coverage})
 
                 for(const i of sections) {
-                    let filePath = i.path
-                    if (filePath.startsWith('\\')) {
-                        filePath = 'c:' + filePath
-                    }
-
+                    const filePath = i.path
 
                     if (path.isAbsolute(filePath)) {
 
@@ -359,13 +366,12 @@ export class TestFeature {
                 'Julia Tests'
             )
 
-
             this.controller.createRunProfile(
                 'Run',
                 vscode.TestRunProfileKind.Run,
                 async (request, token) => {
                     try {
-                        await this.runHandler(request, false, token)
+                        await this.runHandler(request, TestRunMode.Normal, token)
                     }
                     catch (err) {
                         handleNewCrashReportFromException(err, 'Extension')
@@ -380,7 +386,7 @@ export class TestFeature {
                 vscode.TestRunProfileKind.Debug,
                 async (request, token) => {
                     try {
-                        await this.runHandler(request, true, token)
+                        await this.runHandler(request, TestRunMode.Debug, token)
                     }
                     catch (err) {
                         handleNewCrashReportFromException(err, 'Extension')
@@ -392,7 +398,7 @@ export class TestFeature {
 
             const coverage_profile = this.controller.createRunProfile('Run with coverage', vscode.TestRunProfileKind.Coverage, async (request, token) => {
                 try {
-                    await this.runHandler(request, false, token)
+                    await this.runHandler(request, TestRunMode.Coverage, token)
                 }
                 catch (err) {
                     handleNewCrashReportFromException(err, 'Extension')
@@ -483,20 +489,20 @@ export class TestFeature {
         }
     }
 
-    stringifyTestItemDetail(testEnv: GetTestEnvRequestParamsReturn) {
-        return JSON.stringify({projectPath: testEnv.project_uri, packagePath: testEnv.package_uri, packageName: testEnv.package_name})
+    stringifyTestItemDetail(testEnv: GetTestEnvRequestParamsReturn, coverage: boolean) {
+        return JSON.stringify({projectPath: testEnv.project_uri, packagePath: testEnv.package_uri, packageName: testEnv.package_name, coverage: coverage})
     }
 
-    async launchNewProcess(testEnv: GetTestEnvRequestParamsReturn) {
-        const testProcess = new TestProcess()
+    async launchNewProcess(testEnv: GetTestEnvRequestParamsReturn, coverage: boolean) {
+        const testProcess = new TestProcess(coverage)
         await testProcess.start(this.context, this.executableFeature, this.outputChannel, testEnv.project_uri, testEnv.package_uri, testEnv.package_name, testEnv.env_content_hash)
         this.workspaceFeature.addTestProcess(testProcess)
 
-        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv))) {
-            this.testProcesses.set(this.stringifyTestItemDetail(testEnv), [])
+        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv, coverage))) {
+            this.testProcesses.set(this.stringifyTestItemDetail(testEnv, coverage), [])
         }
 
-        const processes = this.testProcesses.get(this.stringifyTestItemDetail(testEnv))
+        const processes = this.testProcesses.get(this.stringifyTestItemDetail(testEnv, coverage))
 
         processes.push(testProcess)
         this.debugPipename2TestProcess.set(testProcess.debugPipename, testProcess)
@@ -509,14 +515,14 @@ export class TestFeature {
         return testProcess
     }
 
-    async getFreeTestProcess(testEnv: GetTestEnvRequestParamsReturn) {
-        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv))) {
-            const testProcess = await this.launchNewProcess(testEnv)
+    async getFreeTestProcess(testEnv: GetTestEnvRequestParamsReturn, coverage) {
+        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv, coverage))) {
+            const testProcess = await this.launchNewProcess(testEnv, coverage)
 
             return testProcess
         }
         else {
-            const testProcesses = this.testProcesses.get(this.stringifyTestItemDetail(testEnv))
+            const testProcesses = this.testProcesses.get(this.stringifyTestItemDetail(testEnv, coverage))
 
             for(let testProcess of testProcesses) {
                 // TODO Salsa Kill outdated test env processes here somewhere
@@ -547,7 +553,7 @@ export class TestFeature {
                     }
 
                     if (needsNewProcess) {
-                        testProcess = await this.launchNewProcess(testEnv)
+                        testProcess = await this.launchNewProcess(testEnv, coverage)
                     }
 
                     return testProcess
@@ -561,7 +567,7 @@ export class TestFeature {
             }
 
             if(testProcesses.length < maxNumProcesses) {
-                const testProcess = await this.launchNewProcess(testEnv)
+                const testProcess = await this.launchNewProcess(testEnv, coverage)
 
                 return testProcess
             }
@@ -574,7 +580,7 @@ export class TestFeature {
 
     async runHandler(
         request: vscode.TestRunRequest,
-        debugMode: boolean,
+        mode: TestRunMode,
         token: vscode.CancellationToken
     ) {
         const testRun = this.controller.createTestRun(request, undefined, true)
@@ -633,11 +639,11 @@ export class TestFeature {
                             testEnvPerFile.set(i.uri, testEnv)
                         }
 
-                        let testProcess: TestProcess = await this.getFreeTestProcess(testEnv)
+                        let testProcess: TestProcess = await this.getFreeTestProcess(testEnv, mode===TestRunMode.Coverage)
 
                         while(testProcess===null && !testRun.token.isCancellationRequested) {
                             await this.someTestItemFinished.wait()
-                            testProcess = await this.getFreeTestProcess(testEnv)
+                            testProcess = await this.getFreeTestProcess(testEnv, mode===TestRunMode.Coverage)
                         }
 
                         if(testProcess!==null) {
@@ -645,7 +651,7 @@ export class TestFeature {
                             testRun.started(i)
 
                             if(testProcess.isConnected()) {
-                                if(debugMode && !testProcess.activeDebugSession) {
+                                if(mode===TestRunMode.Debug && !testProcess.activeDebugSession) {
                                     await testProcess.startDebugging(this.compiledProvider)
                                     debugProcesses.add(testProcess)
                                 }
@@ -657,7 +663,7 @@ export class TestFeature {
                                     range: details.code_range
                                 }
 
-                                const executionPromise = testProcess.executeTest(i, testEnv.package_name, details.option_default_imports, location, code, debugMode, testRun, this.someTestItemFinished)
+                                const executionPromise = testProcess.executeTest(i, testEnv.package_name, details.option_default_imports, location, code, mode, testRun, this.someTestItemFinished)
 
                                 executionPromises.push(executionPromise)
                             }
