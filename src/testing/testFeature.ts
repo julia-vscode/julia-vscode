@@ -175,7 +175,12 @@ export class TestProcess {
         ]
 
         if(this.coverage) {
-            jlArgs.push('--code-coverage=user')
+            if(package_uri) {
+                jlArgs.push(`--code-coverage=@"${vscode.Uri.parse(package_uri).fsPath}"`)
+            }
+            else {
+                jlArgs.push('--code-coverage=user')
+            }
         }
 
         const nthreads = inferJuliaNumThreads()
