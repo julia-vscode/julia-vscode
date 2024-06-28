@@ -118,3 +118,6 @@
 [submodule "scripts/packages/AutoHashEquals"]
 	path = scripts/packages/AutoHashEquals
 	url = https://github.com/JuliaServices/AutoHashEquals.jl
+[submodule "scripts/packages-old/v1.7/AutoHashEquals"]
+	path = scripts/packages-old/v1.7/AutoHashEquals
+	url = https://github.com/JuliaServices/AutoHashEquals.jl
