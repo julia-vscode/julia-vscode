@@ -1549,7 +1549,7 @@
         "tagmajor": "npm version major && git push --tags && git push"
     },
     "dependencies": {
-        "@friedemannsommer/lcov-parser": "^3.1.1",
+        "@friedemannsommer/lcov-parser": "^4.0.1",
         "@traptitech/markdown-it-katex": "^3.6.0",
         "@vscode/debugadapter": "^1.55.1",
         "@vscode/debugprotocol": "^1.55.1",
