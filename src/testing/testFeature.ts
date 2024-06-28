@@ -21,7 +21,22 @@ enum TestRunMode {
     Normal,
     Debug,
     Coverage,
-  }
+}
+
+function modeAsString(mode: TestRunMode) {
+    if(mode===TestRunMode.Normal) {
+        return 'Normal'
+    }
+    else if(mode===TestRunMode.Debug) {
+        return 'Debug'
+    }
+    else if(mode===TestRunMode.Coverage) {
+        return 'Coverage'
+    }
+    else {
+        throw(new Error(`Invalid mode value.`))
+    }
+}
 
 interface TestItemDetail {
     id: string,
@@ -175,8 +190,9 @@ export class TestProcess {
         ]
 
         if(this.coverage) {
-            if(package_uri) {
-                jlArgs.push(`--code-coverage=@"${vscode.Uri.parse(package_uri).fsPath}"`)
+            // TODO Figure out whether we can still use this
+            if(package_uri && false) {
+                jlArgs.push(`--code-coverage=@${vscode.Uri.parse(package_uri).fsPath}`)
             }
             else {
                 jlArgs.push('--code-coverage=user')
@@ -271,20 +287,22 @@ export class TestProcess {
         this.testRun = testRun
 
         try {
-            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code, mode: mode.toString() })
+            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code, mode: modeAsString(mode) })
 
             if (result.status === 'passed') {
-                const sections = await lcovParser.lcovParser({from: result.coverage})
+                if(result.coverage) {
+                    const sections = await lcovParser.lcovParser({from: result.coverage})
 
-                for(const i of sections) {
-                    const filePath = i.path
+                    for(const i of sections) {
+                        const filePath = i.path
 
-                    if (path.isAbsolute(filePath)) {
+                        if (path.isAbsolute(filePath)) {
 
-                        const pathAsUri = vscode.Uri.file(filePath)
+                            const pathAsUri = vscode.Uri.file(filePath)
 
-                        if (vscode.workspace.workspaceFolders.filter(j => pathAsUri.toString().startsWith(j.uri.toString())).length>0) {
-                            testRun.addCoverage(new MyFileCoverage(pathAsUri, {covered: i.lines.hit, total: i.lines.instrumented}, i.lines.details))
+                            if (vscode.workspace.workspaceFolders.filter(j => pathAsUri.toString().startsWith(j.uri.toString())).length>0) {
+                                testRun.addCoverage(new MyFileCoverage(pathAsUri, {covered: i.lines.hit, total: i.lines.instrumented}, i.lines.details))
+                            }
                         }
                     }
                 }

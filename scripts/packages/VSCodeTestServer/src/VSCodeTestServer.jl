@@ -173,20 +173,18 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     try
         Test.finish(ts)
 
+        coverage_info = nothing
+
         @static if VERSION >= v"1.12.0-"
             if params.mode == "Coverage"
                 lcov_filename = tempname() * ".info"
                 @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
-                coverage_info = try
-                     read(lcov_filename, String)
+                try
+                    coverage_info = read(lcov_filename, String)
                 finally
                     rm(lcov_filename)
                 end
-            else
-                coverage_info = nothing
             end
-        else
-            coverage_info = nothing
         end
 
         return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time, coverage_info)
