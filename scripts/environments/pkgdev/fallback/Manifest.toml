@@ -287,9 +287,9 @@ version = "1.12.0"
 
 [[deps.PkgButlerEngine]]
 deps = ["Mustache", "Pkg"]
-git-tree-sha1 = "d7a73e175672f59255a49eefc3bf800156e13c9e"
+git-tree-sha1 = "76c8dd8965e9b4c8639012c8815e1842c1306a66"
 uuid = "5c9c0fc8-7103-448b-bb0a-c427020e3b0b"
-version = "1.12.3"
+version = "1.13.0"
 
 [[deps.PkgDev]]
 deps = ["Base64", "DocumentFormat", "FilePathsBase", "GitHub", "JSON", "LibGit2", "Pkg", "PkgButlerEngine", "RegistryTools", "TOML", "URIs", "UUIDs"]
@@ -385,9 +385,9 @@ uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
 version = "0.5.29"
 
 [[deps.TranscodingStreams]]
-git-tree-sha1 = "a947ea21087caba0a798c5e494d0bb78e3a1a3a0"
+git-tree-sha1 = "d73336d81cafdc277ff45558bb7eaa2b04a8e472"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.10.9"
+version = "0.10.10"
 weakdeps = ["Random", "Test"]
 
     [deps.TranscodingStreams.extensions]
