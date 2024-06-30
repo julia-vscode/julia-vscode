@@ -106,7 +106,7 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     end
 end
 
-function serve(conn_pipename, debug_pipename; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing)
     if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
         hook_repl(Base.active_repl)
     end
@@ -119,7 +119,7 @@ function serve(conn_pipename, debug_pipename; is_dev=false, crashreporting_pipen
         start_eval_backend()
     end
     DEBUG_PIPENAME[] = debug_pipename
-    start_debug_backend(debug_pipename)
+    start_debug_backend(debug_pipename, error_handler)
     run(conn_endpoint[])
     @debug "running"
 
@@ -151,7 +151,15 @@ function serve(conn_pipename, debug_pipename; is_dev=false, crashreporting_pipen
             msg = JSONRPC.get_next_message(conn_endpoint[])
 
             if msg["method"] == repl_runcode_request_type.method
-                @async dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
+                @async try
+                    dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
+                catch err
+                    if error_handler===nothing
+                        Base.display_error(err, catch_backtrace())
+                    else
+                        error_handler(err, catch_backtrace())
+                    end
+                end
             else
                 dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
             end
@@ -162,7 +170,7 @@ function serve(conn_pipename, debug_pipename; is_dev=false, crashreporting_pipen
             @debug "remote closed the connection"
         else
             try
-                global_err_handler(err, catch_backtrace(), crashreporting_pipename, "REPL")
+                error_handler(err, catch_backtrace())
             catch err
                 @error "Error handler threw an error." exception = (err, catch_backtrace())
             end

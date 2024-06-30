@@ -78,7 +78,7 @@ function io_send_callback(name, data)
     JSONRPC.send_notification(conn_endpoint[], "streamoutput", Dict{String,Any}("name" => name, "data" => data))
 end
 
-function serve_notebook(pipename, debugger_pipename, outputchannel_logger; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve_notebook(pipename, debugger_pipename, outputchannel_logger; error_handler=nothing)
     Base.with_logger(outputchannel_logger) do
         @info "Trying to connect..."
     end
@@ -94,7 +94,7 @@ function serve_notebook(pipename, debugger_pipename, outputchannel_logger; crash
         @info "Starting JSONRPC endpoint..."
     end
 
-    start_debug_backend(debugger_pipename)
+    start_debug_backend(debugger_pipename, error_handler)
 
     run(conn_endpoint[])
 
@@ -154,7 +154,7 @@ function serve_notebook(pipename, debugger_pipename, outputchannel_logger; crash
         bt = catch_backtrace()
         Base.display_error(IJuliaCore.orig_stderr[], err, bt)
         try
-            global_err_handler(err, bt, crashreporting_pipename, "Notebook")
+            error_handler(err, bt)
         catch err
             @error "Error handler threw an error." exception = (err, bt)
         end

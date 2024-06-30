@@ -125,7 +125,7 @@ macro run(command)
     end
 end
 
-function start_debug_backend(debug_pipename)
+function start_debug_backend(debug_pipename, error_handler)
     @async try
         server = Sockets.listen(debug_pipename)
 
@@ -139,13 +139,13 @@ function start_debug_backend(debug_pipename)
             put!(DEBUG_SESSION[], debug_session)
 
             try
-                run(debug_session)
+                run(debug_session, error_handler)
             finally
                 take!(DEBUG_SESSION[])
             end
         end
     catch err
-        Base.display_error(our_stderr, catch_backtrace())
+        error_handler(err, Base.catch_backtrace())
     end
 end
 

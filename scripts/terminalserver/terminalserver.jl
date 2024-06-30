@@ -42,5 +42,5 @@ let
     end
 
     conn_pipename, debug_pipename, telemetry_pipename = args[1:3]
-    VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, crashreporting_pipename=telemetry_pipename)
+    VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, error_handler = (err, bt) -> global_err_handler(err, bt, telemetry_pipename, "REPL"))
 end

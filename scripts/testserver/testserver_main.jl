@@ -22,7 +22,7 @@ import Sockets
 try
 
 
-    VSCodeTestServer.serve(ARGS[1], ARGS[2], ARGS[3][3:end], ARGS[4][3:end], ARGS[5][3:end])
+    VSCodeTestServer.serve(ARGS[1], ARGS[2], ARGS[3][3:end], ARGS[4][3:end], ARGS[5][3:end], error_handler=(err,bt)->global_err_handler(err, catch_backtrace(), Base.ARGS[6], "Test Server"))
 
 catch err
     global_err_handler(err, catch_backtrace(), Base.ARGS[6], "Test Server")

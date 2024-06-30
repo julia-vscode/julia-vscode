@@ -291,7 +291,7 @@ function serve_in_env(conn)
     end
 end
 
-function start_debug_backend(debug_pipename)
+function start_debug_backend(debug_pipename, error_handler)
     ready = Channel{Bool}(1)
     @async try
         server = Sockets.listen(debug_pipename)
@@ -308,14 +308,13 @@ function start_debug_backend(debug_pipename)
             put!(DEBUG_SESSION[], debug_session)
 
             try
-                run(debug_session)
+                run(debug_session, error_handler)
             finally
                 take!(DEBUG_SESSION[])
             end
         end
     catch err
-        println("ERROR ", err)
-        Base.display_error(catch_backtrace())
+        error_handler(err, Base.catch_backtrace())
     end
 
     take!(ready)
@@ -333,8 +332,8 @@ function get_debug_session_if_present()
     end
 end
 
-function serve(pipename, debug_pipename, project_path, package_path, package_name; is_dev=false, crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
-    start_debug_backend(debug_pipename)
+function serve(pipename, debug_pipename, project_path, package_path, package_name; is_dev=false, error_handler=nothing)
+    start_debug_backend(debug_pipename, error_handler)
 
     conn = Sockets.connect(pipename)
 
