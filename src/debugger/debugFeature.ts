@@ -23,7 +23,7 @@ import { JuliaKernel } from '../notebook/notebookKernel'
 //     /** Automatically stop target after launch. If not specified, target does not stop. */
 //     stopOnEntry?: boolean
 //     cwd?: string
-//     juliaEnv?: string
+//     project?: string
 //     /** enable logging the Debug Adapter Protocol */
 //     trace?: boolean
 //     args?: string[]
@@ -311,8 +311,8 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
             config.cwd = '${workspaceFolder}'
         }
 
-        if (!config.juliaEnv && config.request !== 'attach') {
-            config.juliaEnv = '${command:activeJuliaEnvironment}'
+        if (!config.project && config.request !== 'attach') {
+            config.project = '${command:activeJuliaEnvironment}'
         }
 
         if (!config.env && config.request !== 'attach') {
