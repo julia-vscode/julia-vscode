@@ -3,6 +3,7 @@ module VSCodeTestServer
 include("pkg_imports.jl")
 
 import .JSONRPC: @dict_readable
+import .CoverageTools: LCOV, amend_coverage_from_src!
 import Test, Pkg, Sockets
 
 include("testserver_protocol.jl")
@@ -177,12 +178,24 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
         @static if VERSION >= v"1.12.0-"
             if params.mode == "Coverage"
+                coverage_info = FileCoverage[]
+
                 lcov_filename = tempname() * ".info"
                 @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
-                try
-                    coverage_info = read(lcov_filename, String)
+                cov_info = try
+                    LCOV.readfile(lcov_filename)
                 finally
                     rm(lcov_filename)
+                end
+
+                filter!(i->isfile(i.filename), cov_info)
+
+                for i in cov_info
+                    file_cov = CoverageTools.FileCoverage(i.filename, read(i.filename, String), i.coverage)
+
+                    amend_coverage_from_src!(file_cov)
+
+                    push!(coverage_info, FileCoverage(filepath2uri(file_cov.filename), file_cov.coverage))
                 end
             end
         end

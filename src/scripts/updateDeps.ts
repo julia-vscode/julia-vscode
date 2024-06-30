@@ -65,7 +65,7 @@ async function main() {
         'MacroTools',
         'Salsa',
         'CodeTracking',
-        'CoverageTools',
+        // 'CoverageTools', For now we are on a custom branch
         'FilePathsBase',
         'JuliaInterpreter',
         'JuliaSyntax',
@@ -126,6 +126,10 @@ async function main() {
             await fs.mkdir(env_path_pkgdev, { recursive: true })
             await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: env_path_pkgdev })
         }
+
+        const env_path_testserver = path.join(process.cwd(), 'scripts/environments/testserver', `v${v}`)
+        await fs.mkdir(env_path_testserver, { recursive: true })
+        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testserver_project.jl')}`, { cwd: env_path_testserver })
 
         const env_path_sysimagecompile = path.join(process.cwd(), 'scripts/environments/sysimagecompile', `v${v}`)
         await fs.mkdir(env_path_sysimagecompile, { recursive: true })

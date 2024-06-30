@@ -12,7 +12,6 @@ import { getCrashReportingPipename, handleNewCrashReportFromException } from '..
 import { getAbsEnvPath } from '../jlpkgenv'
 import { TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
-import * as lcovParser from '@friedemannsommer/lcov-parser'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
@@ -85,11 +84,17 @@ interface TestMessage {
     actualOutput: string | null,
     location: lsp.Location
 }
+
+interface FileCoverage {
+    uri: string
+    coverage: (number | null)[]
+}
+
 interface TestserverRunTestitemRequestParamsReturn {
     status: string
     message: TestMessage[] | null,
     duration: number | null,
-    coverage: string | null
+    coverage: FileCoverage[] | null
 }
 
 // interface GetTestEnvRequestParams {
@@ -108,13 +113,8 @@ export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationTy
 const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
 const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
 
-class MyFileCoverage extends vscode.FileCoverage {
-    details: lcovParser.LineEntry[]
-
-    constructor(uri: vscode.Uri, statementCoverage: vscode.TestCoverageCount, details: lcovParser.LineEntry[]) {
-        super(uri, statementCoverage)
-        this.details = details
-    }
+interface OurFileCoverage extends vscode.FileCoverage {
+    detailedCoverage: vscode.StatementCoverage[]
 }
 
 
@@ -291,18 +291,20 @@ export class TestProcess {
 
             if (result.status === 'passed') {
                 if(result.coverage) {
-                    const sections = await lcovParser.lcovParser({from: result.coverage})
+                    for(const file of result.coverage) {
+                        const uri = vscode.Uri.parse(file.uri)
 
-                    for(const i of sections) {
-                        const filePath = i.path
+                        if (vscode.workspace.workspaceFolders.filter(j => file.uri.startsWith(j.uri.toString())).length>0) {
+                            const statementCoverage = file.coverage.map((value,index)=>{
+                                if(value!==null) {
+                                    return new vscode.StatementCoverage(value, new vscode.Position(index, 0))
+                                }
+                                else {
+                                    return null
+                                }
+                            }).filter(i=>i!==null)
 
-                        if (path.isAbsolute(filePath)) {
-
-                            const pathAsUri = vscode.Uri.file(filePath)
-
-                            if (vscode.workspace.workspaceFolders.filter(j => pathAsUri.toString().startsWith(j.uri.toString())).length>0) {
-                                testRun.addCoverage(new MyFileCoverage(pathAsUri, {covered: i.lines.hit, total: i.lines.instrumented}, i.lines.details))
-                            }
+                            testRun.addCoverage(vscode.FileCoverage.fromDetails(uri, statementCoverage))
                         }
                     }
                 }
@@ -429,10 +431,8 @@ export class TestFeature {
                 }
             }, true)
 
-            coverage_profile.loadDetailedCoverage = async (testRun, fileCoverage: MyFileCoverage, token) => {
-                return fileCoverage.details.map(i => {
-                    return new vscode.StatementCoverage(i.hit, new vscode.Position(i.line-1, 0))
-                })
+            coverage_profile.loadDetailedCoverage = async (testRun, fileCoverage: OurFileCoverage, token) => {
+                return fileCoverage.detailedCoverage
             }
 
             context.subscriptions.push(
@@ -606,6 +606,14 @@ export class TestFeature {
         mode: TestRunMode,
         token: vscode.CancellationToken
     ) {
+        if(mode===TestRunMode.Coverage) {
+            const ex = await this.executableFeature.getActiveJuliaExecutableAsync()
+            if(ex.getVersion().compare('1.12.0-DEV')===-1) {
+                vscode.window.showErrorMessage('Running tests with coverage requires Julia 1.12 or newer.')
+                return
+            }
+        }
+
         const testRun = this.controller.createTestRun(request, undefined, true)
 
         try {
