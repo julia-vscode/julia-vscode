@@ -3,6 +3,7 @@ module VSCodeTestServer
 include("pkg_imports.jl")
 
 import .JSONRPC: @dict_readable
+import .CoverageTools: LCOV, amend_coverage_from_src!
 import Test, Pkg, Sockets
 
 include("testserver_protocol.jl")
@@ -58,7 +59,55 @@ function format_error_message(err, bt)
     end
 end
 
+function clear_coverage_data()
+    @static if VERSION >= v"1.12.0-"
+        try
+            @ccall jl_clear_coverage_data()::Cvoid
+        catch err
+            # TODO Call global error handler
+        end
+    end
+end
+
+function collect_coverage_data!(coverage_results, roots)
+    @static if VERSION >= v"1.12.0-"
+        lcov_filename = tempname() * ".info"
+        @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
+        cov_info = try
+            LCOV.readfile(lcov_filename)
+        finally
+            rm(lcov_filename)
+        end
+
+        filter!(i->isabspath(i.filename) && any(j->startswith(filepath2uri(i.filename), j), roots) && isfile(i.filename), cov_info)
+
+        append!(coverage_results, cov_info)
+    end
+end
+
+function process_coverage_data(coverage_results)
+    if length(coverage_results) == 0
+        return nothing
+    end
+
+    merged_coverage = CoverageTools.merge_coverage_counts(coverage_results)
+
+    coverage_info = FileCoverage[]
+
+    for i in merged_coverage
+        file_cov = CoverageTools.FileCoverage(i.filename, read(i.filename, String), i.coverage)
+
+        amend_coverage_from_src!(file_cov)
+
+        push!(coverage_info, FileCoverage(filepath2uri(file_cov.filename), file_cov.coverage))
+    end
+
+    return coverage_info
+end
+
 function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
+    coverage_results = CoverageTools.FileCoverage[] # This will hold the results of various coverage sprints
+
     mod = Core.eval(Main, :(module $(gensym()) end))
 
     if params.useDefaultUsings
@@ -76,13 +125,20 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                         )
                     )
                 ],
+                nothing,
                 nothing
             )
         end
 
         if params.packageName!=""
             try
-                Core.eval(mod, :(using $(Symbol(params.packageName))))
+                params.mode == "Coverage" && clear_coverage_data()
+
+                try
+                    Core.eval(mod, :(using $(Symbol(params.packageName))))
+                finally
+                    params.mode == "Coverage" && collect_coverage_data!(coverage_results, params.coverageRoots)
+                end
             catch err
                 bt = catch_backtrace()
                 error_message = format_error_message(err, bt)
@@ -98,7 +154,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                             )
                         )
                     ],
-                    nothing
+                    nothing,
+                    process_coverage_data(coverage_results)
                 )
             end
         end
@@ -118,11 +175,16 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     try
         withpath(filepath) do
 
-            if params.debug
+            if params.mode == "Debug"
                 debug_session = wait_for_debug_session()
                 DebugAdapter.debug_code(debug_session, mod, code, filepath, false)
             else
-                Base.invokelatest(include_string, mod, code, filepath)
+                params.mode == "Coverage" && clear_coverage_data()
+                try
+                    Base.invokelatest(include_string, mod, code, filepath)
+                finally
+                    params.mode == "Coverage" && collect_coverage_data!(coverage_results, params.coverageRoots)
+                end
             end
             elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
         end
@@ -155,7 +217,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                     )
                 )
             ],
-            elapsed_time
+            elapsed_time,
+            process_coverage_data(coverage_results)
         )
     end
 
@@ -164,7 +227,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     try
         Test.finish(ts)
 
-        return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time)
+        return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time, process_coverage_data(coverage_results))
     catch err
         if err isa Test.TestSetException
             failed_tests = Test.filter_errors(ts)
@@ -172,7 +235,8 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
             return TestserverRunTestitemRequestParamsReturn(
                 "failed",
                 [ create_test_message_for_failed(i) for i in failed_tests],
-                elapsed_time
+                elapsed_time,
+                process_coverage_data(coverage_results)
             )
         else
             rethrow(err)

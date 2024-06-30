@@ -7,7 +7,7 @@ import * as net from 'net'
 import * as rpc from 'vscode-jsonrpc/node'
 import { Subject } from 'await-notify'
 import { JuliaExecutablesFeature } from '../juliaexepath'
-import { join } from 'path'
+import * as path from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { getAbsEnvPath } from '../jlpkgenv'
 import { TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
@@ -15,6 +15,27 @@ import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
+
+enum TestRunMode {
+    Normal,
+    Debug,
+    Coverage,
+}
+
+function modeAsString(mode: TestRunMode) {
+    if(mode===TestRunMode.Normal) {
+        return 'Normal'
+    }
+    else if(mode===TestRunMode.Debug) {
+        return 'Debug'
+    }
+    else if(mode===TestRunMode.Coverage) {
+        return 'Coverage'
+    }
+    else {
+        throw(new Error(`Invalid mode value.`))
+    }
+}
 
 interface TestItemDetail {
     id: string,
@@ -54,7 +75,8 @@ interface TestserverRunTestitemRequestParams {
     line: number
     column: number
     code: string
-    debug: boolean
+    mode: string
+    coverageRoots: string[] | null
 }
 
 interface TestMessage {
@@ -63,10 +85,17 @@ interface TestMessage {
     actualOutput: string | null,
     location: lsp.Location
 }
+
+interface FileCoverage {
+    uri: string
+    coverage: (number | null)[]
+}
+
 interface TestserverRunTestitemRequestParamsReturn {
     status: string
     message: TestMessage[] | null,
-    duration: number | null
+    duration: number | null,
+    coverage: FileCoverage[] | null
 }
 
 // interface GetTestEnvRequestParams {
@@ -84,6 +113,11 @@ export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationTy
 // const requestGetTestEnv = new lsp.ProtocolRequestType<GetTestEnvRequestParams,GetTestEnvRequestParamsReturn,void,void,void>('julia/getTestEnv')
 const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
 const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
+
+interface OurFileCoverage extends vscode.FileCoverage {
+    detailedCoverage: vscode.StatementCoverage[]
+}
+
 
 export class TestProcess {
 
@@ -105,6 +139,8 @@ export class TestProcess {
 
     public debugPipename: string = generatePipeName(uuid(), 'vsc-jl-td')
     public activeDebugSession: vscode.DebugSession | null = null
+
+    constructor(public coverage: boolean) {}
 
     isConnected() {
         return this.connection
@@ -154,6 +190,16 @@ export class TestProcess {
             '--depwarn=no'
         ]
 
+        if(this.coverage) {
+            // TODO Figure out whether we can still use this
+            if(package_uri && false) {
+                jlArgs.push(`--code-coverage=@${vscode.Uri.parse(package_uri).fsPath}`)
+            }
+            else {
+                jlArgs.push('--code-coverage=user')
+            }
+        }
+
         const nthreads = inferJuliaNumThreads()
 
         if (nthreads==='auto') {
@@ -173,7 +219,7 @@ export class TestProcess {
             [
                 ...juliaExecutable.args,
                 ...jlArgs,
-                join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
+                path.join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
                 pipename,
                 this.debugPipename,
                 `v:${project_uri ? vscode.Uri.parse(project_uri).fsPath : ''}`,
@@ -238,13 +284,45 @@ export class TestProcess {
     }
 
 
-    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, debug: boolean, testRun: vscode.TestRun, someTestItemFinished: Subject) {
+    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, mode: TestRunMode, testRun: vscode.TestRun, someTestItemFinished: Subject) {
         this.testRun = testRun
 
         try {
-            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code, debug: debug })
+            const result = await this.connection.sendRequest(
+                requestTypeExecuteTestitem,
+                {
+                    uri: location.uri,
+                    name: testItem.label,
+                    packageName: packageName,
+                    useDefaultUsings: useDefaultUsings,
+                    line: location.range.start.line,
+                    column: location.range.start.character,
+                    code: code,
+                    mode: modeAsString(mode),
+                    coverageRoots: (mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders) ? null : vscode.workspace.workspaceFolders.map(i=>i.uri.toString())
+                }
+            )
 
             if (result.status === 'passed') {
+                if(result.coverage) {
+                    for(const file of result.coverage) {
+                        const uri = vscode.Uri.parse(file.uri)
+
+                        if (vscode.workspace.workspaceFolders.filter(j => file.uri.startsWith(j.uri.toString())).length>0) {
+                            const statementCoverage = file.coverage.map((value,index)=>{
+                                if(value!==null) {
+                                    return new vscode.StatementCoverage(value, new vscode.Position(index, 0))
+                                }
+                                else {
+                                    return null
+                                }
+                            }).filter(i=>i!==null)
+
+                            testRun.addCoverage(vscode.FileCoverage.fromDetails(uri, statementCoverage))
+                        }
+                    }
+                }
+
                 testRun.passed(testItem, result.duration)
             }
             else if (result.status === 'errored') {
@@ -332,7 +410,7 @@ export class TestFeature {
                 vscode.TestRunProfileKind.Run,
                 async (request, token) => {
                     try {
-                        await this.runHandler(request, false, token)
+                        await this.runHandler(request, TestRunMode.Normal, token)
                     }
                     catch (err) {
                         handleNewCrashReportFromException(err, 'Extension')
@@ -347,7 +425,7 @@ export class TestFeature {
                 vscode.TestRunProfileKind.Debug,
                 async (request, token) => {
                     try {
-                        await this.runHandler(request, true, token)
+                        await this.runHandler(request, TestRunMode.Debug, token)
                     }
                     catch (err) {
                         handleNewCrashReportFromException(err, 'Extension')
@@ -356,6 +434,20 @@ export class TestFeature {
                 },
                 false
             )
+
+            const coverage_profile = this.controller.createRunProfile('Run with coverage', vscode.TestRunProfileKind.Coverage, async (request, token) => {
+                try {
+                    await this.runHandler(request, TestRunMode.Coverage, token)
+                }
+                catch (err) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                    throw (err)
+                }
+            }, true)
+
+            coverage_profile.loadDetailedCoverage = async (testRun, fileCoverage: OurFileCoverage, token) => {
+                return fileCoverage.detailedCoverage
+            }
 
             context.subscriptions.push(
                 registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
@@ -434,20 +526,20 @@ export class TestFeature {
         }
     }
 
-    stringifyTestItemDetail(testEnv: GetTestEnvRequestParamsReturn) {
-        return JSON.stringify({projectPath: testEnv.project_uri, packagePath: testEnv.package_uri, packageName: testEnv.package_name})
+    stringifyTestItemDetail(testEnv: GetTestEnvRequestParamsReturn, coverage: boolean) {
+        return JSON.stringify({projectPath: testEnv.project_uri, packagePath: testEnv.package_uri, packageName: testEnv.package_name, coverage: coverage})
     }
 
-    async launchNewProcess(testEnv: GetTestEnvRequestParamsReturn) {
-        const testProcess = new TestProcess()
+    async launchNewProcess(testEnv: GetTestEnvRequestParamsReturn, coverage: boolean) {
+        const testProcess = new TestProcess(coverage)
         await testProcess.start(this.context, this.executableFeature, this.outputChannel, testEnv.project_uri, testEnv.package_uri, testEnv.package_name, testEnv.env_content_hash)
         this.workspaceFeature.addTestProcess(testProcess)
 
-        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv))) {
-            this.testProcesses.set(this.stringifyTestItemDetail(testEnv), [])
+        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv, coverage))) {
+            this.testProcesses.set(this.stringifyTestItemDetail(testEnv, coverage), [])
         }
 
-        const processes = this.testProcesses.get(this.stringifyTestItemDetail(testEnv))
+        const processes = this.testProcesses.get(this.stringifyTestItemDetail(testEnv, coverage))
 
         processes.push(testProcess)
         this.debugPipename2TestProcess.set(testProcess.debugPipename, testProcess)
@@ -460,14 +552,14 @@ export class TestFeature {
         return testProcess
     }
 
-    async getFreeTestProcess(testEnv: GetTestEnvRequestParamsReturn) {
-        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv))) {
-            const testProcess = await this.launchNewProcess(testEnv)
+    async getFreeTestProcess(testEnv: GetTestEnvRequestParamsReturn, coverage) {
+        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv, coverage))) {
+            const testProcess = await this.launchNewProcess(testEnv, coverage)
 
             return testProcess
         }
         else {
-            const testProcesses = this.testProcesses.get(this.stringifyTestItemDetail(testEnv))
+            const testProcesses = this.testProcesses.get(this.stringifyTestItemDetail(testEnv, coverage))
 
             for(let testProcess of testProcesses) {
                 // TODO Salsa Kill outdated test env processes here somewhere
@@ -498,7 +590,7 @@ export class TestFeature {
                     }
 
                     if (needsNewProcess) {
-                        testProcess = await this.launchNewProcess(testEnv)
+                        testProcess = await this.launchNewProcess(testEnv, coverage)
                     }
 
                     return testProcess
@@ -512,7 +604,7 @@ export class TestFeature {
             }
 
             if(testProcesses.length < maxNumProcesses) {
-                const testProcess = await this.launchNewProcess(testEnv)
+                const testProcess = await this.launchNewProcess(testEnv, coverage)
 
                 return testProcess
             }
@@ -525,9 +617,17 @@ export class TestFeature {
 
     async runHandler(
         request: vscode.TestRunRequest,
-        debugMode: boolean,
+        mode: TestRunMode,
         token: vscode.CancellationToken
     ) {
+        if(mode===TestRunMode.Coverage) {
+            const ex = await this.executableFeature.getActiveJuliaExecutableAsync()
+            if(ex.getVersion().compare('1.12.0-DEV')===-1) {
+                vscode.window.showErrorMessage('Running tests with coverage requires Julia 1.12 or newer.')
+                return
+            }
+        }
+
         const testRun = this.controller.createTestRun(request, undefined, true)
 
         try {
@@ -584,11 +684,11 @@ export class TestFeature {
                             testEnvPerFile.set(i.uri, testEnv)
                         }
 
-                        let testProcess: TestProcess = await this.getFreeTestProcess(testEnv)
+                        let testProcess: TestProcess = await this.getFreeTestProcess(testEnv, mode===TestRunMode.Coverage)
 
                         while(testProcess===null && !testRun.token.isCancellationRequested) {
                             await this.someTestItemFinished.wait()
-                            testProcess = await this.getFreeTestProcess(testEnv)
+                            testProcess = await this.getFreeTestProcess(testEnv, mode===TestRunMode.Coverage)
                         }
 
                         if(testProcess!==null) {
@@ -596,7 +696,7 @@ export class TestFeature {
                             testRun.started(i)
 
                             if(testProcess.isConnected()) {
-                                if(debugMode && !testProcess.activeDebugSession) {
+                                if(mode===TestRunMode.Debug && !testProcess.activeDebugSession) {
                                     await testProcess.startDebugging(this.compiledProvider)
                                     debugProcesses.add(testProcess)
                                 }
@@ -608,7 +708,7 @@ export class TestFeature {
                                     range: details.code_range
                                 }
 
-                                const executionPromise = testProcess.executeTest(i, testEnv.package_name, details.option_default_imports, location, code, debugMode, testRun, this.someTestItemFinished)
+                                const executionPromise = testProcess.executeTest(i, testEnv.package_name, details.option_default_imports, location, code, mode, testRun, this.someTestItemFinished)
 
                                 executionPromises.push(executionPromise)
                             }

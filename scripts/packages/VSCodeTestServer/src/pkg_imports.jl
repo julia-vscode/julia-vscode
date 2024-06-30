@@ -3,6 +3,7 @@ include("../../URIParser/src/URIParser.jl")
 include("../../JSON/src/JSON.jl")
 include("../../OrderedCollections/src/OrderedCollections.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
+include("../../CoverageTools/src/CoverageTools.jl")
 
 module JSONRPC
 import ..JSON

@@ -1,5 +1,13 @@
 @info "Starting the Julia Test Server"
 
+import Pkg
+version_specific_env_path = joinpath(@__DIR__, "..", "environments", "testserver", "v$(VERSION.major).$(VERSION.minor)")
+if isdir(version_specific_env_path)
+    Pkg.activate(version_specific_env_path)
+else
+    Pkg.activate(joinpath(@__DIR__, "..", "environments", "testserver", "fallback"))
+end
+
 pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
 try
     using VSCodeTestServer

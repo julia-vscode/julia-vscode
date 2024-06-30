@@ -33,13 +33,20 @@ JSONRPC.@dict_readable struct TestserverRunTestitemRequestParams <: JSONRPC.Outb
     line::Int
     column::Int
     code::String
-    debug::Bool
+    mode::String
+    coverageRoots::Union{Vector{String},Nothing}
+end
+
+JSONRPC.@dict_readable struct FileCoverage <: JSONRPC.Outbound
+    uri::String
+    coverage::Vector{Union{Int,Nothing}}
 end
 
 JSONRPC.@dict_readable struct TestserverRunTestitemRequestParamsReturn <: JSONRPC.Outbound
     status::String
     message::Union{Vector{TestMessage},Nothing}
     duration::Union{Float64,Nothing}
+    coverage::Union{Nothing,Vector{FileCoverage}}
 end
 
 const testserver_revise_request_type = JSONRPC.RequestType("testserver/revise", Nothing, String)

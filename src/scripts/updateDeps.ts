@@ -65,7 +65,7 @@ async function main() {
         'MacroTools',
         'Salsa',
         'CodeTracking',
-        'CoverageTools',
+        // 'CoverageTools', For now we are on a custom branch
         'FilePathsBase',
         'JuliaInterpreter',
         'JuliaSyntax',
@@ -127,6 +127,10 @@ async function main() {
             await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: env_path_pkgdev })
         }
 
+        const env_path_testserver = path.join(process.cwd(), 'scripts/environments/testserver', `v${v}`)
+        await fs.mkdir(env_path_testserver, { recursive: true })
+        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testserver_project.jl')}`, { cwd: env_path_testserver })
+
         const env_path_sysimagecompile = path.join(process.cwd(), 'scripts/environments/sysimagecompile', `v${v}`)
         await fs.mkdir(env_path_sysimagecompile, { recursive: true })
         await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: env_path_sysimagecompile })
@@ -160,9 +164,11 @@ async function main() {
 
     // We also add a fallback release env in case a user has a Julia version we don't know about
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/languageserver/fallback'), { recursive: true })
+    await fs.mkdir(path.join(process.cwd(), 'scripts/environments/testserver/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/pkgdev/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback'), { recursive: true })
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver/fallback') })
+    await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testserver_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/testserver/fallback') })
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev/fallback') })
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback') })
 

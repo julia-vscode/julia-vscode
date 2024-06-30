@@ -51,7 +51,7 @@ function filepath2uri(file::String)
             return string("file://", file[3:end])
         else
             # windows drive letter path
-            return string("file:///", file)
+            return string("file:///", lowercase(file[1]), file[2:end])
         end
     else
         file = normpath(file)
