@@ -76,6 +76,7 @@ interface TestserverRunTestitemRequestParams {
     column: number
     code: string
     mode: string
+    coverageRoots: string[] | null
 }
 
 interface TestMessage {
@@ -287,7 +288,20 @@ export class TestProcess {
         this.testRun = testRun
 
         try {
-            const result = await this.connection.sendRequest(requestTypeExecuteTestitem, { uri: location.uri, name: testItem.label, packageName: packageName, useDefaultUsings: useDefaultUsings, line: location.range.start.line, column: location.range.start.character, code: code, mode: modeAsString(mode) })
+            const result = await this.connection.sendRequest(
+                requestTypeExecuteTestitem,
+                {
+                    uri: location.uri,
+                    name: testItem.label,
+                    packageName: packageName,
+                    useDefaultUsings: useDefaultUsings,
+                    line: location.range.start.line,
+                    column: location.range.start.character,
+                    code: code,
+                    mode: modeAsString(mode),
+                    coverageRoots: (mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders) ? null : vscode.workspace.workspaceFolders.map(i=>i.uri.toString())
+                }
+            )
 
             if (result.status === 'passed') {
                 if(result.coverage) {

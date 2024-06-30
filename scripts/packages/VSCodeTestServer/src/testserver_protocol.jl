@@ -34,6 +34,7 @@ JSONRPC.@dict_readable struct TestserverRunTestitemRequestParams <: JSONRPC.Outb
     column::Int
     code::String
     mode::String
+    coverageRoots::Union{Vector{String},Nothing}
 end
 
 JSONRPC.@dict_readable struct FileCoverage <: JSONRPC.Outbound

@@ -69,7 +69,7 @@ function clear_coverage_data()
     end
 end
 
-function collect_coverage_data!(coverage_results)
+function collect_coverage_data!(coverage_results, roots)
     @static if VERSION >= v"1.12.0-"
         lcov_filename = tempname() * ".info"
         @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
@@ -79,7 +79,7 @@ function collect_coverage_data!(coverage_results)
             rm(lcov_filename)
         end
 
-        filter!(i->isfile(i.filename), cov_info)
+        filter!(i->isabspath(i.filename) && any(j->startswith(filepath2uri(i.filename), j), roots) && isfile(i.filename), cov_info)
 
         append!(coverage_results, cov_info)
     end
@@ -137,7 +137,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 try
                     Core.eval(mod, :(using $(Symbol(params.packageName))))
                 finally
-                    params.mode == "Coverage" && collect_coverage_data!(coverage_results)
+                    params.mode == "Coverage" && collect_coverage_data!(coverage_results, params.coverageRoots)
                 end
             catch err
                 bt = catch_backtrace()
@@ -183,7 +183,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 try
                     Base.invokelatest(include_string, mod, code, filepath)
                 finally
-                    params.mode == "Coverage" && collect_coverage_data!(coverage_results)
+                    params.mode == "Coverage" && collect_coverage_data!(coverage_results, params.coverageRoots)
                 end
             end
             elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
