@@ -59,14 +59,56 @@ function format_error_message(err, bt)
     end
 end
 
-function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
-    mod = Core.eval(Main, :(module $(gensym()) end))
-
+function clear_coverage_data()
     @static if VERSION >= v"1.12.0-"
-        if params.mode == "Coverage"
+        try
             @ccall jl_clear_coverage_data()::Cvoid
+        catch err
+            # TODO Call global error handler
         end
     end
+end
+
+function collect_coverage_data!(coverage_results)
+    @static if VERSION >= v"1.12.0-"
+        lcov_filename = tempname() * ".info"
+        @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
+        cov_info = try
+            LCOV.readfile(lcov_filename)
+        finally
+            rm(lcov_filename)
+        end
+
+        filter!(i->isfile(i.filename), cov_info)
+
+        append!(coverage_results, cov_info)
+    end
+end
+
+function process_coverage_data(coverage_results)
+    if length(coverage_results) == 0
+        return nothing
+    end
+
+    merged_coverage = CoverageTools.merge_coverage_counts(coverage_results)
+
+    coverage_info = FileCoverage[]
+
+    for i in merged_coverage
+        file_cov = CoverageTools.FileCoverage(i.filename, read(i.filename, String), i.coverage)
+
+        amend_coverage_from_src!(file_cov)
+
+        push!(coverage_info, FileCoverage(filepath2uri(file_cov.filename), file_cov.coverage))
+    end
+
+    return coverage_info
+end
+
+function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
+    coverage_results = CoverageTools.FileCoverage[] # This will hold the results of various coverage sprints
+
+    mod = Core.eval(Main, :(module $(gensym()) end))
 
     if params.useDefaultUsings
         try
@@ -90,7 +132,13 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
 
         if params.packageName!=""
             try
-                Core.eval(mod, :(using $(Symbol(params.packageName))))
+                params.mode == "Coverage" && clear_coverage_data()
+
+                try
+                    Core.eval(mod, :(using $(Symbol(params.packageName))))
+                finally
+                    params.mode == "Coverage" && collect_coverage_data!(coverage_results)
+                end
             catch err
                 bt = catch_backtrace()
                 error_message = format_error_message(err, bt)
@@ -107,7 +155,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                         )
                     ],
                     nothing,
-                    nothing
+                    process_coverage_data(coverage_results)
                 )
             end
         end
@@ -131,7 +179,12 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 debug_session = wait_for_debug_session()
                 DebugAdapter.debug_code(debug_session, mod, code, filepath, false)
             else
-                Base.invokelatest(include_string, mod, code, filepath)
+                params.mode == "Coverage" && clear_coverage_data()
+                try
+                    Base.invokelatest(include_string, mod, code, filepath)
+                finally
+                    params.mode == "Coverage" && collect_coverage_data!(coverage_results)
+                end
             end
             elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
         end
@@ -165,7 +218,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 )
             ],
             elapsed_time,
-            nothing
+            process_coverage_data(coverage_results)
         )
     end
 
@@ -174,33 +227,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
     try
         Test.finish(ts)
 
-        coverage_info = nothing
-
-        @static if VERSION >= v"1.12.0-"
-            if params.mode == "Coverage"
-                coverage_info = FileCoverage[]
-
-                lcov_filename = tempname() * ".info"
-                @ccall jl_write_coverage_data(lcov_filename::Cstring)::Cvoid
-                cov_info = try
-                    LCOV.readfile(lcov_filename)
-                finally
-                    rm(lcov_filename)
-                end
-
-                filter!(i->isfile(i.filename), cov_info)
-
-                for i in cov_info
-                    file_cov = CoverageTools.FileCoverage(i.filename, read(i.filename, String), i.coverage)
-
-                    amend_coverage_from_src!(file_cov)
-
-                    push!(coverage_info, FileCoverage(filepath2uri(file_cov.filename), file_cov.coverage))
-                end
-            end
-        end
-
-        return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time, coverage_info)
+        return TestserverRunTestitemRequestParamsReturn("passed", nothing, elapsed_time, process_coverage_data(coverage_results))
     catch err
         if err isa Test.TestSetException
             failed_tests = Test.filter_errors(ts)
@@ -209,7 +236,7 @@ function run_testitem_handler(conn, params::TestserverRunTestitemRequestParams)
                 "failed",
                 [ create_test_message_for_failed(i) for i in failed_tests],
                 elapsed_time,
-                nothing
+                process_coverage_data(coverage_results)
             )
         else
             rethrow(err)
