@@ -191,7 +191,7 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 deps = ["JuliaInterpreter"]
 path = "../../packages/LoweredCodeUtils"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "2.4.6"
+version = "2.4.8"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
