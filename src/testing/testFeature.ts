@@ -45,6 +45,7 @@ interface TestItemDetail {
     code_range?: lsp.Range
     option_default_imports?: boolean
     option_tags?: string[]
+    option_setup?: string[]
 }
 
 interface TestSetupDetail {
@@ -72,6 +73,7 @@ interface TestserverRunTestitemRequestParams {
     name: string
     packageName: string
     useDefaultUsings: boolean
+    testsetups: string[]
     line: number
     column: number
     code: string
@@ -109,9 +111,22 @@ interface GetTestEnvRequestParamsReturn {
     env_content_hash?: number
 }
 
+// interface TestsetupDetails {
+//     name: string
+//     uri: lsp.URI
+//     line: number
+//     column: number
+//     code: string
+// }
+
+// interface TestserverUpdateTestsetupsRequestParams {
+//     testsetups: TestsetupDetails[]
+// }
+
 export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams,void>('julia/publishTests')
 // const requestGetTestEnv = new lsp.ProtocolRequestType<GetTestEnvRequestParams,GetTestEnvRequestParamsReturn,void,void,void>('julia/getTestEnv')
 const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
+// const requestTypeUpdateTestsetups = new rpc.RequestType<TestserverUpdateTestsetupsRequestParams,null,void>('testserver/updateTestsetups')
 const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
 
 interface OurFileCoverage extends vscode.FileCoverage {
@@ -284,7 +299,7 @@ export class TestProcess {
     }
 
 
-    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, location: lsp.Location, code: string, mode: TestRunMode, testRun: vscode.TestRun, someTestItemFinished: Subject) {
+    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, testsetups: string[], location: lsp.Location, code: string, mode: TestRunMode, testRun: vscode.TestRun, someTestItemFinished: Subject) {
         this.testRun = testRun
 
         try {
@@ -295,6 +310,7 @@ export class TestProcess {
                     name: testItem.label,
                     packageName: packageName,
                     useDefaultUsings: useDefaultUsings,
+                    testsetups: testsetups,
                     line: location.range.start.line,
                     column: location.range.start.character,
                     code: code,
@@ -708,7 +724,7 @@ export class TestFeature {
                                     range: details.code_range
                                 }
 
-                                const executionPromise = testProcess.executeTest(i, testEnv.package_name, details.option_default_imports, location, code, mode, testRun, this.someTestItemFinished)
+                                const executionPromise = testProcess.executeTest(i, testEnv.package_name, details.option_default_imports, details.option_setup,  location, code, mode, testRun, this.someTestItemFinished)
 
                                 executionPromises.push(executionPromise)
                             }
