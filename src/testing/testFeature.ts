@@ -391,6 +391,9 @@ export class TestProcess {
                 stopOnEntry: false,
                 compiledModulesOrFunctions: compiledProvider.getCompiledItems(),
                 compiledMode: compiledProvider.compiledMode
+            },
+            {
+                testRun: this.testRun
             }
         )
     }
