@@ -78,13 +78,13 @@ interface TestserverRunTestitemRequestParams {
     column: number
     code: string
     mode: string
-    coverageRoots: string[] | null
+    coverageRoots?: string[]
 }
 
 interface TestMessage {
     message: string
-    expectedOutput: string | null,
-    actualOutput: string | null,
+    expectedOutput?: string,
+    actualOutput?: string,
     location: lsp.Location
 }
 
@@ -95,9 +95,9 @@ interface FileCoverage {
 
 interface TestserverRunTestitemRequestParamsReturn {
     status: string
-    message: TestMessage[] | null,
-    duration: number | null,
-    coverage: FileCoverage[] | null
+    message?: TestMessage[],
+    duration?: number,
+    coverage?: FileCoverage[]
 }
 
 // interface GetTestEnvRequestParams {
@@ -315,7 +315,7 @@ export class TestProcess {
                     column: location.range.start.character,
                     code: code,
                     mode: modeAsString(mode),
-                    coverageRoots: (mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders) ? null : vscode.workspace.workspaceFolders.map(i=>i.uri.toString())
+                    coverageRoots: (mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders) ? undefined : vscode.workspace.workspaceFolders.map(i=>i.uri.toString())
                 }
             )
 
@@ -350,7 +350,7 @@ export class TestProcess {
                 const messages = result.message.map(i => {
                     const message = new vscode.TestMessage(i.message)
                     message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
-                    if (i.actualOutput !== null && i.expectedOutput !== null) {
+                    if (i.actualOutput !== undefined && i.expectedOutput !== undefined) {
                         message.actualOutput = i.actualOutput
                         message.expectedOutput = i.expectedOutput
                     }
