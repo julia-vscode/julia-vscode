@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * Items in the environment selector are now sorted more naturally and Pluto-internal environments are filtered out ([#3594](https://github.com/julia-vscode/julia-vscode/pull/3594))
+* `#+` is now a valid cell seperator to support Weave script format.
 
 ## [1.76.0] - 2024-04-05
 ### Fixed
