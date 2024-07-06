@@ -312,8 +312,8 @@ export class TestProcess {
                         name: j.name,
                         kind: j.kind,
                         uri: i[0].toString(),
-                        line: j.code_range.start.line,
-                        column: j.code_range.start.character,
+                        line: j.code_range.start.line+1, // We are 0 based in the extension, but 1 based in TestItemServer
+                        column: j.code_range.start.character+1, // We are 0 based in the extension, but 1 based in TestItemServer
                         code: j.code
                     }
                 )
@@ -340,8 +340,8 @@ export class TestProcess {
                     packageName: packageName,
                     useDefaultUsings: useDefaultUsings,
                     testsetups: testsetups,
-                    line: location.range.start.line,
-                    column: location.range.start.character,
+                    line: location.range.start.line + 1, // We are 0 based in the extension, but 1 based in TestItemServer
+                    column: location.range.start.character + 1, // We are 0 based in the extension, but 1 based in TestItemServer
                     code: code,
                     mode: modeAsString(mode),
                     coverageRoots: (mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders) ? undefined : vscode.workspace.workspaceFolders.map(i=>i.uri.toString())
@@ -356,7 +356,7 @@ export class TestProcess {
                         if (vscode.workspace.workspaceFolders.filter(j => file.uri.startsWith(j.uri.toString())).length>0) {
                             const statementCoverage = file.coverage.map((value,index)=>{
                                 if(value!==null) {
-                                    return new vscode.StatementCoverage(value, new vscode.Position(index, 0))
+                                    return new vscode.StatementCoverage(value, new vscode.Position(index-1, 0)) // We need to convert from 1 to 0 based line indices here
                                 }
                                 else {
                                     return null
@@ -372,13 +372,13 @@ export class TestProcess {
             }
             else if (result.status === 'errored') {
                 const message = new vscode.TestMessage(result.message[0].message)
-                message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line, result.message[0].location.range.start.character))
+                message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line-1, result.message[0].location.range.start.character-1))
                 testRun.errored(testItem, message, result.duration)
             }
             else if (result.status === 'failed') {
                 const messages = result.message.map(i => {
                     const message = new vscode.TestMessage(i.message)
-                    message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line, i.location.range.start.character))
+                    message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line-1, i.location.range.start.character-1))
                     if (i.actualOutput !== undefined && i.expectedOutput !== undefined) {
                         message.actualOutput = i.actualOutput
                         message.expectedOutput = i.expectedOutput
