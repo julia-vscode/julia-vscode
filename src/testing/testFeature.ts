@@ -50,6 +50,7 @@ interface TestItemDetail {
 
 interface TestSetupDetail {
     name: string
+    kind: string
     range: lsp.Range
     code?: string
     code_range?: lsp.Range
@@ -111,22 +112,23 @@ interface GetTestEnvRequestParamsReturn {
     env_content_hash?: number
 }
 
-// interface TestsetupDetails {
-//     name: string
-//     uri: lsp.URI
-//     line: number
-//     column: number
-//     code: string
-// }
+interface TestsetupDetails {
+    name: string
+    kind: string
+    uri: lsp.URI
+    line: number
+    column: number
+    code: string
+}
 
-// interface TestserverUpdateTestsetupsRequestParams {
-//     testsetups: TestsetupDetails[]
-// }
+interface TestserverUpdateTestsetupsRequestParams {
+    testsetups: TestsetupDetails[]
+}
 
 export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams,void>('julia/publishTests')
 // const requestGetTestEnv = new lsp.ProtocolRequestType<GetTestEnvRequestParams,GetTestEnvRequestParamsReturn,void,void,void>('julia/getTestEnv')
 const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
-// const requestTypeUpdateTestsetups = new rpc.RequestType<TestserverUpdateTestsetupsRequestParams,null,void>('testserver/updateTestsetups')
+const requestTypeUpdateTestsetups = new rpc.RequestType<TestserverUpdateTestsetupsRequestParams,null,void>('testserver/updateTestsetups')
 const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
 
 interface OurFileCoverage extends vscode.FileCoverage {
@@ -165,7 +167,7 @@ export class TestProcess {
         return this.testRun!==null
     }
 
-    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, project_uri: lsp.URI | null, package_uri: lsp.URI | null, packageName: string, testEnvContentHash: number) {
+    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, project_uri: lsp.URI | null, package_uri: lsp.URI | null, packageName: string, testEnvContentHash: number, testsetups: Map<vscode.Uri,TestSetupDetail[]>) {
         this.project_uri = project_uri
         this.package_uri = package_uri
         this.packageName = packageName
@@ -286,6 +288,8 @@ export class TestProcess {
 
         await connected.wait()
 
+        await this.updateSetups(testsetups)
+
         console.log('OK')
     }
 
@@ -298,6 +302,31 @@ export class TestProcess {
         this.process.kill()
     }
 
+    async updateSetups(testsetups: Map<vscode.Uri,TestSetupDetail[]>) {
+        const setups: TestsetupDetails[]  = []
+
+        for(const i of testsetups.entries()) {
+            for(const j of i[1]) {
+                setups.push(
+                    {
+                        name: j.name,
+                        kind: j.kind,
+                        uri: i[0].toString(),
+                        line: j.code_range.start.line,
+                        column: j.code_range.start.character,
+                        code: j.code
+                    }
+                )
+            }
+        }
+
+        await this.connection.sendRequest(
+            requestTypeUpdateTestsetups,
+            {
+                testsetups: setups
+            }
+        )
+    }
 
     public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, testsetups: string[], location: lsp.Location, code: string, mode: TestRunMode, testRun: vscode.TestRun, someTestItemFinished: Subject) {
         this.testRun = testRun
@@ -408,6 +437,7 @@ export class TestProcess {
 export class TestFeature {
     private controller: vscode.TestController
     private testitems: WeakMap<vscode.TestItem, TestItemDetail> = new WeakMap<vscode.TestItem, TestItemDetail>()
+    private testsetups: Map<vscode.Uri,TestSetupDetail[]> = new Map<vscode.Uri,TestSetupDetail[]>()
     private testProcesses: Map<string, TestProcess[]> = new Map<string, TestProcess[]>()
     public debugPipename2TestProcess: Map<string, TestProcess> = new Map<string, TestProcess>()
     private outputChannel: vscode.OutputChannel
@@ -505,7 +535,7 @@ export class TestFeature {
 
         let fileTestitem = this.controller.items.get(params.uri)
 
-        if (params.testitemdetails.length > 0) {
+        if (params.testitemdetails.length > 0 || params.testerrordetails.length > 0) {
             if (!fileTestitem) {
                 const filename = vscode.workspace.asRelativePath(uri.fsPath)
 
@@ -534,6 +564,13 @@ export class TestFeature {
         else if (fileTestitem) {
             this.controller.items.delete(fileTestitem.id)
         }
+
+        this.testsetups.set(uri, params.testsetupdetails)
+        for(const procs of this.testProcesses.values()) {
+            for(const proc of procs) {
+                proc.updateSetups(this.testsetups)
+            }
+        }
     }
 
     walkTestTree(item: vscode.TestItem, itemsToRun: vscode.TestItem[]) {
@@ -551,7 +588,7 @@ export class TestFeature {
 
     async launchNewProcess(testEnv: GetTestEnvRequestParamsReturn, coverage: boolean) {
         const testProcess = new TestProcess(coverage)
-        await testProcess.start(this.context, this.executableFeature, this.outputChannel, testEnv.project_uri, testEnv.package_uri, testEnv.package_name, testEnv.env_content_hash)
+        await testProcess.start(this.context, this.executableFeature, this.outputChannel, testEnv.project_uri, testEnv.package_uri, testEnv.package_name, testEnv.env_content_hash, this.testsetups)
         this.workspaceFeature.addTestProcess(testProcess)
 
         if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv, coverage))) {
