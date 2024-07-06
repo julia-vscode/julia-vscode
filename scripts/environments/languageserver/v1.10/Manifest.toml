@@ -2,7 +2,7 @@
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "62f84cbd71542ca486b894977294b6e6cc83b4ef"
+project_hash = "23416fdf9f6da06481751851d8c308829ae9a083"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -119,7 +119,7 @@ uuid = "70703baa-626e-46a2-a12c-08ffd08c73b4"
 version = "0.4.8"
 
 [[deps.JuliaWorkspaces]]
-deps = ["AutoHashEquals", "JuliaSyntax", "Pkg", "Salsa", "UUIDs"]
+deps = ["AutoHashEquals", "JuliaSyntax", "Pkg", "Salsa", "TestItemDetection", "UUIDs"]
 path = "../../../packages/JuliaWorkspaces"
 uuid = "e554591c-7f10-434f-9f27-2097f62a04fd"
 version = "2.0.1-DEV"
@@ -261,6 +261,12 @@ version = "1.10.0"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[deps.TestItemDetection]]
+deps = ["JuliaSyntax"]
+path = "../../../packages/TestItemDetection"
+uuid = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
+version = "1.0.1-DEV"
 
 [[deps.Tokenize]]
 path = "../../../packages/Tokenize"
