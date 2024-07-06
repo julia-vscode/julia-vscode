@@ -23,6 +23,7 @@ packages_to_dev = [
     PackageSpec(path="../../../packages/ExceptionUnwrapping"),
     PackageSpec(path="../../../packages/MacroTools"),
     PackageSpec(path="../../../packages/Salsa"),
+    PackageSpec(path="../../../packages/TestItemDetection"),
 ]
 
 if VERSION>=v"1.9-DEV"
