@@ -1,3 +1,5 @@
+
+
 # this script basially only handles `ARGS`
 let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), "Distributed")
     if haskey(Base.loaded_modules, distributed) && (Distributed = Base.loaded_modules[distributed]).nprocs() > 1
@@ -16,6 +18,8 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
         end
     end
 end
+
+include("../error_handler.jl")
 
 let
     args = [popfirst!(Base.ARGS) for _ in 1:8]
