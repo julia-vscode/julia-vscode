@@ -1,7 +1,12 @@
-
+import Pkg
 
 # this script basially only handles `ARGS`
 let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), "Distributed")
+    include("../error_handler.jl")
+
+    args = [popfirst!(Base.ARGS) for _ in 1:9]
+    conn_pipename, debug_pipename, telemetry_pipename, project_path = args[1:4]
+
     if haskey(Base.loaded_modules, distributed) && (Distributed = Base.loaded_modules[distributed]).nprocs() > 1
         Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(pushfirst!(LOAD_PATH, joinpath($(@__DIR__), "..", "packages"))))
         try
@@ -17,12 +22,10 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
             popfirst!(LOAD_PATH)
         end
     end
-end
 
-include("../error_handler.jl")
+    # TODO Maybe surpress output if all goes well
+    Pkg.activate(project_path)
 
-let
-    args = [popfirst!(Base.ARGS) for _ in 1:8]
     # load Revise ?
     if "USE_REVISE=true" in args
         try
@@ -45,6 +48,5 @@ let
         VSCodeServer.toggle_progress(nothing, (;enable="USE_PROGRESS=true" in args))
     end
 
-    conn_pipename, debug_pipename, telemetry_pipename = args[1:3]
     VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, error_handler = (err, bt) -> global_err_handler(err, bt, telemetry_pipename, "REPL"))
 end
