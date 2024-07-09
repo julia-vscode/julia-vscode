@@ -17,10 +17,9 @@ export async function getPkgPath() {
         const res = await execFile(
             juliaExecutable.file,
             [
-                '--startup-file=no',
                 '--history-file=no',
                 '-e',
-                'using Pkg; println(Pkg.depots()[1])'
+                'using Pkg;haskey(ENV, "JULIA_PKG_DEVDIR") ? println(ENV["JULIA_PKG_DEVDIR"]) : println(joinpath(Pkg.depots()[1], "dev"))'
             ],
             {
                 env: {
@@ -29,7 +28,7 @@ export async function getPkgPath() {
                 }
             }
         )
-        juliaPackagePath = join(res.stdout.toString().trim(), 'dev')
+        juliaPackagePath = res.stdout.toString().trim()
     }
     return juliaPackagePath
 }
