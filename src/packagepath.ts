@@ -1,4 +1,3 @@
-import { join } from 'path'
 import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
