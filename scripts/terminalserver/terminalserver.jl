@@ -1,8 +1,22 @@
-import Pkg
+@static if VERSION < v"1.8.0"
+    import Pkg
+end
 
 # this script basially only handles `ARGS`
 let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), "Distributed")
     include("../error_handler.jl")
+
+    version_specific_env_path = joinpath(@__DIR__, "..", "environments", "terminalserver", "v$(VERSION.major).$(VERSION.minor)")
+    if !isdir(version_specific_env_path)
+        version_specific_env_path = joinpath(@__DIR__, "..", "environments", "terminalserver", "fallback")
+    end
+
+    @static if VERSION < v"1.8.0"
+        Pkg.activate(version_specific_env_path)
+    else
+        Base.set_active_project(joinpath(version_specific_env_path,"Project.toml"))
+    end
+
 
     args = [popfirst!(Base.ARGS) for _ in 1:9]
     conn_pipename, debug_pipename, telemetry_pipename, project_path = args[1:4]
@@ -23,8 +37,12 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
         end
     end
 
-    # TODO Maybe surpress output if all goes well
-    Pkg.activate(project_path)
+    @static if VERSION < v"1.8.0"
+        # TODO Maybe surpress output if all goes well
+        Pkg.activate(project_path)
+    else
+        Base.set_active_project(joinpath(project_path,"Project.toml"))
+    end
 
     # load Revise ?
     if "USE_REVISE=true" in args
