@@ -18,7 +18,7 @@ export async function getPkgPath() {
             [
                 '--history-file=no',
                 '-e',
-                'using Pkg;haskey(ENV, "JULIA_PKG_DEVDIR") ? println(ENV["JULIA_PKG_DEVDIR"]) : println(joinpath(Pkg.depots()[1], "dev"))'
+                'using Pkg;println(get(ENV, "JULIA_PKG_DEVDIR", joinpath(Pkg.depots()[1], "dev")))'
             ],
             {
                 env: {
