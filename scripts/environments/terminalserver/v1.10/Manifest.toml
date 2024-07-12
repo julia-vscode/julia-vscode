@@ -2,7 +2,7 @@
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "1f8f362efbc96b36e3e02e3f6877c9789d681061"
+project_hash = "0b227a85772a4a713c5d0ddaae545030a0caba76"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -69,6 +69,9 @@ deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.28.2+1"
 
+[[deps.Mmap]]
+uuid = "a63ad114-7e13-5084-954f-fe012c677804"
+
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2023.1.10"
@@ -85,6 +88,10 @@ version = "1.10.0"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
@@ -120,6 +127,12 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[deps.VSCodeServer]]
+deps = ["Base64", "Dates", "InteractiveUtils", "Logging", "Markdown", "Mmap", "Pkg", "Printf", "Profile", "REPL", "Random", "Sockets", "UUIDs", "Unicode"]
+path = "../../../packages/VSCodeServer"
+uuid = "9f5989ce-84fe-42d4-91ec-6a7a8d53ed0f"
+version = "0.0.0"
 
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
