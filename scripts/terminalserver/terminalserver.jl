@@ -22,6 +22,7 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
     conn_pipename, debug_pipename, telemetry_pipename, project_path = args[1:4]
 
     if haskey(Base.loaded_modules, distributed) && (Distributed = Base.loaded_modules[distributed]).nprocs() > 1
+        # TODO Move this logic over to the project loading mechanism
         Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(pushfirst!(LOAD_PATH, joinpath($(@__DIR__), "..", "packages"))))
         try
             using VSCodeServer
