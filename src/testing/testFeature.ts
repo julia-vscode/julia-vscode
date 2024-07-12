@@ -671,6 +671,20 @@ export class TestFeature {
         }
     }
 
+    isParentOf(x: vscode.TestItem, y: vscode.TestItem) {
+        if(y.parent) {
+            if(y.parent===x) {
+                return true
+            }
+            else {
+                return this.isParentOf(x, y.parent)
+            }
+        }
+        else {
+            return false
+        }
+    }
+
     async runHandler(
         request: vscode.TestRunRequest,
         mode: TestRunMode,
@@ -699,14 +713,17 @@ export class TestFeature {
                 this.someTestItemFinished.notifyAll()
             })
 
-            const itemsToRun: vscode.TestItem[] = []
+            let itemsToRun: vscode.TestItem[] = []
 
-            // TODO Handle exclude
             if (!request.include) {
                 this.controller.items.forEach(i=>this.walkTestTree(i, itemsToRun))
             }
             else {
                 request.include.forEach(i => this.walkTestTree(i, itemsToRun))
+            }
+
+            if(request.exclude) {
+                itemsToRun = itemsToRun.filter(i => !request.exclude.includes(i) && request.exclude.every(j => !this.isParentOf(j, i)))
             }
 
             for (const i of itemsToRun) {
