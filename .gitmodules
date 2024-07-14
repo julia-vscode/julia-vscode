@@ -70,9 +70,6 @@
 [submodule "libs/jl-profile"]
 	path = libs/jl-profile
 	url = https://github.com/pfitzseb/jl-profile.js.git
-[submodule "scripts/packages-old/JuliaInterpreter"]
-	path = scripts/packages-old/JuliaInterpreter
-	url = https://github.com/JuliaDebug/JuliaInterpreter.jl.git
 [submodule "scripts/packages/Revise"]
 	path = scripts/packages/Revise
 	url = https://github.com/timholy/Revise.jl
@@ -124,3 +121,12 @@
 [submodule "scripts/packages/TestItemDetection"]
 	path = scripts/packages/TestItemDetection
 	url = https://github.com/julia-vscode/TestItemDetection.jl
+[submodule "scripts/packages-old/v1.5/JuliaInterpreter"]
+	path = scripts/packages-old/v1.5/JuliaInterpreter
+	url = https://github.com/JuliaDebug/JuliaInterpreter.jl
+[submodule "scripts/packages-old/v1.5/LoweredCodeUtils"]
+	path = scripts/packages-old/v1.5/LoweredCodeUtils
+	url = https://github.com/JuliaDebug/LoweredCodeUtils.jl
+[submodule "scripts/packages-old/v1.5/Revise"]
+	path = scripts/packages-old/v1.5/Revise
+	url = https://github.com/timholy/Revise.jl
