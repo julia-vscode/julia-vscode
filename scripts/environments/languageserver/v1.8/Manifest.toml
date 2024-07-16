@@ -262,7 +262,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 deps = ["JuliaSyntax"]
 path = "../../../packages/TestItemDetection"
 uuid = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
-version = "1.0.4-DEV"
+version = "1.0.5-DEV"
 
 [[deps.Tokenize]]
 path = "../../../packages/Tokenize"
