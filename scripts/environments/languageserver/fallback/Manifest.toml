@@ -132,7 +132,7 @@ version = "1.11.0"
 deps = ["AutoHashEquals", "JuliaSyntax", "Pkg", "Salsa", "TestItemDetection", "UUIDs"]
 path = "../../../packages/JuliaWorkspaces"
 uuid = "e554591c-7f10-434f-9f27-2097f62a04fd"
-version = "4.1.1-DEV"
+version = "4.2.1-DEV"
 
 [[deps.LanguageServer]]
 deps = ["CSTParser", "JSON", "JSONRPC", "JuliaFormatter", "JuliaWorkspaces", "Logging", "Markdown", "Pkg", "PrecompileTools", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIs", "UUIDs"]
