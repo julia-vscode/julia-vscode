@@ -371,12 +371,12 @@ export class TestProcess {
                 testRun.passed(testItem, result.duration)
             }
             else if (result.status === 'errored') {
-                const message = new vscode.TestMessage(result.message[0].message)
-                message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line-1, result.message[0].location.range.start.character-1))
+                const message = new vscode.TestMessage(result.messages[0].message)
+                message.location = new vscode.Location(vscode.Uri.parse(result.messages[0].location.uri), new vscode.Position(result.messages[0].location.range.start.line-1, result.messages[0].location.range.start.character-1))
                 testRun.errored(testItem, message, result.duration)
             }
             else if (result.status === 'failed') {
-                const messages = result.message.map(i => {
+                const messages = result.messages.map(i => {
                     const message = new vscode.TestMessage(i.message)
                     message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line-1, i.location.range.start.character-1))
                     if (i.actualOutput !== undefined && i.expectedOutput !== undefined) {
