@@ -65,7 +65,7 @@ async function main() {
         'MacroTools',
         'Salsa',
         'CodeTracking',
-        // 'CoverageTools', For now we are on a custom branch
+        'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
         'JuliaSyntax',

@@ -45,7 +45,7 @@
 	url = https://github.com/JuliaCollections/OrderedCollections.jl.git
 [submodule "scripts/packages/CoverageTools"]
 	path = scripts/packages/CoverageTools
-	url = https://github.com/davidanthoff/CoverageTools.jl
+	url = https://github.com/JuliaCI/CoverageTools.jl
 [submodule "scripts/packages/IJuliaCore"]
 	path = scripts/packages/IJuliaCore
 	url = https://github.com/JuliaLang/IJuliaCore.jl.git
