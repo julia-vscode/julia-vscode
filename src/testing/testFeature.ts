@@ -96,7 +96,7 @@ interface FileCoverage {
 
 interface TestserverRunTestitemRequestParamsReturn {
     status: string
-    message?: TestMessage[],
+    messages?: TestMessage[],
     duration?: number,
     coverage?: FileCoverage[]
 }
