@@ -533,6 +533,10 @@ export class TestFeature {
     }
 
     public publishTestsHandler(params: PublishTestsParams) {
+        if(!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length===0) {
+            // Without a workspace we do nothing
+            return
+        }
         const uri = vscode.Uri.parse(params.uri)
 
         const niceFilename = vscode.workspace.asRelativePath(uri.fsPath, false)
