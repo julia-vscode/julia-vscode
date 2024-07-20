@@ -46,7 +46,7 @@ async function main() {
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css', 'libs/fontawesome/solid.min.css')
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css', 'libs/fontawesome/brands.min.css')
 
-    for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'StaticLint', 'SymbolServer', 'DebugAdapter', 'Salsa']) {
+    for (const pkg of ['JSONRPC', 'CSTParser', 'LanguageServer', 'StaticLint', 'SymbolServer', 'DebugAdapter']) {
         console.log(`Updating ${pkg} to latest master`)
         await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
@@ -85,6 +85,7 @@ async function main() {
         'Preferences',
         'PrecompileTools',
         'TestEnv',
+        'Salsa',
     ]) {
         await cp.exec('git fetch')
         await cp.exec('git fetch --tags')
