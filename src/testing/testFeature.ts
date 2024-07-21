@@ -533,16 +533,17 @@ export class TestFeature {
     }
 
     public publishTestsHandler(params: PublishTestsParams) {
-        if(!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length===0) {
-            // Without a workspace we do nothing
-            return
-        }
         const uri = vscode.Uri.parse(params.uri)
 
         const niceFilename = vscode.workspace.asRelativePath(uri.fsPath, false)
         const shortFilename = path.basename(niceFilename)
         const filenameParts = path.dirname(niceFilename).split('/')
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri)
+
+        if(!workspaceFolder) {
+            // Test file that is outside of the workspace, we skip
+            return
+        }
 
         if (params.testitemdetails.length > 0 || params.testerrordetails.length > 0) {
             // First see whether we already have the workspace folder
