@@ -21,15 +21,13 @@ let g_resolved_path_of_environment: string = null
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
 
 export async function getProjectFilePaths(envpath: string) {
-    const dlext = process.platform === 'darwin' ? 'dylib' : process.platform === 'win32' ? 'dll' : 'so'
     return {
         project_toml_path: (await fs.exists(path.join(envpath, 'JuliaProject.toml'))) ?
             path.join(envpath, 'JuliaProject.toml') :
             (await fs.exists(path.join(envpath, 'Project.toml'))) ? path.join(envpath, 'Project.toml') : undefined,
         manifest_toml_path: (await fs.exists(path.join(envpath, 'JuliaManifest.toml'))) ?
             path.join(envpath, 'JuliaManifest.toml') :
-            (await fs.exists(path.join(envpath, 'Manifest.toml'))) ? path.join(envpath, 'Manifest.toml') : undefined,
-        sysimage_path: (await fs.exists(path.join(envpath, `JuliaSysimage.${dlext}`))) ? path.join(envpath, `JuliaSysimage.${dlext}`) : undefined
+            (await fs.exists(path.join(envpath, 'Manifest.toml'))) ? path.join(envpath, 'Manifest.toml') : undefined
     }
 }
 

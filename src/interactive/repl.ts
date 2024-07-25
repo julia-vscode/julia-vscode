@@ -130,10 +130,11 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     const debugPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
     const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
     const nthreads = inferJuliaNumThreads()
+    const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
     // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
     function getArgs() {
-        const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename()]
+        const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename(), pkgenvpath]
         jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
         jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
         jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
@@ -183,33 +184,8 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
-    let jlarg1: string[]
-    const pkgenvpath = await jlpkgenv.getAbsEnvPath()
-    if (pkgenvpath === null) {
-        jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
-    } else {
-        const env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath)
 
-        let sysImageArgs = []
-        if (config.get('useCustomSysimage') && env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
-            const date_sysimage = await fs.stat(env_file_paths.sysimage_path)
-            const date_manifest = await fs.stat(env_file_paths.manifest_toml_path)
-
-            if (date_sysimage.mtime > date_manifest.mtime) {
-                sysImageArgs = ['-J', env_file_paths.sysimage_path]
-            }
-            else {
-                vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
-            }
-        }
-        jlarg1 = ['-i', '--banner=no']
-        if (isPersistentSession) {
-            jlarg1.push(`--project="${pkgenvpath}"`)
-        } else {
-            jlarg1.push(`--project=${pkgenvpath}`)
-        }
-        jlarg1 = jlarg1.concat(sysImageArgs).concat(config.get('additionalArgs'))
-    }
+    const jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
 
     if (isPersistentSession) {
         shellPath = config.get('persistentSession.shell')
