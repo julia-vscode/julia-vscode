@@ -57,6 +57,8 @@ interface TestSetupDetail {
 }
 
 interface TestErrorDetail {
+    id: string,
+    label: string,
     range: lsp.Range
     error: string
 }
@@ -96,7 +98,7 @@ interface FileCoverage {
 
 interface TestserverRunTestitemRequestParamsReturn {
     status: string
-    message?: TestMessage[],
+    messages?: TestMessage[],
     duration?: number,
     coverage?: FileCoverage[]
 }
@@ -371,12 +373,12 @@ export class TestProcess {
                 testRun.passed(testItem, result.duration)
             }
             else if (result.status === 'errored') {
-                const message = new vscode.TestMessage(result.message[0].message)
-                message.location = new vscode.Location(vscode.Uri.parse(result.message[0].location.uri), new vscode.Position(result.message[0].location.range.start.line-1, result.message[0].location.range.start.character-1))
+                const message = new vscode.TestMessage(result.messages[0].message)
+                message.location = new vscode.Location(vscode.Uri.parse(result.messages[0].location.uri), new vscode.Position(result.messages[0].location.range.start.line-1, result.messages[0].location.range.start.character-1))
                 testRun.errored(testItem, message, result.duration)
             }
             else if (result.status === 'failed') {
-                const messages = result.message.map(i => {
+                const messages = result.messages.map(i => {
                     const message = new vscode.TestMessage(i.message)
                     message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line-1, i.location.range.start.character-1))
                     if (i.actualOutput !== undefined && i.expectedOutput !== undefined) {
@@ -533,27 +535,56 @@ export class TestFeature {
     public publishTestsHandler(params: PublishTestsParams) {
         const uri = vscode.Uri.parse(params.uri)
 
-        let fileTestitem = this.controller.items.get(params.uri)
+        const niceFilename = vscode.workspace.asRelativePath(uri.fsPath, false)
+        const shortFilename = path.basename(niceFilename)
+        const filenameParts = path.dirname(niceFilename).split('/')
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri)
+
+        if(!workspaceFolder) {
+            // Test file that is outside of the workspace, we skip
+            return
+        }
 
         if (params.testitemdetails.length > 0 || params.testerrordetails.length > 0) {
-            if (!fileTestitem) {
-                const filename = vscode.workspace.asRelativePath(uri.fsPath)
-
-                fileTestitem = this.controller.createTestItem(params.uri, filename, uri)
-                this.controller.items.add(fileTestitem)
+            // First see whether we already have the workspace folder
+            let currentFolder = this.controller.items.get(workspaceFolder.name)
+            let currentUri = workspaceFolder.uri
+            if(!currentFolder) {
+                currentFolder = this.controller.createTestItem(workspaceFolder.name, workspaceFolder.name, currentUri)
+                this.controller.items.add(currentFolder)
             }
+
+            for(const part of filenameParts) {
+                currentUri = currentUri.with({path: `${currentUri.path}/${part}`})
+                let newChild = currentFolder.children.get(part)
+                if(!newChild) {
+                    newChild = this.controller.createTestItem(part, part, currentUri)
+                    currentFolder.children.add(newChild)
+                }
+                currentFolder = newChild
+            }
+
+
+            let fileTestitem = currentFolder.children.get(shortFilename)
+            if (!fileTestitem) {
+                fileTestitem = this.controller.createTestItem(shortFilename, shortFilename, uri)
+                currentFolder.children.add(fileTestitem)
+            }
+
+            fileTestitem.children.forEach(i=>this.testitems.delete(i))
 
             fileTestitem.children.replace([
                 ...params.testitemdetails.map(i => {
-                    const testitem = this.controller.createTestItem(i.id, i.label, vscode.Uri.parse(params.uri))
+                    const testitem = this.controller.createTestItem(i.id, i.label, uri)
                     testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
-                    this.testitems.set(testitem, i)
                     testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
+
+                    this.testitems.set(testitem, i)
 
                     return testitem
                 }),
                 ...params.testerrordetails.map(i => {
-                    const testitem = this.controller.createTestItem('Test error', 'Test error', vscode.Uri.parse(params.uri))
+                    const testitem = this.controller.createTestItem(i.id, i.label, uri)
                     testitem.error = i.error
                     testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
 
@@ -561,8 +592,42 @@ export class TestFeature {
                 })
             ])
         }
-        else if (fileTestitem) {
-            this.controller.items.delete(fileTestitem.id)
+        else {
+            let currentFolder = this.controller.items.get(workspaceFolder.name)
+            if(currentFolder) {
+                let foundParentFolder = true
+                for(const part of filenameParts) {
+                    const child = currentFolder.children.get(part)
+                    if(!child) {
+                        foundParentFolder = false
+                        break
+                    }
+                    currentFolder = child
+                }
+
+                if(foundParentFolder) {
+                    const fileTestitem = currentFolder.children.get(shortFilename)
+                    if (fileTestitem) {
+                        fileTestitem.children.forEach(i=>this.testitems.delete(i))
+                        currentFolder.children.delete(shortFilename)
+                    }
+
+                }
+
+                while(currentFolder) {
+                    const parentFolder = currentFolder.parent
+                    if(currentFolder.children.size===0) {
+                        if(parentFolder) {
+                            parentFolder.children.delete(currentFolder.id)
+                        }
+                        else {
+                            this.controller.items.delete(currentFolder.id)
+                        }
+                    }
+                    currentFolder = parentFolder
+                }
+
+            }
         }
 
         this.testsetups.set(uri, params.testsetupdetails)

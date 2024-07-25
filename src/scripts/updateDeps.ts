@@ -63,9 +63,8 @@ async function main() {
         'AutoHashEquals',
         'ExceptionUnwrapping',
         'MacroTools',
-        'Salsa',
         'CodeTracking',
-        // 'CoverageTools', For now we are on a custom branch
+        'CoverageTools',
         'FilePathsBase',
         'JuliaInterpreter',
         'JuliaSyntax',
@@ -85,6 +84,7 @@ async function main() {
         'Preferences',
         'PrecompileTools',
         'TestEnv',
+        'Salsa',
     ]) {
         await cp.exec('git fetch')
         await cp.exec('git fetch --tags')
