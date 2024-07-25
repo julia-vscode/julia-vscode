@@ -2,6 +2,8 @@ if VERSION < v"1.6.0"
     error("VS Code julia language server only works with julia 1.6.0 or newer")
 end
 
+@info "Starting LS with Julia $VERSION"
+
 import Pkg
 version_specific_env_path = joinpath(@__DIR__, "..", "environments", "languageserver", "v$(VERSION.major).$(VERSION.minor)")
 if isdir(version_specific_env_path)
