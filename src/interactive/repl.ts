@@ -194,7 +194,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         if (isConnected()) {
             shellArgs = [...shellExecutionArgs, `tmux attach -t ${sessionName}`]
         } else {
-            const connectJuliaCode = juliaConnector(pipename)
+            const connectJuliaCode = juliaConnector(pipename, debugPipename)
 
             const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
                 ...juliaExecutable.args,
@@ -234,10 +234,10 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     await juliaIsConnectedPromise.wait()
 }
 
-function juliaConnector(pipename: string, start = false) {
-    const connect = `VSCodeServer.serve(raw"${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, raw"${telemetry.getCrashReportingPipename()}", "REPL"));nothing # re-establishing connection with VSCode`
+function juliaConnector(pipename: string, debugPipename: string, start = false) {
+    const connect = `VSCodeServer.serve(raw"${pipename}", raw"${debugPipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, raw"${telemetry.getCrashReportingPipename()}", "REPL"));nothing # re-establishing connection with VSCode`
     if (start) {
-        return `pushfirst!(LOAD_PATH, raw"${path.join(g_context.extensionPath, 'scripts', 'packages')}");try using VSCodeServer; finally popfirst!(LOAD_PATH) end;` + connect
+        return `include(raw"${path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'load_vscodeserver.jl')}");` + connect
     } else {
         return connect
     }
@@ -245,8 +245,9 @@ function juliaConnector(pipename: string, start = false) {
 
 async function connectREPL() {
     const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
+    const debugPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
-    const connectJuliaCode = juliaConnector(pipename, true)
+    const connectJuliaCode = juliaConnector(pipename, debugPipename, true)
 
     const config = vscode.workspace.getConfiguration('julia')
 
