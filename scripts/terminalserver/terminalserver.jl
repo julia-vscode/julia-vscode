@@ -4,8 +4,6 @@ end
 
 # this script basially only handles `ARGS`
 let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), "Distributed")
-    include("../error_handler.jl")
-
     version_specific_env_path = joinpath(@__DIR__, "..", "environments", "terminalserver", "v$(VERSION.major).$(VERSION.minor)")
     if !isdir(version_specific_env_path)
         version_specific_env_path = joinpath(@__DIR__, "..", "environments", "terminalserver", "fallback")
@@ -62,5 +60,5 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
         VSCodeServer.toggle_progress(nothing, (;enable="USE_PROGRESS=true" in args))
     end
 
-    VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, error_handler = (err, bt) -> global_err_handler(err, bt, telemetry_pipename, "REPL"))
+    VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, telemetry_pipename, "REPL"))
 end
