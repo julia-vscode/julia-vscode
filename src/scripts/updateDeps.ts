@@ -71,7 +71,6 @@ async function main() {
         'Glob',
         'LoweredCodeUtils',
         'OrderedCollections',
-        'PackageCompiler',
         'Tokenize',
         'URIParser',
         'CommonMark',
@@ -102,8 +101,7 @@ async function main() {
 
     await fs.rm(path.join(process.cwd(), 'scripts/environments/languageserver'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/environments/pkgdev'), { recursive: true })
-    await fs.rm(path.join(process.cwd(), 'scripts/environments/sysimagecompile'), { recursive: true })
-
+    await fs.rm(path.join(process.cwd(), 'scripts/environments/terminalserver'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
@@ -127,13 +125,13 @@ async function main() {
             await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: env_path_pkgdev })
         }
 
+        const env_path_terminalserver = path.join(process.cwd(), 'scripts/environments/terminalserver', `v${v}`)
+        await fs.mkdir(env_path_terminalserver, { recursive: true })
+        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_terminalserver_project.jl')}`, { cwd: env_path_terminalserver })
+
         const env_path_testserver = path.join(process.cwd(), 'scripts/environments/testserver', `v${v}`)
         await fs.mkdir(env_path_testserver, { recursive: true })
         await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testserver_project.jl')}`, { cwd: env_path_testserver })
-
-        const env_path_sysimagecompile = path.join(process.cwd(), 'scripts/environments/sysimagecompile', `v${v}`)
-        await fs.mkdir(env_path_sysimagecompile, { recursive: true })
-        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: env_path_sysimagecompile })
 
         const env_path_test_debugadapter = path.join(process.cwd(), 'scripts/testenvironments/debugadapter', `v${v}`)
         await fs.mkdir(env_path_test_debugadapter, { recursive: true })
@@ -164,16 +162,15 @@ async function main() {
 
     // We also add a fallback release env in case a user has a Julia version we don't know about
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/languageserver/fallback'), { recursive: true })
+    await fs.mkdir(path.join(process.cwd(), 'scripts/environments/terminalserver/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/testserver/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/pkgdev/fallback'), { recursive: true })
-    await fs.mkdir(path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback'), { recursive: true })
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver/fallback') })
+    await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_terminalserver_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/terminalserver/fallback') })
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testserver_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/testserver/fallback') })
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev/fallback') })
-    await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_sysimagecompile_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/sysimagecompile/fallback') })
 
     // Julia 1.0 and 1.1 write backslash in relative paths in Manifest files, which we don't want
-    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/sysimagecompile/v1.0'))
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/debugadapter/v1.0'))
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/debugadapter/v1.1'))
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger/v1.0'))
