@@ -1,9 +1,15 @@
 # this script loads VSCodeServer and handles ARGS
 let
-    include("load_vscodeserver.jl")
-
     args = [popfirst!(Base.ARGS) for _ in 1:9]
     conn_pipename, debug_pipename, telemetry_pipename, project_path = args[1:4]
+
+    @static if VERSION < v"1.8.0"
+        Base.ACTIVE_PROJECT[] = joinpath(project_path, "Project.toml")
+    else
+        Base.set_active_project(project_path)
+    end
+
+    include("load_vscodeserver.jl")
 
     # load Revise ?
     if "USE_REVISE=true" in args

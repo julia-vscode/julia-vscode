@@ -21,18 +21,19 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
         end
     end
 
-    activate_env()
-
-    if haskey(Base.loaded_modules, distributed) && (Distributed = Base.loaded_modules[distributed]).nprocs() > 1
-        Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :($(activate_env)()))
-        try
+    try
+        activate_env()
+        if haskey(Base.loaded_modules, distributed) && (Distributed = Base.loaded_modules[distributed]).nprocs() > 1
+            Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :($(activate_env)()))
+            try
+                using VSCodeServer
+            finally
+                Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :($(deactivate_env)()))
+            end
+        else
             using VSCodeServer
-        finally
-            Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :($(deactivate_env)()))
         end
-    else
-        using VSCodeServer
+    finally
+        deactivate_env()
     end
-
-    deactivate_env()
 end
