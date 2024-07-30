@@ -757,8 +757,8 @@ export class TestFeature {
     ) {
         if(mode===TestRunMode.Coverage) {
             const ex = await this.executableFeature.getActiveJuliaExecutableAsync()
-            if(ex.getVersion().compare('1.12.0-DEV')===-1) {
-                vscode.window.showErrorMessage('Running tests with coverage requires Julia 1.12 or newer.')
+            if(ex.getVersion().compare('1.11.0-rc2')===-1) {
+                vscode.window.showErrorMessage('Running tests with coverage requires Julia 1.11 or newer.')
                 return
             }
         }
