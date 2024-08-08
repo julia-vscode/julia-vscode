@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- `@profview` and `@profview_allocs` now support the optional keyword arguments of `Profile.print`, such as `recur = :flat` ([#3666](https://github.com/julia-vscode/julia-vscode/pull/3666)).
+
 ## [1.104.0] - 2024-07-29
 ### Fixed
 - The integrated REPL now once again starts with the user defined environment ([#3660](https://github.com/julia-vscode/julia-vscode/pull/3660))
