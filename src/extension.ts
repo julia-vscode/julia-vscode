@@ -345,12 +345,6 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     const clientOptions: LanguageClientOptions = {
         documentSelector: selector,
-        synchronize: {
-            fileEvents: [
-                vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd,md}'),
-                vscode.workspace.createFileSystemWatcher('**/{Project.toml,JuliaProject.toml,Manifest.toml,JuliaManifest.toml,.JuliaLint.toml}'),
-            ]
-        },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: g_traceOutputChannel,
         outputChannel: g_outputChannel,
