@@ -30,7 +30,7 @@ function view_profile(data = Profile.fetch(); C=false, kwargs...)
         d[string(thread)] = make_tree(
             ProfileFrame(
                 "root", "", "", 0, graph.count, missing, 0x0, missing, ProfileFrame[]
-            ), graph; C=C, kwargs...)
+            ), graph; C=C)
     end
 
     JSONRPC.send(conn_endpoint[], repl_showprofileresult_notification_type, (; trace=d, typ="Thread"))
