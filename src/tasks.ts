@@ -128,35 +128,6 @@ class JuliaTaskProvider {
 
             }
 
-            if (juliaExecutable.getVersion().compare('1.6.0') >= 0) {
-                const buildJuliaSysimage = new vscode.Task(
-                    {
-                        type: 'julia',
-                        command: 'juliasysimagebuild',
-                    },
-                    folder,
-                    `Build custom sysimage for current environment (experimental)`,
-                    'Julia',
-                    new vscode.ProcessExecution(juliaExecutable.file, [
-                        ...juliaExecutable.args,
-                        '--color=yes',
-                        '--startup-file=no',
-                        '--history-file=no',
-                        path.join(
-                            this.context.extensionPath,
-                            'scripts',
-                            'tasks',
-                            'task_compileenv.jl'
-                        ),
-                        pkgenvpath,
-                    ]),
-                    ''
-                )
-                buildJuliaSysimage.group = vscode.TaskGroup.Build
-                buildJuliaSysimage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
-                result.push(buildJuliaSysimage)
-            }
-
             if (await fs.exists(path.join(rootPath, 'deps', 'build.jl'))) {
                 const buildTask = new vscode.Task(
                     {

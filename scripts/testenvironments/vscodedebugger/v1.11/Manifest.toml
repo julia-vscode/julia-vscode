@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.0-rc1"
+julia_version = "1.11.0-rc2"
 manifest_format = "2.0"
 project_hash = "74b74cb7e453f9bc83670bc3287d524c174af56c"
 

@@ -232,23 +232,27 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     const juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
     if(await juliaExecutablesFeature.isJuliaup()) {
-        const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
+        if (Boolean(process.env.DEBUG_MODE)) {
+            juliaLSExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        } else {
+            const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
 
-        const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
+            const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
 
-        if(releaseChannelExe.length>0) {
-            juliaLSExecutable = releaseChannelExe[0]
-        }
-        else {
-            vscode.window.showErrorMessage('You must have the "release" channel in Juliaup installed for the best Julia experience in VS Code.')
-            g_startupNotification.hide()
-            return
-        }
+            if(releaseChannelExe.length>0) {
+                juliaLSExecutable = releaseChannelExe[0]
+            }
+            else {
+                vscode.window.showErrorMessage('You must have the "release" channel in Juliaup installed for the best Julia experience in VS Code.')
+                g_startupNotification.hide()
+                return
+            }
 
-        if (juliaExecutable===undefined) {
-            vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
-            g_startupNotification.hide()
-            return
+            if (juliaExecutable===undefined) {
+                vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+                g_startupNotification.hide()
+                return
+            }
         }
     }
     else {

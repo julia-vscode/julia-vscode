@@ -130,10 +130,11 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     const debugPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
     const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
     const nthreads = inferJuliaNumThreads()
+    const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
     // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
     function getArgs() {
-        const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename()]
+        const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename(), pkgenvpath]
         jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
         jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
         jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
@@ -183,33 +184,8 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
-    let jlarg1: string[]
-    const pkgenvpath = await jlpkgenv.getAbsEnvPath()
-    if (pkgenvpath === null) {
-        jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
-    } else {
-        const env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath)
 
-        let sysImageArgs = []
-        if (config.get('useCustomSysimage') && env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
-            const date_sysimage = await fs.stat(env_file_paths.sysimage_path)
-            const date_manifest = await fs.stat(env_file_paths.manifest_toml_path)
-
-            if (date_sysimage.mtime > date_manifest.mtime) {
-                sysImageArgs = ['-J', env_file_paths.sysimage_path]
-            }
-            else {
-                vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
-            }
-        }
-        jlarg1 = ['-i', '--banner=no']
-        if (isPersistentSession) {
-            jlarg1.push(`--project="${pkgenvpath}"`)
-        } else {
-            jlarg1.push(`--project=${pkgenvpath}`)
-        }
-        jlarg1 = jlarg1.concat(sysImageArgs).concat(config.get('additionalArgs'))
-    }
+    const jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
 
     if (isPersistentSession) {
         shellPath = config.get('persistentSession.shell')
@@ -218,7 +194,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         if (isConnected()) {
             shellArgs = [...shellExecutionArgs, `tmux attach -t ${sessionName}`]
         } else {
-            const connectJuliaCode = juliaConnector(pipename)
+            const connectJuliaCode = juliaConnector(pipename, debugPipename)
 
             const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
                 ...juliaExecutable.args,
@@ -258,10 +234,10 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     await juliaIsConnectedPromise.wait()
 }
 
-function juliaConnector(pipename: string, start = false) {
-    const connect = `VSCodeServer.serve(raw"${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, crashreporting_pipename = raw"${telemetry.getCrashReportingPipename()}");nothing # re-establishing connection with VSCode`
+function juliaConnector(pipename: string, debugPipename: string, start = false) {
+    const connect = `VSCodeServer.serve(raw"${pipename}", raw"${debugPipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, raw"${telemetry.getCrashReportingPipename()}", "REPL"));nothing # re-establishing connection with VSCode`
     if (start) {
-        return `pushfirst!(LOAD_PATH, raw"${path.join(g_context.extensionPath, 'scripts', 'packages')}");try using VSCodeServer; finally popfirst!(LOAD_PATH) end;` + connect
+        return `include(raw"${path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'load_vscodeserver.jl')}");` + connect
     } else {
         return connect
     }
@@ -269,8 +245,9 @@ function juliaConnector(pipename: string, start = false) {
 
 async function connectREPL() {
     const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
+    const debugPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
-    const connectJuliaCode = juliaConnector(pipename, true)
+    const connectJuliaCode = juliaConnector(pipename, debugPipename, true)
 
     const config = vscode.workspace.getConfiguration('julia')
 

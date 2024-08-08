@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.102.0",
+    "version": "1.105.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -1019,12 +1019,6 @@
                     "default": null,
                     "markdownDescription": "Path to a julia environment. VS Code needs to be reloaded for changes to take effect. Explicitly supports substitution for the `${userHome}`, `${workspaceFolder}`, `${workspaceFolderBasename}`, `${workspaceFolder:<FOLDER_NAME>}`, `${pathSeparator}`, `${env:<ENVIRONMENT_VARIABLE>}`, `${config:<CONFIG_VARIABLE>} tokens.",
                     "scope": "window"
-                },
-                "julia.useCustomSysimage": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Use an existing custom sysimage when starting the REPL",
-                    "scope": "application"
                 },
                 "julia.symbolCacheDownload": {
                     "type": [
