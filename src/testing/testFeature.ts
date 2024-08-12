@@ -358,7 +358,7 @@ export class TestProcess {
                         if (vscode.workspace.workspaceFolders.filter(j => file.uri.startsWith(j.uri.toString())).length>0) {
                             const statementCoverage = file.coverage.map((value,index)=>{
                                 if(value!==null) {
-                                    return new vscode.StatementCoverage(value, new vscode.Position(index-1, 0)) // We need to convert from 1 to 0 based line indices here
+                                    return new vscode.StatementCoverage(value, new vscode.Position(index, 0))
                                 }
                                 else {
                                     return null
