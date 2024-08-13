@@ -1,13 +1,7 @@
 # this script loads VSCodeServer and handles ARGS
 let
-    args = [popfirst!(Base.ARGS) for _ in 1:9]
-    conn_pipename, debug_pipename, telemetry_pipename, project_path = args[1:4]
-
-    @static if VERSION < v"1.8.0"
-        Base.ACTIVE_PROJECT[] = joinpath(project_path, "Project.toml")
-    else
-        Base.set_active_project(project_path)
-    end
+    args = [popfirst!(Base.ARGS) for _ in 1:8]
+    conn_pipename, debug_pipename, telemetry_pipename = args[1:3]
 
     include("load_vscodeserver.jl")
 
