@@ -134,7 +134,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
     // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
     function getArgs() {
-        const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename(), pkgenvpath]
+        const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename()]
         jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
         jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
         jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
@@ -184,8 +184,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
-
-    const jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
+    const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(config.get('additionalArgs'))
 
     if (isPersistentSession) {
         shellPath = config.get('persistentSession.shell')
