@@ -1,6 +1,7 @@
 [deps]
 AutoHashEquals = "15f4f7f2-30c1-5605-9d31-71845cf9641f"
 CSTParser = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
+CancellationTokens = "2e8d271d-f2e2-407b-a864-17eb2156783e"
 CommonMark = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
