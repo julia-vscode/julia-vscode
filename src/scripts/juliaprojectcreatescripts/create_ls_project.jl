@@ -1,6 +1,7 @@
 using Pkg
 
 packages_to_dev = [
+    PackageSpec(path="../../../packages/CancellationTokens"),
     PackageSpec(path="../../../packages/CSTParser"),
     PackageSpec(path="../../../packages/CommonMark"),
     PackageSpec(path="../../../packages/DataStructures"),

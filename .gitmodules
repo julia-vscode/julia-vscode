@@ -127,3 +127,6 @@
 [submodule "scripts/packages-old/v1.5/Revise"]
 	path = scripts/packages-old/v1.5/Revise
 	url = https://github.com/timholy/Revise.jl
+[submodule "scripts/packages/CancellationTokens"]
+	path = scripts/packages/CancellationTokens
+	url = https://github.com/davidanthoff/CancellationTokens.jl

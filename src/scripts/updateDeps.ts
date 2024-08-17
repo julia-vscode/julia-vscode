@@ -63,6 +63,7 @@ async function main() {
         'AutoHashEquals',
         'ExceptionUnwrapping',
         'MacroTools',
+        'CancellationTokens',
         'CodeTracking',
         'CoverageTools',
         'FilePathsBase',
