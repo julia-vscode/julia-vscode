@@ -26,7 +26,7 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 deps = ["Base64", "JSON", "JuliaInterpreter", "Pkg", "Sockets"]
 path = "../../../packages/DebugAdapter"
 uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
-version = "3.0.0-DEV"
+version = "3.0.1-DEV"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
