@@ -365,6 +365,9 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         else if (data.command === 'symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
         }
+        else if (data.command === 'request_metric') {
+            telemetry.traceRequest(data.name, data.duration, 'Language Server')
+        }
     })
 
     languageClient.onDidChangeState(event => {
