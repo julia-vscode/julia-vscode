@@ -20,6 +20,8 @@ let crashReporterQueue = []
 
 let g_jlcrashreportingpipename: string = null
 
+let g_prereleaseExtension: boolean = false
+
 function filterTelemetry(envelope, context) {
     if (envelope.data.baseType === 'ExceptionData') {
         if (enableCrashReporter) {
@@ -70,10 +72,12 @@ export async function init(context: vscode.ExtensionContext) {
     else if (parsedExtensionVersion.patch===1) {
         // Use the insider environment
         key = 'InstrumentationKey=94d316b7-bba0-4d03-9525-81e25c7da22f;IngestionEndpoint=https://eastus-3.in.applicationinsights.azure.com/'
+        g_prereleaseExtension = true
     }
     else {
         // Use the debug environment
         key = 'InstrumentationKey=82cf1bd4-8560-43ec-97a6-79847395d791;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
+        g_prereleaseExtension = true
     }
 
     appInsights.setup(key)
@@ -181,6 +185,23 @@ export function getCrashReportingPipename() {
 
 export function traceEvent(message) {
     extensionClient.trackEvent({ name: message })
+}
+
+export function traceRequest(name, duration, cloudRole) {
+    if(g_prereleaseExtension) {
+        extensionClient.trackRequest({
+            name: name,
+            url: name,
+            duration: duration,
+            resultCode: 0,
+            success: true,
+            tagOverrides: {
+                [extensionClient.context.keys.cloudRole]: cloudRole,
+                [extensionClient.context.keys.operationName]: name,
+                [extensionClient.context.keys.operationId]: uuid()
+            }
+        })
+    }
 }
 
 export function tracePackageLoadError(packagename, message) {
