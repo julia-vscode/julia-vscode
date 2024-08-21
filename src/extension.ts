@@ -175,6 +175,8 @@ export function deactivate() {
         promises.push(g_languageClient.stop())
     }
 
+    telemetry.flush()
+
     return Promise.all(promises)
 }
 
@@ -366,7 +368,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             telemetry.tracePackageLoadError(data.name, data.message)
         }
         else if (data.command === 'request_metric') {
-            telemetry.traceRequest(data.name, data.duration, 'Language Server')
+            telemetry.traceRequest(data.operationId, data.operationParentId, data.name, new Date(data.time), data.duration, 'Language Server')
         }
     })
 

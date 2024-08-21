@@ -187,18 +187,20 @@ export function traceEvent(message) {
     extensionClient.trackEvent({ name: message })
 }
 
-export function traceRequest(name, duration, cloudRole) {
+export function traceRequest(operationId, operationParentId, name, time, duration, cloudRole) {
     if(g_prereleaseExtension) {
         extensionClient.trackRequest({
             name: name,
             url: name,
+            time: time,
             duration: duration,
             resultCode: 0,
             success: true,
             tagOverrides: {
                 [extensionClient.context.keys.cloudRole]: cloudRole,
                 [extensionClient.context.keys.operationName]: name,
-                [extensionClient.context.keys.operationId]: uuid()
+                [extensionClient.context.keys.operationId]: operationId,
+                ...(operationParentId ? {[extensionClient.context.keys.operationParentId]: operationParentId } : {})
             }
         })
     }
@@ -254,4 +256,8 @@ export function setCurrentJuliaVersion(version: string) {
     if (extensionClient) {
         extensionClient.commonProperties['juliaversion'] = g_currentJuliaVersion
     }
+}
+
+export function flush() {
+    extensionClient.flush()
 }
