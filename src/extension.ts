@@ -95,7 +95,8 @@ export async function activate(context: vscode.ExtensionContext) {
         const notebookFeature = new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
         context.subscriptions.push(notebookFeature)
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
-        g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
+        g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature)
+        // g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
         context.subscriptions.push(g_testFeature)
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature, notebookFeature))
 

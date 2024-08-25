@@ -1,0 +1,14 @@
+name = "TestItemControllers"
+uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
+authors = ["David Anthoff <anthoff@berkeley.edu>"]
+version = "0.1.0"
+
+[deps]
+AutoHashEquals = "15f4f7f2-30c1-5605-9d31-71845cf9641f"
+JSONRPC = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+
+[compat]
+julia = "1.10"
+AutoHashEquals = "1,2"
+JSONRPC = "1.1"
