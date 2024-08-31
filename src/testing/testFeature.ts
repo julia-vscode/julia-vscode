@@ -9,7 +9,7 @@ import { WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
-import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notficiationTypeTestRunFinished, notificationTypeAppendOutput, notificationTypeLaunchDebuggers, notificationTypeTestProcessCreated, requestTypeCancelTestRun, requestTypeCreateTestRun } from './testControllerProtocol'
+import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notficiationTypeTestRunFinished, notificationTypeAppendOutput, notificationTypeLaunchDebuggers, notificationTypeTestProcessCreated, notificationTypeTestProcessStatusChanged, requestTypeCancelTestRun, requestTypeCreateTestRun } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
@@ -38,6 +38,31 @@ interface OurFileCoverage extends vscode.FileCoverage {
     detailedCoverage: vscode.StatementCoverage[]
 }
 
+export class JuliaTestProcess {
+    private status: string
+
+    private _onStatusChanged = new vscode.EventEmitter<void>()
+    public onStatusChanged = this._onStatusChanged.event
+
+    constructor(
+        public id: string) {
+        this.status = 'Created'
+    }
+
+    setStatus(status: string) {
+        this.status = status
+        this._onStatusChanged.fire()
+    }
+
+    public getStatus() {
+        return this.status
+    }
+
+    kill() {
+        throw new Error('Method not implemented.')
+    }
+}
+
 export class JuliaTestController {
     kill() {
         throw new Error('Method not implemented.')
@@ -45,6 +70,7 @@ export class JuliaTestController {
     private connection: rpc.MessageConnection
     private process: ChildProcessWithoutNullStreams
     private testRuns = new Map<string,{testRun: vscode.TestRun, testItems: Map<string,vscode.TestItem>}>()
+    private testProcesses = new Map<string,JuliaTestProcess>()
 
     constructor(
         private juliaExecutablesFeature: JuliaExecutablesFeature,
@@ -162,7 +188,13 @@ export class JuliaTestController {
             testRun.testRun.appendOutput(i.output, undefined, testItem)
         })
         this.connection.onNotification(notificationTypeTestProcessCreated, i=>{
-            console.log('asdf')
+            const tp = new JuliaTestProcess(i.id)
+            this.testProcesses.set(i.id, tp)
+            this.workspaceFeature.addTestProcess(tp)
+        })
+        this.connection.onNotification(notificationTypeTestProcessStatusChanged, i=>{
+            const tp = this.testProcesses.get(i.id)
+            tp.setStatus(i.status)
         })
         this.connection.onNotification(notificationTypeLaunchDebuggers, async i=>{
             const testRun = this.testRuns.get(i.testRunId)

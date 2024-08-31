@@ -77,4 +77,6 @@ export const notificationTypeAppendOutput = new rpc.NotificationType<{testRunId:
 
 export const notificationTypeTestProcessCreated = new rpc.NotificationType<{id: string, packageName: string, packageUri?: string, projectUri?: string, coverage: boolean, env: any}>('testProcessCreated')
 
+export const notificationTypeTestProcessStatusChanged = new rpc.NotificationType<{id: string, status: string}>('testProcessStatusChanged')
+
 export const notificationTypeLaunchDebuggers = new rpc.NotificationType<{debugPipeNames: string[], testRunId: string}>('launchDebuggers')

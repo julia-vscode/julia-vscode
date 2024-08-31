@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
-import { JuliaTestController } from '../testing/testFeature'
+import { JuliaTestController, JuliaTestProcess } from '../testing/testFeature'
 import { registerCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
 import {
@@ -115,13 +115,19 @@ export class NotebookNode extends SessionNode {
 }
 
 export class TestControllerNode extends AbstractWorkspaceNode {
+    private testProcessNodes: TestProcessNode[] = []
+
     constructor(
         public testController: JuliaTestController) {
         super()
     }
 
+    addTestProcessNode(node: TestProcessNode) {
+        this.testProcessNodes.push(node)
+    }
+
     public async getChildren() {
-        return []
+        return this.testProcessNodes
     }
 
     async stop() {
@@ -129,20 +135,25 @@ export class TestControllerNode extends AbstractWorkspaceNode {
     }
 }
 
-// export class TestProcessNode extends AbstractWorkspaceNode {
-//     constructor(
-//         public testProcess: TestProcess) {
-//         super()
-//     }
+export class TestProcessNode extends AbstractWorkspaceNode {
+    constructor(
+        public testProcess: JuliaTestProcess,
+        private treeProvider: REPLTreeDataProvider) {
+        super()
 
-//     public async getChildren() {
-//         return []
-//     }
+        testProcess.onStatusChanged(e => {
+            this.treeProvider.refresh()
+        })
+    }
 
-//     async stop() {
-//         await this.testProcess.kill()
-//     }
-// }
+    public async getChildren() {
+        return []
+    }
+
+    async stop() {
+        await this.testProcess.kill()
+    }
+}
 
 class REPLNode extends SessionNode {
     private variablesNodes: VariableNode[]
@@ -302,6 +313,12 @@ export class WorkspaceFeature {
         // })
         this._REPLTreeDataProvider.refresh()
     }
+
+    public async addTestProcess(testProcess: JuliaTestProcess) {
+        const node = new TestProcessNode(testProcess, this._REPLTreeDataProvider)
+        this._TestController.addTestProcessNode(node)
+        this._REPLTreeDataProvider.refresh()
+    }
 }
 
 export class REPLTreeDataProvider
@@ -355,6 +372,7 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             return treeItem
         } else if (node instanceof REPLNode) {
             const treeItem = new vscode.TreeItem('Julia REPL')
+            treeItem.iconPath = new vscode.ThemeIcon('terminal-view-icon')
             treeItem.description = ''
             treeItem.tooltip = ''
             treeItem.contextValue = 'juliarepl'
@@ -362,24 +380,36 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             return treeItem
         } else if (node instanceof NotebookNode) {
             const treeItem = new vscode.TreeItem('Julia Notebook kernel')
+            treeItem.iconPath = new vscode.ThemeIcon('notebook')
             treeItem.description = node.getTitle()
             treeItem.tooltip = node.getTitle()
             treeItem.contextValue = 'juliakernel'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
-        // } else if (node instanceof TestProcessNode) {
-        //     const treeItem = new vscode.TreeItem('Julia Test Process')
-        //     treeItem.description = node.testProcess.packageName
-        //     treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.package_uri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.project_uri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.`)
-        //     treeItem.contextValue = 'juliatestprocess'
-        //     treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None
-        //     return treeItem
+        } else if (node instanceof TestProcessNode) {
+            const treeItem = new vscode.TreeItem('Julia Test Process')
+            const status = node.testProcess.getStatus()
+            if( status === 'Launching' || status === 'Revising' || status === 'Created') {
+                treeItem.iconPath = new vscode.ThemeIcon('gear~spin')
+            } else if(status === 'Running') {
+                treeItem.iconPath = new vscode.ThemeIcon('loading~spin')
+            } else if (status === 'Idle') {
+                // treeItem.iconPath = new vscode.ThemeIcon('server-process')
+            } else {
+
+            }
+            // treeItem.description = node.testProcess.packageName
+            // treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.package_uri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.project_uri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.`)
+            treeItem.contextValue = 'juliatestprocess'
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None
+            return treeItem
         } else if (node instanceof TestControllerNode) {
             const treeItem = new vscode.TreeItem('Julia Test Item Controller')
+            treeItem.iconPath = new vscode.ThemeIcon('test-view-icon')
             // treeItem.description = node.testProcess.packageName
             // treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.package_uri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.project_uri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.`)
             treeItem.contextValue = 'juliatestcontroller'
-            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
         }
     }

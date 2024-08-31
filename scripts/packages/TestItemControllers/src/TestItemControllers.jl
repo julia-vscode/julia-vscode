@@ -34,6 +34,7 @@ function passed_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::
     put!(test_process.parent_channel, (source=:testprocess, msg=(event=:passed, testitemid=params.testItemId, testrunid=params.testRunId, duration=params.duration, coverage=params.coverage)))
     if length(test_process.testitems_to_run) == 0
         test_process.testrun_id = nothing
+        put!(test_process.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=test_process.id, status="Idle")))
     end
 end
 
@@ -42,6 +43,7 @@ function failed_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::
     put!(test_process.parent_channel, (source=:testprocess, msg=(event=:failed, testitemid=params.testItemId, testrunid=params.testRunId, messages=params.messages)))
     if length(test_process.testitems_to_run) == 0
         test_process.testrun_id = nothing
+        put!(test_process.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=test_process.id, status="Idle")))
     end
 end
 
@@ -50,6 +52,7 @@ function errored_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, params:
     put!(test_process.parent_channel, (source=:testprocess, msg=(event=:errored, testitemid=params.testItemId, testrunid=params.testRunId, messages=params.messages)))
     if length(test_process.testitems_to_run) == 0
         test_process.testrun_id = nothing
+        put!(test_process.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=test_process.id, status="Idle")))
     end
 end
 
@@ -99,6 +102,8 @@ function revise(tp::TestProcess)
 end
 
 function start(tp::TestProcess)
+    put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Launching")))
+
     pipe_name = JSONRPC.generate_pipe_name()
     server = Sockets.listen(pipe_name)
 
@@ -159,11 +164,15 @@ function start(tp::TestProcess)
                 if msg.msg.command == :activate
                     JSONRPC.send(endpoint, TestItemServerProtocol.testserver_activate_env_request_type, TestItemServerProtocol.ActivateEnvParams(testRunId = tp.testrun_id, projectUri=something(tp.env.project_uri, missing), packageUri=tp.env.package_uri, packageName=tp.env.package_name))
 
+                    put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Idle")))
+
                     put!(tp.activated, true)
                 elseif msg.msg.command == :revise
+                    put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Revising")))
                     res = JSONRPC.send(endpoint, TestItemServerProtocol.testserver_revise_request_type, nothing)
 
                     if res=="success"
+                        put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Idle")))
                         put!(tp.activated, true)
                     elseif res=="failed"
                         @info "Revise could not handle changes, restarting process"
@@ -175,6 +184,8 @@ function start(tp::TestProcess)
                         error()
                     end
                 elseif msg.msg.command == :run
+                    put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Running")))
+
                     JSONRPC.send(
                         endpoint,
                         TestItemServerProtocol.run_testitems_request_type,
@@ -500,6 +511,10 @@ function Base.run(controller::JSONRPCTestItemController)
                     duration=missing
                 )
                 JSONRPC.send(controller.endpoint, TestItemControllerProtocol.notficiationTypeTestItemErrored, params)
+            elseif msg.msg.event == :test_process_status_changed
+                JSONRPC.send(controller.endpoint, TestItemControllerProtocol.notificationTypeTestProcessStatusChanged, TestItemControllerProtocol.TestProcessStatusChangedParams(id=msg.msg.id, status=msg.msg.status))
+            else
+                error("Unknown message")
             end
 
             if msg.msg.event in (:passed, :failed, :errored, :skipped) && length(test_run.testitem_ids)==0

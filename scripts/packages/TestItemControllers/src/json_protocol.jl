@@ -120,6 +120,13 @@ end
 
 const notificationTypeTestProcessCreated = NotificationType("testProcessCreated", TestProcessCreatedParams)
 
+@dict_readable struct TestProcessStatusChangedParams
+    id::String
+    status::String
+end
+
+const notificationTypeTestProcessStatusChanged = NotificationType("testProcessStatusChanged", TestProcessStatusChangedParams)
+
 const notificationTypeLaunchDebuggers = NotificationType("launchDebuggers", @NamedTuple{debugPipeNames::Vector{String}, testRunId::String})
 
 end
