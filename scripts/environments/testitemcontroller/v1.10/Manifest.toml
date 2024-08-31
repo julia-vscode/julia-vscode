@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.4"
+julia_version = "1.10.5"
 manifest_format = "2.0"
-project_hash = "e5b32cbe789418d034326a46852c254551aab6e4"
+project_hash = "a065fecc18e6cf4b5c9f65cffe7ac83c0dc83eb1"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -19,6 +19,11 @@ version = "2.1.0"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[deps.CoverageTools]]
+path = "../../../packages/CoverageTools"
+uuid = "c36e975a-824b-4404-a568-ef97ca766997"
+version = "1.3.2"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -136,10 +141,16 @@ uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 version = "1.10.0"
 
 [[deps.TestItemControllers]]
-deps = ["AutoHashEquals", "JSONRPC", "Sockets"]
+deps = ["AutoHashEquals", "CoverageTools", "JSONRPC", "Sockets", "URIParser", "UUIDs"]
 path = "../../../packages/TestItemControllers"
 uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
 version = "0.1.0"
+
+[[deps.URIParser]]
+deps = ["Unicode"]
+path = "../../../packages/URIParser"
+uuid = "30578b45-9adc-5946-b283-645ec420af67"
+version = "0.4.1"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]

@@ -40,21 +40,28 @@ TestMessage(message, location) = TestMessage(message, missing, missing, location
     uri::String
     name::String
     packageName::String
+    packageUri::String
     useDefaultUsings::Bool
-    testsetups::Vector{String}
+    testSetups::Vector{String}
     line::Int
     column::Int
     code::String
-    mode::String
-    coverageRoots::Union{Vector{String},Missing}
 end
 
-@dict_readable struct FileCoverage <: JSONRPC.Outbound
+struct FileCoverage <: JSONRPC.Outbound
     uri::String
     coverage::Vector{Union{Int,Nothing}}
 end
 
+function FileCoverage(d::Dict)
+    return FileCoverage(
+        d["uri"],
+        Union{Int,Nothing}[i for i in d["coverage"]]
+    )
+end
+
 @dict_readable struct TestsetupDetails <: JSONRPC.Outbound
+    packageUri::String
     name::String
     kind::String
     uri::String
@@ -63,34 +70,36 @@ end
     code::String
 end
 
-@dict_readable struct RunTestitemRequestParams <: JSONRPC.Outbound
-    testrunId::String
-    testitems::Vector{RunTestItem}
-    testsetups::Vector{TestsetupDetails}
+@dict_readable struct RunTestItemsRequestParams <: JSONRPC.Outbound
+    testRunId::String
+    mode::String
+    coverageRootUris::Union{Vector{String},Missing}
+    testItems::Vector{RunTestItem}
+    testSetups::Vector{TestsetupDetails}
 end
 
 const testserver_revise_request_type = JSONRPC.RequestType("testserver/revise", Nothing, String)
-const run_testitems_request_type = JSONRPC.RequestType("runtestitems", RunTestitemRequestParams, Nothing)
+const run_testitems_request_type = JSONRPC.RequestType("runtestitems", RunTestItemsRequestParams, Nothing)
 
 @dict_readable struct ActivateEnvParams <: JSONRPC.Outbound
-    testrunId::String
-    project_path::Union{Nothing,String}
-    package_path::String
-    package_name::String
+    testRunId::String
+    projectUri::Union{Missing,String}
+    packageUri::String
+    packageName::String
 end
 
 const testserver_activate_env_request_type = JSONRPC.RequestType("activateEnv", ActivateEnvParams, Nothing)
 
 @dict_readable struct StartedParams <: JSONRPC.Outbound
-    testrun_id::String
-    testitem_id::String
+    testRunId::String
+    testItemId::String
 end
 
 const started_notification_type = JSONRPC.NotificationType("started", StartedParams)
 
 @dict_readable struct PassedParams <: JSONRPC.Outbound
-    testrun_id::String
-    testitem_id::String
+    testRunId::String
+    testItemId::String
     duration::Float64
     coverage::Union{Missing,Vector{FileCoverage}}
 end
@@ -98,8 +107,8 @@ end
 const passed_notification_type = JSONRPC.NotificationType("passed", PassedParams)
 
 @dict_readable struct ErroredParams <: JSONRPC.Outbound
-    testrun_id::String
-    testitem_id::String
+    testRunId::String
+    testItemId::String
     messages::Vector{TestMessage}
     duration::Union{Float64,Missing}
 end
@@ -107,8 +116,8 @@ end
 const errored_notification_type = JSONRPC.NotificationType("errored", ErroredParams)
 
 @dict_readable struct FailedParams <: JSONRPC.Outbound
-    testrun_id::String
-    testitem_id::String
+    testRunId::String
+    testItemId::String
     messages::Vector{TestMessage}
     duration::Union{Float64,Missing}
 end
@@ -116,8 +125,8 @@ end
 const failed_notification_type = JSONRPC.NotificationType("failed", FailedParams)
 
 @dict_readable struct AppendOutputParams <: JSONRPC.Outbound
-    testrun_id::String
-    testitem_id::Union{Nothing,String}
+    testRunId::String
+    testItemId::Union{Missing,String}
     output::String
 end
 

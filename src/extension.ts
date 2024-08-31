@@ -24,7 +24,8 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
-import { notifyTypeTextDocumentPublishTests, TestFeature } from './testing/testFeature'
+import {notifyTypeTextDocumentPublishTests} from './testing/testLSProtocol'
+import {TestFeature} from './testing/testFeature'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
@@ -95,8 +96,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const notebookFeature = new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
         context.subscriptions.push(notebookFeature)
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
-        g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature)
-        // g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
+        g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
         context.subscriptions.push(g_testFeature)
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature, notebookFeature))
 

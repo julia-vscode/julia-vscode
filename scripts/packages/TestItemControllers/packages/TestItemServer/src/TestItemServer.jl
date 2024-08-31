@@ -22,39 +22,13 @@ end
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 const DEBUG_SESSION = Ref{Channel{DebugAdapter.DebugSession}}()
-const TESTSETUPS = Dict{Symbol,Testsetup}()
+const TESTSETUPS = Dict{Tuple{String,Symbol},Testsetup}()
 
 function __init__()
     DEBUG_SESSION[] = Channel{DebugAdapter.DebugSession}(1)
 
     Core.eval(Main, :(module Testsetups end))
 end
-
-# function run_update_testsetups(conn, params::TestItemServerProtocol.TestserverUpdateTestsetupsRequestParams)
-#     new_testsetups = Dict(i.name => i for i in params.testsetups)
-
-#     # Delete all existing test setups that are not in the new list
-#     for i in keys(TESTSETUPS)
-#         if !haskey(new_testsetups, i)
-#             delete!(TESTSETUPS, i)
-#         end
-#     end
-
-#     for i in params.testsetups
-#         # We only add new if not there before or if the code changed
-#         if !haskey(TESTSETUPS, i.name) || (haskey(TESTSETUPS, i.name) && TESTSETUPS[i.name].code != i.code)
-#                 TESTSETUPS[Symbol(i.name)] = Testsetup(
-#                     i.name,
-#                     Symbol(i.kind),
-#                     i.uri,
-#                     i.line,
-#                     i.column,
-#                     i.code,
-#                     false
-#                 )
-#         end
-#     end
-# end
 
 function withpath(f, path)
     tls = task_local_storage()
@@ -130,26 +104,26 @@ function process_coverage_data(coverage_results)
 
     merged_coverage = CoverageTools.merge_coverage_counts(coverage_results)
 
-    coverage_info = FileCoverage[]
+    coverage_info = TestItemServerProtocol.FileCoverage[]
 
     for i in merged_coverage
         file_cov = CoverageTools.FileCoverage(i.filename, read(i.filename, String), i.coverage)
 
         amend_coverage_from_src!(file_cov)
 
-        push!(coverage_info, FileCoverage(filepath2uri(file_cov.filename), file_cov.coverage))
+        push!(coverage_info, TestItemServerProtocol.FileCoverage(filepath2uri(file_cov.filename), file_cov.coverage))
     end
 
     return coverage_info
 end
 
-function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, testrun_id::String)
+function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, testrun_id::String, mode::String, coverage_root_uris::Union{Nothing,Vector{String}})
     JSONRPC.send(
         endpoint,
         TestItemServerProtocol.started_notification_type,
         TestItemServerProtocol.StartedParams(
-            testrun_id = testrun_id,
-            testitem_id = params.id,
+            testRunId = testrun_id,
+            testItemId = params.id,
         )
     )
 
@@ -158,73 +132,78 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
 
     coverage_results = CoverageTools.FileCoverage[] # This will hold the results of various coverage sprints
 
-    # for i in params.testsetups
-    #     if !haskey(TESTSETUPS, Symbol(i))
-    #         ret = TestserverRunTestitemRequestParamsReturn(
-    #             "errored",
-    #             [
-    #                 TestMessage(
-    #                     "The specified testsetup $i does not exist.",
-    #                     Location(
-    #                         params.uri,
-    #                         Range(Position(params.line, 1), Position(params.line, 1))
-    #                     )
-    #                 )
-    #             ],
-    #             missing,
-    #             missing
-    #         )
-    #         return ret
-    #     end
+    for i in params.testSetups
+        if !haskey(TESTSETUPS, (params.packageUri, Symbol(i)))
+            return (
+                TestItemServerProtocol.errored_notification_type,
+                TestItemServerProtocol.ErroredParams(
+                    testRunId = testrun_id,
+                    testItemId = params.id,
+                    messages = [
+                        TestItemServerProtocol.TestMessage(
+                            "The specified testsetup $i does not exist.",
+                            TestItemServerProtocol.Location(
+                                params.uri,
+                                TestItemServerProtocol.Position(params.line, 1)
+                            )
+                        )
+                    ],
+                    duration = missing
+                )
+            )
+        end
 
-    #     setup_details = TESTSETUPS[Symbol(i)]
+        setup_details = TESTSETUPS[(params.packageUri, Symbol(i))]
 
-    #     if setup_details.kind==:module && !setup_details.evaled
-    #         mod = Core.eval(Main.Testsetups, :(module $(Symbol(i)) end))
+        if setup_details.kind==:module && !setup_details.evaled
+            mod = Core.eval(Main.Testsetups, :(module $(Symbol(i)) end))
 
-    #         code = string('\n'^(setup_details.line-1), ' '^(setup_details.column-1), setup_details.code)
+            code = string('\n'^(setup_details.line-1), ' '^(setup_details.column-1), setup_details.code)
 
-    #         filepath = uri2filepath(setup_details.uri)
+            filepath = uri2filepath(setup_details.uri)
 
-    #         t0 = time_ns()
-    #         try
-    #             withpath(filepath) do
-    #                 Base.invokelatest(include_string, mod, code, filepath)
-    #             end
-    #             setup_details.evaled = true
-    #         catch err
-    #             elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
+            t0 = time_ns()
+            try
+                withpath(filepath) do
+                    Base.invokelatest(include_string, mod, code, filepath)
+                end
+                setup_details.evaled = true
+            catch err
+                elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
 
-    #             bt = catch_backtrace()
-    #             st = stacktrace(bt)
+                bt = catch_backtrace()
+                st = stacktrace(bt)
 
-    #             error_message = format_error_message(err, bt)
+                error_message = format_error_message(err, bt)
 
-    #             if err isa LoadError
-    #                 error_filepath = err.file
-    #                 error_line = err.line
-    #             else
-    #                 error_filepath =  string(st[1].file)
-    #                 error_line = st[1].line
-    #             end
+                if err isa LoadError
+                    error_filepath = err.file
+                    error_line = err.line
+                else
+                    error_filepath =  string(st[1].file)
+                    error_line = st[1].line
+                end
 
-    #             return TestserverRunTestitemRequestParamsReturn(
-    #                 "errored",
-    #                 [
-    #                     TestMessage(
-    #                         error_message,
-    #                         Location(
-    #                             isabspath(error_filepath) ? filepath2uri(error_filepath) : "",
-    #                             Range(Position(max(1, error_line), 1), Position(max(1, error_line), 1))
-    #                         )
-    #                     )
-    #                 ],
-    #                 elapsed_time,
-    #                 missing
-    #             )
-    #         end
-    #     end
-    # end
+                return (
+                    TestItemServerProtocol.errored_notification_type,
+                    TestItemServerProtocol.ErroredParams(
+                        testRunId = testrun_id,
+                        testItemId = params.id,
+                        messages = [
+                            TestItemServerProtocol.TestMessage(
+                                error_message,
+                                TestItemServerProtocol.Location(
+                                    isabspath(error_filepath) ? filepath2uri(error_filepath) : "",
+                                    TestItemServerProtocol.Position(max(1, error_line), 1)
+                                )
+                            )
+                        ],
+                        duration = missing
+                    )
+                )
+            end
+        end
+    end
 
     mod = Core.eval(Main, :(module $(gensym()) end))
 
@@ -235,8 +214,8 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
             return (
                 TestItemServerProtocol.errored_notification_type,
                 TestItemServerProtocol.ErroredParams(
-                    testrun_id = testrun_id,
-                    testitem_id = params.id,
+                    testRunId = testrun_id,
+                    testItemId = params.id,
                     messages = [
                         TestItemServerProtocol.TestMessage(
                             "Unable to load the `Test` package. Please ensure that `Test` is listed as a test dependency in the Project.toml for the package.",
@@ -253,12 +232,12 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
 
         if params.packageName!=""
             try
-                params.mode == "Coverage" && clear_coverage_data()
+                mode == "Coverage" && clear_coverage_data()
 
                 try
                     Core.eval(mod, :(using $(Symbol(params.packageName))))
                 finally
-                    params.mode == "Coverage" && collect_coverage_data!(coverage_results, params.coverageRoots)
+                    mode == "Coverage" && collect_coverage_data!(coverage_results, coverage_root_uris)
                 end
             catch err
                 bt = catch_backtrace()
@@ -267,8 +246,8 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
                 return (
                     TestItemServerProtocol.errored_notification_type,
                     TestItemServerProtocol.ErroredParams(
-                        testrun_id = testrun_id,
-                        testitem_id = params.id,
+                        testRunId = testrun_id,
+                        testItemId = params.id,
                         messages = [
                             TestItemServerProtocol.TestMessage(
                                 error_message,
@@ -285,50 +264,54 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
         end
     end
 
-    # for i in params.testsetups
-    #     testsetup_details = TESTSETUPS[Symbol(i)]
+    for i in params.testSetups
+        testsetup_details = TESTSETUPS[(params.packageUri,Symbol(i))]
 
-    #     try
-    #         if testsetup_details.kind==:module
-    #             Core.eval(mod, :(using ..Testsetups: $(Symbol(i))))
-    #         elseif testsetup_details.kind==:snippet
-    #             testsnippet_filepath = uri2filepath(testsetup_details.uri)
-    #             testsnippet_code = string('\n'^(testsetup_details.line-1), ' '^(testsetup_details.column-1), testsetup_details.code)
+        try
+            if testsetup_details.kind==:module
+                Core.eval(mod, :(using ..Testsetups: $(Symbol(i))))
+            elseif testsetup_details.kind==:snippet
+                testsnippet_filepath = uri2filepath(testsetup_details.uri)
+                testsnippet_code = string('\n'^(testsetup_details.line-1), ' '^(testsetup_details.column-1), testsetup_details.code)
 
-    #             withpath(testsnippet_filepath) do
-    #                 if params.mode == "Debug"
-    #                     debug_session = wait_for_debug_session()
-    #                     DebugAdapter.debug_code(debug_session, mod, testsnippet_code, testsnippet_filepath)
-    #                 else
-    #                     params.mode == "Coverage" && clear_coverage_data()
-    #                     try
-    #                         Base.invokelatest(include_string, mod, testsnippet_code, testsnippet_filepath)
-    #                     finally
-    #                         params.mode == "Coverage" && collect_coverage_data!(coverage_results, params.coverageRoots)
-    #                     end
-    #                 end
-    #             end
-    #         else
-    #             error("Unknown testsetup kind $(i.kind).")
-    #         end
-    #     catch err
-    #         Base.display_error(err, catch_backtrace())
-    #         return TestserverRunTestitemRequestParamsReturn(
-    #             "errored",
-    #             [
-    #                 TestMessage(
-    #                     "Unable to load the `$i` testsetup.",
-    #                     Location(
-    #                         params.uri,
-    #                         Range(Position(params.line, 1), Position(params.line, 1))
-    #                     )
-    #                 )
-    #             ],
-    #             missing,
-    #             missing
-    #         )
-    #     end
-    # end
+                withpath(testsnippet_filepath) do
+                    if mode == "Debug"
+                        debug_session = wait_for_debug_session()
+                        DebugAdapter.debug_code(debug_session, mod, testsnippet_code, testsnippet_filepath)
+                    else
+                        mode == "Coverage" && clear_coverage_data()
+                        try
+                            Base.invokelatest(include_string, mod, testsnippet_code, testsnippet_filepath)
+                        finally
+                            mode == "Coverage" && collect_coverage_data!(coverage_results, coverage_root_uris)
+                        end
+                    end
+                end
+            else
+                error("Unknown testsetup kind $(i.kind).")
+            end
+        catch err
+            Base.display_error(err, catch_backtrace())
+            return (
+                TestItemServerProtocol.errored_notification_type,
+                TestItemServerProtocol.ErroredParams(
+                    testRunId = testrun_id,
+                    testItemId = params.id,
+                    messages = [
+                        TestItemServerProtocol.TestMessage(
+                            "Unable to load the `$i` testsetup.",
+                            TestItemServerProtocol.Location(
+                                params.uri,
+                                TestItemServerProtocol.Position(params.line, 1)
+                            )
+                        )
+                    ],
+                    duration = missing
+                )
+            )
+
+        end
+    end
 
     filepath = uri2filepath(params.uri)
 
@@ -344,15 +327,15 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
     try
         withpath(filepath) do
 
-            if params.mode == "Debug"
+            if mode == "Debug"
                 debug_session = wait_for_debug_session()
                 DebugAdapter.debug_code(debug_session, mod, code, filepath)
             else
-                params.mode == "Coverage" && clear_coverage_data()
+                mode == "Coverage" && clear_coverage_data()
                 try
                     Base.invokelatest(include_string, mod, code, filepath)
                 finally
-                    params.mode == "Coverage" && collect_coverage_data!(coverage_results, params.coverageRoots)
+                    mode == "Coverage" && collect_coverage_data!(coverage_results, coverage_root_uris)
                 end
             end
             elapsed_time = (time_ns() - t0) / 1e6 # Convert to milliseconds
@@ -367,6 +350,8 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
 
         error_message = format_error_message(err, bt)
 
+
+
         if err isa LoadError
             error_filepath = err.file
             error_line = err.line
@@ -378,8 +363,8 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
         return (
             TestItemServerProtocol.errored_notification_type,
             TestItemServerProtocol.ErroredParams(
-                testrun_id = testrun_id,
-                testitem_id = params.id,
+                testRunId = testrun_id,
+                testItemId = params.id,
                 messages = [
                     TestItemServerProtocol.TestMessage(
                         error_message,
@@ -402,8 +387,8 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
         return (
             TestItemServerProtocol.passed_notification_type,
             TestItemServerProtocol.PassedParams(
-                testrun_id = testrun_id,
-                testitem_id = params.id,
+                testRunId = testrun_id,
+                testItemId = params.id,
                 duration = elapsed_time,
                 coverage = process_coverage_data(coverage_results)
             )
@@ -415,8 +400,8 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
             return (
                 TestItemServerProtocol.failed_notification_type,
                 TestItemServerProtocol.FailedParams(
-                    testrun_id = testrun_id,
-                    testitem_id = params.id,
+                    testRunId = testrun_id,
+                    testItemId = params.id,
                     messages = [ create_test_message_for_failed(i) for i in failed_tests],
                     duration = elapsed_time
                 )
@@ -427,19 +412,52 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
     end
 end
 
-function run_testitems_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.RunTestitemRequestParams)
+function run_testitems_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.RunTestItemsRequestParams)
     @async try
-        for i in params.testitems
+        setups_to_remove = setdiff(keys(TESTSETUPS), map(i->(i.packageUri,Symbol(i.name)), params.testSetups))
+        for i in setups_to_remove
+            delete!(TESTSETUPS, i)
+        end
+
+        for i in params.testSetups
+            key = (i.packageUri, Symbol(i.name))
+            if !haskey(TESTSETUPS, key)
+                TESTSETUPS[key] = Testsetup(
+                    i.name,
+                    Symbol(i.kind),
+                    i.uri,
+                    i.line,
+                    i.column,
+                    i.code,
+                    false
+                )
+            else
+                val = TESTSETUPS[key]
+
+                if val.code != i.code || val.kind != i.kind
+                    val.evaled = false
+                    val.code = i.code
+                    val.kind = Symbol(i.kind)
+                end
+
+                val.uri = i.uri
+                val.line = i.line
+                val.column = i.column
+                val.name = i.name
+            end
+        end
+
+        for i in params.testItems
             c = IOCapture.capture() do
-                run_testitem(endpoint, i, params.testrunId)
+                run_testitem(endpoint, i, params.testRunId, params.mode, coalesce(params.coverageRootUris, nothing))
             end
 
             JSONRPC.send(
                 endpoint,
                 TestItemServerProtocol.append_output_notification_type,
                 TestItemServerProtocol.AppendOutputParams(
-                    testrun_id = params.testrunId,
-                    testitem_id = i.id,
+                    testRunId = params.testRunId,
+                    testItemId = i.id,
                     output = replace(strip(c.output), "\n"=>"\r\n") * "\r\n"
                 )
             )
@@ -525,6 +543,7 @@ function start_debug_backend(debug_pipename, error_handler)
 end
 
 function wait_for_debug_session()
+    @info "Now waiting for debug session"
     fetch(DEBUG_SESSION[])
 end
 
@@ -539,7 +558,7 @@ end
 
 function activate_env_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.ActivateEnvParams)
     c = IOCapture.capture() do
-        if params.project_path===nothing
+        if params.projectUri===missing
             @static if VERSION >= v"1.5.0"
                 Pkg.activate(temp=true)
             else
@@ -547,14 +566,14 @@ function activate_env_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestIte
                 Pkg.activate(temp_path)
             end
 
-            Pkg.develop(Pkg.PackageSpec(path=params.package_path))
+            Pkg.develop(Pkg.PackageSpec(path=uri2filepath(params.packageUri)))
 
-            TestEnv.activate(params.package_name)
+            TestEnv.activate(params.packageName)
         else
-            Pkg.activate(params.project_path)
+            Pkg.activate(uri2filepath(params.projectUri))
 
-            if params.package_name!==nothing
-                TestEnv.activate(params.package_name)
+            if params.packageName===missing
+                TestEnv.activate(params.packageName)
             end
         end
     end
@@ -563,8 +582,8 @@ function activate_env_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestIte
         endpoint,
         TestItemServerProtocol.append_output_notification_type,
         TestItemServerProtocol.AppendOutputParams(
-            testrun_id = params.testrunId,
-            testitem_id = nothing,
+            testRunId = params.testRunId,
+            testItemId = missing,
             output = replace(strip(c.output), "\n"=>"\r\n") * "\r\n\r\n"
         )
     )
@@ -577,9 +596,9 @@ JSONRPC.@message_dispatcher dispatch_msg begin
 end
 
 function serve(pipename, debug_pipename, error_handler=nothing)
-    # if debug_pipename!==nothing
-    #     start_debug_backend(debug_pipename, error_handler)
-    # end
+    if debug_pipename!==nothing
+        start_debug_backend(debug_pipename, error_handler)
+    end
 
     conn = Sockets.connect(pipename)
 

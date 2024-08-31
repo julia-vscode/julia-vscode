@@ -2,7 +2,7 @@
 
 julia_version = "1.11.0-rc3"
 manifest_format = "2.0"
-project_hash = "1ec7563cb262e982a7156df4ba79dc32b469533e"
+project_hash = "a065fecc18e6cf4b5c9f65cffe7ac83c0dc83eb1"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -12,18 +12,24 @@ version = "1.1.2"
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 version = "1.11.0"
 
+[[deps.AutoHashEquals]]
+deps = ["Pkg"]
+path = "../../../packages/AutoHashEquals"
+uuid = "15f4f7f2-30c1-5605-9d31-71845cf9641f"
+version = "2.1.0"
+
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 version = "1.11.0"
 
+[[deps.CoverageTools]]
+path = "../../../packages/CoverageTools"
+uuid = "c36e975a-824b-4404-a568-ef97ca766997"
+version = "1.3.2"
+
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
-version = "1.11.0"
-
-[[deps.Distributed]]
-deps = ["Random", "Serialization", "Sockets"]
-uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 version = "1.11.0"
 
 [[deps.Downloads]]
@@ -35,10 +41,17 @@ version = "1.6.0"
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 version = "1.11.0"
 
-[[deps.InteractiveUtils]]
-deps = ["Markdown"]
-uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
-version = "1.11.0"
+[[deps.JSON]]
+deps = ["Dates", "Mmap", "Unicode"]
+path = "../../../packages/JSON"
+uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+version = "0.20.1"
+
+[[deps.JSONRPC]]
+deps = ["JSON", "UUIDs"]
+path = "../../../packages/JSONRPC"
+uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
+version = "1.4.2-DEV"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -99,19 +112,16 @@ version = "1.2.0"
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 version = "1.11.0"
-weakdeps = ["REPL"]
 
     [deps.Pkg.extensions]
     REPLExt = "REPL"
 
+    [deps.Pkg.weakdeps]
+    REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
+
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-version = "1.11.0"
-
-[[deps.REPL]]
-deps = ["InteractiveUtils", "Markdown", "Sockets", "StyledStrings", "Unicode"]
-uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 version = "1.11.0"
 
 [[deps.Random]]
@@ -123,16 +133,8 @@ version = "1.11.0"
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
-[[deps.Serialization]]
-uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
-version = "1.11.0"
-
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
-version = "1.11.0"
-
-[[deps.StyledStrings]]
-uuid = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
 version = "1.11.0"
 
 [[deps.TOML]]
@@ -145,16 +147,17 @@ deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 version = "1.10.0"
 
-[[deps.Test]]
-deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
-uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-version = "1.11.0"
+[[deps.TestItemControllers]]
+deps = ["AutoHashEquals", "CoverageTools", "JSONRPC", "Sockets", "URIParser", "UUIDs"]
+path = "../../../packages/TestItemControllers"
+uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
+version = "0.1.0"
 
-[[deps.TestItemServer]]
-deps = ["Base64", "Dates", "Distributed", "FileWatching", "InteractiveUtils", "LibGit2", "Logging", "Mmap", "Pkg", "REPL", "Random", "Sockets", "Test", "UUIDs", "Unicode"]
-path = "../../.."
-uuid = "1076c532-7f93-4758-ac65-93afa8eae143"
-version = "1.0.0"
+[[deps.URIParser]]
+deps = ["Unicode"]
+path = "../../../packages/URIParser"
+uuid = "30578b45-9adc-5946-b283-645ec420af67"
+version = "0.4.1"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]

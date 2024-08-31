@@ -8,12 +8,12 @@ using JSONRPC: @dict_readable, RequestType, NotificationType, Outbound
     id::String
     uri::String
     label::String
-    package_name::String
-    package_uri::Union{Nothing,String}
-    project_uri::Union{Nothing,String}
-    env_content_hash::Union{Nothing,Int}
+    packageName::String
+    packageUri::Union{Missing,String}
+    projectUri::Union{Missing,String}
+    envContentHash::Union{Missing,Int}
     useDefaultUsings::Bool
-    testsetups::Vector{String}
+    testSetups::Vector{String}
     line::Int
     column::Int
     code::String
@@ -21,19 +21,31 @@ using JSONRPC: @dict_readable, RequestType, NotificationType, Outbound
     # cover
 end
 
+@dict_readable struct TestSetupDetail
+    packageUri::String
+    name::String
+    kind::String
+    uri::String
+    line::Int
+    column::Int
+    code::String
+end
+
 @dict_readable struct TestMessage
     message::String
-    expectedOutput::Union{Nothing,String}
-    actualOutput::Union{Nothing,String}
-    uri::Union{Nothing,String}
-    line::Union{Nothing,Int}
-    column::Union{Nothing,Int}
+    expectedOutput::Union{Missing,String}
+    actualOutput::Union{Missing,String}
+    uri::Union{Missing,String}
+    line::Union{Missing,Int}
+    column::Union{Missing,Int}
 end
 
 @dict_readable struct CreateTestRunParams
     testRunId::String
-    kind::String
+    maxProcessCount::Int
     testItems::Vector{TestItem}
+    testSetups::Vector{TestSetupDetail}
+    coverageRootUris::Union{Missing,Vector{String}}
 end
 
 const create_testrun_request_type = RequestType("createTestRun", CreateTestRunParams, Nothing)
@@ -44,7 +56,17 @@ end
 
 const cancel_testrun_request_type = RequestType("cancelTestRun", CancelTestRunParams, Nothing)
 
-const notficiationTypeTestRunFinished = NotificationType("testRunFinished", @NamedTuple{testRunId::String})
+@dict_readable struct FileCoverage <: JSONRPC.Outbound
+    uri::String
+    coverage::Vector{Union{Int,Nothing}}
+end
+
+@dict_readable struct TestRunFinishedParams <: Outbound
+    testRunId::String
+    coverage::Union{Missing,Vector{FileCoverage}}
+end
+
+const notficiationTypeTestRunFinished = NotificationType("testRunFinished", TestRunFinishedParams)
 
 @dict_readable struct TestItemStartedParams <: Outbound
     testRunId::String
@@ -81,10 +103,23 @@ const notficiationTypeTestItemSkipped = NotificationType("testItemSkipped", @Nam
 
 @dict_readable struct AppendOutputParams <: Outbound
     testRunId::String
-    testItemId::Union{Nothing,String}
+    testItemId::Union{Missing,String}
     output::String
 end
 
 const notficiationTypeAppendOutput = NotificationType("appendOutput", AppendOutputParams)
+
+@dict_readable struct TestProcessCreatedParams
+    id::String
+    packageName::String
+    packageUri::Union{Missing,String}
+    projectUri::Union{Missing,String}
+    coverage::Bool
+    env::Dict{String,String}
+end
+
+const notificationTypeTestProcessCreated = NotificationType("testProcessCreated", TestProcessCreatedParams)
+
+const notificationTypeLaunchDebuggers = NotificationType("launchDebuggers", @NamedTuple{debugPipeNames::Vector{String}, testRunId::String})
 
 end

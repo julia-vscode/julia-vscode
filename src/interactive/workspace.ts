@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
-import { JuliaTestController, TestProcess } from '../testing/testFeature'
+import { JuliaTestController } from '../testing/testFeature'
 import { registerCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
 import {
@@ -129,20 +129,20 @@ export class TestControllerNode extends AbstractWorkspaceNode {
     }
 }
 
-export class TestProcessNode extends AbstractWorkspaceNode {
-    constructor(
-        public testProcess: TestProcess) {
-        super()
-    }
+// export class TestProcessNode extends AbstractWorkspaceNode {
+//     constructor(
+//         public testProcess: TestProcess) {
+//         super()
+//     }
 
-    public async getChildren() {
-        return []
-    }
+//     public async getChildren() {
+//         return []
+//     }
 
-    async stop() {
-        await this.testProcess.kill()
-    }
-}
+//     async stop() {
+//         await this.testProcess.kill()
+//     }
+// }
 
 class REPLNode extends SessionNode {
     private variablesNodes: VariableNode[]
@@ -367,13 +367,13 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             treeItem.contextValue = 'juliakernel'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
-        } else if (node instanceof TestProcessNode) {
-            const treeItem = new vscode.TreeItem('Julia Test Process')
-            treeItem.description = node.testProcess.packageName
-            treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.package_uri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.project_uri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.`)
-            treeItem.contextValue = 'juliatestprocess'
-            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None
-            return treeItem
+        // } else if (node instanceof TestProcessNode) {
+        //     const treeItem = new vscode.TreeItem('Julia Test Process')
+        //     treeItem.description = node.testProcess.packageName
+        //     treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.package_uri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.project_uri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.`)
+        //     treeItem.contextValue = 'juliatestprocess'
+        //     treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None
+        //     return treeItem
         } else if (node instanceof TestControllerNode) {
             const treeItem = new vscode.TreeItem('Julia Test Item Controller')
             // treeItem.description = node.testProcess.packageName
