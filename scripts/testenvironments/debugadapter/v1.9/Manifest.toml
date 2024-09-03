@@ -58,7 +58,7 @@ version = "1.4.2-DEV"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.34"
+version = "0.9.35"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]

@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.0-rc2"
+julia_version = "1.11.0-rc3"
 manifest_format = "2.0"
 project_hash = "6a51fa5a7dda048c28083111649116dd8ae7921e"
 
@@ -63,7 +63,7 @@ version = "1.4.2-DEV"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.34"
+version = "0.9.35"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]

@@ -71,10 +71,10 @@ uuid = "460bff9d-24e4-43bc-9d9f-a8973cb893f4"
 version = "0.1.9"
 
 [[deps.FilePathsBase]]
-deps = ["Compat", "Dates", "Mmap", "Printf", "Test", "UUIDs"]
+deps = ["Compat", "Dates", "Mmap", "Test"]
 path = "../../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.21"
+version = "0.9.22"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -109,7 +109,7 @@ version = "1.0.60"
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
 uuid = "70703baa-626e-46a2-a12c-08ffd08c73b4"
-version = "0.4.9"
+version = "0.4.10"
 
 [[deps.JuliaWorkspaces]]
 deps = ["AutoHashEquals", "CancellationTokens", "JuliaSyntax", "Pkg", "Salsa", "TestItemDetection", "UUIDs"]
