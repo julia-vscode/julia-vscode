@@ -126,6 +126,10 @@ export class TestControllerNode extends AbstractWorkspaceNode {
         this.testProcessNodes.push(node)
     }
 
+    removeTestProcessNode(id: string) {
+        this.testProcessNodes = this.testProcessNodes.filter(i=>i.testProcess.id !== id)
+    }
+
     public async getChildren() {
         return this.testProcessNodes
     }
@@ -319,6 +323,11 @@ export class WorkspaceFeature {
         this._TestController.addTestProcessNode(node)
         this._REPLTreeDataProvider.refresh()
     }
+
+    public async removeTestProcess(testProcess: JuliaTestProcess) {
+        this._TestController.removeTestProcessNode(testProcess.id)
+        this._REPLTreeDataProvider.refresh()
+    }
 }
 
 export class REPLTreeDataProvider
@@ -389,7 +398,7 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
         } else if (node instanceof TestProcessNode) {
             const treeItem = new vscode.TreeItem('Julia Test Process')
             const status = node.testProcess.getStatus()
-            if( status === 'Launching' || status === 'Revising' || status === 'Created') {
+            if( status === 'Launching' || status === 'Revising' || status === 'Created' || status === 'Canceling') {
                 treeItem.iconPath = new vscode.ThemeIcon('gear~spin')
             } else if(status === 'Running') {
                 treeItem.iconPath = new vscode.ThemeIcon('loading~spin')

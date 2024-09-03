@@ -9,7 +9,7 @@ import { WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
-import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notficiationTypeTestRunFinished, notificationTypeAppendOutput, notificationTypeLaunchDebuggers, notificationTypeTestProcessCreated, notificationTypeTestProcessStatusChanged, requestTypeCancelTestRun, requestTypeCreateTestRun } from './testControllerProtocol'
+import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notficiationTypeTestRunFinished, notificationTypeAppendOutput, notificationTypeLaunchDebuggers, notificationTypeTestProcessCreated, notificationTypeTestProcessStatusChanged, notificationTypeTestProcessTerminated, requestTypeCancelTestRun, requestTypeCreateTestRun } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
@@ -196,6 +196,11 @@ export class JuliaTestController {
             const tp = this.testProcesses.get(i.id)
             tp.setStatus(i.status)
         })
+        this.connection.onNotification(notificationTypeTestProcessTerminated, i=>{
+            const tp = this.testProcesses.get(i)
+            this.workspaceFeature.removeTestProcess(tp)
+            this.testProcesses.delete(i)
+        })
         this.connection.onNotification(notificationTypeLaunchDebuggers, async i=>{
             const testRun = this.testRuns.get(i.testRunId)
             await Promise.all(
@@ -256,6 +261,20 @@ export class JuliaTestController {
             code: string
         }[]) {
 
+        // testRun.token.onCancellationRequested()
+        // testRun.token.onCancellationRequested(() => {
+        //     for( const ps of this.testProcesses) {
+        //         for( const p of ps[1]) {
+        //             if(p.testRun === testRun && p.isBusy()) {
+        //                 p.kill()
+        //             }
+        //         }
+        //     }
+        //     this.someTestItemFinished.notifyAll()
+        // })
+
+        const juliaExec = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+
         const testRunId = uuid()
         this.testRuns.set(testRunId, {
             testRun: testRun,
@@ -270,6 +289,8 @@ export class JuliaTestController {
                     uri: i.testItem.uri.toString(),
                     label: i.testItem.label,
                     ...i.testEnv,
+                    juliaCmd: juliaExec.file,
+                    juliaArgs: juliaExec.args,
                     useDefaultUsings: i.details.optionDefaultImports,
                     testSetups: i.details.optionSetup,
                     line: i.details.codeRange.start.line + 1,
@@ -584,19 +605,11 @@ export class TestFeature {
             }
         }
 
-        const testRun = this.controller.createTestRun(request, undefined, true)
+        if(token.isCancellationRequested) {
+            return
+        }
 
-        // testRun.token.onCancellationRequested()
-        // testRun.token.onCancellationRequested(() => {
-        //     for( const ps of this.testProcesses) {
-        //         for( const p of ps[1]) {
-        //             if(p.testRun === testRun && p.isBusy()) {
-        //                 p.kill()
-        //             }
-        //         }
-        //     }
-        //     this.someTestItemFinished.notifyAll()
-        // })
+        const testRun = this.controller.createTestRun(request, undefined, true)
 
         let itemsToRun: vscode.TestItem[] = []
 
@@ -666,6 +679,11 @@ export class TestFeature {
 
         if(maxNumProcesses===0) {
             maxNumProcesses = this.cpuLength
+        }
+
+        if(token.isCancellationRequested) {
+            testRun.end()
+            return
         }
 
         await this.juliaTestController.createTestRun(testRun, mode, maxNumProcesses, all_the_tests, all_the_testsetups)

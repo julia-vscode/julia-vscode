@@ -12,6 +12,9 @@ using JSONRPC: @dict_readable, RequestType, NotificationType, Outbound
     packageUri::Union{Missing,String}
     projectUri::Union{Missing,String}
     envContentHash::Union{Missing,Int}
+    juliaCmd::String
+    juliaArgs::Vector{String}
+    # juliaEnv::Dict{String,String}
     useDefaultUsings::Bool
     testSetups::Vector{String}
     line::Int
@@ -119,6 +122,8 @@ const notficiationTypeAppendOutput = NotificationType("appendOutput", AppendOutp
 end
 
 const notificationTypeTestProcessCreated = NotificationType("testProcessCreated", TestProcessCreatedParams)
+
+const notificationTypeTestProcessTerminated = NotificationType("testProcessTerminated", String)
 
 @dict_readable struct TestProcessStatusChangedParams
     id::String
