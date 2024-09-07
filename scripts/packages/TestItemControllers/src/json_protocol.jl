@@ -59,6 +59,12 @@ end
 
 const cancel_testrun_request_type = RequestType("cancelTestRun", CancelTestRunParams, Nothing)
 
+@dict_readable struct TerminateTestProcessParams
+    testProcessId::String
+end
+
+const terminate_test_process_request_type = RequestType("terminateTestProcess", TerminateTestProcessParams, Nothing)
+
 @dict_readable struct FileCoverage <: JSONRPC.Outbound
     uri::String
     coverage::Vector{Union{Int,Nothing}}

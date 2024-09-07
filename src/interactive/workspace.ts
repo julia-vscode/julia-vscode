@@ -311,10 +311,10 @@ export class WorkspaceFeature {
     public async addTestController(testController: JuliaTestController) {
         const node = new TestControllerNode(testController)
         this._TestController = node
-        // testController.onKilled((e) => {
-        //     this._TestController = null
-        //     this._REPLTreeDataProvider.refresh()
-        // })
+        testController.onKilled((e) => {
+            this._TestController = null
+            this._REPLTreeDataProvider.refresh()
+        })
         this._REPLTreeDataProvider.refresh()
     }
 
@@ -398,7 +398,7 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
         } else if (node instanceof TestProcessNode) {
             const treeItem = new vscode.TreeItem('Julia Test Process')
             const status = node.testProcess.getStatus()
-            if( status === 'Launching' || status === 'Revising' || status === 'Created' || status === 'Canceling') {
+            if( status === 'Launching' || status === 'Revising' || status === 'Created' || status === 'Canceling' || status === 'Terminating') {
                 treeItem.iconPath = new vscode.ThemeIcon('gear~spin')
             } else if(status === 'Running') {
                 treeItem.iconPath = new vscode.ThemeIcon('loading~spin')

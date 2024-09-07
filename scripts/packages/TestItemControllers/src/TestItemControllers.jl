@@ -81,6 +81,8 @@ mutable struct TestProcess
 
     env::TestEnvironment
 
+    comms_established::Channel{Bool}
+
     activated::Channel{Bool}
 
     testitems_to_run::Dict{String,TestItemControllerProtocol.TestItem}
@@ -93,9 +95,11 @@ mutable struct TestProcess
 
     killed::Bool
 
+    endpoint::Union{Nothing,JSONRPC.JSONRPCEndpoint}
+
     function TestProcess(parent_channel::Channel, env::TestEnvironment)
         id = string(UUIDs.uuid4())
-        return new(id, parent_channel, nothing, Channel(Inf), env, Channel{Bool}(1), Dict{String,TestItemControllerProtocol.TestItem}(), nothing, nothing, JSONRPC.generate_pipe_name(), false)
+        return new(id, parent_channel, nothing, Channel(Inf), env, Channel{Bool}(1), Channel{Bool}(1), Dict{String,TestItemControllerProtocol.TestItem}(), nothing, nothing, JSONRPC.generate_pipe_name(), false, nothing)
     end
 end
 
@@ -146,13 +150,17 @@ function start(tp::TestProcess)
     end
 
     @async try
-        socket = Sockets.accept(server)
-
-        endpoint = JSONRPC.JSONRPCEndpoint(socket, socket)
-
         @async try
+            socket = Sockets.accept(server)
+
+            tp.endpoint = JSONRPC.JSONRPCEndpoint(socket, socket)
+
+            run(tp.endpoint)
+
+            put!(tp.comms_established, true)
+
             while true
-                msg = JSONRPC.get_next_message(endpoint)
+                msg = JSONRPC.get_next_message(tp.endpoint)
                 put!(tp.channel_to_sub, (source=:testprocess, msg=msg))
             end
         catch err
@@ -161,21 +169,21 @@ function start(tp::TestProcess)
             end
         end
 
-        run(endpoint)
+
 
         while true
             msg = take!(tp.channel_to_sub)
 
             if msg.source==:controller
                 if msg.msg.command == :activate
-                    JSONRPC.send(endpoint, TestItemServerProtocol.testserver_activate_env_request_type, TestItemServerProtocol.ActivateEnvParams(testRunId = tp.test_run_id, projectUri=something(tp.env.project_uri, missing), packageUri=tp.env.package_uri, packageName=tp.env.package_name))
+                    JSONRPC.send(tp.endpoint, TestItemServerProtocol.testserver_activate_env_request_type, TestItemServerProtocol.ActivateEnvParams(testRunId = tp.test_run_id, projectUri=something(tp.env.project_uri, missing), packageUri=tp.env.package_uri, packageName=tp.env.package_name))
 
                     put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Idle")))
 
                     put!(tp.activated, true)
                 elseif msg.msg.command == :revise
                     put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Revising")))
-                    res = JSONRPC.send(endpoint, TestItemServerProtocol.testserver_revise_request_type, nothing)
+                    res = JSONRPC.send(tp.endpoint, TestItemServerProtocol.testserver_revise_request_type, nothing)
 
                     if res=="success"
                         put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Idle")))
@@ -183,7 +191,9 @@ function start(tp::TestProcess)
                     elseif res=="failed"
                         @info "Revise could not handle changes, restarting process"
                         kill(tp.jl_process)
+                        tp.comms_established = Channel{Bool}(1)
                         start(tp)
+                        fetch(tp.comms_established)
                         activate_env(tp)
                         break
                     else
@@ -191,17 +201,32 @@ function start(tp::TestProcess)
                     end
                 elseif msg.msg.command == :cancel
                     tp.killed = true
-                    @info "Now cancelling $(tp.id)"
+                    @info "Now canceling $(tp.id)"
                     put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Canceling")))
-                    @info "Cancelling process $(tp.id)"
+                    @info "Canceling process $(tp.id)"
                     kill(tp.jl_process)
+
+                    put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_terminated, id=tp.id)))
+                    break
+                elseif msg.msg.command == :terminate
+                    tp.killed = true
+                    @info "Now terminating $(tp.id)"
+                    put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Terminating")))
+                    kill(tp.jl_process)
+
+                    if tp.test_run_id!==nothing
+                        for ti in values(tp.testitems_to_run)
+                            put!(tp.parent_channel, (source=:testprocess, msg=(event=:failed, testitemid=ti.id, testrunid=tp.test_run_id, messages=[TestItemServerProtocol.TestMessage("Test process was terminated.", TestItemServerProtocol.Location(ti.uri, TestItemServerProtocol.Position(ti.line-1, ti.column-1)))])))
+                        end
+                    end
+
                     put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_terminated, id=tp.id)))
                     break
                 elseif msg.msg.command == :run
                     put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Running")))
 
                     JSONRPC.send(
-                        endpoint,
+                        tp.endpoint,
                         TestItemServerProtocol.run_testitems_request_type,
                         TestItemServerProtocol.RunTestItemsRequestParams(
                             testRunId = tp.test_run_id,
@@ -238,7 +263,7 @@ function start(tp::TestProcess)
                     error("")
                 end
             elseif msg.source==:testprocess
-                dispatch_testprocess_msg(endpoint, msg.msg, tp)
+                dispatch_testprocess_msg(tp.endpoint, msg.msg, tp)
             else
                 error("")
             end
@@ -391,6 +416,7 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
 
             if !already_precompiled && !precompile_launched
                 @async try
+                    fetch(p.comms_established)
                     activate_env(p)
 
                     push!(controller.precompiled_envs, k)
@@ -401,6 +427,7 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
                 end
             else
                 @async try
+                    fetch(p.comms_established)
                     fetch(precompile_done)
 
                     activate_env(p)
@@ -450,9 +477,20 @@ function cancel_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
     end
 end
 
+function terminate_test_process_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemControllerProtocol.TerminateTestProcessParams, controller::JSONRPCTestItemController)
+    for v in values(controller.testprocesses)
+        for p in v
+            if p.id == params.testProcessId
+                put!(p.channel_to_sub, (source=:controller, msg=(;command=:terminate)))
+            end
+        end
+    end
+end
+
 JSONRPC.@message_dispatcher dispatch_msg begin
     TestItemControllerProtocol.create_testrun_request_type => create_testrun_request
     TestItemControllerProtocol.cancel_testrun_request_type => cancel_testrun_request
+    TestItemControllerProtocol.terminate_test_process_request_type => terminate_test_process_request
 end
 
 function Base.run(controller::JSONRPCTestItemController)

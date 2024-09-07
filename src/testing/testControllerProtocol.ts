@@ -40,6 +40,8 @@ interface FileCoverage {
 
 export const requestTypeCancelTestRun = new rpc.RequestType<{testRunId: string}, void, void>('cancelTestRun')
 
+export const requestTypeTerminateTestProcess = new rpc.RequestType<{testProcessId: string}, void, void>('terminateTestProcess')
+
 export const notficiationTypeTestRunFinished = new rpc.NotificationType<{testRunId: string, coverage?: FileCoverage[]}>('testRunFinished')
 
 export const notficiationTypeTestItemStarted = new rpc.NotificationType<{testRunId: string, testItemId: string}>('testItemStarted')

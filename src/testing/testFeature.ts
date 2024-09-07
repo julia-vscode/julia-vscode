@@ -5,13 +5,14 @@ import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaExecutablesFeature } from '../juliaexepath'
 import * as path from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
-import { WorkspaceFeature } from '../interactive/workspace'
+import { TestControllerNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
-import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notficiationTypeTestRunFinished, notificationTypeAppendOutput, notificationTypeLaunchDebuggers, notificationTypeTestProcessCreated, notificationTypeTestProcessStatusChanged, notificationTypeTestProcessTerminated, requestTypeCancelTestRun, requestTypeCreateTestRun } from './testControllerProtocol'
+import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notficiationTypeTestRunFinished, notificationTypeAppendOutput, notificationTypeLaunchDebuggers, notificationTypeTestProcessCreated, notificationTypeTestProcessStatusChanged, notificationTypeTestProcessTerminated, requestTypeCancelTestRun, requestTypeCreateTestRun, requestTypeTerminateTestProcess } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
+import { registerCommand } from '../utils'
 
 enum TestRunMode {
     Normal,
@@ -45,7 +46,8 @@ export class JuliaTestProcess {
     public onStatusChanged = this._onStatusChanged.event
 
     constructor(
-        public id: string) {
+        public id: string,
+        private controller: JuliaTestController) {
         this.status = 'Created'
     }
 
@@ -59,20 +61,33 @@ export class JuliaTestProcess {
     }
 
     kill() {
-        throw new Error('Method not implemented.')
+        this.controller.killTestProcess(this.id)
     }
 }
 
 export class JuliaTestController {
+    private _onKilled = new vscode.EventEmitter<void>()
+    public onKilled = this._onKilled.event
+
     kill() {
-        throw new Error('Method not implemented.')
+        this.process.kill()
+
+        this._onKilled.fire()
+
+        for(const i of this.testRuns.values()) {
+            i.testRun.end()
+        }
+
+        this.testFeature.testControllerTerminated()
     }
+
     private connection: rpc.MessageConnection
     private process: ChildProcessWithoutNullStreams
     private testRuns = new Map<string,{testRun: vscode.TestRun, testItems: Map<string,vscode.TestItem>}>()
     private testProcesses = new Map<string,JuliaTestProcess>()
 
     constructor(
+        private testFeature: TestFeature,
         private juliaExecutablesFeature: JuliaExecutablesFeature,
         private workspaceFeature: WorkspaceFeature,
         private context: vscode.ExtensionContext,
@@ -83,6 +98,10 @@ export class JuliaTestController {
 
     public ready() {
         return this.process
+    }
+
+    killTestProcess(id: string) {
+        this.connection.sendRequest(requestTypeTerminateTestProcess, {testProcessId: id})
     }
 
     public async start() {
@@ -188,7 +207,7 @@ export class JuliaTestController {
             testRun.testRun.appendOutput(i.output, undefined, testItem)
         })
         this.connection.onNotification(notificationTypeTestProcessCreated, i=>{
-            const tp = new JuliaTestProcess(i.id)
+            const tp = new JuliaTestProcess(i.id, this)
             this.testProcesses.set(i.id, tp)
             this.workspaceFeature.addTestProcess(tp)
         })
@@ -431,11 +450,14 @@ export class TestFeature {
             return fileCoverage.detailedCoverage
         }
 
-        // context.subscriptions.push(
-        //     registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
-        //         node.stop()
-        //     )
-        // )
+        context.subscriptions.push(
+            registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
+                node.stop()
+            ),
+            registerCommand('language-julia.stopTestController', (node: TestControllerNode) =>
+                node.stop()
+            )
+        )
 
         // vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
         //     if(session.configuration.pipename && this.debugPipename2TestProcess.has(session.configuration.pipename)) {
@@ -584,10 +606,14 @@ export class TestFeature {
 
     async ensureJuliaTestController() {
         if(!this.juliaTestController || !this.juliaTestController.ready()) {
-            this.juliaTestController = new JuliaTestController(this.executableFeature, this.workspaceFeature, this.context, this.juliaTestitemControllerOutputChannel, this.compiledProvider)
+            this.juliaTestController = new JuliaTestController(this, this.executableFeature, this.workspaceFeature, this.context, this.juliaTestitemControllerOutputChannel, this.compiledProvider)
 
             await this.juliaTestController.start()
         }
+    }
+
+    async testControllerTerminated() {
+        this.juliaTestController = undefined
     }
 
     async runHandler(
