@@ -20,7 +20,6 @@ end
     project_uri:: Union{Nothing,String}
     package_uri::String
     package_name::String
-    test_env_content_hash::Union{Nothing,Int}
     juliaCmd::String
     juliaArgs::Vector{String}
     juliaNumThreads::String
@@ -98,16 +97,18 @@ mutable struct TestProcess
 
     endpoint::Union{Nothing,JSONRPC.JSONRPCEndpoint}
 
-    function TestProcess(parent_channel::Channel, env::TestEnvironment)
+    test_env_content_hash::Union{Nothing,Int}
+
+    function TestProcess(parent_channel::Channel, env::TestEnvironment, test_env_content_hash::Union{Nothing,Int})
         id = string(UUIDs.uuid4())
-        return new(id, parent_channel, nothing, Channel(Inf), env, Channel{Bool}(1), Channel{Bool}(1), Dict{String,TestItemControllerProtocol.TestItem}(), nothing, nothing, JSONRPC.generate_pipe_name(), false, nothing)
+        return new(id, parent_channel, nothing, Channel(Inf), env, Channel{Bool}(1), Channel{Bool}(1), Dict{String,TestItemControllerProtocol.TestItem}(), nothing, nothing, JSONRPC.generate_pipe_name(), false, nothing, test_env_content_hash)
     end
 end
 
-function revise(tp::TestProcess)
+function revise(tp::TestProcess, test_env_content_hash::Union{Int,Nothing})
     take!(tp.activated)
 
-    put!(tp.channel_to_sub, (source=:controller, msg=(;command=:revise)))
+    put!(tp.channel_to_sub, (source=:controller, msg=(;command=:revise, test_env_content_hash=test_env_content_hash)))
 end
 
 function start(tp::TestProcess)
@@ -204,21 +205,34 @@ function start(tp::TestProcess)
                     put!(tp.activated, true)
                 elseif msg.msg.command == :revise
                     put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Revising")))
-                    res = JSONRPC.send(tp.endpoint, TestItemServerProtocol.testserver_revise_request_type, nothing)
 
-                    if res=="success"
+                    needs_restart = false
+
+                    if msg.msg.test_env_content_hash != tp.test_env_content_hash
+                        needs_restart = true
+                    else
+                        res = JSONRPC.send(tp.endpoint, TestItemServerProtocol.testserver_revise_request_type, nothing)
+
+                        if res=="success"
+                            needs_restart = false
+                        elseif res == "failed"
+                            needs_restart = true
+                        else
+                            error("")
+                        end
+                    end
+
+                    if !needs_restart
                         put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Idle")))
                         put!(tp.activated, true)
-                    elseif res=="failed"
-                        @info "Revise could not handle changes, restarting process"
+                    else
+                        @info "Revise could not handle changes or test env was changed, restarting process"
                         kill(tp.jl_process)
                         tp.comms_established = Channel{Bool}(1)
                         start(tp)
                         fetch(tp.comms_established)
                         activate_env(tp)
                         break
-                    else
-                        error()
                     end
                 elseif msg.msg.command == :cancel
                     tp.killed = true
@@ -353,12 +367,13 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
 
     testitems_by_env = Dict{TestEnvironment,Vector{TestItemControllerProtocol.TestItem}}()
 
+    env_content_hash_by_env = Dict{TestEnvironment,Int}()
+
     for i in params.testItems
         te = TestEnvironment(
             coalesce(i.projectUri, nothing),
             i.packageUri,
             i.packageName,
-            coalesce(i.envContentHash, nothing),
             i.juliaCmd,
             i.juliaArgs,
             i.juliaNumThreads,
@@ -371,6 +386,14 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
         end
 
         push!(testitems, i)
+
+        if haskey(env_content_hash_by_env, te)
+            if env_content_hash_by_env[te] != i.envContentHash
+                error("This is invalid.")
+            end
+        else
+            env_content_hash_by_env[te] = i.envContentHash
+        end
     end
 
     proc_count_by_env = Dict{TestEnvironment,Int}()
@@ -399,7 +422,7 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
             p.test_run_id = params.testRunId
             push!(our_procs[k], p)
 
-            revise(p)
+            revise(p, env_content_hash_by_env[k])
         end
     end
 
@@ -417,7 +440,7 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
 
         while length(procs) < v
             @info "Launching new test process"
-            p = TestProcess(controller.combined_msg_queue, k)
+            p = TestProcess(controller.combined_msg_queue, k, env_content_hash_by_env[k])
             p.coverage_root_uris = coalesce(params.coverageRootUris, nothing)
             JSONRPC.send(
                 endpoint,
