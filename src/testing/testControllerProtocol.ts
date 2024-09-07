@@ -13,7 +13,8 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
         envCcontentHash?: number,
         juliaCmd: string,
         juliaArgs: string[],
-        // juliaEnv: any
+        juliaNumThreads: string,
+        juliaEnv: { [key: string]: string | null },
         useDefaultUsings: boolean,
         testSetups: string[],
         line: number,

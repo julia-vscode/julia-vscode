@@ -14,7 +14,8 @@ using JSONRPC: @dict_readable, RequestType, NotificationType, Outbound
     envContentHash::Union{Missing,Int}
     juliaCmd::String
     juliaArgs::Vector{String}
-    # juliaEnv::Dict{String,String}
+    juliaNumThreads::String
+    juliaEnv::Dict{String,Union{String,Nothing}}
     useDefaultUsings::Bool
     testSetups::Vector{String}
     line::Int

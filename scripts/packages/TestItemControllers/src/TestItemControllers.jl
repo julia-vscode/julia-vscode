@@ -23,6 +23,7 @@ end
     test_env_content_hash::Union{Nothing,Int}
     juliaCmd::String
     juliaArgs::Vector{String}
+    juliaNumThreads::String
     mode::String
     env::Dict{String,String}
 end
@@ -127,9 +128,29 @@ function start(tp::TestProcess)
 # //             }
 # //             else {
 
+    jlArgs = copy(tp.env.juliaArgs)
+
+    if tp.env.juliaNumThreads == "auto"
+        push!(jlArgs, "--threads=auto")
+    end
+
+    jlEnv = copy(ENV)
+
+    for (k,v) in pairs(tp.env.env)
+        if v!==nothing
+            jlEnv[k] = v
+        elseif haskey(jlEnv, k)
+            delete!(jlEnv, k)
+        end
+    end
+
+    if tp.env.juliaNumThreads!="auto" && tp.env.juliaNumThreads!=""
+        jlEnv["JULIA_NUM_THREADS"] = tp.env.juliaNumThreads
+    end
+
     tp.jl_process = open(
         pipeline(
-            Cmd(`$(tp.env.juliaCmd) $(tp.env.juliaArgs) --startup-file=no --history-file=no --depwarn=no $coverage_arg $testserver_script $pipe_name $(tp.debug_pipe_name)`, detach=false),
+            Cmd(`$(tp.env.juliaCmd) $(tp.env.juliaArgs) --startup-file=no --history-file=no --depwarn=no $coverage_arg $testserver_script $pipe_name $(tp.debug_pipe_name)`, detach=false, env=jlEnv),
             stdout = pipe_out,
             stderr = pipe_err
         )
@@ -340,8 +361,9 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
             coalesce(i.envContentHash, nothing),
             i.juliaCmd,
             i.juliaArgs,
+            i.juliaNumThreads,
             i.mode,
-            Dict{String,String}()
+            i.juliaEnv
         )
 
         testitems = get!(testitems_by_env, te) do

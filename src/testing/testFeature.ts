@@ -12,7 +12,7 @@ import { onSetLanguageClient } from '../extension'
 import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notficiationTypeTestRunFinished, notificationTypeAppendOutput, notificationTypeLaunchDebuggers, notificationTypeTestProcessCreated, notificationTypeTestProcessStatusChanged, notificationTypeTestProcessTerminated, requestTypeCancelTestRun, requestTypeCreateTestRun, requestTypeTerminateTestProcess } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
-import { registerCommand } from '../utils'
+import { inferJuliaNumThreads, registerCommand } from '../utils'
 
 enum TestRunMode {
     Normal,
@@ -292,6 +292,8 @@ export class JuliaTestController {
         //     this.someTestItemFinished.notifyAll()
         // })
 
+        const nthreads = inferJuliaNumThreads()
+
         const juliaExec = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
         const testRunId = uuid()
@@ -310,6 +312,8 @@ export class JuliaTestController {
                     ...i.testEnv,
                     juliaCmd: juliaExec.file,
                     juliaArgs: juliaExec.args,
+                    juliaNumThreads: nthreads,
+                    juliaEnv: {},
                     useDefaultUsings: i.details.optionDefaultImports,
                     testSetups: i.details.optionSetup,
                     line: i.details.codeRange.start.line + 1,
