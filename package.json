@@ -1375,6 +1375,14 @@
                                 "type": "string",
                                 "description": "Absolute path to the Julia environment.",
                                 "default": "${command:activeJuliaEnvironment}"
+                            },
+                            "juliaAdditionalArgs": {
+                                "type": "array",
+                                "description": "Additional command line arguments passed to the Julia executable",
+                                "default": [],
+                                "items": {
+                                    "type": "string"
+                                }
                             }
                         }
                     }

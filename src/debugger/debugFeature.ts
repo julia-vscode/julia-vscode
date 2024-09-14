@@ -319,6 +319,10 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
             config.env = {}
         }
 
+        if (!config.juliaAdditionalArgs) {
+            config.juliaAdditionalArgs = []
+        }
+
         console.log(config)
 
         return config
@@ -356,6 +360,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
                 '--color=yes',
                 '--startup-file=no',
                 '--history-file=no',
+                ...session.configuration.juliaAdditionalArgs,
                 join(
                     this.context.extensionPath,
                     'scripts',
