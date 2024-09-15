@@ -77,7 +77,7 @@ deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
 [[deps.DebugAdapter]]
-deps = ["Base64", "JSON", "JuliaInterpreter", "Pkg", "Sockets"]
+deps = ["Base64", "JSON", "JuliaInterpreter", "Pkg", "Sockets", "UUIDs"]
 path = "../../packages/DebugAdapter"
 uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
 version = "3.0.1-DEV"
@@ -144,7 +144,7 @@ version = "1.0.60"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.35"
+version = "0.9.36"
 
 [[deps.JuliaSyntax]]
 git-tree-sha1 = "e00e2b013f3bd98d3789f889b9305c1546ecd1ab"
@@ -197,7 +197,7 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 deps = ["JuliaInterpreter"]
 path = "../../packages/LoweredCodeUtils"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "3.0.1"
+version = "3.0.2"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
