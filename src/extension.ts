@@ -331,12 +331,13 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
                 scheme
             })
         }
+
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/Project.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/JuliaProject.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/Manifest.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/JuliaManifest.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/.JuliaLint.toml'})
     }
-    selector.push({language: 'toml', pattern: '**/Project.toml'})
-    selector.push({language: 'toml', pattern: '**/JuliaProject.toml'})
-    selector.push({language: 'toml', pattern: '**/Manifest.toml'})
-    selector.push({language: 'toml', pattern: '**/JuliaManifest.toml'})
-    selector.push({language: 'toml', pattern: '**/.JuliaLint.toml'})
 
     if (!g_outputChannel) {
         g_outputChannel = vscode.window.createOutputChannel('Julia Language Server')
