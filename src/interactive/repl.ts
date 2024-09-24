@@ -713,7 +713,9 @@ async function selectJuliaBlock() {
 
 let g_cellDelimiters = [
     /^##(?!#)/,
-    /^#(\s?)%%/
+    /^#(\s?)%%/,
+    /^#(\s?)\+/,
+    /^#(\s?)-/
 ]
 
 function isCellBorder(s: string, isStart: boolean, isJmd: boolean) {
