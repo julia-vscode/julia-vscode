@@ -99,7 +99,7 @@
 	url = https://github.com/JuliaPackaging/Preferences.jl
 [submodule "scripts/packages/Salsa"]
 	path = scripts/packages/Salsa
-	url = https://github.com/davidanthoff/Salsa.jl
+	url = https://github.com/julia-vscode/Salsa.jl
 [submodule "scripts/packages/ExceptionUnwrapping"]
 	path = scripts/packages/ExceptionUnwrapping
 	url = https://github.com/JuliaServices/ExceptionUnwrapping.jl
