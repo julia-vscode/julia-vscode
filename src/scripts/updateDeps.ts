@@ -116,7 +116,7 @@ async function main() {
 
         console.log(`Updating environments for Julia ${v}...`)
 
-        if(semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.6.0'))) {
+        if(semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.10.0'))) {
             const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
             await fs.mkdir(env_path_ls, { recursive: true })
             await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })

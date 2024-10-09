@@ -76,12 +76,6 @@
 [submodule "scripts/packages/DelimitedFiles"]
 	path = scripts/packages/DelimitedFiles
 	url = https://github.com/JuliaData/DelimitedFiles.jl
-[submodule "scripts/packages-old/Compat"]
-	path = scripts/packages-old/Compat
-	url = https://github.com/JuliaLang/Compat.jl
-[submodule "scripts/packages-old/Crayons"]
-	path = scripts/packages-old/Crayons
-	url = https://github.com/KristofferC/Crayons.jl
 [submodule "scripts/packages/Glob"]
 	path = scripts/packages/Glob
 	url = https://github.com/vtjnash/Glob.jl
@@ -108,9 +102,6 @@
 	url = https://github.com/FluxML/MacroTools.jl
 [submodule "scripts/packages/AutoHashEquals"]
 	path = scripts/packages/AutoHashEquals
-	url = https://github.com/JuliaServices/AutoHashEquals.jl
-[submodule "scripts/packages-old/v1.7/AutoHashEquals"]
-	path = scripts/packages-old/v1.7/AutoHashEquals
 	url = https://github.com/JuliaServices/AutoHashEquals.jl
 [submodule "scripts/packages/TestItemServer"]
 	path = scripts/packages/TestItemServer

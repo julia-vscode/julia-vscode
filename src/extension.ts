@@ -264,11 +264,11 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             return
         }
 
-        if(semver.gte(juliaExecutable.getVersion(), '1.6.0')) {
+        if(semver.gte(juliaExecutable.getVersion(), '1.10.0')) {
             juliaLSExecutable = juliaExecutable
         }
         else {
-            vscode.window.showErrorMessage('You must have at least Julia 1.6 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            vscode.window.showErrorMessage('You must have at least Julia 1.10 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
             g_startupNotification.hide()
             return
         }
