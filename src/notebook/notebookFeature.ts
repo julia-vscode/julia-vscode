@@ -6,6 +6,7 @@ import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
 import { registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
 import isEqual from 'lodash.isequal'
+import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
 type JupyterNotebookMetadata = Partial<{
@@ -25,9 +26,6 @@ type JupyterNotebookMetadata = Partial<{
 }>
 
 function getNotebookMetadata(notebook: vscode.NotebookDocument): JupyterNotebookMetadata['metadata'] | undefined{
-    if (notebook.metadata && 'custom' in notebook.metadata){
-        return notebook.metadata.custom?.metadata;
-    }
     return notebook.metadata?.metadata as any;
 }
 
@@ -42,12 +40,16 @@ export class JuliaNotebookFeature {
     >();
     private _outputChannel: vscode.OutputChannel
     private readonly disposables: vscode.Disposable[] = [];
-    private vscodeIpynbApi = undefined;
+
+    public pathToCell: Map<string, vscode.NotebookCell> = new Map()
+
+    public debugPipenameToKernel: Map<string,JuliaKernel> = new Map<string,JuliaKernel>()
 
     constructor(
         private context: vscode.ExtensionContext,
         private juliaExecutableFeature: JuliaExecutablesFeature,
-        private workspaceFeature: WorkspaceFeature
+        private workspaceFeature: WorkspaceFeature,
+        private compiledProvider: DebugConfigTreeProvider
     ) {
         this.init()
 
@@ -63,17 +65,61 @@ export class JuliaNotebookFeature {
             ),
             registerCommand('language-julia.restartKernel', (node) =>
                 this.restartKernel(node)
-            )
+            ),
+            // vscode.commands.registerCommand('language-julia.toggleDebugging', () => {
+            //     if (vscode.window.activeNotebookEditor) {
+            //         const { notebook: notebookDocument } = vscode.window.activeNotebookEditor;
+            //         const juliaKernel = this.kernels.get(notebookDocument)
+            //         if (juliaKernel) {
+            //             juliaKernel.toggleDebugging();
+            //         }
+            //         else {
+            //             // TODO Figure out how we can start debugging in this scneario
+            //         }
+            //     }
+            // }),
+            vscode.commands.registerCommand('language-julia.runAndDebugCell', async (cell: vscode.NotebookCell | undefined) => {
+                if(cell) {
+                    const kernel = this.kernels.get(cell.notebook)
+                    if(!kernel.activeDebugSession) {
+                        await kernel.toggleDebugging()
+                        kernel.stopDebugSessionAfterExecution = true
+                    }
+
+                    await vscode.commands.executeCommand(
+                        'notebook.cell.execute',
+                        {
+                            ranges: [{ start: cell.index, end: cell.index + 1 }],
+                            document: cell.document.uri
+                        }
+                    )
+                }
+            })
         )
+
+        vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
+            if(session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
+                const kernel = this.getKernelByDebugPipename(session.configuration.pipename)
+                kernel.activeDebugSession = session
+            }
+        })
+
+        vscode.debug.onDidTerminateDebugSession((session: vscode.DebugSession) => {
+            if(session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
+                const kernel = this.debugPipenameToKernel.get(session.configuration.pipename)
+                kernel.activeDebugSession = null
+            }
+        })
+    }
+
+    getKernelByDebugPipename(pipename: any) {
+        return this.debugPipenameToKernel.get(pipename)
     }
 
     private async init() {
         this._outputChannel = vscode.window.createOutputChannel(
             'Julia Notebook Kernels'
         )
-
-        const ext = vscode.extensions.getExtension('vscode.ipynb')
-        this.vscodeIpynbApi = await ext?.activate()
 
         const juliaVersions =
             await this.juliaExecutableFeature.getJuliaExePathsAsync()
@@ -289,8 +335,17 @@ export class JuliaNotebookFeature {
             },
         }
 
-        if (this.vscodeIpynbApi && !isEqual(getNotebookMetadata(notebook), metadata)) {
-            this.vscodeIpynbApi.setNotebookMetadata(notebook.uri, metadata)
+        if (!isEqual(getNotebookMetadata(notebook), metadata)) {
+            const edit = new vscode.WorkspaceEdit();
+            edit.set(notebook.uri, [vscode.NotebookEdit.updateNotebookMetadata({
+                ...notebook.metadata,
+                metadata: {
+                    ...((notebook.metadata || {}).metadata ?? {}),
+                    ...metadata
+                },
+            })]);
+            return vscode.workspace.applyEdit(edit);
+
         }
     }
 
@@ -313,7 +368,8 @@ export class JuliaNotebookFeature {
             notebook,
             this._controllers.get(controller),
             this._outputChannel,
-            this
+            this,
+            this.compiledProvider
         )
         await this.workspaceFeature.addNotebookKernel(kernel)
         this.kernels.set(notebook, kernel)

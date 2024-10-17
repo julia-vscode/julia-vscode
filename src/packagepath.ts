@@ -1,4 +1,3 @@
-import { join } from 'path'
 import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
@@ -17,10 +16,9 @@ export async function getPkgPath() {
         const res = await execFile(
             juliaExecutable.file,
             [
-                '--startup-file=no',
                 '--history-file=no',
                 '-e',
-                'using Pkg; println(Pkg.depots()[1])'
+                'using Pkg;println(get(ENV, "JULIA_PKG_DEVDIR", joinpath(Pkg.depots()[1], "dev")))'
             ],
             {
                 env: {
@@ -29,7 +27,7 @@ export async function getPkgPath() {
                 }
             }
         )
-        juliaPackagePath = join(res.stdout.toString().trim(), 'dev')
+        juliaPackagePath = res.stdout.toString().trim()
     }
     return juliaPackagePath
 }

@@ -10,7 +10,6 @@
             "args": [
                 "--extensionDevelopmentPath=${workspaceRoot}"
             ],
-            "stopOnEntry": false,
             "sourceMaps": true,
             "outFiles": [
                 "${workspaceRoot}/dist/**/*.js"
@@ -50,7 +49,9 @@
                 "${workspaceFolder}/globalstorage", // Storage path
                 "download", // useSymserverDownloads
                 "https://www.julia-vscode.org/symbolcache", // symbolcache_upstream
-                "--detached=yes"
+                "--detached=yes",
+                "julia",
+                "1.10.4"
             ]
         },
         {

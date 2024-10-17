@@ -20,6 +20,8 @@ let crashReporterQueue = []
 
 let g_jlcrashreportingpipename: string = null
 
+let g_prereleaseExtension: boolean = false
+
 function filterTelemetry(envelope, context) {
     if (envelope.data.baseType === 'ExceptionData') {
         if (enableCrashReporter) {
@@ -70,10 +72,12 @@ export async function init(context: vscode.ExtensionContext) {
     else if (parsedExtensionVersion.patch===1) {
         // Use the insider environment
         key = 'InstrumentationKey=94d316b7-bba0-4d03-9525-81e25c7da22f;IngestionEndpoint=https://eastus-3.in.applicationinsights.azure.com/'
+        g_prereleaseExtension = true
     }
     else {
         // Use the debug environment
         key = 'InstrumentationKey=82cf1bd4-8560-43ec-97a6-79847395d791;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
+        g_prereleaseExtension = true
     }
 
     appInsights.setup(key)
@@ -183,6 +187,25 @@ export function traceEvent(message) {
     extensionClient.trackEvent({ name: message })
 }
 
+export function traceRequest(operationId, operationParentId, name, time, duration, cloudRole) {
+    if(g_prereleaseExtension) {
+        extensionClient.trackRequest({
+            name: name,
+            url: name,
+            time: time,
+            duration: duration,
+            resultCode: 0,
+            success: true,
+            tagOverrides: {
+                [extensionClient.context.keys.cloudRole]: cloudRole,
+                [extensionClient.context.keys.operationName]: name,
+                [extensionClient.context.keys.operationId]: operationId,
+                ...(operationParentId ? {[extensionClient.context.keys.operationParentId]: operationParentId } : {})
+            }
+        })
+    }
+}
+
 export function tracePackageLoadError(packagename, message) {
     extensionClient.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
 }
@@ -233,4 +256,8 @@ export function setCurrentJuliaVersion(version: string) {
     if (extensionClient) {
         extensionClient.commonProperties['juliaversion'] = g_currentJuliaVersion
     }
+}
+
+export function flush() {
+    extensionClient.flush()
 }

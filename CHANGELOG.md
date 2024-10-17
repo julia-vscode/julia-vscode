@@ -5,8 +5,22 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Added `juliaAdditionalArgs` option to Julia debug launch configuration ([#3699](https://github.com/julia-vscode/julia-vscode/pull/3699)).
+### Fixed
+- `@profview` and `@profview_allocs` now support the optional keyword arguments of `Profile.print`, such as `recur = :flat` ([#3666](https://github.com/julia-vscode/julia-vscode/pull/3666)).
+- The integrated REPL now respects a user-set active project (e.g. in `additionalArgs` and `startup.jl`) ([#3670](https://github.com/julia-vscode/julia-vscode/pull/3669))
+- Changes to how Jupyter Notebook Metadata is updated ([#3690](https://github.com/julia-vscode/julia-vscode/pull/3690))
+- Fix a bug where non-supported schemes were sent to the LS ([#3700](https://github.com/julia-vscode/julia-vscode/pull/3700))
+
+## [1.104.0] - 2024-07-29
+### Fixed
+- The integrated REPL now once again starts with the user defined environment ([#3660](https://github.com/julia-vscode/julia-vscode/pull/3660))
+
+## [1.103.0] - 2024-07-27
 ### Changed
 - Drop support for pre 1.6 Julia versions in the language server ([#3610](https://github.com/julia-vscode/julia-vscode/pull/3610))
+- `Open Package Directory in New Window` now first searches packages in the `JULIA_PKG_DEVDIR` environment variable, and then in the standard dev path [#3632](https://github.com/julia-vscode/julia-vscode/pull/3632). This allows user-defined dev folders.
 
 ## [1.77.0] - 2024-04-24
 ### Fixed

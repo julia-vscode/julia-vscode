@@ -94,11 +94,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const workspaceFeature = new WorkspaceFeature(context)
         context.subscriptions.push(workspaceFeature)
-        context.subscriptions.push(new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature))
-        context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature))
+        const notebookFeature = new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
+        context.subscriptions.push(notebookFeature)
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
-        g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature)
+        g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
         context.subscriptions.push(g_testFeature)
+        context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature, notebookFeature))
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
@@ -176,6 +177,8 @@ export function deactivate() {
         promises.push(g_languageClient.stop())
     }
 
+    telemetry.flush()
+
     return Promise.all(promises)
 }
 
@@ -233,23 +236,27 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     const juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
     if(await juliaExecutablesFeature.isJuliaup()) {
-        const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
+        if (Boolean(process.env.DEBUG_MODE)) {
+            juliaLSExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        } else {
+            const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
 
-        const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
+            const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
 
-        if(releaseChannelExe.length>0) {
-            juliaLSExecutable = releaseChannelExe[0]
-        }
-        else {
-            vscode.window.showErrorMessage('You must have the "release" channel in Juliaup installed for the best Julia experience in VS Code.')
-            g_startupNotification.hide()
-            return
-        }
+            if(releaseChannelExe.length>0) {
+                juliaLSExecutable = releaseChannelExe[0]
+            }
+            else {
+                vscode.window.showErrorMessage('You must have the "release" channel in Juliaup installed for the best Julia experience in VS Code.')
+                g_startupNotification.hide()
+                return
+            }
 
-        if (juliaExecutable===undefined) {
-            vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
-            g_startupNotification.hide()
-            return
+            if (juliaExecutable===undefined) {
+                vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+                g_startupNotification.hide()
+                return
+            }
         }
     }
     else {
@@ -259,11 +266,11 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             return
         }
 
-        if(semver.gte(juliaExecutable.getVersion(), '1.6.0')) {
+        if(semver.gte(juliaExecutable.getVersion(), '1.10.0')) {
             juliaLSExecutable = juliaExecutable
         }
         else {
-            vscode.window.showErrorMessage('You must have at least Julia 1.6 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            vscode.window.showErrorMessage('You must have at least Julia 1.10 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
             g_startupNotification.hide()
             return
         }
@@ -326,6 +333,12 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
                 scheme
             })
         }
+
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/Project.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/JuliaProject.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/Manifest.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/JuliaManifest.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/.JuliaLint.toml'})
     }
 
     if (!g_outputChannel) {
@@ -337,12 +350,6 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     const clientOptions: LanguageClientOptions = {
         documentSelector: selector,
-        synchronize: {
-            fileEvents: [
-                vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd,md}'),
-                vscode.workspace.createFileSystemWatcher('**/{Project.toml,JuliaProject.toml,Manifest.toml,JuliaManifest.toml}'),
-            ]
-        },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: g_traceOutputChannel,
         outputChannel: g_outputChannel,
@@ -362,6 +369,9 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
         else if (data.command === 'symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
+        }
+        else if (data.command === 'request_metric') {
+            telemetry.traceRequest(data.operationId, data.operationParentId, data.name, new Date(data.time), data.duration, 'Language Server')
         }
     })
 

@@ -127,12 +127,14 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal')
     const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
+    const debugPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
     const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
     const nthreads = inferJuliaNumThreads()
+    const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
     // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
     function getArgs() {
-        const jlarg2 = [startupPath, pipename, telemetry.getCrashReportingPipename()]
+        const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename()]
         jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
         jlarg2.push(`USE_PLOTPANE=${config.get('usePlotPane')}`)
         jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
@@ -182,33 +184,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
-    let jlarg1: string[]
-    const pkgenvpath = await jlpkgenv.getAbsEnvPath()
-    if (pkgenvpath === null) {
-        jlarg1 = ['-i', '--banner=no'].concat(config.get('additionalArgs'))
-    } else {
-        const env_file_paths = await jlpkgenv.getProjectFilePaths(pkgenvpath)
-
-        let sysImageArgs = []
-        if (config.get('useCustomSysimage') && env_file_paths.sysimage_path && env_file_paths.project_toml_path && env_file_paths.manifest_toml_path) {
-            const date_sysimage = await fs.stat(env_file_paths.sysimage_path)
-            const date_manifest = await fs.stat(env_file_paths.manifest_toml_path)
-
-            if (date_sysimage.mtime > date_manifest.mtime) {
-                sysImageArgs = ['-J', env_file_paths.sysimage_path]
-            }
-            else {
-                vscode.window.showWarningMessage('Julia sysimage for this environment is out-of-date and not used for REPL.')
-            }
-        }
-        jlarg1 = ['-i', '--banner=no']
-        if (isPersistentSession) {
-            jlarg1.push(`--project="${pkgenvpath}"`)
-        } else {
-            jlarg1.push(`--project=${pkgenvpath}`)
-        }
-        jlarg1 = jlarg1.concat(sysImageArgs).concat(config.get('additionalArgs'))
-    }
+    const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(config.get('additionalArgs'))
 
     if (isPersistentSession) {
         shellPath = config.get('persistentSession.shell')
@@ -217,7 +193,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         if (isConnected()) {
             shellArgs = [...shellExecutionArgs, `tmux attach -t ${sessionName}`]
         } else {
-            const connectJuliaCode = juliaConnector(pipename)
+            const connectJuliaCode = juliaConnector(pipename, debugPipename)
 
             const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
                 ...juliaExecutable.args,
@@ -257,10 +233,10 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     await juliaIsConnectedPromise.wait()
 }
 
-function juliaConnector(pipename: string, start = false) {
-    const connect = `VSCodeServer.serve(raw"${pipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, crashreporting_pipename = raw"${telemetry.getCrashReportingPipename()}");nothing # re-establishing connection with VSCode`
+function juliaConnector(pipename: string, debugPipename: string, start = false) {
+    const connect = `VSCodeServer.serve(raw"${pipename}", raw"${debugPipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, raw"${telemetry.getCrashReportingPipename()}", "REPL"));nothing # re-establishing connection with VSCode`
     if (start) {
-        return `pushfirst!(LOAD_PATH, raw"${path.join(g_context.extensionPath, 'scripts', 'packages')}");try using VSCodeServer; finally popfirst!(LOAD_PATH) end;` + connect
+        return `include(raw"${path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'load_vscodeserver.jl')}");` + connect
     } else {
         return connect
     }
@@ -268,8 +244,9 @@ function juliaConnector(pipename: string, start = false) {
 
 async function connectREPL() {
     const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
+    const debugPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
-    const connectJuliaCode = juliaConnector(pipename, true)
+    const connectJuliaCode = juliaConnector(pipename, debugPipename, true)
 
     const config = vscode.workspace.getConfiguration('julia')
 
@@ -314,27 +291,13 @@ function disconnectREPL() {
     }
 }
 
-function debuggerRun(params: DebugLaunchParams) {
+function debuggerAttach(params: {stopOnEntry: boolean, pipename: string}){
     vscode.debug.startDebugging(undefined, {
         type: 'julia',
         request: 'attach',
         name: 'Julia REPL',
-        code: params.code,
-        file: params.filename,
-        stopOnEntry: false,
-        compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
-        compiledMode: g_compiledProvider.compiledMode
-    })
-}
-
-function debuggerEnter(params: DebugLaunchParams) {
-    vscode.debug.startDebugging(undefined, {
-        type: 'julia',
-        request: 'attach',
-        name: 'Julia REPL',
-        code: params.code,
-        file: params.filename,
-        stopOnEntry: true,
+        pipename: params.pipename,
+        stopOnEntry: params.stopOnEntry,
         compiledModulesOrFunctions: g_compiledProvider.getCompiledItems(),
         compiledMode: g_compiledProvider.compiledMode
     })
@@ -358,15 +321,14 @@ const requestTypeReplRunCode = new rpc.RequestType<{
     softscope: boolean
 }, ReturnResult, void>('repl/runcode')
 
-interface DebugLaunchParams {
-    code: string,
-    filename: string
-}
+// interface DebugLaunchParams {
+//     code: string,
+//     filename: string
+//     pipename: String,
+// }
 
 export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
-const notifyTypeDebuggerEnter = new rpc.NotificationType<DebugLaunchParams>('debugger/enter')
-const notifyTypeDebuggerRun = new rpc.NotificationType<DebugLaunchParams>('debugger/run')
-const notifyTypeReplStartDebugger = new rpc.NotificationType<{ debugPipename: string }>('repl/startdebugger')
+const notifyTypeReplAttachDebgger = new rpc.NotificationType<{pipename: string}>('debugger/attach')
 const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
@@ -1239,12 +1201,6 @@ function isMarkdownEditor(editor: vscode.TextEditor) {
     return editor.document.languageId === 'juliamarkdown' || editor.document.languageId === 'markdown'
 }
 
-export async function replStartDebugger(pipename: string) {
-    await startREPL(true)
-
-    await g_connection.sendNotification(notifyTypeReplStartDebugger, { debugPipename: pipename })
-}
-
 export function activate(context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, profilerFeature) {
     g_context = context
     g_juliaExecutablesFeature = juliaExecutablesFeature
@@ -1258,8 +1214,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         }),
         onInit(wrapCrashReporting(connection => {
             connection.onNotification(notifyTypeDisplay, display)
-            connection.onNotification(notifyTypeDebuggerRun, debuggerRun)
-            connection.onNotification(notifyTypeDebuggerEnter, debuggerEnter)
+            connection.onNotification(notifyTypeReplAttachDebgger, debuggerAttach)
             connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
             connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
             connection.onNotification(notifyTypeShowProfilerResult, (data) => profilerFeature.showTrace({
