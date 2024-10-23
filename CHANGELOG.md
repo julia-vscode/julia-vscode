@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Added
 - Added `juliaAdditionalArgs` option to Julia debug launch configuration ([#3699](https://github.com/julia-vscode/julia-vscode/pull/3699)).
+### Changed
+- Completions for identifiers which contain unicode symbols are now shown if refered to by their latex name, e.g. completions for `theta_0` would now also contain `θ₀` if such an symbol exists in the current scope [#1327](https://github.com/julia-vscode/LanguageServer.jl/pull/1327).
 ### Fixed
 - `@profview` and `@profview_allocs` now support the optional keyword arguments of `Profile.print`, such as `recur = :flat` ([#3666](https://github.com/julia-vscode/julia-vscode/pull/3666)).
 - The integrated REPL now respects a user-set active project (e.g. in `additionalArgs` and `startup.jl`) ([#3670](https://github.com/julia-vscode/julia-vscode/pull/3669))
