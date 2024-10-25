@@ -103,7 +103,7 @@ macro run(command)
         let
             JSONRPC.send_notification(conn_endpoint[], "debugger/attach", (pipename=DEBUG_PIPENAME[], stopOnEntry=false))
 
-            debug_session = take!(DEBUG_SESSION[])
+            debug_session = wait_for_debug_session()
 
             DebugAdapter.debug_code(debug_session, Main, $(string(command)), $(string(__source__.file)))
 
