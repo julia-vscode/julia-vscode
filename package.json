@@ -112,6 +112,11 @@
                 "icon": "$(debug-stop)"
             },
             {
+                "command": "language-julia.stopTestController",
+                "title": "Julia: Stop Test Controller",
+                "icon": "$(debug-stop)"
+            },
+            {
                 "command": "language-julia.disconnectREPL",
                 "title": "Julia: Disconnect external REPL"
             },
@@ -585,6 +590,11 @@
                 {
                     "command": "language-julia.stopTestProcess",
                     "when": "view == REPLVariables && viewItem == juliatestprocess",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.stopTestController",
+                    "when": "view == REPLVariables && viewItem == juliatestcontroller",
                     "group": "inline"
                 },
                 {
