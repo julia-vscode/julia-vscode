@@ -1,5 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
-import { uuid } from 'uuidv4'
+import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as lsp from 'vscode-languageserver-protocol'
 import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
@@ -156,7 +156,7 @@ export class TestProcess {
     public packageName: string | null = null
     public testEnvContentHash: number
 
-    public debugPipename: string = generatePipeName(uuid(), 'vsc-jl-td')
+    public debugPipename: string = generatePipeName(uuidv4(), 'vsc-jl-td')
     public activeDebugSession: vscode.DebugSession | null = null
 
     constructor(public coverage: boolean) {}
@@ -175,7 +175,7 @@ export class TestProcess {
         this.packageName = packageName
         this.testEnvContentHash = testEnvContentHash
 
-        const pipename = generatePipeName(uuid(), 'vsc-jl-ts')
+        const pipename = generatePipeName(uuidv4(), 'vsc-jl-ts')
 
         const connected = new Subject()
 
