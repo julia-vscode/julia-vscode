@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: 20.x
       - run: npm ci
-      - run: npx eslint -c .eslintrc.json
+      - run: npx eslint
 
   testExtension:
     name: Test Extension
