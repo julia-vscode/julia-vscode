@@ -106,6 +106,16 @@ export async function init(context: vscode.ExtensionContext) {
     extensionClient.context.tags[extensionClient.context.keys.cloudRoleInstance] = ''
     extensionClient.context.tags[extensionClient.context.keys.sessionId] = vscode.env.sessionId
     extensionClient.context.tags[extensionClient.context.keys.userId] = vscode.env.machineId
+
+    const logger = vscode.env.createTelemetryLogger({
+        sendEventData: (eventName: string, data?: Record<string, any>) => {
+        },
+        sendErrorData: (error: Error, data?: Record<string, any>) => {
+            handleNewCrashReportFromException(error, 'Extension')
+        }
+    })
+
+    context.subscriptions.push(logger)
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
