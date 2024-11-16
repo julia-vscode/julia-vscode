@@ -3,7 +3,7 @@ import { Subject } from 'await-notify'
 import { ChildProcess, spawn } from 'child_process'
 import * as net from 'net'
 import * as path from 'path'
-import { uuid } from 'uuidv4'
+import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import {
     CancellationToken,
@@ -254,7 +254,7 @@ export class JuliaKernel {
             const connectedPromise = new Subject()
             const serverListeningPromise = new Subject()
 
-            const pn = generatePipeName(uuid(), 'vscjl-nbk')
+            const pn = generatePipeName(uuidv4(), 'vscjl-nbk')
 
             const server = net.createServer((socket) => {
                 this._msgConnection = createMessageConnection(
@@ -361,7 +361,7 @@ export class JuliaKernel {
 
             this.outputChannel.appendLine(`Now starting the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`)
 
-            this.debuggerPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
+            this.debuggerPipename = generatePipeName(uuidv4(), 'vsc-jl-repldbg')
 
             this.notebookFeature.debugPipenameToKernel.set(this.debuggerPipename, this)
 
