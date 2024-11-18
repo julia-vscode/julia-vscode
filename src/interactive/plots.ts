@@ -101,8 +101,9 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         if (this?.view?.show === undefined) {
             // this forces the webview to be resolved, but changes focus:
             await vscode.commands.executeCommand('julia-plot-navigator.focus')
+        } else {
+            this.view.show(true)
         }
-        this.view.show(true)
     }
 
     setPlotsInfo(set_func) {
