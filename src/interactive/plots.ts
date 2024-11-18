@@ -101,8 +101,9 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         if (this?.view?.show === undefined) {
             // this forces the webview to be resolved, but changes focus:
             await vscode.commands.executeCommand('julia-plot-navigator.focus')
+        } else {
+            this.view.show(true)
         }
-        this.view.show(true)
     }
 
     setPlotsInfo(set_func) {
@@ -787,7 +788,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                 Plotly.relayout('plot-element', update)
             }
             const spec = ${payload};
-            Plotly.newPlot('plot-element', spec.data, spec.layout);
+            Plotly.newPlot('plot-element', spec.data, spec.layout, spec.config);
             if (!(spec.layout.width || spec.layout.height)) {
                 onResize()
                 window.addEventListener('resize', onResize);
