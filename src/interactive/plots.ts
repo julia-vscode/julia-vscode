@@ -787,7 +787,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                 Plotly.relayout('plot-element', update)
             }
             const spec = ${payload};
-            Plotly.newPlot('plot-element', spec.data, spec.layout);
+            Plotly.newPlot('plot-element', spec.data, spec.layout, spec.config);
             if (!(spec.layout.width || spec.layout.height)) {
                 onResize()
                 window.addEventListener('resize', onResize);
