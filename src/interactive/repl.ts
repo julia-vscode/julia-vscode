@@ -1153,12 +1153,12 @@ async function linkHandler(link: any) {
     let file = link.data.file
     const line = link.data.line
 
-    if (file.startsWith('.')) {
+    if (file.startsWith('~')) {
+        file = path.join(homedir(), file.slice(1))
+    } else {
         // Base file
         const exe = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
         file = path.join(await exe.getBaseRootFolderPathAsync(), file)
-    } else if (file.startsWith('~')) {
-        file = path.join(homedir(), file.slice(1))
     }
     try {
         await openFile(file, line)

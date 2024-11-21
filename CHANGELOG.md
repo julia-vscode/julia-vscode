@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The integrated REPL now respects a user-set active project (e.g. in `additionalArgs` and `startup.jl`) ([#3670](https://github.com/julia-vscode/julia-vscode/pull/3669))
 - Changes to how Jupyter Notebook Metadata is updated ([#3690](https://github.com/julia-vscode/julia-vscode/pull/3690))
 - Fix a bug where non-supported schemes were sent to the LS ([#3700](https://github.com/julia-vscode/julia-vscode/pull/3700))
+- Handle filename-only links in the terminal better (e.g. `foo.jl` without a `./` prefix) ([#3738](https://github.com/julia-vscode/julia-vscode/pull/3738))
 
 ## [1.104.0] - 2024-07-29
 ### Fixed
