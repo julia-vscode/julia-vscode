@@ -87,8 +87,16 @@ function add_code_to_repl_history(code)
         $(replace(code, r"^"ms => "\t"))
         """
         seekend(hist.history_file)
-        print(hist.history_file, entry)
-        flush(hist.history_file)
+
+        if isdefined(FileWatching, :mkpidlock) && isdefined(hist, :file_path)
+            FileWatching.mkpidlock(hist.file_path  * ".pid", stale_age=3) do
+                print(hist.history_file, entry)
+                flush(hist.history_file)
+            end
+        else
+            print(hist.history_file, entry)
+            flush(hist.history_file)
+        end
 
         hist.cur_idx = length(hist.history) + 1
     catch err
