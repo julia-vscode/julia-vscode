@@ -39,6 +39,7 @@ async function main() {
     await our_download('https://cdn.jsdelivr.net/npm/vega@4', 'libs/vega-4/vega.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega@5', 'libs/vega-5/vega.min.js')
     await our_download('https://cdn.jsdelivr.net/npm/vega-embed@6', 'libs/vega-embed/vega-embed.min.js')
+    await our_download('https://cdn.jsdelivr.net/npm/plotly.js@2/dist/plotly.min.js', 'libs/plotly/plotly.min.js')
 
     await our_download('https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js', 'libs/webfont/webfont.js')
 
