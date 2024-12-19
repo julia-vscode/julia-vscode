@@ -121,3 +121,9 @@
 [submodule "scripts/packages/CancellationTokens"]
 	path = scripts/packages/CancellationTokens
 	url = https://github.com/davidanthoff/CancellationTokens.jl
+[submodule "scripts/packages-old/v1.9/JuliaInterpreter"]
+	path = scripts/packages-old/v1.9/JuliaInterpreter
+	url = https://github.com/JuliaDebug/JuliaInterpreter.jl
+[submodule "scripts/packages-old/v1.9/LoweredCodeUtils"]
+	path = scripts/packages-old/v1.9/LoweredCodeUtils
+	url = https://github.com/JuliaDebug/LoweredCodeUtils.jl
