@@ -78,7 +78,7 @@ async function main() {
         'Compat',
         'Crayons',
         'DataStructures',
-        'JuliaFormatter',
+        // 'JuliaFormatter', We need to handle the update to 2.0 first
         // 'URIs', Not compatible with earlier than Julia 1.6 versions
         'Revise',
         'DelimitedFiles',
