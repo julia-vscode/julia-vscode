@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The integrated REPL now respects a user-set active project (e.g. in `additionalArgs` and `startup.jl`) ([#3670](https://github.com/julia-vscode/julia-vscode/pull/3669))
 - Changes to how Jupyter Notebook Metadata is updated ([#3690](https://github.com/julia-vscode/julia-vscode/pull/3690))
 - Fix a bug where non-supported schemes were sent to the LS ([#3700](https://github.com/julia-vscode/julia-vscode/pull/3700))
+- Don't exit VSCodeServer when JSONRPC reports endpoint is closed ([#3674](https://github.com/julia-vscode/julia-vscode/pull/3674))
 
 ## [1.104.0] - 2024-07-29
 ### Fixed

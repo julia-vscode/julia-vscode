@@ -4,6 +4,8 @@ import InteractiveUtils
 is_disconnected_exception(err) = false
 is_disconnected_exception(err::InvalidStateException) = err.state === :closed
 is_disconnected_exception(err::Base.IOError) = true
+# thrown by JSONRPC when the endpoint is :closed
+is_disconnected_exception(err::ErrorException) = err.msg == "Endpoint is not running, the current state is closed."
 is_disconnected_exception(err::CompositeException) = all(is_disconnected_exception, err.exceptions)
 
 function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
