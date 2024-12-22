@@ -135,7 +135,7 @@ try
     end
 
     if debug_mode
-        ENV["JULIA_DEBUG"] = "all"
+        ENV["JULIA_DEBUG"] = "Main,CancellationTokens,CSTParser,JuliaFormatter,JSONRPC,JuliaSyntax,JuliaWorkspaces,LanguageServer,StaticLint,SymbolServer,Salsa,TestItemDetection"
     end
 
     if detached_mode
