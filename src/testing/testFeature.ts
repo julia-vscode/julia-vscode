@@ -1,5 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
-import { uuid } from 'uuidv4'
+import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaExecutablesFeature } from '../juliaexepath'

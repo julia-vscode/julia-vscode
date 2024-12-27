@@ -6,8 +6,9 @@ import * as jlpkgenv from './jlpkgenv'
 import { JuliaExecutablesFeature } from './juliaexepath'
 import * as telemetry from './telemetry'
 import { registerCommand } from './utils'
-
-const tempfs = require('promised-temp').track()
+import { mkdtemp } from 'node:fs/promises'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 
 let g_context: vscode.ExtensionContext = null
 
@@ -22,7 +23,7 @@ async function weave_core(column, selected_format: string = undefined) {
     let source_filename: string
     let output_filename: string
     if (selected_format === undefined) {
-        const temporary_dirname = await tempfs.mkdir('julia-vscode-weave')
+        const temporary_dirname = await mkdtemp(join(tmpdir(), 'julia-vscode-weave-'))
 
         source_filename = path.join(temporary_dirname, 'source-file.jmd')
 

@@ -26,9 +26,6 @@ type JupyterNotebookMetadata = Partial<{
 }>
 
 function getNotebookMetadata(notebook: vscode.NotebookDocument): JupyterNotebookMetadata['metadata'] | undefined{
-    if (notebook.metadata && 'custom' in notebook.metadata){
-        return notebook.metadata.custom?.metadata;
-    }
     return notebook.metadata?.metadata as any;
 }
 
@@ -43,7 +40,6 @@ export class JuliaNotebookFeature {
     >();
     private _outputChannel: vscode.OutputChannel
     private readonly disposables: vscode.Disposable[] = [];
-    private vscodeIpynbApi = undefined;
 
     public pathToCell: Map<string, vscode.NotebookCell> = new Map()
 
@@ -124,9 +120,6 @@ export class JuliaNotebookFeature {
         this._outputChannel = vscode.window.createOutputChannel(
             'Julia Notebook Kernels'
         )
-
-        const ext = vscode.extensions.getExtension('vscode.ipynb')
-        this.vscodeIpynbApi = await ext?.activate()
 
         const juliaVersions =
             await this.juliaExecutableFeature.getJuliaExePathsAsync()
@@ -342,8 +335,17 @@ export class JuliaNotebookFeature {
             },
         }
 
-        if (this.vscodeIpynbApi && !isEqual(getNotebookMetadata(notebook), metadata)) {
-            this.vscodeIpynbApi.setNotebookMetadata(notebook.uri, metadata)
+        if (!isEqual(getNotebookMetadata(notebook), metadata)) {
+            const edit = new vscode.WorkspaceEdit();
+            edit.set(notebook.uri, [vscode.NotebookEdit.updateNotebookMetadata({
+                ...notebook.metadata,
+                metadata: {
+                    ...((notebook.metadata || {}).metadata ?? {}),
+                    ...metadata
+                },
+            })]);
+            return vscode.workspace.applyEdit(edit);
+
         }
     }
 

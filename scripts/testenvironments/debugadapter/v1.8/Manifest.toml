@@ -25,7 +25,7 @@ deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
 [[deps.DebugAdapter]]
-deps = ["Base64", "JSON", "JuliaInterpreter", "Pkg", "Sockets"]
+deps = ["Base64", "JSON", "JuliaInterpreter", "Pkg", "Sockets", "UUIDs"]
 path = "../../../packages/DebugAdapter"
 uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
 version = "3.0.1-DEV"
@@ -56,9 +56,9 @@ version = "1.4.2-DEV"
 
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
-path = "../../../packages/JuliaInterpreter"
+path = "../../../packages-old/v1.9/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.9.34"
+version = "0.9.37"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]

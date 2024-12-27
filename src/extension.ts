@@ -24,8 +24,8 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
+import { TestFeature } from './testing/testFeature'
 import {notifyTypeTextDocumentPublishTests} from './testing/testLSProtocol'
-import {TestFeature} from './testing/testFeature'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
@@ -265,11 +265,11 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             return
         }
 
-        if(semver.gte(juliaExecutable.getVersion(), '1.6.0')) {
+        if(semver.gte(juliaExecutable.getVersion(), '1.10.0')) {
             juliaLSExecutable = juliaExecutable
         }
         else {
-            vscode.window.showErrorMessage('You must have at least Julia 1.6 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            vscode.window.showErrorMessage('You must have at least Julia 1.10 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
             g_startupNotification.hide()
             return
         }
@@ -332,12 +332,13 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
                 scheme
             })
         }
+
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/Project.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/JuliaProject.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/Manifest.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/JuliaManifest.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/.JuliaLint.toml'})
     }
-    selector.push({language: 'toml', pattern: '**/Project.toml'})
-    selector.push({language: 'toml', pattern: '**/JuliaProject.toml'})
-    selector.push({language: 'toml', pattern: '**/Manifest.toml'})
-    selector.push({language: 'toml', pattern: '**/JuliaManifest.toml'})
-    selector.push({language: 'toml', pattern: '**/.JuliaLint.toml'})
 
     if (!g_outputChannel) {
         g_outputChannel = vscode.window.createOutputChannel('Julia Language Server')

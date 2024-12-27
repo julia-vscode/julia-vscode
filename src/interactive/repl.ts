@@ -5,7 +5,7 @@ import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
 import { exec } from 'promisify-child-process'
-import { uuid } from 'uuidv4'
+import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import * as vslc from 'vscode-languageclient/node'
@@ -126,8 +126,8 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     }
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal')
-    const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
-    const debugPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
+    const pipename = generatePipeName(uuidv4(), 'vsc-jl-repl')
+    const debugPipename = generatePipeName(uuidv4(), 'vsc-jl-repldbg')
     const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
     const nthreads = inferJuliaNumThreads()
     const pkgenvpath = await jlpkgenv.getAbsEnvPath()
@@ -243,8 +243,8 @@ function juliaConnector(pipename: string, debugPipename: string, start = false) 
 }
 
 async function connectREPL() {
-    const pipename = generatePipeName(uuid(), 'vsc-jl-repl')
-    const debugPipename = generatePipeName(uuid(), 'vsc-jl-repldbg')
+    const pipename = generatePipeName(uuidv4(), 'vsc-jl-repl')
+    const debugPipename = generatePipeName(uuidv4(), 'vsc-jl-repldbg')
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
     const connectJuliaCode = juliaConnector(pipename, debugPipename, true)
 
