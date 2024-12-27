@@ -15,6 +15,7 @@ import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
+import * as tlsp from './testLSProtocol'
 
 enum TestRunMode {
     Normal,
@@ -35,40 +36,6 @@ function modeAsString(mode: TestRunMode) {
     else {
         throw(new Error(`Invalid mode value.`))
     }
-}
-
-interface TestItemDetail {
-    id: string,
-    label: string
-    range: lsp.Range
-    code?: string
-    code_range?: lsp.Range
-    option_default_imports?: boolean
-    option_tags?: string[]
-    option_setup?: string[]
-}
-
-interface TestSetupDetail {
-    name: string
-    kind: string
-    range: lsp.Range
-    code?: string
-    code_range?: lsp.Range
-}
-
-interface TestErrorDetail {
-    id: string,
-    label: string,
-    range: lsp.Range
-    error: string
-}
-
-interface PublishTestsParams {
-    uri: lsp.URI
-    version: number,
-    testitemdetails: TestItemDetail[]
-    testsetupdetails: TestSetupDetail[]
-    testerrordetails: TestErrorDetail[]
 }
 
 interface TestserverRunTestitemRequestParams {
@@ -107,13 +74,6 @@ interface TestserverRunTestitemRequestParamsReturn {
 //     uri: lsp.URI
 // }
 
-interface GetTestEnvRequestParamsReturn {
-    package_name: string
-    package_uri?: lsp.URI
-    project_uri?: lsp.URI
-    env_content_hash?: number
-}
-
 interface TestsetupDetails {
     name: string
     kind: string
@@ -127,8 +87,6 @@ interface TestserverUpdateTestsetupsRequestParams {
     testsetups: TestsetupDetails[]
 }
 
-export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams,void>('julia/publishTests')
-// const requestGetTestEnv = new lsp.ProtocolRequestType<GetTestEnvRequestParams,GetTestEnvRequestParamsReturn,void,void,void>('julia/getTestEnv')
 const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
 const requestTypeUpdateTestsetups = new rpc.RequestType<TestserverUpdateTestsetupsRequestParams,null,void>('testserver/updateTestsetups')
 const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
@@ -169,7 +127,7 @@ export class TestProcess {
         return this.testRun!==null
     }
 
-    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, project_uri: lsp.URI | null, package_uri: lsp.URI | null, packageName: string, testEnvContentHash: number, testsetups: Map<vscode.Uri,TestSetupDetail[]>) {
+    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, project_uri: lsp.URI | null, package_uri: lsp.URI | null, packageName: string, testEnvContentHash: number, testsetups: Map<vscode.Uri,tlsp.TestSetupDetail[]>) {
         this.project_uri = project_uri
         this.package_uri = package_uri
         this.packageName = packageName
@@ -304,7 +262,7 @@ export class TestProcess {
         this.process.kill()
     }
 
-    async updateSetups(testsetups: Map<vscode.Uri,TestSetupDetail[]>) {
+    async updateSetups(testsetups: Map<vscode.Uri,tlsp.TestSetupDetail[]>) {
         const setups: TestsetupDetails[]  = []
 
         for(const i of testsetups.entries()) {
@@ -314,8 +272,8 @@ export class TestProcess {
                         name: j.name,
                         kind: j.kind,
                         uri: i[0].toString(),
-                        line: j.code_range.start.line+1, // We are 0 based in the extension, but 1 based in TestItemServer
-                        column: j.code_range.start.character+1, // We are 0 based in the extension, but 1 based in TestItemServer
+                        line: j.codeRange.start.line+1, // We are 0 based in the extension, but 1 based in TestItemServer
+                        column: j.codeRange.start.character+1, // We are 0 based in the extension, but 1 based in TestItemServer
                         code: j.code
                     }
                 )
@@ -438,8 +396,8 @@ export class TestProcess {
 
 export class TestFeature {
     private controller: vscode.TestController
-    private testitems: WeakMap<vscode.TestItem, TestItemDetail> = new WeakMap<vscode.TestItem, TestItemDetail>()
-    private testsetups: Map<vscode.Uri,TestSetupDetail[]> = new Map<vscode.Uri,TestSetupDetail[]>()
+    private testitems: WeakMap<vscode.TestItem, tlsp.TestItemDetail> = new WeakMap<vscode.TestItem, tlsp.TestItemDetail>()
+    private testsetups: Map<vscode.Uri,tlsp.TestSetupDetail[]> = new Map<vscode.Uri,tlsp.TestSetupDetail[]>()
     private testProcesses: Map<string, TestProcess[]> = new Map<string, TestProcess[]>()
     public debugPipename2TestProcess: Map<string, TestProcess> = new Map<string, TestProcess>()
     private outputChannel: vscode.OutputChannel
@@ -532,7 +490,7 @@ export class TestFeature {
         }
     }
 
-    public publishTestsHandler(params: PublishTestsParams) {
+    public publishTestsHandler(params: tlsp.PublishTestsParams) {
         const uri = vscode.Uri.parse(params.uri)
 
         const niceFilename = vscode.workspace.asRelativePath(uri.fsPath, false)
@@ -545,7 +503,7 @@ export class TestFeature {
             return
         }
 
-        if (params.testitemdetails.length > 0 || params.testerrordetails.length > 0) {
+        if (params.testItemDetails.length > 0 || params.testErrorDetails.length > 0) {
             // First see whether we already have the workspace folder
             let currentFolder = this.controller.items.get(workspaceFolder.name)
             let currentUri = workspaceFolder.uri
@@ -574,16 +532,16 @@ export class TestFeature {
             fileTestitem.children.forEach(i=>this.testitems.delete(i))
 
             fileTestitem.children.replace([
-                ...params.testitemdetails.map(i => {
+                ...params.testItemDetails.map(i => {
                     const testitem = this.controller.createTestItem(i.id, i.label, uri)
-                    testitem.tags = i.option_tags.map(j => new vscode.TestTag(j))
+                    testitem.tags = i.optionTags.map(j => new vscode.TestTag(j))
                     testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
 
                     this.testitems.set(testitem, i)
 
                     return testitem
                 }),
-                ...params.testerrordetails.map(i => {
+                ...params.testErrorDetails.map(i => {
                     const testitem = this.controller.createTestItem(i.id, i.label, uri)
                     testitem.error = i.error
                     testitem.range = new vscode.Range(i.range.start.line, i.range.start.character, i.range.end.line, i.range.end.character)
@@ -630,7 +588,7 @@ export class TestFeature {
             }
         }
 
-        this.testsetups.set(uri, params.testsetupdetails)
+        this.testsetups.set(uri, params.testSetupDetails)
         for(const procs of this.testProcesses.values()) {
             for(const proc of procs) {
                 proc.updateSetups(this.testsetups)
@@ -647,13 +605,13 @@ export class TestFeature {
         }
     }
 
-    stringifyTestItemDetail(testEnv: GetTestEnvRequestParamsReturn, coverage: boolean) {
-        return JSON.stringify({projectPath: testEnv.project_uri, packagePath: testEnv.package_uri, packageName: testEnv.package_name, coverage: coverage})
+    stringifyTestItemDetail(testEnv: tlsp.GetTestEnvRequestParamsReturn, coverage: boolean) {
+        return JSON.stringify({projectPath: testEnv.projectUri, packagePath: testEnv.packageUri, packageName: testEnv.packageName, coverage: coverage})
     }
 
-    async launchNewProcess(testEnv: GetTestEnvRequestParamsReturn, coverage: boolean) {
+    async launchNewProcess(testEnv: tlsp.GetTestEnvRequestParamsReturn, coverage: boolean) {
         const testProcess = new TestProcess(coverage)
-        await testProcess.start(this.context, this.executableFeature, this.outputChannel, testEnv.project_uri, testEnv.package_uri, testEnv.package_name, testEnv.env_content_hash, this.testsetups)
+        await testProcess.start(this.context, this.executableFeature, this.outputChannel, testEnv.projectUri, testEnv.packageUri, testEnv.packageName, testEnv.envContentHash, this.testsetups)
         this.workspaceFeature.addTestProcess(testProcess)
 
         if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv, coverage))) {
@@ -673,7 +631,7 @@ export class TestFeature {
         return testProcess
     }
 
-    async getFreeTestProcess(testEnv: GetTestEnvRequestParamsReturn, coverage) {
+    async getFreeTestProcess(testEnv: tlsp.GetTestEnvRequestParamsReturn, coverage) {
         if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv, coverage))) {
             const testProcess = await this.launchNewProcess(testEnv, coverage)
 
@@ -690,7 +648,7 @@ export class TestFeature {
                     if (!testProcess.isConnected()) {
                         needsNewProcess = true
                     }
-                    else if(testProcess.testEnvContentHash !== testEnv.env_content_hash) {
+                    else if(testProcess.testEnvContentHash !== testEnv.envContentHash) {
                         await testProcess.kill()
 
                         this.outputChannel.appendLine('RESTARTING TEST SERVER BECAUSE ENVIRONMENT CHANGED')
@@ -797,7 +755,7 @@ export class TestFeature {
 
             const executionPromises = []
 
-            const testEnvPerFile = new Map<vscode.Uri,GetTestEnvRequestParamsReturn>()
+            const testEnvPerFile = new Map<vscode.Uri,tlsp.GetTestEnvRequestParamsReturn>()
 
             const debugProcesses = new Set<TestProcess>()
 
@@ -812,13 +770,13 @@ export class TestFeature {
                         testRun.errored(i, new vscode.TestMessage(i.error))
                     }
                     else {
-                        let testEnv: GetTestEnvRequestParamsReturn = undefined
+                        let testEnv: tlsp.GetTestEnvRequestParamsReturn = undefined
 
                         if (testEnvPerFile.has(i.uri)) {
                             testEnv = testEnvPerFile.get(i.uri)
                         }
                         else {
-                            testEnv = await this.languageClient.sendRequest<GetTestEnvRequestParamsReturn>('julia/getTestEnv', {uri: i.uri.toString()})
+                            testEnv = await this.languageClient.sendRequest(tlsp.requestTypJuliaGetTestEnv, {uri: i.uri.toString()})
                             testEnvPerFile.set(i.uri, testEnv)
                         }
 
@@ -843,10 +801,10 @@ export class TestFeature {
 
                                 const location = {
                                     uri: i.uri.toString(),
-                                    range: details.code_range
+                                    range: details.codeRange
                                 }
 
-                                const executionPromise = testProcess.executeTest(i, testEnv.package_name, details.option_default_imports, details.option_setup,  location, code, mode, testRun, this.someTestItemFinished)
+                                const executionPromise = testProcess.executeTest(i, testEnv.packageName, details.optionDefaultImports, details.optionSetup,  location, code, mode, testRun, this.someTestItemFinished)
 
                                 executionPromises.push(executionPromise)
                             }
