@@ -296,7 +296,7 @@ export class JuliaTestController {
 
         const juliaExec = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
-        const testRunId = uuid()
+        const testRunId = uuidv4()
         this.testRuns.set(testRunId, {
             testRun: testRun,
             testItems: new Map(all_the_tests.map(i=>[i.testItem.id, i.testItem]))
