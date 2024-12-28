@@ -1,21 +1,18 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
-import * as lsp from 'vscode-languageserver-protocol'
-import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
-import * as net from 'net'
 import * as rpc from 'vscode-jsonrpc/node'
-import { Subject } from 'await-notify'
 import { JuliaExecutablesFeature } from '../juliaexepath'
 import * as path from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
-import { getAbsEnvPath } from '../jlpkgenv'
-import { TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
+import { TestControllerNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
-import { DebugConfigTreeProvider } from '../debugger/debugConfig'
+import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notficiationTypeTestRunFinished, notificationTypeAppendOutput, notificationTypeLaunchDebuggers, notificationTypeTestProcessCreated, notificationTypeTestProcessStatusChanged, notificationTypeTestProcessTerminated, requestTypeCancelTestRun, requestTypeCreateTestRun, requestTypeTerminateTestProcess } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
+import { DebugConfigTreeProvider } from '../debugger/debugConfig'
+import { inferJuliaNumThreads, registerCommand } from '../utils'
 
 enum TestRunMode {
     Normal,
@@ -38,456 +35,452 @@ function modeAsString(mode: TestRunMode) {
     }
 }
 
-interface TestserverRunTestitemRequestParams {
-    uri: string
-    name: string
-    packageName: string
-    useDefaultUsings: boolean
-    testsetups: string[]
-    line: number
-    column: number
-    code: string
-    mode: string
-    coverageRoots?: string[]
-}
-
-interface TestMessage {
-    message: string
-    expectedOutput?: string,
-    actualOutput?: string,
-    location: lsp.Location
-}
-
-interface FileCoverage {
-    uri: string
-    coverage: (number | null)[]
-}
-
-interface TestserverRunTestitemRequestParamsReturn {
-    status: string
-    messages?: TestMessage[],
-    duration?: number,
-    coverage?: FileCoverage[]
-}
-
-// interface GetTestEnvRequestParams {
-//     uri: lsp.URI
-// }
-
-interface TestsetupDetails {
-    name: string
-    kind: string
-    uri: lsp.URI
-    line: number
-    column: number
-    code: string
-}
-
-interface TestserverUpdateTestsetupsRequestParams {
-    testsetups: TestsetupDetails[]
-}
-
-const requestTypeExecuteTestitem = new rpc.RequestType<TestserverRunTestitemRequestParams, TestserverRunTestitemRequestParamsReturn, void>('testserver/runtestitem')
-const requestTypeUpdateTestsetups = new rpc.RequestType<TestserverUpdateTestsetupsRequestParams,null,void>('testserver/updateTestsetups')
-const requestTypeRevise = new rpc.RequestType<void, string, void>('testserver/revise')
-
 interface OurFileCoverage extends vscode.FileCoverage {
     detailedCoverage: vscode.StatementCoverage[]
 }
 
+export class JuliaTestProcess {
+    private status: string
 
-export class TestProcess {
+    private _onStatusChanged = new vscode.EventEmitter<void>()
+    public onStatusChanged = this._onStatusChanged.event
 
+    constructor(
+        public id: string,
+        private controller: JuliaTestController) {
+        this.status = 'Created'
+    }
 
-    private process: ChildProcessWithoutNullStreams
-    private connection: rpc.MessageConnection
-    public testRun: vscode.TestRun | null = null
-    public launchError: Error | null = null
+    setStatus(status: string) {
+        this.status = status
+        this._onStatusChanged.fire()
+    }
 
-    private plannedKill = false
+    public getStatus() {
+        return this.status
+    }
 
+    kill() {
+        this.controller.killTestProcess(this.id)
+    }
+}
+
+export class JuliaTestController {
     private _onKilled = new vscode.EventEmitter<void>()
     public onKilled = this._onKilled.event
 
-    public project_uri: lsp.URI | null = null
-    public package_uri: lsp.URI | null = null
-    public packageName: string | null = null
-    public testEnvContentHash: number
+    kill() {
+        this.process.kill()
 
-    public debugPipename: string = generatePipeName(uuidv4(), 'vsc-jl-td')
-    public activeDebugSession: vscode.DebugSession | null = null
+        this._onKilled.fire()
 
-    constructor(public coverage: boolean) {}
+        for(const i of this.testRuns.values()) {
+            i.testRun.end()
+        }
 
-    isConnected() {
-        return this.connection
+        this.testFeature.testControllerTerminated()
     }
 
-    isBusy() {
-        return this.testRun!==null
+    private connection: rpc.MessageConnection
+    private process: ChildProcessWithoutNullStreams
+    private testRuns = new Map<string,{testRun: vscode.TestRun, testItems: Map<string,vscode.TestItem>}>()
+    private testProcesses = new Map<string,JuliaTestProcess>()
+
+    constructor(
+        private testFeature: TestFeature,
+        private juliaExecutablesFeature: JuliaExecutablesFeature,
+        private workspaceFeature: WorkspaceFeature,
+        private context: vscode.ExtensionContext,
+        private outputChannel: vscode.OutputChannel,
+        private compiledProvider: DebugConfigTreeProvider) {
+
     }
 
-    public async start(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature, outputChannel: vscode.OutputChannel, project_uri: lsp.URI | null, package_uri: lsp.URI | null, packageName: string, testEnvContentHash: number, testsetups: Map<vscode.Uri,tlsp.TestSetupDetail[]>) {
-        this.project_uri = project_uri
-        this.package_uri = package_uri
-        this.packageName = packageName
-        this.testEnvContentHash = testEnvContentHash
+    public ready() {
+        return this.process
+    }
 
-        const pipename = generatePipeName(uuidv4(), 'vsc-jl-ts')
+    killTestProcess(id: string) {
+        this.connection.sendRequest(requestTypeTerminateTestProcess, {testProcessId: id})
+    }
 
-        const connected = new Subject()
+    public async start() {
+        this.workspaceFeature.addTestController(this)
 
-        const server = net.createServer((socket: net.Socket) => {
-            // socket.on('close', hadError => {
-            //     g_onExit.fire(hadError)
-            //     g_connection = undefined
-            //     server.close()
-            // })
-
-            this.connection = rpc.createMessageConnection(
-                new rpc.StreamMessageReader(socket),
-                new rpc.StreamMessageWriter(socket)
-            )
-
-            this.connection.listen()
-
-            connected.notify()
-        })
-
-        server.listen(pipename)
-
-        const juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
-
-        const pkgenvpath = await getAbsEnvPath()
+        // TODO Make this much more robust
+        const exePaths = await this.juliaExecutablesFeature.getJuliaExePathsAsync()
+        const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
+        const juliaExecutable = releaseChannelExe[0]
 
         const jlArgs = [
-            `--project=${pkgenvpath}`,
             '--startup-file=no',
             '--history-file=no',
             '--depwarn=no'
         ]
-
-        if(this.coverage) {
-            // TODO Figure out whether we can still use this
-            if(package_uri && false) {
-                jlArgs.push(`--code-coverage=@${vscode.Uri.parse(package_uri).fsPath}`)
-            }
-            else {
-                jlArgs.push('--code-coverage=user')
-            }
-        }
-
-        const nthreads = inferJuliaNumThreads()
-
-        if (nthreads==='auto') {
-            jlArgs.push('--threads=auto')
-        }
-
-        const jlEnv = {
-            JULIA_REVISE: 'off'
-        }
-
-        if (nthreads!=='auto' && nthreads!=='') {
-            jlEnv['JULIA_NUM_THREADS'] = nthreads
-        }
 
         this.process = spawn(
             juliaExecutable.file,
             [
                 ...juliaExecutable.args,
                 ...jlArgs,
-                path.join(context.extensionPath, 'scripts', 'testserver', 'testserver_main.jl'),
-                pipename,
-                this.debugPipename,
-                `v:${project_uri ? vscode.Uri.parse(project_uri).fsPath : ''}`,
-                `v:${package_uri ? vscode.Uri.parse(package_uri).fsPath : ''}`,
-                `v:${packageName}`,
+                path.join(this.context.extensionPath, 'scripts', 'apps', 'testitemcontroller_main.jl'),
                 getCrashReportingPipename()
             ],
             {
-                env: {
-                    ...process.env,
-                    ...jlEnv
-                }
+                detached: false
             }
         )
 
-        this.process.stdout.on('data', data => {
-            const dataAsString = String(data)
-            if (this.testRun) {
-                this.testRun.appendOutput(dataAsString.split('\n').join('\n\r'))
-            }
+        this.connection = rpc.createMessageConnection(this.process.stdout, this.process.stdin)
+        this.connection.onNotification(notficiationTypeTestRunFinished, i=>{
+            const testRun = this.testRuns.get(i.testRunId)
+            if(i.coverage) {
+                for(const file of i.coverage) {
+                    const uri = vscode.Uri.parse(file.uri)
 
-            outputChannel.append(dataAsString)
+                    if (vscode.workspace.workspaceFolders.filter(j => file.uri.startsWith(j.uri.toString())).length>0) {
+                        const statementCoverage = file.coverage.map((value,index)=>{
+                            if(value!==null) {
+                                return new vscode.StatementCoverage(value, new vscode.Position(index, 0))
+                            }
+                            else {
+                                return null
+                            }
+                        }).filter(i=>i!==null)
+
+                        testRun.testRun.addCoverage(vscode.FileCoverage.fromDetails(uri, statementCoverage))
+                    }
+                }
+            }
+            testRun.testRun.end()
+            this.testRuns.delete(i.testRunId)
         })
+        this.connection.onNotification(notficiationTypeTestItemStarted, i=>{
+            const testRun = this.testRuns.get(i.testRunId)
+            const testItem = testRun.testItems.get(i.testItemId)
+
+            testRun.testRun.started(testItem)
+        })
+        this.connection.onNotification(notficiationTypeTestItemErrored, i=>{
+            const testRun = this.testRuns.get(i.testRunId)
+            const testItem = testRun.testItems.get(i.testItemId)
+
+            testRun.testRun.errored(testItem, i.messages.map(i=>{
+                const msg = new vscode.TestMessage(i.message)
+                if(i.uri && i.line && i.column) {
+                    msg.location = new vscode.Location(vscode.Uri.parse(i.uri), new vscode.Position(i.line-1, i.column-1))
+                }
+                return msg
+            }), i.duration)
+        })
+        this.connection.onNotification(notficiationTypeTestItemFailed, i=>{
+            const testRun = this.testRuns.get(i.testRunId)
+            const testItem = testRun.testItems.get(i.testItemId)
+
+            testRun.testRun.failed(testItem, i.messages.map(i=>{
+                const msg = new vscode.TestMessage(i.message)
+                msg.actualOutput = i.actualOutput
+                msg.expectedOutput = i.expectedOutput
+                if (i.uri && i.line && i.column) {
+                    msg.location = new vscode.Location(vscode.Uri.parse(i.uri), new vscode.Position(i.line-1, i.column-1))
+                }
+                return msg
+            }), i.duration)
+        })
+        this.connection.onNotification(notficiationTypeTestItemPassed, i=>{
+            const testRun = this.testRuns.get(i.testRunId)
+            const testItem = testRun.testItems.get(i.testItemId)
+
+            testRun.testRun.passed(testItem, i.duration)
+        })
+        this.connection.onNotification(notficiationTypeTestItemSkipped, i=>{
+            const testRun = this.testRuns.get(i.testRunId)
+            const testItem = testRun.testItems.get(i.testItemId)
+
+            testRun.testRun.skipped(testItem)
+        })
+        this.connection.onNotification(notificationTypeAppendOutput, i=>{
+            const testRun = this.testRuns.get(i.testRunId)
+            const testItem = i.testItemId ? testRun.testItems.get(i.testItemId) : undefined
+
+            testRun.testRun.appendOutput(i.output, undefined, testItem)
+        })
+        this.connection.onNotification(notificationTypeTestProcessCreated, i=>{
+            const tp = new JuliaTestProcess(i.id, this)
+            this.testProcesses.set(i.id, tp)
+            this.workspaceFeature.addTestProcess(tp)
+        })
+        this.connection.onNotification(notificationTypeTestProcessStatusChanged, i=>{
+            const tp = this.testProcesses.get(i.id)
+            tp.setStatus(i.status)
+        })
+        this.connection.onNotification(notificationTypeTestProcessTerminated, i=>{
+            const tp = this.testProcesses.get(i)
+            this.workspaceFeature.removeTestProcess(tp)
+            this.testProcesses.delete(i)
+        })
+        this.connection.onNotification(notificationTypeLaunchDebuggers, async i=>{
+            const testRun = this.testRuns.get(i.testRunId)
+            await Promise.all(
+                i.debugPipeNames.map(j=>{
+                    vscode.debug.startDebugging(
+                        undefined,
+                        {
+                            type: 'julia',
+                            request: 'attach',
+                            name: 'Julia Testitem',
+                            pipename: j,
+                            stopOnEntry: false,
+                            compiledModulesOrFunctions: this.compiledProvider.getCompiledItems(),
+                            compiledMode: this.compiledProvider.compiledMode
+                        },
+                        {
+                            testRun: testRun.testRun
+                        }
+                    )
+                })
+            )
+        })
+        this.connection.listen()
 
         this.process.stderr.on('data', data => {
             const dataAsString = String(data)
-            if (this.testRun) {
-                this.testRun.appendOutput(dataAsString.split('\n').join('\n\r'))
-            }
-
-            outputChannel.append(dataAsString)
+            this.outputChannel.append(dataAsString)
         })
 
         this.process.on('exit', (code: number, signal: NodeJS.Signals) => {
+            this.process = undefined
+
             if(this.connection) {
                 this.connection.dispose()
                 this.connection = null
             }
-            this._onKilled.fire()
+            // this._onKilled.fire()
         })
 
         this.process.on('error', (err: Error) => {
-            connected.notify()
             handleNewCrashReportFromException(err, 'Extension')
-            this.launchError = err
+            // this.launchError = err
         })
-
-        console.log(this.process.killed)
-
-        await connected.wait()
-
-        await this.updateSetups(testsetups)
-
-        console.log('OK')
     }
 
-    public async revise() {
-        return await this.connection.sendRequest(requestTypeRevise, undefined)
-    }
+    public async createTestRun(
+        testRun: vscode.TestRun,
+        mode: TestRunMode,
+        maxProcessCount: number,
+        all_the_tests: {testItem: vscode.TestItem, details: tlsp.TestItemDetail, testEnv: tlsp.GetTestEnvRequestParamsReturn}[],
+        testSetups: {
+            packageUri: string,
+            name: string,
+            kind: string,
+            uri: string,
+            line: number,
+            column: number
+            code: string
+        }[]) {
 
-    public async kill() {
-        this.plannedKill = true
-        this.process.kill()
-    }
+        // testRun.token.onCancellationRequested()
+        // testRun.token.onCancellationRequested(() => {
+        //     for( const ps of this.testProcesses) {
+        //         for( const p of ps[1]) {
+        //             if(p.testRun === testRun && p.isBusy()) {
+        //                 p.kill()
+        //             }
+        //         }
+        //     }
+        //     this.someTestItemFinished.notifyAll()
+        // })
 
-    async updateSetups(testsetups: Map<vscode.Uri,tlsp.TestSetupDetail[]>) {
-        const setups: TestsetupDetails[]  = []
+        const nthreads = inferJuliaNumThreads()
 
-        for(const i of testsetups.entries()) {
-            for(const j of i[1]) {
-                setups.push(
-                    {
-                        name: j.name,
-                        kind: j.kind,
-                        uri: i[0].toString(),
-                        line: j.codeRange.start.line+1, // We are 0 based in the extension, but 1 based in TestItemServer
-                        column: j.codeRange.start.character+1, // We are 0 based in the extension, but 1 based in TestItemServer
-                        code: j.code
-                    }
-                )
-            }
-        }
+        const juliaExec = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
-        await this.connection.sendRequest(
-            requestTypeUpdateTestsetups,
-            {
-                testsetups: setups
-            }
-        )
-    }
-
-    public async executeTest(testItem: vscode.TestItem, packageName: string, useDefaultUsings: boolean, testsetups: string[], location: lsp.Location, code: string, mode: TestRunMode, testRun: vscode.TestRun, someTestItemFinished: Subject) {
-        this.testRun = testRun
-
-        try {
-            const result = await this.connection.sendRequest(
-                requestTypeExecuteTestitem,
-                {
-                    uri: location.uri,
-                    name: testItem.label,
-                    packageName: packageName,
-                    useDefaultUsings: useDefaultUsings,
-                    testsetups: testsetups,
-                    line: location.range.start.line + 1, // We are 0 based in the extension, but 1 based in TestItemServer
-                    column: location.range.start.character + 1, // We are 0 based in the extension, but 1 based in TestItemServer
-                    code: code,
-                    mode: modeAsString(mode),
-                    coverageRoots: (mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders) ? undefined : vscode.workspace.workspaceFolders.map(i=>i.uri.toString())
+        const testRunId = uuidv4()
+        this.testRuns.set(testRunId, {
+            testRun: testRun,
+            testItems: new Map(all_the_tests.map(i=>[i.testItem.id, i.testItem]))
+        })
+        const params =  {
+            testRunId: testRunId,
+            maxProcessCount: maxProcessCount,
+            testItems: all_the_tests.map(i=>{
+                return {
+                    id: i.testItem.id,
+                    uri: i.testItem.uri.toString(),
+                    label: i.testItem.label,
+                    ...i.testEnv,
+                    juliaCmd: juliaExec.file,
+                    juliaArgs: juliaExec.args,
+                    juliaNumThreads: nthreads,
+                    juliaEnv: {},
+                    useDefaultUsings: i.details.optionDefaultImports,
+                    testSetups: i.details.optionSetup,
+                    line: i.details.codeRange.start.line + 1,
+                    column: i.details.codeRange.start.character + 1,
+                    code: i.details.code,
+                    mode: modeAsString(mode)
                 }
-            )
-
-            if (result.status === 'passed') {
-                if(result.coverage) {
-                    for(const file of result.coverage) {
-                        const uri = vscode.Uri.parse(file.uri)
-
-                        if (vscode.workspace.workspaceFolders.filter(j => file.uri.startsWith(j.uri.toString())).length>0) {
-                            const statementCoverage = file.coverage.map((value,index)=>{
-                                if(value!==null) {
-                                    return new vscode.StatementCoverage(value, new vscode.Position(index, 0))
-                                }
-                                else {
-                                    return null
-                                }
-                            }).filter(i=>i!==null)
-
-                            testRun.addCoverage(vscode.FileCoverage.fromDetails(uri, statementCoverage))
-                        }
-                    }
-                }
-
-                testRun.passed(testItem, result.duration)
-            }
-            else if (result.status === 'errored') {
-                const message = new vscode.TestMessage(result.messages[0].message)
-                message.location = new vscode.Location(vscode.Uri.parse(result.messages[0].location.uri), new vscode.Position(result.messages[0].location.range.start.line-1, result.messages[0].location.range.start.character-1))
-                testRun.errored(testItem, message, result.duration)
-            }
-            else if (result.status === 'failed') {
-                const messages = result.messages.map(i => {
-                    const message = new vscode.TestMessage(i.message)
-                    message.location = new vscode.Location(vscode.Uri.parse(i.location.uri), new vscode.Position(i.location.range.start.line-1, i.location.range.start.character-1))
-                    if (i.actualOutput !== undefined && i.expectedOutput !== undefined) {
-                        message.actualOutput = i.actualOutput
-                        message.expectedOutput = i.expectedOutput
-                    }
-                    return message
-                })
-                testRun.failed(testItem, messages, result.duration)
-            }
-            else {
-                throw(new Error(`Unknown test result status ${result.status}.`))
-            }
-
-            this.testRun = null
-
-            someTestItemFinished.notifyAll()
+            }),
+            testSetups: testSetups,
+            coverageRootUris: (mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders) ? undefined : vscode.workspace.workspaceFolders.map(i=>i.uri.toString())
         }
-        catch (err) {
-            if((err.code === -32097 && testRun.token.isCancellationRequested) || (this.plannedKill)) {
-                testRun.skipped(testItem)
-                this.kill()
-            }
-            else {
-                const message = new vscode.TestMessage('The test process crashed while running this test.')
-                testRun.errored(testItem, message)
+        await this.connection.sendRequest(requestTypeCreateTestRun, params)
 
-                this.kill()
-            }
-        }
-    }
-
-    public async startDebugging(compiledProvider) {
-        await vscode.debug.startDebugging(
-            undefined,
-            {
-                type: 'julia',
-                request: 'attach',
-                name: 'Julia Testitem',
-                pipename: this.debugPipename,
-                stopOnEntry: false,
-                compiledModulesOrFunctions: compiledProvider.getCompiledItems(),
-                compiledMode: compiledProvider.compiledMode
-            },
-            {
-                testRun: this.testRun
-            }
-        )
-    }
-
-    stopDebugging() {
-        if(this.activeDebugSession) {
-            vscode.debug.stopDebugging(this.activeDebugSession)
-        }
+        testRun.token.onCancellationRequested(()=>{
+            this.connection.sendRequest(requestTypeCancelTestRun, {testRunId: testRunId})
+        })
     }
 }
+
+// export class TestProcess {
+
+
+//     private process: ChildProcessWithoutNullStreams
+//     private connection: rpc.MessageConnection
+//     public testRun: vscode.TestRun | null = null
+//     public launchError: Error | null = null
+
+//     private plannedKill = false
+
+//     private _onKilled = new vscode.EventEmitter<void>()
+//     public onKilled = this._onKilled.event
+
+//     public project_uri: lsp.URI | null = null
+//     public package_uri: lsp.URI | null = null
+//     public packageName: string | null = null
+//     public testEnvContentHash: number
+
+//     public debugPipename: string = generatePipeName(uuid(), 'vsc-jl-td')
+//     public activeDebugSession: vscode.DebugSession | null = null
+
+//     constructor(public coverage: boolean) {}
+
+//     isConnected() {
+//         return this.connection
+//     }
+
+//     isBusy() {
+//         return this.testRun!==null
+//     }
+
+
+
+//         const nthreads = inferJuliaNumThreads()
+
+//         if (nthreads==='auto') {
+//             jlArgs.push('--threads=auto')
+//         }
+
+//         const jlEnv = {
+//             JULIA_REVISE: 'off'
+//         }
+
+//         if (nthreads!=='auto' && nthreads!=='') {
+//             jlEnv['JULIA_NUM_THREADS'] = nthreads
+//         }
+
+
+//     stopDebugging() {
+//         if(this.activeDebugSession) {
+//             vscode.debug.stopDebugging(this.activeDebugSession)
+//         }
+//     }
+// }
 
 export class TestFeature {
     private controller: vscode.TestController
     private testitems: WeakMap<vscode.TestItem, tlsp.TestItemDetail> = new WeakMap<vscode.TestItem, tlsp.TestItemDetail>()
     private testsetups: Map<vscode.Uri,tlsp.TestSetupDetail[]> = new Map<vscode.Uri,tlsp.TestSetupDetail[]>()
-    private testProcesses: Map<string, TestProcess[]> = new Map<string, TestProcess[]>()
-    public debugPipename2TestProcess: Map<string, TestProcess> = new Map<string, TestProcess>()
-    private outputChannel: vscode.OutputChannel
-    private someTestItemFinished = new Subject()
+    // public debugPipename2TestProcess: Map<string, TestProcess> = new Map<string, TestProcess>()
+    // private outputChannel: vscode.OutputChannel
+    // private someTestItemFinished = new Subject()
     private cpuLength: number | null = null
     private languageClient: vslc.LanguageClient = null
 
+    private juliaTestitemControllerOutputChannel: vscode.OutputChannel | undefined = undefined
+    private juliaTestController: JuliaTestController = undefined
+
     constructor(private context: vscode.ExtensionContext, private executableFeature: JuliaExecutablesFeature, private workspaceFeature: WorkspaceFeature,private compiledProvider: DebugConfigTreeProvider) {
-        try {
-            this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
+        // this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
+        this.juliaTestitemControllerOutputChannel = vscode.window.createOutputChannel('Julia Test Item Controller')
 
-            this.controller = vscode.tests.createTestController(
-                'juliaTests',
-                'Julia Tests'
-            )
+        this.controller = vscode.tests.createTestController(
+            'juliaTests',
+            'Julia Tests'
+        )
 
-            this.controller.createRunProfile(
-                'Run',
-                vscode.TestRunProfileKind.Run,
-                async (request, token) => {
-                    try {
-                        await this.runHandler(request, TestRunMode.Normal, token)
-                    }
-                    catch (err) {
-                        handleNewCrashReportFromException(err, 'Extension')
-                        throw (err)
-                    }
-                },
-                true
-            )
-
-            this.controller.createRunProfile(
-                'Debug',
-                vscode.TestRunProfileKind.Debug,
-                async (request, token) => {
-                    try {
-                        await this.runHandler(request, TestRunMode.Debug, token)
-                    }
-                    catch (err) {
-                        handleNewCrashReportFromException(err, 'Extension')
-                        throw (err)
-                    }
-                },
-                false
-            )
-
-            const coverage_profile = this.controller.createRunProfile('Run with coverage', vscode.TestRunProfileKind.Coverage, async (request, token) => {
+        this.controller.createRunProfile(
+            'Run',
+            vscode.TestRunProfileKind.Run,
+            async (request, token) => {
                 try {
-                    await this.runHandler(request, TestRunMode.Coverage, token)
+                    await this.runHandler(request, TestRunMode.Normal, token)
                 }
                 catch (err) {
                     handleNewCrashReportFromException(err, 'Extension')
                     throw (err)
                 }
-            }, true)
+            },
+            true
+        )
 
-            coverage_profile.loadDetailedCoverage = async (testRun, fileCoverage: OurFileCoverage, token) => {
-                return fileCoverage.detailedCoverage
+        this.controller.createRunProfile(
+            'Debug',
+            vscode.TestRunProfileKind.Debug,
+            async (request, token) => {
+                try {
+                    await this.runHandler(request, TestRunMode.Debug, token)
+                }
+                catch (err) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                    throw (err)
+                }
+            },
+            false
+        )
+
+        const coverage_profile = this.controller.createRunProfile('Run with coverage', vscode.TestRunProfileKind.Coverage, async (request, token) => {
+            try {
+                await this.runHandler(request, TestRunMode.Coverage, token)
             }
+            catch (err) {
+                handleNewCrashReportFromException(err, 'Extension')
+                throw (err)
+            }
+        }, true)
 
-            context.subscriptions.push(
-                registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
-                    node.stop()
-                )
+        coverage_profile.loadDetailedCoverage = async (testRun, fileCoverage: OurFileCoverage, token) => {
+            return fileCoverage.detailedCoverage
+        }
+
+        context.subscriptions.push(
+            registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) =>
+                node.stop()
+            ),
+            registerCommand('language-julia.stopTestController', (node: TestControllerNode) =>
+                node.stop()
             )
+        )
 
-            vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
-                if(session.configuration.pipename && this.debugPipename2TestProcess.has(session.configuration.pipename)) {
-                    const testprocess = this.debugPipename2TestProcess.get(session.configuration.pipename)
-                    testprocess.activeDebugSession = session
-                }
-            })
+        // vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
+        //     if(session.configuration.pipename && this.debugPipename2TestProcess.has(session.configuration.pipename)) {
+        //         const testprocess = this.debugPipename2TestProcess.get(session.configuration.pipename)
+        //         testprocess.activeDebugSession = session
+        //     }
+        // })
 
-            vscode.debug.onDidTerminateDebugSession((session: vscode.DebugSession) => {
-                if(session.configuration.pipename && this.debugPipename2TestProcess.has(session.configuration.pipename)) {
-                    const testprocess = this.debugPipename2TestProcess.get(session.configuration.pipename)
-                    testprocess.activeDebugSession = null
-                }
-            })
+        // vscode.debug.onDidTerminateDebugSession((session: vscode.DebugSession) => {
+        //     if(session.configuration.pipename && this.debugPipename2TestProcess.has(session.configuration.pipename)) {
+        //         const testprocess = this.debugPipename2TestProcess.get(session.configuration.pipename)
+        //         testprocess.activeDebugSession = null
+        //     }
+        // })
 
-            this.cpuLength = cpus().length
+        this.cpuLength = cpus().length
 
-            context.subscriptions.push(onSetLanguageClient(languageClient => {
-                this.languageClient = languageClient
-            }))
-        }
-        catch (err) {
-            handleNewCrashReportFromException(err, 'Extension')
-            throw (err)
-        }
+        context.subscriptions.push(onSetLanguageClient(languageClient => {
+            this.languageClient = languageClient
+        }))
     }
 
     public publishTestsHandler(params: tlsp.PublishTestsParams) {
@@ -589,11 +582,6 @@ export class TestFeature {
         }
 
         this.testsetups.set(uri, params.testSetupDetails)
-        for(const procs of this.testProcesses.values()) {
-            for(const proc of procs) {
-                proc.updateSetups(this.testsetups)
-            }
-        }
     }
 
     walkTestTree(item: vscode.TestItem, itemsToRun: vscode.TestItem[]) {
@@ -602,95 +590,6 @@ export class TestFeature {
         }
         else {
             item.children.forEach(i=>this.walkTestTree(i, itemsToRun))
-        }
-    }
-
-    stringifyTestItemDetail(testEnv: tlsp.GetTestEnvRequestParamsReturn, coverage: boolean) {
-        return JSON.stringify({projectPath: testEnv.projectUri, packagePath: testEnv.packageUri, packageName: testEnv.packageName, coverage: coverage})
-    }
-
-    async launchNewProcess(testEnv: tlsp.GetTestEnvRequestParamsReturn, coverage: boolean) {
-        const testProcess = new TestProcess(coverage)
-        await testProcess.start(this.context, this.executableFeature, this.outputChannel, testEnv.projectUri, testEnv.packageUri, testEnv.packageName, testEnv.envContentHash, this.testsetups)
-        this.workspaceFeature.addTestProcess(testProcess)
-
-        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv, coverage))) {
-            this.testProcesses.set(this.stringifyTestItemDetail(testEnv, coverage), [])
-        }
-
-        const processes = this.testProcesses.get(this.stringifyTestItemDetail(testEnv, coverage))
-
-        processes.push(testProcess)
-        this.debugPipename2TestProcess.set(testProcess.debugPipename, testProcess)
-
-        testProcess.onKilled((e) => {
-            processes.splice(processes.indexOf(testProcess))
-            this.debugPipename2TestProcess.delete(testProcess.debugPipename)
-        })
-
-        return testProcess
-    }
-
-    async getFreeTestProcess(testEnv: tlsp.GetTestEnvRequestParamsReturn, coverage) {
-        if(!this.testProcesses.has(this.stringifyTestItemDetail(testEnv, coverage))) {
-            const testProcess = await this.launchNewProcess(testEnv, coverage)
-
-            return testProcess
-        }
-        else {
-            const testProcesses = this.testProcesses.get(this.stringifyTestItemDetail(testEnv, coverage))
-
-            for(let testProcess of testProcesses) {
-                // TODO Salsa Kill outdated test env processes here somewhere
-                if(!testProcess.isBusy()) {
-                    let needsNewProcess = false
-
-                    if (!testProcess.isConnected()) {
-                        needsNewProcess = true
-                    }
-                    else if(testProcess.testEnvContentHash !== testEnv.envContentHash) {
-                        await testProcess.kill()
-
-                        this.outputChannel.appendLine('RESTARTING TEST SERVER BECAUSE ENVIRONMENT CHANGED')
-
-                        needsNewProcess = true
-                    }
-                    else {
-                        const status = await testProcess.revise()
-
-                        if (status !== 'success') {
-                            await testProcess.kill()
-
-                            this.outputChannel.appendLine('RESTARTING TEST SERVER BECAUSE REVISE FAILED')
-
-                            needsNewProcess = true
-                        }
-
-                    }
-
-                    if (needsNewProcess) {
-                        testProcess = await this.launchNewProcess(testEnv, coverage)
-                    }
-
-                    return testProcess
-                }
-            }
-
-            let maxNumProcesses = vscode.workspace.getConfiguration('julia').get<number>('numTestProcesses')
-
-            if(maxNumProcesses===0) {
-                maxNumProcesses = this.cpuLength
-            }
-
-            if(testProcesses.length < maxNumProcesses) {
-                const testProcess = await this.launchNewProcess(testEnv, coverage)
-
-                return testProcess
-            }
-            else {
-                return null
-            }
-
         }
     }
 
@@ -708,11 +607,25 @@ export class TestFeature {
         }
     }
 
+    async ensureJuliaTestController() {
+        if(!this.juliaTestController || !this.juliaTestController.ready()) {
+            this.juliaTestController = new JuliaTestController(this, this.executableFeature, this.workspaceFeature, this.context, this.juliaTestitemControllerOutputChannel, this.compiledProvider)
+
+            await this.juliaTestController.start()
+        }
+    }
+
+    async testControllerTerminated() {
+        this.juliaTestController = undefined
+    }
+
     async runHandler(
         request: vscode.TestRunRequest,
         mode: TestRunMode,
         token: vscode.CancellationToken
     ) {
+        await this.ensureJuliaTestController()
+
         if(mode===TestRunMode.Coverage) {
             const ex = await this.executableFeature.getActiveJuliaExecutableAsync()
             if(ex.getVersion().compare('1.11.0-rc2')===-1) {
@@ -721,115 +634,88 @@ export class TestFeature {
             }
         }
 
+        if(token.isCancellationRequested) {
+            return
+        }
+
         const testRun = this.controller.createTestRun(request, undefined, true)
 
-        try {
+        let itemsToRun: vscode.TestItem[] = []
 
-            testRun.token.onCancellationRequested(() => {
-                for( const ps of this.testProcesses) {
-                    for( const p of ps[1]) {
-                        if(p.testRun === testRun && p.isBusy()) {
-                            p.kill()
-                        }
-                    }
-                }
-                this.someTestItemFinished.notifyAll()
-            })
+        if (!request.include) {
+            this.controller.items.forEach(i=>this.walkTestTree(i, itemsToRun))
+        }
+        else {
+            request.include.forEach(i => this.walkTestTree(i, itemsToRun))
+        }
 
-            let itemsToRun: vscode.TestItem[] = []
+        if(request.exclude) {
+            itemsToRun = itemsToRun.filter(i => !request.exclude.includes(i) && request.exclude.every(j => !this.isParentOf(j, i)))
+        }
 
-            if (!request.include) {
-                this.controller.items.forEach(i=>this.walkTestTree(i, itemsToRun))
+        for (const i of itemsToRun) {
+            if (i.error) {
+                testRun.errored(i, new vscode.TestMessage(i.error))
             }
             else {
-                request.include.forEach(i => this.walkTestTree(i, itemsToRun))
-            }
-
-            if(request.exclude) {
-                itemsToRun = itemsToRun.filter(i => !request.exclude.includes(i) && request.exclude.every(j => !this.isParentOf(j, i)))
-            }
-
-            for (const i of itemsToRun) {
                 testRun.enqueued(i)
             }
-
-            const executionPromises = []
-
-            const testEnvPerFile = new Map<vscode.Uri,tlsp.GetTestEnvRequestParamsReturn>()
-
-            const debugProcesses = new Set<TestProcess>()
-
-            for (const i of itemsToRun) {
-                if(testRun.token.isCancellationRequested) {
-                    testRun.skipped(i)
-                }
-                else {
-                    const details = this.testitems.get(i)
-
-                    if (i.error) {
-                        testRun.errored(i, new vscode.TestMessage(i.error))
-                    }
-                    else {
-                        let testEnv: tlsp.GetTestEnvRequestParamsReturn = undefined
-
-                        if (testEnvPerFile.has(i.uri)) {
-                            testEnv = testEnvPerFile.get(i.uri)
-                        }
-                        else {
-                            testEnv = await this.languageClient.sendRequest(tlsp.requestTypJuliaGetTestEnv, {uri: i.uri.toString()})
-                            testEnvPerFile.set(i.uri, testEnv)
-                        }
-
-                        let testProcess: TestProcess = await this.getFreeTestProcess(testEnv, mode===TestRunMode.Coverage)
-
-                        while(testProcess===null && !testRun.token.isCancellationRequested) {
-                            await this.someTestItemFinished.wait()
-                            testProcess = await this.getFreeTestProcess(testEnv, mode===TestRunMode.Coverage)
-                        }
-
-                        if(testProcess!==null) {
-
-                            testRun.started(i)
-
-                            if(testProcess.isConnected()) {
-                                if(mode===TestRunMode.Debug && !testProcess.activeDebugSession) {
-                                    await testProcess.startDebugging(this.compiledProvider)
-                                    debugProcesses.add(testProcess)
-                                }
-
-                                const code = details.code
-
-                                const location = {
-                                    uri: i.uri.toString(),
-                                    range: details.codeRange
-                                }
-
-                                const executionPromise = testProcess.executeTest(i, testEnv.packageName, details.optionDefaultImports, details.optionSetup,  location, code, mode, testRun, this.someTestItemFinished)
-
-                                executionPromises.push(executionPromise)
-                            }
-                            else {
-                                if(testProcess.launchError) {
-                                    testRun.errored(i, new vscode.TestMessage(`Unable to launch the test process: ${testProcess.launchError.message}`))
-                                }
-                                else {
-                                    testRun.errored(i, new vscode.TestMessage('Unable to launch the test process.'))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            await Promise.all(executionPromises)
-
-            for(const i of debugProcesses) {
-                i.stopDebugging()
-            }
         }
-        finally {
+
+        const uniqueFiles = new Set(itemsToRun.map(i=>i.uri).concat([...this.testsetups.keys()]))
+
+        const testEnvPerFile = new Map<vscode.Uri,tlsp.GetTestEnvRequestParamsReturn>()
+
+        for (const uri of uniqueFiles) {
+            const testEnv = await this.languageClient.sendRequest(tlsp.requestTypJuliaGetTestEnv, {uri: uri.toString()})
+            testEnvPerFile.set(uri, testEnv)
+        }
+
+        const all_the_tests = itemsToRun.map(i=>{
+            return {
+                testItem: i,
+                details: this.testitems.get(i),
+                testEnv: testEnvPerFile.get(i.uri)
+            }
+        })
+
+        const all_the_testsetups: {
+            packageUri: string,
+            name: string,
+            kind: string,
+            uri: string,
+            line: number,
+            column: number,
+            code: string
+        }[] = []
+        this.testsetups.forEach((setups, uri) => {
+            setups.forEach(j=>{
+
+                all_the_testsetups.push({
+                    packageUri: testEnvPerFile.get(uri).packageUri,
+                    name: j.name,
+                    kind: j.kind,
+                    uri: uri.toString(),
+                    line: j.codeRange.start.line-1,
+                    column: j.codeRange.start.character-1,
+                    code: j.code
+                }
+                )
+            })
+        })
+
+        let maxNumProcesses = vscode.workspace.getConfiguration('julia').get<number>('numTestProcesses')
+
+        if(maxNumProcesses===0) {
+            maxNumProcesses = this.cpuLength
+        }
+
+        if(token.isCancellationRequested) {
             testRun.end()
+            return
         }
+
+        await this.juliaTestController.createTestRun(testRun, mode, maxNumProcesses, all_the_tests, all_the_testsetups)
     }
 
     public dispose() {
