@@ -121,6 +121,10 @@ async function main() {
             await fs.mkdir(env_path_ls, { recursive: true })
             await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })
 
+            const env_path_testitemcontroller = path.join(process.cwd(), 'scripts/environments/testitemcontroller', `v${v}`)
+            await fs.mkdir(env_path_testitemcontroller, { recursive: true })
+            await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testitemcontroller_project.jl')}`, { cwd: env_path_testitemcontroller })
+
             const env_path_pkgdev = path.join(process.cwd(), 'scripts/environments/pkgdev', `v${v}`)
             await fs.mkdir(env_path_pkgdev, { recursive: true })
             await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: env_path_pkgdev })
@@ -129,10 +133,6 @@ async function main() {
         const env_path_terminalserver = path.join(process.cwd(), 'scripts/environments/terminalserver', `v${v}`)
         await fs.mkdir(env_path_terminalserver, { recursive: true })
         await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_terminalserver_project.jl')}`, { cwd: env_path_terminalserver })
-
-        const env_path_testserver = path.join(process.cwd(), 'scripts/environments/testserver', `v${v}`)
-        await fs.mkdir(env_path_testserver, { recursive: true })
-        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testserver_project.jl')}`, { cwd: env_path_testserver })
 
         const env_path_test_debugadapter = path.join(process.cwd(), 'scripts/testenvironments/debugadapter', `v${v}`)
         await fs.mkdir(env_path_test_debugadapter, { recursive: true })
@@ -164,11 +164,11 @@ async function main() {
     // We also add a fallback release env in case a user has a Julia version we don't know about
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/languageserver/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/terminalserver/fallback'), { recursive: true })
-    await fs.mkdir(path.join(process.cwd(), 'scripts/environments/testserver/fallback'), { recursive: true })
+    await fs.mkdir(path.join(process.cwd(), 'scripts/environments/testitemcontroller/fallback'), { recursive: true })
     await fs.mkdir(path.join(process.cwd(), 'scripts/environments/pkgdev/fallback'), { recursive: true })
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/languageserver/fallback') })
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_terminalserver_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/terminalserver/fallback') })
-    await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testserver_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/testserver/fallback') })
+    await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testitemcontroller_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/testserver/fallback') })
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev/fallback') })
 
     // Julia 1.0 and 1.1 write backslash in relative paths in Manifest files, which we don't want

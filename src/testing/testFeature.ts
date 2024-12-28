@@ -113,7 +113,6 @@ export class JuliaTestController {
         const juliaExecutable = releaseChannelExe[0]
 
         const jlArgs = [
-            // `--project=${pkgenvpath}`,
             '--startup-file=no',
             '--history-file=no',
             '--depwarn=no'

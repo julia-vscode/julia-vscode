@@ -1,5 +1,5 @@
-if VERSION < v"1.6.0"
-    error("VS Code julia language server only works with julia 1.6.0 or newer")
+if VERSION < v"1.10.0"
+    error("VS Code test item controller only works with Julia 1.10.0 or newer")
 end
 
 @info "Starting test item controller on Julia $VERSION"
