@@ -696,8 +696,8 @@ export class TestFeature {
                     name: j.name,
                     kind: j.kind,
                     uri: uri.toString(),
-                    line: j.codeRange.start.line-1,
-                    column: j.codeRange.start.character-1,
+                    line: j.codeRange.start.line+1,
+                    column: j.codeRange.start.character+1,
                     code: j.code
                 }
                 )
