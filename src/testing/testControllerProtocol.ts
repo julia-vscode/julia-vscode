@@ -1,5 +1,12 @@
 import * as rpc from 'vscode-jsonrpc/node'
 
+interface FileCoverage {
+    uri: string
+    coverage: (number | null)[]
+}
+
+// Messages from the extension to the controller
+
 export const requestTypeCreateTestRun = new rpc.RequestType<{
     testRunId: string,
     maxProcessCount: number,
@@ -34,14 +41,11 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
     coverageRootUris?: string[]
 }, void, void>('createTestRun')
 
-interface FileCoverage {
-    uri: string
-    coverage: (number | null)[]
-}
-
 export const requestTypeCancelTestRun = new rpc.RequestType<{testRunId: string}, void, void>('cancelTestRun')
 
 export const requestTypeTerminateTestProcess = new rpc.RequestType<{testProcessId: string}, void, void>('terminateTestProcess')
+
+// Messages from the controller to the extension
 
 export const notficiationTypeTestRunFinished = new rpc.NotificationType<{testRunId: string, coverage?: FileCoverage[]}>('testRunFinished')
 
