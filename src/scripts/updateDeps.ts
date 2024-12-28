@@ -52,7 +52,7 @@ async function main() {
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
-    for (const pkg of ['IJuliaCore', 'JuliaWorkspaces', 'TestItemServer', 'TestItemDetection']) {
+    for (const pkg of ['IJuliaCore', 'JuliaWorkspaces', 'TestItemControllers', 'TestItemDetection']) {
         console.log(`Updating ${pkg} to latest main`)
         await cp.exec('git checkout main', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
