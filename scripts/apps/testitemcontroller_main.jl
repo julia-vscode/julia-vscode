@@ -35,7 +35,9 @@ try
     controller = JSONRPCTestItemController(
         conn_in,
         conn_out,
-        (err, bt) -> global_err_handler(err, bt, Base.ARGS[1], "Test Item Controller")
+        (err, bt) -> global_err_handler(err, bt, Base.ARGS[1], "Test Item Controller"),
+        error_handler_file = normpath(joinpath(@__DIR__, "../error_handler.jl")),
+        crash_reporting_pipename = Base.ARGS[1]
     )
 
     run(controller)
