@@ -10,12 +10,6 @@ include("json_protocol.jl")
 include("../shared/testserver_protocol.jl")
 include("../shared/urihelper.jl")
 
-mutable struct TestRun
-    id::String
-    running::Bool
-    testitem_ids::Set{String}
-end
-
 @auto_hash_equals struct TestEnvironment
     project_uri:: Union{Nothing,String}
     package_uri::String
@@ -32,29 +26,60 @@ function started_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, params:
 end
 
 function passed_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.PassedParams, test_process)
-    delete!(test_process.testitems_to_run, params.testItemId)
-    put!(test_process.parent_channel, (source=:testprocess, msg=(event=:passed, testitemid=params.testItemId, testrunid=params.testRunId, duration=params.duration, coverage=params.coverage)))
-    if length(test_process.testitems_to_run) == 0
-        test_process.test_run_id = nothing
-        put!(test_process.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=test_process.id, status="Idle")))
+    idx = findfirst(i->i.id == params.testItemId, test_process.testitems_to_run)
+    if idx !== nothing
+        deleteat!(test_process.testitems_to_run, idx)
+
+        put!(test_process.parent_channel, (source=:testprocess, msg=(event=:passed, testitemid=params.testItemId, testrunid=params.testRunId, duration=params.duration, coverage=params.coverage, n_test_items_to_run = length(test_process.testitems_to_run), test_process_id = test_process.id)))
+    else
+        idx = findfirst(i->i.id == params.testItemId, test_process.stolen_testitems)
+        if idx !== nothing
+            deleteat!(test_process.stolen_testitems, idx)
+        else
+            error("Unknown test item notified")
+        end
     end
 end
 
 function failed_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.FailedParams, test_process)
-    delete!(test_process.testitems_to_run, params.testItemId)
-    put!(test_process.parent_channel, (source=:testprocess, msg=(event=:failed, testitemid=params.testItemId, testrunid=params.testRunId, messages=params.messages)))
-    if length(test_process.testitems_to_run) == 0
-        test_process.test_run_id = nothing
-        put!(test_process.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=test_process.id, status="Idle")))
+    idx = findfirst(i->i.id == params.testItemId, test_process.testitems_to_run)
+    if idx !== nothing
+        deleteat!(test_process.testitems_to_run, idx)
+
+        put!(test_process.parent_channel, (source=:testprocess, msg=(event=:failed, testitemid=params.testItemId, testrunid=params.testRunId, messages=params.messages, n_test_items_to_run = length(test_process.testitems_to_run), test_process_id = test_process.id)))
+    else
+        idx = findfirst(i->i.id == params.testItemId, test_process.stolen_testitems)
+        if idx !== nothing
+            deleteat!(test_process.stolen_testitems, idx)
+        else
+            error("Unknown test item notified")
+        end
     end
+
 end
 
 function errored_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.ErroredParams, test_process)
-    delete!(test_process.testitems_to_run, params.testItemId)
-    put!(test_process.parent_channel, (source=:testprocess, msg=(event=:errored, testitemid=params.testItemId, testrunid=params.testRunId, messages=params.messages)))
-    if length(test_process.testitems_to_run) == 0
-        test_process.test_run_id = nothing
-        put!(test_process.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=test_process.id, status="Idle")))
+    idx = findfirst(i->i.id == params.testItemId, test_process.testitems_to_run)
+    if idx !== nothing
+        deleteat!(test_process.testitems_to_run, idx)
+
+        put!(test_process.parent_channel, (source=:testprocess, msg=(event=:errored, testitemid=params.testItemId, testrunid=params.testRunId, messages=params.messages, n_test_items_to_run = length(test_process.testitems_to_run), test_process_id = test_process.id)))
+    else
+        idx = findfirst(i->i.id == params.testItemId, test_process.stolen_testitems)
+        if idx !== nothing
+            deleteat!(test_process.stolen_testitems, idx)
+        else
+            error("Unknown test item notified")
+        end
+    end
+end
+
+function skipped_stolen_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.SkippedStolenParams, test_process)
+    idx = findfirst(i->i.id == params.testItemId, test_process.stolen_testitems)
+    if idx !== nothing
+        deleteat!(test_process.stolen_testitems, idx)
+    else
+        error("Unknown test item notified")
     end
 end
 
@@ -62,12 +87,18 @@ function append_output_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, p
     put!(test_process.parent_channel, (source=:testprocess, msg=(event=:append_output, testitemid=params.testItemId, testrunid=params.testRunId, output=params.output)))
 end
 
+function finished_batch_notification_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::String, test_process)
+    put!(test_process.parent_channel, (source=:testprocess, msg=(event=:finished_batch, testrunid=params, test_process_id = test_process.id)))
+end
+
 JSONRPC.@message_dispatcher dispatch_testprocess_msg begin
     TestItemServerProtocol.started_notification_type => started_notification_handler
     TestItemServerProtocol.passed_notification_type => passed_notification_handler
     TestItemServerProtocol.failed_notification_type => failed_notification_handler
     TestItemServerProtocol.errored_notification_type => errored_notification_handler
+    TestItemServerProtocol.skipped_stolen_notification_type => skipped_stolen_notification_handler
     TestItemServerProtocol.append_output_notification_type => append_output_notification_handler
+    TestItemServerProtocol.finished_batch_notification_type => finished_batch_notification_handler
 end
 
 mutable struct TestProcess
@@ -85,7 +116,10 @@ mutable struct TestProcess
 
     activated::Channel{Bool}
 
-    testitems_to_run::Dict{String,TestItemControllerProtocol.TestItem}
+    testitems_to_run::Vector{TestItemControllerProtocol.TestItem}
+    stolen_testitems::Vector{TestItemControllerProtocol.TestItem}
+
+    test_setups::Vector{TestItemServerProtocol.TestsetupDetails}
 
     jl_process::Union{Nothing,Base.Process}
 
@@ -101,8 +135,32 @@ mutable struct TestProcess
 
     function TestProcess(parent_channel::Channel, env::TestEnvironment, test_env_content_hash::Union{Nothing,Int})
         id = string(UUIDs.uuid4())
-        return new(id, parent_channel, nothing, Channel(Inf), env, Channel{Bool}(1), Channel{Bool}(1), Dict{String,TestItemControllerProtocol.TestItem}(), nothing, nothing, JSONRPC.generate_pipe_name(), false, nothing, test_env_content_hash)
+        return new(
+            id,
+            parent_channel,
+            nothing,
+            Channel(Inf),
+            env,
+            Channel{Bool}(1),
+            Channel{Bool}(1),
+            TestItemControllerProtocol.TestItem[],
+            TestItemControllerProtocol.TestItem[],
+            TestItemServerProtocol.TestsetupDetails[],
+            nothing,
+            nothing,
+            JSONRPC.generate_pipe_name(),
+            false,
+            nothing,
+            test_env_content_hash
+        )
     end
+end
+
+mutable struct TestRun
+    id::String
+    running::Bool
+    testitem_ids::Set{String}
+    test_processes::Dict{TestEnvironment,Vector{TestProcess}}
 end
 
 function revise(tp::TestProcess, test_env_content_hash::Union{Int,Nothing})
@@ -172,33 +230,55 @@ function start(tp::TestProcess)
     end
 
     @async try
-        @async try
-            socket = Sockets.accept(server)
+        socket = Sockets.accept(server)
 
-            tp.endpoint = JSONRPC.JSONRPCEndpoint(socket, socket)
+        tp.endpoint = JSONRPC.JSONRPCEndpoint(socket, socket)
 
-            run(tp.endpoint)
+        run(tp.endpoint)
 
-            put!(tp.comms_established, true)
+        put!(tp.comms_established, true)
 
-            while true
-                msg = JSONRPC.get_next_message(tp.endpoint)
-                put!(tp.channel_to_sub, (source=:testprocess, msg=msg))
-            end
-        catch err
-            if !tp.killed
-                Base.display_error(err, catch_backtrace())
-            end
+        while true
+            msg = JSONRPC.get_next_message(tp.endpoint)
+            put!(tp.channel_to_sub, (source=:testprocess, msg=msg))
         end
+    catch err
+        if !tp.killed
+            Base.display_error(err, catch_backtrace())
+        end
+    end
 
-
-
+    @async try
         while true
             msg = take!(tp.channel_to_sub)
 
             if msg.source==:controller
                 if msg.msg.command == :activate
-                    JSONRPC.send(tp.endpoint, TestItemServerProtocol.testserver_activate_env_request_type, TestItemServerProtocol.ActivateEnvParams(testRunId = tp.test_run_id, projectUri=something(tp.env.project_uri, missing), packageUri=tp.env.package_uri, packageName=tp.env.package_name))
+                    JSONRPC.send(
+                        tp.endpoint,
+                        TestItemServerProtocol.testserver_start_test_run_request_type,
+                        tp.test_run_id
+                    )
+
+                    JSONRPC.send(
+                        tp.endpoint,
+                        TestItemServerProtocol.testserver_activate_env_request_type,
+                        TestItemServerProtocol.ActivateEnvParams(
+                            testRunId = tp.test_run_id,
+                            projectUri=something(tp.env.project_uri, missing),
+                            packageUri=tp.env.package_uri,
+                            packageName=tp.env.package_name
+                        )
+                    )
+
+                    JSONRPC.send(
+                        tp.endpoint,
+                        TestItemServerProtocol.testserver_set_test_setups_request_type,
+                        TestItemServerProtocol.SetTestSetupsRequestParams(
+                            testRunId = tp.test_run_id,
+                            testSetups = tp.test_setups
+                        )
+                    )
 
                     put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Idle")))
 
@@ -211,6 +291,12 @@ function start(tp::TestProcess)
                     if msg.msg.test_env_content_hash != tp.test_env_content_hash
                         needs_restart = true
                     else
+                        JSONRPC.send(
+                            tp.endpoint,
+                            TestItemServerProtocol.testserver_start_test_run_request_type,
+                            tp.test_run_id
+                        )
+
                         res = JSONRPC.send(tp.endpoint, TestItemServerProtocol.testserver_revise_request_type, nothing)
 
                         if res=="success"
@@ -223,6 +309,15 @@ function start(tp::TestProcess)
                     end
 
                     if !needs_restart
+                        JSONRPC.send(
+                            tp.endpoint,
+                            TestItemServerProtocol.testserver_set_test_setups_request_type,
+                            TestItemServerProtocol.SetTestSetupsRequestParams(
+                                testRunId = tp.test_run_id,
+                                testSetups = tp.test_setups
+                            )
+                        )
+
                         put!(tp.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=tp.id, status="Idle")))
                         put!(tp.activated, true)
                     else
@@ -250,7 +345,7 @@ function start(tp::TestProcess)
                     kill(tp.jl_process)
 
                     if tp.test_run_id!==nothing
-                        for ti in values(tp.testitems_to_run)
+                        for ti in tp.testitems_to_run
                             put!(tp.parent_channel, (source=:testprocess, msg=(event=:failed, testitemid=ti.id, testrunid=tp.test_run_id, messages=[TestItemServerProtocol.TestMessage("Test process was terminated.", TestItemServerProtocol.Location(ti.uri, TestItemServerProtocol.Position(ti.line-1, ti.column-1)))])))
                         end
                     end
@@ -262,7 +357,7 @@ function start(tp::TestProcess)
 
                     JSONRPC.send(
                         tp.endpoint,
-                        TestItemServerProtocol.run_testitems_request_type,
+                        TestItemServerProtocol.testserver_run_testitems_batch_request_type,
                         TestItemServerProtocol.RunTestItemsRequestParams(
                             testRunId = tp.test_run_id,
                             mode = tp.env.mode,
@@ -279,19 +374,8 @@ function start(tp::TestProcess)
                                     line = i.line,
                                     column = i.column,
                                     code = i.code,
-                                ) for i in values(tp.testitems_to_run)
+                                ) for i in tp.testitems_to_run
                             ],
-                            testSetups = TestItemServerProtocol.TestsetupDetails[
-                                TestItemServerProtocol.TestsetupDetails(
-                                    packageUri = i.packageUri,
-                                    name = i.name,
-                                    kind = i.kind,
-                                    uri = i.uri,
-                                    line = i.line,
-                                    column = i.column,
-                                    code = i.code
-                                ) for i in msg.msg.testsetups
-                            ]
                         )
                     )
                 else
@@ -314,9 +398,7 @@ end
 
 function run_testitems(test_process::TestProcess, testitems::AbstractVector{TestItemControllerProtocol.TestItem}, testrunid::String, testsetups)
     empty!(test_process.testitems_to_run)
-    for i in testitems
-        test_process.testitems_to_run[i.id] = i
-    end
+    append!(test_process.testitems_to_run, testitems)
     @async begin
         fetch(test_process.activated)
 
@@ -359,7 +441,9 @@ end
 
 function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemControllerProtocol.CreateTestRunParams, controller::JSONRPCTestItemController)
     @info "Creating new test run"
-    test_run = TestRun(params.testRunId, true, Set(i.id for i in params.testItems))
+    our_procs = Dict{TestEnvironment,Vector{TestProcess}}()
+
+    test_run = TestRun(params.testRunId, true, Set(i.id for i in params.testItems), our_procs)
 
     max_procs = params.maxProcessCount
 
@@ -404,8 +488,6 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
         proc_count_by_env[k] = min(floor(Int, max_procs * as_share), length(params.testItems))
     end
 
-    our_procs = Dict{TestEnvironment,Vector{TestProcess}}()
-
     # Grab existing procs
     for (k,v) in pairs(proc_count_by_env)
         testprocesses = get!(controller.testprocesses, k) do
@@ -420,6 +502,7 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
 
         for p in Iterators.take(existing_idle_procs, v)
             p.test_run_id = params.testRunId
+            p.test_setups = params.testSetups
             push!(our_procs[k], p)
 
             revise(p, env_content_hash_by_env[k])
@@ -456,6 +539,7 @@ function create_testrun_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestI
             )
             start(p)
             p.test_run_id = params.testRunId
+            p.test_setups = params.testSetups
             push!(procs, p)
             push!(controller.testprocesses[k], p)
 
@@ -627,23 +711,92 @@ function Base.run(controller::JSONRPCTestItemController)
                     end
                 end
                 JSONRPC.send(controller.endpoint, TestItemControllerProtocol.notificationTypeTestProcessTerminated, msg.msg.id)
+            elseif msg.msg.event == :finished_batch
+                # First we find the test process instance and test env
+                test_run = controller.testruns[msg.msg.testrunid]
+                test_process = nothing
+                test_processes_in_same_env = nothing
+                test_env = nothing
+                for (k,v) in pairs(test_run.test_processes)
+                    ix = findfirst(i->i.id == msg.msg.test_process_id, v)
+                    if ix!==nothing
+                        test_process = v[ix]
+                        test_processes_in_same_env = v
+                        test_env = k
+                        break
+                    end
+                end
+
+                if test_process === nothing
+                    error("This should never happen")
+                end
+
+                test_process_to_steal_from = nothing
+                # Now we look through all test processes with the same env that have more than 1 pending test item to run
+                for candidate_test_process in test_processes_in_same_env
+                    n_test_items_still_pending = length(candidate_test_process.testitems_to_run)
+                    # We only steal from this one if there are more than 1 test item pending
+                    # AND if we haven't identified another process yet that has more pending test items
+                    if isready(candidate_test_process.activated) && n_test_items_still_pending > 1 && (test_process_to_steal_from===nothing || length(test_process_to_steal_from.testitems_to_run) < n_test_items_still_pending)
+                        test_process_to_steal_from = candidate_test_process
+                    end
+                end
+
+                if test_process_to_steal_from === nothing
+                    # Nothing to steal, so we give the test process back to the pool
+                    JSONRPC.send(
+                        test_process.endpoint,
+                        TestItemServerProtocol.testserver_end_test_run_requst_type,
+                        test_process.test_run_id
+                    )
+
+                    test_process.test_run_id = nothing
+
+                    # TODO This is a bit weird, we could probably optimize this, as we are here putting a message into our own read channel
+                    put!(test_process.parent_channel, (source=:testprocess, msg=(event=:test_process_status_changed, id=test_process.id, status="Idle")))
+                else
+                    # we just steal half the items at the end of the queue
+
+                    steal_range = (div(length(test_process_to_steal_from.testitems_to_run), 2, RoundUp) + 1):lastindex(test_process_to_steal_from.testitems_to_run)
+
+                    stolen_test_items = test_process_to_steal_from.testitems_to_run[steal_range]
+
+                    deleteat!(test_process_to_steal_from.testitems_to_run, steal_range)
+
+                    append!(test_process_to_steal_from.stolen_testitems, stolen_test_items)
+
+                    # @info "NOW STEAL $steal_range from $(test_process_to_steal_from.id) for $(test_process.id) and we have an endpoint $(test_process_to_steal_from.endpoint!==nothing)"
+                    JSONRPC.send(
+                        test_process_to_steal_from.endpoint,
+                        TestItemServerProtocol.testserver_steal_testitems_request_type,
+                        TestItemServerProtocol.StealTestItemsRequestParams(
+                            testRunId = test_process_to_steal_from.test_run_id,
+                            testItemIds = map(i->i.id, stolen_test_items)
+                        )
+                    )
+
+                    run_testitems(test_process, stolen_test_items, msg.msg.testrunid, missing)
+                end
             else
                 error("Unknown message")
             end
 
-            if msg.msg.event in (:passed, :failed, :errored, :skipped) && length(test_run.testitem_ids)==0
-                if controller.testruns[msg.msg.testrunid].running
-                    controller.testruns[msg.msg.testrunid].running = false
-                    coverage_results = missing
-                    if haskey(controller.coverage, msg.msg.testrunid)
-                        coverage_results = map(CoverageTools.merge_coverage_counts(controller.coverage[msg.msg.testrunid])) do i
-                            TestItemControllerProtocol.FileCoverage(
-                                uri = filepath2uri(i.filename),
-                                coverage = i.coverage
-                            )
+            if msg.msg.event in (:passed, :failed, :errored, :skipped)
+
+                if length(test_run.testitem_ids)==0
+                    if controller.testruns[msg.msg.testrunid].running
+                        controller.testruns[msg.msg.testrunid].running = false
+                        coverage_results = missing
+                        if haskey(controller.coverage, msg.msg.testrunid)
+                            coverage_results = map(CoverageTools.merge_coverage_counts(controller.coverage[msg.msg.testrunid])) do i
+                                TestItemControllerProtocol.FileCoverage(
+                                    uri = filepath2uri(i.filename),
+                                    coverage = i.coverage
+                                )
+                            end
                         end
+                        JSONRPC.send_notification(controller.endpoint, "testRunFinished", TestItemControllerProtocol.TestRunFinishedParams(testRunId=msg.msg.testrunid, coverage=coverage_results))
                     end
-                    JSONRPC.send_notification(controller.endpoint, "testRunFinished", TestItemControllerProtocol.TestRunFinishedParams(testRunId=msg.msg.testrunid, coverage=coverage_results))
                 end
             end
         else

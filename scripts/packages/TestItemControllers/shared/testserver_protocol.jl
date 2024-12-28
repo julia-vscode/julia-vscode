@@ -70,16 +70,22 @@ end
     code::String
 end
 
+@dict_readable struct SetTestSetupsRequestParams <: JSONRPC.Outbound
+    testRunId::String
+    testSetups::Union{Missing,Vector{TestsetupDetails}}
+end
+
 @dict_readable struct RunTestItemsRequestParams <: JSONRPC.Outbound
     testRunId::String
     mode::String
     coverageRootUris::Union{Vector{String},Missing}
     testItems::Vector{RunTestItem}
-    testSetups::Vector{TestsetupDetails}
 end
 
-const testserver_revise_request_type = JSONRPC.RequestType("testserver/revise", Nothing, String)
-const run_testitems_request_type = JSONRPC.RequestType("runtestitems", RunTestItemsRequestParams, Nothing)
+@dict_readable struct StealTestItemsRequestParams <: JSONRPC.Outbound
+    testRunId::String
+    testItemIds::Vector{String}
+end
 
 @dict_readable struct ActivateEnvParams <: JSONRPC.Outbound
     testRunId::String
@@ -88,14 +94,10 @@ const run_testitems_request_type = JSONRPC.RequestType("runtestitems", RunTestIt
     packageName::String
 end
 
-const testserver_activate_env_request_type = JSONRPC.RequestType("activateEnv", ActivateEnvParams, Nothing)
-
 @dict_readable struct StartedParams <: JSONRPC.Outbound
     testRunId::String
     testItemId::String
 end
-
-const started_notification_type = JSONRPC.NotificationType("started", StartedParams)
 
 @dict_readable struct PassedParams <: JSONRPC.Outbound
     testRunId::String
@@ -104,16 +106,12 @@ const started_notification_type = JSONRPC.NotificationType("started", StartedPar
     coverage::Union{Missing,Vector{FileCoverage}}
 end
 
-const passed_notification_type = JSONRPC.NotificationType("passed", PassedParams)
-
 @dict_readable struct ErroredParams <: JSONRPC.Outbound
     testRunId::String
     testItemId::String
     messages::Vector{TestMessage}
     duration::Union{Float64,Missing}
 end
-
-const errored_notification_type = JSONRPC.NotificationType("errored", ErroredParams)
 
 @dict_readable struct FailedParams <: JSONRPC.Outbound
     testRunId::String
@@ -122,7 +120,10 @@ const errored_notification_type = JSONRPC.NotificationType("errored", ErroredPar
     duration::Union{Float64,Missing}
 end
 
-const failed_notification_type = JSONRPC.NotificationType("failed", FailedParams)
+@dict_readable struct SkippedStolenParams <: JSONRPC.Outbound
+    testRunId::String
+    testItemId::String
+end
 
 @dict_readable struct AppendOutputParams <: JSONRPC.Outbound
     testRunId::String
@@ -130,6 +131,22 @@ const failed_notification_type = JSONRPC.NotificationType("failed", FailedParams
     output::String
 end
 
+# Messages from the controller to the test process
+const testserver_revise_request_type = JSONRPC.RequestType("testserver/revise", Nothing, String)
+const testserver_start_test_run_request_type = JSONRPC.RequestType("testserver/startTestRun", String, Nothing)
+const testserver_activate_env_request_type = JSONRPC.RequestType("activateEnv", ActivateEnvParams, Nothing)
+const testserver_set_test_setups_request_type = JSONRPC.RequestType("testserver/SetTestSetups", SetTestSetupsRequestParams, Nothing)
+const testserver_run_testitems_batch_request_type = JSONRPC.RequestType("testserver/runTestItems", RunTestItemsRequestParams, Nothing)
+const testserver_steal_testitems_request_type = JSONRPC.RequestType("testserver/stealTestItems", StealTestItemsRequestParams, Nothing)
+const testserver_end_test_run_requst_type = JSONRPC.RequestType("testserver/endTestRun", String, Nothing)
+
+# Messages from the test process to the controller
+const started_notification_type = JSONRPC.NotificationType("started", StartedParams)
+const passed_notification_type = JSONRPC.NotificationType("passed", PassedParams)
+const errored_notification_type = JSONRPC.NotificationType("errored", ErroredParams)
+const failed_notification_type = JSONRPC.NotificationType("failed", FailedParams)
+const skipped_stolen_notification_type = JSONRPC.NotificationType("skippedStolen", SkippedStolenParams)
 const append_output_notification_type = JSONRPC.NotificationType("appendOutput", AppendOutputParams)
+const finished_batch_notification_type = JSONRPC.NotificationType("finishedBatch", String)
 
 end

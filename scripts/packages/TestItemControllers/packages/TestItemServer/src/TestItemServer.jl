@@ -20,9 +20,20 @@ mutable struct Testsetup
     evaled::Bool
 end
 
+mutable struct TestProcessState
+    testrun_id::Union{Nothing,String}
+    test_setups::Dict{Tuple{String,Symbol},Testsetup}
+    is_batch_running::Bool
+    stolen_test_items::Set{String}
+
+    function TestProcessState()
+        return new(nothing, Dict{Tuple{String,Symbol},Testsetup}(), false, Set{String}())
+    end
+end
+
+
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 const DEBUG_SESSION = Ref{Channel{DebugAdapter.DebugSession}}()
-const TESTSETUPS = Dict{Tuple{String,Symbol},Testsetup}()
 
 function __init__()
     DEBUG_SESSION[] = Channel{DebugAdapter.DebugSession}(1)
@@ -42,7 +53,10 @@ function withpath(f, path)
     end
 end
 
-function run_revise_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::Nothing)
+function revise_request(endpoint::JSONRPC.JSONRPCEndpoint, params::Nothing, state::TestProcessState)
+    state.testrun_id !== nothing || error("Invalid state")
+    state.is_batch_running == false || error("Invalid state")
+
     try
         Revise.revise(throw=true)
         return "success"
@@ -412,62 +426,57 @@ function run_testitem(endpoint, params::TestItemServerProtocol.RunTestItem, test
     end
 end
 
-function run_testitems_handler(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.RunTestItemsRequestParams)
-    @async try
-        setups_to_remove = setdiff(keys(TESTSETUPS), map(i->(i.packageUri,Symbol(i.name)), params.testSetups))
-        for i in setups_to_remove
-            delete!(TESTSETUPS, i)
-        end
+function run_testitems_batch_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.RunTestItemsRequestParams, state::TestProcessState)
+    state.testrun_id == params.testRunId || error("Invalid test process state")
+    state.is_batch_running == false || error("Invalid state")
 
-        for i in params.testSetups
-            key = (i.packageUri, Symbol(i.name))
-            if !haskey(TESTSETUPS, key)
-                TESTSETUPS[key] = Testsetup(
-                    i.name,
-                    Symbol(i.kind),
-                    i.uri,
-                    i.line,
-                    i.column,
-                    i.code,
-                    false
+    state.is_batch_running = true
+
+    @async try
+        for i in params.testItems
+            if i.id in state.stolen_test_items
+                delete!(state.stolen_test_items, i.id)
+
+                JSONRPC.send(
+                    endpoint,
+                    TestItemServerProtocol.skipped_stolen_notification_type,
+                    TestItemServerProtocol.SkippedStolenParams(
+                        testRunId = params.testRunId,
+                        testItemId = i.id
+                    )
                 )
             else
-                val = TESTSETUPS[key]
-
-                if val.code != i.code || val.kind != i.kind
-                    val.evaled = false
-                    val.code = i.code
-                    val.kind = Symbol(i.kind)
+                c = IOCapture.capture() do
+                    run_testitem(endpoint, i, params.testRunId, params.mode, coalesce(params.coverageRootUris, nothing))
                 end
 
-                val.uri = i.uri
-                val.line = i.line
-                val.column = i.column
-                val.name = i.name
-            end
-        end
-
-        for i in params.testItems
-            c = IOCapture.capture() do
-                run_testitem(endpoint, i, params.testRunId, params.mode, coalesce(params.coverageRootUris, nothing))
-            end
-
-            JSONRPC.send(
-                endpoint,
-                TestItemServerProtocol.append_output_notification_type,
-                TestItemServerProtocol.AppendOutputParams(
-                    testRunId = params.testRunId,
-                    testItemId = i.id,
-                    output = replace(strip(c.output), "\n"=>"\r\n") * "\r\n"
+                JSONRPC.send(
+                    endpoint,
+                    TestItemServerProtocol.append_output_notification_type,
+                    TestItemServerProtocol.AppendOutputParams(
+                        testRunId = params.testRunId,
+                        testItemId = i.id,
+                        output = replace(strip(c.output), "\n"=>"\r\n") * "\r\n"
+                    )
                 )
-            )
 
-            JSONRPC.send(
-                endpoint,
-                c.value[1],
-                c.value[2]
-            )
+                JSONRPC.send(
+                    endpoint,
+                    c.value[1],
+                    c.value[2]
+                )
+            end
         end
+
+        empty!(state.stolen_test_items)
+
+        state.is_batch_running = false
+
+        JSONRPC.send(
+            endpoint,
+            TestItemServerProtocol.finished_batch_notification_type,
+            state.testrun_id
+        )
     catch err
         Base.display_error(err, catch_backtrace())
     end
@@ -556,7 +565,10 @@ function get_debug_session_if_present()
 end
 
 
-function activate_env_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.ActivateEnvParams)
+function activate_env_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.ActivateEnvParams, state::TestProcessState)
+    state.testrun_id == params.testRunId || error("Invalid test process state")
+    state.is_batch_running == false || error("Invalid state")
+
     c = IOCapture.capture() do
         if params.projectUri===missing
             @static if VERSION >= v"1.5.0"
@@ -589,10 +601,83 @@ function activate_env_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestIte
     )
 end
 
+function start_test_run_request(endpoint::JSONRPC.JSONRPCEndpoint, params::String, state::TestProcessState)
+    state.testrun_id === nothing || error("Invalid state")
+    state.is_batch_running == false || error("Invalid state")
+
+    state.testrun_id = params
+
+    nothing
+end
+
+function set_test_setups_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.SetTestSetupsRequestParams, state::TestProcessState)
+    state.testrun_id == params.testRunId || error("Invalid test process state")
+    state.is_batch_running == false || error("Invalid state")
+
+    setups_to_remove = setdiff(keys(state.test_setups), map(i->(i.packageUri,Symbol(i.name)), params.testSetups))
+    for i in setups_to_remove
+        delete!(state.test_setups, i)
+    end
+
+    for i in params.testSetups
+        key = (i.packageUri, Symbol(i.name))
+        if !haskey(state.test_setups, key)
+            state.test_setups[key] = Testsetup(
+                i.name,
+                Symbol(i.kind),
+                i.uri,
+                i.line,
+                i.column,
+                i.code,
+                false
+            )
+        else
+            val = state.test_setups[key]
+
+            if val.code != i.code || val.kind != i.kind
+                val.evaled = false
+                val.code = i.code
+                val.kind = Symbol(i.kind)
+            end
+
+            val.uri = i.uri
+            val.line = i.line
+            val.column = i.column
+            val.name = i.name
+        end
+    end
+end
+
+function steal_testitems_request(endpoint::JSONRPC.JSONRPCEndpoint, params::TestItemServerProtocol.StealTestItemsRequestParams, state::TestProcessState)
+    state.testrun_id == params.testRunId || error("Invalid test process state")
+    state.is_batch_running == true || error("Invalid state")
+
+    for i in params.testItemIds
+        push!(state.stolen_test_items, i)
+    end
+
+    return nothing
+end
+
+function end_test_run_request(endpoint::JSONRPC.JSONRPCEndpoint, params::String, state::TestProcessState)
+    state.testrun_id == params || error("Invalid test process state")
+    state.is_batch_running == false || error("Invalid state")
+
+    empty!(state.stolen_test_items)
+
+    state.testrun_id = nothing
+
+    return nothing
+end
+
 JSONRPC.@message_dispatcher dispatch_msg begin
-    TestItemServerProtocol.testserver_revise_request_type => run_revise_handler
-    TestItemServerProtocol.run_testitems_request_type => run_testitems_handler
+    TestItemServerProtocol.testserver_revise_request_type => revise_request
+    TestItemServerProtocol.testserver_start_test_run_request_type => start_test_run_request
     TestItemServerProtocol.testserver_activate_env_request_type => activate_env_request
+    TestItemServerProtocol.testserver_set_test_setups_request_type => set_test_setups_request
+    TestItemServerProtocol.testserver_run_testitems_batch_request_type => run_testitems_batch_request
+    TestItemServerProtocol.testserver_steal_testitems_request_type => steal_testitems_request
+    TestItemServerProtocol.testserver_end_test_run_requst_type => end_test_run_request
 end
 
 function serve(pipename, debug_pipename, error_handler=nothing)
@@ -606,10 +691,12 @@ function serve(pipename, debug_pipename, error_handler=nothing)
 
     run(conn_endpoint[])
 
+    state = TestProcessState()
+
     while true
         msg = JSONRPC.get_next_message(conn_endpoint[])
 
-        dispatch_msg(conn_endpoint[], msg)
+        dispatch_msg(conn_endpoint[], msg, state)
     end
 end
 
