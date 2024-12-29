@@ -76,14 +76,6 @@ export class JuliaTestController {
 
     kill() {
         this.process.kill()
-
-        this._onKilled.fire()
-
-        for(const i of this.testRuns.values()) {
-            i.testRun.end()
-        }
-
-        this.testFeature.testControllerTerminated()
     }
 
     private connection: rpc.MessageConnection
@@ -268,7 +260,14 @@ export class JuliaTestController {
                 this.connection.dispose()
                 this.connection = null
             }
-            // this._onKilled.fire()
+
+            this._onKilled.fire()
+
+            for(const i of this.testRuns.values()) {
+                i.testRun.end()
+            }
+
+            this.testFeature.testControllerTerminated()
         })
 
         this.process.on('error', (err: Error) => {
