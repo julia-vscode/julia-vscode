@@ -47,6 +47,11 @@ export class JuliaTestProcess {
 
     constructor(
         public id: string,
+        public packageName: string,
+        public packageUri: string | undefined,
+        public projectUri: string | undefined,
+        public coverage: boolean | undefined,
+        public env: any,
         private controller: JuliaTestController) {
         this.status = 'Created'
     }
@@ -206,7 +211,15 @@ export class JuliaTestController {
             testRun.testRun.appendOutput(i.output, undefined, testItem)
         })
         this.connection.onNotification(notificationTypeTestProcessCreated, i=>{
-            const tp = new JuliaTestProcess(i.id, this)
+            const tp = new JuliaTestProcess(
+                i.id,
+                i.packageName,
+                i.packageUri,
+                i.projectUri,
+                i.coverage,
+                i.env,
+                this
+            )
             this.testProcesses.set(i.id, tp)
             this.workspaceFeature.addTestProcess(tp)
         })

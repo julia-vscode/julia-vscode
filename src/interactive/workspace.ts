@@ -407,8 +407,8 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             } else {
 
             }
-            // treeItem.description = node.testProcess.packageName
-            // treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.package_uri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.project_uri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.`)
+            treeItem.description = node.testProcess.packageName
+            treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.packageUri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.projectUri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.\n\nThe env is ${node.testProcess.env}.`)
             treeItem.contextValue = 'juliatestprocess'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None
             return treeItem
