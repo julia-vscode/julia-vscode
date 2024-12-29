@@ -43,7 +43,7 @@ version = "0.20.1"
 deps = ["JSON", "UUIDs"]
 path = "../../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "1.4.2-DEV"
+version = "1.4.3-DEV"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
