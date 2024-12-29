@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix a bug where non-supported schemes were sent to the LS ([#3700](https://github.com/julia-vscode/julia-vscode/pull/3700))
 ### Changed
 - Plotly javascript library updated to 2.35.2 ([#3750](https://github.com/julia-vscode/julia-vscode/pull/3750)).
+- Test item runner migrated to TestItemControllers.jl
 
 ## [1.104.0] - 2024-07-29
 ### Fixed
