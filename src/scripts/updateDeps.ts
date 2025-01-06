@@ -86,7 +86,7 @@ async function main() {
         'Preferences',
         'PrecompileTools',
         'TestEnv',
-        'Salsa',
+        // 'Salsa', We currently use a bug-fix branch
     ]) {
         await cp.exec('git fetch')
         await cp.exec('git fetch --tags')
