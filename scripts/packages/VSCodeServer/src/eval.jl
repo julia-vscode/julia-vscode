@@ -23,15 +23,15 @@ function run_with_backend(f, args...)
 end
 
 function start_eval_backend()
-    global EVAL_BACKEND_TASK[] = @async begin
-        Base.sigatomic_begin()
+    global EVAL_BACKEND_TASK[] = @async disable_sigint() do
         while true
             try
                 f, args = take!(EVAL_CHANNEL_IN)
-                Base.sigatomic_end()
                 IS_BACKEND_WORKING[] = true
                 res = try
-                    Base.invokelatest(f, args...)
+                    reenable_sigint() do
+                        Base.invokelatest(f, args...)
+                    end
                 catch err
                     @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
@@ -42,7 +42,6 @@ function start_eval_backend()
                     end
                 end
                 IS_BACKEND_WORKING[] = false
-                Base.sigatomic_begin()
                 put!(EVAL_CHANNEL_OUT, wrap(res))
             catch err
                 put!(EVAL_CHANNEL_OUT, wrap(err))
@@ -50,14 +49,6 @@ function start_eval_backend()
                 IS_BACKEND_WORKING[] = false
             end
         end
-        Base.sigatomic_end()
-    end
-end
-
-function repl_interrupt_request(conn, ::Nothing)
-    println(stderr, "^C")
-    if EVAL_BACKEND_TASK[] !== nothing && !istaskdone(EVAL_BACKEND_TASK[]) && IS_BACKEND_WORKING[]
-        schedule(EVAL_BACKEND_TASK[], InterruptException(); error = true)
     end
 end
 
