@@ -197,7 +197,7 @@ export async function withLanguageClient(
     }
 
     try {
-        return callback(g_languageClient)
+        return await callback(g_languageClient)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             return callbackOnHandledErr(err)
