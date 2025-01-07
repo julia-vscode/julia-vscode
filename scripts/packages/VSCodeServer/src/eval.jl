@@ -276,7 +276,7 @@ end
 
 Calls `render`, but catches errors in the display system.
 """
-function safe_render(x)
+function safe_render(x)::ReplRunCodeRequestReturn
     try
         return render(x)
     catch err
@@ -299,7 +299,7 @@ Must return a `ReplRunCodeRequestReturn` with the following fields:
 - `all::String`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
 - `stackframe::Vector{Frame}`: Optional, should only be given on an error
 """
-function render(x)
+function render(x)::ReplRunCodeRequestReturn
     plain = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
     md = try
         sprintlimited(MIME"text/markdown"(), x, limit = MAX_RESULT_LENGTH)
@@ -310,7 +310,7 @@ function render(x)
     return ReplRunCodeRequestReturn(inline, md)
 end
 
-render(::Nothing) = ReplRunCodeRequestReturn("✓", codeblock("nothing"))
+render(::Nothing)::ReplRunCodeRequestReturn = ReplRunCodeRequestReturn("✓", codeblock("nothing"))
 
 codeblock(s) = string("```\n", s, "\n```")
 
@@ -332,7 +332,7 @@ function sprint_error(err)
     sprintlimited(err, [], func = Base.display_error, limit = MAX_RESULT_LENGTH)
 end
 
-function render(err::EvalError)
+function render(err::EvalError)::ReplRunCodeRequestReturn
     bt = crop_backtrace(err.bt)
 
     errstr = sprint_error_unwrap(err.err)
@@ -348,7 +348,7 @@ function render(err::EvalError)
     return ReplRunCodeRequestReturn(inline, all, stackframe)
 end
 
-function render(stack::EvalErrorStack)
+function render(stack::EvalErrorStack)::ReplRunCodeRequestReturn
     inline = ""
     all = ""
     complete_bt = Union{Base.InterpreterIP,Ptr{Cvoid}}[]
