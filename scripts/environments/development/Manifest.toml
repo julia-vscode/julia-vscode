@@ -207,10 +207,9 @@ uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
 version = "3.1.0"
 
 [[deps.MacroTools]]
-deps = ["Markdown", "Random"]
 path = "../../packages/MacroTools"
 uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
-version = "0.5.13"
+version = "0.5.15"
 
 [[deps.Markdown]]
 deps = ["Base64"]

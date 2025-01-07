@@ -117,10 +117,10 @@ uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
 version = "1.4.3-DEV"
 
 [[deps.JuliaFormatter]]
-deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "PrecompileTools", "TOML", "Tokenize"]
+deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "1.0.62"
+version = "2.0.0"
 
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
@@ -170,10 +170,9 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[deps.MacroTools]]
-deps = ["Markdown", "Random"]
 path = "../../../packages/MacroTools"
 uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
-version = "0.5.13"
+version = "0.5.15"
 
 [[deps.Markdown]]
 deps = ["Base64"]
