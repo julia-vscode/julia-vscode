@@ -37,7 +37,7 @@ export interface PublishTestsParams {
 export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams,void>('julia/publishTests')
 
 export interface GetTestEnvRequestParamsReturn {
-    packageName: string
+    packageName?: string
     packageUri?: lsp.URI
     projectUri?: lsp.URI
     envContentHash?: number

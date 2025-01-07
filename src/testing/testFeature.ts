@@ -327,9 +327,11 @@ export class JuliaTestController {
                     juliaEnv: {},
                     useDefaultUsings: i.details.optionDefaultImports,
                     testSetups: i.details.optionSetup,
-                    line: i.details.codeRange.start.line + 1,
-                    column: i.details.codeRange.start.character + 1,
+                    line: i.details.range.start.line + 1,
+                    column: i.details.range.start.character + 1,
                     code: i.details.code,
+                    codeLine: i.details.codeRange.start.line + 1,
+                    codeColumn: i.details.codeRange.start.character + 1,
                     mode: modeAsString(mode)
                 }
             }),

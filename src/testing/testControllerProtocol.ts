@@ -14,7 +14,7 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
         id: string,
         uri: string,
         label: string,
-        packageName: string,
+        packageName?: string,
         packageUri?: string,
         projectUri?: string,
         envCcontentHash?: number,
@@ -27,10 +27,12 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
         line: number,
         column: number,
         code: string,
+        codeLine: number,
+        codeColumn: number,
         mode: string
     }[],
     testSetups: {
-        packageUri: string,
+        packageUri?: string,
         name: string,
         kind: string,
         uri: string,
