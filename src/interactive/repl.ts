@@ -1030,40 +1030,9 @@ export async function executeInREPL(code: string, { filename = 'code', line = 0,
     )
 }
 
-const interrupts = []
-let last_interrupt_index = -1
 async function interrupt() {
     telemetry.traceEvent('command-interrupt')
-    // always send out internal interrupt
-    await softInterrupt()
-    // but we'll try sending a SIGINT if more than 3 interrupts were sent in the last second
-    last_interrupt_index = (last_interrupt_index + 1) % 5
-    interrupts[last_interrupt_index] = new Date()
-    const now = new Date()
-    if (interrupts.filter(x => (now.getTime() - x.getTime()) < 1000).length >= 3) {
-        signalInterrupt()
-    }
-}
-
-async function softInterrupt() {
-    try {
-        await g_connection.sendNotification('repl/interrupt')
-    } catch (err) {
-        console.warn(err)
-    }
-}
-
-function signalInterrupt() {
-    telemetry.traceEvent('command-signal-interrupt')
-    try {
-        if (process.platform !== 'win32') {
-            g_terminal.processId.then(pid => process.kill(pid, 'SIGINT'))
-        } else {
-            console.warn('Signal interrupts are not supported on Windows.')
-        }
-    } catch (err) {
-        console.warn(err)
-    }
+    g_terminal.sendText('\x03', false)
 }
 
 // code execution end

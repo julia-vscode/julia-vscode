@@ -125,60 +125,63 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
     run(conn_endpoint[])
     @debug "running"
 
-    @async try
-        msg_dispatcher = JSONRPC.MsgDispatcher()
+    @async disable_sigint() do
+        try
+            msg_dispatcher = JSONRPC.MsgDispatcher()
 
-        msg_dispatcher[repl_runcode_request_type] = repl_runcode_request
-        msg_dispatcher[repl_interrupt_notification_type] = repl_interrupt_request
-        msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
-        msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
-        msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
-        msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request
-        msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
-        msg_dispatcher[repl_getcompletions_request_type] = repl_getcompletions_request
-        msg_dispatcher[repl_resolvecompletion_request_type] = repl_resolvecompletion_request
-        msg_dispatcher[repl_toggle_plot_pane_notification_type] = toggle_plot_pane
-        msg_dispatcher[repl_toggle_diagnostics_notification_type] = toggle_diagnostics
-        msg_dispatcher[repl_toggle_inlay_hints_notification_type] = toggle_inlay_hints
-        msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress
-        msg_dispatcher[cd_notification_type] = cd_to_uri
-        msg_dispatcher[activate_project_notification_type] = activate_uri
-        msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request
-        msg_dispatcher[repl_gettabledata_request_type] = get_table_data
-        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
+            msg_dispatcher[repl_runcode_request_type] = repl_runcode_request
+            msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
+            msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
+            msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
+            msg_dispatcher[repl_loadedModules_request_type] = repl_loadedModules_request
+            msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
+            msg_dispatcher[repl_getcompletions_request_type] = repl_getcompletions_request
+            msg_dispatcher[repl_resolvecompletion_request_type] = repl_resolvecompletion_request
+            msg_dispatcher[repl_toggle_plot_pane_notification_type] = toggle_plot_pane
+            msg_dispatcher[repl_toggle_diagnostics_notification_type] = toggle_diagnostics
+            msg_dispatcher[repl_toggle_inlay_hints_notification_type] = toggle_inlay_hints
+            msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress
+            msg_dispatcher[cd_notification_type] = cd_to_uri
+            msg_dispatcher[activate_project_notification_type] = activate_uri
+            msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request
+            msg_dispatcher[repl_gettabledata_request_type] = get_table_data
+            msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
 
-        send_queued_notifications!()
+            send_queued_notifications!()
 
-        @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
-            msg = JSONRPC.get_next_message(conn_endpoint[])
+            @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
+                msg = JSONRPC.get_next_message(conn_endpoint[])
 
-            if msg["method"] == repl_runcode_request_type.method
-                @async try
-                    dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
-                catch err
-                    if error_handler===nothing
-                        Base.display_error(err, catch_backtrace())
-                    else
-                        error_handler(err, catch_backtrace())
+                if msg["method"] == repl_runcode_request_type.method
+                    @async disable_sigint() do
+                        try
+                            dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
+                        catch err
+                            if error_handler===nothing
+                                Base.display_error(err, catch_backtrace())
+                            else
+                                error_handler(err, catch_backtrace())
+                            end
+                        end
                     end
+                else
+                    dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
                 end
+            end
+        catch err
+            if !isopen(conn) && is_disconnected_exception(err)
+                # expected error
+                @debug "remote closed the connection"
             else
-                dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
+                try
+                    error_handler(err, catch_backtrace())
+                catch err
+                    @error "Error handler threw an error." exception = (err, catch_backtrace())
+                end
             end
+        finally
+            @debug "JSONRPC dispatcher task finished"
         end
-    catch err
-        if !isopen(conn) && is_disconnected_exception(err)
-            # expected error
-            @debug "remote closed the connection"
-        else
-            try
-                error_handler(err, catch_backtrace())
-            catch err
-                @error "Error handler threw an error." exception = (err, catch_backtrace())
-            end
-        end
-    finally
-        @debug "JSONRPC dispatcher task finished"
     end
 end
 
