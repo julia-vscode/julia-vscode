@@ -87,10 +87,10 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
             return await languageClient.sendRequest<string>('julia/getModuleAt', params)
         }
         catch (err) {
-            if (err instanceof ResponseError && err.code===rpc.ErrorCodes.ConnectionInactive) {
+            if ((err as ResponseError).code && err.code===rpc.ErrorCodes.ConnectionInactive) {
                 return 'Main'
             }
-            else if (err instanceof ResponseError && err.code===-33101) {
+            else if ((err as ResponseError).code && err.code===-33101) {
                 // This is a version out of sync situation
                 return 'Main'
             }
