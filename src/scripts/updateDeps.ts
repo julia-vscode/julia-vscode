@@ -79,7 +79,7 @@ async function main() {
         'Compat',
         'Crayons',
         'DataStructures',
-        'JuliaFormatter',
+        // 'JuliaFormatter', Need more time to do the v2 transition
         // 'URIs', Not compatible with earlier than Julia 1.6 versions
         'Revise',
         'DelimitedFiles',
