@@ -215,7 +215,7 @@ function changeConfig(event: vscode.ConfigurationChangeEvent) {
     }
 }
 
-const supportedSchemes = [
+export const supportedSchemes = [
     'file',
     'untitled',
     'vscode-notebook-cell'

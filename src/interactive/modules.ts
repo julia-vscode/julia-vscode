@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { ResponseError } from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient/node'
-import { onSetLanguageClient } from '../extension'
+import { onSetLanguageClient, supportedSchemes } from '../extension'
 import * as telemetry from '../telemetry'
 import { registerCommand, wrapCrashReporting } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
@@ -69,6 +69,8 @@ function cancelCurrentGetModuleRequest() {
 export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position, token?: vscode.CancellationToken): Promise<string> {
     const manuallySetModule = manuallySetDocuments[document.fileName]
     if (manuallySetModule) { return manuallySetModule }
+
+    if (supportedSchemes.findIndex(i => i === document.uri.scheme) === -1) { return 'Main' }
 
     const languageClient = g_languageClient
 
