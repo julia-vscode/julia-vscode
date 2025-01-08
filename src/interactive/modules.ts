@@ -82,32 +82,26 @@ export async function getModuleForEditor(document: vscode.TextDocument, position
         position: position
     }
 
-    for (let i = 0; i < 3; i++) {
-        if (token === undefined || !token.isCancellationRequested) {
-            try {
-                return await languageClient.sendRequest<string>('julia/getModuleAt', params)
-            }
-            catch (err) {
-                if (err instanceof ResponseError && err.code===rpc.ErrorCodes.ConnectionInactive) {
-                    return 'Main'
-                }
-                else if (err instanceof ResponseError && err.code===-33101) {
-                    // This is a version out of sync situation
-                    return 'Main'
-                }
-                else {
-                    throw err
-                }
-            }
+    if (token === undefined || !token.isCancellationRequested) {
+        try {
+            return await languageClient.sendRequest<string>('julia/getModuleAt', params)
         }
-        else {
-            // We were canceled, so we give up
-            return 'Main'
+        catch (err) {
+            if (err instanceof ResponseError && err.code===rpc.ErrorCodes.ConnectionInactive) {
+                return 'Main'
+            }
+            else if (err instanceof ResponseError && err.code===-33101) {
+                // This is a version out of sync situation
+                return 'Main'
+            }
+            else {
+                throw err
+            }
         }
     }
-
-    // We tried three times, now give up
-    return 'Main'
+    else {
+        return 'Main'
+    }
 }
 
 function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
