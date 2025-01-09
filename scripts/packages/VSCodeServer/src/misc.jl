@@ -219,12 +219,12 @@ function send_queued_notifications!()
 end
 
 # Misc handlers
-function cd_to_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
+function cd_to_uri_notification(conn, params::NamedTuple{(:uri,),Tuple{String}})
     cd(params.uri)
     return nothing
 end
 
-function activate_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
+function activate_uri_notification(conn, params::NamedTuple{(:uri,),Tuple{String}})
     hideprompt(() -> Pkg.activate(params.uri))
     return nothing
 end

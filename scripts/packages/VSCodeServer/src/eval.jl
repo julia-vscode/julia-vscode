@@ -54,7 +54,7 @@ function start_eval_backend()
     end
 end
 
-function repl_interrupt_request(conn, ::Nothing)
+function repl_interrupt_request(conn, ::Nothing, token)
     println(stderr, "^C")
     if EVAL_BACKEND_TASK[] !== nothing && !istaskdone(EVAL_BACKEND_TASK[]) && IS_BACKEND_WORKING[]
         schedule(EVAL_BACKEND_TASK[], InterruptException(); error = true)
@@ -121,7 +121,7 @@ function set_error_global(errs)
     end
 end
 
-function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
+function repl_runcode_request(conn, params::ReplRunCodeRequestParams, token)::ReplRunCodeRequestReturn
     run_with_backend() do
         fix_displays()
 

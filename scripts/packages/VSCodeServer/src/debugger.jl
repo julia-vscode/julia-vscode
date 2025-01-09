@@ -8,7 +8,7 @@ function remove_lln!(ex::Expr)
     end
 end
 
-function debugger_getdebugitems_request(conn, params)
+function debugger_getdebugitems_request(conn, params, token)
     accessor = params.juliaAccessor
     out = DebugConfigTreeItem[]
     loaded_modules = Base.loaded_modules_array()

@@ -237,7 +237,7 @@ function showtable(table::T, title = "") where {T}
     end
 end
 
-function get_table_data(conn, params::GetTableDataRequest)
+function get_table_data_request(conn, params::GetTableDataRequest, token)
     id = UUID(params.id)
     if !haskey(TABLES, id)
         return JSONRPC.JSONRPCError(-32600, "Table not found.", nothing)
@@ -284,7 +284,7 @@ function get_table_data(conn, params::GetTableDataRequest)
     )
 end
 
-function clear_lazy_table(conn, params::NamedTuple{(:id,),Tuple{String}})
+function clear_lazy_table_notification(conn, params::NamedTuple{(:id,),Tuple{String}})
     id = UUID(params.id)
     delete!(TABLES, id)
     delete!(FILTER_CACHE, id)
