@@ -47,13 +47,13 @@ async function main() {
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css', 'libs/fontawesome/solid.min.css')
     await our_download('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css', 'libs/fontawesome/brands.min.css')
 
-    for (const pkg of ['CSTParser', 'LanguageServer', 'StaticLint', 'SymbolServer', 'DebugAdapter', 'Salsa']) {
+    for (const pkg of ['StaticLint', 'SymbolServer', 'Salsa']) {
         console.log(`Updating ${pkg} to latest master`)
         await cp.exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
     }
 
-    for (const pkg of ['JSONRPC', 'IJuliaCore', 'JuliaWorkspaces', 'TestItemControllers', 'TestItemDetection']) {
+    for (const pkg of ['LanguageServer', 'CSTParser', 'JSONRPC', 'IJuliaCore', 'JuliaWorkspaces', 'TestItemControllers', 'TestItemDetection', 'DebugAdapter']) {
         console.log(`Updating ${pkg} to latest main`)
         await cp.exec('git checkout main', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
         await cp.exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
