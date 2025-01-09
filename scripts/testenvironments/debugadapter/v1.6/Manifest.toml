@@ -9,6 +9,11 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
+[[CancellationTokens]]
+git-tree-sha1 = "eacd96906188a977d9cd4b00c48552cdd46e5f47"
+uuid = "2e8d271d-f2e2-407b-a864-17eb2156783e"
+version = "1.0.0"
+
 [[CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
 path = "../../../packages/CodeTracking"
@@ -40,10 +45,10 @@ uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.1"
 
 [[JSONRPC]]
-deps = ["JSON", "UUIDs"]
+deps = ["CancellationTokens", "JSON", "UUIDs"]
 path = "../../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "1.4.3-DEV"
+version = "2.0.1-DEV"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]

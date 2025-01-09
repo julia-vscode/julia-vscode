@@ -116,10 +116,10 @@ uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.1"
 
 [[deps.JSONRPC]]
-deps = ["JSON", "UUIDs"]
+deps = ["CancellationTokens", "JSON", "UUIDs"]
 path = "../../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "1.4.3-DEV"
+version = "2.0.1-DEV"
 
 [[deps.JuliaFormatter]]
 deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "PrecompileTools", "TOML", "Tokenize"]
