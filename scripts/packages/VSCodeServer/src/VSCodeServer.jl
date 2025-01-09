@@ -11,6 +11,7 @@ import Logging
 import InteractiveUtils
 
 include("../../JSON/src/JSON.jl")
+include("../../CancellationTokens/src/CancellationTokens.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
 
 module IJuliaCore
@@ -22,6 +23,7 @@ include("../../IJuliaCore/src/packagedef.jl")
 end
 
 module JSONRPC
+import ..CancellationTokens
 import ..JSON
 import UUIDs
 

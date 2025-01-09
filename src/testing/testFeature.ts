@@ -220,9 +220,9 @@ export class JuliaTestController {
             tp.setStatus(i.status)
         })
         this.connection.onNotification(notificationTypeTestProcessTerminated, i=>{
-            const tp = this.testProcesses.get(i)
+            const tp = this.testProcesses.get(i.id)
             this.workspaceFeature.removeTestProcess(tp)
-            this.testProcesses.delete(i)
+            this.testProcesses.delete(i.id)
         })
         this.connection.onNotification(notificationTypeLaunchDebuggers, async i=>{
             const testRun = this.testRuns.get(i.testRunId)

@@ -89,7 +89,7 @@ export const notificationTypeAppendOutput = new rpc.NotificationType<{testRunId:
 
 export const notificationTypeTestProcessCreated = new rpc.NotificationType<{id: string, packageName: string, packageUri?: string, projectUri?: string, coverage: boolean, env: any}>('testProcessCreated')
 
-export const notificationTypeTestProcessTerminated = new rpc.NotificationType<string>('testProcessTerminated')
+export const notificationTypeTestProcessTerminated = new rpc.NotificationType<{id: string}>('testProcessTerminated')
 
 export const notificationTypeTestProcessStatusChanged = new rpc.NotificationType<{id: string, status: string}>('testProcessStatusChanged')
 
