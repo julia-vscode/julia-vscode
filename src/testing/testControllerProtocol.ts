@@ -41,15 +41,14 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
         code: string
     }[],
     coverageRootUris?: string[]
-}, void, void>('createTestRun')
-
-export const requestTypeCancelTestRun = new rpc.RequestType<{testRunId: string}, void, void>('cancelTestRun')
+}, {
+    status: string,
+    coverage?: FileCoverage[]
+}, void>('createTestRun')
 
 export const requestTypeTerminateTestProcess = new rpc.RequestType<{testProcessId: string}, void, void>('terminateTestProcess')
 
 // Messages from the controller to the extension
-
-export const notficiationTypeTestRunFinished = new rpc.NotificationType<{testRunId: string, coverage?: FileCoverage[]}>('testRunFinished')
 
 export const notficiationTypeTestItemStarted = new rpc.NotificationType<{testRunId: string, testItemId: string}>('testItemStarted')
 
@@ -93,4 +92,6 @@ export const notificationTypeTestProcessTerminated = new rpc.NotificationType<{i
 
 export const notificationTypeTestProcessStatusChanged = new rpc.NotificationType<{id: string, status: string}>('testProcessStatusChanged')
 
-export const notificationTypeLaunchDebuggers = new rpc.NotificationType<{debugPipeNames: string[], testRunId: string}>('launchDebuggers')
+export const notificationTypeTestProcessOutput = new rpc.NotificationType<{id: string, output: string}>('testProcessOutput')
+
+export const notificationTypeLaunchDebugger = new rpc.NotificationType<{debugPipeName: string, testRunId: string}>('launchDebugger')
