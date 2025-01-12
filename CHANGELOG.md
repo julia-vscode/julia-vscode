@@ -8,11 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Added `juliaAdditionalArgs` option to Julia debug launch configuration ([#3699](https://github.com/julia-vscode/julia-vscode/pull/3699)).
 - Added passing of `config` field when making a Plotly plot in the plot pane ([#3734](https://github.com/julia-vscode/julia-vscode/pull/3734)).
+- Integrated and persistent Julia REPL processes now have the `JULIA_VSCODE_REPL` environment variable set ([#3764](https://github.com/julia-vscode/julia-vscode/pull/3764))
+
 ### Fixed
 - `@profview` and `@profview_allocs` now support the optional keyword arguments of `Profile.print`, such as `recur = :flat` ([#3666](https://github.com/julia-vscode/julia-vscode/pull/3666)).
 - The integrated REPL now respects a user-set active project (e.g. in `additionalArgs` and `startup.jl`) ([#3670](https://github.com/julia-vscode/julia-vscode/pull/3669))
 - Changes to how Jupyter Notebook Metadata is updated ([#3690](https://github.com/julia-vscode/julia-vscode/pull/3690))
 - Fix a bug where non-supported schemes were sent to the LS ([#3700](https://github.com/julia-vscode/julia-vscode/pull/3700))
+
 ### Changed
 - Plotly javascript library updated to 2.35.2 ([#3750](https://github.com/julia-vscode/julia-vscode/pull/3750)).
 - Test item runner migrated to TestItemControllers.jl
