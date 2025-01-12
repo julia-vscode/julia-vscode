@@ -127,3 +127,9 @@
 [submodule "scripts/packages/TestItemControllers"]
 	path = scripts/packages/TestItemControllers
 	url = https://github.com/julia-vscode/TestItemControllers.jl
+[submodule "scripts/packages-old/v1.5/OrderedCollections"]
+	path = scripts/packages-old/v1.5/OrderedCollections
+	url = https://github.com/JuliaCollections/OrderedCollections.jl
+[submodule "scripts/packages-old/v1.9/Revise"]
+	path = scripts/packages-old/v1.9/Revise
+	url = https://github.com/timholy/Revise.jl
