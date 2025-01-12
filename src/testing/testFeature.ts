@@ -289,17 +289,26 @@ export class JuliaTestController {
         })
         const params =  {
             testRunId: testRunId,
-            maxProcessCount: maxProcessCount,
+            testProfiles: [
+                {
+                    id: 'id1',
+                    label: 'default',
+                    juliaCmd: juliaExec.file,
+                    juliaArgs: juliaExec.args,
+                    juliaNumThreads: nthreads,
+                    juliaEnv: {},
+                    maxProcessCount: maxProcessCount,
+                    mode: modeAsString(mode),
+                    coverageRootUris: (mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders) ? undefined : vscode.workspace.workspaceFolders.map(i=>i.uri.toString())
+                }
+
+            ],
             testItems: all_the_tests.map(i=>{
                 return {
                     id: i.testItem.id,
                     uri: i.testItem.uri.toString(),
                     label: i.testItem.label,
                     ...i.testEnv,
-                    juliaCmd: juliaExec.file,
-                    juliaArgs: juliaExec.args,
-                    juliaNumThreads: nthreads,
-                    juliaEnv: {},
                     useDefaultUsings: i.details.optionDefaultImports,
                     testSetups: i.details.optionSetup,
                     line: i.details.range.start.line + 1,
@@ -307,11 +316,10 @@ export class JuliaTestController {
                     code: i.details.code,
                     codeLine: i.details.codeRange.start.line + 1,
                     codeColumn: i.details.codeRange.start.character + 1,
-                    mode: modeAsString(mode)
                 }
             }),
             testSetups: testSetups,
-            coverageRootUris: (mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders) ? undefined : vscode.workspace.workspaceFolders.map(i=>i.uri.toString())
+
         }
 
         const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params, testRun.token)

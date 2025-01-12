@@ -9,7 +9,17 @@ interface FileCoverage {
 
 export const requestTypeCreateTestRun = new rpc.RequestType<{
     testRunId: string,
-    maxProcessCount: number,
+    testProfiles: {
+        id: string,
+        label: string,
+        juliaCmd: string,
+        juliaArgs: string[],
+        juliaNumThreads: string,
+        juliaEnv: { [key: string]: string | null },
+        maxProcessCount: number,
+        mode: string,
+        coverageRootUris?: string[]
+    }[],
     testItems: {
         id: string,
         uri: string,
@@ -18,10 +28,6 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
         packageUri?: string,
         projectUri?: string,
         envCcontentHash?: number,
-        juliaCmd: string,
-        juliaArgs: string[],
-        juliaNumThreads: string,
-        juliaEnv: { [key: string]: string | null },
         useDefaultUsings: boolean,
         testSetups: string[],
         line: number,
@@ -29,7 +35,6 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
         code: string,
         codeLine: number,
         codeColumn: number,
-        mode: string
     }[],
     testSetups: {
         packageUri?: string,
@@ -40,7 +45,6 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
         column: number
         code: string
     }[],
-    coverageRootUris?: string[]
 }, {
     status: string,
     coverage?: FileCoverage[]
