@@ -261,7 +261,11 @@ window.addEventListener('message', ({ data }) => {
         handlePlotSaveRequest(data.body.index)
         break
     case REQUEST_COPY_PLOT_TYPE:
-        handlePlotCopyRequest()
+        // according to https://stackoverflow.com/questions/77465342/how-do-i-ensure-that-the-website-has-focus-so-the-copy-to-clipboard-can-happen
+        // `setTimeout` avoids that the focus check in handlePlotCopyRequest fails because
+        // the browser doesn't give the document focus back quickly enough after the user clicks the button
+        // triggering the clipboard interaction (which is only allowed with focus)
+        setTimeout(handlePlotCopyRequest, 0);
         break
     default:
         console.error(new Error('Unknown plot request!'))
