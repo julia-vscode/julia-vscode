@@ -265,7 +265,7 @@ window.addEventListener('message', ({ data }) => {
         // `setTimeout` avoids that the focus check in handlePlotCopyRequest fails because
         // the browser doesn't give the document focus back quickly enough after the user clicks the button
         // triggering the clipboard interaction (which is only allowed with focus)
-        setTimeout(handlePlotCopyRequest, 0);
+        setTimeout(handlePlotCopyRequest, 0.05);
         break
     default:
         console.error(new Error('Unknown plot request!'))
