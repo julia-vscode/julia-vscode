@@ -71,7 +71,7 @@ const COPY_SUCCESS_MESSAGE_TYPE = 'copySuccess'
  * @param {number} index
  */
 function handlePlotSaveRequest(index) {
-    const plot = getPlotElement()
+    let plot = getPlotElement()
     if (isPlotly()) {
         Plotly.Snapshot.toImage(plot, { format: 'svg' }).once('success', (url) => {
             const svg = decodeURIComponent(url).replace(/data:image\/svg\+xml,/, '')
@@ -83,6 +83,13 @@ function handlePlotSaveRequest(index) {
 
         postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, index })
     } else {
+        // e.g. Makie may display png images via a HTML mime type. If the plot pane content is a div (so we didn't have one of the image MIME types
+        // that we wrap in <img> ourselves) we can check if there's a single <img> in there, and if so, continue the plot saving logic with that.
+        const innerPlot = getSingleImgFromHtmlContent(plot);
+        if (innerPlot !== null){
+            plot = innerPlot;
+        }
+
         const { src } = plot
 
         const svg = src.includes('image/svg')
@@ -97,6 +104,16 @@ function handlePlotSaveRequest(index) {
 
         postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, png, gif, index })
     }
+}
+
+function getSingleImgFromHtmlContent(el){
+    if (el.tagName.toLowerCase() === "div") {
+        const child = el.children.length === 1 ? el.children[0] : undefined;
+        if (child && child.tagName.toLowerCase() === "img") {
+            return child;
+        }
+    }
+    return null
 }
 
 function handlePlotCopyRequest() {
@@ -244,7 +261,11 @@ window.addEventListener('message', ({ data }) => {
         handlePlotSaveRequest(data.body.index)
         break
     case REQUEST_COPY_PLOT_TYPE:
-        handlePlotCopyRequest()
+        // according to https://stackoverflow.com/questions/77465342/how-do-i-ensure-that-the-website-has-focus-so-the-copy-to-clipboard-can-happen
+        // `setTimeout` avoids that the focus check in handlePlotCopyRequest fails because
+        // the browser doesn't give the document focus back quickly enough after the user clicks the button
+        // triggering the clipboard interaction (which is only allowed with focus)
+        setTimeout(handlePlotCopyRequest, 0.05);
         break
     default:
         console.error(new Error('Unknown plot request!'))

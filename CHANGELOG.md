@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The integrated REPL now respects a user-set active project (e.g. in `additionalArgs` and `startup.jl`) ([#3670](https://github.com/julia-vscode/julia-vscode/pull/3669))
 - Changes to how Jupyter Notebook Metadata is updated ([#3690](https://github.com/julia-vscode/julia-vscode/pull/3690))
 - Fix a bug where non-supported schemes were sent to the LS ([#3700](https://github.com/julia-vscode/julia-vscode/pull/3700))
+- Fix saving from plot pane for text/html plots with a single img tag (e.g. Makie) and decrease "copy plot to clipboard" failure rate due to missing focus ([#3780](https://github.com/julia-vscode/julia-vscode/pull/3780))
 ### Changed
 - Plotly javascript library updated to 2.35.2 ([#3750](https://github.com/julia-vscode/julia-vscode/pull/3750)).
 - Test item runner migrated to TestItemControllers.jl
