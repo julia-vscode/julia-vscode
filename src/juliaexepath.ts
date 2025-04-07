@@ -66,14 +66,19 @@ export class JuliaExecutable {
 
 export class JuliaExecutablesFeature {
     private actualJuliaExePath: JuliaExecutable | undefined
+    private actualLanguageServerJuliaExePath: JuliaExecutable | undefined
     private cachedJuliaExePaths: JuliaExecutable[] | undefined
     private usingJuliaup: boolean | null = null
 
     constructor(private context: vscode.ExtensionContext, private diagnosticsOutput: JuliaGlobalDiagnosticOutputFeature) {
         this.context.subscriptions.push(
             onDidChangeConfig(event => {
-                if (event.affectsConfiguration('julia.executablePath')) {
+                if (
+                    event.affectsConfiguration('julia.executablePath') ||
+                    event.affectsConfiguration('julia.languageServerExecutablePath')
+                ) {
                     this.actualJuliaExePath = undefined
+                    this.actualLanguageServerJuliaExePath = undefined
                     this.cachedJuliaExePaths = undefined
                     this.usingJuliaup = null
                 }
@@ -137,6 +142,20 @@ export class JuliaExecutablesFeature {
             this.actualJuliaExePath = newJuliaExecutable
             setCurrentJuliaVersion(this.actualJuliaExePath.version)
             traceEvent('configured-new-julia-binary')
+
+            return true
+        }
+        else {
+            return false
+        }
+    }
+
+    async tryAndSetNewLanguageServerJuliaExePathAsync(newPath: string) {
+        const newJuliaExecutable = await this.tryJuliaExePathAsync(newPath)
+
+        if (newJuliaExecutable) {
+            this.actualLanguageServerJuliaExePath = newJuliaExecutable
+            traceEvent('configured-new-ls-julia-binary')
 
             return true
         }
@@ -333,6 +352,13 @@ export class JuliaExecutablesFeature {
                 if (configPath) {
                     await this.tryAndSetNewJuliaExePathAsync(configPath)
                 }
+
+                const LSConfigPath = this.getLanguageServerExecutablePath()
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.languageServerExecutablePath' is '${configPath}'.`)
+
+                if (LSConfigPath) {
+                    await this.tryAndSetNewLanguageServerJuliaExePathAsync(LSConfigPath)
+                }
             }
 
             if(this.actualJuliaExePath) {
@@ -346,6 +372,15 @@ export class JuliaExecutablesFeature {
         return this.actualJuliaExePath
     }
 
+    public async getActiveLaunguageServerJuliaExecutableAsync() {
+        const actualJuliaExePath = await this.getActiveJuliaExecutableAsync()
+        if (this.actualLanguageServerJuliaExePath === undefined ){
+            return actualJuliaExePath
+        } else {
+            return this.actualLanguageServerJuliaExePath
+        }
+    }
+
     public async isJuliaup() {
         if(this.usingJuliaup===null) {
             await this.tryJuliaup()
@@ -356,6 +391,10 @@ export class JuliaExecutablesFeature {
 
     getExecutablePath() {
         const jlpath = vscode.workspace.getConfiguration('julia').get<string>('executablePath')
+        return jlpath === '' ? undefined : jlpath
+    }
+    getLanguageServerExecutablePath() {
+        const jlpath = vscode.workspace.getConfiguration('julia').get<string>('languageServerExecutablePath')
         return jlpath === '' ? undefined : jlpath
     }
 }
