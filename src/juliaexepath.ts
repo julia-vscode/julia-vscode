@@ -329,6 +329,8 @@ export class JuliaExecutablesFeature {
                 this.diagnosticsOutput.appendLine('Juliaup not found, locating Julia by other means.')
 
                 const configPath = this.getExecutablePath()
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.executablePath' is '${configPath}'.`)
+
                 if (!configPath) {
                     for (const p of this.getSearchPaths()) {
                         if (await this.tryAndSetNewJuliaExePathAsync(p)) {
@@ -339,6 +341,14 @@ export class JuliaExecutablesFeature {
                 else {
                     await this.tryAndSetNewJuliaExePathAsync(configPath)
                 }
+
+                const LSConfigPath = this.getLanguageServerExecutablePath()
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.languageServerExecutablePath' is '${LSConfigPath}'.`)
+
+                if (LSConfigPath) {
+                    await this.tryAndSetNewLanguageServerJuliaExePathAsync(LSConfigPath)
+                }
+
             }
             // Even when Juliaup reports a version, we still want the configuration setting
             // to have higher priority
@@ -354,7 +364,7 @@ export class JuliaExecutablesFeature {
                 }
 
                 const LSConfigPath = this.getLanguageServerExecutablePath()
-                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.languageServerExecutablePath' is '${configPath}'.`)
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.languageServerExecutablePath' is '${LSConfigPath}'.`)
 
                 if (LSConfigPath) {
                     await this.tryAndSetNewLanguageServerJuliaExePathAsync(LSConfigPath)
