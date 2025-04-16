@@ -232,7 +232,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     g_startupNotification.show()
 
     let juliaLSExecutable: JuliaExecutable | null = null
-    const juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+    const juliaExecutable = await juliaExecutablesFeature.getActiveLaunguageServerJuliaExecutableAsync()
 
     if(await juliaExecutablesFeature.isJuliaup()) {
         if (Boolean(process.env.DEBUG_MODE)) {
