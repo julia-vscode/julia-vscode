@@ -152,7 +152,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         JULIA_EDITOR: getEditor()
     }
 
-    if (nthreads !== 'auto') {
+    if (nthreads !== undefined && nthreads !== 'auto') {
         env['JULIA_NUM_THREADS'] = nthreads
     }
 

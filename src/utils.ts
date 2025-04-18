@@ -31,8 +31,8 @@ export function generatePipeName(pid: string, name: string) {
 }
 
 /**
- * Decides the final value to set the `JULIA_NUM_THREADS` environment variable to
- * given the `julia.NumThreads` configuration
+ * Provides a value for setting the `JULIA_NUM_THREADS` environment variable,
+ * given the `julia.NumThreads` configuration, and the `JULIA_NUM_THREADS` env var.
  *
  * @remarks
  * The logic is:
@@ -41,11 +41,11 @@ export function generatePipeName(pid: string, name: string) {
  *
  * - otherwise, if an env var `JULIA_NUM_THREADS` exists, we return that.
  *
- * - otherwise, we return an empty string as the value
+ * - otherwise, we return undefined.
  *
- * @returns A string to set the value of `JULIA_NUM_THREADS`
+ * @returns A string to set the value of `JULIA_NUM_THREADS`, or undefined.
  */
-export function inferJuliaNumThreads(): string {
+export function inferJuliaNumThreads(): string | undefined {
     const config: number | string | undefined = vscode.workspace.getConfiguration('julia').get('NumThreads') ?? undefined
     const env: string | undefined = process.env['JULIA_NUM_THREADS']
 
@@ -55,9 +55,8 @@ export function inferJuliaNumThreads(): string {
     else if (env !== undefined) {
         return env
     }
-    else {
-        return ''
-    }
+
+    return undefined
 }
 
 /**

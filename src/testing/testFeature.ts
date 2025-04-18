@@ -391,7 +391,7 @@ export class JuliaTestController {
 //             JULIA_REVISE: 'off'
 //         }
 
-//         if (nthreads!=='auto' && nthreads!=='') {
+//         if (nthreads!=='auto' && nthreads!==undefined) {
 //             jlEnv['JULIA_NUM_THREADS'] = nthreads
 //         }
 

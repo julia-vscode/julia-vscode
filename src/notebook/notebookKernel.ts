@@ -355,7 +355,7 @@ export class JuliaKernel {
 
             if (nthreads === 'auto') {
                 args.push('--threads=auto')
-            } else {
+            } else if (nthreads !== undefined) {
                 env['JULIA_NUM_THREADS'] = nthreads
             }
 
