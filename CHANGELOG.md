@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Plotly javascript library updated to 2.35.2 ([#3750](https://github.com/julia-vscode/julia-vscode/pull/3750)).
 - Test item runner migrated to TestItemControllers.jl
+- Changed `inferJuliaNumThreads` to avoid setting `JULIA_NUM_THREADS` to an empty string (which is undefined behaviour).
 
 ## [1.104.0] - 2024-07-29
 ### Fixed
