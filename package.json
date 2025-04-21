@@ -1517,7 +1517,7 @@
         "webpack-dev": "webpack --mode development --watch",
         "eslint": "eslint --ext .ts --fix .",
         "eslint-dry-run": "eslint --ext .ts --fix-dry-run .",
-        "copy-test-fixtures": "mkdir -p out/test/fixtures && cp src/test/fixtures/*.json out/test/fixtures/",
+        "copy-test-fixtures": "node scripts/copy-test-fixtures.js",
         "compile": "tsc -p ./ && npm run copy-test-fixtures",
         "compile-dry-run": "tsc -p ./ --noEmit --pretty",
         "watch": "tsc -watch -p ./",
