@@ -1,6 +1,6 @@
 import * as path from 'path';
 import Mocha from 'mocha';
-import { glob } from 'glob';
+import glob from 'glob';
 
 export function run(): Promise<void> {
     // Create the mocha test
@@ -13,7 +13,12 @@ export function run(): Promise<void> {
 
     return new Promise((c, e) => {
         // Find all test files
-        glob('**/**.test.js', { cwd: testsRoot }).then(files => {
+        glob('**/**.test.js', { cwd: testsRoot }, (err, files) => {
+            if (err) {
+                console.error('Failed to glob test files:', err);
+                return e(err);
+            }
+
             // Add files to the test suite
             files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
 
@@ -30,9 +35,6 @@ export function run(): Promise<void> {
                 console.error(err);
                 e(err);
             }
-        }).catch(err => {
-            console.error('Failed to glob test files:', err);
-            e(err);
         });
     });
 }
