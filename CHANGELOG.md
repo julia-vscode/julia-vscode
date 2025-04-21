@@ -9,12 +9,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `juliaAdditionalArgs` option to Julia debug launch configuration ([#3699](https://github.com/julia-vscode/julia-vscode/pull/3699)).
 - Added passing of `config` field when making a Plotly plot in the plot pane ([#3734](https://github.com/julia-vscode/julia-vscode/pull/3734)).
 - Added `julia.languageServerExecutablePath` setting, which allows specifying a Julia executable path specifically for the LanguageServer runtime ([#3793](https://github.com/julia-vscode/julia-vscode/pull/3793)).
+- Added test suite for syntax highlighting grammar verification ([#3804](https://github.com/julia-vscode/julia-vscode/pull/3804)).
 ### Fixed
 - `@profview` and `@profview_allocs` now support the optional keyword arguments of `Profile.print`, such as `recur = :flat` ([#3666](https://github.com/julia-vscode/julia-vscode/pull/3666)).
 - The integrated REPL now respects a user-set active project (e.g. in `additionalArgs` and `startup.jl`) ([#3670](https://github.com/julia-vscode/julia-vscode/pull/3669))
 - Changes to how Jupyter Notebook Metadata is updated ([#3690](https://github.com/julia-vscode/julia-vscode/pull/3690))
 - Fix a bug where non-supported schemes were sent to the LS ([#3700](https://github.com/julia-vscode/julia-vscode/pull/3700))
 - Fix saving from plot pane for text/html plots with a single img tag (e.g. Makie) and decrease "copy plot to clipboard" failure rate due to missing focus ([#3780](https://github.com/julia-vscode/julia-vscode/pull/3780))
+- Fixed the composition operator `∘` being incorrectly parsed as arithmetic instead of compose ([#3804](https://github.com/julia-vscode/julia-vscode/pull/3804)).
 ### Changed
 - Plotly javascript library updated to 2.35.2 ([#3750](https://github.com/julia-vscode/julia-vscode/pull/3750)).
 - Test item runner migrated to TestItemControllers.jl
