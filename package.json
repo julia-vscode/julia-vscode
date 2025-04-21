@@ -1521,6 +1521,7 @@
         "compile-dry-run": "tsc -p ./ --noEmit --pretty",
         "watch": "tsc -watch -p ./",
         "test": "vscode-test",
+        "verify-grammar": "node scripts/verify-grammar.js",
         "initialsetup": "npm i && git submodule init && git submodule update",
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run webpack",
         "package": "vsce package",
@@ -1549,6 +1550,7 @@
     },
     "devDependencies": {
         "@types/download": "^8.0.1",
+        "@types/glob": "^8.1.0",
         "@types/lodash.isequal": "^4.5.8",
         "@types/markdown-it": "^14.1.1",
         "@types/mocha": "^10",
@@ -1563,11 +1565,14 @@
         "@vscode/vsce": "3",
         "download": "^8.0.0",
         "eslint": "^9.15.0",
+        "glob": "^10.3.10",
         "globals": "^15.12.0",
         "mocha": "11",
         "ts-loader": "^9.2.8",
         "typescript": "^5.6.3",
         "typescript-eslint": "^8.14.0",
+        "vscode-oniguruma": "^1.7.0",
+        "vscode-textmate": "^9.0.0",
         "webpack": "^5.70.0",
         "webpack-cli": "^5"
     }

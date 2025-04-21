@@ -1,0 +1,308 @@
+{
+  "keywords": [
+    {
+      "name": "if keyword",
+      "code": "if x > 0",
+      "expectedScope": "keyword.control.julia"
+    },
+    {
+      "name": "else keyword",
+      "code": "else",
+      "expectedScope": "keyword.control.julia"
+    },
+    {
+      "name": "function keyword",
+      "code": "function test()",
+      "expectedScope": "keyword.other.julia"
+    },
+    {
+      "name": "end keyword",
+      "code": "end",
+      "expectedScope": "keyword.control.end.julia"
+    },
+    {
+      "name": "return keyword",
+      "code": "return x",
+      "expectedScope": "keyword.control.julia"
+    },
+    {
+      "name": "const keyword",
+      "code": "const x = 1",
+      "expectedScope": "keyword.storage.modifier.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "using keyword",
+      "code": "using LinearAlgebra",
+      "expectedScope": "keyword.control.using.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "import keyword",
+      "code": "import Random",
+      "expectedScope": "keyword.control.import.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "as keyword",
+      "code": "import Base.+ as add",
+      "expectedScope": "keyword.control.as.julia",
+      "targetToken": 4
+    }
+  ],
+  "literals": [
+    {
+      "name": "integer literal",
+      "code": "x = 42",
+      "expectedScope": "constant.numeric.julia",
+      "targetToken": 3
+    },
+    {
+      "name": "float literal",
+      "code": "y = 3.14",
+      "expectedScope": "constant.numeric.julia",
+      "targetToken": 3
+    },
+    {
+      "name": "string literal",
+      "code": "s = \"hello\"",
+      "expectedScope": "string.quoted.double.julia",
+      "targetToken": 3
+    },
+    {
+      "name": "character literal",
+      "code": "c = 'a'",
+      "expectedScope": "string.quoted.single.julia",
+      "targetToken": 3
+    },
+    {
+      "name": "boolean literal",
+      "code": "b = true",
+      "expectedScope": "constant.language.julia",
+      "targetToken": 3
+    },
+    {
+      "name": "hex literal",
+      "code": "x = 0xdead_beef",
+      "expectedScope": "constant.numeric.julia",
+      "targetToken": 3
+    },
+    {
+      "name": "binary literal",
+      "code": "x = 0b1010_1100",
+      "expectedScope": "constant.numeric.julia",
+      "targetToken": 3
+    },
+    {
+      "name": "scientific literal",
+      "code": "n = 6.022e23",
+      "expectedScope": "constant.numeric.julia",
+      "targetToken": 3
+    },
+    {
+      "name": "pi constant",
+      "code": "c = 2π",
+      "expectedScope": "constant.numeric.julia",
+      "targetToken": 3
+    }
+  ],
+  "strings": [
+    {
+      "name": "triple‑quoted string",
+      "code": "\"\"\"hi\"\"\"",
+      "expectedScope": "string.quoted.triple.double.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "raw string",
+      "code": "raw\"c:\\temp\"",
+      "expectedScope": "string.quoted.other.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "regex string",
+      "code": "r\"\\d+\"",
+      "expectedScope": "string.regexp.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "interpolation",
+      "code": "\"val = $(x)\"",
+      "expectedScope": "variable.interpolation.julia",
+      "targetToken": 2
+    }
+  ],
+  "comments": [
+    {
+      "name": "line comment",
+      "code": "# This is a comment",
+      "expectedScope": "comment.line.number-sign.julia"
+    },
+    {
+      "name": "block comment start",
+      "code": "#= Block comment",
+      "expectedScope": "comment.block.number-sign-equals.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "block comment start with begin",
+      "code": "#= Block comment",
+      "expectedScope": "punctuation.definition.comment.begin.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "block comment middle",
+      "code": "#= Block comment =#",
+      "expectedScope": "comment.block.number-sign-equals.julia",
+      "targetToken": 1
+    },
+    {
+      "name": "block comment end",
+      "code": "#= Block comment =#",
+      "expectedScope": "punctuation.definition.comment.end.julia",
+      "targetToken": 2
+    },
+    {
+      "name": "block comment end with end",
+      "code": "#= Block comment =#",
+      "expectedScope": "punctuation.definition.comment.end.julia",
+      "targetToken": 2
+    }
+  ],
+  "operators": [
+    {
+      "name": "assignment operator",
+      "code": "x = 1",
+      "expectedScope": "keyword.operator.update.julia",
+      "targetToken": 1
+    },
+    {
+      "name": "arithmetic operator",
+      "code": "a + b",
+      "expectedScope": "keyword.operator.arithmetic.julia",
+      "targetToken": 1
+    },
+    {
+      "name": "comparison operator",
+      "code": "a < b",
+      "expectedScope": "keyword.operator.relation.julia",
+      "targetToken": 1
+    },
+    {
+      "name": "logical operator",
+      "code": "a && b",
+      "expectedScope": "keyword.operator.boolean.julia",
+      "targetToken": 1
+    },
+    {
+      "name": "dotted arithmetic operator",
+      "code": "a .+ b",
+      "expectedScope": "keyword.operator.arithmetic.julia",
+      "targetToken": 1
+    },
+    {
+      "name": "ternary ?",
+      "code": "a ? b : c",
+      "expectedScope": "keyword.operator.ternary.julia",
+      "targetToken": 1
+    },
+    {
+      "name": "ternary :",
+      "code": "a ? b : c",
+      "expectedScope": "keyword.operator.ternary.julia",
+      "targetToken": 3
+    },
+    {
+      "name": "arrow operator",
+      "code": ":foo => 1",
+      "expectedScope": "keyword.operator.arrow.julia",
+      "targetToken": 2
+    },
+    {
+      "name": "compose operator",
+      "code": "f ∘ g",
+      "expectedScope": "keyword.operator.compose.julia",
+      "targetToken": 1
+    },
+    {
+      "name": "range operator",
+      "code": "1:10",
+      "expectedScope": "keyword.operator.range.julia",
+      "targetToken": 1
+    }
+  ],
+  "symbols": [
+    {
+      "name": "symbol literal",
+      "code": ":bar",
+      "expectedScope": "constant.other.symbol.julia",
+      "targetToken": 0
+    }
+  ],
+  "functions": [
+    {
+      "name": "function definition",
+      "code": "function test(x)",
+      "expectedScope": "entity.name.function.julia",
+      "targetToken": 2
+    },
+    {
+      "name": "function call",
+      "code": "foo(x)",
+      "expectedScope": "support.function.julia",
+      "targetToken": 0
+    }
+  ],
+  "types": [
+    {
+      "name": "type definition",
+      "code": "struct Point",
+      "expectedScope": "keyword.other.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "abstract type",
+      "code": "abstract type Shape end",
+      "expectedScope": "keyword.other.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "type annotation",
+      "code": "x::Int",
+      "expectedScope": "support.type.julia",
+      "targetToken": 2
+    }
+  ],
+  "macros": [
+    {
+      "name": "macro invocation",
+      "code": "@time f(x)",
+      "expectedScope": "support.function.macro.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "macro operator-style",
+      "code": "@|> f(x)",
+      "expectedScope": "support.function.macro.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "macro definition",
+      "code": "macro example(ex)",
+      "expectedScope": "entity.name.function.julia",
+      "targetToken": 2
+    },
+    {
+      "name": "macro @views",
+      "code": "@views A[1]",
+      "expectedScope": "support.function.macro.julia",
+      "targetToken": 0
+    },
+    {
+      "name": "broadcast macro @.",
+      "code": "@. sin(x)",
+      "expectedScope": "support.function.macro.julia",
+      "targetToken": 0
+    }
+  ]
+}
