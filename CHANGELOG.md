@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
+- Added additional [Literate.jl cell delimiters](https://fredrikekre.github.io/Literate.jl/v2/fileformat/#Syntax) corresponding to Markdown headers to the default `julia.cellDelimiter` settings.
 - Added `juliaAdditionalArgs` option to Julia debug launch configuration ([#3699](https://github.com/julia-vscode/julia-vscode/pull/3699)).
 - Added passing of `config` field when making a Plotly plot in the plot pane ([#3734](https://github.com/julia-vscode/julia-vscode/pull/3734)).
 - Added `julia.languageServerExecutablePath` setting, which allows specifying a Julia executable path specifically for the LanguageServer runtime ([#3793](https://github.com/julia-vscode/julia-vscode/pull/3793)).
