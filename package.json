@@ -1085,6 +1085,7 @@
                 "julia.cellDelimiters": {
                     "type": "array",
                     "default": [
+                        "^\\s?#\\s#+",
                         "^##(?!#)",
                         "^#(\\s?)%%",
                         "^#-"
@@ -1264,6 +1265,12 @@
                     "default": true,
                     "description": "Show top-level modules in the workspace.",
                     "scope": "application"
+                },
+                "julia.languageServerExecutablePath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Points to the julia executable used to launch the language server process. This overwrites julia.executablePath for the language server launch if present.",
+                    "scope": "machine-overridable"
                 }
             }
         },

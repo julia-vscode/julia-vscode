@@ -54,7 +54,7 @@ class JuliaTaskProvider {
 
                 if (nthreads === 'auto') {
                     jlargs.splice(1, 0, '--threads=auto')
-                } else {
+                } else if (nthreads !== undefined) {
                     env['JULIA_NUM_THREADS'] = nthreads
                 }
                 const testTask = new vscode.Task(

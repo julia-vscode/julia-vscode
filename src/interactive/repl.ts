@@ -153,7 +153,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         JULIA_VSCODE_REPL: isPersistentSession ? null : '1',
     }
 
-    if (nthreads !== 'auto') {
+    if (nthreads !== undefined && nthreads !== 'auto') {
         env['JULIA_NUM_THREADS'] = nthreads
     }
 
