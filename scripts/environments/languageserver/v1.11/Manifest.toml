@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.2"
+julia_version = "1.11.5"
 manifest_format = "2.0"
 project_hash = "2677c086c5b2157722d5aec33dd64369b5ff7044"
 
@@ -60,7 +60,7 @@ version = "4.1.1"
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
 path = "../../../packages/DataStructures"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.15"
+version = "0.18.22"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -88,7 +88,7 @@ version = "0.1.11"
 deps = ["Compat", "Dates"]
 path = "../../../packages/FilePathsBase"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
-version = "0.9.22"
+version = "0.9.24"
 weakdeps = ["Mmap", "Test"]
 
     [deps.FilePathsBase.extensions]
@@ -130,7 +130,7 @@ version = "1.0.62"
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
 uuid = "70703baa-626e-46a2-a12c-08ffd08c73b4"
-version = "0.4.10"
+version = "1.0.2"
 
 [[deps.JuliaWorkspaces]]
 deps = ["AutoHashEquals", "CancellationTokens", "JuliaSyntax", "Pkg", "Salsa", "TestItemDetection", "UUIDs"]
@@ -180,7 +180,7 @@ version = "1.11.0"
 [[deps.MacroTools]]
 path = "../../../packages/MacroTools"
 uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
-version = "0.5.15"
+version = "0.5.16"
 
 [[deps.Markdown]]
 deps = ["Base64"]
@@ -207,7 +207,7 @@ version = "1.2.0"
 [[deps.OrderedCollections]]
 path = "../../../packages/OrderedCollections"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.7.0"
+version = "1.8.0"
 
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -253,7 +253,7 @@ version = "0.7.0"
 deps = ["ExceptionUnwrapping", "MacroTools"]
 path = "../../../packages/Salsa"
 uuid = "1fbf2c77-44e2-4d5d-8131-0fa618a5c278"
-version = "2.3.1-DEV"
+version = "2.3.2-DEV"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"

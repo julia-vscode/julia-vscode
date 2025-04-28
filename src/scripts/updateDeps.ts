@@ -75,7 +75,8 @@ async function main() {
         'OrderedCollections',
         'Tokenize',
         'URIParser',
-        'CommonMark',
+        // need 0.8 for JuliaFormatter compat
+        // 'CommonMark',
         'Compat',
         'Crayons',
         'DataStructures',
@@ -84,17 +85,19 @@ async function main() {
         'Revise',
         'DelimitedFiles',
         'Preferences',
-        'PrecompileTools',
+        // 1.3 only works on 1.12
+        // 'PrecompileTools',
         'TestEnv',
     ]) {
-        await cp.exec('git fetch')
-        await cp.exec('git fetch --tags')
-        const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
+        const opts = { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) }
+        await cp.exec('git fetch', opts)
+        await cp.exec('git fetch --tags', opts)
+        const tags = await cp.exec('git tag', opts)
         const tagsSorted = tags.stdout.toString().split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))
         const newestTag = tagsSorted[0]
 
         console.log(`Updating ${pkg} to latest tag: ${newestTag.original}`)
-        await cp.exec(`git checkout ${newestTag.original}`, { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
+        await cp.exec(`git checkout ${newestTag.original}`, opts)
     }
 
     // Update various project files
@@ -106,7 +109,7 @@ async function main() {
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
-    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11']) {
+    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11', '1.12']) {
         console.log(`Adding Julia ${v} via juliaup`)
         try {
             await cp.exec(`juliaup add ${v}`)
