@@ -148,7 +148,7 @@ version = "1.0.62"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.10.1"
+version = "0.10.2"
 
 [[deps.JuliaSyntax]]
 path = "../../packages/JuliaSyntax"
