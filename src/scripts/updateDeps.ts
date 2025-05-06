@@ -75,7 +75,8 @@ async function main() {
         'OrderedCollections',
         'Tokenize',
         'URIParser',
-        'CommonMark',
+        // need 0.8 for JuliaFormatter compat
+        // 'CommonMark',
         'Compat',
         'Crayons',
         'DataStructures',
@@ -84,17 +85,19 @@ async function main() {
         'Revise',
         'DelimitedFiles',
         'Preferences',
-        'PrecompileTools',
+        // 1.3 only works on 1.12
+        // 'PrecompileTools',
         'TestEnv',
     ]) {
-        await cp.exec('git fetch')
-        await cp.exec('git fetch --tags')
-        const tags = await cp.exec('git tag', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
+        const opts = { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) }
+        await cp.exec('git fetch', opts)
+        await cp.exec('git fetch --tags', opts)
+        const tags = await cp.exec('git tag', opts)
         const tagsSorted = tags.stdout.toString().split(/\r?\n/).map(i => { return { original: i, parsed: semver.valid(i) } }).filter(i => i.parsed !== null).sort((a, b) => semver.compare(b.parsed, a.parsed))
         const newestTag = tagsSorted[0]
 
         console.log(`Updating ${pkg} to latest tag: ${newestTag.original}`)
-        await cp.exec(`git checkout ${newestTag.original}`, { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
+        await cp.exec(`git checkout ${newestTag.original}`, opts)
     }
 
     // Update various project files
@@ -106,7 +109,7 @@ async function main() {
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
-    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11']) {
+    for (const v of ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11', '1.12']) {
         console.log(`Adding Julia ${v} via juliaup`)
         try {
             await cp.exec(`juliaup add ${v}`)
@@ -116,36 +119,40 @@ async function main() {
 
         console.log(`Updating environments for Julia ${v}...`)
 
-        if(semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.10.0'))) {
-            const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
-            await fs.mkdir(env_path_ls, { recursive: true })
-            await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })
+        try {
+            if(semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.10.0'))) {
+                const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
+                await fs.mkdir(env_path_ls, { recursive: true })
+                await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_ls_project.jl')}`, { cwd: env_path_ls })
 
-            const env_path_testitemcontroller = path.join(process.cwd(), 'scripts/environments/testitemcontroller', `v${v}`)
-            await fs.mkdir(env_path_testitemcontroller, { recursive: true })
-            await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testitemcontroller_project.jl')}`, { cwd: env_path_testitemcontroller })
+                const env_path_testitemcontroller = path.join(process.cwd(), 'scripts/environments/testitemcontroller', `v${v}`)
+                await fs.mkdir(env_path_testitemcontroller, { recursive: true })
+                await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testitemcontroller_project.jl')}`, { cwd: env_path_testitemcontroller })
 
-            const env_path_pkgdev = path.join(process.cwd(), 'scripts/environments/pkgdev', `v${v}`)
-            await fs.mkdir(env_path_pkgdev, { recursive: true })
-            await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: env_path_pkgdev })
+                const env_path_pkgdev = path.join(process.cwd(), 'scripts/environments/pkgdev', `v${v}`)
+                await fs.mkdir(env_path_pkgdev, { recursive: true })
+                await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: env_path_pkgdev })
+            }
+
+            const env_path_terminalserver = path.join(process.cwd(), 'scripts/environments/terminalserver', `v${v}`)
+            await fs.mkdir(env_path_terminalserver, { recursive: true })
+            await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_terminalserver_project.jl')}`, { cwd: env_path_terminalserver })
+
+            const env_path_test_debugadapter = path.join(process.cwd(), 'scripts/testenvironments/debugadapter', `v${v}`)
+            await fs.mkdir(env_path_test_debugadapter, { recursive: true })
+            await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_test_debugadapter_project.jl')}`, { cwd: env_path_test_debugadapter })
+
+            const env_path_test_vscodedebugger = path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger', `v${v}`)
+            await fs.mkdir(env_path_test_vscodedebugger, { recursive: true })
+            await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_test_vscodedebugger_project.jl')}`, { cwd: env_path_test_vscodedebugger })
+
+            const env_path_test_vscodeserver = path.join(process.cwd(), 'scripts/testenvironments/vscodeserver', `v${v}`)
+            await fs.mkdir(env_path_test_vscodeserver, { recursive: true })
+            await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_test_vscodeserver_project.jl')}`, { cwd: env_path_test_vscodeserver })
+
+        } catch (err) {
+            console.log(err)
         }
-
-        const env_path_terminalserver = path.join(process.cwd(), 'scripts/environments/terminalserver', `v${v}`)
-        await fs.mkdir(env_path_terminalserver, { recursive: true })
-        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_terminalserver_project.jl')}`, { cwd: env_path_terminalserver })
-
-        const env_path_test_debugadapter = path.join(process.cwd(), 'scripts/testenvironments/debugadapter', `v${v}`)
-        await fs.mkdir(env_path_test_debugadapter, { recursive: true })
-        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_test_debugadapter_project.jl')}`, { cwd: env_path_test_debugadapter })
-
-        const env_path_test_vscodedebugger = path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger', `v${v}`)
-        await fs.mkdir(env_path_test_vscodedebugger, { recursive: true })
-        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_test_vscodedebugger_project.jl')}`, { cwd: env_path_test_vscodedebugger })
-
-        const env_path_test_vscodeserver = path.join(process.cwd(), 'scripts/testenvironments/vscodeserver', `v${v}`)
-        await fs.mkdir(env_path_test_vscodeserver, { recursive: true })
-        await cp.exec(`julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_test_vscodeserver_project.jl')}`, { cwd: env_path_test_vscodeserver })
-
     }
 
     try {

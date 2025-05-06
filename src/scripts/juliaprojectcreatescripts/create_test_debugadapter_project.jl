@@ -8,8 +8,14 @@ else
     "../../../packages-old/v1.5/JuliaInterpreter"
 end
 
+code_tracking_path = if VERSION >= v"1.6.0"
+    "../../../packages/CodeTracking"
+else
+    "../../../packages-old/v1.5/CodeTracking"
+end
+
 Pkg.develop([
-    PackageSpec(path="../../../packages/CodeTracking"),
+    PackageSpec(path=code_tracking_path),
     PackageSpec(path="../../../packages/DebugAdapter"),
     PackageSpec(path="../../../packages/JSON"),
     PackageSpec(path="../../../packages/JSONRPC"),
