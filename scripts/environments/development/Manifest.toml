@@ -148,7 +148,7 @@ version = "1.0.62"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.10.2"
+version = "0.10.3"
 
 [[deps.JuliaSyntax]]
 path = "../../packages/JuliaSyntax"
@@ -236,7 +236,7 @@ version = "1.2.0"
 [[deps.OrderedCollections]]
 path = "../../packages/OrderedCollections"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.8.0"
+version = "1.8.1"
 
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]

@@ -67,6 +67,6 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [[VSCodeServer]]
 deps = ["Base64", "Dates", "InteractiveUtils", "Logging", "Markdown", "Mmap", "Pkg", "Printf", "Profile", "REPL", "Random", "Sockets", "UUIDs", "Unicode"]
-path = "../../../packages/VSCodeServer"
+path = "..\\..\\..\\packages\\VSCodeServer"
 uuid = "9f5989ce-84fe-42d4-91ec-6a7a8d53ed0f"
 version = "0.0.0"
