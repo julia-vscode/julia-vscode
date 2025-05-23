@@ -133,3 +133,6 @@
 [submodule "scripts/packages-old/v1.9/Revise"]
 	path = scripts/packages-old/v1.9/Revise
 	url = https://github.com/timholy/Revise.jl
+[submodule "scripts/packages-old/v1.5/CodeTracking"]
+	path = scripts/packages-old/v1.5/CodeTracking
+	url = https://github.com/timholy/CodeTracking.jl.git

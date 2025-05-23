@@ -149,10 +149,11 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     }
 
     const env: any = {
-        JULIA_EDITOR: getEditor()
+        JULIA_EDITOR: getEditor(),
+        JULIA_VSCODE_REPL: isPersistentSession ? null : '1',
     }
 
-    if (nthreads !== 'auto') {
+    if (nthreads !== undefined && nthreads !== 'auto') {
         env['JULIA_NUM_THREADS'] = nthreads
     }
 
@@ -195,7 +196,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         } else {
             const connectJuliaCode = juliaConnector(pipename, debugPipename)
 
-            const juliaAndArgs = `JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
+            const juliaAndArgs = `JULIA_VSCODE_REPL='1' JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
                 ...juliaExecutable.args,
                 ...jlarg1,
                 ...getArgs()
@@ -226,7 +227,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         shellPath: shellPath,
         shellArgs: shellArgs,
         isTransient: true,
-        env: env,
+        env,
     })
 
     g_terminal.show(preserveFocus)
