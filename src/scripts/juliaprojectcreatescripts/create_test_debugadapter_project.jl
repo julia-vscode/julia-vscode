@@ -18,6 +18,7 @@ Pkg.develop([
     PackageSpec(path=code_tracking_path),
     PackageSpec(path="../../../packages/DebugAdapter"),
     PackageSpec(path="../../../packages/JSON"),
+    PackageSpec(path="../../../packages/CancellationTokens"),
     PackageSpec(path="../../../packages/JSONRPC"),
     PackageSpec(path=julia_interpreter_path),
 ])
