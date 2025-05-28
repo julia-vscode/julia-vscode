@@ -27,7 +27,14 @@ function view_profile(data = Profile.fetch(); C=false, kwargs...)
     data_u64 = convert(Vector{UInt64}, data)
     for thread in threads
         graph = stackframetree(data_u64, lidict; thread=thread, kwargs...)
-        d[string(thread)] = make_tree(
+        threadname = if thread == "all"
+            "All"
+        elseif thread <= Threads.nthreads(:interactive)
+            "Interactive: $(thread)"
+        else
+            "Worker: $(thread - Threads.nthreads(:interactive))"
+        end
+        d[threadname] = make_tree(
             ProfileFrame(
                 "root", "", "", 0, graph.count, missing, 0x0, missing, ProfileFrame[]
             ), graph; C=C)
