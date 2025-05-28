@@ -13,7 +13,7 @@ function view_profile(data = Profile.fetch(); C=false, kwargs...)
     d = Dict{String,ProfileFrame}()
 
     if VERSION >= v"1.8.0-DEV.460"
-        threads = ["all", 1:Threads.nthreads()...]
+        threads = ["all", 1:(Threads.nthreads(:interactive)+Threads.nthreads(:default))...]
     else
         threads = ["all"]
     end
@@ -39,7 +39,7 @@ end
 function stackframetree(data_u64, lidict; thread=nothing, combine=true, recur=:off)
     root = combine ? Profile.StackFrameTree{StackTraces.StackFrame}() : Profile.StackFrameTree{UInt64}()
     if VERSION >= v"1.8.0-DEV.460"
-        thread = thread == "all" ? (1:Threads.nthreads()) : thread
+        thread = thread == "all" ? (1:(Threads.nthreads(:interactive)+Threads.nthreads(:default))) : thread
         root, _ = Profile.tree!(root, data_u64, lidict, true, recur, thread)
     else
         root = Profile.tree!(root, data_u64, lidict, true, recur)
