@@ -14,7 +14,7 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
         label: string,
         juliaCmd: string,
         juliaArgs: string[],
-        juliaNumThreads: string,
+        juliaNumThreads?: string,
         juliaEnv: { [key: string]: string | null },
         maxProcessCount: number,
         mode: string,
@@ -49,6 +49,10 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
     status: string,
     coverage?: FileCoverage[]
 }, void>('createTestRun')
+
+export const notoficationTypeCancelTestRun = new rpc.NotificationType<{
+    testRunId: string
+}>('cancelTestRun')
 
 export const requestTypeTerminateTestProcess = new rpc.RequestType<{testProcessId: string}, void, void>('terminateTestProcess')
 

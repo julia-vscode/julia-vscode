@@ -9,7 +9,7 @@ import { TestControllerNode, TestProcessNode, WorkspaceFeature } from '../intera
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
-import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notificationTypeAppendOutput, notificationTypeLaunchDebugger, notificationTypeTestProcessCreated, notificationTypeTestProcessOutput, notificationTypeTestProcessStatusChanged, notificationTypeTestProcessTerminated, requestTypeCreateTestRun, requestTypeTerminateTestProcess } from './testControllerProtocol'
+import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notificationTypeAppendOutput, notificationTypeLaunchDebugger, notificationTypeTestProcessCreated, notificationTypeTestProcessOutput, notificationTypeTestProcessStatusChanged, notificationTypeTestProcessTerminated, notoficationTypeCancelTestRun, requestTypeCreateTestRun, requestTypeTerminateTestProcess } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 import { inferJuliaNumThreads, registerCommand } from '../utils'
@@ -322,7 +322,11 @@ export class JuliaTestController {
 
         }
 
-        const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params, testRun.token)
+        testRun.token.onCancellationRequested(async e => {
+            await this.connection.sendNotification(notoficationTypeCancelTestRun, {testRunId: params.testRunId})
+        })
+
+        const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params)
 
         if(testrunResult.coverage) {
             for(const file of testrunResult.coverage) {
