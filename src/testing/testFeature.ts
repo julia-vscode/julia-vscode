@@ -151,12 +151,12 @@ export class JuliaTestController {
             const testRun = this.testRuns.get(i.testRunId)
             const testItem = testRun.testItems.get(i.testItemId)
 
-            testRun.testRun.failed(testItem, i.messages.map(i=>{
-                const msg = new vscode.TestMessage(i.message)
-                msg.actualOutput = i.actualOutput
-                msg.expectedOutput = i.expectedOutput
-                if (i.uri && i.line && i.column) {
-                    msg.location = new vscode.Location(vscode.Uri.parse(i.uri), new vscode.Position(i.line-1, i.column-1))
+            testRun.testRun.failed(testItem, i.messages.map(j=>{
+                const msg = new vscode.TestMessage(j.message)
+                msg.actualOutput = j.actualOutput
+                msg.expectedOutput = j.expectedOutput
+                if (j.uri && j.line && j.column) {
+                    msg.location = new vscode.Location(vscode.Uri.parse(j.uri), new vscode.Position(j.line-1, j.column-1))
                 }
                 return msg
             }), i.duration)
