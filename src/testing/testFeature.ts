@@ -151,17 +151,22 @@ export class JuliaTestController {
             const testRun = this.testRuns.get(i.testRunId)
             const testItem = testRun.testItems.get(i.testItemId)
 
-            testRun.testRun.failed(testItem, i.messages.map(j=>{
+            const messages = i.messages.map(j=>{
                 const msg = new vscode.TestMessage(j.message)
-                if(j.actualOutput !== undefined && j.expectedOutput !== undefined){
+
+                if(j.actualOutput !== null && j.expectedOutput !== null){
                     msg.actualOutput = j.actualOutput
                     msg.expectedOutput = j.expectedOutput
                 }
-                if (j.uri !== undefined && j.line !== undefined && j.column !== undefined) {
+
+                if (j.uri !== null && j.line !== null && j.column !== null) {
                     msg.location = new vscode.Location(vscode.Uri.parse(j.uri), new vscode.Position(j.line-1, j.column-1))
                 }
+
                 return msg
-            }), i.duration)
+            })
+
+            testRun.testRun.failed(testItem, messages, i.duration)
         })
         this.connection.onNotification(notficiationTypeTestItemPassed, i=>{
             const testRun = this.testRuns.get(i.testRunId)
