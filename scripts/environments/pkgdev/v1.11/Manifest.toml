@@ -231,9 +231,9 @@ version = "2023.12.12"
 
 [[deps.Mustache]]
 deps = ["Printf", "Tables"]
-git-tree-sha1 = "3b2db451a872b20519ebb0cec759d3d81a1c6bcb"
+git-tree-sha1 = "3cbd5dda543bc59f2e482607ccf84b633724fc32"
 uuid = "ffc61752-8dc7-55ee-8c37-f3e9cdd09e70"
-version = "1.0.20"
+version = "1.0.21"
 
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
