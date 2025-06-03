@@ -153,9 +153,11 @@ export class JuliaTestController {
 
             testRun.testRun.failed(testItem, i.messages.map(j=>{
                 const msg = new vscode.TestMessage(j.message)
-                msg.actualOutput = j.actualOutput
-                msg.expectedOutput = j.expectedOutput
-                if (j.uri && j.line && j.column) {
+                if(j.actualOutput !== undefined && j.expectedOutput !== undefined){
+                    msg.actualOutput = j.actualOutput
+                    msg.expectedOutput = j.expectedOutput
+                }
+                if (j.uri !== undefined && j.line !== undefined && j.column !== undefined) {
                     msg.location = new vscode.Location(vscode.Uri.parse(j.uri), new vscode.Position(j.line-1, j.column-1))
                 }
                 return msg
