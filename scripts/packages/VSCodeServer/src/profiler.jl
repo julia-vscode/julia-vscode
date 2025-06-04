@@ -13,9 +13,10 @@ function view_profile(data = Profile.fetch(); C=false, kwargs...)
     d = Dict{String,ProfileFrame}()
 
     if VERSION >= v"1.8.0-DEV.460"
-        threads = ["all", 1:(Threads.nthreads(:interactive)+Threads.nthreads(:default))...]
+        all_tids = sort([Threads.threadpooltids(:interactive)..., Threads.threadpooltids(:default)...])
+        threads = [nothing, all_tids...]
     else
-        threads = ["all"]
+        threads = [nothing]
     end
 
     if isempty(data)
@@ -27,12 +28,10 @@ function view_profile(data = Profile.fetch(); C=false, kwargs...)
     data_u64 = convert(Vector{UInt64}, data)
     for thread in threads
         graph = stackframetree(data_u64, lidict; thread=thread, kwargs...)
-        threadname = if thread == "all"
-            "All"
-        elseif thread <= Threads.nthreads(:interactive)
-            "Interactive: $(thread)"
+        threadname = if thread === nothing
+            "All threads"
         else
-            "Worker: $(thread - Threads.nthreads(:interactive))"
+            "$(thread) ($(Threads.threadpool(thread)))"
         end
         d[threadname] = make_tree(
             ProfileFrame(
@@ -46,7 +45,6 @@ end
 function stackframetree(data_u64, lidict; thread=nothing, combine=true, recur=:off)
     root = combine ? Profile.StackFrameTree{StackTraces.StackFrame}() : Profile.StackFrameTree{UInt64}()
     if VERSION >= v"1.8.0-DEV.460"
-        thread = thread == "all" ? (1:(Threads.nthreads(:interactive)+Threads.nthreads(:default))) : thread
         root, _ = Profile.tree!(root, data_u64, lidict, true, recur, thread)
     else
         root = Profile.tree!(root, data_u64, lidict, true, recur)
