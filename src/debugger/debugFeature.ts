@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as jlpkgenv from '../jlpkgenv'
 import { JuliaExecutablesFeature } from '../juliaexepath'
 import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
-import { uuid } from 'uuidv4'
+import { v4 as uuidv4 } from 'uuid'
 import { Subject } from 'await-notify'
 import * as net from 'net'
 import path, { basename, join } from 'path'
@@ -336,8 +336,8 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
 
     async createDebugAdapterDescriptor(session: vscode.DebugSession): Promise<vscode.ProviderResult<vscode.DebugAdapterDescriptor>> {
         if(session.configuration.request==='launch') {
-            const dap_pn = generatePipeName(uuid(), 'vsc-jl-dbg')
-            const ready_pn = generatePipeName(uuid(), 'vsc-jl-dbg')
+            const dap_pn = generatePipeName(uuidv4(), 'vsc-jl-dbg')
+            const ready_pn = generatePipeName(uuidv4(), 'vsc-jl-dbg')
 
             const connectedPromise = new Subject()
             const serverListeningPromise = new Subject()
@@ -376,14 +376,14 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
 
             if (nthreads === 'auto') {
                 jlargs.splice(1, 0, '--threads=auto')
-            } else {
+            } else if (nthreads !== undefined) {
                 env['JULIA_NUM_THREADS'] = nthreads
             }
 
             const task = new vscode.Task(
                 {
                     type: 'julia',
-                    id: uuid(),
+                    id: uuidv4(),
                 },
                 vscode.TaskScope.Workspace,
                 `${session.configuration.noDebug === true ? 'Run' : 'Debug' } ${basename(session.configuration.program)}`,

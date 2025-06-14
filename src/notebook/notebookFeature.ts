@@ -127,7 +127,7 @@ export class JuliaNotebookFeature {
         for (const juliaVersion of juliaVersions) {
             const ver = juliaVersion.getVersion()
             const kernelId = juliaVersion.channel
-                ? `julia-vscode-${juliaVersion.channel}`
+                ? `julia-vscode-channel-${juliaVersion.channel}`
                 : `julia-vscode-${ver.major}.${ver.minor}.${ver.patch}`
             const displayName = juliaVersion.channel
                 ? `Julia ${juliaVersion.channel} channel`

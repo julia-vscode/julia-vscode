@@ -25,7 +25,8 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
-import { notifyTypeTextDocumentPublishTests, TestFeature } from './testing/testFeature'
+import { TestFeature } from './testing/testFeature'
+import {notifyTypeTextDocumentPublishTests} from './testing/testLSProtocol'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
@@ -198,7 +199,7 @@ export async function withLanguageClient(
     }
 
     try {
-        return callback(g_languageClient)
+        return await callback(g_languageClient)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             return callbackOnHandledErr(err)
@@ -216,7 +217,7 @@ function changeConfig(event: vscode.ConfigurationChangeEvent) {
     }
 }
 
-const supportedSchemes = [
+export const supportedSchemes = [
     'file',
     'untitled',
     'vscode-notebook-cell'
@@ -233,7 +234,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     g_startupNotification.show()
 
     let juliaLSExecutable: JuliaExecutable | null = null
-    const juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+    const juliaExecutable = await juliaExecutablesFeature.getActiveLaunguageServerJuliaExecutableAsync()
 
     if(await juliaExecutablesFeature.isJuliaup()) {
         if (Boolean(process.env.DEBUG_MODE)) {

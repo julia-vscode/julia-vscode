@@ -101,8 +101,9 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         if (this?.view?.show === undefined) {
             // this forces the webview to be resolved, but changes focus:
             await vscode.commands.executeCommand('julia-plot-navigator.focus')
+        } else {
+            this.view.show(true)
         }
-        this.view.show(true)
     }
 
     setPlotsInfo(set_func) {
@@ -497,7 +498,9 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
         showPlotPane()
     }
     else if (kind === 'juliavscode/html') {
-        g_currentPlotIndex = g_plots.push(payload) - 1
+        // the wrapper doesn't do anything visually, just lets us pick up the plot pane content via the id later
+        const wrapped = `<div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;">${payload}</div>`
+        g_currentPlotIndex = g_plots.push(wrapped) - 1
         showPlotPane()
     }
     else if (kind === 'application/vnd.vegalite.v2+json') {
@@ -787,7 +790,7 @@ export function displayPlot(params: { kind: string, data: string }, kernel?: Jul
                 Plotly.relayout('plot-element', update)
             }
             const spec = ${payload};
-            Plotly.newPlot('plot-element', spec.data, spec.layout);
+            Plotly.newPlot('plot-element', spec.data, spec.layout, spec.config);
             if (!(spec.layout.width || spec.layout.height)) {
                 onResize()
                 window.addEventListener('resize', onResize);

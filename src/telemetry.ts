@@ -3,7 +3,7 @@ import * as fs from 'async-file'
 import * as net from 'net'
 import * as path from 'path'
 import { parse } from 'semver'
-import { uuid } from 'uuidv4'
+import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
 import { generatePipeName } from './utils'
@@ -106,6 +106,16 @@ export async function init(context: vscode.ExtensionContext) {
     extensionClient.context.tags[extensionClient.context.keys.cloudRoleInstance] = ''
     extensionClient.context.tags[extensionClient.context.keys.sessionId] = vscode.env.sessionId
     extensionClient.context.tags[extensionClient.context.keys.userId] = vscode.env.machineId
+
+    const logger = vscode.env.createTelemetryLogger({
+        sendEventData: (eventName: string, data?: Record<string, any>) => {
+        },
+        sendErrorData: (error: Error, data?: Record<string, any>) => {
+            handleNewCrashReportFromException(error, 'Extension')
+        }
+    })
+
+    context.subscriptions.push(logger)
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
@@ -155,7 +165,7 @@ export function handleNewCrashReportFromException(exception: Error, cloudRole: s
 
 export function startLsCrashServer() {
 
-    g_jlcrashreportingpipename = generatePipeName(uuid(), 'vsc-jl-cr')
+    g_jlcrashreportingpipename = generatePipeName(uuidv4(), 'vsc-jl-cr')
 
     const server = net.createServer(function (connection) {
         let accumulatingBuffer = Buffer.alloc(0)
