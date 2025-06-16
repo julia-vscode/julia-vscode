@@ -110,7 +110,7 @@ function parseSessionArgs(name: string) {
 }
 
 // FIXME: refactor this!
-async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
+export async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     const config = vscode.workspace.getConfiguration('julia')
     const isPersistentSession = Boolean(config.get('persistentSession.enabled'))
 
@@ -683,7 +683,7 @@ async function executeFile(uri?: vscode.Uri | string) {
     )
 }
 
-async function getBlockRange(params: VersionedTextDocumentPositionParams): Promise<vscode.Position[]> {
+export async function getBlockRange(params: VersionedTextDocumentPositionParams): Promise<vscode.Position[]> {
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
@@ -742,7 +742,7 @@ function _nextCellBorder(doc: vscode.TextDocument, line: number, direction: numb
 const nextCellBorder = (doc, line, isStart, isJmd) => _nextCellBorder(doc, line, +1, isStart, isJmd)
 const prevCellBorder = (doc, line, isStart, isJmd) => _nextCellBorder(doc, line, -1, isStart, isJmd)
 
-function validateMoveAndReveal(editor: vscode.TextEditor, startpos: vscode.Position, endpos: vscode.Position) {
+export function validateMoveAndReveal(editor: vscode.TextEditor, startpos: vscode.Position, endpos: vscode.Position) {
     const doc = editor.document
     startpos = doc.validatePosition(startpos)
     endpos = doc.validatePosition(endpos)
@@ -919,7 +919,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 }
 
 // Returns false if the connection wasn't available
-async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string) {
+export async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string): Promise<boolean> {
     telemetry.traceEvent('command-evaluate')
 
     const section = vscode.workspace.getConfiguration('julia')
@@ -1306,10 +1306,10 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.selectBlock', selectJuliaBlock),
         registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
         registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
-        registerCommand('language-julia.executeCell', executeCell),
-        registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
-        registerCommand('language-julia.moveCellUp', moveCellUp),
-        registerCommand('language-julia.moveCellDown', moveCellDown),
+        // registerCommand('language-julia.executeCell', executeCell),
+        // registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
+        // registerCommand('language-julia.moveCellUp', moveCellUp),
+        // registerCommand('language-julia.moveCellDown', moveCellDown),
         registerCommand('language-julia.executeActiveFile', () => executeFile()),
         registerCommand('language-julia.executeFile', uri => executeFile(uri)),
         registerCommand('language-julia.interrupt', interrupt),

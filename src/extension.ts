@@ -13,7 +13,6 @@ import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
 import * as codecells from './interactive/codecells'
-import { CodelensProvider } from './interactive/codecells'
 import { ProfilerFeature } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import { WorkspaceFeature } from './interactive/workspace'
@@ -75,7 +74,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 decreaseIndentPattern: decreaseIndentPattern
             }
         })
-        vscode.languages.registerCodeLensProvider('julia', new CodelensProvider())
+        vscode.languages.registerCodeLensProvider('julia', new codecells.CodelensProvider())
+        vscode.languages.registerCodeLensProvider('juliamarkdown', new codecells.CodelensProvider())
 
         const profilerFeature = new ProfilerFeature(context)
         context.subscriptions.push(profilerFeature)
