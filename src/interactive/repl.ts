@@ -979,12 +979,7 @@ async function executeCodeCopyPaste(text: string, individualLine: boolean) {
     let lines = text.split(/\r?\n/)
     lines = lines.filter(line => line !== '')
     text = lines.join('\n')
-    if (individualLine || process.platform === 'win32') {
-        g_terminal.sendText(text + '\n', false)
-    }
-    else {
-        g_terminal.sendText('\u001B[200~' + text + '\n' + '\u001B[201~', false)
-    }
+    g_terminal.sendText('\u001B[200~' + text + '\n' + '\u001B[201~', false)
 }
 
 function executeSelectionCopyPaste() {
