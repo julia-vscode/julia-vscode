@@ -131,7 +131,7 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         msg_dispatcher = JSONRPC.MsgDispatcher()
 
         msg_dispatcher[repl_runcode_request_type] = repl_runcode_request
-        msg_dispatcher[repl_interrupt_notification_type] = repl_interrupt_request
+        msg_dispatcher[repl_interrupt_notification_type] = repl_interrupt_notification
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
