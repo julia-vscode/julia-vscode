@@ -112,7 +112,7 @@ function getJmdDocCells(document: vscode.TextDocument): JuliaCell[] {
         const endMatch = endRegex.exec(text)
         if (!endMatch) {
             const cellRangeEnd = document.positionAt(text.length)
-            const codeRangeStart = document.positionAt(startMatch.index + startMatch[0].length)
+            const codeRangeStart = cellRangeStart.translate(1, 0)
             docCells.push({
                 id: id++,
                 cellRange: new vscode.Range(cellRangeStart, cellRangeEnd),
@@ -121,7 +121,7 @@ function getJmdDocCells(document: vscode.TextDocument): JuliaCell[] {
             break
         }
         const cellRangeEnd = document.positionAt(endMatch.index + endMatch[0].length - 1)
-        const codeRangeStart = document.positionAt(startMatch.index + startMatch[0].length)
+        const codeRangeStart = cellRangeStart.translate(1, 0)
         const codeRangeEnd = document.positionAt(endMatch.index - 1)
         docCells.push({
             id: id++,

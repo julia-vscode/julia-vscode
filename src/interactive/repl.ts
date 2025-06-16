@@ -1,6 +1,5 @@
 import * as fs from 'async-file'
 import { Subject } from 'await-notify'
-import { assert } from 'console'
 import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
@@ -712,151 +711,12 @@ async function selectJuliaBlock() {
     validateMoveAndReveal(editor, start_pos, end_pos)
 }
 
-let g_cellDelimiters = [
-    /^##(?!#)/,
-    /^#(\s?)%%/
-]
-
-function isCellBorder(s: string, isStart: boolean, isJmd: boolean) {
-    if (isJmd) {
-        if (isStart) {
-            return /^```({?julia|@example|@setup|@repl)/.test(s)
-        } else {
-            return /^```(?!\w)/.test(s)
-        }
-    }
-    return g_cellDelimiters.some(regex => regex.test(s))
-}
-
-function _nextCellBorder(doc: vscode.TextDocument, line: number, direction: number, isStart: boolean, isJmd: boolean) {
-    assert(direction === 1 || direction === -1)
-    while (0 <= line && line < doc.lineCount) {
-        if (isCellBorder(doc.lineAt(line).text, isStart, isJmd)) {
-            break
-        }
-        line += direction
-    }
-    return line
-}
-
-const nextCellBorder = (doc, line, isStart, isJmd) => _nextCellBorder(doc, line, +1, isStart, isJmd)
-const prevCellBorder = (doc, line, isStart, isJmd) => _nextCellBorder(doc, line, -1, isStart, isJmd)
-
 export function validateMoveAndReveal(editor: vscode.TextEditor, startpos: vscode.Position, endpos: vscode.Position) {
     const doc = editor.document
     startpos = doc.validatePosition(startpos)
     endpos = doc.validatePosition(endpos)
     editor.selection = new vscode.Selection(startpos, endpos)
     editor.revealRange(new vscode.Range(startpos, endpos))
-}
-
-async function moveCellDown() {
-    telemetry.traceEvent('command-moveCellDown')
-    const ed = vscode.window.activeTextEditor
-    if (ed === undefined) {
-        return
-    }
-    const isJmd = isMarkdownEditor(ed)
-    const currline = ed.selection.active.line
-    const newpos = new vscode.Position(nextCellBorder(ed.document, currline + 1, true, isJmd) + 1, 0)
-    validateMoveAndReveal(ed, newpos, newpos)
-}
-
-async function moveCellUp() {
-    telemetry.traceEvent('command-moveCellUp')
-    const ed = vscode.window.activeTextEditor
-    if (ed === undefined) {
-        return
-    }
-    const isJmd = isMarkdownEditor(ed)
-    const currline = ed.selection.active.line
-
-    let newpos: vscode.Position
-    if (isJmd) {
-        const prevEnd = Math.max(0, prevCellBorder(ed.document, currline, false, isJmd))
-        const prevStart = Math.max(0, prevCellBorder(ed.document, currline, true, isJmd))
-
-        if (prevEnd <= prevStart) {
-            newpos = new vscode.Position(Math.max(0, prevCellBorder(ed.document, prevStart - 1, true, isJmd) + 1), 0)
-        } else {
-            newpos = new vscode.Position(prevStart + 1, 0)
-        }
-    } else {
-        newpos = new vscode.Position(Math.max(0, prevCellBorder(ed.document, currline, true, isJmd) - 1), 0)
-    }
-    validateMoveAndReveal(ed, newpos, newpos)
-}
-
-function currentCellRange(editor: vscode.TextEditor) {
-    const doc = editor.document
-    const currline = editor.selection.active.line
-    const isJmd = isMarkdownEditor(editor)
-    const startline = prevCellBorder(doc, currline, true, isJmd) + 1
-    if (isJmd && startline === 0) {
-        return null
-    }
-    const endline = nextCellBorder(doc, startline + 1, false, isJmd) - 1
-    if (startline > currline || endline < currline) {
-        return null
-    }
-    const startpos = doc.validatePosition(new vscode.Position(startline, 0))
-    const endpos = doc.validatePosition(new vscode.Position(endline, doc.lineAt(endline).text.length))
-    return new vscode.Range(startpos, endpos)
-}
-
-async function executeCell(shouldMove: boolean = false) {
-    telemetry.traceEvent('command-executeCell')
-
-    const ed = vscode.window.activeTextEditor
-    if (ed === undefined) {
-        return
-    }
-    if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.saveOnEval') === true) {
-        await ed.document.save()
-    }
-
-    const doc = ed.document
-    const selection = ed.selection
-    const cellrange = currentCellRange(ed)
-    if (cellrange === null) {
-        return
-    }
-
-    const module: string = await modules.getModuleForEditor(ed.document, cellrange.start)
-
-    await startREPL(true, false)
-
-    if (shouldMove && ed.selection === selection) {
-        const isJmd = isMarkdownEditor(ed)
-        const nextpos = new vscode.Position(nextCellBorder(doc, cellrange.end.line + 1, true, isJmd) + 1, 0)
-        validateMoveAndReveal(ed, nextpos, nextpos)
-    }
-    if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation') === true) {
-        let currentPos: vscode.Position = ed.document.validatePosition(new vscode.Position(cellrange.start.line , cellrange.start.character + 1))
-        let lastRange = new vscode.Range(0, 0, 0, 0)
-        while (currentPos.line <= cellrange.end.line) {
-            const [startPos, endPos, nextPos] = await getBlockRange(getVersionedParamsAtPosition(ed.document, currentPos))
-            const lineEndPos = ed.document.validatePosition(new vscode.Position(endPos.line, Infinity))
-            const curRange = cellrange.intersection(new vscode.Range(startPos, lineEndPos))
-            if (curRange === undefined || curRange.isEqual(lastRange)) {
-                break
-            }
-            lastRange = curRange
-            if (curRange.isEmpty) {
-                continue
-            }
-            currentPos = ed.document.validatePosition(nextPos)
-            const code = doc.getText(curRange)
-
-            const success = await evaluate(ed, curRange, code, module)
-            if (!success) {
-                break
-            }
-        }
-    } else {
-        const code = doc.getText(cellrange)
-        await evaluate(ed, cellrange, code, module)
-    }
 }
 
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
@@ -1191,13 +1051,6 @@ function linkProvider(context: vscode.TerminalLinkContext, token: vscode.Cancell
     return []
 }
 
-function updateCellDelimiters() {
-    const delims: string[] = vscode.workspace.getConfiguration('julia').get('cellDelimiters')
-    if (delims) {
-        g_cellDelimiters = delims.map(s => RegExp(s))
-    }
-}
-
 function isMarkdownEditor(editor: vscode.TextEditor) {
     return editor.document.languageId === 'juliamarkdown' || editor.document.languageId === 'markdown'
 }
@@ -1276,8 +1129,6 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
                 } catch (err) {
                     console.warn(err)
                 }
-            } else if (event.affectsConfiguration('julia.cellDelimiters')) {
-                updateCellDelimiters()
             }
         }),
         vscode.window.onDidChangeActiveTerminal(terminal => {
@@ -1306,10 +1157,6 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         registerCommand('language-julia.selectBlock', selectJuliaBlock),
         registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
         registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
-        // registerCommand('language-julia.executeCell', executeCell),
-        // registerCommand('language-julia.executeCellAndMove', () => executeCell(true)),
-        // registerCommand('language-julia.moveCellUp', moveCellUp),
-        // registerCommand('language-julia.moveCellDown', moveCellDown),
         registerCommand('language-julia.executeActiveFile', () => executeFile()),
         registerCommand('language-julia.executeFile', uri => executeFile(uri)),
         registerCommand('language-julia.interrupt', interrupt),
@@ -1328,8 +1175,6 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         shellSkipCommands.push('language-julia.interrupt')
         terminalConfig.update('commandsToSkipShell', shellSkipCommands, vscode.ConfigurationTarget.Global)
     }
-
-    updateCellDelimiters()
 
     results.activate(context)
     plots.activate(context)
