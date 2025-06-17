@@ -403,51 +403,124 @@ async function executeAboveCells(
 
 export class CodelensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>()
+    private docCells: JuliaCell[] = []
+    private readonly decoration: vscode.TextEditorDecorationType
+    private readonly currentCellTop: vscode.TextEditorDecorationType
+    private readonly currentCellBottom: vscode.TextEditorDecorationType
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event
+    private onDidChangeTextEditorSelectionHandler: vscode.Disposable | undefined
 
     constructor() {
+        this.decoration = vscode.window.createTextEditorDecorationType({
+            backgroundColor: new vscode.ThemeColor('editor.rangeHighlightBackground'),
+            isWholeLine: true,
+        })
+        this.currentCellTop = vscode.window.createTextEditorDecorationType({
+            borderColor: new vscode.ThemeColor('interactive.activeCodeBorder'),
+            borderWidth: '2px 0px 0px 0px',
+            borderStyle: 'solid',
+            isWholeLine: true,
+        })
+        this.currentCellBottom = vscode.window.createTextEditorDecorationType({
+            borderColor: new vscode.ThemeColor('interactive.activeCodeBorder'),
+            borderWidth: '0px 0px 1px 0px',
+            borderStyle: 'solid',
+            isWholeLine: true,
+        })
+
         vscode.workspace.onDidChangeConfiguration(() => {
             this._onDidChangeCodeLenses.fire()
         })
+        this.onDidChangeTextEditorSelectionHandler = vscode.window.onDidChangeTextEditorSelection(
+            (event: vscode.TextEditorSelectionChangeEvent) => this.onDidChangeTextEditorSelection(event)
+        )
     }
 
-    public provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
+    private onDidChangeTextEditorSelection(
+        event: vscode.TextEditorSelectionChangeEvent
+    ): void {
+        const editor = event.textEditor
+        const document = editor.document
+        if (document.languageId !== 'julia') {
+            return
+        }
+        this.docCells = getDocCells(document)
+        this.highlightCurrentCell(editor)
+    }
+
+    private highlightCurrentCell(editor: vscode.TextEditor): void {
+        const cells = getCurrentCells(this.docCells, editor.selection.active)
+        if (cells.length !== 1) {
+            return
+        }
+        const cell = cells[0]
+        editor.setDecorations(
+            this.currentCellTop,
+            [new vscode.Range(cell.cellRange.start, cell.cellRange.start)]
+        )
+        editor.setDecorations(
+            this.currentCellBottom,
+            [new vscode.Range(cell.cellRange.end, cell.cellRange.end)]
+        )
+    }
+
+    private highlightCells(editor: vscode.TextEditor): void {
+        const cellRanges = this.docCells.map(cell => cell.cellRange).slice(1)
+        editor.setDecorations(this.decoration, cellRanges)
+    }
+
+    private highlight(editor: vscode.TextEditor): void {
+        if (isJmdDocument(editor.document)) {
+            this.highlightCells(editor)
+        } else {
+            this.highlightCurrentCell(editor)
+        }
+    }
+
+    public provideCodeLenses(
+        document: vscode.TextDocument,
+        token: vscode.CancellationToken
+    ): vscode.ProviderResult<vscode.CodeLens[]> {
         const codeLenses: vscode.CodeLens[] = []
-        const docCells = getDocCells(document)
+        this.docCells = getDocCells(document)
+        const editor = vscode.window.activeTextEditor
+        if (editor !== undefined && editor.document === document) {
+            this.highlight(editor)
+        }
         // The first cell would be skipped since it is preceded by a delimiter
-        let cell = docCells[1]
+        const cell = this.docCells[1]
         codeLenses.push(
             new vscode.CodeLens(cell.cellRange, {
                 title: 'Run Cell',
                 tooltip: 'Execute the cell in the Julia REPL',
                 command: 'language-julia.executeCell',
-                arguments: [cell, docCells],
+                arguments: [cell, this.docCells],
             }),
             new vscode.CodeLens(cell.cellRange, {
                 title: 'Run Below',
                 tooltip: 'Execute all cells below in the Julia REPL',
                 command: 'language-julia.executeCurrentAndBelowCells',
-                arguments: [cell, docCells],
+                arguments: [cell, this.docCells],
             }),
         )
-        for (let i = 2; i < docCells.length; i++) {
-            cell = docCells[i]
-            if (cell.codeRange !== undefined) {
-                codeLenses.push(
-                    new vscode.CodeLens(cell.cellRange, {
-                        title: 'Run Cell',
-                        tooltip: 'Execute the cell in the Julia REPL',
-                        command: 'language-julia.executeCell',
-                        arguments: [cell, docCells],
-                    }),
-                    new vscode.CodeLens(cell.cellRange, {
-                        title: 'Run Above',
-                        tooltip: 'Execute all cells above in the Julia REPL',
-                        command: 'language-julia.executeAboveCells',
-                        arguments: [cell, docCells],
-                    }),
-                )
+        for (const cell of this.docCells.slice(2)) {
+            if (cell.codeRange === undefined) {
+                continue
             }
+            codeLenses.push(
+                new vscode.CodeLens(cell.cellRange, {
+                    title: 'Run Cell',
+                    tooltip: 'Execute the cell in the Julia REPL',
+                    command: 'language-julia.executeCell',
+                    arguments: [cell, this.docCells],
+                }),
+                new vscode.CodeLens(cell.cellRange, {
+                    title: 'Run Above',
+                    tooltip: 'Execute all cells above in the Julia REPL',
+                    command: 'language-julia.executeAboveCells',
+                    arguments: [cell, this.docCells],
+                }),
+            )
         }
         return codeLenses
     }
@@ -455,8 +528,41 @@ export class CodelensProvider implements vscode.CodeLensProvider {
     public resolveCodeLens(codeLens: vscode.CodeLens, token: vscode.CancellationToken) {
         return codeLens
     }
+
+    dispose() {
+        this.onDidChangeTextEditorSelectionHandler?.dispose()
+    }
 }
 
+export class FoldingRangeProvider implements vscode.FoldingRangeProvider {
+    public provideFoldingRanges(
+        document: vscode.TextDocument,
+        context: vscode.FoldingContext,
+        token: vscode.CancellationToken
+    ): vscode.ProviderResult<vscode.FoldingRange[]> {
+        const docCells = getDocCells(document)
+        const foldingRanges: vscode.FoldingRange[] = []
+        const cell = docCells[0]
+        if (cell.codeRange !== undefined) {
+            foldingRanges.push(new vscode.FoldingRange(
+                cell.cellRange.start.line,
+                cell.cellRange.end.line,
+                vscode.FoldingRangeKind.Imports
+            ))
+        }
+        for (const cell of docCells.slice(1)) {
+            if (cell.codeRange === undefined) {
+                continue
+            }
+            foldingRanges.push(new vscode.FoldingRange(
+                cell.cellRange.start.line,
+                cell.cellRange.end.line,
+                vscode.FoldingRangeKind.Region
+            ))
+        }
+        return foldingRanges
+    }
+}
 
 export function activate(context: vscode.ExtensionContext) {
 
