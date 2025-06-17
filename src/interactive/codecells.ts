@@ -445,6 +445,9 @@ export class CodelensProvider implements vscode.CodeLensProvider {
             return
         }
         this.docCells = getDocCells(document)
+        if (this.docCells.length <= 1) {
+            return
+        }
         this.highlightCurrentCell(editor)
     }
 
@@ -483,6 +486,9 @@ export class CodelensProvider implements vscode.CodeLensProvider {
     ): vscode.ProviderResult<vscode.CodeLens[]> {
         const codeLenses: vscode.CodeLens[] = []
         this.docCells = getDocCells(document)
+        if (this.docCells.length <= 1) {
+            return codeLenses
+        }
         const editor = vscode.window.activeTextEditor
         if (editor !== undefined && editor.document === document) {
             this.highlight(editor)
