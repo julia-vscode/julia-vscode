@@ -74,7 +74,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 decreaseIndentPattern: decreaseIndentPattern
             }
         })
-        vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], new codecells.CodelensProvider())
+        vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], new codecells.CodeLensProvider())
         vscode.languages.registerFoldingRangeProvider(['julia', 'juliamarkdown'], new codecells.FoldingRangeProvider())
 
         const profilerFeature = new ProfilerFeature(context)

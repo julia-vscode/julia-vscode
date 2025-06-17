@@ -401,7 +401,7 @@ async function executeAboveCells(
     return await _executeCells(editor, docCells.slice(0, cells[0].id))
 }
 
-export class CodelensProvider implements vscode.CodeLensProvider {
+export class CodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>()
     private docCells: JuliaCell[] = []
     private readonly decoration: vscode.TextEditorDecorationType
