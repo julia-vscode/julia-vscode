@@ -40,7 +40,7 @@ export interface GetTestEnvRequestParamsReturn {
     packageName?: string
     packageUri?: lsp.URI
     projectUri?: lsp.URI
-    envContentHash?: number
+    envContentHash?: string
 }
 
 export const requestTypJuliaGetTestEnv = new lsp.ProtocolRequestType<{uri: string},GetTestEnvRequestParamsReturn,void,void,void>('julia/getTestEnv')

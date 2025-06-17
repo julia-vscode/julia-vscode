@@ -2,14 +2,14 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
-import { JuliaExecutablesFeature } from '../juliaexepath'
+import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
 import * as path from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { TestControllerNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
-import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notificationTypeAppendOutput, notificationTypeLaunchDebugger, notificationTypeTestProcessCreated, notificationTypeTestProcessOutput, notificationTypeTestProcessStatusChanged, notificationTypeTestProcessTerminated, requestTypeCreateTestRun, requestTypeTerminateTestProcess } from './testControllerProtocol'
+import { notficiationTypeTestItemErrored, notficiationTypeTestItemFailed, notficiationTypeTestItemPassed, notficiationTypeTestItemSkipped, notficiationTypeTestItemStarted, notificationTypeAppendOutput, notificationTypeLaunchDebugger, notificationTypeTestProcessCreated, notificationTypeTestProcessOutput, notificationTypeTestProcessStatusChanged, notificationTypeTestProcessTerminated, notoficationTypeCancelTestRun, requestTypeCreateTestRun, requestTypeTerminateTestProcess } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 import { inferJuliaNumThreads, registerCommand } from '../utils'
@@ -104,10 +104,28 @@ export class JuliaTestController {
     public async start() {
         this.workspaceFeature.addTestController(this)
 
-        // TODO Make this much more robust
-        const exePaths = await this.juliaExecutablesFeature.getJuliaExePathsAsync()
-        const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
-        const juliaExecutable = releaseChannelExe[0]
+        let juliaExecutable: JuliaExecutable | null = null
+
+        if (Boolean(process.env.DEBUG_MODE)) {
+            juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        }
+        else {
+            if(!await this.juliaExecutablesFeature.isJuliaup()) {
+                vscode.window.showErrorMessage('You must install Julia using Juliaup to use the test item functionality.')
+                return true
+            }
+
+            const exePaths = await this.juliaExecutablesFeature.getJuliaExePathsAsync()
+            const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
+
+            if(releaseChannelExe.length>0) {
+                juliaExecutable = releaseChannelExe[0]
+            }
+            else {
+                vscode.window.showErrorMessage('You must have the "release" channel in Juliaup installed to use the test item functionality.')
+                return true
+            }
+        }
 
         const jlArgs = [
             '--startup-file=no',
@@ -151,15 +169,22 @@ export class JuliaTestController {
             const testRun = this.testRuns.get(i.testRunId)
             const testItem = testRun.testItems.get(i.testItemId)
 
-            testRun.testRun.failed(testItem, i.messages.map(i=>{
-                const msg = new vscode.TestMessage(i.message)
-                msg.actualOutput = i.actualOutput
-                msg.expectedOutput = i.expectedOutput
-                if (i.uri && i.line && i.column) {
-                    msg.location = new vscode.Location(vscode.Uri.parse(i.uri), new vscode.Position(i.line-1, i.column-1))
+            const messages = i.messages.map(j=>{
+                const msg = new vscode.TestMessage(j.message)
+
+                if(j.actualOutput !== null && j.expectedOutput !== null){
+                    msg.actualOutput = j.actualOutput
+                    msg.expectedOutput = j.expectedOutput
                 }
+
+                if (j.uri !== null && j.line !== null && j.column !== null) {
+                    msg.location = new vscode.Location(vscode.Uri.parse(j.uri), new vscode.Position(j.line-1, j.column-1))
+                }
+
                 return msg
-            }), i.duration)
+            })
+
+            testRun.testRun.failed(testItem, messages, i.duration)
         })
         this.connection.onNotification(notficiationTypeTestItemPassed, i=>{
             const testRun = this.testRuns.get(i.testRunId)
@@ -262,6 +287,8 @@ export class JuliaTestController {
             handleNewCrashReportFromException(err, 'Extension')
             // this.launchError = err
         })
+
+        return false
     }
 
     public async createTestRun(
@@ -322,7 +349,11 @@ export class JuliaTestController {
 
         }
 
-        const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params, testRun.token)
+        testRun.token.onCancellationRequested(async e => {
+            await this.connection.sendNotification(notoficationTypeCancelTestRun, {testRunId: params.testRunId})
+        })
+
+        const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params)
 
         if(testrunResult.coverage) {
             for(const file of testrunResult.coverage) {
@@ -628,8 +659,10 @@ export class TestFeature {
         if(!this.juliaTestController || !this.juliaTestController.ready()) {
             this.juliaTestController = new JuliaTestController(this, this.executableFeature, this.workspaceFeature, this.context, this.juliaTestitemControllerOutputChannel, this.compiledProvider)
 
-            await this.juliaTestController.start()
+            return await this.juliaTestController.start()
         }
+
+        return false
     }
 
     async testControllerTerminated() {
@@ -644,7 +677,11 @@ export class TestFeature {
         mode: TestRunMode,
         token: vscode.CancellationToken
     ) {
-        await this.ensureJuliaTestController()
+        const failBecauseNoController = await this.ensureJuliaTestController()
+
+        if(failBecauseNoController) {
+            return
+        }
 
         if(mode===TestRunMode.Coverage) {
             const ex = await this.executableFeature.getActiveJuliaExecutableAsync()

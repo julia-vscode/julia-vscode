@@ -40,6 +40,8 @@ try
         crash_reporting_pipename = Base.ARGS[1]
     )
 
+    # ENV["JULIA_DEBUG"] = "Main,TestItemControllers"
+
     run(controller)
 catch err
     global_err_handler(err, catch_backtrace(), Base.ARGS[1], "Test Item Controller")
