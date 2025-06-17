@@ -9,6 +9,8 @@ const ProfileFrameFlag = (
     TaskEvent = UInt8(2^4)
 )
 
+const all_threads_name = "all"
+
 function view_profile(data = Profile.fetch(); C=false, kwargs...)
     d = Dict{String,ProfileFrame}()
 
@@ -29,7 +31,7 @@ function view_profile(data = Profile.fetch(); C=false, kwargs...)
     for thread in threads
         graph = stackframetree(data_u64, lidict; thread=thread, kwargs...)
         threadname = if thread === nothing
-            "All threads"
+            all_threads_name
         else
             "$(thread) ($(Threads.threadpool(thread)))"
         end
