@@ -27,7 +27,7 @@ export const requestTypeCreateTestRun = new rpc.RequestType<{
         packageName?: string,
         packageUri?: string,
         projectUri?: string,
-        envCcontentHash?: string, // We use string here, even though on the Julia side we use UInt
+        envContentHash?: string,
         useDefaultUsings: boolean,
         testSetups: string[],
         line: number,

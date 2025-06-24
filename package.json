@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.142.0",
+    "version": "1.148.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -890,7 +890,7 @@
                 "julia.lint.call": {
                     "type": "boolean",
                     "default": true,
-                    "description": "This compares  call signatures against all known methods for the called function. Calls with too many or too few arguments, or unknown keyword parameters are highlighted."
+                    "description": "This compares call signatures against all known methods for the called function. Calls with too many or too few arguments, or unknown keyword parameters are highlighted."
                 },
                 "julia.lint.iter": {
                     "type": "boolean",
@@ -900,12 +900,12 @@
                 "julia.lint.nothingcomp": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for use of `==` rather than `===` when comparing against `nothing`. "
+                    "description": "Check for use of `==` rather than `===` when comparing against `nothing`."
                 },
                 "julia.lint.constif": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for constant conditionals in if statements that result in branches never being reached.."
+                    "description": "Check for constant conditionals in if statements that result in branches never being reached."
                 },
                 "julia.lint.lazy": {
                     "type": "boolean",

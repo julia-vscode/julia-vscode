@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- `@profview` now works correctly on threaded code when Julia is launched with interactive threads ([#3821](https://github.com/julia-vscode/julia-vscode/pull/3821))
+
 ## [1.140.0] - 2025-05-06
 ### Added
 - Added additional [Literate.jl cell delimiters](https://fredrikekre.github.io/Literate.jl/v2/fileformat/#Syntax) corresponding to Markdown headers to the default `julia.cellDelimiter` settings.
