@@ -12,6 +12,7 @@ import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOpt
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
+import * as codecells from './interactive/codecells'
 import { ProfilerFeature } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import { WorkspaceFeature } from './interactive/workspace'
@@ -73,6 +74,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 decreaseIndentPattern: decreaseIndentPattern
             }
         })
+        vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], new codecells.CodeLensProvider())
+        vscode.languages.registerFoldingRangeProvider(['julia', 'juliamarkdown'], new codecells.FoldingRangeProvider())
 
         const profilerFeature = new ProfilerFeature(context)
         context.subscriptions.push(profilerFeature)
@@ -82,6 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
         g_juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
+        codecells.activate(context)
         repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
         weave.activate(context, g_juliaExecutablesFeature)
         documentation.activate(context)
