@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.5"
+julia_version = "1.11.6"
 manifest_format = "2.0"
 project_hash = "1ac66a62687ef49d2eb7b6c07904a61356fda369"
 
@@ -36,7 +36,7 @@ version = "1.11.0"
 deps = ["Base64", "JSON", "JuliaInterpreter", "Pkg", "Sockets", "UUIDs"]
 path = "../../../packages/DebugAdapter"
 uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
-version = "3.0.1-DEV"
+version = "3.1.1-DEV"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]

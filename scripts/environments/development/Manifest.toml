@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.5"
+julia_version = "1.11.6"
 manifest_format = "2.0"
 project_hash = "051bed7e534eafefdb3b2f4721478085e38efb8d"
 
@@ -48,7 +48,7 @@ version = "0.8.15"
 deps = ["TOML", "UUIDs"]
 path = "../../packages/Compat"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.16.0"
+version = "4.17.0"
 
     [deps.Compat.extensions]
     CompatLinearAlgebraExt = "LinearAlgebra"
@@ -56,6 +56,11 @@ version = "4.16.0"
     [deps.Compat.weakdeps]
     Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
     LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[[deps.Compiler]]
+git-tree-sha1 = "382d79bfe72a406294faca39ef0c3cef6e6ce1f1"
+uuid = "807dbc54-b67e-4c79-8afb-eafe4df6f2e1"
+version = "0.1.1"
 
 [[deps.CoverageTools]]
 path = "../../packages/CoverageTools"
@@ -82,7 +87,7 @@ version = "1.11.0"
 deps = ["Base64", "JSON", "JuliaInterpreter", "Pkg", "Sockets", "UUIDs"]
 path = "../../packages/DebugAdapter"
 uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
-version = "3.0.1-DEV"
+version = "3.1.1-DEV"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
@@ -201,10 +206,10 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 version = "1.11.0"
 
 [[deps.LoweredCodeUtils]]
-deps = ["JuliaInterpreter"]
+deps = ["Compiler", "JuliaInterpreter"]
 path = "../../packages/LoweredCodeUtils"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "3.3.0"
+version = "3.4.1"
 
 [[deps.MacroTools]]
 path = "../../packages/MacroTools"
