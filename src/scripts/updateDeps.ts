@@ -92,6 +92,7 @@ async function main() {
         // 1.3 only works on 1.12
         // 'PrecompileTools',
         'TestEnv',
+        'Compiler',
     ]) {
         const opts = { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) }
         await cp.exec('git fetch', opts)
