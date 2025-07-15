@@ -209,7 +209,7 @@ version = "1.11.0"
 deps = ["Compiler", "JuliaInterpreter"]
 path = "../../packages/LoweredCodeUtils"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "3.4.1"
+version = "3.4.2"
 
 [[deps.MacroTools]]
 path = "../../packages/MacroTools"
