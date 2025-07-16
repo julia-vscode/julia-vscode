@@ -26,6 +26,10 @@ async function our_download(url: string, destination: string) {
 async function replace_backslash_in_manifest(project_path: string) {
     const manifest_content = await fs.readFile(path.join(project_path, 'Manifest.toml'))
     await fs.writeFile(path.join(project_path, 'Manifest.toml'), manifest_content.toString().replace (/\\\\/g, '/'))
+
+    const project_content = await fs.readFile(path.join(project_path, 'Project.toml'))
+    await fs.writeFile(path.join(project_path, 'Project.toml'), project_content.toString().replace (/\\\\/g, '/'))
+
 }
 
 async function main() {
@@ -88,6 +92,7 @@ async function main() {
         // 1.3 only works on 1.12
         // 'PrecompileTools',
         'TestEnv',
+        // 'Compiler', Ignore for now as it doesn't have tags
     ]) {
         const opts = { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) }
         await cp.exec('git fetch', opts)
@@ -179,12 +184,32 @@ async function main() {
     await cp.exec(`julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`, { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev/fallback') })
 
     // Julia 1.0 and 1.1 write backslash in relative paths in Manifest files, which we don't want
+    // And Julia 1.12 writes them into Project.toml files, which we also don't want
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/languageserver/v1.12'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/languageserver/fallback'))
+
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/testitemcontroller/v1.12'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/testitemcontroller/fallback'))
+
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/pkgdev/v1.12'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/pkgdev/fallback'))
+
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/terminalserver/v1.0'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/terminalserver/v1.1'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/terminalserver/v1.12'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/environments/terminalserver/fallback'))
+
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/debugadapter/v1.0'))
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/debugadapter/v1.1'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/debugadapter/v1.12'))
+
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger/v1.0'))
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger/v1.1'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger/v1.12'))
+
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver/v1.0'))
     await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver/v1.1'))
+    await replace_backslash_in_manifest(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver/v1.12'))
 
     // We keep the dev environment on the latest release version always
     await cp.exec(`julia "+release" --project=. -e "using Pkg; Pkg.resolve()"`, { cwd: path.join(process.cwd(), 'scripts/environments/development') })
