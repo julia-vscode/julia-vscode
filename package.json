@@ -60,6 +60,13 @@
                 "embeddedLanguages": {
                     "meta.embedded.block.julia": "julia"
                 }
+            },
+            {
+                "scopeName": "source.docstring.julia",
+                "path": "./syntaxes/juliadocstring.json",
+                "injectTo": [
+                    "source.julia"
+                ]
             }
         ],
         "commands": [
