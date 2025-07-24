@@ -17,7 +17,7 @@
   {
     "kind": 1,
     "language": "markdown",
-    "value": "## Next minor release"
+    "value": "## Next Feature Release"
   },
   {
     "kind": 1,
@@ -27,7 +27,7 @@
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "is:open org:julia-vscode is:pr milestone:\"Next Minor\" draft:false review:required"
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Feature Release\" draft:false review:required"
   },
   {
     "kind": 1,
@@ -37,7 +37,7 @@
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "is:open org:julia-vscode is:pr milestone:\"Next Minor\" -review:approved -review:required draft:false"
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Feature Release\" -review:approved -review:required draft:false"
   },
   {
     "kind": 1,
@@ -47,7 +47,7 @@
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "is:open org:julia-vscode is:pr milestone:\"Next Minor\" review:approved draft:false"
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Feature Release\" review:approved draft:false"
   },
   {
     "kind": 1,
@@ -62,7 +62,7 @@
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "is:open org:julia-vscode is:pr milestone:\"Next Patch\" review:required draft:false"
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Bugfix Release\" review:required draft:false"
   },
   {
     "kind": 1,
@@ -72,7 +72,7 @@
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "is:open org:julia-vscode is:pr milestone:\"Next Patch\" -review:approved -review:required draft:false"
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Bugfix Release\" -review:approved -review:required draft:false"
   },
   {
     "kind": 1,
@@ -82,6 +82,6 @@
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "is:open org:julia-vscode is:pr milestone:\"Next Patch\" review:approved draft:false"
+    "value": "is:open org:julia-vscode is:pr milestone:\"Next Bugfix Release\" review:approved draft:false"
   }
 ]

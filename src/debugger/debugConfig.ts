@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { onExit, onFinishEval, onInit } from '../interactive/repl'
-import { setContext } from '../utils'
+import { setContext, wrapCrashReporting } from '../utils'
 
 interface DebugConfigTreeItem {
     label: string
@@ -208,7 +208,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     }
 
     setCurrentAsDefault() {
-        vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), true)
+        vscode.workspace.getConfiguration('julia').update('debuggerDefaultCompiled', this.getCompiledItems(), vscode.ConfigurationTarget.Global)
     }
 
     addNameToCompiled(name: string) {
@@ -235,7 +235,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
 export function activate(context: vscode.ExtensionContext) {
     const provider = new DebugConfigTreeProvider()
     provider.applyDefaults()
-    setContext('juliaCompiledMode', false)
+    setContext('julia.debuggerCompiledMode', false)
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('debugger-compiled', provider),
@@ -273,16 +273,16 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('language-julia.enable-compiled-mode', async () => {
             provider.enableCompiledMode()
-            setContext('juliaCompiledMode', true)
+            setContext('julia.debuggerCompiledMode', true)
         }),
         vscode.commands.registerCommand('language-julia.disable-compiled-mode', async () => {
             provider.disableCompiledMode()
-            setContext('juliaCompiledMode', false)
+            setContext('julia.debuggerCompiledMode', false)
         }),
-        onInit(connection => {
+        onInit(wrapCrashReporting(connection => {
             provider.setConnection(connection)
             provider.refresh()
-        }),
+        })),
         onFinishEval(_ => provider.refresh()),
         onExit(e => {
             provider.setConnection(null)

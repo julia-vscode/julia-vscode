@@ -21,15 +21,13 @@ let g_resolved_path_of_environment: string = null
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
 
 export async function getProjectFilePaths(envpath: string) {
-    const dlext = process.platform === 'darwin' ? 'dylib' : process.platform === 'win32' ? 'dll' : 'so'
     return {
         project_toml_path: (await fs.exists(path.join(envpath, 'JuliaProject.toml'))) ?
             path.join(envpath, 'JuliaProject.toml') :
             (await fs.exists(path.join(envpath, 'Project.toml'))) ? path.join(envpath, 'Project.toml') : undefined,
         manifest_toml_path: (await fs.exists(path.join(envpath, 'JuliaManifest.toml'))) ?
             path.join(envpath, 'JuliaManifest.toml') :
-            (await fs.exists(path.join(envpath, 'Manifest.toml'))) ? path.join(envpath, 'Manifest.toml') : undefined,
-        sysimage_path: (await fs.exists(path.join(envpath, `JuliaSysimage.${dlext}`))) ? path.join(envpath, `JuliaSysimage.${dlext}`) : undefined
+            (await fs.exists(path.join(envpath, 'Manifest.toml'))) ? path.join(envpath, 'Manifest.toml') : undefined
     }
 }
 
@@ -82,7 +80,13 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                     println(false)
                 end`,
                 `${case_adjusted}`
-            ]
+            ],
+            {
+                env: {
+                    ...process.env,
+                    JULIA_VSCODE_INTERNAL: '1',
+                }
+            }
         )
 
         if (res.stdout.toString().trim() === 'false') {
@@ -144,9 +148,14 @@ async function changeJuliaEnvironment() {
 
         const folderExists = await fs.exists(envFolderForThisDepot)
         if (folderExists) {
-            const envirsForThisDepot = await fs.readdir(envFolderForThisDepot)
+            const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'})
+            const envirsForThisDepot = (await fs.readdir(envFolderForThisDepot)).sort(collator.compare)
 
             for (const envFolder of envirsForThisDepot) {
+                // special case some auto-generated pluto envs
+                if (envFolder.startsWith('__')) {
+                    continue
+                }
                 envFolders.push({ label: envFolder, description: path.join(envFolderForThisDepot, envFolder) })
             }
         }
@@ -200,7 +209,13 @@ async function getDefaultEnvPath() {
                 '--startup-file=no',
                 '--history-file=no',
                 '-e', 'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))'
-            ])
+            ],
+            {
+                env: {
+                    ...process.env,
+                    JULIA_VSCODE_INTERNAL: '1',
+                }
+            })
         g_path_of_default_environment = res.stdout.toString().trim()
     }
     return g_path_of_default_environment

@@ -8,7 +8,7 @@ import * as net from 'net'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions } from 'vscode-languageclient/node'
+import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, State } from 'vscode-languageclient/node'
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
@@ -16,7 +16,7 @@ import { ProfilerFeature } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import { WorkspaceFeature } from './interactive/workspace'
 import * as jlpkgenv from './jlpkgenv'
-import { JuliaExecutablesFeature } from './juliaexepath'
+import { JuliaExecutable, JuliaExecutablesFeature } from './juliaexepath'
 import { JuliaNotebookFeature } from './notebook/notebookFeature'
 import * as openpackagedirectory from './openpackagedirectory'
 import { JuliaPackageDevFeature } from './packagedevtools'
@@ -24,8 +24,13 @@ import * as packagepath from './packagepath'
 import * as smallcommands from './smallcommands'
 import * as tasks from './tasks'
 import * as telemetry from './telemetry'
+import { TestFeature } from './testing/testFeature'
+import {notifyTypeTextDocumentPublishTests} from './testing/testLSProtocol'
 import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
+import { handleNewCrashReportFromException } from './telemetry'
+import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
+import * as semver from 'semver'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -34,6 +39,7 @@ let g_context: vscode.ExtensionContext = null
 let g_watchedEnvironmentFile: string = null
 let g_startupNotification: vscode.StatusBarItem = null
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
+let g_testFeature: TestFeature = null
 
 let g_traceOutputChannel: vscode.OutputChannel = null
 let g_outputChannel: vscode.OutputChannel = null
@@ -42,11 +48,6 @@ export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:[
 export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
 
 export async function activate(context: vscode.ExtensionContext) {
-    if (vscode.extensions.getExtension('julialang.language-julia') && vscode.extensions.getExtension('julialang.language-julia-insider')) {
-        vscode.window.showErrorMessage('You have both the Julia Insider and regular Julia extension installed at the same time, which is not supported. Please uninstall or disable one of the two extensions.')
-        return
-    }
-
     await telemetry.init(context)
     try {
         setContext('julia.isActive', true)
@@ -56,6 +57,9 @@ export async function activate(context: vscode.ExtensionContext) {
         telemetry.startLsCrashServer()
 
         g_context = context
+
+        const globalDiagnosticOutputFeature = new JuliaGlobalDiagnosticOutputFeature()
+        context.subscriptions.push(globalDiagnosticOutputFeature)
 
         console.debug('Activating extension language-julia')
 
@@ -75,7 +79,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Active features from other files
         const compiledProvider = debugViewProvider.activate(context)
-        g_juliaExecutablesFeature = new JuliaExecutablesFeature(context)
+        g_juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
         repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
@@ -89,9 +93,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const workspaceFeature = new WorkspaceFeature(context)
         context.subscriptions.push(workspaceFeature)
-        context.subscriptions.push(new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature))
-        context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature))
+        const notebookFeature = new JuliaNotebookFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
+        context.subscriptions.push(notebookFeature)
         context.subscriptions.push(new JuliaPackageDevFeature(context, g_juliaExecutablesFeature))
+        g_testFeature = new TestFeature(context, g_juliaExecutablesFeature, workspaceFeature, compiledProvider)
+        context.subscriptions.push(g_testFeature)
+        context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, g_juliaExecutablesFeature, notebookFeature))
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
@@ -108,7 +115,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     vscode.commands.executeCommand('workbench.action.openSettings', 'julia.symbolCacheDownload')
                 }
             })
-            vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, true)
+            vscode.workspace.getConfiguration('julia').update('symbolCacheDownload', true, vscode.ConfigurationTarget.Global)
         }
 
         // Start language server
@@ -120,9 +127,9 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage('To help improve the Julia extension, you can allow the development team to collect usage data. Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use usage data. Do you agree to usage data collection?', agree, disagree)
                 .then(choice => {
                     if (choice === agree) {
-                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, true)
+                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', true, vscode.ConfigurationTarget.Global)
                     } else if (choice === disagree) {
-                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', false, true)
+                        vscode.workspace.getConfiguration('julia').update('enableTelemetry', false, vscode.ConfigurationTarget.Global)
                     }
                 })
         }
@@ -169,6 +176,8 @@ export function deactivate() {
         promises.push(g_languageClient.stop())
     }
 
+    telemetry.flush()
+
     return Promise.all(promises)
 }
 
@@ -188,7 +197,7 @@ export async function withLanguageClient(
     }
 
     try {
-        return callback(g_languageClient)
+        return await callback(g_languageClient)
     } catch (err) {
         if (err.message === 'Language client is not ready yet') {
             return callbackOnHandledErr(err)
@@ -206,7 +215,7 @@ function changeConfig(event: vscode.ConfigurationChangeEvent) {
     }
 }
 
-const supportedSchemes = [
+export const supportedSchemes = [
     'file',
     'untitled',
     'vscode-notebook-cell'
@@ -222,17 +231,60 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     g_startupNotification.text = 'Julia: Starting Language Server…'
     g_startupNotification.show()
 
+    let juliaLSExecutable: JuliaExecutable | null = null
+    const juliaExecutable = await juliaExecutablesFeature.getActiveLaunguageServerJuliaExecutableAsync()
+
+    if(await juliaExecutablesFeature.isJuliaup()) {
+        if (Boolean(process.env.DEBUG_MODE)) {
+            juliaLSExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        } else {
+            const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
+
+            const releaseChannelExe = exePaths.filter(i=>i.channel==='release')
+
+            if(releaseChannelExe.length>0) {
+                juliaLSExecutable = releaseChannelExe[0]
+            }
+            else {
+                vscode.window.showErrorMessage('You must have the "release" channel in Juliaup installed for the best Julia experience in VS Code.')
+                g_startupNotification.hide()
+                return
+            }
+
+            if (juliaExecutable===undefined) {
+                vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+                g_startupNotification.hide()
+                return
+            }
+        }
+    }
+    else {
+        if (juliaExecutable === undefined) {
+            vscode.window.showErrorMessage('You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            g_startupNotification.hide()
+            return
+        }
+
+        if(semver.gte(juliaExecutable.getVersion(), '1.10.0')) {
+            juliaLSExecutable = juliaExecutable
+        }
+        else {
+            vscode.window.showErrorMessage('You must have at least Julia 1.10 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.')
+            g_startupNotification.hide()
+            return
+        }
+    }
 
     let jlEnvPath = ''
     try {
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
         vscode.window.showErrorMessage(
-            'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.',
+            'Could not start the Julia language server. Make sure the `julia.executablePath` setting is valid.',
             'Open Settings'
         ).then(val => {
             if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
             }
         })
         g_startupNotification.hide()
@@ -246,9 +298,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     const languageServerDepotPath = path.join(storagePath, 'lsdepot', 'v1')
     await fs.createDirectory(languageServerDepotPath)
     const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
-    const envForLSPath = path.join(g_context.extensionPath, 'scripts', 'environments', 'languageserver')
-    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
-    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', `--project=${envForLSPath}`, 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no']
+    const serverArgsRun: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', 'main.jl', jlEnvPath, '--debug=no', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no', juliaExecutable.getCommand(), juliaExecutable.version]
+    const serverArgsDebug: string[] = ['--startup-file=no', '--history-file=no', '--depwarn=no', 'main.jl', jlEnvPath, '--debug=yes', telemetry.getCrashReportingPipename(), oldDepotPath, storagePath, useSymserverDownloads, symserverUpstream, '--detached=no', juliaExecutable.getCommand(), juliaExecutable.version]
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
@@ -256,42 +307,9 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
             HOME: process.env.HOME ? process.env.HOME : os.homedir(),
             JULIA_LANGUAGESERVER: '1',
+            JULIA_VSCODE_LANGUAGESERVER: '1',
+            JULIA_VSCODE_INTERNAL: '1',
             PATH: process.env.PATH
-        }
-    }
-
-    let juliaExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
-
-    if (juliaExecutable === undefined) {
-        vscode.window.showErrorMessage(
-            'Could not start the Julia language server. Make sure the `julia.executablePath` setting points to the Julia binary.',
-            'Open Settings'
-        ).then(val => {
-            if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
-            }
-        })
-        g_startupNotification.hide()
-        return
-    }
-
-    // Special case the situation where a user configured something like `julia +lts`
-    // If the user is using juliaup, we need to prevent the LS process to try to use a juliaup
-    // install in our LS depot, which would normally happen becuse we set the JULIA_DEPOT_PATH
-    // env variable. This here works around that.
-    if (juliaExecutablesFeature.isJuliaup() &&
-        juliaExecutable.file.toLocaleLowerCase() === 'julia' &&
-        juliaExecutable.args.length > 0 &&
-        juliaExecutable.args[0].startsWith('+')) {
-
-        const channel = juliaExecutable.args[0].slice(1)
-
-        const juliaExePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
-
-        const channelExecutable = juliaExePaths.find(i => i.channel === channel)
-
-        if (channelExecutable) {
-            juliaExecutable = channelExecutable
         }
     }
 
@@ -302,8 +320,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             return { reader: conn, writer: conn, detached: true }
         } :
         {
-            run: { command: juliaExecutable.file, args: [...juliaExecutable.args, ...serverArgsRun], options: spawnOptions },
-            debug: { command: juliaExecutable.file, args: [...juliaExecutable.args, ...serverArgsDebug], options: spawnOptions }
+            run: { command: juliaLSExecutable.file, args: [...juliaLSExecutable.args, ...serverArgsRun], options: spawnOptions },
+            debug: { command: juliaLSExecutable.file, args: [...juliaLSExecutable.args, ...serverArgsDebug], options: spawnOptions }
         }
 
     const selector = []
@@ -314,6 +332,12 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
                 scheme
             })
         }
+
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/Project.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/JuliaProject.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/Manifest.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/JuliaManifest.toml'})
+        selector.push({language: 'toml', scheme: scheme, pattern: '**/.JuliaLint.toml'})
     }
 
     if (!g_outputChannel) {
@@ -325,12 +349,10 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     const clientOptions: LanguageClientOptions = {
         documentSelector: selector,
-        synchronize: {
-            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{jl,jmd,md}')
-        },
         revealOutputChannelOn: RevealOutputChannelOn.Never,
         traceOutputChannel: g_traceOutputChannel,
         outputChannel: g_outputChannel,
+        initializationOptions: {julialangTestItemIdentification: true},
     }
 
     // Create the language client and start the client.
@@ -346,6 +368,23 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
         else if (data.command === 'symserv_pkgload_crash') {
             telemetry.tracePackageLoadError(data.name, data.message)
+        }
+        else if (data.command === 'request_metric') {
+            telemetry.traceRequest(data.operationId, data.operationParentId, data.name, new Date(data.time), data.duration, 'Language Server')
+        }
+    })
+
+    languageClient.onDidChangeState(event => {
+        if (event.newState === State.Running) {
+            languageClient.onNotification(notifyTypeTextDocumentPublishTests, i=> {
+                try {
+                    g_testFeature.publishTestsHandler(i)
+                }
+                catch (err) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                    throw (err)
+                }
+            })
         }
     })
 
@@ -367,8 +406,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
 
     try {
         g_startupNotification.command = 'language-julia.showLanguageServerOutput'
-        await languageClient.start()
         setLanguageClient(languageClient)
+        await languageClient.start()
     }
     catch (e) {
         vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(val => {

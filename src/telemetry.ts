@@ -2,7 +2,8 @@ import * as appInsights from 'applicationinsights'
 import * as fs from 'async-file'
 import * as net from 'net'
 import * as path from 'path'
-import { uuid } from 'uuidv4'
+import { parse } from 'semver'
+import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
 import { generatePipeName } from './utils'
@@ -18,6 +19,8 @@ let crashReporterUIVisible: boolean = false
 let crashReporterQueue = []
 
 let g_jlcrashreportingpipename: string = null
+
+let g_prereleaseExtension: boolean = false
 
 function filterTelemetry(envelope, context) {
     if (envelope.data.baseType === 'ExceptionData') {
@@ -58,21 +61,23 @@ export async function init(context: vscode.ExtensionContext) {
     const packageJSONContent = JSON.parse(await fs.readTextFile(path.join(context.extensionPath, 'package.json')))
 
     const extversion = packageJSONContent.version
-    const previewVersion = packageJSONContent.preview
+    const parsedExtensionVersion = parse(extversion)
 
     // The Application Insights Key
     let key = ''
-    if (process.env.DEBUG_MODE === 'true') {
-        // Use the debug environment
-        key = 'InstrumentationKey=82cf1bd4-8560-43ec-97a6-79847395d791;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
-    }
-    else if (!previewVersion) {
+    if (parsedExtensionVersion.patch===2) {
         // Use the production environment
         key = 'InstrumentationKey=ca1fb443-8d44-4a06-91fe-0235cfdf635f;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
     }
-    else {
-        // Use the dev environment
+    else if (parsedExtensionVersion.patch===1) {
+        // Use the insider environment
         key = 'InstrumentationKey=94d316b7-bba0-4d03-9525-81e25c7da22f;IngestionEndpoint=https://eastus-3.in.applicationinsights.azure.com/'
+        g_prereleaseExtension = true
+    }
+    else {
+        // Use the debug environment
+        key = 'InstrumentationKey=82cf1bd4-8560-43ec-97a6-79847395d791;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
+        g_prereleaseExtension = true
     }
 
     appInsights.setup(key)
@@ -85,7 +90,7 @@ export async function init(context: vscode.ExtensionContext) {
         .setUseDiskRetryCaching(true)
         .start()
 
-    if (process.env.DEBUG_MODE === 'true') {
+    if (parsedExtensionVersion.patch!==1 && parsedExtensionVersion.patch!==2) {
         // Make sure we send out messages right away
         appInsights.defaultClient.config.maxBatchSize = 0
     }
@@ -101,6 +106,16 @@ export async function init(context: vscode.ExtensionContext) {
     extensionClient.context.tags[extensionClient.context.keys.cloudRoleInstance] = ''
     extensionClient.context.tags[extensionClient.context.keys.sessionId] = vscode.env.sessionId
     extensionClient.context.tags[extensionClient.context.keys.userId] = vscode.env.machineId
+
+    const logger = vscode.env.createTelemetryLogger({
+        sendEventData: (eventName: string, data?: Record<string, any>) => {
+        },
+        sendErrorData: (error: Error, data?: Record<string, any>) => {
+            handleNewCrashReportFromException(error, 'Extension')
+        }
+    })
+
+    context.subscriptions.push(logger)
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
@@ -150,7 +165,7 @@ export function handleNewCrashReportFromException(exception: Error, cloudRole: s
 
 export function startLsCrashServer() {
 
-    g_jlcrashreportingpipename = generatePipeName(uuid(), 'vsc-jl-cr')
+    g_jlcrashreportingpipename = generatePipeName(uuidv4(), 'vsc-jl-cr')
 
     const server = net.createServer(function (connection) {
         let accumulatingBuffer = Buffer.alloc(0)
@@ -182,6 +197,25 @@ export function traceEvent(message) {
     extensionClient.trackEvent({ name: message })
 }
 
+export function traceRequest(operationId, operationParentId, name, time, duration, cloudRole) {
+    if(g_prereleaseExtension) {
+        extensionClient.trackRequest({
+            name: name,
+            url: name,
+            time: time,
+            duration: duration,
+            resultCode: 0,
+            success: true,
+            tagOverrides: {
+                [extensionClient.context.keys.cloudRole]: cloudRole,
+                [extensionClient.context.keys.operationName]: name,
+                [extensionClient.context.keys.operationId]: operationId,
+                ...(operationParentId ? {[extensionClient.context.keys.operationParentId]: operationParentId } : {})
+            }
+        })
+    }
+}
+
 export function tracePackageLoadError(packagename, message) {
     extensionClient.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
 }
@@ -211,10 +245,10 @@ async function showCrashReporterUIConsent() {
             const disagree = 'No, never'
             const choice = await vscode.window.showInformationMessage('The Julia language extension crashed. Do you want to send more information about the problem to the development team? Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use crash reports and what data will be transmitted.', agree, agreeAlways, disagree)
             if (choice === disagree) {
-                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', false, true)
+                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', false, vscode.ConfigurationTarget.Global)
             }
             if (choice === agreeAlways) {
-                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, true)
+                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, vscode.ConfigurationTarget.Global)
             }
             if (choice === agree || choice === agreeAlways) {
                 sendCrashReportQueue()
@@ -232,4 +266,8 @@ export function setCurrentJuliaVersion(version: string) {
     if (extensionClient) {
         extensionClient.commonProperties['juliaversion'] = g_currentJuliaVersion
     }
+}
+
+export function flush() {
+    extensionClient.flush()
 }

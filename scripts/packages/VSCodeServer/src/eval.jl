@@ -54,7 +54,7 @@ function start_eval_backend()
     end
 end
 
-function repl_interrupt_request(conn, ::Nothing)
+function repl_interrupt_notification(conn, ::Nothing)
     println(stderr, "^C")
     if EVAL_BACKEND_TASK[] !== nothing && !istaskdone(EVAL_BACKEND_TASK[]) && IS_BACKEND_WORKING[]
         schedule(EVAL_BACKEND_TASK[], InterruptException(); error = true)
@@ -97,7 +97,31 @@ function add_code_to_repl_history(code)
 end
 
 CAN_SET_ANS = Ref{Bool}(true)
-function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCodeRequestReturn
+CAN_SET_ERR = Ref{Bool}(true)
+
+function set_error_global(errs)
+    if CAN_SET_ERR[]
+        try
+            errs isa EvalErrorStack || error()
+            istrivial = @static if isdefined(Base, :istrivialerror)
+                Base.istrivialerror(errs.stack)
+            else
+                true
+            end
+            @static if VERSION > v"1.10-"
+                istrivial || setglobal!(Base.MainInclude, :err, errs.stack)
+            elseif @isdefined setglobal!
+                istrivial || setglobal!(Main, :err, errs.stack)
+            else
+                istrivial || ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :err, errs.stack)
+            end
+        catch
+            CAN_SET_ERR[] = false
+        end
+    end
+end
+
+function repl_runcode_request(conn, params::ReplRunCodeRequestParams, token)::ReplRunCodeRequestReturn
     run_with_backend() do
         fix_displays()
 
@@ -130,26 +154,26 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                 add_code_to_repl_history(source_code)
 
                 prompt = "julia> "
-                prefix = "\e[32m"
+                prefix = string(SHELL.output_end(), SHELL.prompt_start(), "\e[32m\e[1m")
+                suffix = string("\e[0m", SHELL.update_cwd(), SHELL.prompt_end())
                 try
                     mode = get_main_mode()
-                    prompt = mode.prompt
-                    prefix = mode.prompt_prefix
+                    prompt = LineEdit.prompt_string(mode.prompt)
+                    LineEdit.write_prompt(stdout, mode)
                 catch err
+                    print(stdout, prefix, prompt, suffix)
                     @debug "getting prompt info failed" exception = (err, catch_backtrace())
                 end
 
                 for (i, line) in enumerate(eachline(IOBuffer(source_code)))
-                    if i == 1
-                        print(prefix, "\e[1m", prompt, "\e[0m")
-                        print(' '^code_column)
-                    else
-                        # Indent by 7 so that it aligns with the julia> prompt
-                        print(' '^length(prompt))
-                    end
-
+                    i != 1 && print(' '^length(prompt))
+                    print(' '^code_column)
                     println(line)
                 end
+
+                print(stdout, SHELL.output_start())
+                print(stdout, SHELL.update_cmd(source_code))
+                REPL_PROMPT_STATE[] = REPLPromptStates.NoStatus
             end
 
             return withpath(source_filename) do
@@ -157,7 +181,9 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     val = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
                     if CAN_SET_ANS[]
                         try
-                            @static if @isdefined setglobal!
+                            @static if VERSION > v"1.10-"
+                                setglobal!(Base.MainInclude, :ans, val)
+                            elseif @isdefined setglobal!
                                 setglobal!(Main, :ans, val)
                             else
                                 ccall(:jl_set_global, Cvoid, (Any, Any, Any), Main, :ans, val)
@@ -166,15 +192,25 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                             CAN_SET_ANS[] = false
                         end
                     end
+                    if show_code
+                        REPL_PROMPT_STATE[] = REPLPromptStates.Success
+                    end
                     val
                 catch err
-                    @static if isdefined(Base, :current_exceptions)
+                    if show_code
+                        REPL_PROMPT_STATE[] = REPLPromptStates.Error
+                    end
+                    errs = @static if isdefined(Base, :current_exceptions)
                         EvalErrorStack(Base.current_exceptions(current_task()))
                     elseif isdefined(Base, :catch_stack)
                         EvalErrorStack(Base.catch_stack())
                     else
                         EvalError(err, catch_backtrace())
                     end
+
+                    set_error_global(errs)
+
+                    errs
                 finally
                     try
                         JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
@@ -183,11 +219,19 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     end
                 end
 
-                if show_error && res isa EvalError || res isa EvalErrorStack
-                    Base.display_error(stderr, res)
+                if show_error && (res isa EvalError || res isa EvalErrorStack)
+                    try
+                        display_repl_error(stderr, res; unwrap=true)
+                    catch err
+                        Base.display_error(stderr, err, catch_backtrace())
+                    end
                 elseif show_result
                     if res isa EvalError || res isa EvalErrorStack
-                        Base.display_error(stderr, res)
+                        try
+                            display_repl_error(stderr, res; unwrap=true)
+                        catch err
+                            Base.display_error(stderr, err, catch_backtrace())
+                        end
                     elseif res !== nothing && !ends_with_semicolon(source_code)
                         try
                             Base.invokelatest(display, res)
@@ -197,8 +241,8 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams)::ReplRunCo
                     end
                 else
                     try
-                        if !ends_with_semicolon(source_code)
-                            Base.invokelatest(display, InlineDisplay(), res)
+                        if !ends_with_semicolon(source_code) && !(res isa EvalError || res isa EvalErrorStack)
+                            with_no_default_display(() -> display(res); allow_inline = true)
                         end
                     catch err
                         if !(err isa MethodError && err.f === display)
@@ -232,7 +276,7 @@ end
 
 Calls `render`, but catches errors in the display system.
 """
-function safe_render(x)
+function safe_render(x)::ReplRunCodeRequestReturn
     try
         return render(x)
     catch err
@@ -255,14 +299,18 @@ Must return a `ReplRunCodeRequestReturn` with the following fields:
 - `all::String`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
 - `stackframe::Vector{Frame}`: Optional, should only be given on an error
 """
-function render(x)
-    str = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
-    inline = strlimit(first(split(str, "\n")), limit = INLINE_RESULT_LENGTH)
-    all = codeblock(str)
-    return ReplRunCodeRequestReturn(inline, all)
+function render(x)::ReplRunCodeRequestReturn
+    plain = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
+    md = try
+        sprintlimited(MIME"text/markdown"(), x, limit = MAX_RESULT_LENGTH)
+    catch _
+        codeblock(plain)
+    end
+    inline = strlimit(first(split(plain, "\n")), limit = INLINE_RESULT_LENGTH)
+    return ReplRunCodeRequestReturn(inline, md)
 end
 
-render(::Nothing) = ReplRunCodeRequestReturn("✓", codeblock("nothing"))
+render(::Nothing)::ReplRunCodeRequestReturn = ReplRunCodeRequestReturn("✓", codeblock("nothing"))
 
 codeblock(s) = string("```\n", s, "\n```")
 
@@ -284,7 +332,7 @@ function sprint_error(err)
     sprintlimited(err, [], func = Base.display_error, limit = MAX_RESULT_LENGTH)
 end
 
-function render(err::EvalError)
+function render(err::EvalError)::ReplRunCodeRequestReturn
     bt = crop_backtrace(err.bt)
 
     errstr = sprint_error_unwrap(err.err)
@@ -300,7 +348,7 @@ function render(err::EvalError)
     return ReplRunCodeRequestReturn(inline, all, stackframe)
 end
 
-function render(stack::EvalErrorStack)
+function render(stack::EvalErrorStack)::ReplRunCodeRequestReturn
     inline = ""
     all = ""
     complete_bt = Union{Base.InterpreterIP,Ptr{Cvoid}}[]
@@ -326,7 +374,7 @@ function Base.display_error(io::IO, err::EvalError)
     try
         Base.invokelatest(display_repl_error, io, unwrap_loaderror(err.err), err.bt)
     catch err
-        @error "Error trying to display an error."
+        @error "Error trying to display an error." ex = (err, catch_backtrace())
     end
 end
 
@@ -334,7 +382,7 @@ function Base.display_error(io::IO, err::EvalErrorStack)
     try
         Base.invokelatest(display_repl_error, io, err)
     catch err
-        @error "Error trying to display an error."
+        @error "Error trying to display an error." ex = (err, catch_backtrace())
     end
 end
 
@@ -348,7 +396,14 @@ function remove_kw_wrappers!(st::StackTraces.StackTrace)
 end
 
 function backtrace_string(bt)
-    io = IOBuffer()
+    limitflag = Ref(false)
+
+    iob = IOBuffer()
+    io = IOContext(
+        iob,
+        :stacktrace_types_limited => limitflag,
+        :displaysize => (120, 120)
+    )
 
     println(io, "Stacktrace:\n")
     i = 1
@@ -373,7 +428,7 @@ function backtrace_string(bt)
 
         print(io, counter, ". `")
         Base.StackTraces.show_spec_linfo(io, frame)
-        print(io, "` at [", file, "](", cmd, " \"", file, "\")")
+        print(io, "` at [", basename(file), "](", cmd, " \"", file, "\")")
         if repeated > 1
             print(io, " (repeats $repeated times)")
         end
@@ -382,5 +437,9 @@ function backtrace_string(bt)
         counter += 1
     end
 
-    return String(take!(io))
+    if limitflag[]
+        print(io, "Some type information was truncated. Use `show(err)` to see complete types.")
+    end
+
+    return String(take!(iob))
 end

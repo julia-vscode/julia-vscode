@@ -28,9 +28,6 @@
 [submodule "scripts/packages/CodeTracking"]
 	path = scripts/packages/CodeTracking
 	url = https://github.com/timholy/CodeTracking.jl.git
-[submodule "scripts/packages/PackageCompiler"]
-	path = scripts/packages/PackageCompiler
-	url = https://github.com/JuliaLang/PackageCompiler.jl.git
 [submodule "scripts/packages/JSONRPC"]
 	path = scripts/packages/JSONRPC
 	url = https://github.com/julia-vscode/JSONRPC.jl.git
@@ -45,7 +42,7 @@
 	url = https://github.com/JuliaCollections/OrderedCollections.jl.git
 [submodule "scripts/packages/CoverageTools"]
 	path = scripts/packages/CoverageTools
-	url = https://github.com/JuliaCI/CoverageTools.jl.git
+	url = https://github.com/JuliaCI/CoverageTools.jl
 [submodule "scripts/packages/IJuliaCore"]
 	path = scripts/packages/IJuliaCore
 	url = https://github.com/JuliaLang/IJuliaCore.jl.git
@@ -70,9 +67,75 @@
 [submodule "libs/jl-profile"]
 	path = libs/jl-profile
 	url = https://github.com/pfitzseb/jl-profile.js.git
-[submodule "scripts/packages-old/JuliaInterpreter"]
-	path = scripts/packages-old/JuliaInterpreter
-	url = https://github.com/JuliaDebug/JuliaInterpreter.jl.git
 [submodule "scripts/packages/Revise"]
 	path = scripts/packages/Revise
 	url = https://github.com/timholy/Revise.jl
+[submodule "scripts/packages/TestEnv"]
+	path = scripts/packages/TestEnv
+	url = https://github.com/JuliaTesting/TestEnv.jl
+[submodule "scripts/packages/DelimitedFiles"]
+	path = scripts/packages/DelimitedFiles
+	url = https://github.com/JuliaData/DelimitedFiles.jl
+[submodule "scripts/packages/Glob"]
+	path = scripts/packages/Glob
+	url = https://github.com/vtjnash/Glob.jl
+[submodule "scripts/packages/JuliaSyntax"]
+	path = scripts/packages/JuliaSyntax
+	url = https://github.com/JuliaLang/JuliaSyntax.jl
+[submodule "scripts/packages/JuliaWorkspaces"]
+	path = scripts/packages/JuliaWorkspaces
+	url = https://github.com/julia-vscode/JuliaWorkspaces.jl
+[submodule "scripts/packages/PrecompileTools"]
+	path = scripts/packages/PrecompileTools
+	url = https://github.com/JuliaLang/PrecompileTools.jl
+[submodule "scripts/packages/Preferences"]
+	path = scripts/packages/Preferences
+	url = https://github.com/JuliaPackaging/Preferences.jl
+[submodule "scripts/packages/Salsa"]
+	path = scripts/packages/Salsa
+	url = https://github.com/julia-vscode/Salsa.jl
+[submodule "scripts/packages/ExceptionUnwrapping"]
+	path = scripts/packages/ExceptionUnwrapping
+	url = https://github.com/JuliaServices/ExceptionUnwrapping.jl
+[submodule "scripts/packages/MacroTools"]
+	path = scripts/packages/MacroTools
+	url = https://github.com/FluxML/MacroTools.jl
+[submodule "scripts/packages/AutoHashEquals"]
+	path = scripts/packages/AutoHashEquals
+	url = https://github.com/JuliaServices/AutoHashEquals.jl
+[submodule "scripts/packages/TestItemDetection"]
+	path = scripts/packages/TestItemDetection
+	url = https://github.com/julia-vscode/TestItemDetection.jl
+[submodule "scripts/packages-old/v1.5/JuliaInterpreter"]
+	path = scripts/packages-old/v1.5/JuliaInterpreter
+	url = https://github.com/JuliaDebug/JuliaInterpreter.jl
+[submodule "scripts/packages-old/v1.5/LoweredCodeUtils"]
+	path = scripts/packages-old/v1.5/LoweredCodeUtils
+	url = https://github.com/JuliaDebug/LoweredCodeUtils.jl
+[submodule "scripts/packages-old/v1.5/Revise"]
+	path = scripts/packages-old/v1.5/Revise
+	url = https://github.com/timholy/Revise.jl
+[submodule "scripts/packages/CancellationTokens"]
+	path = scripts/packages/CancellationTokens
+	url = https://github.com/davidanthoff/CancellationTokens.jl
+[submodule "scripts/packages-old/v1.9/JuliaInterpreter"]
+	path = scripts/packages-old/v1.9/JuliaInterpreter
+	url = https://github.com/JuliaDebug/JuliaInterpreter.jl
+[submodule "scripts/packages-old/v1.9/LoweredCodeUtils"]
+	path = scripts/packages-old/v1.9/LoweredCodeUtils
+	url = https://github.com/JuliaDebug/LoweredCodeUtils.jl
+[submodule "scripts/packages/TestItemControllers"]
+	path = scripts/packages/TestItemControllers
+	url = https://github.com/julia-vscode/TestItemControllers.jl
+[submodule "scripts/packages-old/v1.5/OrderedCollections"]
+	path = scripts/packages-old/v1.5/OrderedCollections
+	url = https://github.com/JuliaCollections/OrderedCollections.jl
+[submodule "scripts/packages-old/v1.9/Revise"]
+	path = scripts/packages-old/v1.9/Revise
+	url = https://github.com/timholy/Revise.jl
+[submodule "scripts/packages-old/v1.5/CodeTracking"]
+	path = scripts/packages-old/v1.5/CodeTracking
+	url = https://github.com/timholy/CodeTracking.jl.git
+[submodule "scripts/packages/Compiler"]
+	path = scripts/packages/Compiler
+	url = https://github.com/JuliaLang/BaseCompiler.jl

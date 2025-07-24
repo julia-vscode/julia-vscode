@@ -14,6 +14,8 @@ function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
 
     @error "Some Julia code in the VS Code extension crashed"
     Base.display_error(e, bt)
+    flush(stdout)
+    flush(stderr)
 
 
     try

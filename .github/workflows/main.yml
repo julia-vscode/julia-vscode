@@ -3,18 +3,19 @@ name: Build and Test
 on:
   pull_request:
     branches:
-      - master
+      - main
   check_run:
     types: [rerequested, requested_action]
   push:
     branches:
-      - master
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
 
-env:
-  NODE_VERSION: '16'
+concurrency:
+  group: ${{ github.head_ref || github.ref_name || github.run_id }}
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -25,31 +26,16 @@ jobs:
   lintExtension:
     name: Lint Extension
     runs-on: ubuntu-latest
-    # if: github.repository == 'julia-vscode/julia-vscode'
     steps:
-      - uses: actions/checkout@v2
-
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
       - run: npm ci
-      # - run: npm i -D @actions/core
-      # - run: npm i -D @actions/github
-      # - run: npm i -D @octokit/core
-      # - run: npm i -D @octokit/plugin-paginate-rest
-      # - run: npm i -D @octokit/webhooks
-
-      # - name: Verify linting is turned on for changed files
-      #   uses: ./.github/actions/modified-files
-      #   id: modified-folders
-
-      # - name: Dump
-      #   run: echo "${{steps.modified-folders.outputs.modifiedRootFolders}}"
-
-      - run: npx eslint -c .eslintrc.json --ext .ts src
-
-      # - name: Run prettier on TypeScript code
-      #   run: npx prettier 'src/**/*.ts*' --check
-
-      # - name: Run prettier on JavaScript code
-      #   run: npx prettier 'build/**/*.js' --check
+      - run: npx eslint
 
   testExtension:
     name: Test Extension
@@ -57,37 +43,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        julia_version: [1.6]
-    if: github.repository == 'julia-vscode/julia-vscode'
+        julia-version: ['1.0', '1.6', '1.10', '1.11']
+        os: [ubuntu-latest, windows-latest, macos-13]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          submodules: 'true'
-
-      - uses: julia-actions/setup-julia@v1
+          submodules: 'recursive'
+      - uses: actions/setup-node@v4
         with:
-          version: ${{matrix.julia_version}}
-
+          node-version: 20.x
+      - uses: julia-actions/install-juliaup@v2
+        with:
+          channel: ${{matrix.julia-version}}
       - run: npm ci
-
       - run: npm run compile
-
-      - name: Set xvfb parameters linux
-        if: matrix.os == 'ubuntu-latest'
-        run: echo "xvfbCommand=--server-args=\"-screen 0 1024x768x24\"" >> $GITHUB_ENV
-
-      - name: Run tests
-        if: matrix.os == 'ubuntu-latest'
-        env:
-          DISPLAY: 10
-        uses: GabrielBB/xvfb-action@v1.4
-        with:
-          run: npm run test
-
-      - name: Run tests
-        if: matrix.os == 'macos-latest' || matrix.os == 'windows-latest'
-        run: npm run test
+      - run: xvfb-run -a npm test
+        if: runner.os == 'Linux'
+      - run: npm test
+        if: runner.os != 'Linux'
 
   testJuliaPackages:
     name: Test Julia Packages
@@ -95,193 +68,76 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        julia_version: ['1.0', 1.1, 1.2, 1.3, 1.4, 1.5, 1.6]
-    if: github.repository == 'julia-vscode/julia-vscode'
+        julia-version: ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        exclude:
+          - os: macos-latest
+            julia-version: 1.4
+
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          submodules: 'true'
-
-      - uses: julia-actions/setup-julia@v1
+          submodules: 'recursive'
+      - uses: julia-actions/install-juliaup@v2
         with:
-          version: ${{matrix.julia_version}}
-
+          channel: ${{matrix.julia-version}}
       - name: 'Run the Julia tests'
         run: |
           julia -e 'using InteractiveUtils; versioninfo()'
-          julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.resolve()'
-          julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("CSTParser", coverage=true)'
-          julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("JSONRPC", coverage=true)'
-          julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
-          julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
-          julia --project=./scripts/environments/languageserver -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
-          julia --project=./scripts/testenvironments/debugadapter -e 'using Pkg; Pkg.test("DebugAdapter", coverage=true)'
-          julia --project=./scripts/testenvironments/vscodedebugger -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
-          julia --project=./scripts/testenvironments/vscodeserver -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
+          julia --project=./scripts/testenvironments/debugadapter/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("DebugAdapter", coverage=true)'
+          julia --project=./scripts/testenvironments/vscodedebugger/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
+          julia --project=./scripts/testenvironments/vscodeserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
 
-  buildReleaseVSIX:
-    name: Build Release VSIX
-    runs-on: ubuntu-latest
-    # if: github.repository == 'julia-vscode/julia-vscode'
+  testJuliaLSPackages:
+    name: Test Julia LS Packages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.10', '1.11']
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          submodules: true
-
-      - uses: actions/setup-node@v2
+          submodules: 'recursive'
+      - uses: julia-actions/install-juliaup@v2
         with:
-          node-version: ${{env.NODE_VERSION}}
+          channel: ${{matrix.julia-version}}
+      - name: 'Run the Julia tests'
+        run: |
+          julia -e 'using InteractiveUtils; versioninfo()'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.resolve()'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("CSTParser", coverage=true)'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("JSONRPC", coverage=true)'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("TestItemDetection", coverage=true)'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("JuliaWorkspaces", coverage=true)'
 
+  deployOriginalTag:
+    name: Deploy Tag Version
+    needs: [lintExtension, testExtension, testJuliaPackages, testJuliaLSPackages]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
       - run: npm ci
-
-      - run: npm run package
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: release-vsix
-          path: '*.vsix'
-
-  buildInsiderVSIX:
-    name: Build Insider VSIX
-    runs-on: windows-latest
-    # if: github.repository == 'julia-vscode/julia-vscode'
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - uses: actions/setup-node@v2
-        with:
-          node-version: ${{env.NODE_VERSION}}
-
-      - name: Modify package.json
-        shell: pwsh
-        run: |
-          $package = Get-Content package.json | ConvertFrom-Json
-          $package.description = "Julia Language Support (Insider)"
-          $package.displayName = "Julia Insider"
-          $package.name ="language-julia-insider"
-          $package.preview = $TRUE
-          $package | ConvertTo-Json -Depth 100 | Out-File package.json
-          Move-Item -Force README-insider.md README.md
-
-      - run: npm ci
-
-      - run: npm run package
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: insider-vsix
-          path: '*.vsix'
-
-  deployInsiderVSCMarketplace:
-    name: Deploy Insider to VS Code Marketplace
-    needs: [lintExtension, testExtension, testJuliaPackages, buildInsiderVSIX]
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    environment: insider-channel
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: insider-vsix
-          path: .
+      - name: Install vsce
+        run: npm install -g vsce
+      - name: Package package
+        run: vsce package --pre-release
       - name: Find filename
         shell: pwsh
         run: |
           $filename =  (Get-ChildItem *.vsix)[0].FullName
           echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Publish package
-        env:
-          MARKET_KEY: ${{secrets.VSCEKEY}}
-        run: |
-          npm install -g vsce
-          vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
-
-  deployInsiderOVSXMarketplace:
-    name: Deploy Insider to Open VSX Marketplace
-    needs: [lintExtension, testExtension, testJuliaPackages, buildInsiderVSIX]
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    environment: insider-channel
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: insider-vsix
-          path: .
-      - name: Find filename
-        shell: pwsh
-        run: |
-          $filename =  (Get-ChildItem *.vsix)[0].FullName
-          echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Publish package
-        env:
-          MARKET_KEY: ${{secrets.OVSXKEY}}
-        run: |
-          npx ovsx publish $PACKAGE_FILENAME -p $MARKET_KEY
-
-  deployReleaseVSCMarketplace:
-    name: Deploy Release to VS Code Marketplace
-    needs: [lintExtension, testExtension, testJuliaPackages, buildReleaseVSIX]
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    environment: release-channel
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: release-vsix
-          path: .
-      - name: Find filename
-        shell: pwsh
-        run: |
-          $filename =  (Get-ChildItem *.vsix)[0].FullName
-          echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Publish package
-        env:
-          MARKET_KEY: ${{secrets.VSCEKEY}}
-        run: |
-          npm install -g vsce
-          vsce publish -p $MARKET_KEY --packagePath $PACKAGE_FILENAME
-
-  deployReleaseOVSXMarketplace:
-    name: Deploy Release to Open VSX Marketplace
-    needs: [lintExtension, testExtension, testJuliaPackages, buildReleaseVSIX]
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    environment: release-channel
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: release-vsix
-          path: .
-      - name: Find filename
-        shell: pwsh
-        run: |
-          $filename =  (Get-ChildItem *.vsix)[0].FullName
-          echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Publish package
-        env:
-          MARKET_KEY: ${{secrets.OVSXKEY}}
-        run: |
-          npx ovsx publish $PACKAGE_FILENAME -p $MARKET_KEY
-
-  deployInsiderGitHub:
-    name: Deploy Insider to GitHub Release
-    needs: [lintExtension, testExtension, testJuliaPackages, buildInsiderVSIX]
-    if: startsWith(github.ref, 'refs/tags/')
-    environment: insider-channel
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: insider-vsix
-          path: .
-      - name: Find filename
-        shell: pwsh
-        run: |
-          $filename =  (Get-ChildItem *.vsix)[0].FullName
-          echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Release
+      - name: Release to GitHub
         uses: softprops/action-gh-release@v1
         with:
           files: ${{env.PACKAGE_FILENAME}}
@@ -289,26 +145,119 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  deployReleaseGitHub:
-    name: Deploy Release to GitHub Release
-    needs: [lintExtension, testExtension, testJuliaPackages, buildReleaseVSIX]
+  deployPreRelease:
+    name: Deploy Pre-release Version
+    needs: [lintExtension, testExtension, testJuliaPackages, testJuliaLSPackages]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    environment: release-channel
+    environment: insider-channel
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@v4
         with:
-          name: release-vsix
-          path: .
+          submodules: 'recursive'
+          fetch-depth: '0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - name: Configure git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+      - run: npm ci
+      - name: Install vsce
+        run: npm install -g vsce
+      - name: Increase version
+        shell: pwsh
+        run: |
+          $versionnumber = (npm version patch) | Out-String
+          echo "VERSION_NUMBER=$($versionnumber.trim())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Package package
+        run: vsce package --pre-release
+      - name : Publish git tag
+        run: git push --tags
+        continue-on-error: true
       - name: Find filename
         shell: pwsh
         run: |
           $filename =  (Get-ChildItem *.vsix)[0].FullName
           echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Release
+      - name: Publish package to VS Code Marketplace
+        env:
+          VSCEKEY: ${{secrets.VSCEKEY}}
+        run: vsce publish --pre-release -p $VSCEKEY --packagePath $PACKAGE_FILENAME
+      - name: Release to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{env.PACKAGE_FILENAME}}
+          prerelease: true
+          tag_name: ${{env.VERSION_NUMBER}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Publish package to Open VSX Marketplace
+      #   env:
+      #     OVSXKEY: ${{secrets.OVSXKEY}}
+      #   run: |
+      #     npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
+
+  deployRelease:
+    name: Deploy Release Version
+    needs: [deployPreRelease]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment: release-channel
+    steps:
+      - name: Compute version
+        shell: pwsh
+        run: |
+          $refname = "${{github.ref_name}}"
+          $v = New-Object System.Management.Automation.SemanticVersion($refname.SubString(1))
+          $preReleaseVersion = "v" + (New-Object System.Management.Automation.SemanticVersion $v.Major, $v.Minor, ($v.Patch + 1)).ToString()
+          echo "PRERELEASE_VERSION_NUMBER=$($preReleaseVersion)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          fetch-depth: '0'
+          ref: ${{env.PRERELEASE_VERSION_NUMBER}}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      - name: Configure git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+      - run: npm ci
+      - name: Install vsce
+        run: npm install -g vsce
+      - name: Increase version
+        shell: pwsh
+        run: |
+          $versionnumber = (npm version patch) | Out-String
+          echo "VERSION_NUMBER=$($versionnumber.trim())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Package package
+        run: vsce package
+      - name : Publish git tag
+        run: git push --tags
+        continue-on-error: true
+      - name: Find filename
+        shell: pwsh
+        run: |
+          $filename =  (Get-ChildItem *.vsix)[0].FullName
+          echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Publish package to VS Code Marketplace
+        env:
+          VSCEKEY: ${{secrets.VSCEKEY}}
+        run: |
+          vsce publish -p $VSCEKEY --packagePath $PACKAGE_FILENAME
+      - name: Release to GitHub
         uses: softprops/action-gh-release@v1
         with:
           files: ${{env.PACKAGE_FILENAME}}
           prerelease: false
+          tag_name: ${{env.VERSION_NUMBER}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish package to Open VSX Marketplace
+        env:
+          OVSXKEY: ${{secrets.OVSXKEY}}
+        run: |
+          npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY

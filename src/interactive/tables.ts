@@ -32,7 +32,62 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
     const theme = vscode.window.activeColorTheme.kind === 1 ? '' : '-dark'
     const uriAgGridThemeCSS = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', `ag-grid-balham${theme}.css`)))
 
-    let script
+    let script = `
+    <script type="text/javascript">
+        const vscodeAPI = acquireVsCodeApi()
+        const payload = ${payload};
+
+        function headerTemplateWithLabel(label) {
+            return \`
+            <div class="ag-cell-label-container" role="presentation">
+                <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span>
+                <div ref="eLabel" class="ag-header-cell-label" role="presentation">
+                    <div class="header-cell-title-container">
+                        <span ref="eText" class="ag-header-cell-text">b</span>
+                        \${label ? \`<small class="header-cell-subtitle">\${label}</small>\` : ''}
+                    </div>
+                    <span ref="eFilter" class="ag-header-icon ag-header-label-icon ag-filter-icon" aria-hidden="true"></span>
+                    <span ref="eSortOrder" class="ag-header-icon ag-header-label-icon ag-sort-order" aria-hidden="true"></span>
+                    <span ref="eSortAsc" class="ag-header-icon ag-header-label-icon ag-sort-ascending-icon" aria-hidden="true"></span>
+                    <span ref="eSortDesc" class="ag-header-icon ag-header-label-icon ag-sort-descending-icon" aria-hidden="true"></span>
+                    <span ref="eSortNone" class="ag-header-icon ag-header-label-icon ag-sort-none-icon" aria-hidden="true"></span>
+                </div>
+            </div>
+            \`
+        }
+
+        const coldefs = payload.schema.fields.map(f => {
+            return {
+                field: f.name,
+                headerName: f.name,
+                type: f.ag_type,
+                headerTooltip: f.jl_type,
+                filter: f.ag_filter,
+                sortable: true,
+                resizable: true,
+                headerComponentParams: {
+                    template: headerTemplateWithLabel(f.jl_label)
+                }
+            }
+        });
+        coldefs.unshift({
+            headerName: 'Row',
+            editable: false,
+            headerTooltip: '',
+            field: '__row__',
+            sortable: false,
+            type: 'numericColumn',
+            cellRenderer: 'rowNumberRenderer',
+            resizable: true,
+            filter: false,
+            pinned: 'left',
+            lockPinned: true,
+            suppressNavigable: true,
+            lockPosition: true,
+            suppressMovable: true,
+            cellClass: 'row-number-cell'
+        })
+    `
 
     if (isLazy) {
         const objectId = parsedPayload.id
@@ -104,40 +159,8 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                 console.debug('invalid message received: ', message)
             }
         })
-        script = `
-            <script type="text/javascript">
-                const vscodeAPI = acquireVsCodeApi()
-
+        script += `
                 const requests = {}
-                const payload = ${payload};
-                const coldefs = payload.schema.fields.map(f => {
-                    return {
-                        field: f.name,
-                        headerName: f.name,
-                        type: f.ag_type,
-                        headerTooltip: f.jl_type,
-                        filter: f.ag_filter,
-                        sortable: f.ag_sortable,
-                        resizable: true
-                    }
-                });
-                coldefs.unshift({
-                    headerName: 'Row',
-                    editable: false,
-                    headerTooltip: '',
-                    field: '__row__',
-                    sortable: false,
-                    type: 'numericColumn',
-                    cellRenderer: 'rowNumberRenderer',
-                    resizable: true,
-                    filter: false,
-                    pinned: 'left',
-                    lockPinned: true,
-                    suppressNavigable: true,
-                    lockPosition: true,
-                    suppressMovable: true,
-                    cellClass: 'row-number-cell'
-                })
 
                 function getRows({startRow, endRow, filterModel, sortModel, successCallback, failCallback}) {
                     const id  = Math.random()
@@ -202,38 +225,7 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
             </script>
         `
     } else {
-        script = `
-            <script type="text/javascript">
-                const payload = ${payload};
-
-                const coldefs = payload.schema.fields.map(f => {
-                    return {
-                        field: f.name,
-                        headerName: f.name,
-                        type: f.ag_type,
-                        headerTooltip: f.jl_type,
-                        filter: f.ag_filter,
-                        sortable: true,
-                        resizable: true
-                    }
-                });
-                coldefs.unshift({
-                    headerName: 'Row',
-                    editable: false,
-                    headerTooltip: '',
-                    field: '__row__',
-                    sortable: false,
-                    type: 'numericColumn',
-                    cellRenderer: 'rowNumberRenderer',
-                    resizable: true,
-                    filter: false,
-                    pinned: 'left',
-                    lockPinned: true,
-                    suppressNavigable: true,
-                    lockPosition: true,
-                    suppressMovable: true,
-                    cellClass: 'row-number-cell'
-                })
+        script += `
                 const gridOptions = {
                     columnDefs: coldefs,
                     rowData: payload.data,
@@ -259,6 +251,15 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                 <link rel="stylesheet" href="${uriAgGridCSS}">
                 <link rel="stylesheet" href="${uriAgGridThemeCSS}">
                 <style type="text/css">
+                    .header-cell-title-container {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: end;
+                    }
+                    .header-cell-subtitle {
+                        font-size: 0.8em;
+                        opacity: 0.8;
+                    }
                     .row-number {
                         user-select: none;
                         font-weight: bold;

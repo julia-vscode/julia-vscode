@@ -4,7 +4,7 @@ struct JuliaNotebookInlineDisplay <: AbstractDisplay end
 # of preference (descending "richness")
 const supported_mime_types = [
     "application/vnd.dataresource+json",
-    ["application/vnd.vegalite.v$n+json" for n = 4:-1:1]...,
+    ["application/vnd.vegalite.v$n+json" for n = 5:-1:1]...,
     ["application/vnd.vega.v$n+json" for n = 5:-1:2]...,
     "application/vnd.plotly.v1+json",
     "text/html",

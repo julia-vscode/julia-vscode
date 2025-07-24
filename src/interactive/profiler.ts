@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { readFile, writeFile } from 'fs/promises'
-import { registerCommand } from '../utils'
+import { registerCommand, setContext } from '../utils'
 import { openFile } from './results'
 
 interface ProfilerFrame {
@@ -49,7 +49,7 @@ function flagString(flags: number) {
     return out
 }
 
-const profilerContextKey = 'jlProfilerFocus'
+const profilerContextKey = 'julia.profilerFocus'
 export class ProfilerFeature {
     context: vscode.ExtensionContext
     panel: vscode.WebviewPanel
@@ -197,7 +197,7 @@ export class ProfilerFeature {
         }
     }
 
-    createPanel() {
+    async createPanel() {
         if (this.panel) {
             return
         }
@@ -217,7 +217,11 @@ export class ProfilerFeature {
             }
         )
 
-        this.panel.webview.html = this.getContent()
+        let isProfilerPaneReady
+
+        const loadedPromise = new Promise((resolve) => {
+            isProfilerPaneReady = resolve
+        })
 
         const messageHandler = this.panel.webview.onDidReceiveMessage(
             (message: { type: string; node?: ProfilerFrame; selection?: string }) => {
@@ -232,11 +236,17 @@ export class ProfilerFeature {
                 } else if (message.type === 'selectionChange') {
                     this.selection = message.selection
                     this.setInlineTrace(this.profiles[this.currentProfileIndex].data)
+                } else if (message.type === 'profilerLoaded') {
+                    isProfilerPaneReady?.()
                 } else {
                     console.error('unknown message type received in profiler pane')
                 }
             }
         )
+
+        this.panel.webview.html = this.getContent()
+
+        await loadedPromise
 
         const viewStateListener = this.panel.onDidChangeViewState(
             ({ webviewPanel }) => {
@@ -244,26 +254,22 @@ export class ProfilerFeature {
                     'juliaProfilerViewColumn',
                     webviewPanel.viewColumn
                 )
-                vscode.commands.executeCommand(
-                    'setContext',
-                    profilerContextKey,
-                    webviewPanel.active
-                )
+                setContext(profilerContextKey, webviewPanel.active)
             }
         )
 
         this.panel.onDidDispose(() => {
             viewStateListener.dispose()
             messageHandler.dispose()
-            vscode.commands.executeCommand('setContext', profilerContextKey, false)
+            setContext(profilerContextKey, false)
             this.panel = undefined
             this.clearInlineTrace()
         })
     }
 
-    show() {
+    async show() {
         this.selection = 'all'
-        this.createPanel()
+        await this.createPanel()
         this.panel.title = this.makeTitle()
 
         if (this.profileCount > 0) {
@@ -390,7 +396,10 @@ export class ProfilerFeature {
                             prof.setData(null)
                         }
                     });
-                })
+                    vscode.postMessage({
+                        type: "profilerLoaded",
+                    });
+                });
             </script>
         </body>
         </html>
@@ -449,7 +458,8 @@ export class ProfilerFeature {
                 const container = document.getElementById("profiler-container");
                 import('${jsProfileDataUrl}').then(({ProfileViewer}) => {
                     prof = new ProfileViewer(container);
-                    prof.setData(${JSON.stringify(this.profiles[this.currentProfileIndex])});
+                    prof.setData(${JSON.stringify(this.profiles[this.currentProfileIndex].data)});
+                    prof.setSelectorLabel(${JSON.stringify(this.profiles[this.currentProfileIndex].type)});
                 });
             </script>
         </body>

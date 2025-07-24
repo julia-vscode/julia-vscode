@@ -1,28 +1,3 @@
-function repl_startdebugger_request(conn, params::NamedTuple{(:debugPipename,),Tuple{String}}, crashreporting_pipename)
-    hideprompt() do
-        debug_pipename = params.debugPipename
-        try
-            @debug "Trying to connect to debug adapter."
-            socket = Sockets.connect(debug_pipename)
-            try
-                DebugAdapter.startdebug(socket, function (err, bt)
-                        if is_disconnected_exception(err)
-                            @debug "connection closed"
-                        else
-                            printstyled(stderr, "Error while running the debugger", color = :red, bold = true)
-                            printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color = :red)
-                            Base.display_error(stderr, err, bt)
-                        end
-                    end)
-            finally
-                close(socket)
-            end
-        catch err
-            global_err_handler(err, catch_backtrace(), crashreporting_pipename, "Debugger")
-        end
-    end
-end
-
 function remove_lln!(ex::Expr)
     for i = length(ex.args):-1:1
         if ex.args[i] isa LineNumberNode
@@ -33,7 +8,7 @@ function remove_lln!(ex::Expr)
     end
 end
 
-function debugger_getdebugitems_request(conn, params)
+function debugger_getdebugitems_request(conn, params, token)
     accessor = params.juliaAccessor
     out = DebugConfigTreeItem[]
     loaded_modules = Base.loaded_modules_array()
@@ -95,10 +70,85 @@ end
 
 macro enter(command)
     remove_lln!(command)
-    :(JSONRPC.send_notification(conn_endpoint[], "debugger/enter", (code = $(string(command)), filename = $(string(__source__.file)))))
+    quote
+        let
+            JSONRPC.send_notification(conn_endpoint[], "debugger/attach", (pipename=DEBUG_PIPENAME[], stopOnEntry=true))
+
+            debug_session = wait_for_debug_session()
+
+            DebugAdapter.debug_code(debug_session, Main, $(string(command)), $(string(__source__.file)))
+
+            DebugAdapter.terminate(debug_session)
+
+            # TODO Replace with return value
+
+            nothing
+
+            # DebugAdapter.startdebug(conn, function (err, bt)
+            #     if is_disconnected_exception(err)
+            #         @debug "connection closed"
+            #     else
+            #         printstyled(stderr, "Error while running the debugger", color = :red, bold = true)
+            #         printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color = :red)
+            #         Base.display_error(stderr, err, bt)
+            #     end
+            # end)
+        end
+    end
 end
 
 macro run(command)
     remove_lln!(command)
-    :(JSONRPC.send_notification(conn_endpoint[], "debugger/run", (code = $(string(command)), filename = $(string(__source__.file)))))
+    quote
+        let
+            JSONRPC.send_notification(conn_endpoint[], "debugger/attach", (pipename=DEBUG_PIPENAME[], stopOnEntry=false))
+
+            debug_session = wait_for_debug_session()
+
+            DebugAdapter.debug_code(debug_session, Main, $(string(command)), $(string(__source__.file)))
+
+            DebugAdapter.terminate(debug_session)
+
+            # TODO Replace with return value
+            nothing
+
+            # DebugAdapter.startdebug(conn, function (err, bt)
+            #     if is_disconnected_exception(err)
+            #         @debug "connection closed"
+            #     else
+            #         printstyled(stderr, "Error while running the debugger", color = :red, bold = true)
+            #         printstyled(stderr, " (consider adding a breakpoint for uncaught exceptions):\n", color = :red)
+            #         Base.display_error(stderr, err, bt)
+            #     end
+            # end)
+        end
+    end
+end
+
+function start_debug_backend(debug_pipename, error_handler)
+    @async try
+        server = Sockets.listen(debug_pipename)
+
+        while true
+            conn = Sockets.accept(server)
+
+            debug_session = DebugAdapter.DebugSession(conn)
+
+            global DEBUG_SESSION
+
+            put!(DEBUG_SESSION[], debug_session)
+
+            try
+                run(debug_session, error_handler)
+            finally
+                take!(DEBUG_SESSION[])
+            end
+        end
+    catch err
+        error_handler(err, Base.catch_backtrace())
+    end
+end
+
+function wait_for_debug_session()
+    fetch(DEBUG_SESSION[])
 end

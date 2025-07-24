@@ -7,6 +7,7 @@ import { parse } from 'semver'
 import stringArgv from 'string-argv'
 import * as vscode from 'vscode'
 import { onDidChangeConfig } from './extension'
+import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
 import { resolvePath } from './utils'
 
@@ -42,7 +43,13 @@ export class JuliaExecutable {
                     '--history-file=no',
                     '-e',
                     'println(Sys.BINDIR)'
-                ]
+                ],
+                {
+                    env: {
+                        ...process.env,
+                        JULIA_VSCODE_INTERNAL: '1',
+                    }
+                }
             )
 
             this._baseRootFolderPath = path.normalize(path.join(result.stdout.toString().trim(), '..', 'share', 'julia', 'base'))
@@ -59,16 +66,21 @@ export class JuliaExecutable {
 
 export class JuliaExecutablesFeature {
     private actualJuliaExePath: JuliaExecutable | undefined
+    private actualLanguageServerJuliaExePath: JuliaExecutable | undefined
     private cachedJuliaExePaths: JuliaExecutable[] | undefined
-    private usingJuliaup: boolean | undefined
+    private usingJuliaup: boolean | null = null
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private context: vscode.ExtensionContext, private diagnosticsOutput: JuliaGlobalDiagnosticOutputFeature) {
         this.context.subscriptions.push(
             onDidChangeConfig(event => {
-                if (event.affectsConfiguration('julia.executablePath')) {
+                if (
+                    event.affectsConfiguration('julia.executablePath') ||
+                    event.affectsConfiguration('julia.languageServerExecutablePath')
+                ) {
                     this.actualJuliaExePath = undefined
+                    this.actualLanguageServerJuliaExePath = undefined
                     this.cachedJuliaExePaths = undefined
-                    this.usingJuliaup = undefined
+                    this.usingJuliaup = null
                 }
             })
         )
@@ -98,7 +110,16 @@ export class JuliaExecutablesFeature {
                     parsedArgs = argv.slice(1)
                 }
             }
-            const { stdout, } = await execFile(parsedPath, [...parsedArgs, '--version'])
+            const { stdout, } = await execFile(
+                parsedPath,
+                [...parsedArgs, '--version'],
+                {
+                    env: {
+                        ...process.env,
+                        JULIA_VSCODE_INTERNAL: '1',
+                    }
+                }
+            )
 
             const versionStringFromJulia = stdout.toString().trim()
 
@@ -129,16 +150,50 @@ export class JuliaExecutablesFeature {
         }
     }
 
+    async tryAndSetNewLanguageServerJuliaExePathAsync(newPath: string) {
+        const newJuliaExecutable = await this.tryJuliaExePathAsync(newPath)
+
+        if (newJuliaExecutable) {
+            this.actualLanguageServerJuliaExePath = newJuliaExecutable
+            traceEvent('configured-new-ls-julia-binary')
+
+            return true
+        }
+        else {
+            return false
+        }
+    }
+
     getSearchPaths(): string[] {
         const homedir = os.homedir()
         let pathsToSearch = []
         if (process.platform === 'win32') {
             pathsToSearch = ['julia.exe',
-                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.4', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.11.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.11.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.11.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.10.5', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.10.4', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.10.3', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.10.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.10.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.10.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.9.4', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.9.3', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.9.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.9.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.9.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.5', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.4', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.3', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.2', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.1', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.8.0', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.3', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.2', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.1', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.7.0', 'bin', 'julia.exe'),
+                path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.8', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.7', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.6', 'bin', 'julia.exe'),
                 path.join(homedir, 'AppData', 'Local', 'Programs', 'Julia-1.6.5', 'bin', 'julia.exe'),
@@ -170,6 +225,14 @@ export class JuliaExecutablesFeature {
         }
         else if (process.platform === 'darwin') {
             pathsToSearch = ['julia',
+                path.join(homedir, 'Applications', 'Julia-1.11.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.11.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join(homedir, 'Applications', 'Julia-1.10.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.10.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join(homedir, 'Applications', 'Julia-1.9.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.9.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join(homedir, 'Applications', 'Julia-1.8.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
+                path.join('/', 'Applications', 'Julia-1.8.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                 path.join(homedir, 'Applications', 'Julia-1.7.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                 path.join('/', 'Applications', 'Julia-1.7.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
                 path.join(homedir, 'Applications', 'Julia-1.6.app', 'Contents', 'Resources', 'julia', 'bin', 'julia'),
@@ -196,7 +259,7 @@ export class JuliaExecutablesFeature {
     async tryJuliaup() {
         this.usingJuliaup = false
         try {
-            const { stdout, } = await execFile('juliaup', ['api', 'getconfig1'])
+            const { stdout, } = await execFile('juliaup', ['api', 'getconfig1'], {shell: process.platform === 'win32' ? false : true})
 
             const apiResult = stdout.toString().trim()
 
@@ -259,8 +322,15 @@ export class JuliaExecutablesFeature {
 
     public async getActiveJuliaExecutableAsync() {
         if (!this.actualJuliaExePath) {
+
+            this.diagnosticsOutput.appendLine('Trying to locate Julia binary...')
+
             if (!await this.tryJuliaup()) {
+                this.diagnosticsOutput.appendLine('Juliaup not found, locating Julia by other means.')
+
                 const configPath = this.getExecutablePath()
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.executablePath' is '${configPath}'.`)
+
                 if (!configPath) {
                     for (const p of this.getSearchPaths()) {
                         if (await this.tryAndSetNewJuliaExePathAsync(p)) {
@@ -271,26 +341,70 @@ export class JuliaExecutablesFeature {
                 else {
                     await this.tryAndSetNewJuliaExePathAsync(configPath)
                 }
+
+                const LSConfigPath = this.getLanguageServerExecutablePath()
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.languageServerExecutablePath' is '${LSConfigPath}'.`)
+
+                if (LSConfigPath) {
+                    await this.tryAndSetNewLanguageServerJuliaExePathAsync(LSConfigPath)
+                }
+
             }
             // Even when Juliaup reports a version, we still want the configuration setting
             // to have higher priority
             else {
+                this.diagnosticsOutput.appendLine('Juliaup found.')
+
                 const configPath = this.getExecutablePath()
+
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.executablePath' is '${configPath}'.`)
 
                 if (configPath) {
                     await this.tryAndSetNewJuliaExePathAsync(configPath)
                 }
+
+                const LSConfigPath = this.getLanguageServerExecutablePath()
+                this.diagnosticsOutput.appendLine(`The current configuration value for 'julia.languageServerExecutablePath' is '${LSConfigPath}'.`)
+
+                if (LSConfigPath) {
+                    await this.tryAndSetNewLanguageServerJuliaExePathAsync(LSConfigPath)
+                }
             }
+
+            if(this.actualJuliaExePath) {
+                this.diagnosticsOutput.appendLine(`The identified Julia executable is "${this.actualJuliaExePath.file}" with args "${this.actualJuliaExePath.args}".`)
+            }
+            else {
+                this.diagnosticsOutput.appendLine(`No Julia executable was identified.`)
+            }
+            this.diagnosticsOutput.appendLine(`The current PATH environment variable is "${process.env.PATH}".`)
         }
         return this.actualJuliaExePath
     }
 
-    public isJuliaup() {
+    public async getActiveLaunguageServerJuliaExecutableAsync() {
+        const actualJuliaExePath = await this.getActiveJuliaExecutableAsync()
+        if (this.actualLanguageServerJuliaExePath === undefined ){
+            return actualJuliaExePath
+        } else {
+            return this.actualLanguageServerJuliaExePath
+        }
+    }
+
+    public async isJuliaup() {
+        if(this.usingJuliaup===null) {
+            await this.tryJuliaup()
+        }
+
         return this.usingJuliaup
     }
 
     getExecutablePath() {
         const jlpath = vscode.workspace.getConfiguration('julia').get<string>('executablePath')
+        return jlpath === '' ? undefined : jlpath
+    }
+    getLanguageServerExecutablePath() {
+        const jlpath = vscode.workspace.getConfiguration('julia').get<string>('languageServerExecutablePath')
         return jlpath === '' ? undefined : jlpath
     }
 }

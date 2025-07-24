@@ -17,7 +17,7 @@ export function getVersionedParamsAtPosition(document: vscode.TextDocument, posi
     }
 }
 
-export function setContext(contextKey: string, state: boolean) {
+export function setContext(contextKey: string, state: any) {
     vscode.commands.executeCommand('setContext', contextKey, state)
 }
 
@@ -31,8 +31,8 @@ export function generatePipeName(pid: string, name: string) {
 }
 
 /**
- * Decides the final value to set the `JULIA_NUM_THREADS` environment variable to
- * given the `julia.NumThreads` configuration
+ * Provides a value for setting the `JULIA_NUM_THREADS` environment variable,
+ * given the `julia.NumThreads` configuration, and the `JULIA_NUM_THREADS` env var.
  *
  * @remarks
  * The logic is:
@@ -41,11 +41,11 @@ export function generatePipeName(pid: string, name: string) {
  *
  * - otherwise, if an env var `JULIA_NUM_THREADS` exists, we return that.
  *
- * - otherwise, we return an empty string as the value
+ * - otherwise, we return undefined.
  *
- * @returns A string to set the value of `JULIA_NUM_THREADS`
+ * @returns A string to set the value of `JULIA_NUM_THREADS`, or undefined.
  */
-export function inferJuliaNumThreads(): string {
+export function inferJuliaNumThreads(): string | undefined {
     const config: number | string | undefined = vscode.workspace.getConfiguration('julia').get('NumThreads') ?? undefined
     const env: string | undefined = process.env['JULIA_NUM_THREADS']
 
@@ -55,9 +55,8 @@ export function inferJuliaNumThreads(): string {
     else if (env !== undefined) {
         return env
     }
-    else {
-        return ''
-    }
+
+    return undefined
 }
 
 /**
@@ -76,15 +75,78 @@ export function registerCommand(cmd: string, f) {
     return vscode.commands.registerCommand(cmd, fWrapped)
 }
 
+export function wrapCrashReporting(f) {
+    const fWrapped = (...args) => {
+        try {
+            return f(...args)
+        } catch (err) {
+            handleNewCrashReportFromException(err, 'Extension')
+            throw (err)
+        }
+    }
+
+    return fWrapped
+}
+
 export function resolvePath(p: string, normalize: boolean = true) {
-    p = parseEnvVariables(p)
+    p = parseVSCodeVariables(p)
     p = p.replace(/^~/, os.homedir())
     p = normalize ? path.normalize(p) : p
     return p
 }
 
-function parseEnvVariables(p: string) {
-    return p.replace(/\${env:(.*?)}/g, (_, variable) => {
+/**
+ * Parse a subset of VSCode 'variables' in `p`, and return a string with the replacements.
+ *
+ * Specifically, we support:
+ *  - ${userHome}
+ *  - ${workspaceFolder}
+ *  - ${workspaceFolderBasename}
+ *  - ${workspaceFolder:<FOLDER_NAME>}  (For a multi-root project, use the first folder)
+ *  - ${pathSeparator}
+ *  - ${env:<ENVIRONMENT_VARIABLE>}
+ *  - ${config:<CONFIG_VARIABLE>}
+ *
+ * See https://code.visualstudio.com/docs/editor/variables-reference for definitions of the
+ * above.
+ *
+ * TODO: this replicates functionality present in core VSCode! The implementation of this
+ *  function be replaced once this issue is resolved:
+ *      https://github.com/microsoft/vscode/issues/46471
+ */
+export function parseVSCodeVariables(p: string) {
+    p = p.replace(/\${userHome}/g, os.homedir())
+
+    const workspace_paths = (vscode.workspace.workspaceFolders ?? []).map((folder) => {
+        return folder.uri.fsPath
+    })
+    p = p.replace(/\${workspaceFolderBasename}/g, (_) => {
+        if (workspace_paths.length === 0) {
+            return null
+        }
+        return path.basename(workspace_paths[0])
+    })
+    p = p.replace(/\${workspaceFolder}/g, (_) => {
+        // In the case of a multi-root workspace, we return the first one.
+        return workspace_paths.length >= 1 ? workspace_paths[0] : null
+    })
+    p = p.replace(/\${workspaceFolder:(.*?)}/g, (_, desired_basename) => {
+        const filtered_paths = workspace_paths.filter((workspace_path) => {
+            return desired_basename === path.basename(workspace_path)
+        })
+        // If we have zero or more than one matches, we cannot proceed.
+        return filtered_paths.length === 1 ? filtered_paths[0] : null
+    })
+
+    p = p.replace(/\${pathSeparator}/g, path.sep)
+    p = p.replace(/\${env:(.*?)}/g, (_, variable) => {
         return process.env[variable] || ''
     })
+    p = p.replace(/\${config:(.*?)}/g, (_, variable: String) => {
+        const parts = variable.split('.')
+        const leaf = parts.pop()
+        const section = parts.length > 0 ? parts.join('.') : undefined
+        return vscode.workspace.getConfiguration(section).get(leaf) || ''
+    })
+    return p
 }

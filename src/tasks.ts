@@ -54,7 +54,7 @@ class JuliaTaskProvider {
 
                 if (nthreads === 'auto') {
                     jlargs.splice(1, 0, '--threads=auto')
-                } else {
+                } else if (nthreads !== undefined) {
                     env['JULIA_NUM_THREADS'] = nthreads
                 }
                 const testTask = new vscode.Task(
@@ -120,47 +120,6 @@ class JuliaTaskProvider {
                 testTaskWithCoverage.group = vscode.TaskGroup.Test
                 testTaskWithCoverage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
                 result.push(testTaskWithCoverage)
-
-                // const livetestTask = new vscode.Task({ type: 'julia', command: 'livetest' }, folder, `Run tests live (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_liveunittesting.jl'), folder.name, vscode.workspace.getConfiguration('julia').get('liveTestFile')], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }), '')
-                // livetestTask.group = vscode.TaskGroup.Test
-                // livetestTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
-                // result.push(livetestTask)
-
-            }
-
-            if (juliaExecutable.getVersion().compare('1.6.0') >= 0) {
-                const buildJuliaSysimage = new vscode.Task(
-                    {
-                        type: 'julia',
-                        command: 'juliasysimagebuild',
-                    },
-                    folder,
-                    `Build custom sysimage for current environment (experimental)`,
-                    'Julia',
-                    new vscode.ProcessExecution(juliaExecutable.file, [
-                        ...juliaExecutable.args,
-                        '--color=yes',
-                        `--project=${path.join(
-                            this.context.extensionPath,
-                            'scripts',
-                            'environments',
-                            'sysimagecompile'
-                        )}`,
-                        '--startup-file=no',
-                        '--history-file=no',
-                        path.join(
-                            this.context.extensionPath,
-                            'scripts',
-                            'tasks',
-                            'task_compileenv.jl'
-                        ),
-                        pkgenvpath,
-                    ]),
-                    ''
-                )
-                buildJuliaSysimage.group = vscode.TaskGroup.Build
-                buildJuliaSysimage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
-                result.push(buildJuliaSysimage)
             }
 
             if (await fs.exists(path.join(rootPath, 'deps', 'build.jl'))) {

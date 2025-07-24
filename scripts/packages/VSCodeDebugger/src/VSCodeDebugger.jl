@@ -10,42 +10,46 @@ include("../../JSON/src/JSON.jl")
 module JuliaInterpreter
     using ..CodeTracking
 
-    @static if VERSION >= v"1.6.0"
+    @static if VERSION >= v"1.10.0"
         include("../../JuliaInterpreter/src/packagedef.jl")
+    elseif VERSION >= v"1.6.0"
+        include("../../../packages-old/v1.9/JuliaInterpreter/src/packagedef.jl")
     else
-        include("../../../packages-old/JuliaInterpreter/src/packagedef.jl")
+        include("../../../packages-old/v1.5/JuliaInterpreter/src/packagedef.jl")
     end
 end
 
-module JSONRPC
-    import ..JSON
-    import UUIDs
-
-    include("../../JSONRPC/src/packagedef.jl")
-end
-
 module DebugAdapter
+    import Pkg
     import ..JuliaInterpreter
     import ..JSON
-    import ..JSONRPC
-    import ..JSONRPC: @dict_readable, Outbound
 
     include("../../DebugAdapter/src/packagedef.jl")
 end
 
 function startdebugger()
-    pipenames = DebugAdapter.clean_up_ARGS_in_launch_mode()
+    client_pipename = ARGS[1]
+    server_pipename = ARGS[2]
+    error_pipename = ARGS[3]
     try
-        @debug "Trying to connect to debug adapter."
-        socket = Sockets.connect(pipenames[1])
-        printstyled("Done!\n\n", bold = true)
+        # Start a socket server and listen
+        server = Sockets.listen(server_pipename)
+
+        # Notify the client that we are ready to accept a connection
+        client_socket = Sockets.connect(client_pipename)
+        println(client_socket, server_pipename)
+        close(client_socket)
+
+        conn = Sockets.accept(server)
         try
-            DebugAdapter.startdebug(socket, (err, bt)->global_err_handler(err, bt, pipenames[2], "Debugger"))
+            debugsession = DebugAdapter.DebugSession(conn)
+
+            run(debugsession, (err, bt)->global_err_handler(err, bt, error_pipename, "Debugger"))
         finally
-            close(socket)
+            close(conn)
         end
     catch err
-        global_err_handler(err, catch_backtrace(), pipenames[2], "Debugger")
+        global_err_handler(err, catch_backtrace(), error_pipename, "Debugger")
     end
 end
 

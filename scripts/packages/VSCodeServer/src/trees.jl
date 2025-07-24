@@ -195,22 +195,22 @@ function treerender(err::Exception, bt)
     treerender(LazyTree(string("Internal Error: ", sprint(showerror, err)), wsicon(err), length(st) == 0, () -> [Leaf(sprint(show, x), wsicon(x)) for x in st], nothing))
 end
 
-treerender(x::Number) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::AbstractString) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::AbstractChar) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::Symbol) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::Nothing) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
-treerender(x::Missing) = treerender(Leaf(strlimit(repr(x), limit = 100), wsicon(x)))
+treerender(x::Number) = treerender(Leaf(sprintlimited(x; limit=100), wsicon(x)))
+treerender(x::AbstractString) = treerender(Leaf(sprintlimited(x; limit=100), wsicon(x)))
+treerender(x::AbstractChar) = treerender(Leaf(sprintlimited(x; limit=100), wsicon(x)))
+treerender(x::Symbol) = treerender(Leaf(sprintlimited(x; limit=100), wsicon(x)))
+treerender(x::Nothing) = treerender(Leaf(sprintlimited(x; limit=100), wsicon(x)))
+treerender(x::Missing) = treerender(Leaf(sprintlimited(x; limit=100), wsicon(x)))
 treerender(x::Ptr) = treerender(Leaf(string(typeof(x), ": 0x", string(UInt(x), base = 16, pad = Sys.WORD_SIZE >> 2)), wsicon(x)))
 treerender(x::Text) = treerender(Leaf(x.content, wsicon(x)))
-treerender(x::Type) = treerender(Leaf(strlimit(string(x), limit = 100), wsicon(x)))
+treerender(x::Type) = treerender(Leaf(sprintlimited(x; limit=100), wsicon(x)))
 treerender(x::Undef) = treerender(Leaf("#undef", wsicon(x)))
 treerender(x::StackTraces.StackFrame) = treerender(Leaf(string(x), wsicon(x)))
 treerender(x::Enum) = treerender(Leaf(sprint(show, MIME"text/plain"(), x), wsicon(x)))
 
 function treerender(x::Function)
     treerender(LazyTree(
-        strlimit(string(x), limit=100),
+        sprintlimited(x; limit=100),
         wsicon(x),
         function ()
             try
@@ -266,7 +266,9 @@ end
 
 # workspace
 
-repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}) =  Base.invokelatest(getvariables, params.modules)
+function repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}, token)
+    return Base.invokelatest(getvariables, params.modules)
+end
 
 function getvariables(show_modules)
     M = Main
@@ -333,7 +335,9 @@ wsicon(::Undef) = "question"
 
 # handle lazy clicks
 
-repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}) = Base.invokelatest(get_lazy, params.id)
+function repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}, token)
+    return Base.invokelatest(get_lazy, params.id)
+end
 
 function get_lazy(id::Int)
     try

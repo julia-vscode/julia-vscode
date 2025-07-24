@@ -1,18 +1,10 @@
-# this script basially only handles `ARGS`
-let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), "Distributed")
-    if haskey(Base.loaded_modules, distributed) && (Distributed = Base.loaded_modules[distributed]).nprocs() > 1
-        Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(pushfirst!(LOAD_PATH, joinpath($(@__DIR__), "..", "packages"))))
-        using VSCodeServer
-        Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :(popfirst!(LOAD_PATH)))
-    else
-        pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
-        using VSCodeServer
-        popfirst!(LOAD_PATH)
-    end
-end
-
+# this script loads VSCodeServer and handles ARGS
 let
-    args = [popfirst!(Base.ARGS) for _ in 1:6]
+    args = [popfirst!(Base.ARGS) for _ in 1:8]
+    conn_pipename, debug_pipename, telemetry_pipename = args[1:3]
+
+    include("load_vscodeserver.jl")
+
     # load Revise ?
     if "USE_REVISE=true" in args
         try
@@ -26,11 +18,14 @@ let
         end
     end
 
-    atreplinit() do repl
-        VSCodeServer.toggle_plot_pane(nothing, (;enable="USE_PLOTPANE=true" in args))
-        VSCodeServer.toggle_progress(nothing, (;enable="USE_PROGRESS=true" in args))
+    if !Sys.iswindows() && "ENABLE_SHELL_INTEGRATION=true" in args
+        VSCodeServer.ENABLE_SHELL_INTEGRATION[] = true
     end
 
-    conn_pipeline, telemetry_pipeline = args[1:2]
-    VSCodeServer.serve(conn_pipeline; is_dev="DEBUG_MODE=true" in args, crashreporting_pipename=telemetry_pipeline)
+    atreplinit() do repl
+        VSCodeServer.toggle_plot_pane_notification(nothing, (;enable="USE_PLOTPANE=true" in args))
+        VSCodeServer.toggle_progress_notification(nothing, (;enable="USE_PROGRESS=true" in args))
+    end
+
+    VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, telemetry_pipename, "REPL"))
 end
