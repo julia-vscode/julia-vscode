@@ -20,6 +20,14 @@ let g_resolved_path_of_environment: string = null
 
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
 
+function getEnvironmentPathConfig() {
+    const section = vscode.workspace.getConfiguration('julia')
+    const rawConfigValue = section.get<string>('environmentPath')
+    const workspaceFolderPath =
+        vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath // Use the first workspace folder if it exists
+    return rawConfigValue.replace('${workspaceFolder}', workspaceFolderPath)
+}
+
 export async function getProjectFilePaths(envpath: string) {
     return {
         project_toml_path: (await fs.exists(path.join(envpath, 'JuliaProject.toml'))) ?
@@ -37,7 +45,7 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
 
     const section = vscode.workspace.getConfiguration('julia')
 
-    const currentConfigValue = section.get<string>('environmentPath')
+    const currentConfigValue = getEnvironmentPathConfig()
 
     if (g_path_of_current_environment !== await getDefaultEnvPath()) {
         if (currentConfigValue !== g_path_of_current_environment) {
@@ -223,8 +231,7 @@ async function getDefaultEnvPath() {
 
 async function getEnvPath() {
     if (g_path_of_current_environment === null) {
-        const section = vscode.workspace.getConfiguration('julia')
-        const envPathConfig = section.get<string>('environmentPath')
+        const envPathConfig = getEnvironmentPathConfig()
         if (envPathConfig) {
             if (await fs.exists(absEnvPath(resolvePath(envPathConfig)))) {
                 g_path_of_current_environment = envPathConfig

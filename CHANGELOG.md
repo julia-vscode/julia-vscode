@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Added support for `${workspaceFolder}` in `environmentPath` configuration setting.
 
 ### Fixed
 - `@profview` now works correctly on threaded code when Julia is launched with interactive threads ([#3821](https://github.com/julia-vscode/julia-vscode/pull/3821))
