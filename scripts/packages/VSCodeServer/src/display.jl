@@ -78,26 +78,6 @@ function extract_mime_id(m::MIME)
     return mime, missing
 end
 
-function extract_mime_id(m::MIME)
-    mime = string(m)
-    if !startswith(mime, "application/vnd.julia-vscode")
-        return mime, missing
-    end
-    parts = split(mime, ";")
-    if length(parts) === 1
-        return mime, missing
-    end
-
-    mime, pars = parts
-    mat = match(r"\bid=([^,]+)\b", pars)
-
-    if mat !== nothing
-        return mime, mat[1]
-    end
-
-    return mime, missing
-end
-
 function Base.display(d::InlineDisplay, m::MIME, @nospecialize(x))
     if !PLOT_PANE_ENABLED[]
         with_no_default_display(() -> display(m, x))
