@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - `@profview` now works correctly on threaded code when Julia is launched with interactive threads ([#3821](https://github.com/julia-vscode/julia-vscode/pull/3821))
 
+### Added
+- The `application/vnd.julia-vscode.plotpane+html` and `application/vnd.julia-vscode.custompane+html` MIME types can now be used for new plots in the plotpane or new panes. An optional `;id=...` parameter allows for replacing the plot or setting a pane identity and title. ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
+
+### Changed
+- The `juliavscode/html` MIME type is now deprecated in favour of `application/vnd.julia-vscode.plotpane+html` ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
+
 ## [1.140.0] - 2025-05-06
 ### Added
 - Added additional [Literate.jl cell delimiters](https://fredrikekre.github.io/Literate.jl/v2/fileformat/#Syntax) corresponding to Markdown headers to the default `julia.cellDelimiter` settings.
