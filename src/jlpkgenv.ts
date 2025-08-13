@@ -8,7 +8,7 @@ import { onSetLanguageClient } from './extension'
 import { JuliaExecutablesFeature } from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
-import { registerCommand, resolvePath } from './utils'
+import { parseVSCodeVariables, registerCommand, resolvePath } from './utils'
 
 let g_languageClient: vslc.LanguageClient = null
 
@@ -22,10 +22,7 @@ let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
 
 function getEnvironmentPathConfig() {
     const section = vscode.workspace.getConfiguration('julia')
-    const rawConfigValue = section.get<string>('environmentPath')
-    const workspaceFolderPath =
-        vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath // Use the first workspace folder if it exists
-    return rawConfigValue.replace('${workspaceFolder}', workspaceFolderPath)
+    return parseVSCodeVariables(section.get<string>('environmentPath'))
 }
 
 export async function getProjectFilePaths(envpath: string) {
