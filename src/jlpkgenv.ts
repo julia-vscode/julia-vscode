@@ -8,7 +8,7 @@ import { onSetLanguageClient } from './extension'
 import { JuliaExecutablesFeature } from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
-import { registerCommand, resolvePath } from './utils'
+import { parseVSCodeVariables, registerCommand, resolvePath } from './utils'
 
 let g_languageClient: vslc.LanguageClient = null
 
@@ -19,6 +19,11 @@ let g_path_of_default_environment: string = null
 let g_resolved_path_of_environment: string = null
 
 let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
+
+function getEnvironmentPathConfig() {
+    const section = vscode.workspace.getConfiguration('julia')
+    return parseVSCodeVariables(section.get<string>('environmentPath'))
+}
 
 export async function getProjectFilePaths(envpath: string) {
     return {
@@ -37,7 +42,7 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
 
     const section = vscode.workspace.getConfiguration('julia')
 
-    const currentConfigValue = section.get<string>('environmentPath')
+    const currentConfigValue = getEnvironmentPathConfig()
 
     if (g_path_of_current_environment !== await getDefaultEnvPath()) {
         if (currentConfigValue !== g_path_of_current_environment) {
@@ -223,8 +228,7 @@ async function getDefaultEnvPath() {
 
 async function getEnvPath() {
     if (g_path_of_current_environment === null) {
-        const section = vscode.workspace.getConfiguration('julia')
-        const envPathConfig = section.get<string>('environmentPath')
+        const envPathConfig = getEnvironmentPathConfig()
         if (envPathConfig) {
             if (await fs.exists(absEnvPath(resolvePath(envPathConfig)))) {
                 g_path_of_current_environment = envPathConfig
