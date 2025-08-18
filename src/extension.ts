@@ -241,8 +241,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
 
             // Determine which juliaup channel to use (priority: env var > config > default)
-            const preferredChannel = process.env.JULIA_VSCODE_LANGUAGESERVER_CHANNEL || 
-                                   vscode.workspace.getConfiguration('julia').get<string>('languageServerJuliaupChannel') || 
+            const preferredChannel = process.env.JULIA_VSCODE_LANGUAGESERVER_CHANNEL ||
+                                   vscode.workspace.getConfiguration('julia').get<string>('languageServerJuliaupChannel') ||
                                    'release'
 
             let channelExe = exePaths.filter(i => i.channel === preferredChannel)
@@ -255,7 +255,6 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
             if (channelExe.length > 0) {
                 juliaLSExecutable = channelExe[0]
             } else {
-                const channelSource = process.env.JULIA_VSCODE_LANGUAGESERVER_CHANNEL ? 'environment variable' : 'configuration setting'
                 vscode.window.showErrorMessage(`Julia channel "${preferredChannel}" not found in Juliaup. Please ensure the channel is installed, or configure a different channel via the "julia.languageServerJuliaupChannel" setting or JULIA_VSCODE_LANGUAGESERVER_CHANNEL environment variable.`)
                 g_startupNotification.hide()
                 return
