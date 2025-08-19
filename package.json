@@ -1271,6 +1271,12 @@
                     "default": "",
                     "description": "Points to the julia executable used to launch the language server process. This overwrites julia.executablePath for the language server launch if present.",
                     "scope": "machine-overridable"
+                },
+                "julia.languageServerJuliaupChannel": {
+                    "type": "string",
+                    "default": "release",
+                    "description": "Juliaup channel to use for the language server (e.g., 'release', 'lts', 'beta'). Can be overridden by JULIA_VSCODE_LANGUAGESERVER_CHANNEL environment variable.",
+                    "scope": "machine-overridable"
                 }
             }
         },
