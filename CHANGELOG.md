@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Added support for `${workspaceFolder}` in `environmentPath` configuration setting.
 - Added ability to override the juliaup channel that would be used to run language server. By default language server looks for the "release" channel. A plugin configuration `julia.languageServerJuliaupChannel` or an env `JULIA_VSCODE_LANGUAGESERVER_CHANNEL`can be used to override that. The env would be useful in managed environment situations where the juliaup and vscode installations are pre-configured by an administrator. The channel value is looked up from the environment variable and plugin configuration in that order.
+- Added syntax highlighting to docstrings in `.jl` source files injecting to `L:string.docstring.julia`. Note that nested docstrings are not supported. ([#3852](https://github.com/julia-vscode/julia-vscode/pull/3852))
 
 ### Fixed
 - `@profview` now works correctly on threaded code when Julia is launched with interactive threads ([#3821](https://github.com/julia-vscode/julia-vscode/pull/3821))
