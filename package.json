@@ -1095,7 +1095,8 @@
                         "^\\s?#\\s#+",
                         "^##(?!#)",
                         "^#(\\s?)%%",
-                        "^#-"
+                        "^#-",
+                        "^#+"
                     ],
                     "description": "Cell delimiter regular expressions for Julia files."
                 },
