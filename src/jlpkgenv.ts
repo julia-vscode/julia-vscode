@@ -228,9 +228,9 @@ async function getDefaultEnvPath() {
 
 async function getEnvPath() {
     if (g_path_of_current_environment === null) {
-        const envPathConfig = getEnvironmentPathConfig()
+        const envPathConfig = absEnvPath(resolvePath(getEnvironmentPathConfig()))
         if (envPathConfig) {
-            if (await fs.exists(absEnvPath(resolvePath(envPathConfig)))) {
+            if (await fs.exists(envPathConfig)) {
                 g_path_of_current_environment = envPathConfig
                 return g_path_of_current_environment
             }
