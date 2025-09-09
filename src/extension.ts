@@ -232,13 +232,20 @@ const supportedLanguages = [
 ]
 
 async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature) {
+    if (!g_outputChannel) {
+        g_outputChannel = vscode.window.createOutputChannel('Julia Language Server')
+    }
+    if (!g_traceOutputChannel) {
+        g_traceOutputChannel = vscode.window.createOutputChannel('Julia Language Server Trace')
+    }
+
     g_startupNotification.text = 'Julia: Starting Language Server…'
     g_startupNotification.show()
 
     let juliaLSExecutable: JuliaExecutable | null = null
     const juliaExecutable = await juliaExecutablesFeature.getActiveLaunguageServerJuliaExecutableAsync()
 
-    if(await juliaExecutablesFeature.isJuliaup()) {
+    if (await juliaExecutablesFeature.isJuliaup()) {
         if (Boolean(process.env.DEBUG_MODE)) {
             juliaLSExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
         } else {
@@ -292,12 +299,14 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     try {
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
+        g_outputChannel.appendLine('Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.')
+        g_outputChannel.appendLine(e)
         vscode.window.showErrorMessage(
-            'Could not start the Julia language server. Make sure the `julia.executablePath` setting is valid.',
+            'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid. ',
             'Open Settings'
         ).then(val => {
             if (val) {
-                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
+                vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
             }
         })
         g_startupNotification.hide()
@@ -351,13 +360,6 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         selector.push({language: 'toml', scheme: scheme, pattern: '**/Manifest.toml'})
         selector.push({language: 'toml', scheme: scheme, pattern: '**/JuliaManifest.toml'})
         selector.push({language: 'toml', scheme: scheme, pattern: '**/.JuliaLint.toml'})
-    }
-
-    if (!g_outputChannel) {
-        g_outputChannel = vscode.window.createOutputChannel('Julia Language Server')
-    }
-    if (!g_traceOutputChannel) {
-        g_traceOutputChannel = vscode.window.createOutputChannel('Julia Language Server Trace')
     }
 
     const clientOptions: LanguageClientOptions = {
