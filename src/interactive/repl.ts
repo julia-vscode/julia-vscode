@@ -328,7 +328,7 @@ const requestTypeReplRunCode = new rpc.RequestType<{
 //     pipename: String,
 // }
 
-export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
+export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any, id: string|undefined }>('display')
 const notifyTypeReplAttachDebgger = new rpc.NotificationType<{pipename: string}>('debugger/attach')
 const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
@@ -472,7 +472,7 @@ function clearProgress() {
 }
 
 let g_inlayHintsProvider = null
-function display(params: { kind: string, data: any }) {
+function display(params: { kind: string, data: any, id: string }) {
     if (params.kind === 'application/vnd.julia-vscode.diagnostics') {
         displayDiagnostics(params.data)
     } else if (params.kind === 'application/vnd.julia-vscode.inlayHints') {
