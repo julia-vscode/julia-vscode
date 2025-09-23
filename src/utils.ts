@@ -114,7 +114,7 @@ export function resolvePath(p: string, normalize: boolean = true) {
  *  function be replaced once this issue is resolved:
  *      https://github.com/microsoft/vscode/issues/46471
  */
-export function parseVSCodeVariables(p: string) {
+export function parseVSCodeVariables(p?: string) {
     if (!p) {
         return p
     }
