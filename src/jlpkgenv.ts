@@ -22,7 +22,7 @@ let g_juliaExecutablesFeature: JuliaExecutablesFeature = null
 
 function getEnvironmentPathConfig() {
     const section = vscode.workspace.getConfiguration('julia')
-    return parseVSCodeVariables(section.get<string>('environmentPath'))
+    return parseVSCodeVariables(section.get('environmentPath') ?? '')
 }
 
 export async function getProjectFilePaths(envpath: string) {
@@ -240,7 +240,7 @@ async function getEnvPath() {
     return g_path_of_current_environment
 }
 
-function absEnvPath(p: string) {
+function absEnvPath(p: string | null) {
     if (path.isAbsolute(p)) {
         return p
     } else {
