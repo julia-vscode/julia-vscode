@@ -64,8 +64,18 @@ export class JuliaExecutable {
     }
 }
 
+export class JuliaupExecutable {
+    constructor(public version: string, public file: string) {
+    }
+
+    public getVersion() {
+        return parse(this.version)
+    }
+}
+
 export class JuliaExecutablesFeature {
     private actualJuliaExePath: JuliaExecutable | undefined
+    private actualJuliaupExePath: JuliaupExecutable | undefined
     private actualLanguageServerJuliaExePath: JuliaExecutable | undefined
     private cachedJuliaExePaths: JuliaExecutable[] | undefined
     private usingJuliaup: boolean | null = null
@@ -259,7 +269,13 @@ export class JuliaExecutablesFeature {
     async tryJuliaup() {
         this.usingJuliaup = false
         try {
-            const { stdout, } = await execFile('juliaup', ['api', 'getconfig1'], {shell: process.platform === 'win32' ? false : true})
+            const juliaupObj = await this.getActiveJuliaupExecutableAsync()
+
+            if (!juliaupObj) {
+                return false
+            }
+
+            const { stdout, } = await execFile(juliaupObj.file, ['api', 'getconfig1'], {shell: process.platform === 'win32' ? false : true})
 
             const apiResult = stdout.toString().trim()
 
@@ -380,6 +396,66 @@ export class JuliaExecutablesFeature {
             this.diagnosticsOutput.appendLine(`The current PATH environment variable is "${process.env.PATH}".`)
         }
         return this.actualJuliaExePath
+    }
+
+    async tryJuliaupExePathAsync(newPath: string) {
+        try {
+            let parsedPath = ''
+
+            if (path.isAbsolute(newPath) && await exists(newPath)) {
+                parsedPath = newPath
+            }
+            else {
+                const resolvedPath = resolvePath(newPath, false)
+
+                if (path.isAbsolute(resolvedPath) && await exists(resolvedPath)) {
+                    parsedPath = resolvedPath
+                }
+            }
+            const { stdout, } = await execFile(
+                parsedPath,
+                ['--version'],
+            )
+
+            const versionStringFromJuliaup = stdout.toString().trim()
+
+            const versionPrefix = `Juliaup `
+            if (!versionStringFromJuliaup.startsWith(versionPrefix)) {
+                return undefined
+            }
+
+            return new JuliaupExecutable(versionStringFromJuliaup.slice(versionPrefix.length), parsedPath)
+        }
+        catch {
+            return undefined
+        }
+    }
+
+    public async getActiveJuliaupExecutableAsync() {
+        if (!this.actualJuliaupExePath) {
+            this.diagnosticsOutput.appendLine('Trying to locate Juliaup binary...')
+
+            const { stdout, } = await execFile('which juliaup', {shell: process.platform === 'win32' ? false : true})
+            const result = stdout.toString().trim()
+
+            this.diagnosticsOutput.appendLine('Found the binary.')
+
+            if (!result) {
+                this.diagnosticsOutput.appendLine('Cannot find juliaup binary!')
+                return undefined
+            } else {
+                const juliaupExePath = await this.tryJuliaupExePathAsync(result)
+
+                if (!juliaupExePath) {
+                    this.diagnosticsOutput.appendLine('Something is wrong with juliaup exe path!')
+                    return undefined
+                } else {
+                    this.actualJuliaupExePath = juliaupExePath
+                }
+            }
+        }
+
+        return this.actualJuliaupExePath
     }
 
     public async getActiveLaunguageServerJuliaExecutableAsync() {
