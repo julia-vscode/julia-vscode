@@ -398,60 +398,25 @@ export class JuliaExecutablesFeature {
         return this.actualJuliaExePath
     }
 
-    async tryJuliaupExePathAsync(newPath: string) {
-        try {
-            let parsedPath = ''
-
-            if (path.isAbsolute(newPath) && await exists(newPath)) {
-                parsedPath = newPath
-            }
-            else {
-                const resolvedPath = resolvePath(newPath, false)
-
-                if (path.isAbsolute(resolvedPath) && await exists(resolvedPath)) {
-                    parsedPath = resolvedPath
-                }
-            }
-            const { stdout, } = await execFile(
-                parsedPath,
-                ['--version'],
-            )
-
-            const versionStringFromJuliaup = stdout.toString().trim()
-
-            const versionPrefix = `Juliaup `
-            if (!versionStringFromJuliaup.startsWith(versionPrefix)) {
-                return undefined
-            }
-
-            return new JuliaupExecutable(versionStringFromJuliaup.slice(versionPrefix.length), parsedPath)
-        }
-        catch {
-            return undefined
-        }
-    }
-
     public async getActiveJuliaupExecutableAsync() {
         if (!this.actualJuliaupExePath) {
             this.diagnosticsOutput.appendLine('Trying to locate Juliaup binary...')
 
-            const { stdout, } = await execFile('which juliaup', {shell: process.platform === 'win32' ? false : true})
-            const result = stdout.toString().trim()
+            try {
+                // Finding paths is too complicated for windows
+                // so we just return 'juliaup' alias
+                const { stdout, } = await execFile('juliaup --version', {shell: true})
+                const versionString = stdout.toString().trim()
+                const versionPrefix = `Juliaup `
 
-            this.diagnosticsOutput.appendLine('Found the binary.')
-
-            if (!result) {
+                if (!versionString.startsWith(versionPrefix)) {
+                    this.diagnosticsOutput.appendLine('Something is wrong with juliaup binary path')
+                    return undefined
+                }
+                this.actualJuliaupExePath = new JuliaupExecutable(versionString.slice(versionPrefix.length), 'juliaup')
+            } catch (error) {
                 this.diagnosticsOutput.appendLine('Cannot find juliaup binary!')
                 return undefined
-            } else {
-                const juliaupExePath = await this.tryJuliaupExePathAsync(result)
-
-                if (!juliaupExePath) {
-                    this.diagnosticsOutput.appendLine('Something is wrong with juliaup exe path!')
-                    return undefined
-                } else {
-                    this.actualJuliaupExePath = juliaupExePath
-                }
             }
         }
 
