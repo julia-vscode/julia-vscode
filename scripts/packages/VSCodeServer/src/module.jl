@@ -1,9 +1,9 @@
 function repl_loadedModules_request(conn, params::Nothing, token)
-    return string.(collect(get_modules()))
+    return string.(collect(Base.invokelatest(get_modules)))
 end
 
 function repl_isModuleLoaded_request(conn, params::NamedTuple{(:mod,),Tuple{String}}, token)
-    return is_module_loaded(params.mod)
+    return Base.invokelatest(is_module_loaded, params.mod)
 end
 
 function module_from_string(mod)
