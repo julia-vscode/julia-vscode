@@ -35,7 +35,7 @@ version = "1.11.0"
 deps = ["Dates", "Mmap", "Sockets", "UUIDs", "Unicode"]
 path = "../../../packages/TestItemControllers"
 uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
-version = "0.1.0"
+version = "1.0.1-DEV"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
