@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.6"
+julia_version = "1.11.7"
 manifest_format = "2.0"
 project_hash = "2677c086c5b2157722d5aec33dd64369b5ff7044"
 
@@ -42,7 +42,7 @@ version = "0.8.15"
 deps = ["TOML", "UUIDs"]
 path = "../../../packages/Compat"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.17.0"
+version = "4.18.1"
 
     [deps.Compat.extensions]
     CompatLinearAlgebraExt = "LinearAlgebra"
@@ -228,7 +228,7 @@ version = "1.2.1"
 deps = ["TOML"]
 path = "../../../packages/Preferences"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.4.3"
+version = "1.5.0"
 
 [[deps.Printf]]
 deps = ["Unicode"]

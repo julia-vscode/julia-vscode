@@ -139,3 +139,6 @@
 [submodule "scripts/packages/Compiler"]
 	path = scripts/packages/Compiler
 	url = https://github.com/JuliaLang/BaseCompiler.jl
+[submodule "scripts/packages-old/v1.7/CodeTracking"]
+	path = scripts/packages-old/v1.7/CodeTracking
+	url = https://github.com/timholy/CodeTracking.jl.git

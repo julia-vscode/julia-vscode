@@ -8,8 +8,10 @@ else
     "../../../packages-old/v1.5/JuliaInterpreter"
 end
 
-code_tracking_path = if VERSION >= v"1.6.0"
+code_tracking_path = if VERSION >= v"1.10.0"
     "../../../packages/CodeTracking"
+elseif VERSION >= v"1.7.0"
+    "../../../packages-old/v1.7/CodeTracking"
 else
     "../../../packages-old/v1.5/CodeTracking"
 end

@@ -142,10 +142,10 @@ function hook_repl(repl)
 
     if VERSION > v"1.5-"
         for _ = 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
-            isdefined(Base, :active_repl_backend) && continue
+            has_repl_backend() && continue
             sleep(0.5)
         end
-        if isdefined(Base, :active_repl_backend)
+        if has_repl_backend()
             push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
             HAS_REPL_TRANSFORM[] = true
             install_vscode_shell_integration(main_mode)
@@ -163,6 +163,8 @@ function hook_repl(repl)
     HAS_REPL_TRANSFORM[] = true
     return nothing
 end
+
+has_repl_backend() = isdefined(Base, :active_repl_backend) && !isnothing(Base.active_repl_backend)
 
 function transform_backend(ast, repl, main_mode)
     quote

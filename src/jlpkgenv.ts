@@ -43,15 +43,11 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
     const section = vscode.workspace.getConfiguration('julia')
 
     const currentConfigValue = getEnvironmentPathConfig()
+    const defaultEnvPath = await getDefaultEnvPath()
 
-    if (g_path_of_current_environment !== await getDefaultEnvPath()) {
+    if (g_path_of_current_environment !== defaultEnvPath) {
         if (currentConfigValue !== g_path_of_current_environment) {
             section.update('environmentPath', g_path_of_current_environment, vscode.ConfigurationTarget.Workspace)
-        }
-    }
-    else {
-        if (currentConfigValue !== null) {
-            section.update('environmentPath', undefined, vscode.ConfigurationTarget.Workspace)
         }
     }
 
@@ -228,9 +224,10 @@ async function getDefaultEnvPath() {
 
 async function getEnvPath() {
     if (g_path_of_current_environment === null) {
-        const envPathConfig = absEnvPath(resolvePath(getEnvironmentPathConfig()))
+        const envPathConfig = getEnvironmentPathConfig()
+        const absEnvPathConfig = absEnvPath(resolvePath(envPathConfig))
         if (envPathConfig) {
-            if (await fs.exists(envPathConfig)) {
+            if (await fs.exists(absEnvPathConfig)) {
                 g_path_of_current_environment = envPathConfig
                 return g_path_of_current_environment
             }
