@@ -1,7 +1,7 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.13.0-DEV"
-manifest_format = "2.0"
+julia_version = "1.14.0-DEV"
+manifest_format = "2.1"
 project_hash = "9f2d77c10070afb00650a0938318945cbc78491c"
 
 [[deps.ArgTools]]
@@ -157,7 +157,7 @@ version = "5.0.0-DEV"
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
-version = "0.6.4"
+version = "1.0.0"
 
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "Zlib_jll", "Zstd_jll", "nghttp2_jll"]
@@ -203,7 +203,7 @@ version = "1.11.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2025.9.9"
+version = "2025.11.4"
 
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
@@ -222,10 +222,10 @@ version = "1.8.1"
 [[deps.PCRE2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
-version = "10.46.0+0"
+version = "10.47.0+0"
 
 [[deps.Pkg]]
-deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]
+deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "Zstd_jll", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 version = "1.13.0"
 weakdeps = ["REPL"]
@@ -251,7 +251,7 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 version = "1.11.0"
 
 [[deps.REPL]]
-deps = ["FileWatching", "InteractiveUtils", "JuliaSyntaxHighlighting", "Markdown", "Sockets", "StyledStrings", "Unicode"]
+deps = ["Dates", "FileWatching", "InteractiveUtils", "JuliaSyntaxHighlighting", "Markdown", "Sockets", "StyledStrings", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 version = "1.11.0"
 
@@ -262,7 +262,7 @@ version = "1.11.0"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
-version = "0.7.0"
+version = "1.0.0"
 
 [[deps.Salsa]]
 deps = ["ExceptionUnwrapping", "MacroTools"]
@@ -353,7 +353,7 @@ version = "1.5.7+1"
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.67.1+0"
+version = "1.68.0+1"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]

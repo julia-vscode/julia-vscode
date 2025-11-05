@@ -230,10 +230,10 @@ uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 version = "1.2.0"
 
 [[deps.OpenSSL]]
-deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
-git-tree-sha1 = "f1a7e086c677df53e064e0fdd2c9d0b0833e3f6e"
+deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "NetworkOptions", "OpenSSL_jll", "Sockets"]
+git-tree-sha1 = "386b47442468acfb1add94bf2d85365dea10cbab"
 uuid = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
-version = "1.5.0"
+version = "1.6.0"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]

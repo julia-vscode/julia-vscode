@@ -21,7 +21,7 @@ version = "1.0.0"
 
 [[deps.CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
-path = "../../../packages-old/v1.7/CodeTracking"
+path = "../../../packages-old/v1.9/CodeTracking"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 version = "1.3.9"
 

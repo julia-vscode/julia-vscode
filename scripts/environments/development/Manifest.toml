@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.0"
+julia_version = "1.12.1"
 manifest_format = "2.0"
 project_hash = "e80d23df4c52e60cdfe44062f86f3a584568886a"
 
@@ -153,7 +153,7 @@ version = "1.0.62"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.10.5"
+version = "0.10.6"
 
 [[deps.JuliaSyntax]]
 path = "../../packages/JuliaSyntax"
