@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.0-rc1"
+julia_version = "1.12.1"
 manifest_format = "2.0"
 project_hash = "911854c39adc17d225569ffdf37dbad74056a056"
 
@@ -35,7 +35,7 @@ version = "1.11.0"
 deps = ["Dates", "Mmap", "Sockets", "UUIDs", "Unicode"]
 path = "../../../packages/TestItemControllers"
 uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
-version = "0.1.0"
+version = "1.0.1-DEV"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]

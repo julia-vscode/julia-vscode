@@ -83,7 +83,7 @@ async function main() {
         // 'CommonMark',
         'Compat',
         'Crayons',
-        'DataStructures',
+        // 'DataStructures', Needs to be on 0.18 for JuliaFormatter compat
         // 'JuliaFormatter', Need more time to do the v2 transition
         // 'URIs', Not compatible with earlier than Julia 1.6 versions
         'Revise',
