@@ -141,9 +141,12 @@ export async function activate(context: vscode.ExtensionContext) {
         )
 
         const api = {
-            version: 4,
+            version: 5,
             async getEnvironment() {
                 return await jlpkgenv.getAbsEnvPath()
+            },
+            async getJuliaupExecutable() {
+                return await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
             },
             async getJuliaExecutable() {
                 return await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()

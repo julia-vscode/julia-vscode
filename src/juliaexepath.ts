@@ -64,8 +64,18 @@ export class JuliaExecutable {
     }
 }
 
+export class JuliaupExecutable {
+    constructor(public version: string, public file: string) {
+    }
+
+    public getVersion() {
+        return parse(this.version)
+    }
+}
+
 export class JuliaExecutablesFeature {
     private actualJuliaExePath: JuliaExecutable | undefined
+    private actualJuliaupExePath: JuliaupExecutable | undefined
     private actualLanguageServerJuliaExePath: JuliaExecutable | undefined
     private cachedJuliaExePaths: JuliaExecutable[] | undefined
     private usingJuliaup: boolean | null = null
@@ -259,7 +269,13 @@ export class JuliaExecutablesFeature {
     async tryJuliaup() {
         this.usingJuliaup = false
         try {
-            const { stdout, } = await execFile('juliaup', ['api', 'getconfig1'], {shell: process.platform === 'win32' ? false : true})
+            const juliaupObj = await this.getActiveJuliaupExecutableAsync()
+
+            if (!juliaupObj) {
+                return false
+            }
+
+            const { stdout, } = await execFile(juliaupObj.file, ['api', 'getconfig1'], {shell: process.platform === 'win32' ? false : true})
 
             const apiResult = stdout.toString().trim()
 
@@ -379,6 +395,31 @@ export class JuliaExecutablesFeature {
             this.diagnosticsOutput.appendLine(`The current PATH environment variable is "${process.env.PATH}".`)
         }
         return this.actualJuliaExePath
+    }
+
+    public async getActiveJuliaupExecutableAsync() {
+        if (!this.actualJuliaupExePath) {
+            this.diagnosticsOutput.appendLine('Trying to locate Juliaup binary...')
+
+            try {
+                // Finding paths is too complicated for windows
+                // so we just return 'juliaup' alias
+                const { stdout, } = await execFile('juliaup --version', {shell: true})
+                const versionString = stdout.toString().trim()
+                const versionPrefix = `Juliaup `
+
+                if (!versionString.startsWith(versionPrefix)) {
+                    this.diagnosticsOutput.appendLine('Something is wrong with juliaup binary path')
+                    return undefined
+                }
+                this.actualJuliaupExePath = new JuliaupExecutable(versionString.slice(versionPrefix.length), 'juliaup')
+            } catch (error) {
+                this.diagnosticsOutput.appendLine('Cannot find juliaup binary!')
+                return undefined
+            }
+        }
+
+        return this.actualJuliaupExePath
     }
 
     public async getActiveLaunguageServerJuliaExecutableAsync() {

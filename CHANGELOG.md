@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ## [1.155.0] - 2025-09-03
+### Added
+- Added ability to fetch information for user installed `juliaup` ([3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
+
 ### Fixed
 - Empty environment paths no longer cause issues ([#3866](https://github.com/julia-vscode/julia-vscode/pull/3866))
 
