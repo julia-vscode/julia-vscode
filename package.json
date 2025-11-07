@@ -874,7 +874,7 @@
                 "julia.juliaup.install.hint": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Do not show Juliaup install recommendation.",
+                    "description": "Show Juliaup install recommendation.",
                     "scope": "machine-overridable"
                 },
                 "julia.lint.run": {
