@@ -48,8 +48,8 @@ function with_no_default_display(f; allow_inline = false)
 end
 
 
-function sendDisplayMsg(kind, data)
-    msg = Dict{String,Any}("kind" => kind, "data" => data)
+function sendDisplayMsg(kind, data, id = missing)
+    msg = Dict{String,Any}("kind" => kind, "data" => data, "id" => id)
     try
         JSONRPC.send_notification(conn_endpoint[], "display", msg)
         JSONRPC.flush(conn_endpoint[])
@@ -58,15 +58,36 @@ function sendDisplayMsg(kind, data)
     end
 end
 
+function extract_mime_id(m::MIME)
+    mime = string(m)
+    if !startswith(mime, "application/vnd.julia-vscode")
+        return mime, missing
+    end
+    parts = split(mime, ";")
+    if length(parts) === 1
+        return mime, missing
+    end
+
+    mime, pars = parts
+    mat = match(r"\bid=([^,]+)\b", pars)
+
+    if mat !== nothing
+        return mime, mat[1]
+    end
+
+    return mime, missing
+end
+
 function Base.display(d::InlineDisplay, m::MIME, @nospecialize(x))
     if !PLOT_PANE_ENABLED[]
         with_no_default_display(() -> display(m, x))
     else
-        mime = string(m)
+        mime, id = extract_mime_id(m)
+        m = MIME(mime)
         if mime in DISPLAYABLE_MIMES
-            # we now all except for `image/...` mime types are not binary
+            # non-`image/...` mime types are not binary
             payload = startswith(mime, "image") ? stringmime(m, x) : String(repr(m, x))
-            sendDisplayMsg(mime, payload)
+            sendDisplayMsg(mime, payload, id)
         else
             throw(MethodError(display, (d, m, x)))
         end
@@ -75,17 +96,25 @@ function Base.display(d::InlineDisplay, m::MIME, @nospecialize(x))
 end
 
 Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
+Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.julia-vscode.plotpane+html")}) = true
+Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.julia-vscode.custompane+html")}) = true
 
 Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
-function Base.display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
+function Base.display(::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
     payload = String(repr(m, x))
     sendDisplayMsg(string(m), payload)
 end
 
 Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
-Base.Multimedia.displayable(_::InlineDisplay, mime::MIME) = PLOT_PANE_ENABLED[] && string(mime) in DISPLAYABLE_MIMES
+function Base.Multimedia.displayable(_::InlineDisplay, mime::MIME)
+    if PLOT_PANE_ENABLED[]
+        m, _ = extract_mime_id(mime)
+        return m in DISPLAYABLE_MIMES
+    end
+    return false
+end
 
 const DISPLAYABLE_MIMES = [
     "application/vnd.vegalite.v5+json",
@@ -96,7 +125,9 @@ const DISPLAYABLE_MIMES = [
     "application/vnd.vega.v4+json",
     "application/vnd.vega.v3+json",
     "application/vnd.plotly.v1+json",
-    "juliavscode/html",
+    "application/vnd.julia-vscode.plotpane+html", # displays html
+    "application/vnd.julia-vscode.custompane+html", # displays html in custom pane (metadata via parameter)
+    "juliavscode/html", # deprecated
     # "text/html",
     "image/svg+xml",
     "image/png",
