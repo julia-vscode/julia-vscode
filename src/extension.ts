@@ -70,6 +70,9 @@ export async function activate(context: vscode.ExtensionContext) {
         const hasJuliaup = await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
         const hasJulia = false && await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
         const showJuliaupInstallHint = vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
+        // const installJuliaLinux = 'curl -fsSL https://install.julialang.org | sh -s -- -y'
+        const installJuliaLinux = 'curl -fsSL https://install.julialang.org | sh'
+        const installJuliaWin = 'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore'
 
         if (!hasJulia) {
             console.log('Inside Juliaup')
@@ -92,9 +95,9 @@ export async function activate(context: vscode.ExtensionContext) {
                         )
 
                         if (process.platform === 'win32') {
-                            task.execution = new vscode.ShellExecution('winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore')
+                            task.execution = new vscode.ShellExecution(installJuliaWin)
                         } else {
-                            task.execution = new vscode.ShellExecution('curl -fsSL https://install.julialang.org | sh -s -- -y')
+                            task.execution = new vscode.ShellExecution(installJuliaLinux)
                         }
 
                         vscode.tasks.executeTask(task).then((res) => {
@@ -138,9 +141,9 @@ export async function activate(context: vscode.ExtensionContext) {
                         )
 
                         if (process.platform === 'win32') {
-                            task.execution = new vscode.ShellExecution('winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore')
+                            task.execution = new vscode.ShellExecution(installJuliaWin)
                         } else {
-                            task.execution = new vscode.ShellExecution('curl -fsSL https://install.julialang.org | sh -s -- -y')
+                            task.execution = new vscode.ShellExecution(installJuliaLinux)
                         }
 
                         vscode.tasks.executeTask(task).then((res) => {
