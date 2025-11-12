@@ -466,12 +466,12 @@ async function installJuliaOrJuliaupExtension(context: JuliaExecutablesFeature) 
         if (exitCode === 0) {
             // If julia was installed but we can't find it
             if (!(await context.getActiveJuliaExecutableAsync())) {
-                vscode.window.showInformationMessage('Julia/Juliaup was successfully installed, please fully exit and restart vscode to see the changes!')
+                vscode.window.showInformationMessage('Julia/juliaup successfully installed. Please fully exit and restart the editor for the changes to take effect.')
             } else {
-                vscode.window.showInformationMessage('Julia/Juliaup was successfully installed!')
+                vscode.window.showInformationMessage('Julia/juliaup successfully installed.')
             }
         } else {
-            vscode.window.showErrorMessage('Installation was not successfull!')
+            vscode.window.showErrorMessage('Julia/juliaup installation failed. Please check the Terminals tab for more details.')
         }
     }
 
@@ -491,7 +491,7 @@ async function installJuliaOrJuliaup(software: string = 'julia') {
 
     // Options for Julia
     const configurePath = 'Configure path'
-    let message = 'It seems that julia is not installed, do you want to install it automatically using juliaup or you can manually add the path?'
+    let message = 'Julia is not installed. Do you want to install it automatically using juliaup or manually add the path?'
     let taskId = 'installJuliaTask'
     let taskName = 'Install Julia'
 
@@ -502,7 +502,7 @@ async function installJuliaOrJuliaup(software: string = 'julia') {
     if (software === 'juliaup') {
         options.pop()
 
-        message = 'It seems that juliaup is not installed, do you want to install it automatically?'
+        message = 'Juliaup is the recommended Julia version manager, but it is not installed. Do you want to install it automatically?'
         taskId = 'installJuliaupTask'
         taskName = 'Install Juliaup'
 
@@ -553,7 +553,7 @@ async function installJuliaOrJuliaupTask(taskId: string, taskName: string, useCu
             type: 'julia',
             id: taskId
         },
-        vscode.TaskScope.Workspace,
+        vscode.TaskScope.Global,
         taskName,
         'bash',
         new vscode.ShellExecution(command)
