@@ -58,9 +58,9 @@ export class JuliaExecutable {
         return this._baseRootFolderPath
     }
 
-    public getCommand() {
+    public getCommand(...args: string[]) {
         // TODO Properly escape things
-        return [this.file, ...this.args].join(' ')
+        return [this.file, ...this.args, ...args].join(' ')
     }
 }
 

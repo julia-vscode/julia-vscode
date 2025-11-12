@@ -30,6 +30,7 @@ import { registerCommand, setContext } from './utils'
 import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
+import { JuliaCommands } from './juliaCommands'
 import * as semver from 'semver'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
@@ -102,6 +103,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
         g_startupNotification = vscode.window.createStatusBarItem()
         context.subscriptions.push(g_startupNotification)
+
+        context.subscriptions.push(new JuliaCommands(context, g_juliaExecutablesFeature))
 
         context.subscriptions.push(registerCommand('language-julia.showLanguageServerOutput', () => {
             if (g_languageClient) {
