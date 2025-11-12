@@ -64,9 +64,7 @@ export class JuliaCommands {
 
         args.push(`--project=${juliaEnv}`, '-e', cmd)
 
-        const wrapperPath = path.join(this.context.extensionPath, 'scripts', 'wrappers', 'procwrap.sh')
-
-        const task = new TaskRunnerTerminal(name, wrapperPath, [juliaExecutable.file, ...args])
+        const task = new TaskRunnerTerminal(this.context, name, juliaExecutable.file, args)
         task.show()
 
         await new Promise(resolve => {
@@ -97,14 +95,25 @@ export class TaskRunnerTerminal {
 
     private disposables: vscode.Disposable[] = []
 
-    constructor(name: string, shellPath:string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
+    constructor(context: vscode.ExtensionContext, name: string, shellPath:string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
+        let execPath: string
+        let args: string[]
+
+        if (process.platform === 'win32') {
+            execPath = 'powershell.exe'
+            args = ['-executionPolicy', 'bypass', '-File', path.join(context.extensionPath, 'scripts', 'wrappers', 'procwrap.ps1'), winEscape(shellPath), ...shellArgs.map(winEscape)]
+        } else {
+            execPath = path.join(context.extensionPath, 'scripts', 'wrappers', 'procwrap.sh')
+            args = [shellPath, ...shellArgs]
+        }
+
         const options: vscode.TerminalOptions = {
             hideFromUser: true,
             name: name,
             message: this.computeMessage(shellPath, shellArgs),
             isTransient: true,
-            shellPath: shellPath,
-            shellArgs: shellArgs,
+            shellPath: execPath,
+            shellArgs: args,
             ...opts
         }
 
@@ -147,4 +156,8 @@ export class TaskRunnerTerminal {
         this.terminal?.dispose()
         this._dispose()
     }
+}
+
+function winEscape(str: string) {
+    return str.replace(/"/g, '\\"')
 }
