@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import * as process from 'process'
+import * as path from 'path'
 
 import { registerCommand } from './utils'
 import * as jlpkgenv from './jlpkgenv'
@@ -7,7 +7,7 @@ import { JuliaExecutablesFeature } from './juliaexepath'
 
 export class JuliaCommands {
     constructor (
-        context: vscode.ExtensionContext,
+        private context: vscode.ExtensionContext,
         private juliaExecutableFeature: JuliaExecutablesFeature,
     ) {
         context.subscriptions.push(
@@ -64,49 +64,87 @@ export class JuliaCommands {
 
         args.push(`--project=${juliaEnv}`, '-e', cmd)
 
-        const task = new vscode.Task(
-            {
-                type: 'julia',
-                command: 'runCommand'
-            },
-            name,
-            'Julia',
-            new vscode.ProcessExecution(
-                juliaExecutable.file,
-                args, {
-                    env: {...process.env, ...processEnv}
-                }
-            ),
-            ''
-        )
+        const wrapperPath = path.join(this.context.extensionPath, 'scripts', 'wrappers', 'procwrap.sh')
 
-        task.presentationOptions = {
-            focus: false,
-            reveal: vscode.TaskRevealKind.Always,
-        }
+        const task = new TaskRunnerTerminal(name, wrapperPath, [juliaExecutable.file, ...args])
+        task.show()
 
-        let disposable: vscode.Disposable
+        await new Promise(resolve => {
+            task.onDidClose(task => resolve(task))
+        })
 
-        try {
-            const taskExecution = await vscode.tasks.executeTask(task)
-
-            const event: vscode.TaskProcessEndEvent = await new Promise(resolve => {
-                disposable = vscode.tasks.onDidEndTaskProcess(ev => {
-                    if (ev.execution === taskExecution) {
-                        resolve(ev)
-                    }
-                })
-            })
-
-            return event.exitCode === 0
-        } catch (err) {
-            console.error(err)
-        }
-
-        disposable?.dispose()
-
-        return false
+        return task.terminal.exitStatus.code === 0
     }
 
     public dispose() { }
+}
+
+interface TaskRunnerTerminalOptions {
+    cwd?: string|vscode.Uri
+    env?
+    shellIntegrationNonce?: string
+    message?: string,
+    iconPath?: vscode.IconPath
+    color?: vscode.ThemeColor
+    hideFromUser?: boolean
+}
+
+export class TaskRunnerTerminal {
+    public terminal: vscode.Terminal
+    public onDidClose: vscode.Event<vscode.Terminal>
+
+    pty: vscode.Pseudoterminal
+
+    private disposables: vscode.Disposable[] = []
+
+    constructor(name: string, shellPath:string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
+        const options: vscode.TerminalOptions = {
+            hideFromUser: true,
+            name: name,
+            message: this.computeMessage(shellPath, shellArgs),
+            isTransient: true,
+            shellPath: shellPath,
+            shellArgs: shellArgs,
+            ...opts
+        }
+
+        this.terminal = vscode.window.createTerminal(options)
+
+        const onDidCloseEmitter = new vscode.EventEmitter<vscode.Terminal>()
+        this.onDidClose = onDidCloseEmitter.event
+
+        this.disposables.push(
+            onDidCloseEmitter,
+            vscode.window.onDidCloseTerminal(terminal => {
+                if (terminal === this.terminal) {
+                    onDidCloseEmitter.fire(terminal)
+                    this._dispose()
+                }
+            })
+        )
+    }
+
+    private computeMessage(shellPath:string, shellArgs:string|string[]) {
+        if (shellArgs instanceof Array) {
+            shellArgs = shellArgs.join(' ')
+        }
+        return `\x1b[30;47m * \x1b[0m Executing task: ${shellPath} ${shellArgs}`
+    }
+
+    show() {
+        this.terminal?.show()
+    }
+
+    hide() {
+        this.terminal?.hide()
+    }
+
+    private _dispose() {
+        this.disposables?.forEach((d) => d?.dispose())
+    }
+
+    dispose() {
+        this.terminal?.dispose()
+        this._dispose()
+    }
 }
