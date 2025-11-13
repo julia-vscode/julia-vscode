@@ -56,15 +56,12 @@ export class TaskRunnerTerminal {
         )
     }
 
-    private computeMessage(shellPath:string, shellArgs:string|string[]) {
-        if (shellArgs instanceof Array) {
-            shellArgs = shellArgs.join(' ')
-        }
+    private computeMessage(shellPath: string, shellArgs: string[]) {
         return `\x1b[30;47m * \x1b[0m Executing task: ${shellPath} ${shellArgs}`
     }
 
-    show() {
-        this.terminal?.show()
+    show(preserveFocus?: boolean) {
+        this.terminal?.show(preserveFocus)
     }
 
     hide() {
