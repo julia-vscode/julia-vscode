@@ -1,9 +1,9 @@
 import * as vscode from 'vscode'
-import * as path from 'path'
 
 import { registerCommand } from './utils'
 import * as jlpkgenv from './jlpkgenv'
 import { JuliaExecutablesFeature } from './juliaexepath'
+import { TaskRunnerTerminal } from './taskRunnerTerminal'
 
 export class JuliaCommands {
     constructor (
@@ -51,7 +51,7 @@ export class JuliaCommands {
         )
     }
 
-    private async runCommand(cmd: string, juliaEnv?: string, name?: string, processEnv?: {[key: string]: string;}) {
+    private async runCommand(cmd: string, juliaEnv?: string, name?: string, processEnv?: {[key: string]: string}) {
         const juliaExecutable = await this.juliaExecutableFeature.getActiveJuliaExecutableAsync()
         const args = [...juliaExecutable.args]
 
@@ -64,7 +64,17 @@ export class JuliaCommands {
 
         args.push(`--project=${juliaEnv}`, '-e', cmd)
 
-        const task = new TaskRunnerTerminal(this.context, name, juliaExecutable.file, args)
+        const task = new TaskRunnerTerminal(
+            this.context,
+            name,
+            juliaExecutable.file,
+            args, {
+                env: {
+                    ...process.env,
+                    ...processEnv
+                }
+            }
+        )
         task.show()
 
         await new Promise(resolve => {
@@ -75,89 +85,4 @@ export class JuliaCommands {
     }
 
     public dispose() { }
-}
-
-interface TaskRunnerTerminalOptions {
-    cwd?: string|vscode.Uri
-    env?
-    shellIntegrationNonce?: string
-    message?: string,
-    iconPath?: vscode.IconPath
-    color?: vscode.ThemeColor
-    hideFromUser?: boolean
-}
-
-export class TaskRunnerTerminal {
-    public terminal: vscode.Terminal
-    public onDidClose: vscode.Event<vscode.Terminal>
-
-    pty: vscode.Pseudoterminal
-
-    private disposables: vscode.Disposable[] = []
-
-    constructor(context: vscode.ExtensionContext, name: string, shellPath:string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
-        let execPath: string
-        let args: string[]
-
-        if (process.platform === 'win32') {
-            execPath = 'powershell.exe'
-            args = ['-executionPolicy', 'bypass', '-File', path.join(context.extensionPath, 'scripts', 'wrappers', 'procwrap.ps1'), winEscape(shellPath), ...shellArgs.map(winEscape)]
-        } else {
-            execPath = path.join(context.extensionPath, 'scripts', 'wrappers', 'procwrap.sh')
-            args = [shellPath, ...shellArgs]
-        }
-
-        const options: vscode.TerminalOptions = {
-            hideFromUser: true,
-            name: name,
-            message: this.computeMessage(shellPath, shellArgs),
-            isTransient: true,
-            shellPath: execPath,
-            shellArgs: args,
-            ...opts
-        }
-
-        this.terminal = vscode.window.createTerminal(options)
-
-        const onDidCloseEmitter = new vscode.EventEmitter<vscode.Terminal>()
-        this.onDidClose = onDidCloseEmitter.event
-
-        this.disposables.push(
-            onDidCloseEmitter,
-            vscode.window.onDidCloseTerminal(terminal => {
-                if (terminal === this.terminal) {
-                    onDidCloseEmitter.fire(terminal)
-                    this._dispose()
-                }
-            })
-        )
-    }
-
-    private computeMessage(shellPath:string, shellArgs:string|string[]) {
-        if (shellArgs instanceof Array) {
-            shellArgs = shellArgs.join(' ')
-        }
-        return `\x1b[30;47m * \x1b[0m Executing task: ${shellPath} ${shellArgs}`
-    }
-
-    show() {
-        this.terminal?.show()
-    }
-
-    hide() {
-        this.terminal?.hide()
-    }
-
-    private _dispose() {
-        this.disposables?.forEach((d) => d?.dispose())
-    }
-
-    dispose() {
-        this.terminal?.dispose()
-        this._dispose()
-    }
-}
-
-function winEscape(str: string) {
-    return str.replace(/"/g, '\\"')
 }
