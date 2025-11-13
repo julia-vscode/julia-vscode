@@ -18,6 +18,9 @@ export class JuliaCommands {
                     await this.runPackageCommand(cmd, env)
                 }
             }),
+            registerCommand('language-julia.instantiateEnvironment', async (env?: string) => {
+                await this.runPackageCommand('instantiate', env)
+            }),
         )
     }
 
