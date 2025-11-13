@@ -21,6 +21,7 @@ import * as modules from './modules'
 import * as plots from './plots'
 import * as results from './results'
 import { Frame, openFile } from './results'
+import { TaskRunnerTerminal } from '../taskRunnerTerminal'
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
@@ -132,6 +133,8 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     const nthreads = inferJuliaNumThreads()
     const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
+    const juliaIconPath = vscode.Uri.file(path.join(g_context.extensionPath, 'images', 'julia-dots-outline.svg'))
+
     // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
     function getArgs() {
         const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename()]
@@ -216,19 +219,33 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             ]
         }
         g_terminal_is_persistent = true
+        g_terminal = vscode.window.createTerminal({
+            name: `Julia REPL (v${juliaExecutable.getVersion()})`,
+            shellPath: shellPath,
+            shellArgs: shellArgs,
+            isTransient: true,
+            iconPath: juliaIconPath,
+            env,
+        })
     } else {
         shellPath = juliaExecutable.file
         shellArgs = [...juliaExecutable.args, ...jlarg1, ...getArgs()]
         g_terminal_is_persistent = false
-    }
 
-    g_terminal = vscode.window.createTerminal({
-        name: `Julia REPL (v${juliaExecutable.getVersion()})`,
-        shellPath: shellPath,
-        shellArgs: shellArgs,
-        isTransient: true,
-        env,
-    })
+        const task = new TaskRunnerTerminal(
+            g_context,
+            `Julia REPL (v${juliaExecutable.getVersion()})`,
+            shellPath,
+            shellArgs,
+            {
+                message: '',
+                env,
+                iconPath: juliaIconPath
+            }
+        )
+
+        g_terminal = task.terminal
+    }
 
     g_terminal.show(preserveFocus)
     await juliaIsConnectedPromise.wait()
@@ -355,7 +372,7 @@ export const onFinishEval = g_onFinishEval.event
 
 // code execution start
 
-function startREPLMsgServer(pipename: string) {
+function startREPLMsgServer(pipename: string): Subject {
     const connected = new Subject()
 
     if (g_connection) {
