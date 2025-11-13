@@ -44,6 +44,10 @@ let g_testFeature: TestFeature = null
 let g_traceOutputChannel: vscode.OutputChannel = null
 let g_outputChannel: vscode.OutputChannel = null
 
+// Julia/Juliaup Install commands for different platforms
+const installJuliaupLinuxCommand: string = 'curl -fsSL https://install.julialang.org | sh -s -- -y'
+const installJuliaupWinCommand: string = 'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore'
+
 export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b(\s*|\s*#.*)$)|(?:[^\[]*\].*)$).*$/
 export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
 
@@ -160,8 +164,8 @@ export async function activate(context: vscode.ExtensionContext) {
             getPkgServer() {
                 return vscode.workspace.getConfiguration('julia').get('packageServer')
             },
-            async installJuliaOrJuliaup(taskId: string, taskName: string, useCustomCommand: boolean = false, customCommand: string = '') {
-                return await installJuliaOrJuliaupTask(taskId, taskName, useCustomCommand, customCommand)
+            async installJuliaOrJuliaup(taskId: string, taskName: string, customCommand?: string) {
+                return await installJuliaOrJuliaupTask(taskId, taskName, customCommand)
             },
             executeInREPL: repl.executeInREPL
         }
@@ -515,6 +519,7 @@ async function installJuliaOrJuliaup(software: string = 'julia') {
         return await installJuliaOrJuliaupTask(taskId, taskName)
     } else if (choice === customCommand) {
         const command = await vscode.window.showInputBox({
+            value: process.platform === 'win32' ? installJuliaupWinCommand : installJuliaupLinuxCommand,
             placeHolder: 'Enter command',
             validateInput: (value) => {
                 // return null if validates
@@ -527,7 +532,7 @@ async function installJuliaOrJuliaup(software: string = 'julia') {
             return 1
         }
 
-        return await installJuliaOrJuliaupTask(taskId, taskName, true, command)
+        return await installJuliaOrJuliaupTask(taskId, taskName, command)
     } else if (choice === configurePath) {
         vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
     } else if (choice === doNotShow) {
@@ -535,18 +540,20 @@ async function installJuliaOrJuliaup(software: string = 'julia') {
     }
 }
 
-async function installJuliaOrJuliaupTask(taskId: string, taskName: string, useCustomCommand: boolean = false, customCommand: string = '') {
-    let command = 'curl -fsSL https://install.julialang.org | sh -s -- -y'
+async function installJuliaOrJuliaupTask(taskId: string, taskName: string, customCommand?: string) {
+    let command = installJuliaupLinuxCommand
     if (process.platform === 'win32') {
-        command = 'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore'
+        command = installJuliaupWinCommand
     }
 
-    if (useCustomCommand && customCommand === '') {
+    if (customCommand && customCommand === '') {
         // We return 1 as an exit code
         return 1
-    } else if (useCustomCommand) {
+    } else {
         command = customCommand
     }
+
+    let disposable: vscode.Disposable
 
     const task = new vscode.Task(
         {
@@ -558,18 +565,22 @@ async function installJuliaOrJuliaupTask(taskId: string, taskName: string, useCu
         'bash',
         new vscode.ShellExecution(command)
     )
+    task.presentationOptions = {
+        focus: true,
+    }
 
     const taskOutput = await vscode.tasks.executeTask(task)
-    vscode.commands.executeCommand('workbench.action.terminal.focus')
 
     // Capture event for our task only
     const event: vscode.TaskProcessEndEvent = await new Promise((resolve) => {
-        vscode.tasks.onDidEndTaskProcess((event) => {
+        disposable = vscode.tasks.onDidEndTaskProcess((event) => {
             if (event.execution === taskOutput) {
                 resolve(event)
             }
         })
     })
+
+    disposable?.dispose()
 
     return event.exitCode
 }
