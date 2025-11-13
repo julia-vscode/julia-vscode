@@ -11,6 +11,19 @@ export interface TaskRunnerTerminalOptions {
     hideFromUser?: boolean
 }
 
+// This is basically a very basic reimplmentation of the vscode.Task API, kinda.
+//
+// The task API isn't tractable here because it does not work if there is no open
+// workspace and doesn't give us any control over the terminal.
+//
+// This implementation is not great either, since
+// 1. it requires wrapping the actual program in a script (which may work very badly on Windows)
+// 2. doesn't address the issue of separating the process lifecycle from the terminal lifecycle
+//
+// A "correct" (better) implementation would instead use the ExtensionTerminalOptions constructor
+// with a custom PTY that and maybe a task manager class. See
+// https://github.com/swiftlang/vscode-swift/blob/a19d0b1bfe2d7a1740f8cf94c6503f584e34c71b/src/tasks/SwiftPseudoterminal.ts
+// for inspiration.
 export class TaskRunnerTerminal {
     public terminal: vscode.Terminal
     public onDidClose: vscode.Event<vscode.Terminal>
