@@ -425,6 +425,14 @@
                 "title": "Debug Cell",
                 "command": "language-julia.runAndDebugCell",
                 "icon": "$(debug-alt-small)"
+            },
+            {
+                "title": "Julia: Run Package Command",
+                "command": "language-julia.runPackageCommand"
+            },
+            {
+                "title": "Julia: Instantiate Environment",
+                "command": "language-julia.instantiateEnvironment"
             }
         ],
         "menus": {
