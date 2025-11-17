@@ -1,26 +1,22 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-    // tweak these settings to include/exclude folders in explorer or search results
-    "files.exclude": {
-        "dist": true,
-        "out": true
-    },
-    "search.exclude": {
-        "dist": true,
-        "out": true,
-        "libs": true,
-    },
-    // we want to use the TS server from our node_modules folder to control its version
-    "typescript.tsdk": "./node_modules/typescript/lib",
-    "git.detectSubmodulesLimit": 50,
-    "files.trimTrailingWhitespace": true,
-    "files.trimFinalNewlines": true,
-    "files.insertFinalNewline": true,
-    "eslint.format.enable": true,
-    "editor.codeActionsOnSave": {
-
-        // "source.fixAll.eslint": "explicit"
-    },
-    "eslint.lintTask.enable": true,
-    "julia.environmentPath": "./scripts/environments/development"
+  // tweak these settings to include/exclude folders in explorer or search results
+  "files.exclude": {
+    "dist": true,
+    "out": true
+  },
+  "search.exclude": {
+    "dist": true,
+    "out": true,
+    "libs": true
+  },
+  // we want to use the TS server from our node_modules folder to control its version
+  "typescript.tsdk": "./node_modules/typescript/lib",
+  "git.detectSubmodulesLimit": 50,
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": true,
+  "files.insertFinalNewline": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "julia.environmentPath": "./scripts/environments/development"
 }

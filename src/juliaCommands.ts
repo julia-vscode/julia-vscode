@@ -6,9 +6,9 @@ import { JuliaExecutablesFeature } from './juliaexepath'
 import { TaskRunnerTerminal } from './taskRunnerTerminal'
 
 export class JuliaCommands {
-    constructor (
+    constructor(
         context: vscode.ExtensionContext,
-        private juliaExecutableFeature: JuliaExecutablesFeature,
+        private juliaExecutableFeature: JuliaExecutablesFeature
     ) {
         context.subscriptions.push(
             registerCommand('language-julia.runPackageCommand', async (cmd?: string, env?: string) => {
@@ -20,7 +20,7 @@ export class JuliaCommands {
             }),
             registerCommand('language-julia.instantiateEnvironment', async (env?: string) => {
                 await this.runPackageCommand('instantiate', env)
-            }),
+            })
         )
     }
 
@@ -29,7 +29,7 @@ export class JuliaCommands {
 
         const cmd = await vscode.window.showInputBox({
             prompt: `Enter a Pkg.jl command to be executed for ${env}`,
-            placeHolder: `add Example`
+            placeHolder: `add Example`,
         })
 
         if (!cmd) {
@@ -41,20 +41,17 @@ export class JuliaCommands {
         if (success) {
             vscode.window.showInformationMessage(`Successfully ran \`${cmd}\` in environment \`${env}\`.`)
         } else {
-            vscode.window.showErrorMessage(`Failed to run \`${cmd}\` in environment \`${env}\`. Check the terminals tab for the errors.`)
+            vscode.window.showErrorMessage(
+                `Failed to run \`${cmd}\` in environment \`${env}\`. Check the terminals tab for the errors.`
+            )
         }
     }
 
     private async runPackageCommand(cmd?: string, env?: string) {
-        return await this.runCommand(
-            `using Pkg; pkg"${cmd}"`,
-            env,
-            `Julia: ${cmd}`,
-            { JULIA_PKG_PRECOMPILE_AUTO: '0' }
-        )
+        return await this.runCommand(`using Pkg; pkg"${cmd}"`, env, `Julia: ${cmd}`, { JULIA_PKG_PRECOMPILE_AUTO: '0' })
     }
 
-    private async runCommand(cmd: string, juliaEnv?: string, name?: string, processEnv?: {[key: string]: string}) {
+    private async runCommand(cmd: string, juliaEnv?: string, name?: string, processEnv?: { [key: string]: string }) {
         const juliaExecutable = await this.juliaExecutableFeature.getActiveJuliaExecutableAsync()
         const args = [...juliaExecutable.args]
 
@@ -67,24 +64,20 @@ export class JuliaCommands {
 
         args.push(`--project=${juliaEnv}`, '-e', cmd)
 
-        const task = new TaskRunnerTerminal(
-            name,
-            juliaExecutable.file,
-            args, {
-                env: {
-                    ...process.env,
-                    ...processEnv
-                }
-            }
-        )
+        const task = new TaskRunnerTerminal(name, juliaExecutable.file, args, {
+            env: {
+                ...process.env,
+                ...processEnv,
+            },
+        })
         task.show()
 
-        await new Promise(resolve => {
-            task.onDidClose(task => resolve(task))
+        await new Promise((resolve) => {
+            task.onDidClose((task) => resolve(task))
         })
 
         return task.terminal.exitStatus.code === 0
     }
 
-    public dispose() { }
+    public dispose() {}
 }

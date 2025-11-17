@@ -19,7 +19,7 @@ export function requireNativeModule<T>(id: string): T {
     }
 }
 
-const { spawn } = requireNativeModule<{spawn}>('node-pty')
+const { spawn } = requireNativeModule<{ spawn }>('node-pty')
 
 interface JuliaPTYOptions {
     echoCommand?: boolean
@@ -28,8 +28,8 @@ interface JuliaPTYOptions {
 }
 
 export interface TaskRunnerTerminalOptions extends JuliaPTYOptions {
-    cwd?: string|vscode.Uri
-    env?: {[key: string]: string}
+    cwd?: string | vscode.Uri
+    env?: { [key: string]: string }
     shellIntegrationNonce?: string
     message?: string
     iconPath?: vscode.IconPath
@@ -43,7 +43,7 @@ export class TaskRunnerTerminal {
 
     private disposables: vscode.Disposable[] = []
 
-    constructor(name: string, shellPath:string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
+    constructor(name: string, shellPath: string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
         const proc = new JuliaProcess(shellPath, shellArgs, { env: opts.env })
         const pty = new JuliaPTY(proc, opts)
 
@@ -52,7 +52,7 @@ export class TaskRunnerTerminal {
             isTransient: true,
             pty: pty,
             iconPath: new vscode.ThemeIcon('tools'),
-            ...opts
+            ...opts,
         }
 
         this.terminal = vscode.window.createTerminal(options)
@@ -79,9 +79,7 @@ export class TaskRunnerTerminal {
 }
 
 class CloseHandler implements vscode.Disposable {
-    private readonly closeEmitter: vscode.EventEmitter<number | void> = new vscode.EventEmitter<
-        number | void
-    >()
+    private readonly closeEmitter: vscode.EventEmitter<number | void> = new vscode.EventEmitter<number | void>()
     private exitCode: number | void | undefined
     private closeTimeout: NodeJS.Timeout | undefined
 
@@ -124,20 +122,15 @@ export class JuliaProcess implements vscode.Disposable {
         public readonly args: string[],
         private options: vscode.ProcessExecutionOptions = {}
     ) {
-        this.disposables.push(
-            this.spawnEmitter,
-            this.writeEmitter,
-            this.errorEmitter,
-            this.closeHandler
-        )
+        this.disposables.push(this.spawnEmitter, this.writeEmitter, this.errorEmitter, this.closeHandler)
     }
 
     spawn(): void {
         try {
-            const isWindows = process.platform === "win32"
+            const isWindows = process.platform === 'win32'
             // The pty process hangs on Windows when debugging the extension if we use conpty
             // See https://github.com/microsoft/node-pty/issues/640
-            const useConpty = isWindows && process.env["DEBUG_MODE"] === "true" ? false : true
+            const useConpty = isWindows && process.env['DEBUG_MODE'] === 'true' ? false : true
             this.spawnedProcess = spawn(this.command, this.args, {
                 cwd: this.options.cwd,
                 env: { ...process.env, ...this.options.env },
@@ -147,14 +140,14 @@ export class JuliaProcess implements vscode.Disposable {
                 cols: isWindows ? 4096 : undefined,
             })
             this.spawnEmitter.fire()
-            this.spawnedProcess.onData(data => {
+            this.spawnedProcess.onData((data) => {
                 this.writeEmitter.fire(data)
                 this.closeHandler.reset()
             })
-            this.spawnedProcess.onExit(event => {
+            this.spawnedProcess.onExit((event) => {
                 if (event.signal) {
                     this.closeHandler.handle(event.signal)
-                } else if (typeof event.exitCode === "number") {
+                } else if (typeof event.exitCode === 'number') {
                     this.closeHandler.handle(event.exitCode)
                 } else {
                     this.closeHandler.handle()
@@ -185,14 +178,14 @@ export class JuliaProcess implements vscode.Disposable {
     setDimensions(dimensions: vscode.TerminalDimensions): void {
         // https://github.com/swiftlang/vscode-swift/issues/1074
         // Causing weird truncation issues
-        if (process.platform === "win32") {
+        if (process.platform === 'win32') {
             return
         }
         this.spawnedProcess?.resize(dimensions.columns, dimensions.rows)
     }
 
     dispose() {
-        this.disposables.forEach(d => d.dispose())
+        this.disposables.forEach((d) => d.dispose())
     }
 
     onDidSpawn: vscode.Event<void> = this.spawnEmitter.event
@@ -216,7 +209,10 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
     private isClosed: boolean = false
     private exitCode: number | void
 
-    constructor(private proc: JuliaProcess, private options: JuliaPTYOptions) {}
+    constructor(
+        private proc: JuliaProcess,
+        private options: JuliaPTYOptions
+    ) {}
 
     open(initialDimensions?: vscode.TerminalDimensions): void {
         this.disposables.push(
@@ -226,16 +222,16 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
                     this.writeEmitter.fire(`\x1b[3047m * \x1b[0m Executing ${exec}\n\n\r`)
                 }
             }),
-            this.proc.onDidWrite(data => {
-                this.writeEmitter.fire(data.replace(/\n(\r)?/g, "\n\r"))
+            this.proc.onDidWrite((data) => {
+                this.writeEmitter.fire(data.replace(/\n(\r)?/g, '\n\r'))
             }),
-            this.proc.onDidThrowError(err => {
+            this.proc.onDidThrowError((err) => {
                 vscode.window.showErrorMessage(`Process failed: ${err}`)
 
                 this.closeEmitter.fire()
                 this.dispose()
             }),
-            this.proc.onDidClose(ev => {
+            this.proc.onDidClose((ev) => {
                 const msg = this.options?.onExitMessage?.(ev)
 
                 if (msg) {
