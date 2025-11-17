@@ -7,8 +7,7 @@ export class JuliaGlobalDiagnosticOutputFeature {
         this.outputChannel = vscode.window.createOutputChannel('Julia')
     }
 
-    public dispose() {
-    }
+    public dispose() {}
 
     public append(msg: string) {
         this.outputChannel.append(msg)

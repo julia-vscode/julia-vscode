@@ -1539,9 +1539,10 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run bundle",
-        "bundle": "npx esbuild ./src/extension.ts --bundle --outdir=./dist --external:vscode --external:applicationinsights-native-metrics --external:@opentelemetry/instrumentation --external:@azure/opentelemetry-instrumentation-azure-sdk --format=cjs --platform=node --minify --sourcemap",
+        "bundle": "esbuild ./src/extension.ts --bundle --outdir=./dist --external:vscode --external:applicationinsights-native-metrics --external:@opentelemetry/instrumentation --external:@azure/opentelemetry-instrumentation-azure-sdk --format=cjs --platform=node --minify --sourcemap",
         "eslint": "eslint --ext .ts --fix .",
         "eslint-dry-run": "eslint --ext .ts --fix-dry-run .",
+        "format": "prettier --write .",
         "compile": "tsc -p ./",
         "compile-dry-run": "tsc -p ./ --noEmit --pretty",
         "watch": "tsc -watch -p ./",
@@ -1573,6 +1574,7 @@
         "which": "5"
     },
     "devDependencies": {
+        "@eslint/js": "^9.39.1",
         "@types/download": "^8.0.1",
         "@types/lodash.isequal": "^4.5.8",
         "@types/markdown-it": "^14.1.1",
@@ -1588,11 +1590,13 @@
         "@vscode/vsce": "3",
         "download": "^8.0.0",
         "esbuild": "^0.27.0",
-        "eslint": "^9.15.0",
+        "eslint": "^9.39.1",
+        "eslint-config-prettier": "^10.1.8",
         "globals": "^15.12.0",
         "mocha": "11",
+        "prettier": "^3.6.2",
         "ts-loader": "^9.2.8",
-        "typescript": "^5.6.3",
-        "typescript-eslint": "^8.14.0"
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.46.4"
     }
 }
