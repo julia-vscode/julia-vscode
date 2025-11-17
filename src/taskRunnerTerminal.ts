@@ -1,5 +1,23 @@
 import * as vscode from 'vscode'
-import * as path from 'path'
+import { join as joinPath } from 'path'
+
+// https://github.com/swiftlang/vscode-swift/blob/a19d0b1bfe2d7a1740f8cf94c6503f584e34c71b/src/utilities/native.ts
+//
+// To not electron-rebuild for every platform and arch, we want to
+// use the asar bundled native module. Taking inspiration from
+// https://github.com/microsoft/node-pty/issues/582
+export function requireNativeModule<T>(id: string): T {
+    if (vscode.env.remoteName) {
+        return require(joinPath(vscode.env.appRoot, 'node_modules', id))
+    }
+    // https://github.com/microsoft/vscode/commit/a162831c17ad0d675f1f0d5c3f374fd1514f04b5
+    // VSCode has moved node-pty out of asar bundle
+    try {
+        return require(joinPath(vscode.env.appRoot, 'node_modules.asar', id));
+    } catch {
+        return require(joinPath(vscode.env.appRoot, 'node_modules', id));
+    }
+}
 
 export interface TaskRunnerTerminalOptions {
     cwd?: string|vscode.Uri
@@ -11,49 +29,29 @@ export interface TaskRunnerTerminalOptions {
     hideFromUser?: boolean
 }
 
-// This is basically a very basic reimplmentation of the vscode.Task API, kinda.
-//
-// The task API isn't tractable here because it does not work if there is no open
-// workspace and doesn't give us any control over the terminal.
-//
-// This implementation is not great either, since
-// 1. it requires wrapping the actual program in a script (which may work very badly on Windows)
-// 2. doesn't address the issue of separating the process lifecycle from the terminal lifecycle
-//
-// A "correct" (better) implementation would instead use the ExtensionTerminalOptions constructor
-// with a custom PTY that and maybe a task manager class. See
-// https://github.com/swiftlang/vscode-swift/blob/a19d0b1bfe2d7a1740f8cf94c6503f584e34c71b/src/tasks/SwiftPseudoterminal.ts
-// for inspiration.
 export class TaskRunnerTerminal {
     public terminal: vscode.Terminal
     public onDidClose: vscode.Event<vscode.Terminal>
 
     private disposables: vscode.Disposable[] = []
 
-    constructor(context: vscode.ExtensionContext, name: string, shellPath:string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
-        let execPath: string
-        let args: string[]
+    constructor(name: string, shellPath:string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
+        const proc = new JuliaProcess(shellPath, shellArgs, { env: opts.env })
 
-        if (process.platform === 'win32') {
-            execPath = 'powershell.exe'
-            args = ['-executionPolicy', 'bypass', '-File', path.join(context.extensionPath, 'scripts', 'wrappers', 'procwrap.ps1'), winEscape(shellPath), ...shellArgs.map(winEscape)]
-        } else {
-            execPath = path.join(context.extensionPath, 'scripts', 'wrappers', 'procwrap.sh')
-            args = [shellPath, ...shellArgs]
-        }
+        proc.spawn()
 
-        const options: vscode.TerminalOptions = {
-            hideFromUser: true,
+        const pty = new JuliaPTY(proc)
+
+        const options: vscode.ExtensionTerminalOptions = {
             name: name,
-            message: this.computeMessage(shellPath, shellArgs),
             isTransient: true,
-            shellPath: execPath,
-            shellArgs: args,
+            pty: pty,
             iconPath: new vscode.ThemeIcon('tools'),
             ...opts
         }
 
         this.terminal = vscode.window.createTerminal(options)
+        this.terminal.sendText(this.computeMessage(shellPath, shellArgs))
 
         const onDidCloseEmitter = new vscode.EventEmitter<vscode.Terminal>()
         this.onDidClose = onDidCloseEmitter.event
@@ -91,6 +89,180 @@ export class TaskRunnerTerminal {
     }
 }
 
-function winEscape(str: string) {
-    return str.replace(/"/g, '\\"')
+class CloseHandler implements vscode.Disposable {
+    private readonly closeEmitter: vscode.EventEmitter<number | void> = new vscode.EventEmitter<
+        number | void
+    >();
+    private exitCode: number | void | undefined;
+    private closeTimeout: NodeJS.Timeout | undefined;
+
+    event = this.closeEmitter.event;
+
+    handle(exitCode: number | void) {
+        this.exitCode = exitCode;
+        this.queueClose();
+    }
+
+    reset() {
+        if (this.closeTimeout) {
+            clearTimeout(this.closeTimeout);
+            this.queueClose();
+        }
+    }
+
+    dispose() {
+        this.closeEmitter.dispose();
+    }
+
+    private queueClose() {
+        this.closeTimeout = setTimeout(() => {
+            this.closeEmitter.fire(this.exitCode);
+        }, 250);
+    }
+}
+
+export class JuliaProcess implements vscode.Disposable {
+    private readonly spawnEmitter: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
+    private readonly writeEmitter: vscode.EventEmitter<string> = new vscode.EventEmitter<string>();
+    private readonly errorEmitter: vscode.EventEmitter<Error> = new vscode.EventEmitter<Error>();
+    private readonly closeHandler: CloseHandler = new CloseHandler();
+    private disposables: vscode.Disposable[] = [];
+
+    private spawnedProcess?
+
+    constructor(
+        public readonly command: string,
+        public readonly args: string[],
+        private options: vscode.ProcessExecutionOptions = {}
+    ) {
+        this.disposables.push(
+            this.spawnEmitter,
+            this.writeEmitter,
+            this.errorEmitter,
+            this.closeHandler
+        );
+    }
+
+    spawn(): void {
+        const { spawn } = requireNativeModule<{spawn}>('node-pty');
+        try {
+            const isWindows = process.platform === "win32";
+            // The pty process hangs on Windows when debugging the extension if we use conpty
+            // See https://github.com/microsoft/node-pty/issues/640
+            const useConpty = isWindows && process.env["VSCODE_DEBUG"] === "1" ? false : true;
+            this.spawnedProcess = spawn(this.command, this.args, {
+                cwd: this.options.cwd,
+                env: { ...process.env, ...this.options.env },
+                useConpty,
+                // https://github.com/swiftlang/vscode-swift/issues/1074
+                // Causing weird truncation issues
+                cols: isWindows ? 4096 : undefined,
+            });
+            this.spawnEmitter.fire();
+            this.spawnedProcess.onData(data => {
+                this.writeEmitter.fire(data);
+                this.closeHandler.reset();
+            });
+            this.spawnedProcess.onExit(event => {
+                if (event.signal) {
+                    this.closeHandler.handle(event.signal);
+                } else if (typeof event.exitCode === "number") {
+                    this.closeHandler.handle(event.exitCode);
+                } else {
+                    this.closeHandler.handle();
+                }
+            });
+            this.disposables.push(
+                this.onDidClose(() => {
+                    this.dispose();
+                })
+            );
+        } catch (error) {
+            this.errorEmitter.fire(new Error(`${error}`));
+            this.closeHandler.handle();
+        }
+    }
+
+    handleInput(s: string): void {
+        this.spawnedProcess?.write(s);
+    }
+
+    terminate(signal?: NodeJS.Signals): void {
+        if (!this.spawnedProcess) {
+            return;
+        }
+        this.spawnedProcess.kill(signal);
+    }
+
+    setDimensions(dimensions: vscode.TerminalDimensions): void {
+        // https://github.com/swiftlang/vscode-swift/issues/1074
+        // Causing weird truncation issues
+        if (process.platform === "win32") {
+            return;
+        }
+        this.spawnedProcess?.resize(dimensions.columns, dimensions.rows);
+    }
+
+    dispose() {
+        this.disposables.forEach(d => d.dispose());
+    }
+
+    onDidSpawn: vscode.Event<void> = this.spawnEmitter.event;
+
+    onDidWrite: vscode.Event<string> = this.writeEmitter.event;
+
+    onDidThrowError: vscode.Event<Error> = this.errorEmitter.event;
+
+    onDidClose: vscode.Event<number | void> = this.closeHandler.event;
+}
+
+export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
+    private writeEmitter: vscode.EventEmitter<string> = new vscode.EventEmitter()
+    onDidWrite: vscode.Event<string>
+
+    private closeEmitter: vscode.EventEmitter<number | void> = new vscode.EventEmitter()
+    onDidClose?: vscode.Event<number | void>
+
+    private disposables: vscode.Disposable[] = []
+
+    constructor(private proc: JuliaProcess) {}
+
+    open(initialDimensions?: vscode.TerminalDimensions): void {
+        this.disposables.push(
+            this.onDidWrite(data => {
+                this.writeEmitter.fire(data.replace(/\n(\r)?/g, "\n\r"))
+            }),
+            this.proc.onDidThrowError(err => {
+                vscode.window.showErrorMessage(`Process failed: ${err}`)
+
+                this.closeEmitter.fire()
+                this.dispose()
+            }),
+            this.proc.onDidClose(ev => {
+                this.closeEmitter.fire(ev)
+                this.dispose()
+            })
+        )
+        if (initialDimensions) {
+            this.setDimensions(initialDimensions);
+        }
+    }
+
+    setDimensions(dimensions: vscode.TerminalDimensions): void {
+        this.proc?.setDimensions(dimensions);
+    }
+
+    close(): void {
+
+    }
+
+    handleInput(data: string): void {
+        this.proc?.handleInput(data)
+    }
+
+    dispose() {
+        for (const disposable of this.disposables) {
+            disposable.dispose()
+        }
+    }
 }

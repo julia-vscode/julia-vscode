@@ -7,7 +7,7 @@ import { TaskRunnerTerminal } from './taskRunnerTerminal'
 
 export class JuliaCommands {
     constructor (
-        private context: vscode.ExtensionContext,
+        context: vscode.ExtensionContext,
         private juliaExecutableFeature: JuliaExecutablesFeature,
     ) {
         context.subscriptions.push(
@@ -68,7 +68,6 @@ export class JuliaCommands {
         args.push(`--project=${juliaEnv}`, '-e', cmd)
 
         const task = new TaskRunnerTerminal(
-            this.context,
             name,
             juliaExecutable.file,
             args, {

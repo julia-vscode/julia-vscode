@@ -233,12 +233,10 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         g_terminal_is_persistent = false
 
         const task = new TaskRunnerTerminal(
-            g_context,
             `Julia REPL (v${juliaExecutable.getVersion()})`,
             shellPath,
             shellArgs,
             {
-                message: '',
                 env,
                 iconPath: juliaIconPath
             }
