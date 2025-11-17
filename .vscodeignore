@@ -7,7 +7,6 @@ node_modules/**
 .gitignore
 .gitmodules
 tsconfig.json
-webpack.config.js
 scripts/languageserver/julia_pkgdir/**
 scripts/testenvironments
 CONTRIBUTING.md
