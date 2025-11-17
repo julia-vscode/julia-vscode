@@ -238,7 +238,13 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
             shellArgs,
             {
                 env,
-                iconPath: juliaIconPath
+                iconPath: juliaIconPath,
+                onExitMessage(exitCode) {
+                    if (exitCode === 0) {
+                        return
+                    }
+                    return `This process is dead, Jim. It's dead. With exit code ${exitCode}. Press a key to bury it.`
+                },
             }
         )
 
