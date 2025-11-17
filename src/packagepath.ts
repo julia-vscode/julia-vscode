@@ -18,13 +18,13 @@ export async function getPkgPath() {
             [
                 '--history-file=no',
                 '-e',
-                'using Pkg;println(get(ENV, "JULIA_PKG_DEVDIR", joinpath(Pkg.depots()[1], "dev")))'
+                'using Pkg;println(get(ENV, "JULIA_PKG_DEVDIR", joinpath(Pkg.depots()[1], "dev")))',
             ],
             {
                 env: {
                     ...process.env,
                     JULIA_VSCODE_INTERNAL: '1',
-                }
+                },
             }
         )
         juliaPackagePath = res.stdout.toString().trim()
@@ -37,17 +37,12 @@ export async function getPkgDepotPath() {
         const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
         const res = await execFile(
             juliaExecutable.file,
-            [
-                '--startup-file=no',
-                '--history-file=no',
-                '-e',
-                'using Pkg; println.(Pkg.depots())'
-            ],
+            ['--startup-file=no', '--history-file=no', '-e', 'using Pkg; println.(Pkg.depots())'],
             {
                 env: {
                     ...process.env,
                     JULIA_VSCODE_INTERNAL: '1',
-                }
+                },
             }
         )
         juliaDepotPath = res.stdout.toString().trim().split('\n')
@@ -58,7 +53,7 @@ export async function getPkgDepotPath() {
 export function activate(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature) {
     g_juliaExecutablesFeature = juliaExecutablesFeature
     context.subscriptions.push(
-        onDidChangeConfig(event => {
+        onDidChangeConfig((event) => {
             if (event.affectsConfiguration('julia.executablePath')) {
                 juliaPackagePath = null
             }

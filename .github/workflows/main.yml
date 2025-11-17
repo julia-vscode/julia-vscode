@@ -36,6 +36,7 @@ jobs:
           node-version: 20.x
       - run: npm ci
       - run: npx eslint
+      - run: npx prettier --check .
 
   testExtension:
     name: Test Extension

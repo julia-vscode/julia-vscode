@@ -16,7 +16,6 @@ import { NotebookDocument, workspace, WorkspaceEdit } from 'vscode'
  */
 const pendingCellUpdates = new WeakMap<NotebookDocument, Promise<unknown>>()
 
-
 export async function chainWithPendingUpdates(
     document: NotebookDocument,
     update: (edit: WorkspaceEdit) => void
@@ -25,9 +24,9 @@ export async function chainWithPendingUpdates(
     const pendingUpdates = pendingCellUpdates.has(notebook) ? pendingCellUpdates.get(notebook)! : Promise.resolve()
     const aggregatedPromise = new Promise((resolve, reject) => {
         pendingUpdates
-        // We need to ensure the update operation gets invoked after previous updates have been completed.
-        // This way, the callback making references to cell metadata will have the latest information.
-        // Even if previous update fails, we should not fail this current update.
+            // We need to ensure the update operation gets invoked after previous updates have been completed.
+            // This way, the callback making references to cell metadata will have the latest information.
+            // Even if previous update fails, we should not fail this current update.
             .finally(async () => {
                 const edit = new WorkspaceEdit()
                 update(edit)
