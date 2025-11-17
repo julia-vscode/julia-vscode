@@ -32,16 +32,16 @@ import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
 
 interface JuliaupChannelInfo {
-    Name: string,
-    File: string,
-    Args: string[],
-    Version: string,
-    Arch: string,
+    Name: string
+    File: string
+    Args: string[]
+    Version: string
+    Arch: string
 }
 
 interface JuliaupApiGetinfoReturn {
-    DefaultChannel?: JuliaupChannelInfo,
-    OtherChannels: JuliaupChannelInfo[],
+    DefaultChannel?: JuliaupChannelInfo
+    OtherChannels: JuliaupChannelInfo[]
 }
 
 let g_context: vscode.ExtensionContext = null
@@ -210,7 +210,14 @@ export async function startREPL(preserveFocus: boolean, showTerminal: boolean = 
             return
         }
 
-        juliaExecutable = new JuliaExecutable(juliaObj.Version, juliaObj.File, juliaObj.Args, juliaObj.Arch, juliaObj.Name, true)
+        juliaExecutable = new JuliaExecutable(
+            juliaObj.Version,
+            juliaObj.File,
+            juliaObj.Args,
+            juliaObj.Arch,
+            juliaObj.Name,
+            true
+        )
     }
 
     if (g_terminal_is_persistent && isConnected()) {
@@ -308,7 +315,7 @@ async function startREPLWithVersion() {
     const versions = await getInstalledJuliaVersions()
     const select = await vscode.window.showQuickPick(versions, {
         placeHolder: 'Select version',
-        title: 'Start REPL with specific version'
+        title: 'Start REPL with specific version',
     })
 
     if (select) {
@@ -319,28 +326,26 @@ async function startREPLWithVersion() {
 async function getInstalledJuliaVersions() {
     const juliaup = await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
 
-    const { stdout } = await execFile(juliaup.file, ['api', 'getconfig1'], { shell: process.platform === 'win32' ? false : true })
+    const { stdout } = await execFile(juliaup.file, ['api', 'getconfig1'], {
+        shell: process.platform === 'win32' ? false : true,
+    })
     const installedVersions: JuliaupApiGetinfoReturn = JSON.parse(stdout.toString())
 
     const defaultVersion = installedVersions.DefaultChannel
     const otherVersions = installedVersions.OtherChannels
 
     const versions: (JuliaupChannelInfo & vscode.QuickPickItem)[] = []
-    versions.push(
-        {
-            label: defaultVersion.Name,
-            description: `Julia v${defaultVersion.Version} (current)`,
-            ...defaultVersion
-        }
-    )
+    versions.push({
+        label: defaultVersion.Name,
+        description: `Julia v${defaultVersion.Version} (current)`,
+        ...defaultVersion,
+    })
     otherVersions.forEach((ele) => {
-        versions.push(
-            {
-                label: ele.Name,
-                description: `Julia v${ele.Version}`,
-                ...ele
-            }
-        )
+        versions.push({
+            label: ele.Name,
+            description: `Julia v${ele.Version}`,
+            ...ele,
+        })
     })
 
     return versions
@@ -1181,22 +1186,31 @@ function executeSelectionCopyPaste() {
     executeCodeCopyPaste(text, selection.isEmpty)
 }
 
-export async function executeInREPL(code: string, { filename = 'code', line = 0, column = 0, mod = 'Main', showCodeInREPL = true, showResultInREPL = true, showErrorInREPL = false, softscope = true }): Promise<ReturnResult> {
+export async function executeInREPL(
+    code: string,
+    {
+        filename = 'code',
+        line = 0,
+        column = 0,
+        mod = 'Main',
+        showCodeInREPL = true,
+        showResultInREPL = true,
+        showErrorInREPL = false,
+        softscope = true,
+    }
+): Promise<ReturnResult> {
     await startREPL(true, true)
-    return await g_connection.sendRequest(
-        requestTypeReplRunCode,
-        {
-            filename,
-            line,
-            column,
-            code,
-            mod,
-            showCodeInREPL,
-            showResultInREPL,
-            showErrorInREPL,
-            softscope
-        }
-    )
+    return await g_connection.sendRequest(requestTypeReplRunCode, {
+        filename,
+        line,
+        column,
+        code,
+        mod,
+        showCodeInREPL,
+        showResultInREPL,
+        showErrorInREPL,
+        softscope,
+    })
 }
 
 const interrupts = []
