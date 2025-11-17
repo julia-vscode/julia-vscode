@@ -561,12 +561,16 @@ async function installJuliaOrJuliaupExtension(context: JuliaExecutablesFeature) 
         if (exitCode === 0) {
             // If julia was installed but we can't find it
             if (!(await context.getActiveJuliaExecutableAsync())) {
-                vscode.window.showInformationMessage('Julia/juliaup successfully installed. Please fully exit and restart the editor for the changes to take effect.')
+                vscode.window.showInformationMessage(
+                    'Julia/juliaup successfully installed. Please fully exit and restart the editor for the changes to take effect.'
+                )
             } else {
                 vscode.window.showInformationMessage('Julia/juliaup successfully installed.')
             }
         } else {
-            vscode.window.showErrorMessage('Julia/juliaup installation failed. Please check the Terminals tab for more details.')
+            vscode.window.showErrorMessage(
+                'Julia/juliaup installation failed. Please check the Terminals tab for more details.'
+            )
         }
     }
 
@@ -586,7 +590,8 @@ async function installJuliaOrJuliaup(software: string = 'julia') {
 
     // Options for Julia
     const configurePath = 'Configure path'
-    let message = 'Julia is not installed. Do you want to install it automatically using juliaup or manually add the path?'
+    let message =
+        'Julia is not installed. Do you want to install it automatically using juliaup or manually add the path?'
     let taskId = 'installJuliaTask'
     let taskName = 'Install Julia'
 
@@ -597,7 +602,8 @@ async function installJuliaOrJuliaup(software: string = 'julia') {
     if (software === 'juliaup') {
         options.pop()
 
-        message = 'Juliaup is the recommended Julia version manager, but it is not installed. Do you want to install it automatically?'
+        message =
+            'Juliaup is the recommended Julia version manager, but it is not installed. Do you want to install it automatically?'
         taskId = 'installJuliaupTask'
         taskName = 'Install Juliaup'
 
@@ -615,7 +621,7 @@ async function installJuliaOrJuliaup(software: string = 'julia') {
             validateInput: (value) => {
                 // return null if validates
                 return value.trim() !== '' ? null : 'Command is not valid!'
-            }
+            },
         })
 
         if (!command) {
@@ -627,7 +633,9 @@ async function installJuliaOrJuliaup(software: string = 'julia') {
     } else if (choice === configurePath) {
         vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
     } else if (choice === doNotShow) {
-        vscode.workspace.getConfiguration('julia').update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
+        vscode.workspace
+            .getConfiguration('julia')
+            .update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
     }
 }
 
@@ -649,7 +657,7 @@ async function installJuliaOrJuliaupTask(taskId: string, taskName: string, custo
     const task = new vscode.Task(
         {
             type: 'julia',
-            id: taskId
+            id: taskId,
         },
         vscode.TaskScope.Global,
         taskName,
