@@ -12,7 +12,7 @@ import * as vslc from 'vscode-languageclient/node'
 import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
-import { JuliaExecutablesFeature } from '../juliaexepath'
+import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import { generatePipeName, getVersionedParamsAtPosition, inferJuliaNumThreads, registerCommand, setContext, wrapCrashReporting, parseVSCodeVariables } from '../utils'
 import * as completions from './completions'
@@ -22,6 +22,19 @@ import * as plots from './plots'
 import * as results from './results'
 import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
+
+interface JuliaupChannelInfo {
+    Name: string,
+    File: string,
+    Args: string[],
+    Version: string,
+    Arch: string,
+}
+
+interface JuliaupApiGetinfoReturn {
+    DefaultChannel?: JuliaupChannelInfo,
+    OtherChannels: JuliaupChannelInfo[],
+}
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
@@ -116,7 +129,7 @@ function parseSessionArgs(name: string) {
 }
 
 // FIXME: refactor this!
-async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
+export async function startREPL(preserveFocus: boolean, showTerminal: boolean = true, versionName?: string) {
     const config = vscode.workspace.getConfiguration('julia')
     const isPersistentSession = Boolean(config.get('persistentSession.enabled'))
 
@@ -171,7 +184,17 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
     }
 
     let shellPath: string, shellArgs: string[]
-    const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+    let juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+    if (versionName && versionName !== '') {
+        const juliaVersions = await getInstalledJuliaVersions()
+        const juliaObj = juliaVersions.find((ele) => ele.Name === versionName)
+
+        if (!juliaObj) {
+            return
+        }
+
+        juliaExecutable = new JuliaExecutable(juliaObj.Version, juliaObj.File, juliaObj.Args, juliaObj.Arch, juliaObj.Name, true)
+    }
 
     if (g_terminal_is_persistent && isConnected()) {
         shellPath = config.get('persistentSession.shell')
@@ -257,50 +280,45 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 }
 
 async function startREPLWithVersion() {
+    const versions = await getInstalledJuliaVersions()
+    const select = await vscode.window.showQuickPick(versions, {
+        placeHolder: 'Select version',
+        title: 'Start REPL with specific version'
+    })
+
+    if (select) {
+        await startREPL(false, true, select.Name)
+    }
+}
+
+async function getInstalledJuliaVersions() {
     const juliaup = await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
 
-    const { stdout } = await execFile(juliaup.file, ['api', 'getconfig1'])
-    const installedVersions = JSON.parse(stdout.toString())
+    const { stdout } = await execFile(juliaup.file, ['api', 'getconfig1'], { shell: process.platform === 'win32' ? false : true })
+    const installedVersions: JuliaupApiGetinfoReturn = JSON.parse(stdout.toString())
 
     const defaultVersion = installedVersions.DefaultChannel
     const otherVersions = installedVersions.OtherChannels
 
-    const versions = []
+    const versions: (JuliaupChannelInfo & vscode.QuickPickItem)[] = []
     versions.push(
         {
             label: defaultVersion.Name,
-            description: `Julia version ${defaultVersion.Version} (current)`,
-            default: true,
-            vesion: defaultVersion.Version,
+            description: `Julia v${defaultVersion.Version} (current)`,
             ...defaultVersion
         }
     )
-    otherVersions.forEach((ele: any) => {
+    otherVersions.forEach((ele) => {
         versions.push(
             {
                 label: ele.Name,
                 description: `Julia v${ele.Version}`,
-                default: false,
-                version: ele.Version,
                 ...ele
             }
         )
     })
 
-    const select = await vscode.window.showQuickPick(versions)
-
-    if (select) {
-        const task = new TaskRunnerTerminal(
-            g_context,
-            `Julia REPL (v${select.version})`,
-            select.File,
-            []
-        )
-
-        g_terminal = task.terminal
-    }
-
-    g_terminal.show(false)
+    return versions
 }
 
 function juliaConnector(pipename: string, debugPipename: string, start = false) {
@@ -1083,7 +1101,7 @@ function executeSelectionCopyPaste() {
 }
 
 export async function executeInREPL(code: string, { filename = 'code', line = 0, column = 0, mod = 'Main', showCodeInREPL = true, showResultInREPL = true, showErrorInREPL = false, softscope = true }): Promise<ReturnResult> {
-    await startREPL(true)
+    await startREPL(true, true)
     return await g_connection.sendRequest(
         requestTypeReplRunCode,
         {
