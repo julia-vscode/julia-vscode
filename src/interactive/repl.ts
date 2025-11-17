@@ -4,7 +4,7 @@ import { assert } from 'console'
 import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
-import { exec } from 'promisify-child-process'
+import { exec, execFile } from 'promisify-child-process'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
@@ -39,6 +39,11 @@ function startREPLCommand() {
     telemetry.traceEvent('command-startrepl')
 
     startREPL(false, true)
+}
+function startREPLWithVersionCommand() {
+    telemetry.traceEvent('command-startreplwithversion')
+
+    startREPLWithVersion()
 }
 async function confirmKill() {
     const strategy = vscode.workspace.getConfiguration('julia').get<string>('persistentSession.closeStrategy')
@@ -249,6 +254,53 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
     g_terminal.show(preserveFocus)
     await juliaIsConnectedPromise.wait()
+}
+
+async function startREPLWithVersion() {
+    const juliaup = await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
+
+    const { stdout } = await execFile(juliaup.file, ['api', 'getconfig1'])
+    const installedVersions = JSON.parse(stdout.toString())
+
+    const defaultVersion = installedVersions.DefaultChannel
+    const otherVersions = installedVersions.OtherChannels
+
+    const versions = []
+    versions.push(
+        {
+            label: defaultVersion.Name,
+            description: `Julia version ${defaultVersion.Version} (current)`,
+            default: true,
+            vesion: defaultVersion.Version,
+            ...defaultVersion
+        }
+    )
+    otherVersions.forEach((ele: any) => {
+        versions.push(
+            {
+                label: ele.Name,
+                description: `Julia v${ele.Version}`,
+                default: false,
+                version: ele.Version,
+                ...ele
+            }
+        )
+    })
+
+    const select = await vscode.window.showQuickPick(versions)
+
+    if (select) {
+        const task = new TaskRunnerTerminal(
+            g_context,
+            `Julia REPL (v${select.version})`,
+            select.File,
+            []
+        )
+
+        g_terminal = task.terminal
+    }
+
+    g_terminal.show(false)
 }
 
 function juliaConnector(pipename: string, debugPipename: string, start = false) {
@@ -1316,6 +1368,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
         }),
         // commands
         registerCommand('language-julia.startREPL', startREPLCommand),
+        registerCommand('language-julia.startREPLWithVersion', startREPLWithVersionCommand),
         registerCommand('language-julia.connectREPL', connectREPL),
         registerCommand('language-julia.stopREPL', stopREPL),
         registerCommand('language-julia.restartREPL', restartREPL),
