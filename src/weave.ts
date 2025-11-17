@@ -34,8 +34,7 @@ async function weave_core(column, selected_format: string = undefined) {
         // note that there is a bug in Weave.jl right now that does not support the option
         // out_path properly. The output file will therefore always have the format [input-file].html
         output_filename = path.join(temporary_dirname, 'source-file.html')
-    }
-    else {
+    } else {
         source_filename = vscode.window.activeTextEditor.document.fileName
         output_filename = ''
     }
@@ -49,8 +48,8 @@ async function weave_core(column, selected_format: string = undefined) {
     if (g_weaveChildProcess !== null) {
         try {
             g_weaveChildProcess.kill()
-        }
-        catch (e) {
+        } catch (e) {
+            console.log(e)
         }
     }
 
@@ -75,8 +74,7 @@ async function weave_core(column, selected_format: string = undefined) {
     if (selected_format === undefined) {
         g_weaveChildProcess.stdin.write('PREVIEW\n')
         g_weaveOutputChannel.append(String('Weaving preview of ' + source_filename + '\n'))
-    }
-    else {
+    } else {
         g_weaveChildProcess.stdin.write(selected_format + '\n')
         g_weaveOutputChannel.append(String('Weaving ' + source_filename + ' to ' + output_filename + '\n'))
     }
@@ -98,15 +96,16 @@ async function weave_core(column, selected_format: string = undefined) {
             if (selected_format === undefined) {
                 g_lastWeaveContent = await fs.readFile(output_filename, 'utf8')
 
-                const weaveWebViewPanel = vscode.window.createWebviewPanel('jlweavepane', 'Julia Weave Preview', { preserveFocus: true, viewColumn: column })
+                const weaveWebViewPanel = vscode.window.createWebviewPanel('jlweavepane', 'Julia Weave Preview', {
+                    preserveFocus: true,
+                    viewColumn: column,
+                })
 
                 weaveWebViewPanel.webview.html = g_lastWeaveContent
             }
-        }
-        else {
+        } else {
             vscode.window.showErrorMessage('Error during weaving.')
         }
-
     })
 }
 
@@ -115,11 +114,9 @@ async function open_preview() {
 
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
-    }
-    else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
+    } else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
         vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
-    }
-    else {
+    } else {
         await weave_core(vscode.ViewColumn.Active)
     }
 }
@@ -129,11 +126,9 @@ async function open_preview_side() {
 
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
-    }
-    else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
+    } else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
         vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
-    }
-    else {
+    } else {
         weave_core(vscode.ViewColumn.Two)
     }
 }
@@ -143,15 +138,13 @@ async function save() {
 
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
-    }
-    else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
+    } else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
         vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
-    }
-    else if (vscode.window.activeTextEditor.document.isDirty || vscode.window.activeTextEditor.document.isUntitled) {
+    } else if (vscode.window.activeTextEditor.document.isDirty || vscode.window.activeTextEditor.document.isUntitled) {
         vscode.window.showErrorMessage('Please save the file before weaving.')
-    }
-    else {
-        const formats = ['github: Github markdown',
+    } else {
+        const formats = [
+            'github: Github markdown',
             'md2tex: Julia markdown to latex',
             'pandoc2html: Markdown to HTML (requires Pandoc)',
             'pandoc: Pandoc markdown',
@@ -162,7 +155,8 @@ async function save() {
             'rst: reStructuredText and Sphinx',
             'multimarkdown: MultiMarkdown',
             'md2pdf: Julia markdown to latex',
-            'asciidoc: AsciiDoc']
+            'asciidoc: AsciiDoc',
+        ]
         const result_format = await vscode.window.showQuickPick(formats, { placeHolder: 'Select output format' })
         if (result_format !== undefined) {
             const index = result_format.indexOf(':')
