@@ -26,12 +26,9 @@ export default [
             curly: 'warn',
             eqeqeq: 'error',
             'no-throw-literal': 'warn',
-            semi: ['error', 'never'],
             'prefer-const': 'warn',
             'no-extra-semi': 'warn',
             'no-var': 'warn',
-            quotes: ['warn', 'single', {allowTemplateLiterals: true}],
-            indent: ['warn', 4],
         },
     }
 ]
