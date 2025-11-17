@@ -8,13 +8,16 @@ import { join as joinPath } from 'path'
 // https://github.com/microsoft/node-pty/issues/582
 export function requireNativeModule<T>(id: string): T {
     if (vscode.env.remoteName) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         return require(joinPath(vscode.env.appRoot, 'node_modules', id))
     }
     // https://github.com/microsoft/vscode/commit/a162831c17ad0d675f1f0d5c3f374fd1514f04b5
     // VSCode has moved node-pty out of asar bundle
     try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         return require(joinPath(vscode.env.appRoot, 'node_modules.asar', id))
     } catch {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         return require(joinPath(vscode.env.appRoot, 'node_modules', id))
     }
 }
