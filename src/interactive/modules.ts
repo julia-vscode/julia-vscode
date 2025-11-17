@@ -20,23 +20,28 @@ const requestTypeIsModuleLoaded = new rpc.RequestType<{ mod: string }, boolean, 
 
 const automaticallyChooseOption = 'Choose Automatically'
 
-
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(ed => {
-        cancelCurrentGetModuleRequest()
-        g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
-        updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
-    }))
-    context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(changeEvent => {
-        cancelCurrentGetModuleRequest()
-        g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
-        updateModuleForSelectionEvent(changeEvent, g_currentGetModuleRequestCancelTokenSource.token)
-    }))
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor((ed) => {
+            cancelCurrentGetModuleRequest()
+            g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
+            updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
+        })
+    )
+    context.subscriptions.push(
+        vscode.window.onDidChangeTextEditorSelection((changeEvent) => {
+            cancelCurrentGetModuleRequest()
+            g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
+            updateModuleForSelectionEvent(changeEvent, g_currentGetModuleRequestCancelTokenSource.token)
+        })
+    )
     context.subscriptions.push(registerCommand('language-julia.chooseModule', chooseModule))
 
-    context.subscriptions.push(onSetLanguageClient(languageClient => {
-        g_languageClient = languageClient
-    }))
+    context.subscriptions.push(
+        onSetLanguageClient((languageClient) => {
+            g_languageClient = languageClient
+        })
+    )
 
     // NOTE:
     // set module status bar item just right of language mode selector
@@ -46,10 +51,12 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.command = 'language-julia.chooseModule'
     statusBarItem.tooltip = 'Choose Current Module'
 
-    onInit(wrapCrashReporting(conn => {
-        g_connection = conn
-        updateStatusBarItem()
-    }))
+    onInit(
+        wrapCrashReporting((conn) => {
+            g_connection = conn
+            updateStatusBarItem()
+        })
+    )
     onExit(() => {
         g_connection = null
         updateStatusBarItem()
@@ -66,40 +73,46 @@ function cancelCurrentGetModuleRequest() {
     }
 }
 
-export async function getModuleForEditor(document: vscode.TextDocument, position: vscode.Position, token?: vscode.CancellationToken): Promise<string> {
+export async function getModuleForEditor(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    token?: vscode.CancellationToken
+): Promise<string> {
     const manuallySetModule = manuallySetDocuments[document.fileName]
-    if (manuallySetModule) { return manuallySetModule }
+    if (manuallySetModule) {
+        return manuallySetModule
+    }
 
-    if (supportedSchemes.findIndex(i => i === document.uri.scheme) === -1) { return 'Main' }
+    if (supportedSchemes.findIndex((i) => i === document.uri.scheme) === -1) {
+        return 'Main'
+    }
 
     const languageClient = g_languageClient
 
-    if (!languageClient || !languageClient.isRunning()) { return 'Main' }
+    if (!languageClient || !languageClient.isRunning()) {
+        return 'Main'
+    }
 
     const params: VersionedTextDocumentPositionParams = {
         textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
         version: document.version,
-        position: position
+        position: position,
     }
 
     if (token === undefined || !token.isCancellationRequested) {
         try {
             return await languageClient.sendRequest<string>('julia/getModuleAt', params)
-        }
-        catch (err) {
-            if ((err as ResponseError).code && err.code===rpc.ErrorCodes.ConnectionInactive) {
+        } catch (err) {
+            if ((err as ResponseError).code && err.code === rpc.ErrorCodes.ConnectionInactive) {
                 return 'Main'
-            }
-            else if ((err as ResponseError).code && err.code===-33101) {
+            } else if ((err as ResponseError).code && err.code === -33101) {
                 // This is a version out of sync situation
                 return 'Main'
-            }
-            else {
+            } else {
                 throw err
             }
         }
-    }
-    else {
+    } else {
         return 'Main'
     }
 }
@@ -108,7 +121,10 @@ function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEdito
     return editor && editor.document.languageId === 'julia'
 }
 
-async function updateStatusBarItem(editor: vscode.TextEditor = vscode.window.activeTextEditor, token?: vscode.CancellationToken) {
+async function updateStatusBarItem(
+    editor: vscode.TextEditor = vscode.window.activeTextEditor,
+    token?: vscode.CancellationToken
+) {
     if (isJuliaEditor(editor)) {
         statusBarItem.show()
         await updateModuleForEditor(editor, token)
@@ -117,7 +133,10 @@ async function updateStatusBarItem(editor: vscode.TextEditor = vscode.window.act
     }
 }
 
-async function updateModuleForSelectionEvent(event: vscode.TextEditorSelectionChangeEvent, token?: vscode.CancellationToken) {
+async function updateModuleForSelectionEvent(
+    event: vscode.TextEditorSelectionChangeEvent,
+    token?: vscode.CancellationToken
+) {
     const editor = event.textEditor
     await updateStatusBarItem(editor, token)
 }
@@ -131,7 +150,9 @@ async function updateModuleForEditor(editor: vscode.TextEditor, token?: vscode.C
 }
 
 async function isModuleLoaded(mod: string) {
-    if (!g_connection) { return false }
+    if (!g_connection) {
+        return false
+    }
     try {
         return await g_connection.sendRequest(requestTypeIsModuleLoaded, { mod: mod })
     } catch (err) {
@@ -160,7 +181,7 @@ async function chooseModule() {
 
     const qpOptions: vscode.QuickPickOptions = {
         placeHolder: 'Select module',
-        canPickMany: false
+        canPickMany: false,
     }
     const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
 

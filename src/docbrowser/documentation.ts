@@ -17,16 +17,18 @@ function openArgs(href: string) {
     return { uri, line }
 }
 
-const md = new markdownit().use(
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('@traptitech/markdown-it-katex'),
-    {
-        output: 'html'
-    }
-).use(
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('markdown-it-footnote')
-)
+const md = new markdownit()
+    .use(
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require('@traptitech/markdown-it-katex'),
+        {
+            output: 'html',
+        }
+    )
+    .use(
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require('markdown-it-footnote')
+    )
 
 // add custom validator to allow for file:// links
 const BAD_PROTO_RE = /^(vbscript|javascript|data):/
@@ -88,11 +90,13 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
         view.webview.options = {
             enableScripts: true,
-            enableCommandUris: true
+            enableCommandUris: true,
         }
-        view.webview.html = this.createWebviewHTML('Use the `language-julia.show-documentation` command in an editor or search for documentation above.')
+        view.webview.html = this.createWebviewHTML(
+            'Use the `language-julia.show-documentation` command in an editor or search for documentation above.'
+        )
 
-        view.webview.onDidReceiveMessage(msg => {
+        view.webview.onDidReceiveMessage((msg) => {
             if (msg.type === 'search') {
                 this.showDocumentationFromWord(msg.query)
             } else {
@@ -115,7 +119,9 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
     async showDocumentationFromWord(word: string) {
         const docAsMD = await this.getDocumentationFromWord(word)
-        if (!docAsMD) { return }
+        if (!docAsMD) {
+            return
+        }
 
         await this.showDocumentationPane()
         const html = this.createWebviewHTML(docAsMD)
@@ -124,9 +130,10 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
     async getDocumentationFromWord(word: string): Promise<string> {
         return await withLanguageClient(
-            async languageClient => {
+            async (languageClient) => {
                 return await languageClient.sendRequest('julia/getDocFromWord', { word: word })
-            }, err => {
+            },
+            (err) => {
                 console.error('LC request failed with ', err)
                 return ''
             }
@@ -136,10 +143,14 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
     async showDocumentation() {
         // telemetry.traceEvent('command-showdocumentation')
         const editor = vscode.window.activeTextEditor
-        if (!editor) { return }
+        if (!editor) {
+            return
+        }
 
         const docAsMD = await this.getDocumentation(editor)
-        if (!docAsMD) { return }
+        if (!docAsMD) {
+            return
+        }
 
         this.forwardStack = [] // initialize forward page stack for manual search
         await this.showDocumentationPane()
@@ -149,9 +160,13 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
     async getDocumentation(editor: vscode.TextEditor): Promise<string> {
         return await withLanguageClient(
-            async languageClient => {
-                return await languageClient.sendRequest<string>('julia/getDocAt', getVersionedParamsAtPosition(editor.document, editor.selection.start))
-            }, err => {
+            async (languageClient) => {
+                return await languageClient.sendRequest<string>(
+                    'julia/getDocAt',
+                    getVersionedParamsAtPosition(editor.document, editor.selection.start)
+                )
+            },
+            (err) => {
                 console.error('LC request failed with ', err)
                 return ''
             }
@@ -163,14 +178,28 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
         const extensionPath = this.context.extensionPath
 
-        const googleFontscss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css')))
-        const fontawesomecss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css')))
-        const solidcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css')))
-        const brandscss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css')))
-        const documenterStylesheetcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', 'documenter-vscode.css')))
-        const katexcss = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css')))
+        const googleFontscss = this.view.webview.asWebviewUri(
+            vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css'))
+        )
+        const fontawesomecss = this.view.webview.asWebviewUri(
+            vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css'))
+        )
+        const solidcss = this.view.webview.asWebviewUri(
+            vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css'))
+        )
+        const brandscss = this.view.webview.asWebviewUri(
+            vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css'))
+        )
+        const documenterStylesheetcss = this.view.webview.asWebviewUri(
+            vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', 'documenter-vscode.css'))
+        )
+        const katexcss = this.view.webview.asWebviewUri(
+            vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css'))
+        )
 
-        const webfontjs = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
+        const webfontjs = this.view.webview.asWebviewUri(
+            vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js'))
+        )
 
         return `
     <html lang="en" class='theme--documenter-vscode'>
@@ -302,7 +331,9 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
     }
 
     browseBack() {
-        if (!this.isBrowseBackAvailable()) { return }
+        if (!this.isBrowseBackAvailable()) {
+            return
+        }
 
         const current = this.backStack.pop()
         this.forwardStack.push(current)
@@ -311,7 +342,9 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
     }
 
     browseForward() {
-        if (!this.isBrowseForwardAvailable()) { return }
+        if (!this.isBrowseForwardAvailable()) {
+            return
+        }
 
         this.setHTML(this.forwardStack.pop())
     }

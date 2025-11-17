@@ -17,7 +17,6 @@ export default defineConfig(
             eqeqeq: 'error',
             'no-throw-literal': 'warn',
             'prefer-const': 'warn',
-            'no-extra-semi': 'warn',
             'no-var': 'warn',
         },
     }

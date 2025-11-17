@@ -2,8 +2,8 @@ import * as vscode from 'vscode'
 import * as path from 'path'
 
 export interface TaskRunnerTerminalOptions {
-    cwd?: string|vscode.Uri
-    env?: {[key: string]: string}
+    cwd?: string | vscode.Uri
+    env?: { [key: string]: string }
     shellIntegrationNonce?: string
     message?: string
     iconPath?: vscode.IconPath
@@ -30,13 +30,26 @@ export class TaskRunnerTerminal {
 
     private disposables: vscode.Disposable[] = []
 
-    constructor(context: vscode.ExtensionContext, name: string, shellPath:string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
+    constructor(
+        context: vscode.ExtensionContext,
+        name: string,
+        shellPath: string,
+        shellArgs: string[],
+        opts: TaskRunnerTerminalOptions = {}
+    ) {
         let execPath: string
         let args: string[]
 
         if (process.platform === 'win32') {
             execPath = 'powershell.exe'
-            args = ['-executionPolicy', 'bypass', '-File', path.join(context.extensionPath, 'scripts', 'wrappers', 'procwrap.ps1'), winEscape(shellPath), ...shellArgs.map(winEscape)]
+            args = [
+                '-executionPolicy',
+                'bypass',
+                '-File',
+                path.join(context.extensionPath, 'scripts', 'wrappers', 'procwrap.ps1'),
+                winEscape(shellPath),
+                ...shellArgs.map(winEscape),
+            ]
         } else {
             execPath = path.join(context.extensionPath, 'scripts', 'wrappers', 'procwrap.sh')
             args = [shellPath, ...shellArgs]
@@ -50,7 +63,7 @@ export class TaskRunnerTerminal {
             shellPath: execPath,
             shellArgs: args,
             iconPath: new vscode.ThemeIcon('tools'),
-            ...opts
+            ...opts,
         }
 
         this.terminal = vscode.window.createTerminal(options)
@@ -60,7 +73,7 @@ export class TaskRunnerTerminal {
 
         this.disposables.push(
             onDidCloseEmitter,
-            vscode.window.onDidCloseTerminal(terminal => {
+            vscode.window.onDidCloseTerminal((terminal) => {
                 if (terminal === this.terminal) {
                     onDidCloseEmitter.fire(terminal)
                     this._dispose()

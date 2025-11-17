@@ -9,11 +9,14 @@ export function constructCommandString(cmd: string, args: object = {}) {
     return `command:${cmd}?${encodeURIComponent(JSON.stringify(args))}`
 }
 
-export function getVersionedParamsAtPosition(document: vscode.TextDocument, position: vscode.Position): VersionedTextDocumentPositionParams {
+export function getVersionedParamsAtPosition(
+    document: vscode.TextDocument,
+    position: vscode.Position
+): VersionedTextDocumentPositionParams {
     return {
         textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
         version: document.version,
-        position
+        position,
     }
 }
 
@@ -24,8 +27,7 @@ export function setContext(contextKey: string, state: unknown) {
 export function generatePipeName(pid: string, name: string) {
     if (process.platform === 'win32') {
         return '\\\\.\\pipe\\' + name + '-' + pid
-    }
-    else {
+    } else {
         return path.join(os.tmpdir(), name + '-' + pid)
     }
 }
@@ -46,13 +48,13 @@ export function generatePipeName(pid: string, name: string) {
  * @returns A string to set the value of `JULIA_NUM_THREADS`, or undefined.
  */
 export function inferJuliaNumThreads(): string | undefined {
-    const config: number | string | undefined = vscode.workspace.getConfiguration('julia').get('NumThreads') ?? undefined
+    const config: number | string | undefined =
+        vscode.workspace.getConfiguration('julia').get('NumThreads') ?? undefined
     const env: string | undefined = process.env['JULIA_NUM_THREADS']
 
     if (config !== undefined) {
         return config.toString()
-    }
-    else if (env !== undefined) {
+    } else if (env !== undefined) {
         return env
     }
 
@@ -69,7 +71,7 @@ export function registerCommand(cmd: string, f) {
             return f(...args)
         } catch (err) {
             handleNewCrashReportFromException(err, 'Extension')
-            throw (err)
+            throw err
         }
     }
     return vscode.commands.registerCommand(cmd, fWrapped)
@@ -81,7 +83,7 @@ export function wrapCrashReporting(f) {
             return f(...args)
         } catch (err) {
             handleNewCrashReportFromException(err, 'Extension')
-            throw (err)
+            throw err
         }
     }
 

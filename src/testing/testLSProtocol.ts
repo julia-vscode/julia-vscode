@@ -1,7 +1,7 @@
 import * as lsp from 'vscode-languageserver-protocol'
 
 export interface TestItemDetail {
-    id: string,
+    id: string
     label: string
     range: lsp.Range
     code: string
@@ -20,21 +20,23 @@ export interface TestSetupDetail {
 }
 
 export interface TestErrorDetail {
-    id: string,
-    label: string,
+    id: string
+    label: string
     range: lsp.Range
     error: string
 }
 
 export interface PublishTestsParams {
     uri: lsp.URI
-    version: number,
+    version: number
     testItemDetails: TestItemDetail[]
     testSetupDetails: TestSetupDetail[]
     testErrorDetails: TestErrorDetail[]
 }
 
-export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams,void>('julia/publishTests')
+export const notifyTypeTextDocumentPublishTests = new lsp.ProtocolNotificationType<PublishTestsParams, void>(
+    'julia/publishTests'
+)
 
 export interface GetTestEnvRequestParamsReturn {
     packageName?: string
@@ -43,4 +45,10 @@ export interface GetTestEnvRequestParamsReturn {
     envContentHash?: string
 }
 
-export const requestTypJuliaGetTestEnv = new lsp.ProtocolRequestType<{uri: string},GetTestEnvRequestParamsReturn,void,void,void>('julia/getTestEnv')
+export const requestTypJuliaGetTestEnv = new lsp.ProtocolRequestType<
+    { uri: string },
+    GetTestEnvRequestParamsReturn,
+    void,
+    void,
+    void
+>('julia/getTestEnv')
