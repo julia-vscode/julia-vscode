@@ -12,7 +12,7 @@ async function our_download(url: string, destination: string) {
         await fs.access(path.join(dest_path, path.basename(destination)))
         await fs.unlink(path.join(dest_path, path.basename(destination)))
     }
-    catch (err) {
+    catch {
         console.log(`Could not delete file '${path.join(dest_path, path.basename(destination))}'.`)
     }
 
@@ -120,6 +120,7 @@ async function main() {
             await cp.exec(`juliaup add ${v}`)
         }
         catch (err) {
+            console.error(err)
         }
 
         console.log(`Updating environments for Julia ${v}...`)
@@ -164,13 +165,14 @@ async function main() {
         await cp.exec(`juliaup add release`)
     }
     catch (err) {
-
+        console.error(err)
     }
 
     try {
         await cp.exec(`juliaup add nightly`)
     }
     catch (err) {
+        console.error(err)
     }
 
     // We also add a fallback release env in case a user has a Julia version we don't know about

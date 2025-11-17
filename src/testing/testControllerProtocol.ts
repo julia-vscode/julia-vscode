@@ -94,7 +94,7 @@ export const notficiationTypeTestItemSkipped = new rpc.NotificationType<{testRun
 
 export const notificationTypeAppendOutput = new rpc.NotificationType<{testRunId: string, testItemId?: string, output: string}>('appendOutput')
 
-export const notificationTypeTestProcessCreated = new rpc.NotificationType<{id: string, packageName: string, packageUri?: string, projectUri?: string, coverage: boolean, env: any}>('testProcessCreated')
+export const notificationTypeTestProcessCreated = new rpc.NotificationType<{id: string, packageName: string, packageUri?: string, projectUri?: string, coverage: boolean, env: {[key: string]: string}}>('testProcessCreated')
 
 export const notificationTypeTestProcessTerminated = new rpc.NotificationType<{id: string}>('testProcessTerminated')
 

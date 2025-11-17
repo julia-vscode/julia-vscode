@@ -68,7 +68,7 @@ async function newJuliaFile(uri?: vscode.Uri) {
             const document = await vscode.workspace.openTextDocument(targetUri)
             await vscode.languages.setTextDocumentLanguage(document, 'julia')
             await vscode.window.showTextDocument(document)
-        } catch (err) {
+        } catch {
             vscode.window.showErrorMessage(`Failed to create ${targetUri.fsPath}`)
         }
     } else {

@@ -52,7 +52,7 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         this.context = context
     }
 
-    resolveWebviewView(view: vscode.WebviewView, context: vscode.WebviewViewResolveContext) {
+    resolveWebviewView(view: vscode.WebviewView) {
         this.view = view
 
         view.webview.options = {
@@ -151,7 +151,7 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         this.setHTML(this.getWebviewHTML(innerHTML))
     }
 
-    postMessageToWebview(message: any) {
+    postMessageToWebview(message: unknown) {
         if (this.view) {
             this.view.webview.postMessage(message)
         }
@@ -890,7 +890,7 @@ async function _writePlotFile(fileName: string, data: FileLike) {
         let isFile = true
         try {
             await fs.access(plotsDirFullPath)
-        } catch (err) {
+        } catch {
             isFile = false
         }
         if (!isFile) {

@@ -18,8 +18,8 @@ const requestTypeGetDebugItems = new rpc.RequestType<
 export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugConfigTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<DebugConfigTreeItem | undefined> = new vscode.EventEmitter<DebugConfigTreeItem | undefined>()
     readonly onDidChangeTreeData: vscode.Event<DebugConfigTreeItem | undefined> = this._onDidChangeTreeData.event
-    private _onDidChangeCompiledMode: vscode.EventEmitter<Boolean> = new vscode.EventEmitter<Boolean>()
-    readonly onDidChangeCompiledMode: vscode.Event<Boolean> = this._onDidChangeCompiledMode.event
+    private _onDidChangeCompiledMode: vscode.EventEmitter<boolean> = new vscode.EventEmitter<boolean>()
+    readonly onDidChangeCompiledMode: vscode.Event<boolean> = this._onDidChangeCompiledMode.event
     private _compiledItems: Set<string> = new Set()
     public compiledMode = false
     private _connection = null
@@ -283,8 +283,8 @@ export function activate(context: vscode.ExtensionContext) {
             provider.setConnection(connection)
             provider.refresh()
         })),
-        onFinishEval(_ => provider.refresh()),
-        onExit(e => {
+        onFinishEval(() => provider.refresh()),
+        onExit(() => {
             provider.setConnection(null)
             provider.refresh()
         }),

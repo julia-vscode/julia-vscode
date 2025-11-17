@@ -6,10 +6,10 @@ import { g_connection } from './repl'
 
 const requestTypeGetTableData = new rpc.RequestType<{
     id: string,
-    startRow: Number,
-    endRow: Number,
-    filterModel: any,
-    sortModel: any
+    startRow: number,
+    endRow: number,
+    filterModel: object,
+    sortModel: object
 }, string, void>('repl/getTableData')
 const clearLazyTable = new rpc.NotificationType<{
     id: string

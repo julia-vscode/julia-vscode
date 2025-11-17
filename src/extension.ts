@@ -45,7 +45,7 @@ let g_testFeature: TestFeature = null
 let g_traceOutputChannel: vscode.OutputChannel = null
 let g_outputChannel: vscode.OutputChannel = null
 
-export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b(\s*|\s*#.*)$)|(?:[^\[]*\].*)$).*$/
+export const increaseIndentPattern: RegExp = /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b(\s*|\s*#.*)$)|(?:[^[]*\].*)$).*$/
 export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -195,7 +195,9 @@ function setLanguageClient(languageClient: LanguageClient = null) {
 }
 
 export async function withLanguageClient(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (languageClient: LanguageClient) => any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callbackOnHandledErr: (err: Error) => any
 ) {
     if (g_languageClient === null) {
@@ -248,7 +250,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     const juliaExecutable = await juliaExecutablesFeature.getActiveLaunguageServerJuliaExecutableAsync()
 
     if (await juliaExecutablesFeature.isJuliaup()) {
-        if (Boolean(process.env.DEBUG_MODE)) {
+        if (process.env.DEBUG_MODE) {
             juliaLSExecutable = await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
         } else {
             const exePaths = await juliaExecutablesFeature.getJuliaExePathsAsync()
@@ -337,7 +339,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         }
     }
 
-    const serverOptions: ServerOptions = Boolean(process.env.DETACHED_LS) ?
+    const serverOptions: ServerOptions = process.env.DETACHED_LS ?
         async () => {
             // TODO Add some loop here that retries in case the LSP is not yet ready
             const conn = net.connect(7777)
@@ -375,6 +377,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     // Create the language client and start the client.
     const languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
     languageClient.registerProposedFeatures()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     languageClient.onTelemetry((data: any) => {
         if (data.command === 'trace_event') {
             telemetry.traceEvent(data.message)
@@ -426,7 +429,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
         setLanguageClient(languageClient)
         await languageClient.start()
     }
-    catch (e) {
+    catch {
         vscode.window.showErrorMessage('Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.', 'Open Settings').then(val => {
             if (val) {
                 vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')

@@ -22,7 +22,7 @@ let g_jlcrashreportingpipename: string = null
 
 let g_prereleaseExtension: boolean = false
 
-function filterTelemetry(envelope, context) {
+function filterTelemetry(envelope) {
     if (envelope.data.baseType === 'ExceptionData') {
         if (enableCrashReporter) {
             for (const i_ex in envelope.data.baseData.exceptions) {
@@ -54,7 +54,7 @@ function loadConfig() {
 export async function init(context: vscode.ExtensionContext) {
     loadConfig()
 
-    context.subscriptions.push(onDidChangeConfig(event => {
+    context.subscriptions.push(onDidChangeConfig(() => {
         loadConfig()
     }))
 
@@ -108,9 +108,8 @@ export async function init(context: vscode.ExtensionContext) {
     extensionClient.context.tags[extensionClient.context.keys.userId] = vscode.env.machineId
 
     const logger = vscode.env.createTelemetryLogger({
-        sendEventData: (eventName: string, data?: Record<string, any>) => {
-        },
-        sendErrorData: (error: Error, data?: Record<string, any>) => {
+        sendEventData: () => {},
+        sendErrorData: (error: Error) => {
             handleNewCrashReportFromException(error, 'Extension')
         }
     })
@@ -174,7 +173,7 @@ export function startLsCrashServer() {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)])
         })
 
-        connection.on('close', async function (had_err) {
+        connection.on('close', async function () {
             const replResponse = accumulatingBuffer.toString().split('\n')
             const errorMessageLines = parseInt(replResponse[2])
             const errorMessage = replResponse.slice(3, 3 + errorMessageLines).join('\n')

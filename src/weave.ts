@@ -51,6 +51,7 @@ async function weave_core(column, selected_format: string = undefined) {
             g_weaveChildProcess.kill()
         }
         catch (e) {
+            console.log(e)
         }
     }
 

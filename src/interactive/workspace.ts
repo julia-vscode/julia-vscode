@@ -145,7 +145,7 @@ export class TestProcessNode extends AbstractWorkspaceNode {
         private treeProvider: REPLTreeDataProvider) {
         super()
 
-        testProcess.onStatusChanged(e => {
+        testProcess.onStatusChanged(() => {
             this.treeProvider.refresh()
         })
     }
@@ -241,7 +241,7 @@ export class WorkspaceFeature {
             ),
             // listeners
             onInit(wrapCrashReporting(conn => this.openREPL(conn))),
-            onExit((err) => this.closeREPL(err)),
+            onExit(() => this.closeREPL()),
             // commands
             registerCommand('language-julia.showInVSCode', (node: VariableNode) =>
                 this.showInVSCode(node)
@@ -262,7 +262,7 @@ export class WorkspaceFeature {
         this._REPLNode = new REPLNode(connection, this._REPLTreeDataProvider)
     }
 
-    private closeREPL(err) {
+    private closeREPL() {
         this._REPLNode.dispose()
         this._REPLNode = null
         this._REPLTreeDataProvider.refresh()
@@ -286,12 +286,12 @@ export class WorkspaceFeature {
     public async addNotebookKernel(kernel: JuliaKernel) {
         const node = new NotebookNode(kernel, this._REPLTreeDataProvider)
         this._NotebookNodes.push(node)
-        kernel.onCellRunFinished((e) => node.updateReplVariables())
-        kernel.onConnected((e) => {
+        kernel.onCellRunFinished(() => node.updateReplVariables())
+        kernel.onConnected(() => {
             kernel._msgConnection.onNotification(notifyTypeDisplay, (params) => displayPlot(params, kernel))
             node.updateReplVariables()
         })
-        kernel.onStopped((e) => {
+        kernel.onStopped(() => {
             this._NotebookNodes = this._NotebookNodes.filter(x => x !== node)
             this._REPLTreeDataProvider.refresh()
         })
@@ -311,7 +311,7 @@ export class WorkspaceFeature {
     public async addTestController(testController: JuliaTestController) {
         const node = new TestControllerNode(testController)
         this._TestController = node
-        testController.onKilled((e) => {
+        testController.onKilled(() => {
             this._TestController = null
             this._REPLTreeDataProvider.refresh()
         })
@@ -404,9 +404,8 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
                 treeItem.iconPath = new vscode.ThemeIcon('loading~spin')
             } else if (status === 'Idle') {
                 // treeItem.iconPath = new vscode.ThemeIcon('server-process')
-            } else {
-
             }
+
             treeItem.description = node.testProcess.packageName
             treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.packageUri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.projectUri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.\n\nThe env is ${node.testProcess.env}.`)
             treeItem.contextValue = 'juliatestprocess'

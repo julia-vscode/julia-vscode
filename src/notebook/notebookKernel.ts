@@ -104,7 +104,7 @@ export class JuliaKernel {
 
         // Now create execution object that actually will run the code
         const execution = this.controller.createNotebookCellExecution(cell)
-        execution.token.onCancellationRequested((e) => {
+        execution.token.onCancellationRequested(() => {
             execution.end(undefined)
             this.interrupt()
         })

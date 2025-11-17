@@ -50,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
         g_connection = conn
         updateStatusBarItem()
     }))
-    onExit(hadError => {
+    onExit(() => {
         g_connection = null
         updateStatusBarItem()
     })

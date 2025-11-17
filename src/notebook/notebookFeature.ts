@@ -1,4 +1,4 @@
-/* eslint-disable semi */
+
 import * as semver from 'semver'
 import * as vscode from 'vscode'
 import { NotebookNode, WorkspaceFeature } from '../interactive/workspace'
@@ -26,7 +26,7 @@ type JupyterNotebookMetadata = Partial<{
 }>
 
 function getNotebookMetadata(notebook: vscode.NotebookDocument): JupyterNotebookMetadata['metadata'] | undefined{
-    return notebook.metadata?.metadata as any;
+    return notebook.metadata?.metadata as JupyterNotebookMetadata['metadata'] | undefined
 }
 
 export class JuliaNotebookFeature {
@@ -112,7 +112,7 @@ export class JuliaNotebookFeature {
         })
     }
 
-    getKernelByDebugPipename(pipename: any) {
+    getKernelByDebugPipename(pipename: string) {
         return this.debugPipenameToKernel.get(pipename)
     }
 
@@ -182,9 +182,9 @@ export class JuliaNotebookFeature {
         // and prefer x64 builds
         const perfectMatchVersions = Array.from(this._controllers.entries())
             .filter(
-                ([_, juliaExec]) => juliaExec.getVersion().toString() === semver.parse(version).toString()
+                ([, juliaExec]) => juliaExec.getVersion().toString() === semver.parse(version).toString()
             )
-            .sort(([_, a], [__, b]) => {
+            .sort(([, a], [, b]) => {
                 // First, we give preference to official releases, rather than linked juliaup channels
                 if (a.officialChannel !== b.officialChannel) {
                     return a.officialChannel ? -1 : 1
@@ -218,7 +218,7 @@ export class JuliaNotebookFeature {
             })
 
         if (perfectMatchVersions.length > 0) {
-            const [controller, _] = perfectMatchVersions[0]
+            const [controller,] = perfectMatchVersions[0]
 
             controller.updateNotebookAffinity(
                 e,
@@ -228,12 +228,12 @@ export class JuliaNotebookFeature {
             // Find all controllers where the major and minor version match. Put newer patch versions first,
             // and then have the same preference ordering that we had above
             const minorMatchVersions = Array.from(this._controllers.entries())
-                .filter(([_, juliaExec]) => {
+                .filter(([, juliaExec]) => {
                     const v1 = juliaExec.getVersion()
                     const v2 = semver.parse(version)
                     return v1.major === v2.major && v1.minor === v2.minor
                 })
-                .sort(([_, a], [__, b]) => {
+                .sort(([, a], [, b]) => {
                     const aVer = a.getVersion()
                     const bVer = b.getVersion()
                     if (aVer.patch !== bVer.patch) {
@@ -256,7 +256,7 @@ export class JuliaNotebookFeature {
                 })
 
             if (minorMatchVersions.length > 0) {
-                const [controller, _] = minorMatchVersions[0]
+                const [controller, ] = minorMatchVersions[0]
 
                 controller.updateNotebookAffinity(
                     e,
@@ -374,7 +374,7 @@ export class JuliaNotebookFeature {
         await this.workspaceFeature.addNotebookKernel(kernel)
         this.kernels.set(notebook, kernel)
 
-        kernel.onStopped((e) => {
+        kernel.onStopped(() => {
             if (this.kernels.get(kernel.notebook) === kernel) {
                 this.kernels.delete(kernel.notebook)
             }

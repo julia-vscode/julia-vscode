@@ -61,10 +61,12 @@ async function confirmKill() {
     switch (choice) {
     case disconnectAlways:
         vscode.workspace.getConfiguration('julia').update('persistentSession.closeStrategy', 'disconnect', vscode.ConfigurationTarget.Global)
+        return false
     case disconnect:
         return false
     case closeAlways:
         vscode.workspace.getConfiguration('julia').update('persistentSession.closeStrategy', 'close', vscode.ConfigurationTarget.Global)
+        return true
     case close:
         return true
     }
@@ -151,7 +153,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         return jlarg2
     }
 
-    const env: any = {
+    const env: {[key: string]: string} = {
         JULIA_EDITOR: getEditor(),
         JULIA_VSCODE_REPL: isPersistentSession ? null : '1',
     }
@@ -293,7 +295,7 @@ async function _connectREPL(juliaIsConnectedPromise) {
     try {
         await juliaIsConnectedPromise.wait()
         vscode.window.showInformationMessage('Successfully connected to external Julia REPL.')
-    } catch (err) {
+    } catch {
         vscode.window.showErrorMessage('Failed to connect to external Julia REPL.')
     }
 }
@@ -345,25 +347,25 @@ const requestTypeReplRunCode = new rpc.RequestType<{
 //     pipename: String,
 // }
 
-export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: any }>('display')
+export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string, data: string }>('display')
 const notifyTypeReplAttachDebgger = new rpc.NotificationType<{pipename: string}>('debugger/attach')
 const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
-const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: any, typ: string }>('repl/showprofileresult')
+const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: unknown, typ: string }>('repl/showprofileresult')
 const notifyTypeOpenFile = new rpc.NotificationType<{ path: string, line: number, preserveFocus: boolean }>('repl/openFile')
 
 interface Progress {
     id: { value: number },
     name: string,
     fraction: number,
-    done: Boolean
+    done: boolean
 }
 const notifyTypeProgress = new rpc.NotificationType<Progress>('repl/updateProgress')
 
 const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
 export const onInit = g_onInit.event
-const g_onExit = new vscode.EventEmitter<Boolean>()
+const g_onExit = new vscode.EventEmitter<boolean>()
 export const onExit = g_onExit.event
 const g_onStartEval = new vscode.EventEmitter<null>()
 export const onStartEval = g_onStartEval.event
@@ -433,7 +435,7 @@ async function updateProgress(progress: Progress) {
                     started: new Date(),
                     resolve: resolve,
                 }
-                token.onCancellationRequested(ev => {
+                token.onCancellationRequested(() => {
                     interrupt()
                 })
                 prog.report({
@@ -488,11 +490,30 @@ function clearProgress() {
     }
 }
 
+interface InlayHintConfig {
+    position: number[]
+    label: string
+    kind?: number
+    tooltip?: string
+    paddingLeft?: boolean
+    paddingRight?: boolean
+}
+
+type DisplayTypeUnion = { source: string, items: DiagnosticData[] } | {[key: string]: InlayHintConfig} | string
+
+function isDiagnostic(kind: string, data: DisplayTypeUnion): data is { source: string, items: DiagnosticData[] } {
+    return kind === 'application/vnd.julia-vscode.diagnostics'
+}
+
+function isInlayHint(kind: string, data: DisplayTypeUnion): data is {[key: string]: InlayHintConfig} {
+    return kind === 'application/vnd.julia-vscode.inlayHints'
+}
+
 let g_inlayHintsProvider = null
-function display(params: { kind: string, data: any }) {
-    if (params.kind === 'application/vnd.julia-vscode.diagnostics') {
+function display(params: { kind: string, data: DisplayTypeUnion }) {
+    if (isDiagnostic(params.kind, params.data)) {
         displayDiagnostics(params.data)
-    } else if (params.kind === 'application/vnd.julia-vscode.inlayHints') {
+    } else if (isInlayHint(params.kind, params.data)) {
         clearInlayHints()
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('inlayHints.static.enabled')) {
@@ -507,7 +528,7 @@ function display(params: { kind: string, data: any }) {
 
         const parsedInlayHints = {}
         Object.keys(params.data).forEach(key => {
-            parsedInlayHints[vscode.Uri.file(key).fsPath] = params.data[key].map((hint) => {
+            parsedInlayHints[vscode.Uri.file(key).fsPath] = params.data[key].map((hint: InlayHintConfig) => {
                 const tmpInlayHint = new vscode.InlayHint(new vscode.Position(hint.position[0], hint.position[1]), hint.label, hint.kind)
                 if (hint.tooltip) {
                     tmpInlayHint.tooltip = hint.tooltip
@@ -524,12 +545,12 @@ function display(params: { kind: string, data: any }) {
         })
 
         g_inlayHintsProvider = vscode.languages.registerInlayHintsProvider('julia', {
-            provideInlayHints(document, range, token) {
+            provideInlayHints(document) {
                 return parsedInlayHints[document.uri.fsPath]
             }
         })
     } else {
-        plots.displayPlot(params)
+        plots.displayPlot(params as {kind: string, data: string})
     }
 }
 
@@ -539,7 +560,7 @@ function clearInlayHints() {
     }
 }
 
-interface diagnosticData {
+interface DiagnosticData {
     msg: string,
     path: string,
     line?: number,
@@ -553,7 +574,7 @@ interface diagnosticData {
     }[]
 }
 const g_trace_diagnostics: Map<string, vscode.DiagnosticCollection> = new Map()
-function displayDiagnostics(data: { source: string, items: diagnosticData[] }) {
+function displayDiagnostics(data: { source: string, items: DiagnosticData[] }) {
     const source = data.source
 
     if (g_trace_diagnostics.has(source)) {
@@ -1167,7 +1188,14 @@ async function getDirUriFsPath(uri: vscode.Uri | undefined) {
     }
 }
 
-async function linkHandler(link: any) {
+interface JuliaTerminalLink extends vscode.TerminalLink {
+    data: {
+        file: string,
+        line: number
+    }
+}
+
+async function linkHandler(link: JuliaTerminalLink) {
     let file = link.data.file
     const line = link.data.line
 
@@ -1180,12 +1208,12 @@ async function linkHandler(link: any) {
     }
     try {
         await openFile(file, line)
-    } catch (err) {
+    } catch {
         console.debug('This file does not exist.')
     }
 }
 
-function linkProvider(context: vscode.TerminalLinkContext, token: vscode.CancellationToken) {
+function linkProvider(context: vscode.TerminalLinkContext): JuliaTerminalLink[] {
     const line = context.line
     // Can't link to the REPL
     if (/\bREPL\[\d+\]/.test(line)) {
@@ -1200,7 +1228,7 @@ function linkProvider(context: vscode.TerminalLinkContext, token: vscode.Cancell
                 length: match[0].length - match[1].length,
                 data: {
                     file: match[2],
-                    line: match[3]
+                    line: parseInt(match[3])
                 }
             }
         ]
@@ -1340,7 +1368,7 @@ export function activate(context: vscode.ExtensionContext, compiledProvider, jul
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')
-    const shellSkipCommands: Array<String> = terminalConfig.get('commandsToSkipShell')
+    const shellSkipCommands: Array<string> = terminalConfig.get('commandsToSkipShell')
     if (shellSkipCommands.indexOf('language-julia.interrupt') === -1) {
         shellSkipCommands.push('language-julia.interrupt')
         terminalConfig.update('commandsToSkipShell', shellSkipCommands, vscode.ConfigurationTarget.Global)

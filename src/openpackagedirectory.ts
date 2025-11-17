@@ -32,13 +32,13 @@ async function openPackageDirectoryCommand() {
                 try {
                     await vscode.commands.executeCommand('vscode.openFolder', folder, true)
                 }
-                catch (e) {
+                catch {
                     vscode.window.showInformationMessage('Could not open the package.')
                 }
             }
         }
     }
-    catch (e) {
+    catch {
         vscode.window.showInformationMessage('Error: Could not read package directory.')
     }
 }

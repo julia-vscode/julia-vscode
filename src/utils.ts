@@ -5,7 +5,7 @@ import * as vslc from 'vscode-languageclient'
 import { VersionedTextDocumentPositionParams } from './interactive/misc'
 import { handleNewCrashReportFromException } from './telemetry'
 
-export function constructCommandString(cmd: string, args: any = {}) {
+export function constructCommandString(cmd: string, args: object = {}) {
     return `command:${cmd}?${encodeURIComponent(JSON.stringify(args))}`
 }
 
@@ -17,7 +17,7 @@ export function getVersionedParamsAtPosition(document: vscode.TextDocument, posi
     }
 }
 
-export function setContext(contextKey: string, state: any) {
+export function setContext(contextKey: string, state: unknown) {
     vscode.commands.executeCommand('setContext', contextKey, state)
 }
 
@@ -123,13 +123,13 @@ export function parseVSCodeVariables(p?: string) {
     const workspace_paths = (vscode.workspace.workspaceFolders ?? []).map((folder) => {
         return folder.uri.fsPath
     })
-    p = p.replace(/\${workspaceFolderBasename}/g, (_) => {
+    p = p.replace(/\${workspaceFolderBasename}/g, () => {
         if (workspace_paths.length === 0) {
             return null
         }
         return path.basename(workspace_paths[0])
     })
-    p = p.replace(/\${workspaceFolder}/g, (_) => {
+    p = p.replace(/\${workspaceFolder}/g, () => {
         // In the case of a multi-root workspace, we return the first one.
         return workspace_paths.length >= 1 ? workspace_paths[0] : null
     })
@@ -145,7 +145,7 @@ export function parseVSCodeVariables(p?: string) {
     p = p.replace(/\${env:(.*?)}/g, (_, variable) => {
         return process.env[variable] || ''
     })
-    p = p.replace(/\${config:(.*?)}/g, (_, variable: String) => {
+    p = p.replace(/\${config:(.*?)}/g, (_, variable: string) => {
         const parts = variable.split('.')
         const leaf = parts.pop()
         const section = parts.length > 0 ? parts.join('.') : undefined

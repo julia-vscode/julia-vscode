@@ -413,7 +413,7 @@ export class JuliaExecutablesFeature {
                     return undefined
                 }
                 this.actualJuliaupExePath = new JuliaupExecutable(versionString.slice(versionPrefix.length), 'juliaup')
-            } catch (error) {
+            } catch {
                 this.diagnosticsOutput.appendLine('Cannot find juliaup binary!')
                 return undefined
             }

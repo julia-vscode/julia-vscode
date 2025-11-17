@@ -203,13 +203,13 @@ class JuliaTaskProvider {
             }
 
             return result
-        } catch (e) {
+        } catch  {
             // TODO Let things crash and go to crash reporting
             return emptyTasks
         }
     }
 
-    resolveTask(task: vscode.Task) {
+    resolveTask() {
         return undefined
     }
 }

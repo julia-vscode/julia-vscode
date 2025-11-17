@@ -10,6 +10,7 @@ import { getCrashReportingPipename } from '../telemetry'
 import { DebugProtocol } from '@vscode/debugprotocol'
 import { JuliaNotebookFeature } from '../notebook/notebookFeature'
 import { JuliaKernel } from '../notebook/notebookKernel'
+import { DebugConfigTreeProvider } from './debugConfig'
 
 // /**
 //  * This interface describes the Julia specific launch attributes
@@ -49,7 +50,7 @@ function visitSources(msg: DebugProtocol.ProtocolMessage, visitor: (source: Debu
     }
 
     switch (msg.type) {
-    case 'event':
+    case 'event':{
         const event = <DebugProtocol.Event>msg
         switch (event.event) {
         case 'output':
@@ -64,8 +65,8 @@ function visitSources(msg: DebugProtocol.ProtocolMessage, visitor: (source: Debu
         default:
             break
         }
-        break
-    case 'request':
+        break}
+    case 'request':{
         const request = <DebugProtocol.Request>msg
         switch (request.command) {
         case 'setBreakpoints':
@@ -86,8 +87,8 @@ function visitSources(msg: DebugProtocol.ProtocolMessage, visitor: (source: Debu
         default:
             break
         }
-        break
-    case 'response':
+        break}
+    case 'response':{
         const response = <DebugProtocol.Response>msg
         if (response.success && response.body) {
             switch (response.command) {
@@ -110,7 +111,7 @@ function visitSources(msg: DebugProtocol.ProtocolMessage, visitor: (source: Debu
                 break
             }
         }
-        break
+        break }
     }
 }
 
@@ -147,7 +148,7 @@ export class JuliaDebugFeature {
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
             vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory),
-            registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
+            registerCommand('language-julia.debug.getActiveJuliaEnvironment', async () => {
                 return await jlpkgenv.getAbsEnvPath()
             }),
             registerCommand('language-julia.runEditorContents', async (resource: vscode.Uri | undefined) => {
@@ -265,7 +266,7 @@ function getActiveUri(
 }
 
 export class JuliaDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
-    compiledProvider: any
+    compiledProvider: DebugConfigTreeProvider
 
     constructor(compiledProvider) {
         this.compiledProvider = compiledProvider
@@ -273,7 +274,6 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
         config: vscode.DebugConfiguration,
-        token?: vscode.CancellationToken,
     ): vscode.ProviderResult<vscode.DebugConfiguration> {
         if (!config.request) {
             config.request = 'launch'
@@ -342,7 +342,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
             const connectedPromise = new Subject()
             const serverListeningPromise = new Subject()
 
-            const readyServer = net.createServer(socket => {
+            const readyServer = net.createServer(() => {
                 connectedPromise.notify()
             })
 

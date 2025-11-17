@@ -51,7 +51,7 @@ export class JuliaTestProcess {
         public packageUri: string | undefined,
         public projectUri: string | undefined,
         public coverage: boolean | undefined,
-        public env: any,
+        public env: {[key: string]: string},
         private controller: JuliaTestController) {
         this.status = 'Created'
     }
@@ -106,7 +106,7 @@ export class JuliaTestController {
 
         let juliaExecutable: JuliaExecutable | null = null
 
-        if (Boolean(process.env.DEBUG_MODE)) {
+        if (process.env.DEBUG_MODE) {
             juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
         }
         else {
@@ -266,7 +266,7 @@ export class JuliaTestController {
             this.outputChannel.append(dataAsString)
         })
 
-        this.process.on('exit', (code: number, signal: NodeJS.Signals) => {
+        this.process.on('exit', () => {
             this.process = undefined
 
             if(this.connection) {
@@ -349,7 +349,7 @@ export class JuliaTestController {
 
         }
 
-        testRun.token.onCancellationRequested(async e => {
+        testRun.token.onCancellationRequested(async () => {
             await this.connection.sendNotification(notoficationTypeCancelTestRun, {testRunId: params.testRunId})
         })
 
@@ -497,7 +497,7 @@ export class TestFeature {
             }
         }, true)
 
-        coverage_profile.loadDetailedCoverage = async (testRun, fileCoverage: OurFileCoverage, token) => {
+        coverage_profile.loadDetailedCoverage = async (testRun, fileCoverage: OurFileCoverage) => {
             return fileCoverage.detailedCoverage
         }
 

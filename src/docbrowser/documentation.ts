@@ -5,7 +5,7 @@ import { withLanguageClient } from '../extension'
 import { constructCommandString, getVersionedParamsAtPosition, registerCommand } from '../utils'
 
 function openArgs(href: string) {
-    const matches = href.match(/^((\w+\:\/\/)?.+?)(?:[\:#](\d+))?$/)
+    const matches = href.match(/^((\w+:\/\/)?.+?)(?:[:#](\d+))?$/)
     let uri
     let line
     if (matches[1] && matches[3] && matches[2] === undefined) {
@@ -18,11 +18,13 @@ function openArgs(href: string) {
 }
 
 const md = new markdownit().use(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('@traptitech/markdown-it-katex'),
     {
         output: 'html'
     }
 ).use(
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('markdown-it-footnote')
 )
 
@@ -81,7 +83,7 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         this.context = context
     }
 
-    resolveWebviewView(view: vscode.WebviewView, context: vscode.WebviewViewResolveContext) {
+    resolveWebviewView(view: vscode.WebviewView) {
         this.view = view
 
         view.webview.options = {
