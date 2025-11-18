@@ -260,11 +260,12 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         const task = new TaskRunnerTerminal(`Julia REPL (v${juliaExecutable.getVersion()})`, shellPath, shellArgs, {
             env,
             iconPath: juliaIconPath,
+            echoCommand: false,
             onExitMessage(exitCode) {
                 if (exitCode === 0) {
                     return
                 }
-                return `This process is dead, Jim. It's dead. With exit code ${exitCode}. Press a key to bury it.`
+                return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r`
             },
         })
 
