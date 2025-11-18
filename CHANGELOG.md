@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Empty environment paths no longer cause issues ([#3866](https://github.com/julia-vscode/julia-vscode/pull/3866))
+- Handle filename-only links in the terminal better (e.g. `foo.jl` without a `./` prefix) ([#3738](https://github.com/julia-vscode/julia-vscode/pull/3738))
 
 ## [1.154.0] - 2025-08-28
 ### Added
