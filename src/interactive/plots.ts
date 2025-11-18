@@ -38,9 +38,9 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 interface Plot {
-    thumbnail_type: string;
-    thumbnail_data: string;
-    time: Date;
+    thumbnail_type: string
+    thumbnail_data: string
+    time: Date
 }
 
 class PlotNavigatorProvider implements vscode.WebviewViewProvider {
@@ -53,27 +53,26 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         this.context = context
     }
 
-    resolveWebviewView(view: vscode.WebviewView, context: vscode.WebviewViewResolveContext) {
+    resolveWebviewView(view: vscode.WebviewView) {
         this.view = view
 
         view.webview.options = {
             enableScripts: true,
-            enableCommandUris: true
+            enableCommandUris: true,
         }
 
-        view.webview.onDidReceiveMessage(msg => {
+        view.webview.onDidReceiveMessage((msg) => {
             // msg.type could be used to determine messages
             switch (msg.type) {
-            case 'toPlot': // switch current plot to plot at index (msg.value)
-                if (msg.value >= 0 && msg.value <= g_plots.length - 1) {
-                    g_currentPlotIndex = msg.value
-                    updatePlotPane()
-                }
-                break
-            default:
-                console.error(`Unknown message type from WebView: ${msg.type}, value: ${msg.value}`)
+                case 'toPlot': // switch current plot to plot at index (msg.value)
+                    if (msg.value >= 0 && msg.value <= g_plots.length - 1) {
+                        g_currentPlotIndex = msg.value
+                        updatePlotPane()
+                    }
+                    break
+                default:
+                    console.error(`Unknown message type from WebView: ${msg.type}, value: ${msg.value}`)
             }
-
         })
 
         this.reloadPlotPane()
@@ -81,8 +80,12 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
 
     getWebviewHTML(innerHTML: string) {
         const extensionPath = this.context.extensionPath
-        const plotterStylesheet = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'plotter', 'plotter.css')))
-        const plotterJavaScript = this.view.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'scripts', 'plots', 'panel_webview.js')))
+        const plotterStylesheet = this.view.webview.asWebviewUri(
+            vscode.Uri.file(path.join(extensionPath, 'libs', 'plotter', 'plotter.css'))
+        )
+        const plotterJavaScript = this.view.webview.asWebviewUri(
+            vscode.Uri.file(path.join(extensionPath, 'scripts', 'plots', 'panel_webview.js'))
+        )
 
         return `<html lang="en" class='theme--plotter'>
             <head>
@@ -119,18 +122,18 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
     plotToThumbnail(plot: Plot, index: number) {
         let thumbnailHTML: string
         switch (plot.thumbnail_type) {
-        case 'image':
-            thumbnailHTML = `<div class="thumbnail" onclick="toPlot(${index})">
+            case 'image':
+                thumbnailHTML = `<div class="thumbnail" onclick="toPlot(${index})">
                     <img src="${plot.thumbnail_data}" alt="Plot ${index + 1}" />
                 </div>`
-            break
-        default:
-        case 'text': // This is a fallback which shows the index of the plot
-            thumbnailHTML = `<div class="thumbnail" onclick="toPlot(${index})">
+                break
+            default:
+            case 'text': // This is a fallback which shows the index of the plot
+                thumbnailHTML = `<div class="thumbnail" onclick="toPlot(${index})">
                 Plot ${index + 1}
                 <small class="float-right">${plot.time.toLocaleTimeString()}</small>
             </div>`
-            break
+                break
         }
         return thumbnailHTML
     }
@@ -152,7 +155,7 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         this.setHTML(this.getWebviewHTML(innerHTML))
     }
 
-    postMessageToWebview(message: any) {
+    postMessageToWebview(message: unknown) {
         if (this.view) {
             this.view.webview.postMessage(message)
         }
@@ -190,13 +193,8 @@ function getPlotPaneContent(webview: vscode.Webview) {
                 opacity: 0.1;
                 background: var(--vscode-foreground);
                 -webkit-mask: url(${webview.asWebviewUri(
-        vscode.Uri.file(
-            path.join(
-                g_context.extensionPath,
-                'images',
-                'julia-dots.svg'
-            )
-        ))}) 50% 50% / 200px no-repeat;
+                    vscode.Uri.file(path.join(g_context.extensionPath, 'images', 'julia-dots.svg'))
+                )}) 50% 50% / 200px no-repeat;
             }
         </style>
         </head>
@@ -206,32 +204,11 @@ function getPlotPaneContent(webview: vscode.Webview) {
         </html>`
     } else {
         const screenShotScript = `<script src="${webview.asWebviewUri(
-            vscode.Uri.file(
-                path.join(
-                    g_context.extensionPath,
-                    'libs',
-                    'html2canvas',
-                    'html2canvas.min.js'
-                )
-            )
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'html2canvas', 'html2canvas.min.js'))
         )}"></script><script src="${webview.asWebviewUri(
-            vscode.Uri.file(
-                path.join(
-                    g_context.extensionPath,
-                    'libs',
-                    'panzoom',
-                    'panzoom.min.js'
-                )
-            )
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js'))
         )}"></script><script src="${webview.asWebviewUri(
-            vscode.Uri.file(
-                path.join(
-                    g_context.extensionPath,
-                    'scripts',
-                    'plots',
-                    'main_plot_webview.js'
-                )
-            )
+            vscode.Uri.file(path.join(g_context.extensionPath, 'scripts', 'plots', 'main_plot_webview.js'))
         )}"></script>`
 
         return g_plots[g_currentPlotIndex] + screenShotScript + invalidator()
@@ -240,31 +217,31 @@ function getPlotPaneContent(webview: vscode.Webview) {
 
 function plotPanelOnMessage(msg) {
     switch (msg.type) {
-    case 'thumbnail':
-        {
-            const thumbnailData = msg.value
-            g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
-                plotsInfo[g_currentPlotIndex] = {
-                    thumbnail_type: 'image',
-                    thumbnail_data: thumbnailData,
-                    time: new Date()
-                }
-                return plotsInfo
-            })
-        }
-        break
-    case 'savePlot':
-        savePlot(msg.value)
-        break
-    case 'copyFailed':
-        if (msg.value) {
-            vscode.window.showWarningMessage('Failed to copy plot: ' + msg.value)
-        } else {
-            vscode.window.showWarningMessage('Unknown: Failed to copy plot.')
-        }
-        break
-    case 'copySuccess':
-        vscode.window.showInformationMessage('Plot copied to clipboard.')
+        case 'thumbnail':
+            {
+                const thumbnailData = msg.value
+                g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
+                    plotsInfo[g_currentPlotIndex] = {
+                        thumbnail_type: 'image',
+                        thumbnail_data: thumbnailData,
+                        time: new Date(),
+                    }
+                    return plotsInfo
+                })
+            }
+            break
+        case 'savePlot':
+            savePlot(msg.value)
+            break
+        case 'copyFailed':
+            if (msg.value) {
+                vscode.window.showWarningMessage('Failed to copy plot: ' + msg.value)
+            } else {
+                vscode.window.showWarningMessage('Unknown: Failed to copy plot.')
+            }
+            break
+        case 'copySuccess':
+            vscode.window.showInformationMessage('Plot copied to clipboard.')
     }
 }
 
@@ -282,10 +259,10 @@ export function showPlotPane(lazy = false) {
             plotTitle,
             {
                 preserveFocus: true,
-                viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Two)
+                viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Two),
             },
             {
-                enableScripts: true
+                enableScripts: true,
             }
         )
 
@@ -297,18 +274,22 @@ export function showPlotPane(lazy = false) {
         g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
         setContext(c_juliaPlotPanelActiveContextKey, true)
 
-        const configListener = vscode.workspace.onDidChangeConfiguration(config => {
+        const configListener = vscode.workspace.onDidChangeConfiguration((config) => {
             if (config.affectsConfiguration('julia') && g_plotPanel) {
                 g_plotPanel.title = makeTitle()
             }
         })
         // Reset when the current panel is closed
-        g_plotPanel.onDidDispose(() => {
-            configListener.dispose()
-            viewStateListener.dispose()
-            g_plotPanel = undefined
-            setContext(c_juliaPlotPanelActiveContextKey, false)
-        }, null, g_context.subscriptions)
+        g_plotPanel.onDidDispose(
+            () => {
+                configListener.dispose()
+                viewStateListener.dispose()
+                g_plotPanel = undefined
+                setContext(c_juliaPlotPanelActiveContextKey, false)
+            },
+            null,
+            g_context.subscriptions
+        )
 
         g_plotPanel.webview.onDidReceiveMessage(plotPanelOnMessage)
         if (!g_plotPanel.visible) {
@@ -385,7 +366,7 @@ export function plotPaneLast() {
 export function plotPaneDel() {
     telemetry.traceEvent('command-plotpanedelete')
     if (g_plots.length > 0) {
-        g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
+        g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
             plotsInfo.splice(g_currentPlotIndex, 1)
             return plotsInfo
         })
@@ -467,11 +448,11 @@ function addOrUpdatePlot(plotPaneContent, id: string = undefined) {
         const ind = g_plot_id_map.get(id)
         g_plots[ind] = plotPaneContent
         g_currentPlotIndex = ind
-        g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
+        g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
             plotsInfo[ind] = {
                 thumbnail_type: 'text',
                 thumbnail_data: null,
-                time: new Date()
+                time: new Date(),
             }
             return plotsInfo
         })
@@ -481,11 +462,11 @@ function addOrUpdatePlot(plotPaneContent, id: string = undefined) {
 
     g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
 
-    g_plotNavigatorProvider?.setPlotsInfo(plotsInfo => {
+    g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
         plotsInfo.push({
             thumbnail_type: 'text',
             thumbnail_data: null,
-            time: new Date()
+            time: new Date(),
         })
         return plotsInfo
     })
@@ -497,8 +478,8 @@ function addOrUpdatePlot(plotPaneContent, id: string = undefined) {
     showPlotPane()
 }
 
-export function displayPlot(params: { kind: string, data: string, id: string|undefined }, kernel?: JuliaKernel) {
-    const {kind, data: payload, id} = params
+export function displayPlot(params: { kind: string; data: string; id: string | undefined }, kernel?: JuliaKernel) {
+    const { kind, data: payload, id } = params
 
     if (kind === 'image/svg+xml') {
         const has_xmlns_attribute = payload.includes('xmlns=')
@@ -527,10 +508,18 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
         addOrUpdatePlot(wrapped, id)
     } else if (kind === 'application/vnd.vegalite.v2+json') {
         showPlotPane()
-        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
-        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
-        const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js')))
-        const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')))
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js'))
+        )
+        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js'))
+        )
+        const uriVegaLite = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-2', 'vega-lite.min.js'))
+        )
+        const uriVega = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js'))
+        )
         const plotPaneContent = `
             <html>
                 <head>
@@ -564,10 +553,18 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
         addOrUpdatePlot(plotPaneContent, id)
     } else if (kind === 'application/vnd.vegalite.v3+json') {
         showPlotPane()
-        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
-        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
-        const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js')))
-        const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js'))
+        )
+        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js'))
+        )
+        const uriVegaLite = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-3', 'vega-lite.min.js'))
+        )
+        const uriVega = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js'))
+        )
         const plotPaneContent = `
             <html>
                 <head>
@@ -601,10 +598,18 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
         addOrUpdatePlot(plotPaneContent, id)
     } else if (kind === 'application/vnd.vegalite.v4+json') {
         showPlotPane()
-        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
-        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
-        const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js')))
-        const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js'))
+        )
+        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js'))
+        )
+        const uriVegaLite = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-4', 'vega-lite.min.js'))
+        )
+        const uriVega = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js'))
+        )
         const plotPaneContent = `
             <html>
                 <head>
@@ -636,13 +641,20 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
                 </script>
             </html>`
         addOrUpdatePlot(plotPaneContent, id)
-    }
-    else if (kind === 'application/vnd.vegalite.v5+json') {
+    } else if (kind === 'application/vnd.vegalite.v5+json') {
         showPlotPane()
-        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
-        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
-        const uriVegaLite = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-5', 'vega-lite.min.js')))
-        const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js'))
+        )
+        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js'))
+        )
+        const uriVegaLite = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-lite-5', 'vega-lite.min.js'))
+        )
+        const uriVega = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js'))
+        )
         const plotPaneContent = `
             <html>
                 <head>
@@ -675,12 +687,17 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
             </html>`
         g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
         showPlotPane()
-    }
-    else if (kind === 'application/vnd.vega.v3+json') {
+    } else if (kind === 'application/vnd.vega.v3+json') {
         showPlotPane()
-        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
-        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
-        const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js')))
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js'))
+        )
+        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js'))
+        )
+        const uriVega = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-3', 'vega.min.js'))
+        )
         const plotPaneContent = `
             <html>
                 <head>
@@ -713,9 +730,15 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
         addOrUpdatePlot(plotPaneContent, id)
     } else if (kind === 'application/vnd.vega.v4+json') {
         showPlotPane()
-        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
-        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
-        const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js')))
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js'))
+        )
+        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js'))
+        )
+        const uriVega = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-4', 'vega.min.js'))
+        )
         const plotPaneContent = `
             <html>
                 <head>
@@ -748,9 +771,15 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
         addOrUpdatePlot(plotPaneContent, id)
     } else if (kind === 'application/vnd.vega.v5+json') {
         showPlotPane()
-        const uriPanZoom = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js')))
-        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js')))
-        const uriVega = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js')))
+        const uriPanZoom = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'panzoom', 'panzoom.min.js'))
+        )
+        const uriVegaEmbed = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-embed', 'vega-embed.min.js'))
+        )
+        const uriVega = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'vega-5', 'vega.min.js'))
+        )
         const plotPaneContent = `
             <html>
                 <head>
@@ -783,7 +812,9 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
         addOrUpdatePlot(plotPaneContent, id)
     } else if (kind === 'application/vnd.plotly.v1+json') {
         showPlotPane()
-        const uriPlotly = g_plotPanel.webview.asWebviewUri(vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js')))
+        const uriPlotly = g_plotPanel.webview.asWebviewUri(
+            vscode.Uri.file(path.join(g_context.extensionPath, 'libs', 'plotly', 'plotly.min.js'))
+        )
         const plotPaneContent = `
         <html>
         <head>
@@ -812,6 +843,7 @@ export function displayPlot(params: { kind: string, data: string, id: string|und
     } else if (kind === 'application/vnd.dataresource+json') {
         return displayTable(payload, g_context, false, kernel)
     } else if (kind === 'application/vnd.dataresource+lazy') {
+    } else if (kind === 'application/vnd.dataresource+lazy') {
         return displayTable(payload, g_context, true, kernel)
     } else if (kind === 'application/vnd.julia-vscode.custompane+html') {
         return displayCustom(payload, id)
@@ -835,10 +867,10 @@ function displayCustom(payload, id) {
             id,
             {
                 preserveFocus: true,
-                viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Two)
+                viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Two),
             },
             {
-                enableScripts: true
+                enableScripts: true,
             }
         )
         CUSTOM_PANELS.set(id, panel)
@@ -846,9 +878,13 @@ function displayCustom(payload, id) {
 
     panel.webview.html = payload
     // Reset when the current panel is closed
-    panel.onDidDispose(() => {
-        CUSTOM_PANELS.delete(id)
-    }, null, g_context.subscriptions)
+    panel.onDidDispose(
+        () => {
+            CUSTOM_PANELS.delete(id)
+        },
+        null,
+        g_context.subscriptions
+    )
 
     if (!panel.visible) {
         panel.reveal(panel.viewColumn, true)
@@ -874,13 +910,13 @@ async function requestCopyPlot() {
 }
 
 interface ExportedPlot {
-  svg?: string;
-  png?: string;
-  gif?: string;
-  index: number;
+    svg?: string
+    png?: string
+    gif?: string
+    index: number
 }
 
-type FileLike = string | Buffer;
+type FileLike = string | Buffer
 /**
  * Write svg file of the plot to the plots directory.
  * @param plot
@@ -911,27 +947,31 @@ function savePlot(plot: ExportedPlot) {
  * @param encoding
  */
 async function _writePlotFile(fileName: string, data: FileLike) {
-    const rootPath = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0 ?
-        vscode.workspace.workspaceFolders[0].uri?.fsPath : null
+    const rootPath =
+        vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
+            ? vscode.workspace.workspaceFolders[0].uri?.fsPath
+            : null
     // If the default `plots.path` isn't in `settings.json` use the root:
     const defaultPlotsDir: string = vscode.workspace.getConfiguration('julia').get('plots.path') ?? ''
 
     let plotsDirFullPath: string = null
     if (rootPath) {
-        plotsDirFullPath = path.isAbsolute(defaultPlotsDir) ?
-            defaultPlotsDir :
-            path.join(rootPath, defaultPlotsDir)
+        plotsDirFullPath = path.isAbsolute(defaultPlotsDir) ? defaultPlotsDir : path.join(rootPath, defaultPlotsDir)
     }
 
     try {
         let isFile = true
         try {
             await fs.access(plotsDirFullPath)
-        } catch (err) {
+        } catch {
             isFile = false
         }
         if (!isFile) {
-            const action = await vscode.window.showWarningMessage('The default plot path does not exist.', 'Create', 'Change')
+            const action = await vscode.window.showWarningMessage(
+                'The default plot path does not exist.',
+                'Create',
+                'Change'
+            )
             if (action === 'Create') {
                 await fs.mkdir(plotsDirFullPath, { recursive: true })
             } else if (action === 'Change') {
@@ -942,7 +982,7 @@ async function _writePlotFile(fileName: string, data: FileLike) {
             }
         }
         const plotFileFullPath = path.join(plotsDirFullPath, fileName)
-        vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(plotFileFullPath) }).then(saveURI => {
+        vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(plotFileFullPath) }).then((saveURI) => {
             if (saveURI) {
                 fs.writeFile(saveURI.fsPath, data)
             }
