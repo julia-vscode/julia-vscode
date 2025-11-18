@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - The `juliavscode/html` MIME type is now deprecated in favour of `application/vnd.julia-vscode.plotpane+html` ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
+- 
+### Fixed
+- The workspace now tolerates incorrectly implemented `AbstractArray`s ([#3618](https://github.com/julia-vscode/julia-vscode/pull/3618))
 
 ## [1.155.0] - 2025-09-03
 ### Added
