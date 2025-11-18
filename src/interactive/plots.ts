@@ -443,7 +443,7 @@ function wrapImagelike(srcString: string) {
         </html>`
 }
 
-function addOrUpdatePlot(plotPaneContent, id: string = undefined) {
+function addOrUpdatePlot(plotPaneContent: string, id?: string) {
     if (id && g_plot_id_map.has(id)) {
         const ind = g_plot_id_map.get(id)
         g_plots[ind] = plotPaneContent
@@ -478,7 +478,7 @@ function addOrUpdatePlot(plotPaneContent, id: string = undefined) {
     showPlotPane()
 }
 
-export function displayPlot(params: { kind: string; data: string; id: string | undefined }, kernel?: JuliaKernel) {
+export function displayPlot(params: { kind: string; data: string; id?: string }, kernel?: JuliaKernel) {
     const { kind, data: payload, id } = params
 
     if (kind === 'image/svg+xml') {
@@ -842,7 +842,6 @@ export function displayPlot(params: { kind: string; data: string; id: string | u
         addOrUpdatePlot(plotPaneContent, id)
     } else if (kind === 'application/vnd.dataresource+json') {
         return displayTable(payload, g_context, false, kernel)
-    } else if (kind === 'application/vnd.dataresource+lazy') {
     } else if (kind === 'application/vnd.dataresource+lazy') {
         return displayTable(payload, g_context, true, kernel)
     } else if (kind === 'application/vnd.julia-vscode.custompane+html') {

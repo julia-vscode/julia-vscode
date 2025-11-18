@@ -1,3 +1,18 @@
+"""
+    InlineDisplay
+
+Internal display for plots, html elements, and custom panes in VS Code. Supports various
+standard MIME-types out of the box, but also two VS Code specific ones:
+
+- `application/vnd.julia-vscode.plotpane+html`: For outputting HTML into the plotpane.
+- `application/vnd.julia-vscode.custompane+html`: For outputting HTML into custom panes,
+specified by the `id` parameter (see below)
+
+All MIME-types passed into the `display` call may specify a `;id=[^,]+` parameter, which is
+used to identify the object being shown. In the plotpane, an object with the same id as a
+previously shown one will overwrite the older one. For the `custompane` MIME-type, this id
+is also used as the title of the custom pane (in addition to uniquely identifying it).
+"""
 struct InlineDisplay <: AbstractDisplay
     is_repl::Bool
 end
@@ -60,16 +75,14 @@ end
 
 function extract_mime_id(m::MIME)
     mime = string(m)
-    if !startswith(mime, "application/vnd.julia-vscode")
-        return mime, missing
-    end
+
     parts = split(mime, ";")
     if length(parts) === 1
         return mime, missing
     end
 
-    mime, pars = parts
-    mat = match(r"\bid=([^,]+)\b", pars)
+    mime, params = parts
+    mat = match(r"\bid=([^,]+)\b", params)
 
     if mat !== nothing
         return mime, mat[1]
