@@ -7,7 +7,7 @@ import { TaskRunnerTerminal } from './taskRunnerTerminal'
 
 export class JuliaCommands {
     constructor(
-        private context: vscode.ExtensionContext,
+        context: vscode.ExtensionContext,
         private juliaExecutableFeature: JuliaExecutablesFeature
     ) {
         context.subscriptions.push(
@@ -42,7 +42,7 @@ export class JuliaCommands {
             vscode.window.showInformationMessage(`Successfully ran \`${cmd}\` in environment \`${env}\`.`)
         } else {
             vscode.window.showErrorMessage(
-                `Failed to run \`${cmd}\` in environment \`${env}\`. Check the terminals tab for the errors.`
+                `Failed to run \`${cmd}\` in environment \`${env}\`. Check the terminals tab for the process output.`
             )
         }
     }
@@ -64,19 +64,26 @@ export class JuliaCommands {
 
         args.push(`--project=${juliaEnv}`, '-e', cmd)
 
-        const task = new TaskRunnerTerminal(this.context, name, juliaExecutable.file, args, {
+        const task = new TaskRunnerTerminal(name, juliaExecutable.file, args, {
             env: {
                 ...process.env,
                 ...processEnv,
             },
+            echoMessage: true,
+            onExitMessage(exitCode) {
+                if (exitCode === 0) {
+                    return '\n\r\x1b[30;47m * \x1b[0m Successfully ran this command. Press any key to close the terminal.\n\r'
+                }
+                return `\n\r\x1b[30;47m * \x1b[0m Failed to run this command (exit code ${exitCode}). Press any key to close the terminal.\n\r`
+            },
         })
         task.show()
 
-        await new Promise((resolve) => {
-            task.onDidClose((task) => resolve(task))
+        const exitCode = await new Promise((resolve) => {
+            task.onDidClose((ev) => resolve(ev))
         })
 
-        return task.terminal.exitStatus.code === 0
+        return exitCode === 0
     }
 
     public dispose() {}
