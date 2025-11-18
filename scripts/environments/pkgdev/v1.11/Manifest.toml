@@ -123,9 +123,9 @@ version = "1.11.0"
 
 [[deps.GitHub]]
 deps = ["Base64", "Dates", "HTTP", "JSON", "MbedTLS", "Sockets", "SodiumSeal", "URIs"]
-git-tree-sha1 = "2501485472c50b24874cc949f0fce9bd3c4a1738"
+git-tree-sha1 = "12d0b1886e60c9d2a3d42ef1612bdfbedec68b42"
 uuid = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
-version = "5.10.0"
+version = "5.11.0"
 
 [[deps.Glob]]
 git-tree-sha1 = "97285bbd5230dd766e9ef6749b80fc617126d496"
