@@ -273,7 +273,9 @@ end
 
 # workspace
 
-repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}) =  Base.invokelatest(getvariables, params.modules)
+function repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}, token)
+    return Base.invokelatest(getvariables, params.modules)
+end
 
 function getvariables(show_modules)
     M = Main
@@ -341,7 +343,9 @@ wsicon(::Undef) = "question"
 
 # handle lazy clicks
 
-repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}) = Base.invokelatest(get_lazy, params.id)
+function repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}, token)
+    return Base.invokelatest(get_lazy, params.id)
+end
 
 function get_lazy(id::Int)
     try

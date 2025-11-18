@@ -1,16 +1,10 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
-import { TestProcess } from '../testing/testFeature'
+import { JuliaTestController, JuliaTestProcess } from '../testing/testFeature'
 import { registerCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
-import {
-    notifyTypeDisplay,
-    notifyTypeReplShowInGrid,
-    onExit,
-    onFinishEval,
-    onInit,
-} from './repl'
+import { notifyTypeDisplay, notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
 import { openFile } from './results'
 
 interface Location {
@@ -31,17 +25,11 @@ interface WorkspaceVariable {
     location?: Location
 }
 
-const requestTypeGetVariables = new rpc.RequestType<
-    { modules: boolean },
-    WorkspaceVariable[],
-    void
->('repl/getvariables')
+const requestTypeGetVariables = new rpc.RequestType<{ modules: boolean }, WorkspaceVariable[], void>(
+    'repl/getvariables'
+)
 
-const requestTypeGetLazy = new rpc.RequestType<
-    { id: number },
-    WorkspaceVariable[],
-    void
->('repl/getlazy')
+const requestTypeGetLazy = new rpc.RequestType<{ id: number }, WorkspaceVariable[], void>('repl/getlazy')
 
 // Different node types
 
@@ -56,7 +44,7 @@ abstract class SessionNode extends AbstractWorkspaceNode {
         super()
 
         this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
-        vscode.workspace.onDidChangeConfiguration(config => {
+        vscode.workspace.onDidChangeConfiguration((config) => {
             if (config.affectsConfiguration('julia.workspace.showModules')) {
                 this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
                 this.updateReplVariables()
@@ -88,10 +76,9 @@ export class NotebookNode extends SessionNode {
     }
 
     async updateReplVariables() {
-        const variables = await this.kernel._msgConnection.sendRequest(
-            requestTypeGetVariables,
-            { modules: this._showModules }
-        )
+        const variables = await this.kernel._msgConnection.sendRequest(requestTypeGetVariables, {
+            modules: this._showModules,
+        })
         this.variablesNodes = variables.map((i) => new VariableNode(this, i))
 
         this.treeProvider.refresh()
@@ -114,10 +101,40 @@ export class NotebookNode extends SessionNode {
     }
 }
 
+export class TestControllerNode extends AbstractWorkspaceNode {
+    private testProcessNodes: TestProcessNode[] = []
+
+    constructor(public testController: JuliaTestController) {
+        super()
+    }
+
+    addTestProcessNode(node: TestProcessNode) {
+        this.testProcessNodes.push(node)
+    }
+
+    removeTestProcessNode(id: string) {
+        this.testProcessNodes = this.testProcessNodes.filter((i) => i.testProcess.id !== id)
+    }
+
+    public async getChildren() {
+        return this.testProcessNodes
+    }
+
+    async stop() {
+        await this.testController.kill()
+    }
+}
+
 export class TestProcessNode extends AbstractWorkspaceNode {
     constructor(
-        public testProcess: TestProcess) {
+        public testProcess: JuliaTestProcess,
+        private treeProvider: REPLTreeDataProvider
+    ) {
         super()
+
+        testProcess.onStatusChanged(() => {
+            this.treeProvider.refresh()
+        })
     }
 
     public async getChildren() {
@@ -153,11 +170,9 @@ class REPLNode extends SessionNode {
     }
 
     async updateReplVariables() {
-        const variables: WorkspaceVariable[] =
-            await this.getConnection().sendRequest(
-                requestTypeGetVariables,
-                { modules: this._showModules }
-            )
+        const variables: WorkspaceVariable[] = await this.getConnection().sendRequest(requestTypeGetVariables, {
+            modules: this._showModules,
+        })
         this.variablesNodes = variables.map((v) => new VariableNode(this, v))
 
         this.treeProvider.refresh()
@@ -185,11 +200,9 @@ class VariableNode extends AbstractWorkspaceNode {
     }
 
     public async showInVSCode() {
-        await this.parentREPL
-            .getConnection()
-            .sendNotification(notifyTypeReplShowInGrid, {
-                code: this.workspaceVariable.head,
-            })
+        await this.parentREPL.getConnection().sendNotification(notifyTypeReplShowInGrid, {
+            code: this.workspaceVariable.head,
+        })
     }
 }
 
@@ -198,33 +211,22 @@ export class WorkspaceFeature {
 
     _REPLNode: REPLNode
     _NotebookNodes: NotebookNode[] = []
-    _TestProcessNodes: TestProcessNode[] = []
+    _TestController: TestControllerNode | null
 
     constructor(private context: vscode.ExtensionContext) {
         this._REPLTreeDataProvider = new REPLTreeDataProvider(this)
 
         this.context.subscriptions.push(
             // registries
-            vscode.window.registerTreeDataProvider(
-                'REPLVariables',
-                this._REPLTreeDataProvider
-            ),
+            vscode.window.registerTreeDataProvider('REPLVariables', this._REPLTreeDataProvider),
             // listeners
-            onInit(wrapCrashReporting(conn => this.openREPL(conn))),
-            onExit((err) => this.closeREPL(err)),
+            onInit(wrapCrashReporting((conn) => this.openREPL(conn))),
+            onExit(() => this.closeREPL()),
             // commands
-            registerCommand('language-julia.showInVSCode', (node: VariableNode) =>
-                this.showInVSCode(node)
-            ),
-            registerCommand('language-julia.workspaceGoToFile', (node: VariableNode) =>
-                this.openLocation(node)
-            ),
-            registerCommand('language-julia.showModules', () =>
-                this._REPLTreeDataProvider.toggleModules(true)
-            ),
-            registerCommand('language-julia.hideModules', () =>
-                this._REPLTreeDataProvider.toggleModules(false)
-            )
+            registerCommand('language-julia.showInVSCode', (node: VariableNode) => this.showInVSCode(node)),
+            registerCommand('language-julia.workspaceGoToFile', (node: VariableNode) => this.openLocation(node)),
+            registerCommand('language-julia.showModules', () => this._REPLTreeDataProvider.toggleModules(true)),
+            registerCommand('language-julia.hideModules', () => this._REPLTreeDataProvider.toggleModules(false))
         )
     }
 
@@ -232,7 +234,7 @@ export class WorkspaceFeature {
         this._REPLNode = new REPLNode(connection, this._REPLTreeDataProvider)
     }
 
-    private closeREPL(err) {
+    private closeREPL() {
         this._REPLNode.dispose()
         this._REPLNode = null
         this._REPLTreeDataProvider.refresh()
@@ -243,10 +245,7 @@ export class WorkspaceFeature {
     }
 
     async openLocation(node: VariableNode) {
-        openFile(
-            node.workspaceVariable.location.file,
-            node.workspaceVariable.location.line
-        )
+        openFile(node.workspaceVariable.location.file, node.workspaceVariable.location.line)
     }
 
     public dispose() {
@@ -256,40 +255,57 @@ export class WorkspaceFeature {
     public async addNotebookKernel(kernel: JuliaKernel) {
         const node = new NotebookNode(kernel, this._REPLTreeDataProvider)
         this._NotebookNodes.push(node)
-        kernel.onCellRunFinished((e) => node.updateReplVariables())
-        kernel.onConnected((e) => {
+        kernel.onCellRunFinished(() => node.updateReplVariables())
+        kernel.onConnected(() => {
             kernel._msgConnection.onNotification(notifyTypeDisplay, (params) => displayPlot(params, kernel))
             node.updateReplVariables()
         })
-        kernel.onStopped((e) => {
-            this._NotebookNodes = this._NotebookNodes.filter(x => x !== node)
+        kernel.onStopped(() => {
+            this._NotebookNodes = this._NotebookNodes.filter((x) => x !== node)
             this._REPLTreeDataProvider.refresh()
         })
         this._REPLTreeDataProvider.refresh()
     }
 
-    public async addTestProcess(testProcess: TestProcess) {
-        const node = new TestProcessNode(testProcess)
-        this._TestProcessNodes.push(node)
-        testProcess.onKilled((e) => {
-            this._TestProcessNodes = this._TestProcessNodes.filter(x => x !==node)
+    // public async addTestProcess(testProcess: TestProcess) {
+    //     const node = new TestProcessNode(testProcess)
+    //     this._TestController =
+    //     testProcess.onKilled((e) => {
+    //         this._TestProcessNodes = this._TestProcessNodes.filter(x => x !==node)
+    //         this._REPLTreeDataProvider.refresh()
+    //     })
+    //     this._REPLTreeDataProvider.refresh()
+    // }
+
+    public async addTestController(testController: JuliaTestController) {
+        const node = new TestControllerNode(testController)
+        this._TestController = node
+        testController.onKilled(() => {
+            this._TestController = null
             this._REPLTreeDataProvider.refresh()
         })
+        this._REPLTreeDataProvider.refresh()
+    }
+
+    public async addTestProcess(testProcess: JuliaTestProcess) {
+        const node = new TestProcessNode(testProcess, this._REPLTreeDataProvider)
+        this._TestController.addTestProcessNode(node)
+        this._REPLTreeDataProvider.refresh()
+    }
+
+    public async removeTestProcess(testProcess: JuliaTestProcess) {
+        this._TestController.removeTestProcessNode(testProcess.id)
         this._REPLTreeDataProvider.refresh()
     }
 }
 
-export class REPLTreeDataProvider
-implements vscode.TreeDataProvider<AbstractWorkspaceNode>
-{
-    private _onDidChangeTreeData: vscode.EventEmitter<
+export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWorkspaceNode> {
+    private _onDidChangeTreeData: vscode.EventEmitter<AbstractWorkspaceNode | undefined> = new vscode.EventEmitter<
         AbstractWorkspaceNode | undefined
-    > = new vscode.EventEmitter<AbstractWorkspaceNode | undefined>()
-    readonly onDidChangeTreeData: vscode.Event<
-        AbstractWorkspaceNode | undefined
-    > = this._onDidChangeTreeData.event
+    >()
+    readonly onDidChangeTreeData: vscode.Event<AbstractWorkspaceNode | undefined> = this._onDidChangeTreeData.event
 
-    constructor(private workspaceFeature: WorkspaceFeature) { }
+    constructor(private workspaceFeature: WorkspaceFeature) {}
 
     refresh(): void {
         this._onDidChangeTreeData.fire(undefined)
@@ -299,15 +315,15 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
         if (node) {
             return await node.getChildren()
         } else {
+            const nodes: AbstractWorkspaceNode[] = []
             if (this.workspaceFeature._REPLNode) {
-                return [
-                    this.workspaceFeature._REPLNode,
-                    ...this.workspaceFeature._NotebookNodes,
-                    ...this.workspaceFeature._TestProcessNodes
-                ]
-            } else {
-                return [...this.workspaceFeature._NotebookNodes,...this.workspaceFeature._TestProcessNodes]
+                nodes.push(this.workspaceFeature._REPLNode)
             }
+            nodes.push(...this.workspaceFeature._NotebookNodes)
+            if (this.workspaceFeature._TestController) {
+                nodes.push(this.workspaceFeature._TestController)
+            }
+            return nodes
         }
     }
 
@@ -316,20 +332,19 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             const treeItem = new vscode.TreeItem(node.workspaceVariable.head)
             treeItem.description = node.workspaceVariable.value
             treeItem.tooltip = node.workspaceVariable.type
-            treeItem.contextValue = (node.workspaceVariable.canshow ? 'globalvariable' : '') + (
-                node.workspaceVariable.location ? ' haslocation' : '')
+            treeItem.contextValue =
+                (node.workspaceVariable.canshow ? 'globalvariable' : '') +
+                (node.workspaceVariable.location ? ' haslocation' : '')
             treeItem.collapsibleState = node.workspaceVariable.haschildren
                 ? vscode.TreeItemCollapsibleState.Collapsed
                 : vscode.TreeItemCollapsibleState.None
-            if (
-                node.workspaceVariable.icon &&
-                node.workspaceVariable.icon.length > 0
-            ) {
+            if (node.workspaceVariable.icon && node.workspaceVariable.icon.length > 0) {
                 treeItem.iconPath = new vscode.ThemeIcon(node.workspaceVariable.icon)
             }
             return treeItem
         } else if (node instanceof REPLNode) {
             const treeItem = new vscode.TreeItem('Julia REPL')
+            treeItem.iconPath = new vscode.ThemeIcon('terminal-view-icon')
             treeItem.description = ''
             treeItem.tooltip = ''
             treeItem.contextValue = 'juliarepl'
@@ -337,6 +352,7 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             return treeItem
         } else if (node instanceof NotebookNode) {
             const treeItem = new vscode.TreeItem('Julia Notebook kernel')
+            treeItem.iconPath = new vscode.ThemeIcon('notebook')
             treeItem.description = node.getTitle()
             treeItem.tooltip = node.getTitle()
             treeItem.contextValue = 'juliakernel'
@@ -344,10 +360,35 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
             return treeItem
         } else if (node instanceof TestProcessNode) {
             const treeItem = new vscode.TreeItem('Julia Test Process')
+            const status = node.testProcess.getStatus()
+            if (
+                status === 'Launching' ||
+                status === 'Revising' ||
+                status === 'Created' ||
+                status === 'Canceling' ||
+                status === 'Terminating'
+            ) {
+                treeItem.iconPath = new vscode.ThemeIcon('gear~spin')
+            } else if (status === 'Running') {
+                treeItem.iconPath = new vscode.ThemeIcon('loading~spin')
+            } else if (status === 'Idle') {
+                // treeItem.iconPath = new vscode.ThemeIcon('server-process')
+            }
+
             treeItem.description = node.testProcess.packageName
-            treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${node.testProcess.packagePath}\n\nThe project path is ${node.testProcess.projectPath}`)
+            treeItem.tooltip = new vscode.MarkdownString(
+                `This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.packageUri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.projectUri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.\n\nThe env is ${node.testProcess.env}.`
+            )
             treeItem.contextValue = 'juliatestprocess'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None
+            return treeItem
+        } else if (node instanceof TestControllerNode) {
+            const treeItem = new vscode.TreeItem('Julia Test Item Controller')
+            treeItem.iconPath = new vscode.ThemeIcon('test-view-icon')
+            // treeItem.description = node.testProcess.packageName
+            // treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.package_uri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.project_uri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.`)
+            treeItem.contextValue = 'juliatestcontroller'
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
         }
     }
@@ -355,10 +396,12 @@ implements vscode.TreeDataProvider<AbstractWorkspaceNode>
     toggleModules(show: boolean) {
         this.workspaceFeature._REPLNode.toggleModules(show)
         this.workspaceFeature._REPLNode.updateReplVariables()
-        this.workspaceFeature._NotebookNodes.forEach(node => {
+        this.workspaceFeature._NotebookNodes.forEach((node) => {
             node.toggleModules(show)
             node.updateReplVariables()
         })
-        vscode.workspace.getConfiguration('julia').update('workspace.showModules', show, vscode.ConfigurationTarget.Global)
+        vscode.workspace
+            .getConfiguration('julia')
+            .update('workspace.showModules', show, vscode.ConfigurationTarget.Global)
     }
 }

@@ -35,7 +35,8 @@ jobs:
         with:
           node-version: 20.x
       - run: npm ci
-      - run: npx eslint -c .eslintrc.json --ext .ts src
+      - run: npx eslint
+      - run: npx prettier --check .
 
   testExtension:
     name: Test Extension
@@ -43,8 +44,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.0', '1.6', '1.10', '1.11']
-        os: [ubuntu-latest, windows-latest, macos-13]
+        julia-version: ['1.12']
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,9 +53,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20.x
-      - uses: julia-actions/install-juliaup@v1
+      - uses: julia-actions/install-juliaup@v2
         with:
-          julia-version: ${{matrix.julia-version}}
+          channel: ${{matrix.julia-version}}
       - run: npm ci
       - run: npm run compile
       - run: xvfb-run -a npm test
@@ -68,18 +69,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11']
-        os: [ubuntu-latest, windows-latest, macos-13]
+        julia-version: ['1.10', '1.12']
+        os: [ubuntu-latest, windows-latest, macos-latest]
         exclude:
-          - os: macos-13
+          - os: macos-latest
             julia-version: 1.4
+
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-      - uses: julia-actions/install-juliaup@v1
+      - uses: julia-actions/install-juliaup@v2
         with:
-          julia-version: ${{matrix.julia-version}}
+          channel: ${{matrix.julia-version}}
       - name: 'Run the Julia tests'
         run: |
           julia -e 'using InteractiveUtils; versioninfo()'
@@ -90,22 +92,18 @@ jobs:
   testJuliaLSPackages:
     name: Test Julia LS Packages
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.julia-version == '1.11' }}
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.6', '1.7', '1.8', '1.9', '1.10', '1.11']
-        os: [ubuntu-latest, windows-latest, macos-13]
-        exclude:
-          - os: macos-13
-            julia-version: 1.4
+        julia-version: ['1.10', '1.11', '1.12']
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-      - uses: julia-actions/install-juliaup@v1
+      - uses: julia-actions/install-juliaup@v2
         with:
-          julia-version: ${{matrix.julia-version}}
+          channel: ${{matrix.julia-version}}
       - name: 'Run the Julia tests'
         run: |
           julia -e 'using InteractiveUtils; versioninfo()'
@@ -116,6 +114,7 @@ jobs:
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("TestItemDetection", coverage=true)'
+          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("JuliaWorkspaces", coverage=true)'
 
   deployOriginalTag:
     name: Deploy Tag Version
@@ -140,7 +139,7 @@ jobs:
           $filename =  (Get-ChildItem *.vsix)[0].FullName
           echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Release to GitHub
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{env.PACKAGE_FILENAME}}
           prerelease: true
@@ -188,7 +187,7 @@ jobs:
           VSCEKEY: ${{secrets.VSCEKEY}}
         run: vsce publish --pre-release -p $VSCEKEY --packagePath $PACKAGE_FILENAME
       - name: Release to GitHub
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{env.PACKAGE_FILENAME}}
           prerelease: true
@@ -201,9 +200,35 @@ jobs:
       #   run: |
       #     npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
 
+  testJuliaPackagesOnAllRemainingPlatforms:
+    name: Test Julia packages on all remaining platforms
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        julia-version: ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.11']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        exclude:
+          - os: macos-latest
+            julia-version: 1.4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - uses: julia-actions/install-juliaup@v2
+        with:
+          channel: ${{matrix.julia-version}}
+      - name: 'Run the Julia tests'
+        run: |
+          julia -e 'using InteractiveUtils; versioninfo()'
+          julia --project=./scripts/testenvironments/debugadapter/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("DebugAdapter", coverage=true)'
+          julia --project=./scripts/testenvironments/vscodedebugger/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("VSCodeDebugger", coverage=true)'
+          julia --project=./scripts/testenvironments/vscodeserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("VSCodeServer", coverage=true)'
+
   deployRelease:
     name: Deploy Release Version
-    needs: [deployPreRelease]
+    needs: [deployPreRelease, testJuliaPackagesOnAllRemainingPlatforms]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     environment: release-channel
@@ -251,7 +276,7 @@ jobs:
         run: |
           vsce publish -p $VSCEKEY --packagePath $PACKAGE_FILENAME
       - name: Release to GitHub
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{env.PACKAGE_FILENAME}}
           prerelease: false

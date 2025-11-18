@@ -3,7 +3,7 @@ import { Subject } from 'await-notify'
 import { ChildProcess, spawn } from 'child_process'
 import * as net from 'net'
 import * as path from 'path'
-import { uuid } from 'uuidv4'
+import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import {
     CancellationToken,
@@ -12,13 +12,14 @@ import {
     NotificationType,
     RequestType,
     StreamMessageReader,
-    StreamMessageWriter
+    StreamMessageWriter,
 } from 'vscode-jsonrpc/node'
 import { getAbsEnvPath } from '../jlpkgenv'
 import { JuliaExecutable } from '../juliaexepath'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
+import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
 const notifyTypeDisplay = new NotificationType<{
     items: { mimetype: string; data: string }[]
@@ -59,13 +60,18 @@ export class JuliaKernel {
 
     private _tokenSource = new vscode.CancellationTokenSource()
 
+    private debuggerPipename: string | null
+    public activeDebugSession: vscode.DebugSession | null
+    public stopDebugSessionAfterExecution: boolean
+
     constructor(
         private extensionPath: string,
         public controller: vscode.NotebookController,
         public notebook: vscode.NotebookDocument,
         public juliaExecutable: JuliaExecutable,
         private outputChannel: vscode.OutputChannel,
-        private notebookFeature: JuliaNotebookFeature
+        private notebookFeature: JuliaNotebookFeature,
+        private compiledProvider: DebugConfigTreeProvider
     ) {
         this.run(this._tokenSource.token)
     }
@@ -75,17 +81,32 @@ export class JuliaKernel {
         this._localDisposables.forEach((d) => d.dispose())
     }
 
+    public mapCellToPath(uri: string) {
+        const cellUri = vscode.Uri.parse(uri, true)
+
+        // find cell in document by matching its URI
+        const cell = this.notebook.getCells().find((c) => c.document.uri.toString() === uri)
+
+        const cellPath = path.join(
+            path.dirname(cellUri.fsPath),
+            `jl_notebook_cell_df34fa98e69747e1a8f8a730347b8e2f_${cellUri.fragment}.jl`
+        )
+
+        this.notebookFeature.pathToCell.set(cellPath, cell)
+
+        return cellPath
+    }
+
     public async queueCell(cell: vscode.NotebookCell): Promise<void> {
         // First clear output
-        const clearOutputExecution =
-            this.controller.createNotebookCellExecution(cell)
+        const clearOutputExecution = this.controller.createNotebookCellExecution(cell)
         clearOutputExecution.start()
         await clearOutputExecution.clearOutput()
         clearOutputExecution.end(undefined)
 
         // Now create execution object that actually will run the code
         const execution = this.controller.createNotebookCellExecution(cell)
-        execution.token.onCancellationRequested((e) => {
+        execution.token.onCancellationRequested(() => {
             execution.end(undefined)
             this.interrupt()
         })
@@ -101,8 +122,7 @@ export class JuliaKernel {
             }
 
             while (this._scheduledExecutionRequests.length > 0) {
-                this._currentExecutionRequest =
-                    this._scheduledExecutionRequests.shift()
+                this._currentExecutionRequest = this._scheduledExecutionRequests.shift()
 
                 if (this._currentExecutionRequest.token.isCancellationRequested) {
                     console.log('this is cancelled')
@@ -110,24 +130,25 @@ export class JuliaKernel {
                     const executionOrder = ++this._current_request_id
                     this._currentExecutionRequest.executionOrder = executionOrder
 
+                    const cellPath = this.mapCellToPath(this._currentExecutionRequest.cell.document.uri.toString())
+
                     const runStartTime = Date.now()
                     this._currentExecutionRequest.start(runStartTime)
 
-                    const result = await this._msgConnection.sendRequest(
-                        requestTypeRunCell,
-                        {
-                            filename: this.notebook.uri.fsPath,
-                            line: 0,
-                            column: 0,
-                            code: this._currentExecutionRequest.cell.document.getText(),
-                        }
-                    )
+                    const result = await this._msgConnection.sendRequest(requestTypeRunCell, {
+                        filename: cellPath,
+                        line: 0,
+                        column: 0,
+                        code: this._currentExecutionRequest.cell.document.getText(),
+                    })
+
+                    if (this.stopDebugSessionAfterExecution && this.activeDebugSession) {
+                        vscode.debug.stopDebugging(this.activeDebugSession)
+                    }
 
                     if (!result.success) {
                         this._currentExecutionRequest.appendOutput(
-                            new vscode.NotebookCellOutput([
-                                vscode.NotebookCellOutputItem.error(result.error),
-                            ])
+                            new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(result.error)])
                         )
                     }
 
@@ -147,10 +168,26 @@ export class JuliaKernel {
         }
     }
 
+    public async toggleDebugging() {
+        if (this.activeDebugSession) {
+            vscode.debug.stopDebugging(this.activeDebugSession)
+        } else {
+            this.stopDebugSessionAfterExecution = false
+            await vscode.debug.startDebugging(undefined, {
+                type: 'julia',
+                request: 'attach',
+                name: 'Julia Notebook',
+                pipename: this.debuggerPipename,
+                stopOnEntry: false,
+                compiledModulesOrFunctions: this.compiledProvider.getCompiledItems(),
+                compiledMode: this.compiledProvider.compiledMode,
+            })
+        }
+    }
+
     private async containsJuliaEnv(folder: string) {
         return (
-            ((await exists(path.join(folder, 'Project.toml'))) &&
-                (await exists(path.join(folder, 'Manifest.toml')))) ||
+            ((await exists(path.join(folder, 'Project.toml'))) && (await exists(path.join(folder, 'Manifest.toml')))) ||
             ((await exists(path.join(folder, 'JuliaProject.toml'))) &&
                 (await exists(path.join(folder, 'JuliaManifest.toml'))))
         )
@@ -169,11 +206,7 @@ export class JuliaKernel {
                 let currentFolder = path.dirname(vscode.Uri.parse(this.notebook.uri.toString()).fsPath)
 
                 // We run this loop until we are looking at a folder that is no longer part of the workspace
-                while (
-                    vscode.workspace.getWorkspaceFolder(
-                        vscode.Uri.file(currentFolder)
-                    ) !== undefined
-                ) {
+                while (vscode.workspace.getWorkspaceFolder(vscode.Uri.file(currentFolder)) !== undefined) {
                     if (await this.containsJuliaEnv(currentFolder)) {
                         return currentFolder
                     }
@@ -211,7 +244,7 @@ export class JuliaKernel {
             const connectedPromise = new Subject()
             const serverListeningPromise = new Subject()
 
-            const pn = generatePipeName(uuid(), 'vscjl-nbk')
+            const pn = generatePipeName(uuidv4(), 'vscjl-nbk')
 
             const server = net.createServer((socket) => {
                 this._msgConnection = createMessageConnection(
@@ -225,24 +258,15 @@ export class JuliaKernel {
                         execution.appendOutput(
                             new vscode.NotebookCellOutput(
                                 items.map((item) => {
-                                    if (
-                                        item.mimetype === 'image/png' ||
-                                        item.mimetype === 'image/jpeg'
-                                    ) {
+                                    if (item.mimetype === 'image/png' || item.mimetype === 'image/jpeg') {
                                         return new vscode.NotebookCellOutputItem(
                                             Buffer.from(item.data, 'base64'),
                                             item.mimetype
                                         )
                                     } else if (item.mimetype.endsWith('+json')) {
-                                        return vscode.NotebookCellOutputItem.json(
-                                            item.data,
-                                            item.mimetype
-                                        )
+                                        return vscode.NotebookCellOutputItem.json(item.data, item.mimetype)
                                     } else {
-                                        return vscode.NotebookCellOutputItem.text(
-                                            item.data,
-                                            item.mimetype
-                                        )
+                                        return vscode.NotebookCellOutputItem.text(item.data, item.mimetype)
                                     }
                                 })
                             )
@@ -250,33 +274,36 @@ export class JuliaKernel {
                     }
                 })
 
-                const outputsPerExecution = new WeakMap<vscode.NotebookCellExecution,{output: vscode.NotebookCellOutput | undefined, name: 'stdout' |'stderr'}>()
-                this._msgConnection.onNotification(
-                    notifyTypeStreamoutput,
-                    ({ name, data }) => {
-                        const execution = this._currentExecutionRequest
-                        if (!execution) {
-                            return
-                        }
-                        if (name === 'stdout' || name === 'stderr') {
-                            // Ensure \r is in a seprate line.
-                            data.split(/(\r)/).forEach((line) => {
-                                const previousOutput = outputsPerExecution.get(this._currentExecutionRequest)
-                                if (previousOutput?.name === name) {
-                                    execution.appendOutputItems([vscode.NotebookCellOutputItem[name](line)], previousOutput.output)
-                                } else {
-                                    const output = new vscode.NotebookCellOutput([
-                                        vscode.NotebookCellOutputItem[name](line),
-                                    ])
-                                    execution.appendOutput([output])
-                                    outputsPerExecution.set(this._currentExecutionRequest, {output, name})
-                                }
-                            })
-                        } else {
-                            throw new Error('Unknown stream type.')
-                        }
+                const outputsPerExecution = new WeakMap<
+                    vscode.NotebookCellExecution,
+                    { output: vscode.NotebookCellOutput | undefined; name: 'stdout' | 'stderr' }
+                >()
+                this._msgConnection.onNotification(notifyTypeStreamoutput, ({ name, data }) => {
+                    const execution = this._currentExecutionRequest
+                    if (!execution) {
+                        return
                     }
-                )
+                    if (name === 'stdout' || name === 'stderr') {
+                        // Ensure \r is in a seprate line.
+                        data.split(/(\r)/).forEach((line) => {
+                            const previousOutput = outputsPerExecution.get(this._currentExecutionRequest)
+                            if (previousOutput?.name === name) {
+                                execution.appendOutputItems(
+                                    [vscode.NotebookCellOutputItem[name](line)],
+                                    previousOutput.output
+                                )
+                            } else {
+                                const output = new vscode.NotebookCellOutput([
+                                    vscode.NotebookCellOutputItem[name](line),
+                                ])
+                                execution.appendOutput([output])
+                                outputsPerExecution.set(this._currentExecutionRequest, { output, name })
+                            }
+                        })
+                    } else {
+                        throw new Error('Unknown stream type.')
+                    }
+                })
 
                 this._msgConnection.listen()
 
@@ -300,23 +327,25 @@ export class JuliaKernel {
 
             const nthreads = inferJuliaNumThreads()
 
-            const args = [
-                '--color=yes',
-                `--project=${pkgenvpath}`,
-                '--history-file=no',
-            ]
+            const args = ['--color=yes', `--project=${pkgenvpath}`, '--history-file=no']
 
             const env = {
-                ...process.env
+                ...process.env,
             }
 
             if (nthreads === 'auto') {
                 args.push('--threads=auto')
-            } else {
+            } else if (nthreads !== undefined) {
                 env['JULIA_NUM_THREADS'] = nthreads
             }
 
-            this.outputChannel.appendLine(`Now starting the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`)
+            this.outputChannel.appendLine(
+                `Now starting the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`
+            )
+
+            this.debuggerPipename = generatePipeName(uuidv4(), 'vsc-jl-repldbg')
+
+            this.notebookFeature.debugPipenameToKernel.set(this.debuggerPipename, this)
 
             this._kernelProcess = spawn(
                 this.juliaExecutable.file,
@@ -325,11 +354,12 @@ export class JuliaKernel {
                     ...args,
                     path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
                     pn,
+                    this.debuggerPipename,
                     getCrashReportingPipename(),
                 ],
                 {
                     env,
-                    cwd: cwdPath
+                    cwd: cwdPath,
                 }
             )
 
@@ -367,10 +397,9 @@ export class JuliaKernel {
             this._onStopped.fire(undefined)
 
             this.dispose()
-        }
-        catch (err) {
+        } catch (err) {
             handleNewCrashReportFromException(err, 'Extension')
-            throw (err)
+            throw err
         }
     }
 
