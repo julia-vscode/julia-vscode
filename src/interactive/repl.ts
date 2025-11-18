@@ -260,7 +260,7 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
         const task = new TaskRunnerTerminal(`Julia REPL (v${juliaExecutable.getVersion()})`, shellPath, shellArgs, {
             env,
             iconPath: juliaIconPath,
-            echoCommand: false,
+            echoMessage: false,
             onExitMessage(exitCode) {
                 if (exitCode === 0) {
                     return

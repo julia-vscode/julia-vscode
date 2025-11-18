@@ -69,6 +69,7 @@ export class JuliaCommands {
                 ...process.env,
                 ...processEnv,
             },
+            echoMessage: true,
             onExitMessage(exitCode) {
                 if (exitCode === 0) {
                     return '\n\r\x1b[30;47m * \x1b[0m Successfully ran this command. Press any key to close the terminal.\n\r'

@@ -5,10 +5,8 @@ import { JuliaProcess } from './utils/process'
 export interface TaskRunnerTerminalOptions extends JuliaPTYOptions {
     cwd?: string | vscode.Uri
     env?: { [key: string]: string }
-    shellIntegrationNonce?: string
-    message?: string
     iconPath?: vscode.IconPath
-    hideFromUser?: boolean
+    hideFromUser?: boolean // currently not functional
 }
 
 export class TaskRunnerTerminal {

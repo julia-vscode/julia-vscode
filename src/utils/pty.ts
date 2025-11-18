@@ -19,7 +19,7 @@ import * as vscode from 'vscode'
 import type { JuliaProcess } from './process'
 
 export interface JuliaPTYOptions {
-    echoCommand?: boolean
+    echoMessage?: boolean | string
     onExitMessage?: (exitCode: number | void) => string | undefined
     showDefaultErrorMessage?: boolean
 }
@@ -44,9 +44,11 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
     open(initialDimensions?: vscode.TerminalDimensions): void {
         this.disposables.push(
             this.proc.onDidSpawn(() => {
-                if (this.options.echoCommand !== false) {
+                if (this.options.echoMessage === true) {
                     const exec = [this.proc.command, ...this.proc.args].join(' ')
                     this.write(`\x1b[30;47m * \x1b[0m Executing ${exec}\n\n\r`)
+                } else if (typeof this.options.echoMessage === 'string') {
+                    this.write(this.options.echoMessage)
                 }
             }),
             this.proc.onDidWrite((data) => {
