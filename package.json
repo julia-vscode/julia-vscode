@@ -2,11 +2,11 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.127.0",
+    "version": "1.158.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.91.0"
+        "vscode": "^1.96.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -60,6 +60,13 @@
                 "embeddedLanguages": {
                     "meta.embedded.block.julia": "julia"
                 }
+            },
+            {
+                "scopeName": "source.docstring.julia",
+                "path": "./syntaxes/juliadocstring.json",
+                "injectTo": [
+                    "source.julia"
+                ]
             }
         ],
         "commands": [
@@ -109,6 +116,11 @@
             {
                 "command": "language-julia.stopTestProcess",
                 "title": "Julia: Stop Test Process",
+                "icon": "$(debug-stop)"
+            },
+            {
+                "command": "language-julia.stopTestController",
+                "title": "Julia: Stop Test Controller",
                 "icon": "$(debug-stop)"
             },
             {
@@ -413,6 +425,14 @@
                 "title": "Debug Cell",
                 "command": "language-julia.runAndDebugCell",
                 "icon": "$(debug-alt-small)"
+            },
+            {
+                "title": "Julia: Run Package Command",
+                "command": "language-julia.runPackageCommand"
+            },
+            {
+                "title": "Julia: Instantiate Environment",
+                "command": "language-julia.instantiateEnvironment"
             }
         ],
         "menus": {
@@ -585,6 +605,11 @@
                 {
                     "command": "language-julia.stopTestProcess",
                     "when": "view == REPLVariables && viewItem == juliatestprocess",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.stopTestController",
+                    "when": "view == REPLVariables && viewItem == juliatestcontroller",
                     "group": "inline"
                 },
                 {
@@ -880,7 +905,7 @@
                 "julia.lint.call": {
                     "type": "boolean",
                     "default": true,
-                    "description": "This compares  call signatures against all known methods for the called function. Calls with too many or too few arguments, or unknown keyword parameters are highlighted."
+                    "description": "This compares call signatures against all known methods for the called function. Calls with too many or too few arguments, or unknown keyword parameters are highlighted."
                 },
                 "julia.lint.iter": {
                     "type": "boolean",
@@ -890,12 +915,12 @@
                 "julia.lint.nothingcomp": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for use of `==` rather than `===` when comparing against `nothing`. "
+                    "description": "Check for use of `==` rather than `===` when comparing against `nothing`."
                 },
                 "julia.lint.constif": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for constant conditionals in if statements that result in branches never being reached.."
+                    "description": "Check for constant conditionals in if statements that result in branches never being reached."
                 },
                 "julia.lint.lazy": {
                     "type": "boolean",
@@ -1075,6 +1100,7 @@
                 "julia.cellDelimiters": {
                     "type": "array",
                     "default": [
+                        "^\\s?#\\s#+",
                         "^##(?!#)",
                         "^#(\\s?)%%",
                         "^#-"
@@ -1120,12 +1146,6 @@
                     "default": "",
                     "markdownDescription": "Julia package server. Sets the `JULIA_PKG_SERVER` environment variable *before* starting a Julia process. Leave this empty to use the systemwide default. Requires a restart of the Julia process.",
                     "scope": "machine-overridable"
-                },
-                "julia.liveTestFile": {
-                    "type": "string",
-                    "default": "test/runtests.jl",
-                    "description": "A workspace relative path to a Julia file that contains the tests that should be run for live testing.",
-                    "scope": "window"
                 },
                 "julia.persistentSession.enabled": {
                     "type": "boolean",
@@ -1260,6 +1280,18 @@
                     "default": true,
                     "description": "Show top-level modules in the workspace.",
                     "scope": "application"
+                },
+                "julia.languageServerExecutablePath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Points to the julia executable used to launch the language server process. This overwrites julia.executablePath for the language server launch if present.",
+                    "scope": "machine-overridable"
+                },
+                "julia.languageServerJuliaupChannel": {
+                    "type": "string",
+                    "default": "release",
+                    "description": "Juliaup channel to use for the language server (e.g., 'release', 'lts', 'beta'). Can be overridden by JULIA_VSCODE_LANGUAGESERVER_CHANNEL environment variable.",
+                    "scope": "machine-overridable"
                 }
             }
         },
@@ -1502,11 +1534,11 @@
         ]
     },
     "scripts": {
-        "vscode:prepublish": "webpack --mode production",
-        "webpack": "webpack --mode development",
-        "webpack-dev": "webpack --mode development --watch",
+        "vscode:prepublish": "npm run bundle",
+        "bundle": "esbuild ./src/extension.ts --bundle --outdir=./dist --external:vscode --external:applicationinsights-native-metrics --external:@opentelemetry/instrumentation --external:@azure/opentelemetry-instrumentation-azure-sdk --format=cjs --platform=node --minify --sourcemap",
         "eslint": "eslint --ext .ts --fix .",
         "eslint-dry-run": "eslint --ext .ts --fix-dry-run .",
+        "format": "prettier --write .",
         "compile": "tsc -p ./",
         "compile-dry-run": "tsc -p ./ --noEmit --pretty",
         "watch": "tsc -watch -p ./",
@@ -1538,27 +1570,27 @@
         "which": "5"
     },
     "devDependencies": {
-        "@types/download": "^8.0.1",
+        "@eslint/js": "^9.39.1",
         "@types/lodash.isequal": "^4.5.8",
         "@types/markdown-it": "^14.1.1",
         "@types/mocha": "^10",
         "@types/node": "^22",
         "@types/semver": "^7.3.9",
         "@types/source-map-support": "^0.5.4",
-        "@types/vscode": "1.95.0",
+        "@types/vscode": "1.96.0",
         "@typescript-eslint/eslint-plugin": "^8.10.0",
         "@typescript-eslint/parser": "^8.7.0",
         "@vscode/test-cli": "^0.0.10",
         "@vscode/test-electron": "^2.3.6",
         "@vscode/vsce": "3",
-        "download": "^8.0.0",
-        "eslint": "^9.15.0",
+        "esbuild": "^0.27.0",
+        "eslint": "^9.39.1",
+        "eslint-config-prettier": "^10.1.8",
         "globals": "^15.12.0",
         "mocha": "11",
+        "prettier": "^3.6.2",
         "ts-loader": "^9.2.8",
-        "typescript": "^5.6.3",
-        "typescript-eslint": "^8.14.0",
-        "webpack": "^5.70.0",
-        "webpack-cli": "^5"
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.46.4"
     }
 }

@@ -103,9 +103,6 @@
 [submodule "scripts/packages/AutoHashEquals"]
 	path = scripts/packages/AutoHashEquals
 	url = https://github.com/JuliaServices/AutoHashEquals.jl
-[submodule "scripts/packages/TestItemServer"]
-	path = scripts/packages/TestItemServer
-	url = https://github.com/julia-vscode/TestItemServer.jl
 [submodule "scripts/packages/TestItemDetection"]
 	path = scripts/packages/TestItemDetection
 	url = https://github.com/julia-vscode/TestItemDetection.jl
@@ -121,3 +118,27 @@
 [submodule "scripts/packages/CancellationTokens"]
 	path = scripts/packages/CancellationTokens
 	url = https://github.com/davidanthoff/CancellationTokens.jl
+[submodule "scripts/packages-old/v1.9/JuliaInterpreter"]
+	path = scripts/packages-old/v1.9/JuliaInterpreter
+	url = https://github.com/JuliaDebug/JuliaInterpreter.jl
+[submodule "scripts/packages-old/v1.9/LoweredCodeUtils"]
+	path = scripts/packages-old/v1.9/LoweredCodeUtils
+	url = https://github.com/JuliaDebug/LoweredCodeUtils.jl
+[submodule "scripts/packages/TestItemControllers"]
+	path = scripts/packages/TestItemControllers
+	url = https://github.com/julia-vscode/TestItemControllers.jl
+[submodule "scripts/packages-old/v1.5/OrderedCollections"]
+	path = scripts/packages-old/v1.5/OrderedCollections
+	url = https://github.com/JuliaCollections/OrderedCollections.jl
+[submodule "scripts/packages-old/v1.9/Revise"]
+	path = scripts/packages-old/v1.9/Revise
+	url = https://github.com/timholy/Revise.jl
+[submodule "scripts/packages-old/v1.5/CodeTracking"]
+	path = scripts/packages-old/v1.5/CodeTracking
+	url = https://github.com/timholy/CodeTracking.jl.git
+[submodule "scripts/packages/Compiler"]
+	path = scripts/packages/Compiler
+	url = https://github.com/JuliaLang/BaseCompiler.jl
+[submodule "scripts/packages-old/v1.7/CodeTracking"]
+	path = scripts/packages-old/v1.9/CodeTracking
+	url = https://github.com/timholy/CodeTracking.jl.git

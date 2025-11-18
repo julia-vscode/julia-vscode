@@ -10,8 +10,10 @@ include("../../JSON/src/JSON.jl")
 module JuliaInterpreter
     using ..CodeTracking
 
-    @static if VERSION >= v"1.6.0"
+    @static if VERSION >= v"1.10.0"
         include("../../JuliaInterpreter/src/packagedef.jl")
+    elseif VERSION >= v"1.6.0"
+        include("../../../packages-old/v1.9/JuliaInterpreter/src/packagedef.jl")
     else
         include("../../../packages-old/v1.5/JuliaInterpreter/src/packagedef.jl")
     end

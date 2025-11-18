@@ -9,19 +9,19 @@ const DIAGNOSTICS_ENABLED = Ref(true)
 const INLAY_HINTS_ENABLED = Ref(true)
 const PROGRESS_ENABLED = Ref(true)
 
-function toggle_plot_pane(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+function toggle_plot_pane_notification(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     PLOT_PANE_ENABLED[] = params.enable
 end
 
-function toggle_diagnostics(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+function toggle_diagnostics_notification(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     DIAGNOSTICS_ENABLED[] = params.enable
 end
 
-function toggle_inlay_hints(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+function toggle_inlay_hints_notification(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     INLAY_HINTS_ENABLED[] = params.enable
 end
 
-function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+function toggle_progress_notification(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     PROGRESS_ENABLED[] = params.enable
 end
 

@@ -5,15 +5,43 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.155.0] - 2025-09-03
 ### Added
+- Added ability to fetch information for user installed `juliaup` ([3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
+
+### Fixed
+- Empty environment paths no longer cause issues ([#3866](https://github.com/julia-vscode/julia-vscode/pull/3866))
+- Handle filename-only links in the terminal better (e.g. `foo.jl` without a `./` prefix) ([#3738](https://github.com/julia-vscode/julia-vscode/pull/3738))
+
+## [1.154.0] - 2025-08-28
+### Added
+- Added support for `${workspaceFolder}` in `environmentPath` configuration setting.
+- Added ability to override the juliaup channel that would be used to run language server. By default language server looks for the "release" channel. A plugin configuration `julia.languageServerJuliaupChannel` or an env `JULIA_VSCODE_LANGUAGESERVER_CHANNEL`can be used to override that. The env would be useful in managed environment situations where the juliaup and vscode installations are pre-configured by an administrator. The channel value is looked up from the environment variable and plugin configuration in that order.
+- Added syntax highlighting to docstrings in `.jl` source files injecting to `L:string.docstring.julia`. Note that nested docstrings are not supported. ([#3852](https://github.com/julia-vscode/julia-vscode/pull/3852))
+
+### Fixed
+- `@profview` now works correctly on threaded code when Julia is launched with interactive threads ([#3821](https://github.com/julia-vscode/julia-vscode/pull/3821))
+
+## [1.140.0] - 2025-05-06
+### Added
+- Added additional [Literate.jl cell delimiters](https://fredrikekre.github.io/Literate.jl/v2/fileformat/#Syntax) corresponding to Markdown headers to the default `julia.cellDelimiter` settings.
 - Added `juliaAdditionalArgs` option to Julia debug launch configuration ([#3699](https://github.com/julia-vscode/julia-vscode/pull/3699)).
 - Added passing of `config` field when making a Plotly plot in the plot pane ([#3734](https://github.com/julia-vscode/julia-vscode/pull/3734)).
+- Integrated and persistent Julia REPL processes now have the `JULIA_VSCODE_REPL` environment variable set ([#3764](https://github.com/julia-vscode/julia-vscode/pull/3764))
+- Added `julia.languageServerExecutablePath` setting, which allows specifying a Julia executable path specifically for the LanguageServer runtime ([#3793](https://github.com/julia-vscode/julia-vscode/pull/3793)).
+
 ### Fixed
 - `@profview` and `@profview_allocs` now support the optional keyword arguments of `Profile.print`, such as `recur = :flat` ([#3666](https://github.com/julia-vscode/julia-vscode/pull/3666)).
 - The integrated REPL now respects a user-set active project (e.g. in `additionalArgs` and `startup.jl`) ([#3670](https://github.com/julia-vscode/julia-vscode/pull/3669))
 - Changes to how Jupyter Notebook Metadata is updated ([#3690](https://github.com/julia-vscode/julia-vscode/pull/3690))
 - Fix a bug where non-supported schemes were sent to the LS ([#3700](https://github.com/julia-vscode/julia-vscode/pull/3700))
-- Handle filename-only links in the terminal better (e.g. `foo.jl` without a `./` prefix) ([#3738](https://github.com/julia-vscode/julia-vscode/pull/3738))
+- Fix saving from plot pane for text/html plots with a single img tag (e.g. Makie) and decrease "copy plot to clipboard" failure rate due to missing focus ([#3780](https://github.com/julia-vscode/julia-vscode/pull/3780))
+- Julia 1.12 compatibility ([#3807](https://github.com/julia-vscode/julia-vscode/pull/3807))
+
+### Changed
+- Plotly javascript library updated to 2.35.2 ([#3750](https://github.com/julia-vscode/julia-vscode/pull/3750)).
+- Test item runner migrated to TestItemControllers.jl
+- Changed `inferJuliaNumThreads` to avoid setting `JULIA_NUM_THREADS` to an empty string (which is undefined behaviour).
 
 ## [1.104.0] - 2024-07-29
 ### Fixed

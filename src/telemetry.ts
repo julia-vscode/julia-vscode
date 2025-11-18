@@ -22,7 +22,7 @@ let g_jlcrashreportingpipename: string = null
 
 let g_prereleaseExtension: boolean = false
 
-function filterTelemetry(envelope, context) {
+function filterTelemetry(envelope) {
     if (envelope.data.baseType === 'ExceptionData') {
         if (enableCrashReporter) {
             for (const i_ex in envelope.data.baseData.exceptions) {
@@ -30,16 +30,20 @@ function filterTelemetry(envelope, context) {
                     const sf = envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf]
                     envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].assembly = ''
 
-                    envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].sizeInBytes = sf.method.length + sf.fileName.length + sf.assembly.length + 58 + sf.level.toString().length + sf.line.toString().length
+                    envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].sizeInBytes =
+                        sf.method.length +
+                        sf.fileName.length +
+                        sf.assembly.length +
+                        58 +
+                        sf.level.toString().length +
+                        sf.line.toString().length
                 }
             }
             return true
-        }
-        else {
+        } else {
             return false
         }
-    }
-    else {
+    } else {
         return enableTelemetry
     }
 }
@@ -54,9 +58,11 @@ function loadConfig() {
 export async function init(context: vscode.ExtensionContext) {
     loadConfig()
 
-    context.subscriptions.push(onDidChangeConfig(event => {
-        loadConfig()
-    }))
+    context.subscriptions.push(
+        onDidChangeConfig(() => {
+            loadConfig()
+        })
+    )
 
     const packageJSONContent = JSON.parse(await fs.readTextFile(path.join(context.extensionPath, 'package.json')))
 
@@ -65,22 +71,24 @@ export async function init(context: vscode.ExtensionContext) {
 
     // The Application Insights Key
     let key = ''
-    if (parsedExtensionVersion.patch===2) {
+    if (parsedExtensionVersion.patch === 2) {
         // Use the production environment
-        key = 'InstrumentationKey=ca1fb443-8d44-4a06-91fe-0235cfdf635f;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
-    }
-    else if (parsedExtensionVersion.patch===1) {
+        key =
+            'InstrumentationKey=ca1fb443-8d44-4a06-91fe-0235cfdf635f;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
+    } else if (parsedExtensionVersion.patch === 1) {
         // Use the insider environment
-        key = 'InstrumentationKey=94d316b7-bba0-4d03-9525-81e25c7da22f;IngestionEndpoint=https://eastus-3.in.applicationinsights.azure.com/'
+        key =
+            'InstrumentationKey=94d316b7-bba0-4d03-9525-81e25c7da22f;IngestionEndpoint=https://eastus-3.in.applicationinsights.azure.com/'
         g_prereleaseExtension = true
-    }
-    else {
+    } else {
         // Use the debug environment
-        key = 'InstrumentationKey=82cf1bd4-8560-43ec-97a6-79847395d791;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
+        key =
+            'InstrumentationKey=82cf1bd4-8560-43ec-97a6-79847395d791;IngestionEndpoint=https://eastus-4.in.applicationinsights.azure.com/'
         g_prereleaseExtension = true
     }
 
-    appInsights.setup(key)
+    appInsights
+        .setup(key)
         .setAutoDependencyCorrelation(false)
         .setAutoCollectRequests(false)
         .setAutoCollectPerformance(false)
@@ -90,7 +98,7 @@ export async function init(context: vscode.ExtensionContext) {
         .setUseDiskRetryCaching(true)
         .start()
 
-    if (parsedExtensionVersion.patch!==1 && parsedExtensionVersion.patch!==2) {
+    if (parsedExtensionVersion.patch !== 1 && parsedExtensionVersion.patch !== 2) {
         // Make sure we send out messages right away
         appInsights.defaultClient.config.maxBatchSize = 0
     }
@@ -106,33 +114,50 @@ export async function init(context: vscode.ExtensionContext) {
     extensionClient.context.tags[extensionClient.context.keys.cloudRoleInstance] = ''
     extensionClient.context.tags[extensionClient.context.keys.sessionId] = vscode.env.sessionId
     extensionClient.context.tags[extensionClient.context.keys.userId] = vscode.env.machineId
+
+    const logger = vscode.env.createTelemetryLogger({
+        sendEventData: () => {},
+        sendErrorData: (error: Error) => {
+            handleNewCrashReportFromException(error, 'Extension')
+        },
+    })
+
+    context.subscriptions.push(logger)
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
     if (name.startsWith('LSPrecompileFailure')) {
-        vscode.window.showErrorMessage('The Julia Language Server failed to precompile. Please check the FAQ and the local output.', 'Open FAQ', 'Open Logs').then(choice => {
-            if (choice === 'Open Logs') {
-                vscode.commands.executeCommand('language-julia.showLanguageServerOutput')
-            } else if (choice === 'Open FAQ') {
-                vscode.commands.executeCommand('vscode.open', vscode.Uri.parse('https://www.julia-vscode.org/docs/stable/faq'))
-            }
-        })
+        vscode.window
+            .showErrorMessage(
+                'The Julia Language Server failed to precompile. Please check the FAQ and the local output.',
+                'Open FAQ',
+                'Open Logs'
+            )
+            .then((choice) => {
+                if (choice === 'Open Logs') {
+                    vscode.commands.executeCommand('language-julia.showLanguageServerOutput')
+                } else if (choice === 'Open FAQ') {
+                    vscode.commands.executeCommand(
+                        'vscode.open',
+                        vscode.Uri.parse('https://www.julia-vscode.org/docs/stable/faq')
+                    )
+                }
+            })
     }
     crashReporterQueue.push({
         exception: {
             name: name,
             message: message,
-            stack: stacktrace
+            stack: stacktrace,
         },
         tagOverrides: {
-            [extensionClient.context.keys.cloudRole]: cloudRole
-        }
+            [extensionClient.context.keys.cloudRole]: cloudRole,
+        },
     })
 
     if (enableCrashReporter) {
         sendCrashReportQueue()
-    }
-    else {
+    } else {
         showCrashReporterUIConsent()
     }
 }
@@ -141,20 +166,18 @@ export function handleNewCrashReportFromException(exception: Error, cloudRole: s
     crashReporterQueue.push({
         exception: exception,
         tagOverrides: {
-            [extensionClient.context.keys.cloudRole]: cloudRole
-        }
+            [extensionClient.context.keys.cloudRole]: cloudRole,
+        },
     })
 
     if (enableCrashReporter) {
         sendCrashReportQueue()
-    }
-    else {
+    } else {
         showCrashReporterUIConsent()
     }
 }
 
 export function startLsCrashServer() {
-
     g_jlcrashreportingpipename = generatePipeName(uuidv4(), 'vsc-jl-cr')
 
     const server = net.createServer(function (connection) {
@@ -164,7 +187,7 @@ export function startLsCrashServer() {
             accumulatingBuffer = Buffer.concat([accumulatingBuffer, Buffer.from(c)])
         })
 
-        connection.on('close', async function (had_err) {
+        connection.on('close', async function () {
             const replResponse = accumulatingBuffer.toString().split('\n')
             const errorMessageLines = parseInt(replResponse[2])
             const errorMessage = replResponse.slice(3, 3 + errorMessageLines).join('\n')
@@ -188,7 +211,7 @@ export function traceEvent(message) {
 }
 
 export function traceRequest(operationId, operationParentId, name, time, duration, cloudRole) {
-    if(g_prereleaseExtension) {
+    if (g_prereleaseExtension) {
         extensionClient.trackRequest({
             name: name,
             url: name,
@@ -200,8 +223,8 @@ export function traceRequest(operationId, operationParentId, name, time, duratio
                 [extensionClient.context.keys.cloudRole]: cloudRole,
                 [extensionClient.context.keys.operationName]: name,
                 [extensionClient.context.keys.operationId]: operationId,
-                ...(operationParentId ? {[extensionClient.context.keys.operationParentId]: operationParentId } : {})
-            }
+                ...(operationParentId ? { [extensionClient.context.keys.operationParentId]: operationParentId } : {}),
+            },
         })
     }
 }
@@ -224,27 +247,37 @@ function sendCrashReportQueue() {
 }
 
 async function showCrashReporterUIConsent() {
-    if (crashReporterUIVisible || vscode.workspace.getConfiguration('julia').get<boolean>('enableCrashReporter') === false) {
+    if (
+        crashReporterUIVisible ||
+        vscode.workspace.getConfiguration('julia').get<boolean>('enableCrashReporter') === false
+    ) {
         return
-    }
-    else {
+    } else {
         crashReporterUIVisible = true
         try {
             const agree = 'Yes'
             const agreeAlways = 'Yes, always'
             const disagree = 'No, never'
-            const choice = await vscode.window.showInformationMessage('The Julia language extension crashed. Do you want to send more information about the problem to the development team? Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use crash reports and what data will be transmitted.', agree, agreeAlways, disagree)
+            const choice = await vscode.window.showInformationMessage(
+                'The Julia language extension crashed. Do you want to send more information about the problem to the development team? Read our [privacy statement](https://github.com/julia-vscode/julia-vscode/wiki/Privacy-Policy) to learn more about how we use crash reports and what data will be transmitted.',
+                agree,
+                agreeAlways,
+                disagree
+            )
             if (choice === disagree) {
-                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', false, vscode.ConfigurationTarget.Global)
+                vscode.workspace
+                    .getConfiguration('julia')
+                    .update('enableCrashReporter', false, vscode.ConfigurationTarget.Global)
             }
             if (choice === agreeAlways) {
-                vscode.workspace.getConfiguration('julia').update('enableCrashReporter', true, vscode.ConfigurationTarget.Global)
+                vscode.workspace
+                    .getConfiguration('julia')
+                    .update('enableCrashReporter', true, vscode.ConfigurationTarget.Global)
             }
             if (choice === agree || choice === agreeAlways) {
                 sendCrashReportQueue()
             }
-        }
-        finally {
+        } finally {
             crashReporterUIVisible = false
         }
     }

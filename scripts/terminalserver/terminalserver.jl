@@ -23,8 +23,8 @@ let
     end
 
     atreplinit() do repl
-        VSCodeServer.toggle_plot_pane(nothing, (;enable="USE_PLOTPANE=true" in args))
-        VSCodeServer.toggle_progress(nothing, (;enable="USE_PROGRESS=true" in args))
+        VSCodeServer.toggle_plot_pane_notification(nothing, (;enable="USE_PLOTPANE=true" in args))
+        VSCodeServer.toggle_progress_notification(nothing, (;enable="USE_PROGRESS=true" in args))
     end
 
     VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, telemetry_pipename, "REPL"))

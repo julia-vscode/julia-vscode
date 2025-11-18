@@ -1,0 +1,32 @@
+{
+  "name": "Julia Docstring Code Block Highlighter",
+  "scopeName": "source.docstring.julia",
+  "injectionSelector": "L:string.docstring.julia",
+  "fileTypes": [
+    "jl"
+  ],
+  "patterns": [
+    {
+      "include": "#julia-code-block"
+    }
+  ],
+  "repository": {
+    "julia-code-block": {
+      "begin": "(^|\\G)(\\s*)(\\`{3,}|~{3,})\\s*(?i:(julia|jl(doctest)?|julia-repl))((;|\\s)([^`~]*))?$",
+      "name": "docstring.julia.codeblock",
+      "end": "(^|\\G)(\\2|\\s{0,3})(\\3)\\s*$",
+      "patterns": [
+        {
+          "begin": "(^|\\G)(\\s*)(.*)",
+          "while": "(^|\\G)(?!\\s*([`~]{3,})\\s*$)",
+          "contentName": "meta.embedded.block.julia",
+          "patterns": [
+            {
+              "include": "source.julia"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

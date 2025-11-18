@@ -8,12 +8,14 @@ is_disconnected_exception(err::CompositeException) = all(is_disconnected_excepti
 
 function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
     if is_disconnected_exception(e)
-        @debug "Disconnect. Nothing to worry about."
+        @debug "Disconnect." ex=(e, bt)
         return
     end
 
     @error "Some Julia code in the VS Code extension crashed"
     Base.display_error(e, bt)
+    flush(stdout)
+    flush(stderr)
 
 
     try

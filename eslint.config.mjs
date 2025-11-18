@@ -1,37 +1,23 @@
-import typescriptEslint from '@typescript-eslint/eslint-plugin'
-import tsParser from '@typescript-eslint/parser'
+import eslint from '@eslint/js'
+import { defineConfig } from 'eslint/config'
+import tseslint from 'typescript-eslint'
+import eslintConfigPrettier from 'eslint-config-prettier/flat'
 
-export default [
+export default defineConfig(
     {
-        ignores: ['out/', 'libs/', 'dist/', '.vscode-test/']
+        ignores: ['out/', 'libs/', 'dist/', '.vscode-test/', 'scripts/'],
     },
+    eslint.configs.recommended,
+    tseslint.configs.recommended,
+    eslintConfigPrettier,
     {
         files: ['**/*.ts'],
-        plugins: {
-            '@typescript-eslint': typescriptEslint,
-        },
-
-        languageOptions: {
-            parser: tsParser,
-            ecmaVersion: 2022,
-            sourceType: 'module',
-        },
-
         rules: {
-            '@typescript-eslint/naming-convention': ['warn', {
-                selector: 'import',
-                format: ['camelCase', 'PascalCase'],
-            }],
-
             curly: 'warn',
             eqeqeq: 'error',
             'no-throw-literal': 'warn',
-            semi: ['error', 'never'],
             'prefer-const': 'warn',
-            'no-extra-semi': 'warn',
             'no-var': 'warn',
-            quotes: ['warn', 'single', {allowTemplateLiterals: true}],
-            indent: ['warn', 4],
         },
     }
-]
+)

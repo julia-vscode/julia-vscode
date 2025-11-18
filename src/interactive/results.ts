@@ -8,19 +8,19 @@ export enum GlyphChars {
     LessThan = '\u003C',
     GreaterThan = '\u003E',
     MuchGreaterThan = '\u226B',
-    BallotX = '\u2717'
+    BallotX = '\u2717',
 }
 
 export enum ResultType {
     Error,
-    Result
+    Result,
 }
 
 interface ResultContent {
-    isIcon: boolean,
-    content: string,
-    hoverContent: string | vscode.MarkdownString,
-    isError: boolean,
+    isIcon: boolean
+    content: string
+    hoverContent: string | vscode.MarkdownString
+    isError: boolean
     type: ResultType
 }
 
@@ -73,10 +73,12 @@ export class Result {
 
         for (const ed of vscode.window.visibleTextEditors) {
             if (ed.document === this.document) {
-                ed.setDecorations(this.decoration, [{
-                    hoverMessage: this.content.hoverContent,
-                    range: this.decorationRange
-                }])
+                ed.setDecorations(this.decoration, [
+                    {
+                        hoverMessage: this.content.hoverContent,
+                        range: this.decorationRange,
+                    },
+                ])
             }
         }
     }
@@ -104,7 +106,8 @@ export class Result {
                 border: '2px solid',
                 borderColor: accentColor,
                 // HACK: CSS injection to get custom styling in:
-                textDecoration: 'none; white-space: pre; border-top: 0px; border-right: 0px; border-bottom: 0px; border-radius: 2px'
+                textDecoration:
+                    'none; white-space: pre; border-top: 0px; border-right: 0px; border-bottom: 0px; border-radius: 2px',
             },
             rangeBehavior: vscode.DecorationRangeBehavior.OpenClosed,
         }
@@ -119,8 +122,9 @@ export class Result {
     }
 
     get decorationRange(): vscode.Range {
-        return this.content.type === ResultType.Error ? this.range :
-            new vscode.Range(this.range.end.translate(0, LINE_INF), this.range.end.translate(0, LINE_INF))
+        return this.content.type === ResultType.Error
+            ? this.range
+            : new vscode.Range(this.range.end.translate(0, LINE_INF), this.range.end.translate(0, LINE_INF))
     }
 
     draw() {
@@ -134,18 +138,22 @@ export class Result {
 
         for (const change of e.contentChanges) {
             const intersect = change.range.intersection(this.range)
-            if (intersect !== undefined && !(intersect.isEmpty && change.text === '\n' || change.text === '\r\n' || change.text === '')) {
+            if (
+                intersect !== undefined &&
+                !((intersect.isEmpty && change.text === '\n') || change.text === '\r\n' || change.text === '')
+            ) {
                 return false
             }
 
-            if (change.range.end.line < this.range.start.line ||
+            if (
+                change.range.end.line < this.range.start.line ||
                 (change.range.end.line === this.range.start.line &&
-                    change.range.end.character <= this.range.start.character)) {
+                    change.range.end.character <= this.range.start.character)
+            ) {
                 const lines = change.text.split('\n')
 
                 const lineOffset = lines.length - 1 - (change.range.end.line - change.range.start.line)
-                const charOffset = change.range.end.line === this.range.start.line ?
-                    lines[lines.length - 1].length : 0
+                const charOffset = change.range.end.line === this.range.start.line ? lines[lines.length - 1].length : 0
 
                 this.range = new vscode.Range(
                     this.range.start.translate(lineOffset, charOffset),
@@ -172,22 +180,22 @@ export class Result {
 }
 
 const results: Result[] = []
-const supportedLanguageIds = [
-    'julia',
-    'juliamarkdown',
-    'markdown'
-]
+const supportedLanguageIds = ['julia', 'juliamarkdown', 'markdown']
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         // subscriptions
         vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)),
         vscode.window.onDidChangeVisibleTextEditors((editors) => refreshResults(editors)),
-        vscode.window.onDidChangeTextEditorSelection(changeEvent => updateContextKeyForSelections(changeEvent.textEditor, changeEvent.selections)),
+        vscode.window.onDidChangeTextEditorSelection((changeEvent) =>
+            updateContextKeyForSelections(changeEvent.textEditor, changeEvent.selections)
+        ),
 
         // public commands
         registerCommand('language-julia.clearAllInlineResults', removeAll),
-        registerCommand('language-julia.clearAllInlineResultsInEditor', () => removeAll(vscode.window.activeTextEditor)),
+        registerCommand('language-julia.clearAllInlineResultsInEditor', () =>
+            removeAll(vscode.window.activeTextEditor)
+        ),
         registerCommand('language-julia.clearCurrentInlineResult', () => {
             if (vscode.window.activeTextEditor) {
                 removeCurrent(vscode.window.activeTextEditor)
@@ -195,7 +203,7 @@ export function activate(context: vscode.ExtensionContext) {
         }),
 
         // internal commands
-        registerCommand('language-julia.openFile', (locationArg: { path: string, line: number }) => {
+        registerCommand('language-julia.openFile', (locationArg: { path: string; line: number }) => {
             openFile(locationArg.path, locationArg.line)
         }),
         registerCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
@@ -211,7 +219,10 @@ export function activate(context: vscode.ExtensionContext) {
     setContext('julia.supportedLanguageIds', supportedLanguageIds)
 }
 
-function updateContextKeyForSelections(editor: vscode.TextEditor, selections: readonly vscode.Selection[] = editor.selections) {
+function updateContextKeyForSelections(
+    editor: vscode.TextEditor,
+    selections: readonly vscode.Selection[] = editor.selections
+) {
     if (!supportedLanguageIds.includes(editor.document.languageId)) {
         return
     }
@@ -226,15 +237,12 @@ function updateContextKeyForSelections(editor: vscode.TextEditor, selections: re
     setContext('julia.hasInlineResult', false)
 }
 
-export function deactivate() { }
+export function deactivate() {}
 
-export function addResult(
-    editor: vscode.TextEditor,
-    range: vscode.Range,
-    content: string,
-    hoverContent: string
-) {
-    results.filter(result => result.document === editor.document && result.range.intersection(range) !== undefined).forEach(removeResult)
+export function addResult(editor: vscode.TextEditor, range: vscode.Range, content: string, hoverContent: string) {
+    results
+        .filter((result) => result.document === editor.document && result.range.intersection(range) !== undefined)
+        .forEach(removeResult)
     const result = new Result(editor, range, resultContent(content, hoverContent))
     results.push(result)
     return result
@@ -246,7 +254,7 @@ export function resultContent(content: string, hoverContent: string, isError: bo
         content,
         hoverContent: toMarkdownString(hoverContent),
         type: ResultType.Result,
-        isError
+        isError,
     }
 }
 
@@ -257,12 +265,12 @@ function toMarkdownString(str: string) {
 }
 
 export interface Frame {
-    path: string,
-    line: number,
+    path: string
+    line: number
     msg?: string
 }
 interface Highlight {
-    frame: Frame,
+    frame: Frame
     result: undefined | Result
 }
 
@@ -281,7 +289,7 @@ export function setStackTrace(result: Result, err: string, frames: Frame[]) {
 }
 
 export function clearStackTrace() {
-    stackFrameHighlights.highlights.forEach(highlight => {
+    stackFrameHighlights.highlights.forEach((highlight) => {
         if (highlight.result) {
             highlight.result.remove()
         }
@@ -296,12 +304,12 @@ export function setStackFrameHighlight(
     editors: readonly vscode.TextEditor[] = vscode.window.visibleTextEditors
 ) {
     stackFrameHighlights.err = err
-    frames.forEach(frame => {
-        const targetEditors = editors.filter(editor => isEditorPath(editor, frame.path))
+    frames.forEach((frame) => {
+        const targetEditors = editors.filter((editor) => isEditorPath(editor, frame.path))
         if (targetEditors.length === 0) {
             stackFrameHighlights.highlights.push({ frame, result: undefined })
         } else {
-            targetEditors.forEach(targetEditor => {
+            targetEditors.forEach((targetEditor) => {
                 const result = addErrorResult(frame.msg || err, frame, targetEditor)
                 if (result) {
                     stackFrameHighlights.highlights.push({ frame, result })
@@ -338,7 +346,7 @@ function errorResultContent(err: string, frame: Frame): ResultContent {
         isIcon: false,
         hoverContent: toMarkdownString(transformed),
         type: ResultType.Error,
-        isError: true
+        isError: true,
     }
 }
 
@@ -349,21 +357,21 @@ function attachGotoFrameCommandLinks(transformed: string, frame: Frame) {
         `[\`${GlyphChars.GreaterThan}\`](${constructCommandString('language-julia.gotoNextFrame', { frame })} "Goto Next Frame")`,
         `[\`${GlyphChars.MuchGreaterThan}\`](${constructCommandString('language-julia.gotoLastFrame')} "Goto Last Frame")`,
         `[\`${GlyphChars.BallotX}\`](${constructCommandString('language-julia.clearStackTrace')} "Clear Stack Traces")`,
-        `\n${transformed}`
+        `\n${transformed}`,
     ].join(' ')
 }
 
 export function refreshResults(editors: readonly vscode.TextEditor[]) {
-    results.forEach(result => {
-        editors.forEach(editor => {
+    results.forEach((result) => {
+        editors.forEach((editor) => {
             if (result.document === editor.document) {
                 result.draw()
             }
         })
     })
-    stackFrameHighlights.highlights.forEach(highlight => {
+    stackFrameHighlights.highlights.forEach((highlight) => {
         const frame = highlight.frame
-        editors.forEach(editor => {
+        editors.forEach((editor) => {
             if (isEditorPath(editor, frame.path)) {
                 if (highlight.result) {
                     highlight.result.draw()
@@ -379,7 +387,7 @@ export function refreshResults(editors: readonly vscode.TextEditor[]) {
 }
 
 export function validateResults(e: vscode.TextDocumentChangeEvent) {
-    results.filter(result => !result.validate(e)).forEach(removeResult)
+    results.filter((result) => !result.validate(e)).forEach(removeResult)
 }
 
 export function removeResult(target: Result) {
@@ -388,29 +396,39 @@ export function removeResult(target: Result) {
 }
 
 export function removeAll(editor: undefined | vscode.TextEditor = undefined) {
-    const isvalid = (result: Result) => (!editor) || result.document === editor.document
+    const isvalid = (result: Result) => !editor || result.document === editor.document
     results.filter(isvalid).forEach(removeResult)
     clearStackTrace()
 }
 
 export function removeCurrent(editor: vscode.TextEditor) {
-    editor.selections.forEach(selection => {
-        results.filter(r => isResultInLineRange(editor, r, selection)).forEach(removeResult)
+    editor.selections.forEach((selection) => {
+        results.filter((r) => isResultInLineRange(editor, r, selection)).forEach(removeResult)
     })
     setContext('julia.hasInlineResult', false)
 }
 
 function isResultInLineRange(editor: vscode.TextEditor, result: Result, range: vscode.Selection | vscode.Range) {
-    if (result.document !== editor.document) { return false }
+    if (result.document !== editor.document) {
+        return false
+    }
     const intersect = range.intersection(result.range)
-    const lineRange = new vscode.Range(range.start.with(undefined, 0), editor.document.validatePosition(range.start.with(undefined, LINE_INF)))
+    const lineRange = new vscode.Range(
+        range.start.with(undefined, 0),
+        editor.document.validatePosition(range.start.with(undefined, LINE_INF))
+    )
     const lineIntersect = lineRange.intersection(result.range)
     return intersect !== undefined || lineIntersect !== undefined
 }
 
 // goto frame utilties
 
-export async function openFile(path: string, line: number | undefined = undefined, column: vscode.ViewColumn | undefined = undefined, preserveFocus: boolean | undefined = undefined) {
+export async function openFile(
+    path: string,
+    line: number | undefined = undefined,
+    column: vscode.ViewColumn | undefined = undefined,
+    preserveFocus: boolean | undefined = undefined
+) {
     const newLine = line || 1
     const start = new vscode.Position(newLine - 1, 0)
     const end = new vscode.Position(newLine - 1, 0)
@@ -427,7 +445,7 @@ export async function openFile(path: string, line: number | undefined = undefine
         preserveFocus: preserveFocus,
         preview: true,
         selection: range,
-        viewColumn: column
+        viewColumn: column,
     })
 }
 
@@ -437,13 +455,17 @@ function gotoFirstFrame() {
 
 function gotoPreviousFrame(frame: Frame) {
     const i = findFrameIndex(frame)
-    if (i < 1) { return }
+    if (i < 1) {
+        return
+    }
     return gotoFrame(stackFrameHighlights.highlights[i - 1].frame)
 }
 
 function gotoNextFrame(frame: Frame) {
     const i = findFrameIndex(frame)
-    if (i === -1 || i >= stackFrameHighlights.highlights.length - 1) { return }
+    if (i === -1 || i >= stackFrameHighlights.highlights.length - 1) {
+        return
+    }
     return gotoFrame(stackFrameHighlights.highlights[i + 1].frame)
 }
 
@@ -452,7 +474,7 @@ function gotoLastFrame() {
 }
 
 function findFrameIndex(frame: Frame) {
-    return stackFrameHighlights.highlights.findIndex(highlight => {
+    return stackFrameHighlights.highlights.findIndex((highlight) => {
         return highlight.frame.path === frame.path && highlight.frame.line === frame.line
     })
 }
