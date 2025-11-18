@@ -1,5 +1,7 @@
 // This is vendored from https://github.com/microsoft/node-pty/blob/main/typings/node-pty.d.ts
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * Copyright (c) 2017, Daniel Imms (MIT License).
  * Copyright (c) 2018, Microsoft Corporation (MIT License).
