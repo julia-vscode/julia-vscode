@@ -37,6 +37,7 @@ import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { JuliaCommands } from './juliaCommands'
+import { installJuliaOrJuliaupTask, installJuliaOrJuliaupExtension } from './juliaupAutoInstall'
 import * as semver from 'semver'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
@@ -50,10 +51,6 @@ let g_testFeature: TestFeature = null
 
 let g_traceOutputChannel: vscode.OutputChannel = null
 let g_outputChannel: vscode.OutputChannel = null
-
-// Julia/Juliaup Install commands for different platforms
-const installJuliaupLinuxCommand: string = 'curl -fsSL https://install.julialang.org | sh -s -- -y'
-const installJuliaupWinCommand: string = 'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore'
 
 export const increaseIndentPattern: RegExp =
     /^(\s*|.*=\s*|.*@\w*\s*)[\w\s]*(?:["'`][^"'`]*["'`])*[\w\s]*\b(if|while|for|function|macro|(mutable\s+)?struct|abstract\s+type|primitive\s+type|let|quote|try|begin|.*\)\s*do|else|elseif|catch|finally)\b(?!(?:.*\bend\b(\s*|\s*#.*)$)|(?:[^[]*\].*)$).*$/
@@ -79,6 +76,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(changeConfig))
         g_juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
 
+        // JuliaUp/julia auto-installation
         await installJuliaOrJuliaupExtension(g_juliaExecutablesFeature)
 
         // Language settings
@@ -199,8 +197,8 @@ export async function activate(context: vscode.ExtensionContext) {
             getPkgServer() {
                 return vscode.workspace.getConfiguration('julia').get('packageServer')
             },
-            async installJuliaOrJuliaup(taskId: string, taskName: string, customCommand?: string) {
-                return await installJuliaOrJuliaupTask(taskId, taskName, customCommand)
+            async installJuliaOrJuliaup(taskName: string, customCommand?: string) {
+                return await installJuliaOrJuliaupTask(taskName, customCommand)
             },
             executeInREPL: repl.executeInREPL,
         }
@@ -551,135 +549,4 @@ async function restartLanguageServer(languageClient: LanguageClient = g_language
         setLanguageClient()
     }
     await startLanguageServer(g_juliaExecutablesFeature)
-}
-
-async function installJuliaOrJuliaupExtension(context: JuliaExecutablesFeature) {
-    const hasJulia = await context.getActiveJuliaExecutableAsync()
-    if (!hasJulia) {
-        const exitCode = await installJuliaOrJuliaup()
-
-        if (exitCode === 0) {
-            // If julia was installed but we can't find it
-            if (!(await context.getActiveJuliaExecutableAsync())) {
-                vscode.window.showInformationMessage(
-                    'Julia/juliaup successfully installed. Please fully exit and restart the editor for the changes to take effect.'
-                )
-            } else {
-                vscode.window.showInformationMessage('Julia/juliaup successfully installed.')
-            }
-        } else {
-            vscode.window.showErrorMessage(
-                'Julia/juliaup installation failed. Please check the Terminals tab for more details.'
-            )
-        }
-    }
-
-    const hasJuliaup = await context.getActiveJuliaupExecutableAsync()
-    const showJuliaupInstallHint = vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
-    if (!hasJuliaup && showJuliaupInstallHint) {
-        await installJuliaOrJuliaup('juliaup')
-    }
-}
-
-async function installJuliaOrJuliaup(software: string = 'julia') {
-    // software can be 'julia' or 'juliaup'
-
-    const download = 'Download and Install'
-    const customCommand = 'Custom Command'
-    const options: string[] = [download, customCommand]
-
-    // Options for Julia
-    const configurePath = 'Configure path'
-    let message =
-        'Julia is not installed. Do you want to install it automatically using juliaup or manually add the path?'
-    let taskId = 'installJuliaTask'
-    let taskName = 'Install Julia'
-
-    options.push(configurePath)
-
-    // Options for Juliaup
-    const doNotShow = 'Do not show again'
-    if (software === 'juliaup') {
-        options.pop()
-
-        message =
-            'Juliaup is the recommended Julia version manager, but it is not installed. Do you want to install it automatically?'
-        taskId = 'installJuliaupTask'
-        taskName = 'Install Juliaup'
-
-        options.push(doNotShow)
-    }
-
-    const choice = await vscode.window.showInformationMessage(message, ...options)
-
-    if (choice === download) {
-        return await installJuliaOrJuliaupTask(taskId, taskName)
-    } else if (choice === customCommand) {
-        const command = await vscode.window.showInputBox({
-            value: process.platform === 'win32' ? installJuliaupWinCommand : installJuliaupLinuxCommand,
-            placeHolder: 'Enter command',
-            validateInput: (value) => {
-                // return null if validates
-                return value.trim() !== '' ? null : 'Command is not valid!'
-            },
-        })
-
-        if (!command) {
-            // We return 1 as an exit code
-            return 1
-        }
-
-        return await installJuliaOrJuliaupTask(taskId, taskName, command)
-    } else if (choice === configurePath) {
-        vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
-    } else if (choice === doNotShow) {
-        vscode.workspace
-            .getConfiguration('julia')
-            .update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
-    }
-}
-
-async function installJuliaOrJuliaupTask(taskId: string, taskName: string, customCommand?: string) {
-    let command = installJuliaupLinuxCommand
-    if (process.platform === 'win32') {
-        command = installJuliaupWinCommand
-    }
-
-    if (customCommand && customCommand === '') {
-        // We return 1 as an exit code
-        return 1
-    } else {
-        command = customCommand
-    }
-
-    let disposable: vscode.Disposable
-
-    const task = new vscode.Task(
-        {
-            type: 'julia',
-            id: taskId,
-        },
-        vscode.TaskScope.Global,
-        taskName,
-        'bash',
-        new vscode.ShellExecution(command)
-    )
-    task.presentationOptions = {
-        focus: true,
-    }
-
-    const taskOutput = await vscode.tasks.executeTask(task)
-
-    // Capture event for our task only
-    const event: vscode.TaskProcessEndEvent = await new Promise((resolve) => {
-        disposable = vscode.tasks.onDidEndTaskProcess((event) => {
-            if (event.execution === taskOutput) {
-                resolve(event)
-            }
-        })
-    })
-
-    disposable?.dispose()
-
-    return event.exitCode
 }
