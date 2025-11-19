@@ -16,14 +16,20 @@ export async function installJuliaOrJuliaupExtension(context: JuliaExecutablesFe
             // If julia was installed but we can't find it
             if (!(await context.getActiveJuliaExecutableAsync())) {
                 vscode.window.showInformationMessage(
-                    'Julia/juliaup successfully installed. Please fully exit and restart the editor for the changes to take effect.'
+                    'Julia/juliaup successfully installed. Please fully exit and restart the editor for the changes to take effect.',
+                    {
+                        modal: true,
+                    }
                 )
             } else {
                 vscode.window.showInformationMessage('Julia/juliaup successfully installed.')
             }
         } else if (exitCode !== undefined) {
             vscode.window.showErrorMessage(
-                'Julia/juliaup installation failed. Please check the Terminals tab for more details.'
+                'Julia/juliaup installation failed. Please check the Terminals tab for more details.',
+                {
+                    modal: true,
+                }
             )
         }
 
