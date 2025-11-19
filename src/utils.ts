@@ -123,22 +123,22 @@ export function parseVSCodeVariables(p?: string) {
     const workspace_paths = (vscode.workspace.workspaceFolders ?? []).map((folder) => {
         return folder.uri.fsPath
     })
-    p = p.replace(/\${workspaceFolderBasename}/g, (_) => {
+    p = p.replace(/\$\{workspaceFolderBasename\}/g, (_) => {
         if (workspace_paths.length === 0) {
-            return null
+            return ''
         }
         return path.basename(workspace_paths[0])
     })
-    p = p.replace(/\${workspaceFolder}/g, (_) => {
+    p = p.replace(/\$\{workspaceFolder\}/g, (_) => {
         // In the case of a multi-root workspace, we return the first one.
-        return workspace_paths.length >= 1 ? workspace_paths[0] : null
+        return workspace_paths.length >= 1 ? workspace_paths[0] : ''
     })
-    p = p.replace(/\${workspaceFolder:(.*?)}/g, (_, desired_basename) => {
+    p = p.replace(/\$\{workspaceFolder:(.*?)\}/g, (_, desired_basename) => {
         const filtered_paths = workspace_paths.filter((workspace_path) => {
             return desired_basename === path.basename(workspace_path)
         })
         // If we have zero or more than one matches, we cannot proceed.
-        return filtered_paths.length === 1 ? filtered_paths[0] : null
+        return filtered_paths.length === 1 ? filtered_paths[0] : ''
     })
 
     p = p.replace(/\${pathSeparator}/g, path.sep)

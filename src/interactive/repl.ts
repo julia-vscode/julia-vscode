@@ -185,7 +185,8 @@ async function startREPL(preserveFocus: boolean, showTerminal: boolean = true) {
 
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
-    const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(config.get('additionalArgs'))
+    const additionalArgs = (config.get('additionalArgs') as string[] || []).map(arg => parseVSCodeVariables(arg))
+    const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(additionalArgs)
 
     if (isPersistentSession) {
         shellPath = config.get('persistentSession.shell')
