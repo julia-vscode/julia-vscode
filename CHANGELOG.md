@@ -31,7 +31,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.157.0] - 2025-11-05
 ### Added
-- Added ability to fetch information for user installed `juliaup` ([3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
+- Added API to get `juliaup` executable path ([#3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
+
+### Fixed
+- Fixed `invokelatest` module RPC calls ([#3882](https://github.com/julia-vscode/julia-vscode/pull/3882))
+- Improved Julia 1.12 compatibility ([#3884](https://github.com/julia-vscode/julia-vscode/pull/3884))
+- Fixed `active_repl_backend` null checks
+- Fixed absolute paths being written into workspace settings
+- LanguageServer.jl:
+  - Added `public` keyword support for completions (Julia 1.12) ([LanguageServer.jl#1365](https://github.com/julia-vscode/LanguageServer.jl/pull/1365))
+  - Fixed showing underlying datatype docstring for functions
+- CSTParser.jl:
+  - Fixed parser issues with `begin...end` blocks and `^` operator ([CSTParser.jl#400](https://github.com/julia-vscode/CSTParser.jl/pull/400))
+- StaticLint.jl:
+  - Julia 1.12 compatibility fixes ([StaticLint.jl#403](https://github.com/julia-vscode/StaticLint.jl/pull/403))
+  - Fixed properly accessing env for non FileServers
+  - Tweaked type handling to work on Julia 1.12
+  - Fixed `nothing` equality checks against `Base.nothing`
+- SymbolServer.jl:
+  - Fixed loading bay access prior to definition on Julia 1.12 ([SymbolServer.jl#298](https://github.com/julia-vscode/SymbolServer.jl/pull/298))
+  - Made subprocess startup more robust ([SymbolServer.jl#299](https://github.com/julia-vscode/SymbolServer.jl/pull/299))
+  - Removed dependency on PkgEntry for empty dicts ([SymbolServer.jl#300](https://github.com/julia-vscode/SymbolServer.jl/pull/300))
+  - Adjusted `jl_module_names` ccall and tweaked printing ([SymbolServer.jl#301](https://github.com/julia-vscode/SymbolServer.jl/pull/301))
+
+## [1.156.0] - 2025-09-24
+### Fixed
+- Fixed proper handling of null values in environment path settings ([#3873](https://github.com/julia-vscode/julia-vscode/pull/3873))
 
 ## [1.155.0] - 2025-09-03
 ### Fixed
