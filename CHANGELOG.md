@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.159.0] - 2025-11-19
 ### Added
 - The `application/vnd.julia-vscode.plotpane+html` and `application/vnd.julia-vscode.custompane+html` MIME types can now be used for new plots in the plotpane or new panes. An optional `;id=[^,]+` parameter allows for replacing the plot or setting a pane identity and title. ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
 - Julia package manager commands via Task interface ([#3899](https://github.com/julia-vscode/julia-vscode/pull/3899))
