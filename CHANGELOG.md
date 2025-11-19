@@ -10,7 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Julia package manager commands via Task interface ([#3899](https://github.com/julia-vscode/julia-vscode/pull/3899))
 - Convenience "instantiate environment" command ([#3899](https://github.com/julia-vscode/julia-vscode/pull/3899))
 - `node-pty` based task runner and REPL ([#3904](https://github.com/julia-vscode/julia-vscode/pull/3904))
-- Added ability to fetch information for user installed `juliaup` ([3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
 - Added suggestions to auto install `julia` and/or `juliaup` ([3898](https://github.com/julia-vscode/julia-vscode/pull/3898))
 
 ### Changed
@@ -33,7 +32,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.157.0] - 2025-11-05
 ### Added
 - Added ability to fetch information for user installed `juliaup` ([3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
-- Added suggestions to auto install `julia` and/or `juliaup` ([3898](https://github.com/julia-vscode/julia-vscode/pull/3898))
 
 ## [1.155.0] - 2025-09-03
 ### Fixed
