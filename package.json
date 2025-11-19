@@ -883,6 +883,12 @@
                     "description": "Points to the julia executable.",
                     "scope": "machine-overridable"
                 },
+                "julia.juliaup.install.hint": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show Juliaup install recommendation.",
+                    "scope": "machine-overridable"
+                },
                 "julia.lint.run": {
                     "type": "boolean",
                     "default": true,

@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Julia package manager commands via Task interface ([#3899](https://github.com/julia-vscode/julia-vscode/pull/3899))
 - Convenience "instantiate environment" command ([#3899](https://github.com/julia-vscode/julia-vscode/pull/3899))
 - `node-pty` based task runner and REPL ([#3904](https://github.com/julia-vscode/julia-vscode/pull/3904))
+- Added suggestions to auto install `julia` and/or `juliaup` ([3898](https://github.com/julia-vscode/julia-vscode/pull/3898))
 - Added ability to select specific version for `julia` repl ([3902](https://github.com/julia-vscode/julia-vscode/pull/3902))
 
 ### Changed

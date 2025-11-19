@@ -37,6 +37,7 @@ import * as weave from './weave'
 import { handleNewCrashReportFromException } from './telemetry'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { JuliaCommands } from './juliaCommands'
+import { installJuliaOrJuliaupTask, installJuliaOrJuliaupExtension } from './juliaupAutoInstall'
 import * as semver from 'semver'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
@@ -73,6 +74,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Config change
         context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(changeConfig))
+        g_juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
+
+        // JuliaUp/julia auto-installation
+        await installJuliaOrJuliaupExtension(g_juliaExecutablesFeature)
 
         // Language settings
         vscode.languages.setLanguageConfiguration('julia', {
@@ -87,7 +92,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Active features from other files
         const compiledProvider = debugViewProvider.activate(context)
-        g_juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
         repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
@@ -192,6 +196,9 @@ export async function activate(context: vscode.ExtensionContext) {
             },
             getPkgServer() {
                 return vscode.workspace.getConfiguration('julia').get('packageServer')
+            },
+            async installJuliaOrJuliaup(taskName: string, customCommand?: string) {
+                return await installJuliaOrJuliaupTask(taskName, customCommand)
             },
             executeInREPL: repl.executeInREPL,
         }
