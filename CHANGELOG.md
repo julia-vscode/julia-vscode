@@ -7,17 +7,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Added
 - The `application/vnd.julia-vscode.plotpane+html` and `application/vnd.julia-vscode.custompane+html` MIME types can now be used for new plots in the plotpane or new panes. An optional `;id=[^,]+` parameter allows for replacing the plot or setting a pane identity and title. ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
+- Julia package manager commands via Task interface ([#3899](https://github.com/julia-vscode/julia-vscode/pull/3899))
+- Convenience "instantiate environment" command ([#3899](https://github.com/julia-vscode/julia-vscode/pull/3899))
+- `node-pty` based task runner and REPL ([#3904](https://github.com/julia-vscode/julia-vscode/pull/3904))
 
 ### Changed
 - The `juliavscode/html` MIME type is now deprecated in favour of `application/vnd.julia-vscode.plotpane+html` ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
-- 
+- Swapped from webpack to esbuild for bundling ([#3903](https://github.com/julia-vscode/julia-vscode/pull/3903))
+- Set up prettier for auto-formatting and updated eslint configuration ([#3905](https://github.com/julia-vscode/julia-vscode/pull/3905))
+
 ### Fixed
 - The workspace now tolerates incorrectly implemented `AbstractArray`s ([#3618](https://github.com/julia-vscode/julia-vscode/pull/3618))
+- Better filename-only backtrace link handling ([#3738](https://github.com/julia-vscode/julia-vscode/pull/3738))
+
+## [1.158.0] - 2025-11-06
+### Changed
+- Improved CI performance by optimizing test matrix ([#3897](https://github.com/julia-vscode/julia-vscode/pull/3897))
+
+### Fixed
+- SymbolServer.jl:
+  - Tolerate binding errors gracefully ([SymbolServer.jl#302](https://github.com/julia-vscode/SymbolServer.jl/pull/302))
+
+## [1.157.0] - 2025-11-05
+### Added
+- Added API to get `juliaup` executable path ([#3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
+
+### Fixed
+- Fixed `invokelatest` module RPC calls ([#3882](https://github.com/julia-vscode/julia-vscode/pull/3882))
+- Improved Julia 1.12 compatibility ([#3884](https://github.com/julia-vscode/julia-vscode/pull/3884))
+- Fixed `active_repl_backend` null checks
+- Fixed absolute paths being written into workspace settings
+- LanguageServer.jl:
+  - Added `public` keyword support for completions (Julia 1.12) ([LanguageServer.jl#1365](https://github.com/julia-vscode/LanguageServer.jl/pull/1365))
+  - Fixed showing underlying datatype docstring for functions
+- CSTParser.jl:
+  - Fixed parser issues with `begin...end` blocks and `^` operator ([CSTParser.jl#400](https://github.com/julia-vscode/CSTParser.jl/pull/400))
+- StaticLint.jl:
+  - Julia 1.12 compatibility fixes ([StaticLint.jl#403](https://github.com/julia-vscode/StaticLint.jl/pull/403))
+  - Fixed properly accessing env for non FileServers
+  - Tweaked type handling to work on Julia 1.12
+  - Fixed `nothing` equality checks against `Base.nothing`
+- SymbolServer.jl:
+  - Fixed loading bay access prior to definition on Julia 1.12 ([SymbolServer.jl#298](https://github.com/julia-vscode/SymbolServer.jl/pull/298))
+  - Made subprocess startup more robust ([SymbolServer.jl#299](https://github.com/julia-vscode/SymbolServer.jl/pull/299))
+  - Removed dependency on PkgEntry for empty dicts ([SymbolServer.jl#300](https://github.com/julia-vscode/SymbolServer.jl/pull/300))
+  - Adjusted `jl_module_names` ccall and tweaked printing ([SymbolServer.jl#301](https://github.com/julia-vscode/SymbolServer.jl/pull/301))
+
+## [1.156.0] - 2025-09-24
+### Fixed
+- Fixed proper handling of null values in environment path settings ([#3873](https://github.com/julia-vscode/julia-vscode/pull/3873))
 
 ## [1.155.0] - 2025-09-03
-### Added
-- Added ability to fetch information for user installed `juliaup` ([3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
-
 ### Fixed
 - Empty environment paths no longer cause issues ([#3866](https://github.com/julia-vscode/julia-vscode/pull/3866))
 - Handle filename-only links in the terminal better (e.g. `foo.jl` without a `./` prefix) ([#3738](https://github.com/julia-vscode/julia-vscode/pull/3738))
