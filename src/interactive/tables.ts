@@ -4,13 +4,17 @@ import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { g_connection } from './repl'
 
-const requestTypeGetTableData = new rpc.RequestType<{
-    id: string,
-    startRow: Number,
-    endRow: Number,
-    filterModel: any,
-    sortModel: any
-}, string, void>('repl/getTableData')
+const requestTypeGetTableData = new rpc.RequestType<
+    {
+        id: string
+        startRow: number
+        endRow: number
+        filterModel: object
+        sortModel: object
+    },
+    string,
+    void
+>('repl/getTableData')
 const clearLazyTable = new rpc.NotificationType<{
     id: string
 }>('repl/clearLazyTable')
@@ -19,18 +23,29 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
     const parsedPayload = JSON.parse(payload)
     const title = parsedPayload.name
 
-    const panel = vscode.window.createWebviewPanel('jlgrid', title ? 'Julia Table: ' + title : 'Julia Table', {
-        preserveFocus: true,
-        viewColumn: vscode.ViewColumn.Active
-    }, {
-        enableScripts: true,
-        retainContextWhenHidden: true
-    })
+    const panel = vscode.window.createWebviewPanel(
+        'jlgrid',
+        title ? 'Julia Table: ' + title : 'Julia Table',
+        {
+            preserveFocus: true,
+            viewColumn: vscode.ViewColumn.Active,
+        },
+        {
+            enableScripts: true,
+            retainContextWhenHidden: true,
+        }
+    )
 
-    const uriAgGrid = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', 'ag-grid.js')))
-    const uriAgGridCSS = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css')))
+    const uriAgGrid = panel.webview.asWebviewUri(
+        vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', 'ag-grid.js'))
+    )
+    const uriAgGridCSS = panel.webview.asWebviewUri(
+        vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css'))
+    )
     const theme = vscode.window.activeColorTheme.kind === 1 ? '' : '-dark'
-    const uriAgGridThemeCSS = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', `ag-grid-balham${theme}.css`)))
+    const uriAgGridThemeCSS = panel.webview.asWebviewUri(
+        vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', `ag-grid-balham${theme}.css`))
+    )
 
     let script = `
     <script type="text/javascript">
@@ -94,12 +109,9 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
 
         panel.onDidDispose(async () => {
             try {
-                await g_connection.sendNotification(
-                    clearLazyTable,
-                    {
-                        id: objectId
-                    }
-                )
+                await g_connection.sendNotification(clearLazyTable, {
+                    id: objectId,
+                })
             } catch (err) {
                 console.debug('Could not dispose of lazy table object on the Julia side: ', err)
             }
@@ -110,20 +122,17 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                 let response
                 const conn = kernel?._msgConnection || g_connection
                 try {
-                    const data = await conn.sendRequest(
-                        requestTypeGetTableData,
-                        {
-                            id: objectId,
-                            startRow: message.content.startRow,
-                            endRow: message.content.endRow,
-                            filterModel: message.content.filterModel,
-                            sortModel: message.content.sortModel
-                        }
-                    )
+                    const data = await conn.sendRequest(requestTypeGetTableData, {
+                        id: objectId,
+                        startRow: message.content.startRow,
+                        endRow: message.content.endRow,
+                        filterModel: message.content.filterModel,
+                        sortModel: message.content.sortModel,
+                    })
                     response = {
                         type: 'getRows',
                         id: message.id,
-                        data: data
+                        data: data,
                     }
                 } catch (err) {
                     console.debug('Error while processing message: ', err)
@@ -131,12 +140,18 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                     let warning: Thenable<string | undefined>
                     const button = 'Close table'
                     if (conn) {
-                        warning = vscode.window.showWarningMessage('Could not fetch table data. The object might have been deleted or modified.', button)
+                        warning = vscode.window.showWarningMessage(
+                            'Could not fetch table data. The object might have been deleted or modified.',
+                            button
+                        )
                     } else {
-                        warning = vscode.window.showWarningMessage('Could not fetch table data. The Julia process is no longer available.', button)
+                        warning = vscode.window.showWarningMessage(
+                            'Could not fetch table data. The Julia process is no longer available.',
+                            button
+                        )
                     }
 
-                    warning.then(r => {
+                    warning.then((r) => {
                         if (r === button) {
                             panel.dispose()
                         }
@@ -146,8 +161,8 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                         type: 'getRows',
                         id: message.id,
                         data: {
-                            error: true
-                        }
+                            error: true,
+                        },
                     }
                 }
                 try {

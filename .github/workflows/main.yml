@@ -36,6 +36,7 @@ jobs:
           node-version: 20.x
       - run: npm ci
       - run: npx eslint
+      - run: npx prettier --check .
 
   testExtension:
     name: Test Extension
@@ -138,7 +139,7 @@ jobs:
           $filename =  (Get-ChildItem *.vsix)[0].FullName
           echo "PACKAGE_FILENAME=$($filename)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Release to GitHub
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{env.PACKAGE_FILENAME}}
           prerelease: true
@@ -186,7 +187,7 @@ jobs:
           VSCEKEY: ${{secrets.VSCEKEY}}
         run: vsce publish --pre-release -p $VSCEKEY --packagePath $PACKAGE_FILENAME
       - name: Release to GitHub
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{env.PACKAGE_FILENAME}}
           prerelease: true
@@ -275,7 +276,7 @@ jobs:
         run: |
           vsce publish -p $VSCEKEY --packagePath $PACKAGE_FILENAME
       - name: Release to GitHub
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{env.PACKAGE_FILENAME}}
           prerelease: false

@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.158.0",
+    "version": "1.159.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -98,6 +98,10 @@
             {
                 "command": "language-julia.startREPL",
                 "title": "Julia: Start REPL"
+            },
+            {
+                "command": "language-julia.startREPLWithVersion",
+                "title": "Julia: Start REPL with specific version"
             },
             {
                 "command": "language-julia.connectREPL",
@@ -425,6 +429,14 @@
                 "title": "Debug Cell",
                 "command": "language-julia.runAndDebugCell",
                 "icon": "$(debug-alt-small)"
+            },
+            {
+                "title": "Julia: Run Package Command",
+                "command": "language-julia.runPackageCommand"
+            },
+            {
+                "title": "Julia: Instantiate Environment",
+                "command": "language-julia.instantiateEnvironment"
             }
         ],
         "menus": {
@@ -869,6 +881,12 @@
                     "type": "string",
                     "default": "",
                     "description": "Points to the julia executable.",
+                    "scope": "machine-overridable"
+                },
+                "julia.juliaup.install.hint": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show Juliaup install recommendation.",
                     "scope": "machine-overridable"
                 },
                 "julia.lint.run": {
@@ -1526,11 +1544,11 @@
         ]
     },
     "scripts": {
-        "vscode:prepublish": "webpack --mode production",
-        "webpack": "webpack --mode development",
-        "webpack-dev": "webpack --mode development --watch",
+        "vscode:prepublish": "npm run bundle",
+        "bundle": "esbuild ./src/extension.ts --bundle --outdir=./dist --external:vscode --external:applicationinsights-native-metrics --external:@opentelemetry/instrumentation --external:@azure/opentelemetry-instrumentation-azure-sdk --format=cjs --platform=node --minify --sourcemap",
         "eslint": "eslint --ext .ts --fix .",
         "eslint-dry-run": "eslint --ext .ts --fix-dry-run .",
+        "format": "prettier --write .",
         "compile": "tsc -p ./",
         "compile-dry-run": "tsc -p ./ --noEmit --pretty",
         "watch": "tsc -watch -p ./",
@@ -1562,7 +1580,7 @@
         "which": "5"
     },
     "devDependencies": {
-        "@types/download": "^8.0.1",
+        "@eslint/js": "^9.39.1",
         "@types/lodash.isequal": "^4.5.8",
         "@types/markdown-it": "^14.1.1",
         "@types/mocha": "^10",
@@ -1575,14 +1593,14 @@
         "@vscode/test-cli": "^0.0.10",
         "@vscode/test-electron": "^2.3.6",
         "@vscode/vsce": "3",
-        "download": "^8.0.0",
-        "eslint": "^9.15.0",
+        "esbuild": "^0.27.0",
+        "eslint": "^9.39.1",
+        "eslint-config-prettier": "^10.1.8",
         "globals": "^15.12.0",
         "mocha": "11",
+        "prettier": "^3.6.2",
         "ts-loader": "^9.2.8",
-        "typescript": "^5.6.3",
-        "typescript-eslint": "^8.14.0",
-        "webpack": "^5.70.0",
-        "webpack-cli": "^5"
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.46.4"
     }
 }

@@ -10,6 +10,7 @@ import { getCrashReportingPipename } from '../telemetry'
 import { DebugProtocol } from '@vscode/debugprotocol'
 import { JuliaNotebookFeature } from '../notebook/notebookFeature'
 import { JuliaKernel } from '../notebook/notebookKernel'
+import { DebugConfigTreeProvider } from './debugConfig'
 
 // /**
 //  * This interface describes the Julia specific launch attributes
@@ -41,7 +42,6 @@ import { JuliaKernel } from '../notebook/notebookKernel'
 
 // this vistor could be moved into the DAP npm module (it must be kept in sync with the DAP spec)
 function visitSources(msg: DebugProtocol.ProtocolMessage, visitor: (source: DebugProtocol.Source) => void): void {
-
     const sourceHook = (source: DebugProtocol.Source | undefined) => {
         if (source) {
             visitor(source)
@@ -49,95 +49,122 @@ function visitSources(msg: DebugProtocol.ProtocolMessage, visitor: (source: Debu
     }
 
     switch (msg.type) {
-    case 'event':
-        const event = <DebugProtocol.Event>msg
-        switch (event.event) {
-        case 'output':
-            sourceHook((<DebugProtocol.OutputEvent>event).body.source)
-            break
-        case 'loadedSource':
-            sourceHook((<DebugProtocol.LoadedSourceEvent>event).body.source)
-            break
-        case 'breakpoint':
-            sourceHook((<DebugProtocol.BreakpointEvent>event).body.breakpoint.source)
-            break
-        default:
-            break
-        }
-        break
-    case 'request':
-        const request = <DebugProtocol.Request>msg
-        switch (request.command) {
-        case 'setBreakpoints':
-            sourceHook((<DebugProtocol.SetBreakpointsArguments>request.arguments).source)
-            break
-        case 'breakpointLocations':
-            sourceHook((<DebugProtocol.BreakpointLocationsArguments>request.arguments).source)
-            break
-        case 'source':
-            sourceHook((<DebugProtocol.SourceArguments>request.arguments).source)
-            break
-        case 'gotoTargets':
-            sourceHook((<DebugProtocol.GotoTargetsArguments>request.arguments).source)
-            break
-        case 'launchVSCode':
-            //request.arguments.args.forEach(arg => fixSourcePath(arg));
-            break
-        default:
-            break
-        }
-        break
-    case 'response':
-        const response = <DebugProtocol.Response>msg
-        if (response.success && response.body) {
-            switch (response.command) {
-            case 'stackTrace':
-                (<DebugProtocol.StackTraceResponse>response).body.stackFrames.forEach(frame => sourceHook(frame.source))
-                break
-            case 'loadedSources':
-                (<DebugProtocol.LoadedSourcesResponse>response).body.sources.forEach(source => sourceHook(source))
-                break
-            case 'scopes':
-                (<DebugProtocol.ScopesResponse>response).body.scopes.forEach(scope => sourceHook(scope.source))
-                break
-            case 'setFunctionBreakpoints':
-                (<DebugProtocol.SetFunctionBreakpointsResponse>response).body.breakpoints.forEach(bp => sourceHook(bp.source))
-                break
-            case 'setBreakpoints':
-                (<DebugProtocol.SetBreakpointsResponse>response).body.breakpoints.forEach(bp => sourceHook(bp.source))
-                break
-            default:
-                break
+        case 'event': {
+            const event = <DebugProtocol.Event>msg
+            switch (event.event) {
+                case 'output':
+                    sourceHook((<DebugProtocol.OutputEvent>event).body.source)
+                    break
+                case 'loadedSource':
+                    sourceHook((<DebugProtocol.LoadedSourceEvent>event).body.source)
+                    break
+                case 'breakpoint':
+                    sourceHook((<DebugProtocol.BreakpointEvent>event).body.breakpoint.source)
+                    break
+                default:
+                    break
             }
+            break
         }
-        break
+        case 'request': {
+            const request = <DebugProtocol.Request>msg
+            switch (request.command) {
+                case 'setBreakpoints':
+                    sourceHook((<DebugProtocol.SetBreakpointsArguments>request.arguments).source)
+                    break
+                case 'breakpointLocations':
+                    sourceHook((<DebugProtocol.BreakpointLocationsArguments>request.arguments).source)
+                    break
+                case 'source':
+                    sourceHook((<DebugProtocol.SourceArguments>request.arguments).source)
+                    break
+                case 'gotoTargets':
+                    sourceHook((<DebugProtocol.GotoTargetsArguments>request.arguments).source)
+                    break
+                case 'launchVSCode':
+                    //request.arguments.args.forEach(arg => fixSourcePath(arg));
+                    break
+                default:
+                    break
+            }
+            break
+        }
+        case 'response': {
+            const response = <DebugProtocol.Response>msg
+            if (response.success && response.body) {
+                switch (response.command) {
+                    case 'stackTrace':
+                        ;(<DebugProtocol.StackTraceResponse>response).body.stackFrames.forEach((frame) =>
+                            sourceHook(frame.source)
+                        )
+                        break
+                    case 'loadedSources':
+                        ;(<DebugProtocol.LoadedSourcesResponse>response).body.sources.forEach((source) =>
+                            sourceHook(source)
+                        )
+                        break
+                    case 'scopes':
+                        ;(<DebugProtocol.ScopesResponse>response).body.scopes.forEach((scope) =>
+                            sourceHook(scope.source)
+                        )
+                        break
+                    case 'setFunctionBreakpoints':
+                        ;(<DebugProtocol.SetFunctionBreakpointsResponse>response).body.breakpoints.forEach((bp) =>
+                            sourceHook(bp.source)
+                        )
+                        break
+                    case 'setBreakpoints':
+                        ;(<DebugProtocol.SetBreakpointsResponse>response).body.breakpoints.forEach((bp) =>
+                            sourceHook(bp.source)
+                        )
+                        break
+                    default:
+                        break
+                }
+            }
+            break
+        }
     }
 }
 
 export class JuliaDebugFeature {
-    public debugSessionsThatNeedTermination: WeakMap<vscode.DebugSession, number | null> = new WeakMap<vscode.DebugSession, number | null>()
-    public taskExecutionsForLaunchedDebugSessions: WeakMap<vscode.TaskExecution,vscode.DebugSession> = new WeakMap<vscode.TaskExecution,vscode.DebugSession>()
+    public debugSessionsThatNeedTermination: WeakMap<vscode.DebugSession, number | null> = new WeakMap<
+        vscode.DebugSession,
+        number | null
+    >()
+    public taskExecutionsForLaunchedDebugSessions: WeakMap<vscode.TaskExecution, vscode.DebugSession> = new WeakMap<
+        vscode.TaskExecution,
+        vscode.DebugSession
+    >()
 
-
-
-    constructor(private context: vscode.ExtensionContext, compiledProvider, juliaExecutablesFeature: JuliaExecutablesFeature, notebookFeature: JuliaNotebookFeature) {
+    constructor(
+        private context: vscode.ExtensionContext,
+        compiledProvider,
+        juliaExecutablesFeature: JuliaExecutablesFeature,
+        notebookFeature: JuliaNotebookFeature
+    ) {
         const provider = new JuliaDebugConfigurationProvider(compiledProvider)
         const factory = new InlineDebugAdapterFactory(this.context, this, juliaExecutablesFeature)
 
         compiledProvider.onDidChangeTreeData(() => {
             if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
-                vscode.debug.activeDebugSession.customRequest('setCompiledItems', { compiledModulesOrFunctions: compiledProvider.getCompiledItems() })
+                vscode.debug.activeDebugSession.customRequest('setCompiledItems', {
+                    compiledModulesOrFunctions: compiledProvider.getCompiledItems(),
+                })
             }
         })
-        compiledProvider.onDidChangeCompiledMode(mode => {
+        compiledProvider.onDidChangeCompiledMode((mode) => {
             if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
                 vscode.debug.activeDebugSession.customRequest('setCompiledMode', { compiledMode: mode })
             }
         })
 
-        vscode.tasks.onDidStartTaskProcess(e => {
-            if(this.taskExecutionsForLaunchedDebugSessions.has(e.execution)) {
-                this.debugSessionsThatNeedTermination.set(this.taskExecutionsForLaunchedDebugSessions.get(e.execution), e.processId)
+        vscode.tasks.onDidStartTaskProcess((e) => {
+            if (this.taskExecutionsForLaunchedDebugSessions.has(e.execution)) {
+                this.debugSessionsThatNeedTermination.set(
+                    this.taskExecutionsForLaunchedDebugSessions.get(e.execution),
+                    e.processId
+                )
             }
         })
 
@@ -147,7 +174,7 @@ export class JuliaDebugFeature {
         this.context.subscriptions.push(
             vscode.debug.registerDebugConfigurationProvider('julia', provider),
             vscode.debug.registerDebugAdapterDescriptorFactory('julia', factory),
-            registerCommand('language-julia.debug.getActiveJuliaEnvironment', async config => {
+            registerCommand('language-julia.debug.getActiveJuliaEnvironment', async () => {
                 return await jlpkgenv.getAbsEnvPath()
             }),
             registerCommand('language-julia.runEditorContents', async (resource: vscode.Uri | undefined) => {
@@ -166,7 +193,7 @@ export class JuliaDebugFeature {
                     name: 'Run Editor Contents',
                     request: 'launch',
                     program: resource.fsPath,
-                    noDebug: true
+                    noDebug: true,
                 })
                 if (!success) {
                     vscode.window.showErrorMessage('Could not run editor content in new process.')
@@ -189,7 +216,7 @@ export class JuliaDebugFeature {
                     request: 'launch',
                     program: resource.fsPath,
                     compiledModulesOrFunctions: compiledProvider.getCompiledItems(),
-                    compiledMode: compiledProvider.compiledMode
+                    compiledMode: compiledProvider.compiledMode,
                 })
                 if (!success) {
                     vscode.window.showErrorMessage('Could not debug editor content in new process.')
@@ -199,28 +226,30 @@ export class JuliaDebugFeature {
                 createDebugAdapterTracker(session: vscode.DebugSession) {
                     let kernel: JuliaKernel = null
 
-                    if(session.configuration.pipename && notebookFeature.debugPipenameToKernel.has(session.configuration.pipename)) {
+                    if (
+                        session.configuration.pipename &&
+                        notebookFeature.debugPipenameToKernel.has(session.configuration.pipename)
+                    ) {
                         kernel = notebookFeature.getKernelByDebugPipename(session.configuration.pipename)
                     }
 
                     return {
-                        onWillReceiveMessage: m => {
-                            if(m.type==='request' && m.command==='terminate') {
-                                if(debugSessionsThatNeedTermination.has(session)) {
+                        onWillReceiveMessage: (m) => {
+                            if (m.type === 'request' && m.command === 'terminate') {
+                                if (debugSessionsThatNeedTermination.has(session)) {
                                     const processId = debugSessionsThatNeedTermination.get(session)
 
                                     debugSessionsThatNeedTermination.delete(session)
                                     // TODO taskExecutionsForLaunchedDebugSessions.delete()
 
-                                    if(processId) {
+                                    if (processId) {
                                         setTimeout(() => {
                                             process.kill(processId)
                                         }, 500)
                                     }
                                 }
-                            }
-                            else if(kernel) {
-                                visitSources(m, source => {
+                            } else if (kernel) {
+                                visitSources(m, (source) => {
                                     if (source.path && source.path.startsWith('vscode-notebook-cell:')) {
                                         const cellPath = kernel.mapCellToPath(source.path)
                                         source.path = cellPath
@@ -230,8 +259,8 @@ export class JuliaDebugFeature {
 
                             console.log(`> ${JSON.stringify(m, undefined)}`)
                         },
-                        onDidSendMessage: m => {
-                            visitSources(m, source => {
+                        onDidSendMessage: (m) => {
+                            visitSources(m, (source) => {
                                 if (source.path) {
                                     const cell = notebookFeature.pathToCell.get(source.path)
                                     if (cell) {
@@ -247,14 +276,14 @@ export class JuliaDebugFeature {
                             })
 
                             console.log(`< ${JSON.stringify(m, undefined)}`)
-                        }
+                        },
                     }
-                }
+                },
             })
         )
     }
 
-    public dispose() { }
+    public dispose() {}
 }
 
 function getActiveUri(
@@ -265,15 +294,14 @@ function getActiveUri(
 }
 
 export class JuliaDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
-    compiledProvider: any
+    compiledProvider: DebugConfigTreeProvider
 
     constructor(compiledProvider) {
         this.compiledProvider = compiledProvider
     }
     public resolveDebugConfiguration(
         folder: vscode.WorkspaceFolder | undefined,
-        config: vscode.DebugConfiguration,
-        token?: vscode.CancellationToken,
+        config: vscode.DebugConfiguration
     ): vscode.ProviderResult<vscode.DebugConfiguration> {
         if (!config.request) {
             config.request = 'launch'
@@ -330,19 +358,23 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
 }
 
 class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
+    constructor(
+        private context: vscode.ExtensionContext,
+        private juliaDebugFeature: JuliaDebugFeature,
+        private juliaExecutablesFeature: JuliaExecutablesFeature
+    ) {}
 
-    constructor(private context: vscode.ExtensionContext, private juliaDebugFeature: JuliaDebugFeature, private juliaExecutablesFeature: JuliaExecutablesFeature) {
-    }
-
-    async createDebugAdapterDescriptor(session: vscode.DebugSession): Promise<vscode.ProviderResult<vscode.DebugAdapterDescriptor>> {
-        if(session.configuration.request==='launch') {
+    async createDebugAdapterDescriptor(
+        session: vscode.DebugSession
+    ): Promise<vscode.ProviderResult<vscode.DebugAdapterDescriptor>> {
+        if (session.configuration.request === 'launch') {
             const dap_pn = generatePipeName(uuidv4(), 'vsc-jl-dbg')
             const ready_pn = generatePipeName(uuidv4(), 'vsc-jl-dbg')
 
             const connectedPromise = new Subject()
             const serverListeningPromise = new Subject()
 
-            const readyServer = net.createServer(socket => {
+            const readyServer = net.createServer(() => {
                 connectedPromise.notify()
             })
 
@@ -362,18 +394,13 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
                 '--startup-file=no',
                 '--history-file=no',
                 ...juliaAdditionalArgs,
-                join(
-                    this.context.extensionPath,
-                    'scripts',
-                    'debugger',
-                    'run_debugger.jl'
-                ),
+                join(this.context.extensionPath, 'scripts', 'debugger', 'run_debugger.jl'),
                 ready_pn,
                 dap_pn,
                 getCrashReportingPipename(),
             ]
 
-            const env = { }
+            const env = {}
 
             if (nthreads === 'auto') {
                 jlargs.splice(1, 0, '--threads=auto')
@@ -387,7 +414,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
                     id: uuidv4(),
                 },
                 vscode.TaskScope.Workspace,
-                `${session.configuration.noDebug === true ? 'Run' : 'Debug' } ${basename(session.configuration.program)}`,
+                `${session.configuration.noDebug === true ? 'Run' : 'Debug'} ${basename(session.configuration.program)}`,
                 'Julia',
 
                 new vscode.ProcessExecution(juliaExecutable.file, jlargs, {
@@ -404,8 +431,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
             await connectedPromise.wait()
 
             return new vscode.DebugAdapterNamedPipeServer(dap_pn)
-        }
-        else if(session.configuration.request === 'attach') {
+        } else if (session.configuration.request === 'attach') {
             return new vscode.DebugAdapterNamedPipeServer(session.configuration.pipename)
         }
     }

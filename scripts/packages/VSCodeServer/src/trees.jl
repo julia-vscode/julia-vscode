@@ -123,7 +123,14 @@ function treerender(x::AbstractDict{K,V}) where {K,V}
 end
 
 function treerender(x::AbstractArray{T,N}) where {T,N}
-    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0,
+    n_elements = try
+        # while size should be implemented for AbstractArrays, some types choose not to do
+        # that, e.g. JuMP.Containers.SparseAxisArray
+        pluralize(size(x), "element", "elements")
+    catch
+        "an unknown number of elements"
+    end
+    treerender(LazyTree(string(typeof(x), " with $(n_elements)"), wsicon(x), length(x) == 0,
             function ()
                 out = if length(x) > MAX_PARTITION_LENGTH
                     partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
@@ -303,6 +310,7 @@ function getvariables(show_modules)
             #
             # printstyled("Internal Error: ", bold=true, color=Base.error_color())
             # Base.display_error(err, catch_backtrace())
+            @debug "failed to render tree item '$s'" exception=(err, catch_backtrace())
         end
     end
 

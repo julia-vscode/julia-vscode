@@ -5,12 +5,66 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-## [1.155.0] - 2025-09-03
+
+## [1.159.0] - 2025-11-19
 ### Added
-- Added ability to fetch information for user installed `juliaup` ([3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
+- The `application/vnd.julia-vscode.plotpane+html` and `application/vnd.julia-vscode.custompane+html` MIME types can now be used for new plots in the plotpane or new panes. An optional `;id=[^,]+` parameter allows for replacing the plot or setting a pane identity and title. ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
+- Julia package manager commands via Task interface ([#3899](https://github.com/julia-vscode/julia-vscode/pull/3899))
+- Convenience "instantiate environment" command ([#3899](https://github.com/julia-vscode/julia-vscode/pull/3899))
+- `node-pty` based task runner and REPL ([#3904](https://github.com/julia-vscode/julia-vscode/pull/3904))
+- Added suggestions to auto install `julia` and/or `juliaup` ([3898](https://github.com/julia-vscode/julia-vscode/pull/3898))
+- Added ability to select specific version for `julia` repl ([3902](https://github.com/julia-vscode/julia-vscode/pull/3902))
+
+### Changed
+- The `juliavscode/html` MIME type is now deprecated in favour of `application/vnd.julia-vscode.plotpane+html` ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
+- Swapped from webpack to esbuild for bundling ([#3903](https://github.com/julia-vscode/julia-vscode/pull/3903))
+- Set up prettier for auto-formatting and updated eslint configuration ([#3905](https://github.com/julia-vscode/julia-vscode/pull/3905))
 
 ### Fixed
+- The workspace now tolerates incorrectly implemented `AbstractArray`s ([#3618](https://github.com/julia-vscode/julia-vscode/pull/3618))
+- Better filename-only backtrace link handling ([#3738](https://github.com/julia-vscode/julia-vscode/pull/3738))
+
+## [1.158.0] - 2025-11-06
+### Changed
+- Improved CI performance by optimizing test matrix ([#3897](https://github.com/julia-vscode/julia-vscode/pull/3897))
+
+### Fixed
+- SymbolServer.jl:
+  - Tolerate binding errors gracefully ([SymbolServer.jl#302](https://github.com/julia-vscode/SymbolServer.jl/pull/302))
+
+## [1.157.0] - 2025-11-05
+### Added
+- Added API to get `juliaup` executable path ([#3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
+
+### Fixed
+- Fixed `invokelatest` module RPC calls ([#3882](https://github.com/julia-vscode/julia-vscode/pull/3882))
+- Improved Julia 1.12 compatibility ([#3884](https://github.com/julia-vscode/julia-vscode/pull/3884))
+- Fixed `active_repl_backend` null checks
+- Fixed absolute paths being written into workspace settings
+- LanguageServer.jl:
+  - Added `public` keyword support for completions (Julia 1.12) ([LanguageServer.jl#1365](https://github.com/julia-vscode/LanguageServer.jl/pull/1365))
+  - Fixed showing underlying datatype docstring for functions
+- CSTParser.jl:
+  - Fixed parser issues with `begin...end` blocks and `^` operator ([CSTParser.jl#400](https://github.com/julia-vscode/CSTParser.jl/pull/400))
+- StaticLint.jl:
+  - Julia 1.12 compatibility fixes ([StaticLint.jl#403](https://github.com/julia-vscode/StaticLint.jl/pull/403))
+  - Fixed properly accessing env for non FileServers
+  - Tweaked type handling to work on Julia 1.12
+  - Fixed `nothing` equality checks against `Base.nothing`
+- SymbolServer.jl:
+  - Fixed loading bay access prior to definition on Julia 1.12 ([SymbolServer.jl#298](https://github.com/julia-vscode/SymbolServer.jl/pull/298))
+  - Made subprocess startup more robust ([SymbolServer.jl#299](https://github.com/julia-vscode/SymbolServer.jl/pull/299))
+  - Removed dependency on PkgEntry for empty dicts ([SymbolServer.jl#300](https://github.com/julia-vscode/SymbolServer.jl/pull/300))
+  - Adjusted `jl_module_names` ccall and tweaked printing ([SymbolServer.jl#301](https://github.com/julia-vscode/SymbolServer.jl/pull/301))
+
+## [1.156.0] - 2025-09-24
+### Fixed
+- Fixed proper handling of null values in environment path settings ([#3873](https://github.com/julia-vscode/julia-vscode/pull/3873))
+
+## [1.155.0] - 2025-09-03
+### Fixed
 - Empty environment paths no longer cause issues ([#3866](https://github.com/julia-vscode/julia-vscode/pull/3866))
+- Handle filename-only links in the terminal better (e.g. `foo.jl` without a `./` prefix) ([#3738](https://github.com/julia-vscode/julia-vscode/pull/3738))
 
 ## [1.154.0] - 2025-08-28
 ### Added
@@ -53,7 +107,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.77.0] - 2024-04-24
 ### Fixed
-* Add Julia 1.11 support ([#3583](https://github.com/julia-vscode/julia-vscode/pull/3583), [#388](https://github.com/julia-vscode/CSTParser.jl/pull/388))
+* Add Julia 1.11 support ([#3583](https://github.com/julia-vscode/julia-vscode/pull/3583), [CSTParser.jl#388](https://github.com/julia-vscode/CSTParser.jl/pull/388))
 * `LoadError`s are not unconditionally unwrapped when displayed ([#3592](https://github.com/julia-vscode/julia-vscode/pull/3592))
 * Internals are now more reliably excluded from stacktraces ([#3593](https://github.com/julia-vscode/julia-vscode/pull/3593))
 * Stacktraces printing now works on Julia 1.12 ([#3595](https://github.com/julia-vscode/julia-vscode/pull/3595))
@@ -66,8 +120,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Deleting plots stops opening the plot pane if it's not visible ([#3564](https://github.com/julia-vscode/julia-vscode/pull/3564))
 * Stopped infinite recursion when the global logger got incorrectly set to an instance of `VSCodeLogger` ([#3572](https://github.com/julia-vscode/julia-vscode/pull/3572))
 * Changes to how Jupyter Notebook Metadata is accessed ([#3569](https://github.com/julia-vscode/julia-vscode/pull/3569))
-* Fixed an issue with Symbolics.jl sometimes getting misanalyzed, which would end up crashing the language server ([#383](https://github.com/julia-vscode/StaticLint.jl/pull/383))
-* `@kwdef mutable struct` with `const` fields are now analyzed correctly ([#384](https://github.com/julia-vscode/StaticLint.jl/pull/384))
+* Fixed an issue with Symbolics.jl sometimes getting misanalyzed, which would end up crashing the language server ([StaticLint.jl#383](https://github.com/julia-vscode/StaticLint.jl/pull/383))
+* `@kwdef mutable struct` with `const` fields are now analyzed correctly ([StaticLint.jl#384](https://github.com/julia-vscode/StaticLint.jl/pull/384))
 * More operators are now correctly highlighted ([#279](https://github.com/JuliaEditorSupport/atom-language-julia/pull/279))
 
 ## [1.74.0] - 2024-03-07
@@ -77,7 +131,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.73.0] - 2024-02-20
 ### Fixed
-* Fixed an edge case of `where` parsing in the presence of curlies and operators ([#384](https://github.com/julia-vscode/CSTParser.jl/pull/384))
+* Fixed an edge case of `where` parsing in the presence of curlies and operators ([CSTParser.jl#384](https://github.com/julia-vscode/CSTParser.jl/pull/384))
 
 ## [1.72.0] - 2024-02-16
 ### Fixed
@@ -91,7 +145,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.70.0] - 2024-02-10
 ### Added
-* Added static inlay hints for variable definitions and function parameters ([#3519](https://github.com/julia-vscode/julia-vscode/pull/3519), [#1077](https://github.com/julia-vscode/LanguageServer.jl/pull/1077))
+* Added static inlay hints for variable definitions and function parameters ([#3519](https://github.com/julia-vscode/julia-vscode/pull/3519), [LanguageServer.jl#1077](https://github.com/julia-vscode/LanguageServer.jl/pull/1077))
 
 ### Changed
 * Setting id for runtime inlay hints changed to `julia.inlayHints.runtime.enabled` ([#3519](https://github.com/julia-vscode/julia-vscode/pull/3519))
@@ -107,10 +161,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Code execution now works properly when connected to an external REPL ([#3506](https://github.com/julia-vscode/julia-vscode/pull/3506))
 * Revert [#3490](https://github.com/julia-vscode/julia-vscode/pull/3491) due to it causing unintended side effects ([#3513](https://github.com/julia-vscode/julia-vscode/pull/3513))
-* Most new syntax in Julia 1.10 is now parsed correctly ([#378](https://github.com/julia-vscode/CSTParser.jl/pull/378))
-* String macros with module access and a suffix are now correctly handled ([#379](https://github.com/julia-vscode/CSTParser.jl/pull/379))
-* The transpose operator is now correctly parsed when applied to `$` interpolated symbols ([#380](https://github.com/julia-vscode/CSTParser.jl/pull/380))
-* `global (a,b,)` with a trailing comma is now correctly parsed ([#381](https://github.com/julia-vscode/CSTParser.jl/pull/381))
+* Most new syntax in Julia 1.10 is now parsed correctly ([CSTParser.jl#378](https://github.com/julia-vscode/CSTParser.jl/pull/378))
+* String macros with module access and a suffix are now correctly handled ([CSTParser.jl#379](https://github.com/julia-vscode/CSTParser.jl/pull/379))
+* The transpose operator is now correctly parsed when applied to `$` interpolated symbols ([CSTParser.jl#380](https://github.com/julia-vscode/CSTParser.jl/pull/380))
+* `global (a,b,)` with a trailing comma is now correctly parsed ([CSTParser.jl#381](https://github.com/julia-vscode/CSTParser.jl/pull/381))
 
 ## [1.65.0] - 2023-12-14
 ### Fixed
@@ -182,43 +236,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 * `ans` is now set correctly in Julia 1.10 and newer ([#3440](https://github.com/julia-vscode/julia-vscode/pull/3440))
-* More correct auto completion logic for mismatched case ([#1177](https://github.com/julia-vscode/LanguageServer.jl/pull/1177))
-* "Expand function" action no longer removes whitespace and comments ([#1196](https://github.com/julia-vscode/LanguageServer.jl/pull/1196))
-* Diagnostics are now more reliably published for documents open when the editor starts ([#1254](https://github.com/julia-vscode/LanguageServer.jl/pull/1254))
-* TOML files are now longer parsed or linted with the Julia linter ([#1251](https://github.com/julia-vscode/LanguageServer.jl/pull/1251))
-* Fixed an issue with doc search ([#1250](https://github.com/julia-vscode/LanguageServer.jl/pull/1250))
+* More correct auto completion logic for mismatched case ([LanguageServer#1177][https://github.com/julia-vscode/LanguageServer.jl/pull/1177))
+* "Expand function" action no longer removes whitespace and comments ([LanguageServer#1196][https://github.com/julia-vscode/LanguageServer.jl/pull/1196))
+* Diagnostics are now more reliably published for documents open when the editor starts ([LanguageServer#1254][https://github.com/julia-vscode/LanguageServer.jl/pull/1254))
+* TOML files are now longer parsed or linted with the Julia linter ([LanguageServer#1251][https://github.com/julia-vscode/LanguageServer.jl/pull/1251))
+* Fixed an issue with doc search ([LanguageServer#1250][https://github.com/julia-vscode/LanguageServer.jl/pull/1250))
 
 ## [1.54.0] - 2023-09-28
 ### Added
-* Named `@testitem`s and `@testset`s now show up in the outline ([#1240](https://github.com/julia-vscode/LanguageServer.jl/pull/1240), [#1245](https://github.com/julia-vscode/LanguageServer.jl/pull/1245))
+* Named `@testitem`s and `@testset`s now show up in the outline ([LanguageServer#1240][https://github.com/julia-vscode/LanguageServer.jl/pull/1240), [LanguageServer#1245][https://github.com/julia-vscode/LanguageServer.jl/pull/1245))
 
 ### Changed
-* The linter now understands `Revise.includet` ([#373](https://github.com/julia-vscode/StaticLint.jl/pull/373))
-* Print diagnostics when parsing a file fails ([#377](https://github.com/julia-vscode/StaticLint.jl/pull/377))
-* Improved displayed types for bindings in the outline view ([#1245](https://github.com/julia-vscode/LanguageServer.jl/pull/1245))
+* The linter now understands `Revise.includet` ([StaticLint#373][https://github.com/julia-vscode/StaticLint.jl/pull/373))
+* Print diagnostics when parsing a file fails ([StaticLint#377][https://github.com/julia-vscode/StaticLint.jl/pull/377))
+* Improved displayed types for bindings in the outline view ([LanguageServer#1245][https://github.com/julia-vscode/LanguageServer.jl/pull/1245))
 
 ### Fixed
-* Fixed typo in destructuring assignment inference code ([#376](https://github.com/julia-vscode/StaticLint.jl/pull/376))
-* "Go to definition" now properly works for macros ([#374](https://github.com/julia-vscode/StaticLint.jl/pull/374))
+* Fixed typo in destructuring assignment inference code ([StaticLint#376][https://github.com/julia-vscode/StaticLint.jl/pull/376))
+* "Go to definition" now properly works for macros ([StaticLint#374][https://github.com/julia-vscode/StaticLint.jl/pull/374))
 
 ## [1.52.0] - 2023-09-18
 ### Added
-* Timing breakdowns for language server startup ([#1243](https://github.com/julia-vscode/LanguageServer.jl/pull/1243))
+* Timing breakdowns for language server startup ([LanguageServer#1243][https://github.com/julia-vscode/LanguageServer.jl/pull/1243))
 
 ### Changed
-* Significant improvements to symbol cache downloads ([#263](https://github.com/julia-vscode/SymbolServer.jl/pull/263))
-* Added debug timer outputs for cache file downloads ([#274](https://github.com/julia-vscode/SymbolServer.jl/pull/274))
-* Removed precompile output for LanguageServer.jl ([#1222](https://github.com/julia-vscode/LanguageServer.jl/pull/1222))
-* Files larger than 2MB are now disregarded during parsing and linting, which can drastically improve performance ([#333](https://github.com/julia-vscode/StaticLint.jl/pull/333))
+* Significant improvements to symbol cache downloads ([SymbolServer#263][https://github.com/julia-vscode/SymbolServer.jl/pull/263))
+* Added debug timer outputs for cache file downloads ([SymbolServer#274][https://github.com/julia-vscode/SymbolServer.jl/pull/274))
+* Removed precompile output for LanguageServer.jl ([LanguageServer#1222][https://github.com/julia-vscode/LanguageServer.jl/pull/1222))
+* Files larger than 2MB are now disregarded during parsing and linting, which can drastically improve performance ([StaticLint#333][https://github.com/julia-vscode/StaticLint.jl/pull/333))
 
 ### Fixed
-* Improved symbol cache generation to account for method overloads to functions defined in other packages ([#272](https://github.com/julia-vscode/SymbolServer.jl/pull/272))
-* Potential fix for a symbol cache corruption issue ([#266](https://github.com/julia-vscode/SymbolServer.jl/pull/266))
-* Function tooltips now list all methods applicable in the current context ([#1241](https://github.com/julia-vscode/LanguageServer.jl/pull/1241))
-* Reference detection now follows Julia's scoping rules more closely ([#1104](https://github.com/julia-vscode/LanguageServer.jl/pull/1104))
-* Type inference now correctly handles destructuring assignment ([#371](https://github.com/julia-vscode/StaticLint.jl/pull/371))
-* The check for unused function arguments now correctly handles `@nospecialized` keyword arguments ([#372](https://github.com/julia-vscode/StaticLint.jl/pull/372))
-* Method detection during symbol cache generation now correctly works on Julia 1.10 ([#273](https://github.com/julia-vscode/SymbolServer.jl/pull/273))
+* Improved symbol cache generation to account for method overloads to functions defined in other packages ([SymbolServer#272][https://github.com/julia-vscode/SymbolServer.jl/pull/272))
+* Potential fix for a symbol cache corruption issue ([SymbolServer#266][https://github.com/julia-vscode/SymbolServer.jl/pull/266))
+* Function tooltips now list all methods applicable in the current context ([LanguageServer#1241][https://github.com/julia-vscode/LanguageServer.jl/pull/1241))
+* Reference detection now follows Julia's scoping rules more closely ([LanguageServer#1104][https://github.com/julia-vscode/LanguageServer.jl/pull/1104))
+* Type inference now correctly handles destructuring assignment ([StaticLint#371][https://github.com/julia-vscode/StaticLint.jl/pull/371))
+* The check for unused function arguments now correctly handles `@nospecialized` keyword arguments ([StaticLint#372][https://github.com/julia-vscode/StaticLint.jl/pull/372))
+* Method detection during symbol cache generation now correctly works on Julia 1.10 ([SymbolServer#273][https://github.com/julia-vscode/SymbolServer.jl/pull/273))
 
 ## [1.51.0] - 2023-08-29
 ### Changed
@@ -242,7 +296,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * REPL evaluation now supports the REPL's module switching ([#3367](https://github.com/julia-vscode/julia-vscode/pull/3367/))
 * The profiler pane is now correctly initiatlized on newer VS Code versions ([#3354](https://github.com/julia-vscode/julia-vscode/pull/3354))
 * The debugger pane now displays the correct icons for compiled and interpreted mode ([#3277](https://github.com/julia-vscode/julia-vscode/pull/3277))
-* More robust formatting range detection ([#1228](https://github.com/julia-vscode/LanguageServer.jl/pull/1228))
+* More robust formatting range detection ([LanguageServer#1228][https://github.com/julia-vscode/LanguageServer.jl/pull/1228))
 
 ## [1.6.30] - 2022-08-08
 ### Fixed
@@ -255,10 +309,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * It's now possible to add a special `ALL_MODULES_EXCEPT_MAIN` token to the list of compiled modules when debugging ([#61](https://github.com/julia-vscode/DebugAdapter.jl/pull/61))
 
 ### Changed
-* The language server now uses incremental sync ([#1105](https://github.com/julia-vscode/LanguageServer.jl/pull/1105))
+* The language server now uses incremental sync ([LanguageServer#1105][https://github.com/julia-vscode/LanguageServer.jl/pull/1105))
 
 ### Fixed
-* `Assigned but not used` linter annotations are now slightly more correct ([#339](https://github.com/julia-vscode/StaticLint.jl/pull/339))
+* `Assigned but not used` linter annotations are now slightly more correct ([StaticLint#339][https://github.com/julia-vscode/StaticLint.jl/pull/339))
 * Actually fixed that issue with copying `Expr`s while debugging ([#60](https://github.com/julia-vscode/DebugAdapter.jl/pull/60))
 * Fixed `when` clauses of some keybindings that caused incorrect matches when `editorLangId != julia` ([#2971](https://github.com/julia-vscode/julia-vscode/pull/2971))
 
@@ -269,24 +323,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 * Restored a check (and notification) as to whether the Julia path is valid ([#2923](https://github.com/julia-vscode/julia-vscode/pull/2923))
-* Erroneous `.JuliaFormatter.toml`s no longer cause the language server to crash ([#1101](https://github.com/julia-vscode/LanguageServer.jl/pull/1101))
+* Erroneous `.JuliaFormatter.toml`s no longer cause the language server to crash ([LanguageServer#1101][https://github.com/julia-vscode/LanguageServer.jl/pull/1101))
 
 ## [1.6.23] - 2022-05-24
 ### Added
 * Integrated the new allocation profiler ([#2890](https://github.com/julia-vscode/julia-vscode/pull/2890))
-* The linter now warns when indexing into arrys with `for i in 1:length(A)` ([#338](https://github.com/julia-vscode/StaticLint.jl/pull/338))
-* Added a code action for adding a SPDX header to files ([#1075](https://github.com/julia-vscode/LanguageServer.jl/pull/1075))
-* Added a code action for organizing `using`/`import` statements ([#1076](https://github.com/julia-vscode/LanguageServer.jl/pull/1076))
-* Added a code action for converting string to raw strings and back ([#1082](https://github.com/julia-vscode/LanguageServer.jl/pull/1082))
-* Added a code action for adding a docstring template for function definitions ([#1084](https://github.com/julia-vscode/LanguageServer.jl/pull/1084))
+* The linter now warns when indexing into arrys with `for i in 1:length(A)` ([StaticLint#338][https://github.com/julia-vscode/StaticLint.jl/pull/338))
+* Added a code action for adding a SPDX header to files ([LanguageServer#1075][https://github.com/julia-vscode/LanguageServer.jl/pull/1075))
+* Added a code action for organizing `using`/`import` statements ([LanguageServer#1076][https://github.com/julia-vscode/LanguageServer.jl/pull/1076))
+* Added a code action for converting string to raw strings and back ([LanguageServer#1082][https://github.com/julia-vscode/LanguageServer.jl/pull/1082))
+* Added a code action for adding a docstring template for function definitions ([LanguageServer#1084][https://github.com/julia-vscode/LanguageServer.jl/pull/1084))
 
 ### Changed
 * Switched to LSP 3.17 ([#2886](https://github.com/julia-vscode/julia-vscode/pull/2886))
 
 ### Fixed
 * Made the workspace even more robust. For real this time. ([#2892](https://github.com/julia-vscode/julia-vscode/pull/2892))
-* Various parser fixes ([#338](https://github.com/julia-vscode/CSTParser.jl/pull/338))
-* Fixed an issue with multiple "missing reference" actions being applied at the same time ([#1089](https://github.com/julia-vscode/LanguageServer.jl/pull/1089))
+* Various parser fixes ([CSTParser#338][https://github.com/julia-vscode/CSTParser.jl/pull/338))
+* Fixed an issue with multiple "missing reference" actions being applied at the same time ([LanguageServer#1089][https://github.com/julia-vscode/LanguageServer.jl/pull/1089))
 
 ## [1.6.22] - 2022-05-04
 ### Added
@@ -297,19 +351,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * The profile pane now has a button to save the current profile to a file ([#2847](https://github.com/julia-vscode/julia-vscode/pull/2847))
 * Added a `Julia: New Julia File` command ([#1509](https://github.com/julia-vscode/julia-vscode/pull/1509), [#2877](https://github.com/julia-vscode/julia-vscode/pull/2877))
 * Cell evaluation now shows inline results for all top-level code blocks when the `julia.execution.inlineResultsForCellEvaluation` setting is enabled ([#2866](https://github.com/julia-vscode/julia-vscode/pull/2866))
-* Added a code action to replace `==`/`!=` with `===`/`!==` for comarisons with `nothing` ([#1048](https://github.com/julia-vscode/LanguageServer.jl/pull/1048))
-* Added completions for string macros ([#1046](https://github.com/julia-vscode/LanguageServer.jl/pull/1046))
-* Added a code action for replacing unused assignments/arguments with an underscore ([#1065](https://github.com/julia-vscode/LanguageServer.jl/pull/1065), [#1072](https://github.com/julia-vscode/LanguageServer.jl/pull/1072))
+* Added a code action to replace `==`/`!=` with `===`/`!==` for comarisons with `nothing` ([LanguageServer#1048][https://github.com/julia-vscode/LanguageServer.jl/pull/1048))
+* Added completions for string macros ([LanguageServer#1046][https://github.com/julia-vscode/LanguageServer.jl/pull/1046))
+* Added a code action for replacing unused assignments/arguments with an underscore ([LanguageServer#1065][https://github.com/julia-vscode/LanguageServer.jl/pull/1065), [LanguageServer#1072][https://github.com/julia-vscode/LanguageServer.jl/pull/1072))
 
 ### Changed
 * The Julia version is now appended to the REPL title ([#2857](https://github.com/julia-vscode/julia-vscode/pull/2857))
 * The extension is now only auto-activated when a `Project.toml` is in the workspace, not any arbitrary `.jl` file ([#2850](https://github.com/julia-vscode/julia-vscode/pull/2850))
 * Plot navigator screenshots were removed due to performance issues ([#2869](https://github.com/julia-vscode/julia-vscode/pull/2869))
-* Improved documentation search scoring algorithm ([#1057](https://github.com/julia-vscode/LanguageServer.jl/pull/1057))
-* Some code actions are now marked as `preferred`, which makes applying them easier ([#1063](https://github.com/julia-vscode/LanguageServer.jl/pull/1063))
-* Code action `kind`s are now set appropriately when applicable ([#1062](https://github.com/julia-vscode/LanguageServer.jl/pull/1062))
-* Improved auto completion presentation ([#1052](https://github.com/julia-vscode/LanguageServer.jl/pull/1052))
-* Snippet completions now have their `kind` set to `snippet`, as is appropriate ([#1067](https://github.com/julia-vscode/LanguageServer.jl/pull/1067))
+* Improved documentation search scoring algorithm ([LanguageServer#1057][https://github.com/julia-vscode/LanguageServer.jl/pull/1057))
+* Some code actions are now marked as `preferred`, which makes applying them easier ([LanguageServer#1063][https://github.com/julia-vscode/LanguageServer.jl/pull/1063))
+* Code action `kind`s are now set appropriately when applicable ([LanguageServer#1062][https://github.com/julia-vscode/LanguageServer.jl/pull/1062))
+* Improved auto completion presentation ([LanguageServer#1052][https://github.com/julia-vscode/LanguageServer.jl/pull/1052))
+* Snippet completions now have their `kind` set to `snippet`, as is appropriate ([LanguageServer#1067][https://github.com/julia-vscode/LanguageServer.jl/pull/1067))
 
 ### Fixed
 * Internal modules are now correctly loaded on all processes ([#2845](https://github.com/julia-vscode/julia-vscode/pull/2845))
@@ -321,12 +375,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * `ans` assignment is now more robust, which fixes an issue when IJulia.jl is loaded ([#2867](https://github.com/julia-vscode/julia-vscode/pull/2867))
 * Lines are now broken properly in the documentation browser ([#2870](https://github.com/julia-vscode/julia-vscode/pull/2870))
 * `args` can now be specified in the Julia launch configuration ([#2872](https://github.com/julia-vscode/julia-vscode/pull/2872))
-* `const` fields in mutable structs are now parsed correctly ([#336](https://github.com/julia-vscode/StaticLint.jl/pull/336))
-* Fixed a race condition when downloading symbol server cache files ([#251](https://github.com/julia-vscode/SymbolServer.jl/pull/251))
-* Package resolution now works properly for 1.7-style Manifests ([#252](https://github.com/julia-vscode/SymbolServer.jl/pull/252))
-* Placeholder paths replacement in symbol server cache files now works more robustly ([#253](https://github.com/julia-vscode/SymbolServer.jl/pull/253))
+* `const` fields in mutable structs are now parsed correctly ([StaticLint#336][https://github.com/julia-vscode/StaticLint.jl/pull/336))
+* Fixed a race condition when downloading symbol server cache files ([SymbolServer#251][https://github.com/julia-vscode/SymbolServer.jl/pull/251))
+* Package resolution now works properly for 1.7-style Manifests ([SymbolServer#252][https://github.com/julia-vscode/SymbolServer.jl/pull/252))
+* Placeholder paths replacement in symbol server cache files now works more robustly ([SymbolServer#253][https://github.com/julia-vscode/SymbolServer.jl/pull/253))
 * Fixed an issue with deepcopying `Expr`s in the debugger ([#58](https://github.com/julia-vscode/DebugAdapter.jl/pull/58))
-* Code actions triggers are no longer off by one character ([#1050](https://github.com/julia-vscode/LanguageServer.jl/pull/1050))
+* Code actions triggers are no longer off by one character ([LanguageServer#1050][https://github.com/julia-vscode/LanguageServer.jl/pull/1050))
 
 ## [1.6.17] - 2022-04-06
 ### Fixed
@@ -335,7 +389,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.6.16] - 2022-04-06
 ### Fixed
 * Fix a problem when trying to display `missing`s in the workspace ([#2831](https://github.com/julia-vscode/julia-vscode/pull/2831))
-* The `x == nothing` linter pass now also detects `nothing`s on the LHD ([#334](https://github.com/julia-vscode/StaticLint.jl/pull/334))
+* The `x == nothing` linter pass now also detects `nothing`s on the LHD ([StaticLint#334][https://github.com/julia-vscode/StaticLint.jl/pull/334))
 
 ## [1.6.15] - 2022-04-03
 ### Fixed
@@ -351,7 +405,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 * `@edit` is now much more robust ([#2823](https://github.com/julia-vscode/julia-vscode/pull/2823))
-* Fixed a formatting crash ([#1045](https://github.com/julia-vscode/LanguageServer.jl/pull/1045))
+* Fixed a formatting crash ([LanguageServer#1045][https://github.com/julia-vscode/LanguageServer.jl/pull/1045))
 
 ## [1.6.11] - 2022-03-28
 ### Fixed
@@ -359,7 +413,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Persistent REPL is no more killed on window reload ([#2807](https://github.com/julia-vscode/julia-vscode/pull/2807))
 * `LOAD_PATH` is now correctly set in notebooks ([#2810](https://github.com/julia-vscode/julia-vscode/pull/2810))
 * Trying to display an empty profile trace now shows a warning instead of emitting a scary looking error ([#2809](https://github.com/julia-vscode/julia-vscode/pull/2809))
-* Latex completions are now more robust ([#1042](https://github.com/julia-vscode/LanguageServer.jl/pull/1042))
+* Latex completions are now more robust ([LanguageServer#1042][https://github.com/julia-vscode/LanguageServer.jl/pull/1042))
 
 ## [1.6.8] - 2022-03-23
 ### Fixed
@@ -367,18 +421,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * juliaup integration is now more robust ([#2796](https://github.com/julia-vscode/julia-vscode/pull/2796))
 * Inline diagnostics are now also displayed in the REPL ([#2797](https://github.com/julia-vscode/julia-vscode/pull/2797))
 * Fix for dev'ed package with relative paths ([#2798](https://github.com/julia-vscode/julia-vscode/pull/2798))
-* The language server now handles `exit` notifications correctly ([#1039](https://github.com/julia-vscode/LanguageServer.jl/pull/1039))
+* The language server now handles `exit` notifications correctly ([LanguageServer#1039][https://github.com/julia-vscode/LanguageServer.jl/pull/1039))
 
 ## [1.6.5] - 2022-03-20
 ### Fixed
 * Inline error are now handled better during debugging ([#56](https://github.com/julia-vscode/DebugAdapter.jl/pull/56))
-* Fixed an issue with generator linting ([#1037](https://github.com/julia-vscode/LanguageServer.jl/pull/1037))
-* Fixed an issue with autocompletions containing multi-byte characters ([#1035](https://github.com/julia-vscode/LanguageServer.jl/pull/1035))
-* Fixed a LSP spec violation ([#1038](https://github.com/julia-vscode/LanguageServer.jl/pull/1038))
+* Fixed an issue with generator linting ([LanguageServer#1037][https://github.com/julia-vscode/LanguageServer.jl/pull/1037))
+* Fixed an issue with autocompletions containing multi-byte characters ([LanguageServer#1035][https://github.com/julia-vscode/LanguageServer.jl/pull/1035))
+* Fixed a LSP spec violation ([LanguageServer#1038][https://github.com/julia-vscode/LanguageServer.jl/pull/1038))
 
 ## [1.6.4] - 2022-03-17
 ### Changed
-* The default formatting style now does not surround kwargs `=` with whitespace ([#1033](https://github.com/julia-vscode/LanguageServer.jl/pull/1033))
+* The default formatting style now does not surround kwargs `=` with whitespace ([LanguageServer#1033][https://github.com/julia-vscode/LanguageServer.jl/pull/1033))
 
 ### Fixed
 * Errors in notebooks are now handled more robustly ([#2781](https://github.com/julia-vscode/julia-vscode/pull/2781), [#2783](https://github.com/julia-vscode/julia-vscode/pull/2783))
@@ -400,8 +454,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 * Julia-specific notebook toolbar icons now only show up for notebooks with Julia kernels ([#2758](https://github.com/julia-vscode/julia-vscode/pull/2758))
 * Fixed version incompatibility in debugger ([#52](https://github.com/julia-vscode/DebugAdapter.jl/pull/52))
-* Fixed certain `@doc` parsing issues ([#329](https://github.com/julia-vscode/CSTParser.jl/pull/329), [#330](https://github.com/julia-vscode/CSTParser.jl/pull/330))
-* Only pass on valid options to JuliaFormatter ([#1030](https://github.com/julia-vscode/LanguageServer.jl/pull/1030))
+* Fixed certain `@doc` parsing issues ([CSTParser#329][https://github.com/julia-vscode/CSTParser.jl/pull/329), [CSTParser#330][https://github.com/julia-vscode/CSTParser.jl/pull/330))
+* Only pass on valid options to JuliaFormatter ([LanguageServer#1030][https://github.com/julia-vscode/LanguageServer.jl/pull/1030))
 
 ## [1.6.0] - 2022-02-22
 ### Added
@@ -453,7 +507,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Code execution in Julia markdown files should now work as intended ([#2584](https://github.com/julia-vscode/julia-vscode/pull/2484))
 * Plot pane is now properly confined to its view column ([#2611](https://github.com/julia-vscode/julia-vscode/pull/2611))
 * System image building now supports the new manifest format ([#2617](https://github.com/julia-vscode/julia-vscode/pull/2617))
-* `=`/`in` normalization for iteration over ranges is now disabled by default ([#1006](https://github.com/julia-vscode/LanguageServer.jl/pull/1006))
+* `=`/`in` normalization for iteration over ranges is now disabled by default ([LanguageServer#1006][https://github.com/julia-vscode/LanguageServer.jl/pull/1006))
 
 ### Changed
 * Pixelated rendering mode is only active when zooming into an image now ([#2602](https://github.com/julia-vscode/julia-vscode/pull/2602))
@@ -487,7 +541,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 * Improved messaging around LS startup failures ([#2542](https://github.com/julia-vscode/julia-vscode/pull/2542))
 * Added a setting for the symbol cache server ([#2547](https://github.com/julia-vscode/julia-vscode/pull/2547))
-* Improvements to SymbolServer cache and download responsiveness and performance ([#243](https://github.com/julia-vscode/SymbolServer.jl/pull/243), [#244](https://github.com/julia-vscode/SymbolServer.jl/pull/244))
+* Improvements to SymbolServer cache and download responsiveness and performance ([SymbolServer#243][https://github.com/julia-vscode/SymbolServer.jl/pull/243), [SymbolServer#244][https://github.com/julia-vscode/SymbolServer.jl/pull/244))
 
 
 ## [1.5.2] - 2021-11-06
@@ -503,12 +557,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * `JULIA_NUM_THREADS` and `JULIA_EDITOR` are now correctly set for existing tmux sessions ([#2534](https://github.com/julia-vscode/julia-vscode/pull/2534))
 * Inline results now behave properly with CRLF linendings and aren't as easily invalidated by unrelated changes ([#2535](https://github.com/julia-vscode/julia-vscode/pull/2535))
 * The error message as now once again properly displayed in notebooks ([#2509](https://github.com/julia-vscode/julia-vscode/pull/2509))
-* Fixed various parser issues ([#313](https://github.com/julia-vscode/CSTParser.jl/pull/313), [#315](https://github.com/julia-vscode/CSTParser.jl/pull/315))
-* Fixed an erroneous method call error annotation ([#307](https://github.com/julia-vscode/StaticLint.jl/pull/307))
-* Fixed a stack overflow in the linter ([#308](https://github.com/julia-vscode/StaticLint.jl/pull/308))
-* Fixed a method error in the auto-completion code ([#983](https://github.com/julia-vscode/LanguageServer.jl/pull/983))
-* Functors are now correctly displayed in the outline ([#990](https://github.com/julia-vscode/LanguageServer.jl/pull/990), [#995](https://github.com/julia-vscode/LanguageServer.jl/pull/995))
-* Fixed an issue with runtime diagnostics crashing the language server ([#996](https://github.com/julia-vscode/LanguageServer.jl/pull/996))
+* Fixed various parser issues ([CSTParser#313][https://github.com/julia-vscode/CSTParser.jl/pull/313), [CSTParser#315][https://github.com/julia-vscode/CSTParser.jl/pull/315))
+* Fixed an erroneous method call error annotation ([StaticLint#307][https://github.com/julia-vscode/StaticLint.jl/pull/307))
+* Fixed a stack overflow in the linter ([StaticLint#308][https://github.com/julia-vscode/StaticLint.jl/pull/308))
+* Fixed a method error in the auto-completion code ([LanguageServer#983][https://github.com/julia-vscode/LanguageServer.jl/pull/983))
+* Functors are now correctly displayed in the outline ([LanguageServer#990][https://github.com/julia-vscode/LanguageServer.jl/pull/990), [LanguageServer#995][https://github.com/julia-vscode/LanguageServer.jl/pull/995))
+* Fixed an issue with runtime diagnostics crashing the language server ([LanguageServer#996][https://github.com/julia-vscode/LanguageServer.jl/pull/996))
 * Various fixes related to inline evaluation ([#2467](https://github.com/julia-vscode/julia-vscode/pull/2467))
 * Improved auto-indentation behaviour ([#2459](https://github.com/julia-vscode/julia-vscode/pull/2459))
 
@@ -516,21 +570,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Improved table viewer UX; added filtering and sorting as well as asynchronous loading of big tables ([#2415](https://github.com/julia-vscode/julia-vscode/pull/2415))
 * System image building now excludes development packages (e.g. added by `dev`) ([#2488](https://github.com/julia-vscode/julia-vscode/pull/2488)).
 * Extension views are now hidden until the extension is activated ([#2530](https://github.com/julia-vscode/julia-vscode/pull/2530))
-* Reduced invalidation in CSTParser.jl, which might improve performance ([#312](https://github.com/julia-vscode/CSTParser.jl/pull/312))
-* Majorly improvements to symbol cache loading performance and responsiveness ([#240](https://github.com/julia-vscode/SymbolServer.jl/pull/240), [#241](https://github.com/julia-vscode/SymbolServer.jl/pull/241))
-* Language server initialization is now reported much more granularly ([#994](https://github.com/julia-vscode/LanguageServer.jl/pull/994))
+* Reduced invalidation in CSTParser.jl, which might improve performance ([CSTParser#312][https://github.com/julia-vscode/CSTParser.jl/pull/312))
+* Majorly improvements to symbol cache loading performance and responsiveness ([SymbolServer#240][https://github.com/julia-vscode/SymbolServer.jl/pull/240), [SymbolServer#241][https://github.com/julia-vscode/SymbolServer.jl/pull/241))
+* Language server initialization is now reported much more granularly ([LanguageServer#994][https://github.com/julia-vscode/LanguageServer.jl/pull/994))
 * Improved tmux session handling: `Julia: Stop REPL` now shows a prompt for closing the tmux session; also added a `Julia: Disconnect external REPL` command ([#2532](https://github.com/julia-vscode/julia-vscode/pull/2532))
 * Julia keybindings now work properly in Weave files ([#2467](https://github.com/julia-vscode/julia-vscode/pull/2467))
 * Plot pane interaction now requires the user to hold Alt/Option to avoid conflicts in plot's own mouse event handling ([#2450](https://github.com/julia-vscode/julia-vscode/pull/2450))
 * Changed default keybindings for inline/cell evaluation to more closely match the notebook experience ([#2296](https://github.com/julia-vscode/julia-vscode/pull/2296))
-* Code formatting is now powered by the excellent [JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl), which should be much more reliable and configurable than the previous formatter ([#2335](https://github.com/julia-vscode/julia-vscode/pull/2334), [#972](https://github.com/julia-vscode/LanguageServer.jl/pull/972))
+* Code formatting is now powered by the excellent [JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl), which should be much more reliable and configurable than the previous formatter ([#2335](https://github.com/julia-vscode/julia-vscode/pull/2334), [LanguageServer#972][https://github.com/julia-vscode/LanguageServer.jl/pull/972))
 
 ### Added
 * Allow customising precompile statements and execution files for system image building based on a `./.vscode/JuliaSysimage.toml` file inside the project root folder ([#2488](https://github.com/julia-vscode/julia-vscode/pull/2488)).
 * tmux session names can now include `$[workspace]` which will be replaced with the name of the current file's workspace when the REPL is first opened. (This allows for multiple persistent sessions across different VSCode windows). ([#2504](https://github.com/julia-vscode/julia-vscode/pull/2504))
 * `vscodedisplay` now takes an additional `title` argument, which will be displayed in the tab title for tables ([#2415](https://github.com/julia-vscode/julia-vscode/pull/2415))
 * `@vscodedisplay` will automatically put the input expression as the table viewer tab title ([#2533](https://github.com/julia-vscode/julia-vscode/pull/2533))
-* Quickaction for removing unused function argument names ([#981](https://github.com/julia-vscode/LanguageServer.jl/pull/981))
+* Quickaction for removing unused function argument names ([LanguageServer#981][https://github.com/julia-vscode/LanguageServer.jl/pull/981))
 * Some runtime-based auto-completions are provided (e.g. for field names and indexing) ([#1507](https://github.com/julia-vscode/julia-vscode/pull/1507))
 
 ## [1.4.3] - 2021-09-15
@@ -708,7 +762,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.2.1] - 2021-05-27
 ### Fixed
 * `tmux` integration now works ([#2177](https://github.com/julia-vscode/julia-vscode/pull/2177))
-* Fixed a crash in the new multi-environment support ([#945](https://github.com/julia-vscode/LanguageServer.jl/pull/945))
+* Fixed a crash in the new multi-environment support ([LanguageServer#945][https://github.com/julia-vscode/LanguageServer.jl/pull/945))
 * The plots pane and navigator now (mostly) keeps focus where it was before ([#2172](https://github.com/julia-vscode/julia-vscode/pull/2174))
 
 ## [1.2.0] - 2021-05-26
@@ -718,17 +772,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * Workspace panel now shows `#properties` for `AbstractrArray`s and `AbstractDict`s ([#1927](https://github.com/julia-vscode/julia-vscode/pull/1927))
-* Clicking on a symbol now highlights only references to that symbol, instead of all symbols with the same name ([#908](https://github.com/julia-vscode/LanguageServer.jl/pull/908))
+* Clicking on a symbol now highlights only references to that symbol, instead of all symbols with the same name ([LanguageServer#908][https://github.com/julia-vscode/LanguageServer.jl/pull/908))
 
 ### Added
 * Added a sidebar element to quickly switch between differen plots ([#1932](https://github.com/julia-vscode/julia-vscode/pull/1932))
 * Added integration for persistent `tmux` sessions, especially useful together with the Remote Editing extension ([#1893](https://github.com/julia-vscode/julia-vscode/pull/1893))
 * Ship CoverageTools.jl as part of the extension so that test runs with coverage always work ([#1928](https://github.com/julia-vscode/julia-vscode/pull/1928))
 * Add option to delete .cov files after test runs (on by default) ([#1928](https://github.com/julia-vscode/julia-vscode/pull/1928))
-* Add new completion modes for unexported variables ([#1963](https://github.com/julia-vscode/julia-vscode/pull/1963), [#892](https://github.com/julia-vscode/LanguageServer.jl/pull/892))
+* Add new completion modes for unexported variables ([#1963](https://github.com/julia-vscode/julia-vscode/pull/1963), [LanguageServer#892][https://github.com/julia-vscode/LanguageServer.jl/pull/892))
 * New option for showing results inline but echoing errors into the REPL ([#2121](https://github.com/julia-vscode/julia-vscode/pull/2121))
 * New UI for setting compiled/interpreted methods for the debugger, which can allow for a significantly faster debugging experience ([#1888](https://github.com/julia-vscode/julia-vscode/pull/1888), [#31](https://github.com/julia-vscode/DebugAdapter.jl/pull/31))
-* Auto-completion of un-exported symbols can now optionally insert the appropriate `using` statement ([#892](https://github.com/julia-vscode/LanguageServer.jl/pull/892))
+* Auto-completion of un-exported symbols can now optionally insert the appropriate `using` statement ([LanguageServer#892][https://github.com/julia-vscode/LanguageServer.jl/pull/892))
 
 ## [1.1.39] - 2021-05-06
 ### Fixed
@@ -736,14 +790,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Weaving a document now respects the current env ([#2130](https://github.com/julia-vscode/julia-vscode/pull/2130))
 * `ARGS` are now properly cleared of extension internals ([#2090](https://github.com/julia-vscode/julia-vscode/pull/2090))
 * External Julia processes now respect the number of threads setting ([#2141](https://github.com/julia-vscode/julia-vscode/pull/2141))
-* URIs in markdown hovers (e.g. in stacktraces) now properly link to the right line ([#932](https://github.com/julia-vscode/LanguageServer.jl/pull/932))
+* URIs in markdown hovers (e.g. in stacktraces) now properly link to the right line ([LanguageServer#932][https://github.com/julia-vscode/LanguageServer.jl/pull/932))
 
 ### Changed
 * Added support for the error stacks introduced in Julia 1.5 ([#2142](https://github.com/julia-vscode/julia-vscode/pull/2142))
 * Improvements to the package tagging functionality (which is now also limited to Julia 1.6) ([#2144](https://github.com/julia-vscode/julia-vscode/pull/2144))
 
 ### Added
-* The linter now understands the new `import Foo as Bar` syntax ([#276](https://github.com/julia-vscode/StaticLint.jl/pull/276))
+* The linter now understands the new `import Foo as Bar` syntax ([StaticLint#276][https://github.com/julia-vscode/StaticLint.jl/pull/276))
 
 ## [1.1.38] - 2021-03-29
 ### Fixed
@@ -752,10 +806,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Setting `JULIA_EDITOR` should now be more robust ([#2067](https://github.com/julia-vscode/julia-vscode/pull/2067))
 
 ### Changed
-* Auto-completions now allow for a certain degree of fuzzyiness ([#906](https://github.com/julia-vscode/LanguageServer.jl/pull/906))
+* Auto-completions now allow for a certain degree of fuzzyiness ([LanguageServer#906][https://github.com/julia-vscode/LanguageServer.jl/pull/906))
 
 ### Added
-* The LS now support selection range requests (use `Shift-Alt-Right`/`Shift-Alt-Left` to expand/reduce the "smart selection" in VSCode) ([#893](https://github.com/julia-vscode/LanguageServer.jl/pull/893))
+* The LS now support selection range requests (use `Shift-Alt-Right`/`Shift-Alt-Left` to expand/reduce the "smart selection" in VSCode) ([LanguageServer#893][https://github.com/julia-vscode/LanguageServer.jl/pull/893))
 
 ## [1.1.37] - 2021-03-17
 ### Fixed
@@ -861,7 +915,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * The plot pane now properly scales images ([#1882](https://github.com/julia-vscode/julia-vscode/pull/1882)).
 
 ### Fixed
-* The LS now correctly handles the `$/setTrace` notification ([#868](https://github.com/julia-vscode/LanguageServer.jl/pull/868)).
+* The LS now correctly handles the `$/setTrace` notification ([LanguageServer#868][https://github.com/julia-vscode/LanguageServer.jl/pull/868)).
 
 ## [1.1.0] - 2021-01-23
 ### Changed
@@ -887,27 +941,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * Removed `@` and `!` from the list of non-word characters, so double clicking `@foo!` now selects the whole macro ([#1861](https://github.com/julia-vscode/julia-vscode/pull/1861)).
 
 ### Fixed
-* Improved the algorithm for finding the current code block ([#860](https://github.com/julia-vscode/LanguageServer.jl/pull/860)).
-* Fixed jmd parsing ([#859](https://github.com/julia-vscode/LanguageServer.jl/pull/859)).
-* THe linter now doesn't attribute every `eval` call to `Core.eval` ([#237](https://github.com/julia-vscode/StaticLint.jl/pull/237)).
+* Improved the algorithm for finding the current code block ([LanguageServer#860][https://github.com/julia-vscode/LanguageServer.jl/pull/860)).
+* Fixed jmd parsing ([LanguageServer#859][https://github.com/julia-vscode/LanguageServer.jl/pull/859)).
+* THe linter now doesn't attribute every `eval` call to `Core.eval` ([StaticLint#237][https://github.com/julia-vscode/StaticLint.jl/pull/237)).
 
 ## [1.0.13] - 2021-01-13
 ### Added
 * It is now possible to customize the look of inline results ([#1846](https://github.com/julia-vscode/julia-vscode/pull/1846)).
-* Support for the upcoming `import Foo as Bar` syntax ([#220](https://github.com/julia-vscode/CSTParser.jl/pull/220)).
+* Support for the upcoming `import Foo as Bar` syntax ([CSTParser#220][https://github.com/julia-vscode/CSTParser.jl/pull/220)).
 
 ### Changed
 * Switched to a new symbol store format ([#1857](https://github.com/julia-vscode/julia-vscode/pull/1857)).
-* Major rewrite for CSTParser ([#190](https://github.com/julia-vscode/CSTParser.jl/pull/190)).
-* StaticLint.jl now supports Julia >= v1.6 ([#227](https://github.com/julia-vscode/StaticLint.jl/pull/228)).
-* Added additional type inference for the linter ([#234](https://github.com/julia-vscode/StaticLint.jl/pull/234)).
+* Major rewrite for CSTParser ([CSTParser#190][https://github.com/julia-vscode/CSTParser.jl/pull/190)).
+* StaticLint.jl now supports Julia >= v1.6 ([StaticLint#227][https://github.com/julia-vscode/StaticLint.jl/pull/228)).
+* Added additional type inference for the linter ([StaticLint#234][https://github.com/julia-vscode/StaticLint.jl/pull/234)).
 
 ### Fixed
 * We now use the correct binary when setting the `JULIA_EDITOR` on MacOS for users of VSCode insiders ([#1852](https://github.com/julia-vscode/julia-vscode/pull/1852)).
 * `Base.displayble` is now correctly extended instead of creating a local version ([#1856](https://github.com/julia-vscode/julia-vscode/pull/1856)).
 * Conditions for line breakpoints now work again ([#26](https://github.com/julia-vscode/DebugAdapter.jl/pull/26)).
 * Debugger now correctly unwraps `UnionAll`s when collecting global refs ([#27](https://github.com/julia-vscode/DebugAdapter.jl/pull/27)).
-* The Linter now correctly handles `Base.@kwdef` ([#233](https://github.com/julia-vscode/StaticLint.jl/pull/233)).
+* The Linter now correctly handles `Base.@kwdef` ([StaticLint#233][https://github.com/julia-vscode/StaticLint.jl/pull/233)).
 
 ## [1.0.12] - 2021-01-05
 ### Added
@@ -937,8 +991,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 * The attached debugger now properly sets `tls[:source_path]` and doesn't crash the Julia REPL on errors ([#1804](https://github.com/julia-vscode/julia-vscode/pull/1804)).
 * Staktraces are now properly truncated for inline results ([#1812](https://github.com/julia-vscode/julia-vscode/pull/1812)).
 * Progress messages are now properly flushed, so that the progress monitoring is always be up-to-date ([#1805](https://github.com/julia-vscode/julia-vscode/pull/1805)).
-* Fixed an issue with parsing kwfuncs using `where` ([#212](https://github.com/julia-vscode/CSTParser.jl/pull/212)).
-* Added missing `nothing` checks that could cause issues when linting files ([#221](https://github.com/julia-vscode/StaticLint.jl/pull/221), [#223](https://github.com/julia-vscode/StaticLint.jl/pull/223)).
+* Fixed an issue with parsing kwfuncs using `where` ([CSTParser#212][https://github.com/julia-vscode/CSTParser.jl/pull/212)).
+* Added missing `nothing` checks that could cause issues when linting files ([StaticLint#221][https://github.com/julia-vscode/StaticLint.jl/pull/221), [StaticLint#223][https://github.com/julia-vscode/StaticLint.jl/pull/223)).
 
 ## [1.0.10] - 2020-11-13
 ### Added
