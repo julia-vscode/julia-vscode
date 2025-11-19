@@ -11,14 +11,14 @@ import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
 import { resolvePath } from './utils'
 
-interface JuliaupChannelInfo {
+export interface JuliaupChannelInfo {
     Name: string
     File: string
     Args: string[]
     Version: string
     Arch: string
 }
-interface JuliaupApiGetinfoReturn {
+export interface JuliaupApiGetinfoReturn {
     DefaultChannel?: JuliaupChannelInfo
     OtherChannels: JuliaupChannelInfo[]
 }
