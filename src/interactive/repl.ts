@@ -4,7 +4,7 @@ import { assert } from 'console'
 import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
-import { exec, execFile } from 'promisify-child-process'
+import { exec } from 'promisify-child-process'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
@@ -30,19 +30,6 @@ import * as plots from './plots'
 import * as results from './results'
 import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
-
-interface JuliaupChannelInfo {
-    Name: string
-    File: string
-    Args: string[]
-    Version: string
-    Arch: string
-}
-
-interface JuliaupApiGetinfoReturn {
-    DefaultChannel?: JuliaupChannelInfo
-    OtherChannels: JuliaupChannelInfo[]
-}
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
@@ -203,11 +190,19 @@ export async function startREPL(preserveFocus: boolean, showTerminal: boolean = 
     let shellPath: string, shellArgs: string[]
     let juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
     if (versionName && versionName !== '') {
-        const juliaVersions = await getInstalledJuliaVersions()
+        const juliaupObj = await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
+        if (!juliaupObj) {
+            vscode.window.showErrorMessage('Please install juliaup to manage multiple versions!', {
+                modal: true,
+            })
+            throw Error('Please install juliaup to manage multiple versions!')
+        }
+
+        const juliaVersions = await g_juliaExecutablesFeature.getInstalledJuliaVersions(juliaupObj)
         const juliaObj = juliaVersions.find((ele) => ele.Name === versionName)
 
         if (!juliaObj) {
-            return
+            throw Error('Requested julia version might not be installed, please recheck the version name!')
         }
 
         juliaExecutable = new JuliaExecutable(
@@ -312,7 +307,15 @@ export async function startREPL(preserveFocus: boolean, showTerminal: boolean = 
 }
 
 async function startREPLWithVersion() {
-    const versions = await getInstalledJuliaVersions()
+    const juliaup = await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
+    if (!juliaup) {
+        vscode.window.showErrorMessage('Please install juliaup to manage multiple versions!', {
+            modal: true,
+        })
+        throw Error('Please install juliaup to manage multiple versions!')
+    }
+
+    const versions = await g_juliaExecutablesFeature.getInstalledJuliaVersions(juliaup)
     const select = await vscode.window.showQuickPick(versions, {
         placeHolder: 'Select version',
         title: 'Start REPL with specific version',
@@ -321,34 +324,6 @@ async function startREPLWithVersion() {
     if (select) {
         await startREPL(false, true, select.Name)
     }
-}
-
-async function getInstalledJuliaVersions() {
-    const juliaup = await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
-
-    const { stdout } = await execFile(juliaup.file, ['api', 'getconfig1'], {
-        shell: process.platform === 'win32' ? false : true,
-    })
-    const installedVersions: JuliaupApiGetinfoReturn = JSON.parse(stdout.toString())
-
-    const defaultVersion = installedVersions.DefaultChannel
-    const otherVersions = installedVersions.OtherChannels
-
-    const versions: (JuliaupChannelInfo & vscode.QuickPickItem)[] = []
-    versions.push({
-        label: defaultVersion.Name,
-        description: `Julia v${defaultVersion.Version} (current)`,
-        ...defaultVersion,
-    })
-    otherVersions.forEach((ele) => {
-        versions.push({
-            label: ele.Name,
-            description: `Julia v${ele.Version}`,
-            ...ele,
-        })
-    })
-
-    return versions
 }
 
 function juliaConnector(pipename: string, debugPipename: string, start = false) {

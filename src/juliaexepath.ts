@@ -271,6 +271,40 @@ export class JuliaExecutablesFeature {
         return pathsToSearch
     }
 
+    public async getInstalledJuliaVersions(juliaupObj: JuliaupExecutable) {
+        const { stdout } = await execFile(juliaupObj.file, ['api', 'getconfig1'], {
+            shell: process.platform === 'win32' ? false : true,
+        })
+        const installedVersions: JuliaupApiGetinfoReturn = JSON.parse(stdout.toString().trim())
+
+        const defaultVersion = installedVersions.DefaultChannel
+        const otherVersions = installedVersions.OtherChannels
+
+        const versions: (JuliaupChannelInfo & vscode.QuickPickItem & { default: boolean })[] = []
+
+        if (Object.keys(defaultVersion).length) {
+            versions.push({
+                label: defaultVersion.Name,
+                default: true,
+                description: `Julia v${defaultVersion.Version} (current)`,
+                ...defaultVersion,
+            })
+        }
+
+        if (otherVersions.length) {
+            otherVersions.forEach((ele) => {
+                versions.push({
+                    label: ele.Name,
+                    default: false,
+                    description: `Julia v${ele.Version}`,
+                    ...ele,
+                })
+            })
+        }
+
+        return versions
+    }
+
     async tryJuliaup() {
         this.usingJuliaup = false
         try {
@@ -280,27 +314,28 @@ export class JuliaExecutablesFeature {
                 return false
             }
 
-            const { stdout } = await execFile(juliaupObj.file, ['api', 'getconfig1'], {
-                shell: process.platform === 'win32' ? false : true,
-            })
+            const versions = await this.getInstalledJuliaVersions(juliaupObj)
 
-            const apiResult = stdout.toString().trim()
+            if (versions.length) {
+                const defaultVersion = versions.find((ele) => ele.default)
+                const otherVersions = versions.filter((ele) => !ele.default)
 
-            const parsedResult: JuliaupApiGetinfoReturn = JSON.parse(apiResult)
+                if (!defaultVersion) {
+                    return false
+                }
 
-            if (parsedResult.DefaultChannel) {
                 this.actualJuliaExePath = new JuliaExecutable(
-                    parsedResult.DefaultChannel.Version,
-                    parsedResult.DefaultChannel.File,
-                    parsedResult.DefaultChannel.Args,
-                    parsedResult.DefaultChannel.Arch,
-                    parsedResult.DefaultChannel.Name,
+                    defaultVersion.Version,
+                    defaultVersion.File,
+                    defaultVersion.Args,
+                    defaultVersion.Arch,
+                    defaultVersion.Name,
                     true
                 )
 
-                this.cachedJuliaExePaths = parsedResult.OtherChannels.map(
-                    (i) => new JuliaExecutable(i.Version, i.File, i.Args, i.Arch, i.Name, true)
-                ).concat(this.actualJuliaExePath)
+                this.cachedJuliaExePaths = otherVersions
+                    .map((i) => new JuliaExecutable(i.Version, i.File, i.Args, i.Arch, i.Name, true))
+                    .concat(this.actualJuliaExePath)
 
                 this.usingJuliaup = true
 
