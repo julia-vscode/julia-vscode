@@ -5,6 +5,15 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- The `application/vnd.julia-vscode.plotpane+html` and `application/vnd.julia-vscode.custompane+html` MIME types can now be used for new plots in the plotpane or new panes. An optional `;id=[^,]+` parameter allows for replacing the plot or setting a pane identity and title. ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
+
+### Changed
+- The `juliavscode/html` MIME type is now deprecated in favour of `application/vnd.julia-vscode.plotpane+html` ([#2940](https://github.com/julia-vscode/julia-vscode/pull/2940))
+- 
+### Fixed
+- The workspace now tolerates incorrectly implemented `AbstractArray`s ([#3618](https://github.com/julia-vscode/julia-vscode/pull/3618))
+
 ## [1.155.0] - 2025-09-03
 ### Added
 - Added ability to fetch information for user installed `juliaup` ([3878](https://github.com/julia-vscode/julia-vscode/pull/3878))
@@ -12,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Empty environment paths no longer cause issues ([#3866](https://github.com/julia-vscode/julia-vscode/pull/3866))
+- Handle filename-only links in the terminal better (e.g. `foo.jl` without a `./` prefix) ([#3738](https://github.com/julia-vscode/julia-vscode/pull/3738))
 
 ## [1.154.0] - 2025-08-28
 ### Added
