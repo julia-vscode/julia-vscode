@@ -133,7 +133,11 @@ function parseSessionArgs(name: string) {
 }
 
 // FIXME: refactor this!
-export async function startREPL(preserveFocus: boolean, showTerminal: boolean = true, juliaExecutable?: JuliaExecutable) {
+export async function startREPL(
+    preserveFocus: boolean,
+    showTerminal: boolean = true,
+    juliaExecutable?: JuliaExecutable
+) {
     const config = vscode.workspace.getConfiguration('julia')
     const isPersistentSession = Boolean(config.get('persistentSession.enabled'))
 
@@ -316,7 +320,6 @@ async function startREPLWithVersion(versionName?: string) {
             throw Error('Requested julia version might not be installed, please recheck the version name!')
         }
     }
-
 
     const juliaExecutable = new JuliaExecutable(
         juliaObj.Version,
