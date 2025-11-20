@@ -5,6 +5,11 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- Fixed an issue with the REPL not starting in the correct repository ([#3909](https://github.com/julia-vscode/julia-vscode/pull/3909))
+
+### Changed
+- Variable substitution now works for the `julia.additionalArgs` setting ([#3909](https://github.com/julia-vscode/julia-vscode/pull/3909))
 
 ## [1.159.0] - 2025-11-19
 ### Added

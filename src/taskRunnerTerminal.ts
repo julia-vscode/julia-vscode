@@ -17,7 +17,8 @@ export class TaskRunnerTerminal {
     private disposables: vscode.Disposable[] = []
 
     constructor(name: string, shellPath: string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
-        const proc = new JuliaProcess(shellPath, shellArgs, { env: opts.env })
+        const cwd = opts.cwd instanceof vscode.Uri ? opts.cwd.fsPath : opts.cwd
+        const proc = new JuliaProcess(shellPath, shellArgs, { cwd, env: opts.env })
         const pty = new JuliaPTY(proc, opts)
 
         proc.onDidClose((ev) => {

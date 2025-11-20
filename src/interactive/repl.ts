@@ -218,7 +218,8 @@ export async function startREPL(
 
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
-    const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(config.get('additionalArgs'))
+    const additionalArgs = ((config.get('additionalArgs') as string[]) || []).map((arg) => parseVSCodeVariables(arg))
+    const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(additionalArgs)
 
     if (isPersistentSession) {
         shellPath = config.get('persistentSession.shell')
@@ -268,7 +269,9 @@ export async function startREPL(
         shellArgs = [...juliaExecutable.args, ...jlarg1, ...getArgs()]
         g_terminal_is_persistent = false
 
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri
         const task = new TaskRunnerTerminal(`Julia REPL (v${juliaExecutable.getVersion()})`, shellPath, shellArgs, {
+            cwd: workspaceFolder,
             env,
             iconPath: juliaIconPath,
             echoMessage: false,
