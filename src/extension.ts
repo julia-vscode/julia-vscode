@@ -38,6 +38,7 @@ import { handleNewCrashReportFromException } from './telemetry'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { JuliaCommands } from './juliaCommands'
 import { installJuliaOrJuliaupTask, installJuliaOrJuliaupExtension } from './juliaupAutoInstall'
+import * as liveshare from './liveshare'
 import * as semver from 'semver'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
@@ -87,6 +88,10 @@ export async function activate(context: vscode.ExtensionContext) {
             },
         })
 
+        const liveshareFeature = new liveshare.JuliaLiveShareService(context)
+        await liveshareFeature.init()
+        context.subscriptions.push(liveshareFeature)
+
         const profilerFeature = new ProfilerFeature(context)
         context.subscriptions.push(profilerFeature)
 
@@ -94,7 +99,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const compiledProvider = debugViewProvider.activate(context)
         context.subscriptions.push(g_juliaExecutablesFeature)
         await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
-        repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature)
+        repl.activate(context, compiledProvider, g_juliaExecutablesFeature, profilerFeature, liveshareFeature)
         weave.activate(context, g_juliaExecutablesFeature)
         documentation.activate(context)
         tasks.activate(context, g_juliaExecutablesFeature)
