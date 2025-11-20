@@ -161,7 +161,11 @@ function on_pkg_load(pkg)
         end
 
         @eval begin
-            function Base.display(d::VSCodeServer.InlineDisplay, m::Union{MIME"application/vnd.julia-vscode.plotpane+html", MIME"application/vnd.julia-vscode.custompane+html"}, obs::$(Observables.Observable))
+            function Base.display(d::VSCodeServer.InlineDisplay, m::MIME, obs::$(Observables.Observable))
+                if !showable(m, obs[])
+                    throw(MethodError(display, (d, m, obs)))
+                end
+
                 id = rand(Int)
                 mime = MIME("$(string(m));id=$id")
                 $(Observables.on)(obs) do x
@@ -169,8 +173,6 @@ function on_pkg_load(pkg)
                 end
                 return display(d, mime, obs[])
             end
-            Base.show(io::IO, m::Union{MIME"application/vnd.julia-vscode.plotpane+html", MIME"application/vnd.julia-vscode.custompane+html"}, obs::$(Observables.Observable)) =
-                show(io, m, obs[])
         end
     end
 end
