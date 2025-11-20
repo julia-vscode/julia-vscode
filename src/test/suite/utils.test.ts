@@ -1,7 +1,6 @@
 import * as assert from 'assert'
 import * as utils from '../../utils'
 
-
 suite('parseVSCodeVariables', () => {
     test('returns empty string for ${workspaceFolder} when no workspace', () => {
         const result = utils.parseVSCodeVariables('--project=${workspaceFolder}')

@@ -218,7 +218,7 @@ export async function startREPL(
 
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
 
-    const additionalArgs = (config.get('additionalArgs') as string[] || []).map(arg => parseVSCodeVariables(arg))
+    const additionalArgs = ((config.get('additionalArgs') as string[]) || []).map((arg) => parseVSCodeVariables(arg))
     const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(additionalArgs)
 
     if (isPersistentSession) {

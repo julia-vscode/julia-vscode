@@ -387,7 +387,9 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
             const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
             const nthreads = inferJuliaNumThreads()
-            const juliaAdditionalArgs = (session.configuration.juliaAdditionalArgs || []).map(arg => parseVSCodeVariables(arg))
+            const juliaAdditionalArgs = (session.configuration.juliaAdditionalArgs || []).map((arg) =>
+                parseVSCodeVariables(arg)
+            )
             const jlargs = [
                 ...juliaExecutable.args,
                 '--color=yes',
