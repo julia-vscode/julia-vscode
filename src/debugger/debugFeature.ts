@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as jlpkgenv from '../jlpkgenv'
 import { JuliaExecutablesFeature } from '../juliaexepath'
-import { generatePipeName, inferJuliaNumThreads, registerCommand } from '../utils'
+import { generatePipeName, inferJuliaNumThreads, parseVSCodeVariables, registerCommand } from '../utils'
 import { v4 as uuidv4 } from 'uuid'
 import { Subject } from 'await-notify'
 import * as net from 'net'
@@ -387,12 +387,13 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
             const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
 
             const nthreads = inferJuliaNumThreads()
+            const juliaAdditionalArgs = (session.configuration.juliaAdditionalArgs || []).map(arg => parseVSCodeVariables(arg))
             const jlargs = [
                 ...juliaExecutable.args,
                 '--color=yes',
                 '--startup-file=no',
                 '--history-file=no',
-                ...session.configuration.juliaAdditionalArgs,
+                ...juliaAdditionalArgs,
                 join(this.context.extensionPath, 'scripts', 'debugger', 'run_debugger.jl'),
                 ready_pn,
                 dap_pn,
