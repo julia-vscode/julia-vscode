@@ -1577,6 +1577,7 @@
         "uuid": "^11.0.3",
         "vscode-jsonrpc": "^8.2.0",
         "vscode-languageclient": "^9.0.0",
+        "vsls": "^1.0.4753",
         "which": "5"
     },
     "devDependencies": {

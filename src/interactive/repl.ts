@@ -31,6 +31,10 @@ import * as results from './results'
 import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
 
+import type { JuliaLiveShareService } from '../liveshare'
+import type { ProfilerFeature } from './profiler'
+import type { DebugConfigTreeProvider } from '../debugger/debugConfig'
+
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
 let g_compiledProvider = null
@@ -1378,9 +1382,10 @@ function isMarkdownEditor(editor: vscode.TextEditor) {
 
 export function activate(
     context: vscode.ExtensionContext,
-    compiledProvider,
+    compiledProvider: DebugConfigTreeProvider,
     juliaExecutablesFeature: JuliaExecutablesFeature,
-    profilerFeature
+    profilerFeature: ProfilerFeature,
+    liveshareFeature: JuliaLiveShareService
 ) {
     g_context = context
     g_juliaExecutablesFeature = juliaExecutablesFeature
@@ -1526,7 +1531,7 @@ export function activate(
     updateCellDelimiters()
 
     results.activate(context)
-    plots.activate(context)
+    plots.activate(context, liveshareFeature)
     modules.activate(context)
     completions.activate(context)
 }

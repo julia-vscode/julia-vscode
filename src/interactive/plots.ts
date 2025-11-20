@@ -7,6 +7,8 @@ import { registerCommand, setContext } from '../utils'
 import { displayTable } from './tables'
 import { JuliaKernel } from '../notebook/notebookKernel'
 
+import type { JuliaLiveShareService } from '../liveshare'
+
 const c_juliaPlotPanelActiveContextKey = 'julia.plotpaneFocus'
 const g_plots: Array<string> = new Array<string>()
 const g_plot_id_map = new Map<string, number>()
@@ -15,10 +17,15 @@ let g_plotPanel: vscode.WebviewPanel | undefined = undefined
 let g_context: vscode.ExtensionContext = null
 let g_plotNavigatorProvider: PlotNavigatorProvider = null
 
-export function activate(context: vscode.ExtensionContext) {
+let g_liveshareFeature: JuliaLiveShareService = undefined
+const plot_notification_id = 'newPlot'
+
+export function activate(context: vscode.ExtensionContext, liveshareFeature: JuliaLiveShareService) {
     g_context = context
 
     g_plotNavigatorProvider = new PlotNavigatorProvider(context)
+
+    g_liveshareFeature = liveshareFeature
 
     context.subscriptions.push(
         registerCommand('language-julia.copy-plot', requestCopyPlot),
@@ -35,6 +42,15 @@ export function activate(context: vscode.ExtensionContext) {
         registerCommand('language-julia.show-plot-navigator', () => g_plotNavigatorProvider.showPlotNavigator()),
         vscode.window.registerWebviewViewProvider('julia-plot-navigator', g_plotNavigatorProvider)
     )
+
+    if (liveshareFeature.guestService) {
+        liveshareFeature.guestService.onNotify(
+            plot_notification_id,
+            (params: { kind: string; data: string; id?: string }) => {
+                displayPlot(params)
+            }
+        )
+    }
 }
 
 interface Plot {
@@ -480,6 +496,10 @@ function addOrUpdatePlot(plotPaneContent: string, id?: string) {
 
 export function displayPlot(params: { kind: string; data: string; id?: string }, kernel?: JuliaKernel) {
     const { kind, data: payload, id } = params
+
+    if (g_liveshareFeature.hostService?.isServiceAvailable) {
+        g_liveshareFeature.hostService.notify(plot_notification_id, params)
+    }
 
     if (kind === 'image/svg+xml') {
         const has_xmlns_attribute = payload.includes('xmlns=')
