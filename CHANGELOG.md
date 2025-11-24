@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- The REPL keep-alive logic is now optional due to problems on Windows ([#3917](https://github.com/julia-vscode/julia-vscode/pull/3917))
 
 ## [1.160.0] - 2025-11-20
 ### Fixed
