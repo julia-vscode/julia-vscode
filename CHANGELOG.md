@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Fixed an issue with the REPL not starting in the correct repository ([#3909](https://github.com/julia-vscode/julia-vscode/pull/3909))
 - Fixed some issues with the Observables.jl integration ([#3911](https://github.com/julia-vscode/julia-vscode/pull/3911))
+- Fixed an issue resulting in re-compilation of stdlibs ([#3915](https://github.com/julia-vscode/julia-vscode/pull/3915))
 
 ### Changed
 - Variable substitution now works for the `julia.additionalArgs` setting ([#3909](https://github.com/julia-vscode/julia-vscode/pull/3909))
