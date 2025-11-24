@@ -263,11 +263,6 @@
                 "icon": "$(trash)"
             },
             {
-                "command": "language-julia.copy-plot",
-                "title": "Julia: Copy Plot",
-                "icon": "$(explorer-view-icon)"
-            },
-            {
                 "command": "language-julia.save-plot",
                 "title": "Julia: Save Plot",
                 "icon": "$(save)"
@@ -852,10 +847,6 @@
             {
                 "command": "language-julia.plotpane-delete",
                 "key": "delete",
-                "when": "julia.plotpaneFocus"
-            },
-            {
-                "command": "language-julia.copy-plot",
                 "when": "julia.plotpaneFocus"
             },
             {

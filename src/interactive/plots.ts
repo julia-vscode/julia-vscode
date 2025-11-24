@@ -21,7 +21,6 @@ export function activate(context: vscode.ExtensionContext) {
     g_plotNavigatorProvider = new PlotNavigatorProvider(context)
 
     context.subscriptions.push(
-        registerCommand('language-julia.copy-plot', requestCopyPlot),
         registerCommand('language-julia.save-plot', requestExportPlot),
         registerCommand('language-julia.show-plotpane', showPlotPane),
         registerCommand('language-julia.plotpane-enable', enablePlotPane),
@@ -415,6 +414,35 @@ img#plot-element.pixelated {
 #plot-element > svg {
     height: 100%;
     width: 100%;
+}
+
+#copy-plot-btn {
+    padding: 0.4em 0.6em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
+    border: 0px;
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: transparent;
+    color: var(--vscode-button-foreground);
+    z-index: 1000;
+    filter: drop-shadow(0px 0px 2px rgba(0, 0, 0, 1));
+}
+
+#copy-plot-btn:hover {
+    background-color: var(--vscode-button-hoverBackground);
+    filter: unset;
+}
+
+#copy-plot-btn-desc {
+    display: none;
+}
+
+#copy-plot-btn:hover > #copy-plot-btn-desc {
+    display: inline;
 }
 `
 
@@ -896,14 +924,6 @@ function displayCustom(payload, id) {
 function requestExportPlot() {
     g_plotPanel.webview.postMessage({
         type: 'requestSavePlot',
-        body: { index: g_currentPlotIndex },
-    })
-}
-
-async function requestCopyPlot() {
-    g_plotPanel.reveal(g_plotPanel.viewColumn, false)
-    g_plotPanel.webview.postMessage({
-        type: 'requestCopyPlot',
         body: { index: g_currentPlotIndex },
     })
 }
