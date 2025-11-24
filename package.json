@@ -1203,6 +1203,12 @@
                     "scope": "application",
                     "description": "Always copy the command for connecting to an external REPL to the clipboard."
                 },
+                "julia.repl.keepAlive": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "machine-overridable",
+                    "markdownDescription": "Experimental: Keeps the terminal window around even if the underlying Julia process is terminated to help debugging of fatal errors."
+                },
                 "julia.deleteJuliaCovFiles": {
                     "type": "boolean",
                     "default": true,

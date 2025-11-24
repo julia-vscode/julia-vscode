@@ -270,20 +270,31 @@ export async function startREPL(
         g_terminal_is_persistent = false
 
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri
-        const task = new TaskRunnerTerminal(`Julia REPL (v${juliaExecutable.getVersion()})`, shellPath, shellArgs, {
-            cwd: workspaceFolder,
-            env,
-            iconPath: juliaIconPath,
-            echoMessage: false,
-            onExitMessage(exitCode) {
-                if (exitCode === 0) {
-                    return
-                }
-                return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r`
-            },
-        })
 
-        g_terminal = task.terminal
+        if (config.get('repl.keepAlive')) {
+            const task = new TaskRunnerTerminal(`Julia REPL (v${juliaExecutable.getVersion()})`, shellPath, shellArgs, {
+                cwd: workspaceFolder,
+                env,
+                iconPath: juliaIconPath,
+                echoMessage: false,
+                onExitMessage(exitCode) {
+                    if (exitCode === 0) {
+                        return
+                    }
+                    return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r`
+                },
+            })
+
+            g_terminal = task.terminal
+        } else {
+            g_terminal = vscode.window.createTerminal({
+                name: `Julia REPL (v${juliaExecutable.getVersion()})`,
+                shellPath: shellPath,
+                shellArgs: shellArgs,
+                isTransient: true,
+                env,
+            })
+        }
     }
 
     g_terminal.show(preserveFocus)
