@@ -125,8 +125,13 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
     }
 }
 
-async function changeJuliaEnvironment() {
+async function changeJuliaEnvironment(envPath?: string) {
     telemetry.traceEvent('changeCurrentEnvironment')
+
+    if (envPath && envPath !== '') {
+        switchEnvToPath(envPath, true)
+        return
+    }
 
     const optionsEnv: vscode.QuickPickOptions = {
         placeHolder: 'Select environment',
