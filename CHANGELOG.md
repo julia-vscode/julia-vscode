@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Fixed
 - Fixed an issue where one cannot copy the plot ([#3916](https://github.com/julia-vscode/julia-vscode/pull/3916))
+- Fixed an issue resulting in re-compilation of stdlibs ([#3915](https://github.com/julia-vscode/julia-vscode/pull/3915))
+
+### Added
+- Restart language server and Change julia env command now takes an optional `envPath` argument ([#3914](https://github.com/julia-vscode/julia-vscode/pull/3914))
 
 ## [1.160.0] - 2025-11-20
 ### Fixed
