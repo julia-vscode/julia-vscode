@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
-- Fixed an issue where the one cannot copy the plot ([#3916](https://github.com/julia-vscode/julia-vscode/pull/3916))
+- Fixed an issue where one cannot copy the plot ([#3916](https://github.com/julia-vscode/julia-vscode/pull/3916))
 
 ## [1.160.0] - 2025-11-20
 ### Fixed
