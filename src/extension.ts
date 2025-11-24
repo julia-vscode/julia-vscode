@@ -265,7 +265,7 @@ export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
 
 const supportedLanguages = ['julia', 'juliamarkdown', 'markdown']
 
-async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature) {
+async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature, envPath?: string) {
     if (!g_outputChannel) {
         g_outputChannel = vscode.window.createOutputChannel('Julia Language Server')
     }
@@ -337,6 +337,9 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     }
 
     let jlEnvPath = ''
+    if (envPath && envPath !== '') {
+        jlEnvPath = envPath
+    }
     try {
         jlEnvPath = await jlpkgenv.getAbsEnvPath()
     } catch (e) {
@@ -543,10 +546,14 @@ async function refreshLanguageServer(languageClient: LanguageClient = g_language
     }
 }
 
-async function restartLanguageServer(languageClient: LanguageClient = g_languageClient) {
+async function restartLanguageServer(languageClient: LanguageClient = g_languageClient, envPath?: string) {
     if (languageClient !== null) {
         await languageClient.stop()
         setLanguageClient()
+    }
+
+    if (envPath && envPath !== '') {
+        await startLanguageServer(g_juliaExecutablesFeature, envPath)
     }
     await startLanguageServer(g_juliaExecutablesFeature)
 }
