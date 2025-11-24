@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Restart language server command now takes an optional `envPath` argument ([#3914](https://github.com/julia-vscode/julia-vscode/pull/3914))
 
 ## [1.160.0] - 2025-11-20
 ### Fixed
