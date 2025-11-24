@@ -402,7 +402,7 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_DEPOT_PATH: path.join(languageServerDepotPath, path.delimiter),
+            JULIA_DEPOT_PATH: languageServerDepotPath + path.delimiter,
             JULIA_LOAD_PATH: path.delimiter,
             HOME: process.env.HOME ? process.env.HOME : os.homedir(),
             JULIA_LANGUAGESERVER: '1',
