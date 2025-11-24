@@ -337,28 +337,29 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     }
 
     let jlEnvPath = ''
-    if (envPath && envPath !== '') {
+    if (envPath) {
         jlEnvPath = envPath
-    }
-    try {
-        jlEnvPath = await jlpkgenv.getAbsEnvPath()
-    } catch (e) {
-        g_outputChannel.appendLine(
-            'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.'
-        )
-        g_outputChannel.appendLine(e)
-        vscode.window
-            .showErrorMessage(
-                'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid. ',
-                'Open Settings'
+    } else {
+        try {
+            jlEnvPath = await jlpkgenv.getAbsEnvPath()
+        } catch (e) {
+            g_outputChannel.appendLine(
+                'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.'
             )
-            .then((val) => {
-                if (val) {
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
-                }
-            })
-        g_startupNotification.hide()
-        return
+            g_outputChannel.appendLine(e)
+            vscode.window
+                .showErrorMessage(
+                    'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid. ',
+                    'Open Settings'
+                )
+                .then((val) => {
+                    if (val) {
+                        vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
+                    }
+                })
+            g_startupNotification.hide()
+            return
+        }
     }
 
     const storagePath = g_context.globalStorageUri.fsPath
@@ -552,8 +553,5 @@ async function restartLanguageServer(languageClient: LanguageClient = g_language
         setLanguageClient()
     }
 
-    if (envPath && envPath !== '') {
-        await startLanguageServer(g_juliaExecutablesFeature, envPath)
-    }
-    await startLanguageServer(g_juliaExecutablesFeature)
+    await startLanguageServer(g_juliaExecutablesFeature, envPath)
 }
