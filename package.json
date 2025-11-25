@@ -263,11 +263,6 @@
                 "icon": "$(trash)"
             },
             {
-                "command": "language-julia.copy-plot",
-                "title": "Julia: Copy Plot",
-                "icon": "$(explorer-view-icon)"
-            },
-            {
                 "command": "language-julia.save-plot",
                 "title": "Julia: Save Plot",
                 "icon": "$(save)"
@@ -519,24 +514,19 @@
                     "group": "navigation@-3"
                 },
                 {
-                    "when": "julia.plotpaneFocus",
-                    "command": "language-julia.copy-plot",
-                    "group": "1-julia@0"
-                },
-                {
                     "when": "julia.plotpaneFocus && config.julia.usePlotPane",
                     "command": "language-julia.plotpane-disable",
-                    "group": "1-julia@1"
+                    "group": "1-julia@0"
                 },
                 {
                     "when": "julia.plotpaneFocus && !config.julia.usePlotPane",
                     "command": "language-julia.plotpane-enable",
-                    "group": "1-julia@1"
+                    "group": "1-julia@0"
                 },
                 {
                     "when": "julia.plotpaneFocus",
                     "command": "language-julia.plotpane-delete-all",
-                    "group": "1-julia@2"
+                    "group": "1-julia@1"
                 },
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
@@ -857,10 +847,6 @@
             {
                 "command": "language-julia.plotpane-delete",
                 "key": "delete",
-                "when": "julia.plotpaneFocus"
-            },
-            {
-                "command": "language-julia.copy-plot",
                 "when": "julia.plotpaneFocus"
             },
             {

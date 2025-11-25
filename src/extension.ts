@@ -265,7 +265,7 @@ export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
 
 const supportedLanguages = ['julia', 'juliamarkdown', 'markdown']
 
-async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature) {
+async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeature, envPath?: string) {
     if (!g_outputChannel) {
         g_outputChannel = vscode.window.createOutputChannel('Julia Language Server')
     }
@@ -337,25 +337,29 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     }
 
     let jlEnvPath = ''
-    try {
-        jlEnvPath = await jlpkgenv.getAbsEnvPath()
-    } catch (e) {
-        g_outputChannel.appendLine(
-            'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.'
-        )
-        g_outputChannel.appendLine(e)
-        vscode.window
-            .showErrorMessage(
-                'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid. ',
-                'Open Settings'
+    if (envPath) {
+        jlEnvPath = envPath
+    } else {
+        try {
+            jlEnvPath = await jlpkgenv.getAbsEnvPath()
+        } catch (e) {
+            g_outputChannel.appendLine(
+                'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.'
             )
-            .then((val) => {
-                if (val) {
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
-                }
-            })
-        g_startupNotification.hide()
-        return
+            g_outputChannel.appendLine(e)
+            vscode.window
+                .showErrorMessage(
+                    'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid. ',
+                    'Open Settings'
+                )
+                .then((val) => {
+                    if (val) {
+                        vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
+                    }
+                })
+            g_startupNotification.hide()
+            return
+        }
     }
 
     const storagePath = g_context.globalStorageUri.fsPath
@@ -402,8 +406,8 @@ async function startLanguageServer(juliaExecutablesFeature: JuliaExecutablesFeat
     const spawnOptions = {
         cwd: path.join(g_context.extensionPath, 'scripts', 'languageserver'),
         env: {
-            JULIA_DEPOT_PATH: languageServerDepotPath,
-            JULIA_LOAD_PATH: process.platform === 'win32' ? ';' : ':',
+            JULIA_DEPOT_PATH: languageServerDepotPath + path.delimiter,
+            JULIA_LOAD_PATH: path.delimiter,
             HOME: process.env.HOME ? process.env.HOME : os.homedir(),
             JULIA_LANGUAGESERVER: '1',
             JULIA_VSCODE_LANGUAGESERVER: '1',
@@ -543,10 +547,11 @@ async function refreshLanguageServer(languageClient: LanguageClient = g_language
     }
 }
 
-async function restartLanguageServer(languageClient: LanguageClient = g_languageClient) {
+async function restartLanguageServer(languageClient: LanguageClient = g_languageClient, envPath?: string) {
     if (languageClient !== null) {
         await languageClient.stop()
         setLanguageClient()
     }
-    await startLanguageServer(g_juliaExecutablesFeature)
+
+    await startLanguageServer(g_juliaExecutablesFeature, envPath)
 }
