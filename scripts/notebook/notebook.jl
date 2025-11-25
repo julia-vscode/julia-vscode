@@ -1,13 +1,6 @@
 println(Base.stderr, "Starting notebook kernel server")
 
-pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
-try
-    using VSCodeServer
-finally
-    popfirst!(LOAD_PATH)
-end
-
-println(Base.stderr, "Core notebook support loaded")
+include("../terminalserver/load_vscodeserver.jl")
 
 using InteractiveUtils
 
