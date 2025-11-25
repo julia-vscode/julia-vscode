@@ -482,6 +482,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
 
     public provideCodeLenses(
         document: vscode.TextDocument,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         token: vscode.CancellationToken
     ): vscode.ProviderResult<vscode.CodeLens[]> {
         const codeLenses: vscode.CodeLens[] = []
@@ -531,6 +532,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
         return codeLenses
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public resolveCodeLens(codeLens: vscode.CodeLens, token: vscode.CancellationToken) {
         return codeLens
     }
@@ -543,7 +545,9 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
 export class FoldingRangeProvider implements vscode.FoldingRangeProvider {
     public provideFoldingRanges(
         document: vscode.TextDocument,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         context: vscode.FoldingContext,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         token: vscode.CancellationToken
     ): vscode.ProviderResult<vscode.FoldingRange[]> {
         const docCells = getDocCells(document)
@@ -581,8 +585,8 @@ export function activate(context: vscode.ExtensionContext) {
     )
 
     // Register commands
-    registerCommand('language-julia.moveCellUp', () => cellMove(undefined, 'up')),
-    registerCommand('language-julia.moveCellDown', () => cellMove(undefined, 'down')),
+    registerCommand('language-julia.moveCellUp', () => cellMove(undefined, 'up'))
+    registerCommand('language-julia.moveCellDown', () => cellMove(undefined, 'down'))
     registerCommand('language-julia.executeCell', executeCell)
     registerCommand('language-julia.executeCellAndMove', executeCellAndMove)
     registerCommand('language-julia.executeCurrentAndBelowCells', executeCurrentAndBelowCells)
