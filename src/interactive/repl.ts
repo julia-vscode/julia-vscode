@@ -938,7 +938,12 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
 }
 
 // Returns false if the connection wasn't available
-export async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: string, module: string): Promise<boolean> {
+export async function evaluate(
+    editor: vscode.TextEditor,
+    range: vscode.Range,
+    text: string,
+    module: string
+): Promise<boolean> {
     telemetry.traceEvent('command-evaluate')
 
     const section = vscode.workspace.getConfiguration('julia')
