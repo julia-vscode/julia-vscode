@@ -6,15 +6,12 @@ import * as modules from './modules'
 import * as repl from './repl'
 import * as results from './results'
 
-let g_cellDelimiters: RegExp[] = [
-    /^##(?!#)/,
-    /^#(\s?)%%/
-]
+let g_cellDelimiters: RegExp[] = [/^##(?!#)/, /^#(\s?)%%/]
 
 function updateCellDelimiters() {
     const delims = vscode.workspace.getConfiguration('julia').get<string[]>('cellDelimiters')
     if (delims !== undefined) {
-        g_cellDelimiters = delims.map(s => RegExp(s))
+        g_cellDelimiters = delims.map((s) => RegExp(s))
     }
 }
 
@@ -30,14 +27,13 @@ function updateCellDelimiters() {
 //   * `vscode.Range.contains` (OK)
 //   * `vscode.Range.isEmpty` (DO NOT USE, set as undefined if empty)
 interface JuliaCell {
-    id: number,
-    cellRange: vscode.Range,
-    codeRange?: vscode.Range,
+    id: number
+    cellRange: vscode.Range
+    codeRange?: vscode.Range
 }
 
 function isJmdDocument(document: vscode.TextDocument): boolean {
-    return document.languageId === 'juliamarkdown'
-        || document.languageId === 'markdown'
+    return document.languageId === 'juliamarkdown' || document.languageId === 'markdown'
 }
 
 // Assumptions about JuliaCell arrays:
@@ -52,7 +48,7 @@ function getDocCells(document: vscode.TextDocument): JuliaCell[] {
     }
     const indexes: number[] = []
     if (g_cellDelimiters.length !== 0) {
-        const regex = new RegExp(g_cellDelimiters.map(d => d.source).join('|'), 'gm')
+        const regex = new RegExp(g_cellDelimiters.map((d) => d.source).join('|'), 'gm')
         const text = document.getText()
         let matches: RegExpExecArray | null
         while ((matches = regex.exec(text)) !== null) {
@@ -75,10 +71,7 @@ function getDocCells(document: vscode.TextDocument): JuliaCell[] {
     for (id = 1; id < indexes.length - 1; id++) {
         const cellRangeStart = document.positionAt(indexes[id])
         const cellRangeEnd = document.positionAt(indexes[id + 1] - 1)
-        const cellRange = new vscode.Range(
-            cellRangeStart,
-            cellRangeEnd
-        )
+        const cellRange = new vscode.Range(cellRangeStart, cellRangeEnd)
         const codeRangeStart = cellRangeStart.translate(1, 0)
         const codeRangeEnd = cellRangeEnd
         const codeRange = codeRangeEnd.isBefore(codeRangeStart)
@@ -147,10 +140,7 @@ function _getDocCells(): JuliaCell[] {
 // - [cellX, cellY] if the position is between cellX and cellY.
 // - [cell0, cell0] if the position is before the first cell.
 // - [cellN, cellN] if the position is after the last cell.
-function getCurrentCells(
-    cells: JuliaCell[] = _getDocCells(),
-    position?: vscode.Position,
-): JuliaCell[] {
+function getCurrentCells(cells: JuliaCell[] = _getDocCells(), position?: vscode.Position): JuliaCell[] {
     if (cells.length === 0) {
         return []
     }
@@ -179,10 +169,7 @@ function getCurrentCells(
 }
 
 // Get previous valid cell which contains code
-function getPreviousCell(
-    position: vscode.Position,
-    cells:JuliaCell[] = _getDocCells(),
-): JuliaCell | undefined {
+function getPreviousCell(position: vscode.Position, cells: JuliaCell[] = _getDocCells()): JuliaCell | undefined {
     for (let i = cells.length - 1; i >= 0; i--) {
         const cell = cells[i]
         if (position.isBeforeOrEqual(cell.cellRange.start)) {
@@ -199,10 +186,7 @@ function getPreviousCell(
 }
 
 // Get next valid cell which contains code
-function getNextCell(
-    position: vscode.Position,
-    cells: JuliaCell[] = _getDocCells(),
-): JuliaCell | undefined {
+function getNextCell(position: vscode.Position, cells: JuliaCell[] = _getDocCells()): JuliaCell | undefined {
     for (const cell of cells) {
         if (cell.cellRange.end.isBeforeOrEqual(position)) {
             continue
@@ -217,15 +201,11 @@ function getNextCell(
     return cells.at(-1)
 }
 
-function _cellMove(
-    editor: vscode.TextEditor,
-    cells: JuliaCell[],
-    direction: 'down' | 'up',
-    docCells: JuliaCell[],
-) {
-    const nextCell = direction === 'down'
-        ? getNextCell(cells.at(0).cellRange.end, docCells)
-        : getPreviousCell(cells.at(-1).cellRange.start, docCells)
+function _cellMove(editor: vscode.TextEditor, cells: JuliaCell[], direction: 'down' | 'up', docCells: JuliaCell[]) {
+    const nextCell =
+        direction === 'down'
+            ? getNextCell(cells.at(0).cellRange.end, docCells)
+            : getPreviousCell(cells.at(-1).cellRange.start, docCells)
     const nextPosition = nextCell.codeRange?.start ?? nextCell.cellRange.start
     repl.validateMoveAndReveal(editor, nextPosition, nextPosition)
 }
@@ -233,7 +213,7 @@ function _cellMove(
 function cellMove(
     cell?: JuliaCell,
     direction: 'down' | 'up' = 'down',
-    docCells: JuliaCell[] = _getDocCells(),
+    docCells: JuliaCell[] = _getDocCells()
 ): boolean {
     telemetry.traceEvent('command-cellMove')
     const editor = vscode.window.activeTextEditor
@@ -245,9 +225,7 @@ function cellMove(
     return true
 }
 
-async function _commandCommonSave(
-    editor: vscode.TextEditor,
-): Promise<boolean> {
+async function _commandCommonSave(editor: vscode.TextEditor): Promise<boolean> {
     if (editor === undefined) {
         return false
     }
@@ -259,13 +237,10 @@ async function _commandCommonSave(
 
 const PENDING_SIGN = ' ⧗ '
 
-async function _executeCellsInline(
-    editor: vscode.TextEditor,
-    cells: JuliaCell[],
-): Promise<boolean> {
+async function _executeCellsInline(editor: vscode.TextEditor, cells: JuliaCell[]): Promise<boolean> {
     const document = editor.document
-    const codeRanges: vscode.Range[] = cells.map(cell => cell.codeRange).filter(cr => cr !== undefined)
-    const cellPendings: results.Result[] = codeRanges.map(codeRange =>
+    const codeRanges: vscode.Range[] = cells.map((cell) => cell.codeRange).filter((cr) => cr !== undefined)
+    const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
         results.addResult(editor, codeRange, PENDING_SIGN, '')
     )
     await repl.startREPL(true, false)
@@ -282,12 +257,8 @@ async function _executeCellsInline(
             const [startPos, endPos, nextPos] = await repl.getBlockRange(
                 getVersionedParamsAtPosition(document, currentPos)
             )
-            const lineEndPos = document.validatePosition(
-                new vscode.Position(endPos.line, Infinity)
-            )
-            const curRange = codeRange.intersection(
-                new vscode.Range(startPos, lineEndPos)
-            )
+            const lineEndPos = document.validatePosition(new vscode.Position(endPos.line, Infinity))
+            const curRange = codeRange.intersection(new vscode.Range(startPos, lineEndPos))
             if (curRange === undefined || curRange.isEqual(lastRange)) {
                 break
             }
@@ -299,7 +270,7 @@ async function _executeCellsInline(
             const code = document.getText(curRange)
             const success: boolean = await repl.evaluate(editor, curRange, code, module)
             if (success === false) {
-                cellPendings.map(cr => cr.remove(true))
+                cellPendings.map((cr) => cr.remove(true))
                 return false
             }
         }
@@ -307,16 +278,13 @@ async function _executeCellsInline(
     return true
 }
 
-async function _executeCells(
-    editor: vscode.TextEditor,
-    cells: JuliaCell[],
-): Promise<boolean> {
+async function _executeCells(editor: vscode.TextEditor, cells: JuliaCell[]): Promise<boolean> {
     if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation') === true) {
         return await _executeCellsInline(editor, cells)
     }
     const document = editor.document
-    const codeRanges: vscode.Range[] = cells.map(cell => cell.codeRange).filter(cr => cr !== undefined)
-    const cellPendings: results.Result[] = codeRanges.map(codeRange =>
+    const codeRanges: vscode.Range[] = cells.map((cell) => cell.codeRange).filter((cr) => cr !== undefined)
+    const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
         results.addResult(editor, codeRange, PENDING_SIGN, '')
     )
     await repl.startREPL(true, false)
@@ -326,19 +294,17 @@ async function _executeCells(
         const code = document.getText(codeRange)
         const success: boolean = await repl.evaluate(editor, codeRange, code, module)
         if (success === false) {
-            cellPendings.map(cr => cr.remove(true))
+            cellPendings.map((cr) => cr.remove(true))
             return false
         }
     }
     return true
 }
 
-async function executeCell(
-    cell?: JuliaCell,
-): Promise<boolean> {
+async function executeCell(cell?: JuliaCell): Promise<boolean> {
     telemetry.traceEvent('command-executeCell')
     const editor = vscode.window.activeTextEditor
-    if (await _commandCommonSave(editor) === false) {
+    if ((await _commandCommonSave(editor)) === false) {
         return false
     }
     if (cell === undefined) {
@@ -354,14 +320,14 @@ async function executeCell(
 async function executeCellAndMove(
     cell?: JuliaCell,
     direction: 'down' | 'up' = 'down',
-    docCells: JuliaCell[] = _getDocCells(),
+    docCells: JuliaCell[] = _getDocCells()
 ): Promise<boolean> {
     telemetry.traceEvent('command-executeCellAndMove')
     const editor = vscode.window.activeTextEditor
-    if (await _commandCommonSave(editor) === false) {
+    if ((await _commandCommonSave(editor)) === false) {
         return false
     }
-    const cells = cell? [cell] : getCurrentCells(docCells)
+    const cells = cell ? [cell] : getCurrentCells(docCells)
     _cellMove(editor, cells, direction, docCells)
     if (cells.length !== 1) {
         return false
@@ -369,13 +335,10 @@ async function executeCellAndMove(
     return await _executeCells(editor, [cells[0]])
 }
 
-async function executeCurrentAndBelowCells(
-    cell?: JuliaCell,
-    docCells: JuliaCell[] = _getDocCells(),
-): Promise<boolean> {
+async function executeCurrentAndBelowCells(cell?: JuliaCell, docCells: JuliaCell[] = _getDocCells()): Promise<boolean> {
     telemetry.traceEvent('command-executeCurrentAndBelowCells')
     const editor = vscode.window.activeTextEditor
-    if (await _commandCommonSave(editor) === false) {
+    if ((await _commandCommonSave(editor)) === false) {
         return false
     }
     const cells = cell ? [cell] : getCurrentCells(docCells)
@@ -385,13 +348,10 @@ async function executeCurrentAndBelowCells(
     return await _executeCells(editor, docCells.slice(cells.at(-1).id, docCells.length))
 }
 
-async function executeAboveCells(
-    cell?: JuliaCell,
-    docCells: JuliaCell[] = _getDocCells(),
-): Promise<boolean> {
+async function executeAboveCells(cell?: JuliaCell, docCells: JuliaCell[] = _getDocCells()): Promise<boolean> {
     telemetry.traceEvent('command-executeAboveCells')
     const editor = vscode.window.activeTextEditor
-    if (await _commandCommonSave(editor) === false) {
+    if ((await _commandCommonSave(editor)) === false) {
         return false
     }
     const cells = cell ? [cell] : getCurrentCells(docCells)
@@ -436,9 +396,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
         )
     }
 
-    private onDidChangeTextEditorSelection(
-        event: vscode.TextEditorSelectionChangeEvent
-    ): void {
+    private onDidChangeTextEditorSelection(event: vscode.TextEditorSelectionChangeEvent): void {
         const editor = event.textEditor
         const document = editor.document
         if (document.languageId !== 'julia') {
@@ -457,18 +415,12 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
             return
         }
         const cell = cells[0]
-        editor.setDecorations(
-            this.currentCellTop,
-            [new vscode.Range(cell.cellRange.start, cell.cellRange.start)]
-        )
-        editor.setDecorations(
-            this.currentCellBottom,
-            [new vscode.Range(cell.cellRange.end, cell.cellRange.end)]
-        )
+        editor.setDecorations(this.currentCellTop, [new vscode.Range(cell.cellRange.start, cell.cellRange.start)])
+        editor.setDecorations(this.currentCellBottom, [new vscode.Range(cell.cellRange.end, cell.cellRange.end)])
     }
 
     private highlightCells(editor: vscode.TextEditor): void {
-        const cellRanges = this.docCells.map(cell => cell.cellRange).slice(1)
+        const cellRanges = this.docCells.map((cell) => cell.cellRange).slice(1)
         editor.setDecorations(this.decoration, cellRanges)
     }
 
@@ -482,6 +434,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
 
     public provideCodeLenses(
         document: vscode.TextDocument,
+        // prettier-ignore
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         token: vscode.CancellationToken
     ): vscode.ProviderResult<vscode.CodeLens[]> {
@@ -508,7 +461,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
                 tooltip: 'Execute all cells below in the Julia REPL',
                 command: 'language-julia.executeCurrentAndBelowCells',
                 arguments: [cell, this.docCells],
-            }),
+            })
         )
         for (const cell of this.docCells.slice(2)) {
             if (cell.codeRange === undefined) {
@@ -526,12 +479,13 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
                     tooltip: 'Execute all cells above in the Julia REPL',
                     command: 'language-julia.executeAboveCells',
                     arguments: [cell, this.docCells],
-                }),
+                })
             )
         }
         return codeLenses
     }
 
+    // prettier-ignore
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public resolveCodeLens(codeLens: vscode.CodeLens, token: vscode.CancellationToken) {
         return codeLens
@@ -545,8 +499,10 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
 export class FoldingRangeProvider implements vscode.FoldingRangeProvider {
     public provideFoldingRanges(
         document: vscode.TextDocument,
+        // prettier-ignore
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         context: vscode.FoldingContext,
+        // prettier-ignore
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         token: vscode.CancellationToken
     ): vscode.ProviderResult<vscode.FoldingRange[]> {
@@ -554,34 +510,37 @@ export class FoldingRangeProvider implements vscode.FoldingRangeProvider {
         const foldingRanges: vscode.FoldingRange[] = []
         const cell = docCells[0]
         if (cell.codeRange !== undefined) {
-            foldingRanges.push(new vscode.FoldingRange(
-                cell.cellRange.start.line,
-                cell.cellRange.end.line,
-                vscode.FoldingRangeKind.Imports
-            ))
+            foldingRanges.push(
+                new vscode.FoldingRange(
+                    cell.cellRange.start.line,
+                    cell.cellRange.end.line,
+                    vscode.FoldingRangeKind.Imports
+                )
+            )
         }
         for (const cell of docCells.slice(1)) {
             if (cell.codeRange === undefined) {
                 continue
             }
-            foldingRanges.push(new vscode.FoldingRange(
-                cell.cellRange.start.line,
-                cell.cellRange.end.line,
-                vscode.FoldingRangeKind.Region
-            ))
+            foldingRanges.push(
+                new vscode.FoldingRange(
+                    cell.cellRange.start.line,
+                    cell.cellRange.end.line,
+                    vscode.FoldingRangeKind.Region
+                )
+            )
         }
         return foldingRanges
     }
 }
 
 export function activate(context: vscode.ExtensionContext) {
-
     context.subscriptions.push(
-        vscode.workspace.onDidChangeConfiguration(async event => {
+        vscode.workspace.onDidChangeConfiguration(async (event) => {
             if (event.affectsConfiguration('julia.cellDelimiters')) {
                 updateCellDelimiters()
             }
-        }),
+        })
     )
 
     // Register commands
