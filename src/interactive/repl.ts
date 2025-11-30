@@ -262,6 +262,7 @@ export async function startREPL(
             shellArgs: shellArgs,
             isTransient: true,
             iconPath: juliaIconPath,
+            hideFromUser: true,
             env,
         })
     } else {
@@ -292,6 +293,7 @@ export async function startREPL(
                 shellPath: shellPath,
                 shellArgs: shellArgs,
                 isTransient: true,
+                hideFromUser: true,
                 env,
             })
         }
