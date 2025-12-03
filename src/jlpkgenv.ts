@@ -4,11 +4,11 @@ import * as path from 'path'
 import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient/node'
-import { onSetLanguageClient } from './extension'
 import { JuliaExecutablesFeature } from './juliaexepath'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
 import { parseVSCodeVariables, registerCommand, resolvePath } from './utils'
+import { LanguageClientFeature } from './languageClient'
 
 let g_languageClient: vslc.LanguageClient = null
 
@@ -282,10 +282,14 @@ export async function getEnvName() {
     return path.basename(envpath)
 }
 
-export async function activate(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature) {
+export async function activate(
+    context: vscode.ExtensionContext,
+    juliaExecutablesFeature: JuliaExecutablesFeature,
+    languageClientFeature: LanguageClientFeature
+) {
     g_juliaExecutablesFeature = juliaExecutablesFeature
     context.subscriptions.push(
-        onSetLanguageClient((languageClient) => {
+        languageClientFeature.onDidSetLanguageClient((languageClient) => {
             g_languageClient = languageClient
         })
     )

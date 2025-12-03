@@ -5,7 +5,6 @@ import * as path from 'path'
 import { parse } from 'semver'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
-import { onDidChangeConfig } from './extension'
 import { generatePipeName } from './utils'
 
 let enableCrashReporter: boolean = false
@@ -59,7 +58,7 @@ export async function init(context: vscode.ExtensionContext) {
     loadConfig()
 
     context.subscriptions.push(
-        onDidChangeConfig(() => {
+        vscode.workspace.onDidChangeConfiguration(() => {
             loadConfig()
         })
     )

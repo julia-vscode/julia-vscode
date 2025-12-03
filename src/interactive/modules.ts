@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { ResponseError } from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient/node'
-import { onSetLanguageClient, supportedSchemes } from '../extension'
+import { LanguageClientFeature, supportedSchemes } from '../languageClient'
 import * as telemetry from '../telemetry'
 import { registerCommand, wrapCrashReporting } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
@@ -20,7 +20,7 @@ const requestTypeIsModuleLoaded = new rpc.RequestType<{ mod: string }, boolean, 
 
 const automaticallyChooseOption = 'Choose Automatically'
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext, languageClientFeature: LanguageClientFeature) {
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor((ed) => {
             cancelCurrentGetModuleRequest()
@@ -38,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(registerCommand('language-julia.chooseModule', chooseModule))
 
     context.subscriptions.push(
-        onSetLanguageClient((languageClient) => {
+        languageClientFeature.onDidSetLanguageClient((languageClient) => {
             g_languageClient = languageClient
         })
     )

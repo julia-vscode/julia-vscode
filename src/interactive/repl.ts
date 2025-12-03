@@ -9,9 +9,9 @@ import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import * as vslc from 'vscode-languageclient/node'
-import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
+import { LanguageClientFeature } from '../languageClient'
 import { JuliaExecutable, JuliaExecutablesFeature, JuliaupChannelInfo } from '../juliaexepath'
 import * as telemetry from '../telemetry'
 import {
@@ -1394,7 +1394,8 @@ export function activate(
     context: vscode.ExtensionContext,
     compiledProvider,
     juliaExecutablesFeature: JuliaExecutablesFeature,
-    profilerFeature
+    profilerFeature,
+    languageClientFeature: LanguageClientFeature
 ) {
     g_context = context
     g_juliaExecutablesFeature = juliaExecutablesFeature
@@ -1403,7 +1404,7 @@ export function activate(
 
     context.subscriptions.push(
         // listeners
-        onSetLanguageClient((languageClient) => {
+        languageClientFeature.onDidSetLanguageClient((languageClient) => {
             g_languageClient = languageClient
         }),
         onInit(
@@ -1541,7 +1542,7 @@ export function activate(
 
     results.activate(context)
     plots.activate(context)
-    modules.activate(context)
+    modules.activate(context, languageClientFeature)
     completions.activate(context)
 }
 
