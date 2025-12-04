@@ -1137,6 +1137,12 @@
                     "scope": "window",
                     "markdownDescription": "Show separate inline results for all code blocks in a cell"
                 },
+                "julia.execution.module": {
+                    "type": "string",
+                    "default": "",
+                    "scope": "global",
+                    "markdownDescription": "Global override for the code execution module. Leave empty to automatically choose a context module."
+                },
                 "julia.packageServer": {
                     "type": "string",
                     "default": "",

@@ -73,24 +73,44 @@ function cancelCurrentGetModuleRequest() {
     }
 }
 
+interface SelectedModule {
+    module: string
+    global?: boolean
+    manual?: boolean
+}
+
 export async function getModuleForEditor(
     document: vscode.TextDocument,
     position: vscode.Position,
     token?: vscode.CancellationToken
-): Promise<string> {
+): Promise<SelectedModule> {
     const manuallySetModule = manuallySetDocuments[document.fileName]
     if (manuallySetModule) {
-        return manuallySetModule
+        return {
+            module: manuallySetModule,
+            manual: true,
+        }
+    }
+
+    const globalModule: string = vscode.workspace.getConfiguration('julia.execution').get('module')
+
+    if (globalModule) {
+        return {
+            module: globalModule,
+            global: true,
+        }
     }
 
     if (supportedSchemes.findIndex((i) => i === document.uri.scheme) === -1) {
-        return 'Main'
+        return {
+            module: 'Main',
+        }
     }
 
     const languageClient = g_languageClient
 
     if (!languageClient || !languageClient.isRunning()) {
-        return 'Main'
+        return { module: 'Main' }
     }
 
     const params: VersionedTextDocumentPositionParams = {
@@ -101,19 +121,19 @@ export async function getModuleForEditor(
 
     if (token === undefined || !token.isCancellationRequested) {
         try {
-            return await languageClient.sendRequest<string>('julia/getModuleAt', params)
+            return { module: await languageClient.sendRequest<string>('julia/getModuleAt', params) }
         } catch (err) {
             if ((err as ResponseError).code && err.code === rpc.ErrorCodes.ConnectionInactive) {
-                return 'Main'
+                return { module: 'Main' }
             } else if ((err as ResponseError).code && err.code === -33101) {
                 // This is a version out of sync situation
-                return 'Main'
+                return { module: 'Main' }
             } else {
                 throw err
             }
         }
     } else {
-        return 'Main'
+        return { module: 'Main' }
     }
 }
 
@@ -142,10 +162,16 @@ async function updateModuleForSelectionEvent(
 }
 
 async function updateModuleForEditor(editor: vscode.TextEditor, token?: vscode.CancellationToken) {
-    const mod = await getModuleForEditor(editor.document, editor.selection.start, token)
-    if (mod) {
-        const loaded = await isModuleLoaded(mod)
-        statusBarItem.text = loaded ? mod : '(' + mod + ')'
+    const { module, manual, global } = await getModuleForEditor(editor.document, editor.selection.start, token)
+    if (module) {
+        const loaded = await isModuleLoaded(module)
+        let suffix = ''
+        if (manual) {
+            suffix = ' (manual)'
+        } else if (global) {
+            suffix = ' (global)'
+        }
+        statusBarItem.text = (loaded ? module : '(' + module + ')') + suffix
     }
 }
 
@@ -164,7 +190,7 @@ async function isModuleLoaded(mod: string) {
 }
 
 async function chooseModule() {
-    let possibleModules = []
+    let possibleModules: string[] = []
     try {
         possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     } catch (err) {
@@ -176,23 +202,74 @@ async function chooseModule() {
         return
     }
 
-    possibleModules.sort()
-    possibleModules.splice(0, 0, automaticallyChooseOption)
+    const qp = vscode.window.createQuickPick()
 
-    const qpOptions: vscode.QuickPickOptions = {
-        placeHolder: 'Select module',
-        canPickMany: false,
-    }
-    const mod = await vscode.window.showQuickPick(possibleModules, qpOptions)
+    qp.canSelectMany = false
+    qp.title = 'Select module'
 
-    const ed = vscode.window.activeTextEditor
-    if (mod === automaticallyChooseOption) {
-        delete manuallySetDocuments[ed.document.fileName]
-    } else {
-        manuallySetDocuments[ed.document.fileName] = mod
+    const setGlobally = {
+        tooltip: 'Set globally',
+        iconPath: new vscode.ThemeIcon('globe'),
     }
 
-    cancelCurrentGetModuleRequest()
-    g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
-    updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
+    qp.placeholder =
+        'Select an item from the list to set it as the module for the current file or click the globe to use it for all files'
+
+    qp.items = [
+        {
+            label: automaticallyChooseOption,
+            buttons: [setGlobally],
+        },
+        {
+            label: 'Main',
+            buttons: [setGlobally],
+        },
+        {
+            label: '',
+            kind: vscode.QuickPickItemKind.Separator,
+        },
+        ...possibleModules.sort().map((mod: string) => {
+            return {
+                label: mod,
+                buttons: [setGlobally],
+            }
+        }),
+    ]
+
+    qp.onDidTriggerItemButton((ev) => {
+        if (ev.item.label === automaticallyChooseOption) {
+            vscode.workspace.getConfiguration('julia.execution').update('module', undefined, true)
+        } else {
+            vscode.workspace.getConfiguration('julia.execution').update('module', ev.item.label, true)
+        }
+        qp.dispose()
+    })
+
+    qp.onDidAccept(() => {
+        const selected = qp.selectedItems[0]
+
+        if (!selected) {
+            return
+        }
+
+        const ed = vscode.window.activeTextEditor
+
+        if (selected.label === automaticallyChooseOption) {
+            delete manuallySetDocuments[ed.document.fileName]
+        } else {
+            manuallySetDocuments[ed.document.fileName] = selected.label
+        }
+
+        cancelCurrentGetModuleRequest()
+        g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
+        updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
+
+        qp.dispose()
+    })
+
+    qp.onDidHide(() => {
+        qp.dispose()
+    })
+
+    qp.show()
 }

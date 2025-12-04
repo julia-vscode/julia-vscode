@@ -821,7 +821,7 @@ async function executeFile(uri?: vscode.Uri | string) {
         code = editor.document.getText()
 
         const pos = editor.document.validatePosition(new vscode.Position(0, 1)) // xref: https://github.com/julia-vscode/julia-vscode/issues/1500
-        module = await modules.getModuleForEditor(editor.document, pos)
+        module = (await modules.getModuleForEditor(editor.document, pos)).module
         isJmd = isMarkdownEditor(editor)
     }
 
@@ -983,7 +983,7 @@ async function executeCell(shouldMove: boolean = false) {
         return
     }
 
-    const module: string = await modules.getModuleForEditor(ed.document, cellrange.start)
+    const { module } = await modules.getModuleForEditor(ed.document, cellrange.start)
 
     await startREPL(true, false)
 
@@ -1044,7 +1044,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         const cursorPos: vscode.Position = editor.document.validatePosition(
             new vscode.Position(selection.start.line, selection.start.character)
         )
-        const module: string = await modules.getModuleForEditor(editor.document, cursorPos)
+        const { module } = await modules.getModuleForEditor(editor.document, cursorPos)
 
         if (selection.isEmpty) {
             const [startPos, endPos, nextPos] = await getBlockRange(
