@@ -77,12 +77,21 @@ export class LanguageClientFeature {
         }
     }
 
-    public async start(envPath?: string) {
+    public async startServer(envPath?: string) {
         this.statusBarItem.text = 'Julia: Starting Language Server…'
+        this.statusBarItem.backgroundColor = undefined
+        this.statusBarItem.color = undefined
         this.statusBarItem.show()
 
         let juliaLSExecutable: JuliaExecutable | null = null
         const juliaExecutable = await this.executable.getActiveLaunguageServerJuliaExecutableAsync()
+
+        if (!juliaExecutable) {
+            this.statusBarItem.text = 'Julia: Not installed'
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground')
+            this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground')
+            return
+        }
 
         if (await this.executable.isJuliaup()) {
             if (process.env.DEBUG_MODE) {
@@ -341,11 +350,15 @@ export class LanguageClientFeature {
 
     async restartLanguageServer(envPath?: string) {
         if (this.languageClient !== null) {
-            await this.languageClient.stop()
+            try {
+                await this.languageClient.stop()
+            } catch (err) {
+                console.debug(`Stopping the language server failed: ${err}`)
+            }
             this.setLanguageClient()
         }
 
-        await this.start(envPath)
+        await this.startServer(envPath)
     }
 
     public async dispose(): Promise<void> {

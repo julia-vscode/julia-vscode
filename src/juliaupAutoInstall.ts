@@ -6,15 +6,18 @@ import { TaskRunnerTerminal } from './taskRunnerTerminal'
 const installJuliaupLinuxCommand: string = 'curl -fsSL https://install.julialang.org | sh -s -- -y'
 const installJuliaupWinCommand: string = 'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore'
 
-export async function installJuliaOrJuliaupExtension(context: JuliaExecutablesFeature) {
-    const hasJulia = await context.getActiveJuliaExecutableAsync()
+export async function installJuliaOrJuliaupExtension(
+    executableFeature: JuliaExecutablesFeature,
+    requiredChannels?: Set<string>
+) {
+    const hasJulia = await executableFeature.getActiveJuliaExecutableAsync()
 
     if (!hasJulia) {
-        const exitCode = await installJuliaOrJuliaup()
+        const exitCode = await installJuliaOrJuliaup('julia', requiredChannels)
 
         if (exitCode === 0) {
             // If julia was installed but we can't find it
-            if (!(await context.getActiveJuliaExecutableAsync())) {
+            if (!(await executableFeature.getActiveJuliaExecutableAsync())) {
                 vscode.window.showInformationMessage(
                     'Julia/juliaup successfully installed. Please fully exit and restart the editor for the changes to take effect.',
                     {
@@ -36,14 +39,17 @@ export async function installJuliaOrJuliaupExtension(context: JuliaExecutablesFe
         return
     }
 
-    const hasJuliaup = await context.getActiveJuliaupExecutableAsync()
+    const hasJuliaup = await executableFeature.getActiveJuliaupExecutableAsync()
     const showJuliaupInstallHint = vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
     if (!hasJuliaup && showJuliaupInstallHint) {
-        await installJuliaOrJuliaup('juliaup')
+        await installJuliaOrJuliaup('juliaup', requiredChannels)
     }
 }
 
-async function installJuliaOrJuliaup(software: string = 'julia'): Promise<number | void> {
+async function installJuliaOrJuliaup(
+    software: string = 'julia',
+    requiredChannels?: Set<string>
+): Promise<number | void> {
     // software can be 'julia' or 'juliaup'
 
     const download = 'Download and Install'

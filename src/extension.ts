@@ -24,7 +24,7 @@ import { setContext } from './utils'
 import * as weave from './weave'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { JuliaCommands } from './juliaCommands'
-import { installJuliaOrJuliaupTask, installJuliaOrJuliaupExtension } from './juliaupAutoInstall'
+import { installJuliaOrJuliaupTask } from './juliaupAutoInstall'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -46,12 +46,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         console.debug('Activating extension language-julia')
 
-        // Config change
-
         const juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
-
-        // JuliaUp/julia auto-installation
-        await installJuliaOrJuliaupExtension(juliaExecutablesFeature)
 
         // Language settings
         vscode.languages.setLanguageConfiguration('julia', {
@@ -72,6 +67,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const compiledProvider = debugViewProvider.activate(context)
         context.subscriptions.push(juliaExecutablesFeature)
         await juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
+
         repl.activate(context, compiledProvider, juliaExecutablesFeature, profilerFeature, languageClientFeature)
         weave.activate(context, juliaExecutablesFeature)
         documentation.activate(context, languageClientFeature)
@@ -110,7 +106,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (vscode.workspace.getConfiguration('julia').get<boolean>('symbolCacheDownload') === null) {
             vscode.window
                 .showInformationMessage(
-                    'The extension will now download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.',
+                    'The extension will download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.',
                     'Open Settings'
                 )
                 .then((val) => {
@@ -123,7 +119,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 .update('symbolCacheDownload', true, vscode.ConfigurationTarget.Global)
         }
 
-        languageClientFeature.start()
+        languageClientFeature.startServer()
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
             const agree = 'Yes'

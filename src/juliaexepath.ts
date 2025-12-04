@@ -9,6 +9,7 @@ import * as vscode from 'vscode'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
 import { resolvePath } from './utils'
+import { installJuliaOrJuliaupExtension } from './juliaupAutoInstall'
 
 export interface JuliaupChannelInfo {
     Name: string
@@ -106,24 +107,8 @@ export class JuliaExecutablesFeature {
 
     async tryJuliaExePathAsync(newPath: string) {
         try {
-            let parsedPath = ''
-            let parsedArgs = []
-
-            if (path.isAbsolute(newPath) && (await exists(newPath))) {
-                parsedPath = newPath
-            } else {
-                const resolvedPath = resolvePath(newPath, false)
-
-                if (path.isAbsolute(resolvedPath) && (await exists(resolvedPath))) {
-                    parsedPath = resolvedPath
-                } else {
-                    const argv = stringArgv(newPath)
-
-                    parsedPath = argv[0]
-                    parsedArgs = argv.slice(1)
-                }
-            }
-            const { stdout } = await execFile(parsedPath, [...parsedArgs, '--version'], {
+            const { path, args } = await this.resolvePathAndArgs(newPath)
+            const { stdout } = await execFile(path, [...args, '--version'], {
                 env: {
                     ...process.env,
                     JULIA_VSCODE_INTERNAL: '1',
@@ -139,8 +124,8 @@ export class JuliaExecutablesFeature {
 
             return new JuliaExecutable(
                 versionStringFromJulia.slice(versionPrefix.length),
-                parsedPath,
-                parsedArgs,
+                path,
+                args,
                 undefined,
                 undefined,
                 true
@@ -148,6 +133,27 @@ export class JuliaExecutablesFeature {
         } catch {
             return undefined
         }
+    }
+
+    async resolvePathAndArgs(newPath: string) {
+        let parsedPath: string = ''
+        let parsedArgs: string[] = []
+
+        if (path.isAbsolute(newPath) && (await exists(newPath))) {
+            parsedPath = newPath
+        } else {
+            const resolvedPath = resolvePath(newPath, false)
+
+            if (path.isAbsolute(resolvedPath) && (await exists(resolvedPath))) {
+                parsedPath = resolvedPath
+            } else {
+                const argv = stringArgv(newPath)
+
+                parsedPath = argv[0]
+                parsedArgs = argv.slice(1)
+            }
+        }
+        return { path: parsedPath, args: parsedArgs }
     }
 
     async tryAndSetNewJuliaExePathAsync(newPath: string) {
@@ -491,5 +497,35 @@ export class JuliaExecutablesFeature {
     getLanguageServerExecutablePath() {
         const jlpath = vscode.workspace.getConfiguration('julia').get<string>('languageServerExecutablePath')
         return jlpath === '' ? undefined : jlpath
+    }
+
+    async ensureIsInstalled() {
+        const channels = await this.collectRequiredChannels()
+        await installJuliaOrJuliaupExtension(this, channels)
+    }
+
+    async collectRequiredChannels() {
+        const channels = new Set(['release'])
+
+        const config = vscode.workspace.getConfiguration('julia')
+
+        const lsChannel = config.get<string>('julia.languageServerJuliaupChannel')
+        if (lsChannel) {
+            channels.add(lsChannel)
+        }
+        const exePath = this.getExecutablePath()
+        if (exePath) {
+            const { args } = await this.resolvePathAndArgs(exePath)
+
+            if (args.length === 1) {
+                const channel = args[0]
+
+                if (channel && channel?.startsWith?.('+')) {
+                    channels.add(channel.slice(1))
+                }
+            }
+        }
+
+        return channels
     }
 }
