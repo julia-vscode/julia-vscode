@@ -8,7 +8,7 @@ import { getCrashReportingPipename, handleNewCrashReportFromException } from '..
 import { TestControllerNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
-import { onSetLanguageClient } from '../extension'
+import { LanguageClientFeature } from '../languageClient'
 import {
     notficiationTypeTestItemErrored,
     notficiationTypeTestItemFailed,
@@ -470,7 +470,8 @@ export class TestFeature {
         private context: vscode.ExtensionContext,
         private executableFeature: JuliaExecutablesFeature,
         private workspaceFeature: WorkspaceFeature,
-        private compiledProvider: DebugConfigTreeProvider
+        private compiledProvider: DebugConfigTreeProvider,
+        languageClientFeature: LanguageClientFeature
     ) {
         // this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
         this.juliaTestitemControllerOutputChannel = vscode.window.createOutputChannel('Julia Test Item Controller')
@@ -545,8 +546,21 @@ export class TestFeature {
         this.cpuLength = cpus().length
 
         context.subscriptions.push(
-            onSetLanguageClient((languageClient) => {
+            languageClientFeature.onDidSetLanguageClient((languageClient) => {
                 this.languageClient = languageClient
+
+                this.languageClient.onDidChangeState((event) => {
+                    if (event.newState === vslc.State.Running) {
+                        languageClient.onNotification(tlsp.notifyTypeTextDocumentPublishTests, (i) => {
+                            try {
+                                this.publishTestsHandler(i)
+                            } catch (err) {
+                                handleNewCrashReportFromException(err, 'Extension')
+                                throw err
+                            }
+                        })
+                    }
+                })
             })
         )
     }

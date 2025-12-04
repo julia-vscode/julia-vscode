@@ -1,8 +1,8 @@
 import markdownit from 'markdown-it'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { withLanguageClient } from '../extension'
 import { constructCommandString, getVersionedParamsAtPosition, registerCommand } from '../utils'
+import { LanguageClientFeature } from '../languageClient'
 
 function openArgs(href: string) {
     const matches = href.match(/^((\w+:\/\/)?.+?)(?:[:#](\d+))?$/)
@@ -61,8 +61,8 @@ md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     return self.renderToken(tokens, idx, options)
 }
 
-export function activate(context: vscode.ExtensionContext) {
-    const provider = new DocumentationViewProvider(context)
+export function activate(context: vscode.ExtensionContext, languageClientFeature) {
+    const provider = new DocumentationViewProvider(context, languageClientFeature)
 
     context.subscriptions.push(
         registerCommand('language-julia.show-documentation-pane', () => provider.showDocumentationPane()),
@@ -76,14 +76,14 @@ export function activate(context: vscode.ExtensionContext) {
 
 class DocumentationViewProvider implements vscode.WebviewViewProvider {
     private view?: vscode.WebviewView
-    private context: vscode.ExtensionContext
 
     private backStack = Array<string>() // also keep current page
     private forwardStack = Array<string>()
 
-    constructor(context) {
-        this.context = context
-    }
+    constructor(
+        private context: vscode.ExtensionContext,
+        private languageClientFeature: LanguageClientFeature
+    ) {}
 
     resolveWebviewView(view: vscode.WebviewView) {
         this.view = view
@@ -129,11 +129,11 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
     }
 
     async getDocumentationFromWord(word: string): Promise<string> {
-        return await withLanguageClient(
+        return await this.languageClientFeature.withLanguageClient(
             async (languageClient) => {
                 return await languageClient.sendRequest('julia/getDocFromWord', { word: word })
             },
-            (err) => {
+            async (err) => {
                 console.error('LC request failed with ', err)
                 return ''
             }
@@ -159,7 +159,7 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
     }
 
     async getDocumentation(editor: vscode.TextEditor): Promise<string> {
-        return await withLanguageClient(
+        return await this.languageClientFeature.withLanguageClient(
             async (languageClient) => {
                 return await languageClient.sendRequest<string>(
                     'julia/getDocAt',

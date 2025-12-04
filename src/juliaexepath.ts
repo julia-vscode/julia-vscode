@@ -6,7 +6,6 @@ import { execFile } from 'promisify-child-process'
 import { parse } from 'semver'
 import stringArgv from 'string-argv'
 import * as vscode from 'vscode'
-import { onDidChangeConfig } from './extension'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { setCurrentJuliaVersion, traceEvent } from './telemetry'
 import { resolvePath } from './utils'
@@ -89,7 +88,7 @@ export class JuliaExecutablesFeature {
         private diagnosticsOutput: JuliaGlobalDiagnosticOutputFeature
     ) {
         this.context.subscriptions.push(
-            onDidChangeConfig((event) => {
+            vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
                 if (
                     event.affectsConfiguration('julia.executablePath') ||
                     event.affectsConfiguration('julia.languageServerExecutablePath')
