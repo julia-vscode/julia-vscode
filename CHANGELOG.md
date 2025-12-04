@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fixed an issue where one cannot copy the plot ([#3916](https://github.com/julia-vscode/julia-vscode/pull/3916))
 - Fixed an issue resulting in re-compilation of stdlibs ([#3915](https://github.com/julia-vscode/julia-vscode/pull/3915))
 - Fixed the incorrect sourcing of python envs on REPL startup in a new terminal ([#3920](https://github.com/julia-vscode/julia-vscode/pull/3920))
+- `image/png` is now once again preferred over `image/svg+xml` in the plotpane ([#3924](https://github.com/julia-vscode/julia-vscode/pull/3924))
 
 ### Added
 - Restart language server and Change julia env command now takes an optional `envPath` argument ([#3914](https://github.com/julia-vscode/julia-vscode/pull/3914))

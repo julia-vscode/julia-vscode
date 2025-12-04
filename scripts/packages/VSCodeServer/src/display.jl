@@ -142,8 +142,8 @@ const DISPLAYABLE_MIMES = [
     "application/vnd.julia-vscode.custompane+html", # displays html in custom pane (metadata via parameter)
     "juliavscode/html", # deprecated
     # "text/html",
-    "image/svg+xml",
     "image/png",
+    "image/svg+xml",
     "image/gif",
 ]
 
