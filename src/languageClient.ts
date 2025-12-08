@@ -84,7 +84,7 @@ export class LanguageClientFeature {
         this.statusBarItem.show()
 
         let juliaLSExecutable: JuliaExecutable | null = null
-        const juliaExecutable = await this.executable.getActiveLaunguageServerJuliaExecutableAsync()
+        const juliaExecutable = await this.executable.getActiveLanguageServerJuliaExecutableAsync()
 
         if (!juliaExecutable) {
             this.statusBarItem.text = 'Julia: Not installed'
@@ -362,9 +362,12 @@ export class LanguageClientFeature {
     }
 
     public async dispose(): Promise<void> {
-        this.statusBarItem.dispose()
         if (this.languageClient) {
             await this.languageClient.stop()
         }
+
+        this.statusBarItem.dispose()
+        this.outputChannel.dispose()
+        this.traceOutputChannel.dispose()
     }
 }

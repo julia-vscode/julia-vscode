@@ -18,6 +18,7 @@ export interface JuliaupChannelInfo {
     Version: string
     Arch: string
 }
+
 export interface JuliaupApiGetinfoReturn {
     DefaultChannel?: JuliaupChannelInfo
     OtherChannels: JuliaupChannelInfo[]
@@ -473,7 +474,7 @@ export class JuliaExecutablesFeature {
         return this.actualJuliaupExePath
     }
 
-    public async getActiveLaunguageServerJuliaExecutableAsync() {
+    public async getActiveLanguageServerJuliaExecutableAsync() {
         const actualJuliaExePath = await this.getActiveJuliaExecutableAsync()
         if (this.actualLanguageServerJuliaExePath === undefined) {
             return actualJuliaExePath
@@ -494,6 +495,7 @@ export class JuliaExecutablesFeature {
         const jlpath = vscode.workspace.getConfiguration('julia').get<string>('executablePath')
         return jlpath === '' ? undefined : jlpath
     }
+
     getLanguageServerExecutablePath() {
         const jlpath = vscode.workspace.getConfiguration('julia').get<string>('languageServerExecutablePath')
         return jlpath === '' ? undefined : jlpath
