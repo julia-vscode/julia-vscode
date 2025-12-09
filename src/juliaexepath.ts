@@ -505,29 +505,4 @@ export class JuliaExecutablesFeature {
         const channels = await this.collectRequiredChannels()
         await installJuliaOrJuliaupExtension(this, channels)
     }
-
-    async collectRequiredChannels() {
-        const channels = new Set(['release'])
-
-        const config = vscode.workspace.getConfiguration('julia')
-
-        const lsChannel = config.get<string>('julia.languageServerJuliaupChannel')
-        if (lsChannel) {
-            channels.add(lsChannel)
-        }
-        const exePath = this.getExecutablePath()
-        if (exePath) {
-            const { args } = await this.resolvePathAndArgs(exePath)
-
-            if (args.length === 1) {
-                const channel = args[0]
-
-                if (channel && channel?.startsWith?.('+')) {
-                    channels.add(channel.slice(1))
-                }
-            }
-        }
-
-        return channels
-    }
 }
