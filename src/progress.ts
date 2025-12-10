@@ -67,7 +67,10 @@ export class ProgressReporter {
     private readonly statusBarCommand?: string
     private readonly useWindowProgress: boolean
 
-    constructor(private readonly onCancel: () => void, options?: ProgressReporterOptions) {
+    constructor(
+        private readonly onCancel: () => void,
+        options?: ProgressReporterOptions
+    ) {
         this.statusBarItem = options?.statusBarItem
         this.statusBarPrefix = options?.statusBarPrefix ?? 'Julia'
         this.statusBarCommand = options?.statusBarCommand
