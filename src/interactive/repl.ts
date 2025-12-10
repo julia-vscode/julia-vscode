@@ -12,7 +12,7 @@ import * as vslc from 'vscode-languageclient/node'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import { LanguageClientFeature } from '../languageClient'
-import { JuliaExecutable, JuliaExecutablesFeature, JuliaupChannelInfo } from '../juliaexepath'
+import { JuliaExecutable, ExecutableFeature, JuliaupChannel } from '../executables'
 import * as telemetry from '../telemetry'
 import {
     generatePipeName,
@@ -41,7 +41,7 @@ export let g_connection: rpc.MessageConnection = undefined
 
 let g_terminal_is_persistent: boolean = false
 
-let g_juliaExecutablesFeature: JuliaExecutablesFeature
+let g_ExecutableFeature: ExecutableFeature
 
 function startREPLCommand() {
     telemetry.traceEvent('command-startrepl')
@@ -193,7 +193,7 @@ export async function startREPL(
 
     let shellPath: string, shellArgs: string[]
     if (!juliaExecutable) {
-        juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        juliaExecutable = await g_ExecutableFeature.getExecutable()
     }
 
     if (g_terminal_is_persistent && isConnected()) {
@@ -205,7 +205,7 @@ export async function startREPL(
         shellArgs = [...shellExecutionArgs, `tmux attach -t ${sessionName}`]
 
         g_terminal = vscode.window.createTerminal({
-            name: `Julia REPL (v${juliaExecutable.getVersion()})`,
+            name: `Julia REPL (v${juliaExecutable.version})`,
             shellPath: shellPath,
             shellArgs: shellArgs,
             isTransient: true,
@@ -234,7 +234,7 @@ export async function startREPL(
             const connectJuliaCode = juliaConnector(pipename, debugPipename)
 
             const juliaAndArgs =
-                `JULIA_VSCODE_REPL='1' JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
+                `JULIA_VSCODE_REPL='1' JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.command} ${[
                     ...juliaExecutable.args,
                     ...jlarg1,
                     ...getArgs(),
@@ -258,7 +258,7 @@ export async function startREPL(
         }
         g_terminal_is_persistent = true
         g_terminal = vscode.window.createTerminal({
-            name: `Julia REPL (v${juliaExecutable.getVersion()})`,
+            name: `Julia REPL (v${juliaExecutable.version})`,
             shellPath: shellPath,
             shellArgs: shellArgs,
             isTransient: true,
@@ -267,14 +267,14 @@ export async function startREPL(
             env,
         })
     } else {
-        shellPath = juliaExecutable.file
+        shellPath = juliaExecutable.command
         shellArgs = [...juliaExecutable.args, ...jlarg1, ...getArgs()]
         g_terminal_is_persistent = false
 
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri
 
         if (config.get('repl.keepAlive')) {
-            const task = new TaskRunnerTerminal(`Julia REPL (v${juliaExecutable.getVersion()})`, shellPath, shellArgs, {
+            const task = new TaskRunnerTerminal(`Julia REPL (v${juliaExecutable.version})`, shellPath, shellArgs, {
                 cwd: workspaceFolder,
                 env,
                 iconPath: juliaIconPath,
@@ -290,7 +290,7 @@ export async function startREPL(
             g_terminal = task.terminal
         } else {
             g_terminal = vscode.window.createTerminal({
-                name: `Julia REPL (v${juliaExecutable.getVersion()})`,
+                name: `Julia REPL (v${juliaExecutable.version})`,
                 shellPath: shellPath,
                 shellArgs: shellArgs,
                 isTransient: true,
@@ -304,9 +304,9 @@ export async function startREPL(
     await juliaIsConnectedPromise.wait()
 }
 
-async function startREPLWithVersion(versionName?: string) {
-    const isInteractive = versionName === undefined
-    const juliaup = await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
+async function startREPLWithVersion(channelName?: string) {
+    const isInteractive = channelName === undefined
+    const juliaup = await g_ExecutableFeature.getJuliaupExecutable()
 
     if (!juliaup) {
         if (isInteractive) {
@@ -317,8 +317,14 @@ async function startREPLWithVersion(versionName?: string) {
         }
     }
 
-    const versions = await g_juliaExecutablesFeature.getInstalledJuliaVersions(juliaup)
-    let juliaObj: Partial<JuliaupChannelInfo & vscode.QuickPickItem & { default: boolean }>
+    const versions = (await juliaup.installed()).map((c) => {
+        return {
+            ...c,
+            label: c.name,
+        }
+    })
+
+    let selectedChannel: JuliaupChannel & vscode.QuickPickItem
 
     if (isInteractive) {
         const select = await vscode.window.showQuickPick(versions, {
@@ -329,23 +335,16 @@ async function startREPLWithVersion(versionName?: string) {
         if (!select) {
             return
         }
-        juliaObj = select
+        selectedChannel = select
     } else {
-        const juliaObj = versions.find((ele) => ele.Name === versionName)
+        const juliaObj = versions.find((ele) => ele.name === channelName)
 
         if (!juliaObj && !isInteractive) {
             throw Error('Requested julia version might not be installed, please recheck the version name!')
         }
     }
 
-    const juliaExecutable = new JuliaExecutable(
-        juliaObj.Version,
-        juliaObj.File,
-        juliaObj.Args,
-        juliaObj.Arch,
-        juliaObj.Name,
-        true
-    )
+    const juliaExecutable = new JuliaExecutable(selectedChannel)
 
     await startREPL(false, true, juliaExecutable)
 }
@@ -1346,8 +1345,8 @@ async function linkHandler(link: JuliaTerminalLink) {
         file = path.join(homedir(), file.slice(1))
     } else {
         // Base file
-        const exe = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
-        file = path.join(await exe.getBaseRootFolderPathAsync(), file)
+        const exe = await g_ExecutableFeature.getExecutable()
+        file = path.join(await exe.rootFolder(), file)
     }
     try {
         await openFile(file, line)
@@ -1393,12 +1392,12 @@ function isMarkdownEditor(editor: vscode.TextEditor) {
 export function activate(
     context: vscode.ExtensionContext,
     compiledProvider,
-    juliaExecutablesFeature: JuliaExecutablesFeature,
+    ExecutableFeature: ExecutableFeature,
     profilerFeature,
     languageClientFeature: LanguageClientFeature
 ) {
     g_context = context
-    g_juliaExecutablesFeature = juliaExecutablesFeature
+    g_ExecutableFeature = ExecutableFeature
 
     g_compiledProvider = compiledProvider
 

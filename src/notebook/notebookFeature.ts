@@ -1,7 +1,7 @@
 import * as semver from 'semver'
 import * as vscode from 'vscode'
 import { NotebookNode, WorkspaceFeature } from '../interactive/workspace'
-import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
+import { JuliaExecutable, ExecutableFeature } from '../executables'
 import { registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
 import isEqual from 'lodash.isequal'
@@ -41,14 +41,14 @@ export class JuliaNotebookFeature {
 
     public debugPipenameToKernel: Map<string, JuliaKernel> = new Map<string, JuliaKernel>()
 
+    private initialized: boolean = false
+
     constructor(
         private context: vscode.ExtensionContext,
-        private juliaExecutableFeature: JuliaExecutablesFeature,
+        private juliaExecutableFeature: ExecutableFeature,
         private workspaceFeature: WorkspaceFeature,
         private compiledProvider: DebugConfigTreeProvider
     ) {
-        this.init()
-
         vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
 
         context.subscriptions.push(
@@ -107,7 +107,7 @@ export class JuliaNotebookFeature {
     private async init() {
         this._outputChannel = vscode.window.createOutputChannel('Julia Notebook Kernels')
 
-        const juliaVersions = await this.juliaExecutableFeature.getJuliaExePathsAsync()
+        const juliaVersions = await this.juliaExecutableFeature.getExecutables()
 
         for (const juliaVersion of juliaVersions) {
             const ver = juliaVersion.getVersion()
@@ -120,7 +120,7 @@ export class JuliaNotebookFeature {
             controller.supportedLanguages = ['julia', 'raw']
             controller.supportsExecutionOrder = true
             controller.description = 'Julia VS Code extension'
-            controller.detail = juliaVersion.getCommand()
+            controller.detail = juliaVersion.command
             controller.onDidChangeSelectedNotebooks((e) => {
                 if (e.selected && e.notebook) {
                     e.notebook
@@ -148,9 +148,14 @@ export class JuliaNotebookFeature {
     }
 
     private onDidOpenNotebookDocument(e: vscode.NotebookDocument) {
+        if (!this.initialized) {
+            this.init()
+        }
+
         if (!this.isJuliaNotebook(e) || this._controllers.size === 0) {
             return
         }
+
         // Get metadata from notebook (to get an hint of what version of julia is used)
         const version = this.getNotebookLanguageVersion(e)
 
@@ -160,28 +165,24 @@ export class JuliaNotebookFeature {
         const perfectMatchVersions = Array.from(this._controllers.entries())
             .filter(([, juliaExec]) => juliaExec.getVersion().toString() === semver.parse(version).toString())
             .sort(([, a], [, b]) => {
-                // First, we give preference to official releases, rather than linked juliaup channels
-                if (a.officialChannel !== b.officialChannel) {
-                    return a.officialChannel ? -1 : 1
-                }
-                // Next we give preference to x64 builds
-                else if (a.arch !== b.arch) {
-                    if (a.arch === 'x64') {
+                if (a.channel.arch !== b.channel.arch) {
+                    // we give preference to x64 builds
+                    if (a.channel.arch === 'x64') {
                         return -1
-                    } else if (b.arch === 'x64') {
+                    } else if (b.channel.arch === 'x64') {
                         return 1
                     } else {
                         return 0
                     }
                 }
                 // Then we give preference to release and lts channels
-                else if (a.channel === 'release' || a.channel.startsWith('release~')) {
+                else if (a.channel.name === 'release' || a.channel.name.startsWith('release~')) {
                     return -1
-                } else if (b.channel === 'release' || b.channel.startsWith('release~')) {
+                } else if (b.channel.name === 'release' || b.channel.name.startsWith('release~')) {
                     return 1
-                } else if (a.channel === 'lts' || a.channel.startsWith('lts~')) {
+                } else if (a.channel.name === 'lts' || a.channel.name.startsWith('lts~')) {
                     return -1
-                } else if (b.channel === 'lts' || b.channel.startsWith('lts~')) {
+                } else if (b.channel.name === 'lts' || b.channel.name.startsWith('lts~')) {
                     return 1
                 } else {
                     return 0
@@ -206,14 +207,11 @@ export class JuliaNotebookFeature {
                     const bVer = b.getVersion()
                     if (aVer.patch !== bVer.patch) {
                         return b.getVersion().patch - a.getVersion().patch
-                    } else if (a.officialChannel !== b.officialChannel) {
-                        // First, we give preference to official releases, rather than linked juliaup channels
-                        return a.officialChannel ? -1 : 1
-                    } else if (a.arch !== b.arch) {
-                        // Next we give preference to x64 builds
-                        if (a.arch === 'x64') {
+                    } else if (a.channel.arch !== b.channel.arch) {
+                        //  we give preference to x64 builds
+                        if (a.channel.arch === 'x64') {
                             return -1
-                        } else if (b.arch === 'x64') {
+                        } else if (b.channel.arch === 'x64') {
                             return 1
                         } else {
                             return 0

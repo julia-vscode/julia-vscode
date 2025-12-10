@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import * as jlpkgenv from '../jlpkgenv'
-import { JuliaExecutablesFeature } from '../juliaexepath'
+import { ExecutableFeature } from '../executables'
 import { generatePipeName, inferJuliaNumThreads, parseVSCodeVariables, registerCommand } from '../utils'
 import { v4 as uuidv4 } from 'uuid'
 import { Subject } from 'await-notify'
@@ -140,11 +140,11 @@ export class JuliaDebugFeature {
     constructor(
         private context: vscode.ExtensionContext,
         compiledProvider,
-        juliaExecutablesFeature: JuliaExecutablesFeature,
+        ExecutableFeature: ExecutableFeature,
         notebookFeature: JuliaNotebookFeature
     ) {
         const provider = new JuliaDebugConfigurationProvider(compiledProvider)
-        const factory = new InlineDebugAdapterFactory(this.context, this, juliaExecutablesFeature)
+        const factory = new InlineDebugAdapterFactory(this.context, this, ExecutableFeature)
 
         compiledProvider.onDidChangeTreeData(() => {
             if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
@@ -361,7 +361,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
     constructor(
         private context: vscode.ExtensionContext,
         private juliaDebugFeature: JuliaDebugFeature,
-        private juliaExecutablesFeature: JuliaExecutablesFeature
+        private ExecutableFeature: ExecutableFeature
     ) {}
 
     async createDebugAdapterDescriptor(
@@ -384,7 +384,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
 
             await serverListeningPromise.wait()
 
-            const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+            const juliaExecutable = await this.ExecutableFeature.getExecutable()
 
             const nthreads = inferJuliaNumThreads()
             const juliaAdditionalArgs = (session.configuration.juliaAdditionalArgs || []).map((arg) =>
@@ -419,7 +419,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
                 `${session.configuration.noDebug === true ? 'Run' : 'Debug'} ${basename(session.configuration.program)}`,
                 'Julia',
 
-                new vscode.ProcessExecution(juliaExecutable.file, jlargs, {
+                new vscode.ProcessExecution(juliaExecutable.command, jlargs, {
                     env: env,
                 })
             )

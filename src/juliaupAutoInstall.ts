@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { JuliaExecutablesFeature } from './juliaexepath'
+import { ExecutableFeature } from './executables'
 import { TaskRunnerTerminal } from './taskRunnerTerminal'
 
 // Julia/Juliaup Install commands for different platforms
@@ -7,17 +7,17 @@ const installJuliaupLinuxCommand: string = 'curl -fsSL https://install.julialang
 const installJuliaupWinCommand: string = 'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore'
 
 export async function installJuliaOrJuliaupExtension(
-    executableFeature: JuliaExecutablesFeature,
+    executableFeature: ExecutableFeature,
     requiredChannels?: Set<string>
 ) {
-    const hasJulia = await executableFeature.getActiveJuliaExecutableAsync()
-
-    if (!hasJulia) {
+    try {
+        await executableFeature.getExecutable()
+    } catch {
         const exitCode = await installJuliaOrJuliaup(executableFeature, 'julia', requiredChannels)
 
         if (exitCode === 0) {
             // If julia was installed but we can't find it
-            if (!(await executableFeature.getActiveJuliaExecutableAsync())) {
+            if (!(await executableFeature.getExecutable())) {
                 vscode.window.showInformationMessage(
                     'Julia/juliaup successfully installed. Please fully exit and restart the editor for the changes to take effect.',
                     {
@@ -39,15 +39,18 @@ export async function installJuliaOrJuliaupExtension(
         return
     }
 
-    const hasJuliaup = await executableFeature.getActiveJuliaupExecutableAsync()
-    const showJuliaupInstallHint = vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
-    if (!hasJuliaup && showJuliaupInstallHint) {
-        await installJuliaOrJuliaup(executableFeature, 'juliaup', requiredChannels)
+    try {
+        await executableFeature.getJuliaupExecutable()
+    } catch {
+        const showJuliaupInstallHint = vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
+        if (showJuliaupInstallHint) {
+            await installJuliaOrJuliaup(executableFeature, 'juliaup', requiredChannels)
+        }
     }
 }
 
-async function installJuliaOrJuliaup(
-    executableFeature: JuliaExecutablesFeature,
+export async function installJuliaOrJuliaup(
+    executableFeature: ExecutableFeature,
     software: string = 'julia',
     requiredChannels?: Set<string>
 ): Promise<number | void> {
@@ -57,6 +60,10 @@ async function installJuliaOrJuliaup(
     const customCommand = 'Custom Command'
     const options: string[] = [download, customCommand]
 
+    let channelSuffix = ''
+    if (requiredChannels?.size > 0) {
+        channelSuffix = ` We will also install the following channels as per your configuration: ${[...requiredChannels].join(', ')}`
+    }
     // Options for Julia
     const configurePath = 'Configure path'
     let message =
@@ -77,7 +84,7 @@ async function installJuliaOrJuliaup(
         options.push(doNotShow)
     }
 
-    const choice = await vscode.window.showInformationMessage(message, ...options)
+    const choice = await vscode.window.showInformationMessage(message + channelSuffix, ...options)
 
     if (choice === configurePath) {
         vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
@@ -86,6 +93,8 @@ async function installJuliaOrJuliaup(
         vscode.workspace
             .getConfiguration('julia')
             .update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
+        return
+    } else if (!choice) {
         return
     }
 
@@ -111,29 +120,10 @@ async function installJuliaOrJuliaup(
         return exitCode
     }
 
-    // at this point we know that juliaup is installed, so we can try to add the required channels
-    // if JuliaUp is not available, then this will run again on the next start
-    return await ensureChannelsInstalled(executableFeature, requiredChannels)
-}
+    const juliaup = await executableFeature?.getJuliaupExecutableNoCache('[juliaup] ', false)
+    await juliaup.addChannels(requiredChannels)
 
-export async function ensureChannelsInstalled(
-    executableFeature: JuliaExecutablesFeature,
-    channels: Set<string>
-): Promise<number> {
-    const juliaup = await this.getActiveJuliaupExecutableAsync()
-    if (!juliaup) {
-        return
-    }
-    const installedVersions = new Set<string>(
-        (await executableFeature.getInstalledJuliaVersions(juliaup)).map((c) => c.Name)
-    )
-
-    const needToInstall = channels.difference(installedVersions)
-
-    for (const channel in needToInstall) {
-        // TODO: reuse terminal
-        await installJuliaOrJuliaupTask(`Install ${installJuliaOrJuliaupTask}`, `juliaup add ${channel}`)
-    }
+    vscode.window.showInformationMessage('Julia and the required juliaup channels are now fully installed!')
 }
 
 export async function installJuliaOrJuliaupTask(taskName: string, customCommand?: string): Promise<number | void> {

@@ -2,13 +2,13 @@ import * as vscode from 'vscode'
 
 import { registerCommand } from './utils'
 import * as jlpkgenv from './jlpkgenv'
-import { JuliaExecutablesFeature } from './juliaexepath'
+import { ExecutableFeature } from './executables'
 import { TaskRunnerTerminal } from './taskRunnerTerminal'
 
 export class JuliaCommands {
     constructor(
         context: vscode.ExtensionContext,
-        private juliaExecutableFeature: JuliaExecutablesFeature
+        private juliaExecutableFeature: ExecutableFeature
     ) {
         context.subscriptions.push(
             registerCommand('language-julia.runPackageCommand', async (cmd?: string, env?: string) => {
@@ -52,7 +52,7 @@ export class JuliaCommands {
     }
 
     private async runCommand(cmd: string, juliaEnv?: string, name?: string, processEnv?: { [key: string]: string }) {
-        const juliaExecutable = await this.juliaExecutableFeature.getActiveJuliaExecutableAsync()
+        const juliaExecutable = await this.juliaExecutableFeature.getExecutable()
         const args = [...juliaExecutable.args]
 
         if (!juliaEnv) {
@@ -64,7 +64,7 @@ export class JuliaCommands {
 
         args.push(`--project=${juliaEnv}`, '-e', cmd)
 
-        const task = new TaskRunnerTerminal(name, juliaExecutable.file, args, {
+        const task = new TaskRunnerTerminal(name, juliaExecutable.command, args, {
             env: {
                 ...process.env,
                 ...processEnv,

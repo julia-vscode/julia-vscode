@@ -1,20 +1,21 @@
 import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
-import { JuliaExecutablesFeature } from './juliaexepath'
+import { ExecutableFeature } from './executables'
 
 let juliaPackagePath: string = null
 
 let juliaDepotPath: string[] = null
 
-let g_juliaExecutablesFeature: JuliaExecutablesFeature
+let g_ExecutableFeature: ExecutableFeature
 
 export async function getPkgPath() {
     if (juliaPackagePath === null) {
-        const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        const juliaExecutable = await g_ExecutableFeature.getExecutable()
         // TODO: there's got to be a better way to do this.
         const res = await execFile(
-            juliaExecutable.file,
+            juliaExecutable.command,
             [
+                ...juliaExecutable.args,
                 '--history-file=no',
                 '-e',
                 'using Pkg;println(get(ENV, "JULIA_PKG_DEVDIR", joinpath(Pkg.depots()[1], "dev")))',
@@ -33,10 +34,16 @@ export async function getPkgPath() {
 
 export async function getPkgDepotPath() {
     if (juliaDepotPath === null) {
-        const juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        const juliaExecutable = await g_ExecutableFeature.getExecutable()
         const res = await execFile(
-            juliaExecutable.file,
-            ['--startup-file=no', '--history-file=no', '-e', 'using Pkg; println.(Pkg.depots())'],
+            juliaExecutable.command,
+            [
+                ...juliaExecutable.args,
+                '--startup-file=no',
+                '--history-file=no',
+                '-e',
+                'using Pkg; println.(Pkg.depots())',
+            ],
             {
                 env: {
                     ...process.env,
@@ -49,8 +56,8 @@ export async function getPkgDepotPath() {
     return juliaDepotPath
 }
 
-export function activate(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature) {
-    g_juliaExecutablesFeature = juliaExecutablesFeature
+export function activate(context: vscode.ExtensionContext, ExecutableFeature: ExecutableFeature) {
+    g_ExecutableFeature = ExecutableFeature
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
             if (event.affectsConfiguration('julia.executablePath')) {

@@ -1,13 +1,13 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { JuliaExecutablesFeature } from './juliaexepath'
+import { ExecutableFeature } from './executables'
 import * as telemetry from './telemetry'
 import { registerCommand } from './utils'
 
 export class JuliaPackageDevFeature {
     constructor(
         private context: vscode.ExtensionContext,
-        private juliaExecutablesFeature: JuliaExecutablesFeature
+        private ExecutableFeature: ExecutableFeature
     ) {
         this.context.subscriptions.push(
             registerCommand('language-julia.tagNewPackageVersion', () => this.tagNewPackageVersion())
@@ -33,12 +33,12 @@ export class JuliaPackageDevFeature {
                 const accessToken = bar.accessToken
                 const account = bar.account.label
 
-                const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+                const juliaExecutable = await this.ExecutableFeature.getExecutable()
 
                 if (juliaExecutable.getVersion().compare('1.6.0') >= 0) {
                     const newTerm = vscode.window.createTerminal({
                         name: 'Julia: Tag a new package version',
-                        shellPath: juliaExecutable.file,
+                        shellPath: juliaExecutable.command,
                         shellArgs: [
                             ...juliaExecutable.args,
                             path.join(this.context.extensionPath, 'scripts', 'packagedev', 'tagnewpackageversion.jl'),

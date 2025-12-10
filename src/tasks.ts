@@ -2,14 +2,14 @@ import * as fs from 'async-file'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
-import { JuliaExecutablesFeature } from './juliaexepath'
+import { ExecutableFeature } from './executables'
 import * as telemetry from './telemetry'
 import { inferJuliaNumThreads } from './utils'
 
 class JuliaTaskProvider {
     constructor(
         private context: vscode.ExtensionContext,
-        private juliaExecutablesFeature: JuliaExecutablesFeature
+        private ExecutableFeature: ExecutableFeature
     ) {}
 
     async provideTasks() {
@@ -41,7 +41,7 @@ class JuliaTaskProvider {
             const nthreads = inferJuliaNumThreads()
             const result: vscode.Task[] = []
 
-            const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+            const juliaExecutable = await this.ExecutableFeature.getExecutable()
             const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
             if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
@@ -68,7 +68,7 @@ class JuliaTaskProvider {
                     folder,
                     `Run tests`,
                     'Julia',
-                    new vscode.ProcessExecution(juliaExecutable.file, jlargs, {
+                    new vscode.ProcessExecution(juliaExecutable.command, jlargs, {
                         env: env,
                     }),
                     ''
@@ -105,7 +105,7 @@ class JuliaTaskProvider {
                     folder,
                     `Run tests with coverage`,
                     'Julia',
-                    new vscode.ProcessExecution(juliaExecutable.file, jlargs2, {
+                    new vscode.ProcessExecution(juliaExecutable.command, jlargs2, {
                         env: env,
                     }),
                     ''
@@ -129,7 +129,7 @@ class JuliaTaskProvider {
                     folder,
                     `Run build`,
                     'Julia',
-                    new vscode.ProcessExecution(juliaExecutable.file, [
+                    new vscode.ProcessExecution(juliaExecutable.command, [
                         ...juliaExecutable.args,
                         '--color=yes',
                         `--project=${pkgenvpath}`,
@@ -157,7 +157,7 @@ class JuliaTaskProvider {
                     folder,
                     `Run benchmark`,
                     'Julia',
-                    new vscode.ProcessExecution(juliaExecutable.file, [
+                    new vscode.ProcessExecution(juliaExecutable.command, [
                         ...juliaExecutable.args,
                         '--color=yes',
                         `--project=${pkgenvpath}`,
@@ -186,7 +186,7 @@ class JuliaTaskProvider {
                     `Build documentation`,
                     'Julia',
                     new vscode.ProcessExecution(
-                        juliaExecutable.file,
+                        juliaExecutable.command,
                         [
                             ...juliaExecutable.args,
                             `--project=${pkgenvpath}`,
@@ -221,6 +221,6 @@ class JuliaTaskProvider {
     }
 }
 
-export function activate(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature) {
-    vscode.tasks.registerTaskProvider('julia', new JuliaTaskProvider(context, juliaExecutablesFeature))
+export function activate(context: vscode.ExtensionContext, ExecutableFeature: ExecutableFeature) {
+    vscode.tasks.registerTaskProvider('julia', new JuliaTaskProvider(context, ExecutableFeature))
 }

@@ -15,7 +15,7 @@ import {
     StreamMessageWriter,
 } from 'vscode-jsonrpc/node'
 import { getAbsEnvPath } from '../jlpkgenv'
-import { JuliaExecutable } from '../juliaexepath'
+import { JuliaExecutable } from '../executables'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
@@ -340,7 +340,7 @@ export class JuliaKernel {
             }
 
             this.outputChannel.appendLine(
-                `Now starting the kernel process from the extension with '${this.juliaExecutable.file}', '${args}'.`
+                `Now starting the kernel process from the extension with '${this.juliaExecutable.command}', '${args}'.`
             )
 
             this.debuggerPipename = generatePipeName(uuidv4(), 'vsc-jl-repldbg')
@@ -348,7 +348,7 @@ export class JuliaKernel {
             this.notebookFeature.debugPipenameToKernel.set(this.debuggerPipename, this)
 
             this._kernelProcess = spawn(
-                this.juliaExecutable.file,
+                this.juliaExecutable.command,
                 [
                     ...this.juliaExecutable.args,
                     ...args,
