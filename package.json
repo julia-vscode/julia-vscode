@@ -160,6 +160,11 @@
                 "enablement": "julia.isEvaluating"
             },
             {
+                "command": "language-julia.interruptNotebook",
+                "title": "Julia: Interrupt Notebook Execution",
+                "icon": "$(debug-pause)"
+            },
+            {
                 "command": "language-julia.toggleLinter",
                 "title": "Julia: Toggle Linter"
             },
