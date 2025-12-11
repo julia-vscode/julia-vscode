@@ -11,11 +11,11 @@ import * as vscode from 'vscode'
 import { resolvePath } from './utils'
 import { installJuliaOrJuliaup } from './juliaupAutoInstall'
 import { Mutex } from 'async-mutex'
+import { TaskRunner } from './taskRunnerTerminal'
 
 const juliaVersionPrefix = 'julia version '
 
 interface JuliaupInteractiveExecutableSpawnOptions {
-    terminal?: unknown
     show?: boolean
 }
 
@@ -55,31 +55,43 @@ interface JuliaupApiGetinfoReturn {
 export class JuliaupExecutable {
     constructor(
         public command: string,
-        public version: string
+        public version: string,
+        private taskRunner: TaskRunner
     ) {}
 
     public async run(args: string[], options?: JuliaupInteractiveExecutableSpawnOptions): Promise<string> {
-        const server = vscode.workspace.getConfiguration('julia').get<string>('juliaupServer')
+        const server = vscode.workspace.getConfiguration('julia').get<string>('juliaup.server')
         let env = process.env
         if (server) {
             env = { ...env, JULIAUP_SERVER: server }
         }
         if (options?.show) {
-            throw new Error('not implemented')
-        }
-        if (options?.terminal) {
-            throw new Error('not implemented')
-        }
+            const exitCode = await this.taskRunner.run(this.command, args, {
+                env,
+                echoMessage: true,
+                onExitMessage: (exitCode) => {
+                    if (exitCode === 0) {
+                        return `\n\r\x1b[30;47m * \x1b[0m 'juliaup ${args.join(' ')}' ran successfully.\n\r`
+                    } else {
+                        return `\n\r\x1b[30;47m * \x1b[0m 'juliaup ${args.join(' ')}' failed to run.\n\r`
+                    }
+                },
+            })
 
-        try {
-            const { stdout } = await execFile(this.command, args, { shell: true, env })
+            if (exitCode !== 0) {
+                throw new Error('Failed to run juliaup command')
+            }
+        } else {
+            try {
+                const { stdout } = await execFile(this.command, args, { shell: true, env })
 
-            const out = stdout.toString().trim()
+                const out = stdout.toString().trim()
 
-            return out
-        } catch (err) {
-            console.error('Failed to run juliaup command: ', err)
-            throw err
+                return out
+            } catch (err) {
+                console.error('Failed to run juliaup command: ', err)
+                throw err
+            }
         }
     }
 
@@ -94,22 +106,30 @@ export class JuliaupExecutable {
         }
 
         // eslint-disable-next-line no-async-promise-executor
-        this.installedPromise = new Promise(async (resolve) => {
-            const stdout = await this.run(['api', 'getconfig1'])
+        this.installedPromise = new Promise(async (resolve, reject) => {
+            try {
+                const stdout = await this.run(['api', 'getconfig1'])
 
-            const installedVersions: JuliaupApiGetinfoReturn = JSON.parse(stdout)
-            const defaultVersion = installedVersions.DefaultChannel
-            const otherVersions = installedVersions.OtherChannels
+                const installedVersions: JuliaupApiGetinfoReturn = JSON.parse(stdout)
+                const defaultVersion = installedVersions.DefaultChannel
+                const otherVersions = installedVersions.OtherChannels
 
-            const channels: JuliaupChannel[] = []
+                const channels: JuliaupChannel[] = []
 
-            channels.push(toJuliaupChannel(defaultVersion, true))
-            for (const version of otherVersions) {
-                channels.push(toJuliaupChannel(version))
+                if (defaultVersion) {
+                    channels.push(toJuliaupChannel(defaultVersion, true))
+                }
+                for (const version of otherVersions) {
+                    channels.push(toJuliaupChannel(version))
+                }
+
+                resolve(channels)
+            } catch (err) {
+                console.error(err)
+                reject()
+            } finally {
+                this.installedPromise = undefined
             }
-
-            resolve(channels)
-            this.installedPromise = undefined
         })
 
         return await this.installedPromise
@@ -170,21 +190,23 @@ export class JuliaupExecutable {
     }
 
     async installRequired(channel: string) {
-        const channels = await requiredChannels()
+        const channels = requiredChannels()
         channels.add(channel)
 
         const choice = await vscode.window.showInformationMessage(
-            `The extension is configured to use the following juliuap channels, but they are not installed: ${[...channels].join(', ')}. We can automatically add them for you.`,
+            `The extension is configured to use the following juliaup channels, but they are not installed: ${[...channels].join(', ')}. We can automatically add them for you.`,
             'Add required channels'
         )
 
         if (!choice) {
             throw new Error(`Channel ${channel} not installed`)
         }
-
-        await this.addChannels(channels)
-
-        vscode.window.showInformationMessage('All required juliaup channels where successfully installed!')
+        try {
+            await this.addChannels(channels, { show: true })
+            vscode.window.showInformationMessage('All required juliaup channels where successfully installed!')
+        } catch {
+            vscode.window.showErrorMessage('Failed to install some of the required juliaup channels.')
+        }
     }
 }
 
@@ -238,6 +260,7 @@ export class JuliaExecutable {
 export class ExecutableFeature {
     private outputChannel: vscode.OutputChannel = vscode.window.createOutputChannel('Julia Executables')
 
+    taskRunner: TaskRunner
     private juliaupExecutableCache: Promise<JuliaupExecutable | undefined>
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
 
@@ -252,6 +275,7 @@ export class ExecutableFeature {
                 }
             })
         )
+        this.taskRunner = new TaskRunner('Julia Installer', new vscode.ThemeIcon('tools'))
     }
 
     // Interface
@@ -281,7 +305,7 @@ export class ExecutableFeature {
             if (configuredJuliaupChannel) {
                 this.outputChannel.appendLine(
                     outputPrefix +
-                        `${config} is not a path, interpreting it as a juliaup channel '${configuredJuliaupChannel}`
+                        `${config} is not a path, interpreting it as a julia channel '${configuredJuliaupChannel}'`
                 )
             } else {
                 this.outputChannel.appendLine(outputPrefix + `${config} is invalid`)
@@ -409,14 +433,12 @@ export class ExecutableFeature {
     // it's safe to call this multiple times; the return value is cached if successful
     // this will install juliaup if necessary
     public async getJuliaupExecutable(): Promise<JuliaupExecutable> {
-        const outputPrefix = '[juliaup] '
-
         // caching the juliaup path is ok since we don't expect it to change much
         if (this.juliaupExecutableCache) {
             return await this.juliaupExecutableCache
         }
 
-        this.juliaupExecutableCache = this.getJuliaupExecutableNoCache(outputPrefix)
+        this.juliaupExecutableCache = this.getJuliaupExecutableNoCache()
 
         try {
             return await this.juliaupExecutableCache
@@ -485,7 +507,7 @@ export class ExecutableFeature {
 
         for (const pathOption of pathOptions) {
             if (path.isAbsolute(pathOption) && (await exists(pathOption))) {
-                this.outputChannel.append(outputPrefix + `Trying ${pathOption} as an absolute path... `)
+                this.outputChannel.appendLine(outputPrefix + `Trying ${pathOption} as an absolute path... `)
                 const version = await this.tryGetJuliaVersion(pathOption)
                 if (version) {
                     return new JuliaExecutable(pathOption, version)
@@ -494,39 +516,46 @@ export class ExecutableFeature {
         }
     }
 
-    async getJuliaupExecutableNoCache(outputPrefix: string, tryInstall = true): Promise<JuliaupExecutable> {
+    async getJuliaupExecutableNoCache(tryInstall = true): Promise<JuliaupExecutable> {
+        const outputPrefix = '[juliaup] '
+
         this.outputChannel.appendLine(outputPrefix + 'Finding juliaup executable...')
 
-        console.log('getJuliaupExecutableNoCache')
         const spawnables = ['juliaup', this.defaultJuliaupBinaryLocation()]
-        console.log('getJuliaupExecutableNoCache spawnables: ', spawnables)
+
         for (const cmd of spawnables) {
-            this.outputChannel.append(outputPrefix + `-> Checking ${cmd}...`)
+            this.outputChannel.appendLine(outputPrefix + `  Checking ${cmd}...`)
             try {
                 const { stdout } = await execFile(cmd, ['--version'], { shell: true })
                 const version = stdout.toString().trim()
 
-                this.outputChannel.appendLine(` found 'juliaup' with version ${version}`)
-                return new JuliaupExecutable(cmd, version)
+                this.outputChannel.appendLine(`  ${cmd}: found 'juliaup' with version ${version}`)
+                return new JuliaupExecutable(cmd, version, this.taskRunner)
             } catch {
                 // TODO: maybe check the actual error here?
-                this.outputChannel.appendLine(' not found')
+                this.outputChannel.appendLine(`  ${cmd}: not a juliaup executable`)
             }
         }
-        this.outputChannel.appendLine(outputPrefix + 'juliaup is not installed.')
+        this.outputChannel.appendLine(outputPrefix + '! juliaup is not installed.')
 
         if (tryInstall) {
-            this.outputChannel.appendLine(outputPrefix + 'Attempting user-guided installation...')
-            await installJuliaOrJuliaup(this, 'julia', await requiredChannels())
+            this.outputChannel.appendLine(outputPrefix + '-> Starting user-guided installation...')
+            const exitCode = await installJuliaOrJuliaup(this, 'julia', requiredChannels())
 
-            return await this.getJuliaupExecutableNoCache(outputPrefix, false)
+            if (exitCode === 1) {
+                vscode.window.showErrorMessage('Failed to install Julia and the required juliaup channels!')
+                throw new Error('juliaup not available')
+            }
+            vscode.window.showInformationMessage('Julia and the required juliaup channels are now fully installed!')
+
+            return await this.getJuliaupExecutableNoCache(false)
         } else {
             throw new Error('juliaup not available')
         }
     }
 }
 
-async function requiredChannels() {
+function requiredChannels() {
     const channels = new Set(['release'])
 
     const lsEnvChannel = process.env.JULIA_VSCODE_LANGUAGESERVER_CHANNEL

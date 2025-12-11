@@ -875,6 +875,11 @@
                     "description": "Show Juliaup install recommendation.",
                     "scope": "machine-overridable"
                 },
+                "julia.juliaup.server": {
+                    "type": "string",
+                    "description": "Juliaup mirror. Defaults to the official sources.",
+                    "scope": "resource"
+                },
                 "julia.lint.run": {
                     "type": "boolean",
                     "default": true,

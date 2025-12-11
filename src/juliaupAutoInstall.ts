@@ -1,53 +1,10 @@
 import * as vscode from 'vscode'
 import { ExecutableFeature } from './executables'
-import { TaskRunnerTerminal } from './taskRunnerTerminal'
+import { TaskRunner } from './taskRunnerTerminal'
 
 // Julia/Juliaup Install commands for different platforms
 const installJuliaupLinuxCommand: string = 'curl -fsSL https://install.julialang.org | sh -s -- -y'
 const installJuliaupWinCommand: string = 'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore'
-
-export async function installJuliaOrJuliaupExtension(
-    executableFeature: ExecutableFeature,
-    requiredChannels?: Set<string>
-) {
-    try {
-        await executableFeature.getExecutable()
-    } catch {
-        const exitCode = await installJuliaOrJuliaup(executableFeature, 'julia', requiredChannels)
-
-        if (exitCode === 0) {
-            // If julia was installed but we can't find it
-            if (!(await executableFeature.getExecutable())) {
-                vscode.window.showInformationMessage(
-                    'Julia/juliaup successfully installed. Please fully exit and restart the editor for the changes to take effect.',
-                    {
-                        modal: true,
-                    }
-                )
-            } else {
-                vscode.window.showInformationMessage('Julia/juliaup successfully installed.')
-            }
-        } else if (exitCode !== undefined) {
-            vscode.window.showErrorMessage(
-                'Julia/juliaup installation failed. Please check the Terminals tab for more details.',
-                {
-                    modal: true,
-                }
-            )
-        }
-
-        return
-    }
-
-    try {
-        await executableFeature.getJuliaupExecutable()
-    } catch {
-        const showJuliaupInstallHint = vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
-        if (showJuliaupInstallHint) {
-            await installJuliaOrJuliaup(executableFeature, 'juliaup', requiredChannels)
-        }
-    }
-}
 
 export async function installJuliaOrJuliaup(
     executableFeature: ExecutableFeature,
@@ -68,7 +25,6 @@ export async function installJuliaOrJuliaup(
     const configurePath = 'Configure path'
     let message =
         'Julia is not installed. Do you want to install it automatically using juliaup or manually add the path?'
-    let taskName = 'Install Julia'
 
     options.push(configurePath)
 
@@ -79,7 +35,6 @@ export async function installJuliaOrJuliaup(
 
         message =
             'Juliaup is the recommended Julia version manager, but it is not installed. Do you want to install it automatically?'
-        taskName = 'Install Juliaup'
 
         options.push(doNotShow)
     }
@@ -114,19 +69,25 @@ export async function installJuliaOrJuliaup(
             return 1
         }
     }
-    const exitCode = await installJuliaOrJuliaupTask(taskName, command)
+    const exitCode = await installJuliaOrJuliaupTask(executableFeature.taskRunner, command)
 
     if (exitCode !== 0) {
         return exitCode
     }
 
-    const juliaup = await executableFeature?.getJuliaupExecutableNoCache('[juliaup] ', false)
-    await juliaup.addChannels(requiredChannels)
-
-    vscode.window.showInformationMessage('Julia and the required juliaup channels are now fully installed!')
+    const juliaup = await executableFeature?.getJuliaupExecutableNoCache(false)
+    try {
+        await juliaup.addChannels(requiredChannels, { show: true })
+        return 0
+    } catch {
+        return 1
+    }
 }
 
-export async function installJuliaOrJuliaupTask(taskName: string, customCommand?: string): Promise<number | void> {
+export async function installJuliaOrJuliaupTask(
+    taskRunner: TaskRunner,
+    customCommand?: string
+): Promise<number | void> {
     let command = installJuliaupLinuxCommand
     let shell = 'bash'
     let shellExecutionArg = '-c'
@@ -148,7 +109,7 @@ export async function installJuliaOrJuliaupTask(taskName: string, customCommand?
 
     const args = [shellExecutionArg, command]
 
-    const task = new TaskRunnerTerminal(taskName, shell, args, {
+    const exitCode = await taskRunner.run(shell, args, {
         env: process.env,
         echoMessage: `\n\r\x1b[30;47m * \x1b[0m ${command}\n\n\r`,
         onExitMessage(exitCode) {
@@ -157,12 +118,6 @@ export async function installJuliaOrJuliaupTask(taskName: string, customCommand?
             }
             return `\n\r\x1b[30;47m * \x1b[0m Failed to install Juliaup/Julia (exit code ${exitCode}). Press any key to close the terminal.\n\r`
         },
-    })
-
-    task.show()
-
-    const exitCode: number | void = await new Promise((resolve) => {
-        task.onDidClose((ev) => resolve(ev))
     })
 
     return exitCode

@@ -298,10 +298,11 @@ export async function activate(
     context.subscriptions.push(registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
     // Environment status bar
     g_current_environment = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
-    g_current_environment.show()
     g_current_environment.tooltip = 'Choose Julia environment'
     g_current_environment.text = 'Julia env: [loading]'
     g_current_environment.command = 'language-julia.changeCurrentEnvironment'
     context.subscriptions.push(g_current_environment)
     await switchEnvToPath(await getEnvPath(), false) // We don't need to notify the LS here because it will start with that env already
+
+    g_current_environment.show()
 }

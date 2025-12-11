@@ -58,7 +58,7 @@ export class JuliaProcess implements vscode.Disposable {
     private readonly closeHandler: CloseHandler = new CloseHandler()
     private disposables: vscode.Disposable[] = []
 
-    private spawnedProcess?: nodePty.IPty
+    private pty?: nodePty.IPty
 
     constructor(
         public readonly command: string,
@@ -74,7 +74,7 @@ export class JuliaProcess implements vscode.Disposable {
             // The pty process hangs on Windows when debugging the extension if we use conpty
             // See https://github.com/microsoft/node-pty/issues/640
             const useConpty = isWindows && process.env['DEBUG_MODE'] === 'true' ? false : true
-            this.spawnedProcess = spawn(this.command, this.args, {
+            this.pty = spawn(this.command, this.args, {
                 cwd: this.options.cwd,
                 env: { ...process.env, ...this.options.env },
                 useConpty,
@@ -83,11 +83,11 @@ export class JuliaProcess implements vscode.Disposable {
                 cols: isWindows ? 4096 : undefined,
             })
             this.spawnEmitter.fire()
-            this.spawnedProcess.onData((data) => {
+            this.pty.onData((data) => {
                 this.writeEmitter.fire(data)
                 this.closeHandler.reset()
             })
-            this.spawnedProcess.onExit((event) => {
+            this.pty.onExit((event) => {
                 if (event.signal) {
                     this.closeHandler.handle(event.signal)
                 } else if (typeof event.exitCode === 'number') {
@@ -108,14 +108,14 @@ export class JuliaProcess implements vscode.Disposable {
     }
 
     handleInput(s: string): void {
-        this.spawnedProcess?.write(s)
+        this.pty?.write(s)
     }
 
     terminate(signal?: NodeJS.Signals): void {
-        if (!this.spawnedProcess) {
+        if (!this.pty) {
             return
         }
-        this.spawnedProcess.kill(signal)
+        this.pty.kill(signal)
     }
 
     setDimensions(dimensions: vscode.TerminalDimensions): void {
@@ -124,7 +124,7 @@ export class JuliaProcess implements vscode.Disposable {
         if (process.platform === 'win32') {
             return
         }
-        this.spawnedProcess?.resize(dimensions.columns, dimensions.rows)
+        this.pty?.resize(dimensions.columns, dimensions.rows)
     }
 
     dispose() {
