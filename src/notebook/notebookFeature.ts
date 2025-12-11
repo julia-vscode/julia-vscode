@@ -50,6 +50,8 @@ export class JuliaNotebookFeature {
         private compiledProvider: DebugConfigTreeProvider
     ) {
         vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
+        vscode.window.onDidChangeActiveNotebookEditor(this.init, this, this.disposables)
+        vscode.window.onDidChangeVisibleNotebookEditors(this.init, this, this.disposables)
 
         context.subscriptions.push(
             registerCommand('language-julia.stopKernel', (node) => this.stopKernel(node)),
@@ -105,6 +107,12 @@ export class JuliaNotebookFeature {
     }
 
     private async init() {
+        if (this.initialized) {
+            return
+        }
+        this.initialized = true
+
+        console.log('initalizing notebook feature')
         this._outputChannel = vscode.window.createOutputChannel('Julia Notebook Kernels')
 
         const juliaVersions = await this.juliaExecutableFeature.getExecutables()
@@ -148,9 +156,7 @@ export class JuliaNotebookFeature {
     }
 
     private onDidOpenNotebookDocument(e: vscode.NotebookDocument) {
-        if (!this.initialized) {
-            this.init()
-        }
+        this.init()
 
         if (!this.isJuliaNotebook(e) || this._controllers.size === 0) {
             return

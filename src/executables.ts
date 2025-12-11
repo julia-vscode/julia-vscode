@@ -72,12 +72,10 @@ export class JuliaupExecutable {
         }
 
         try {
-            console.log(`About to run '${this.command} ${args.join(' ')}'...`)
             const { stdout } = await execFile(this.command, args, { shell: true, env })
 
             const out = stdout.toString().trim()
 
-            console.log(`Returned ${out}`)
             return out
         } catch (err) {
             console.error('Failed to run juliaup command: ', err)
@@ -390,11 +388,22 @@ export class ExecutableFeature {
     public async getExecutables(): Promise<JuliaExecutable[]> {
         const juliaup = await this.getJuliaupExecutable()
         const channels = await juliaup.installed()
-        const executables = new Set(channels.map((channel) => new JuliaExecutable(channel)))
+        const executables = channels.map((channel) => new JuliaExecutable(channel))
 
-        executables.add(await this.getExecutable())
+        executables.push(await this.getExecutable())
 
-        return [...executables]
+        return executables.filter((val, ind, self) => {
+            return (
+                ind ===
+                self.findIndex((val2) => {
+                    if (val.channel && val2.channel) {
+                        return val.channel.name === val2.channel.name
+                    } else {
+                        return val.command === val2.command
+                    }
+                })
+            )
+        })
     }
 
     // it's safe to call this multiple times; the return value is cached if successful
