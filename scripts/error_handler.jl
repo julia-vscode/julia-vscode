@@ -6,7 +6,7 @@ is_disconnected_exception(err::InvalidStateException) = err.state === :closed
 is_disconnected_exception(err::Base.IOError) = true
 is_disconnected_exception(err::CompositeException) = all(is_disconnected_exception, err.exceptions)
 
-function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
+function global_err_handler(e, bt, vscode_pipe_name, cloudRole; should_exit = true)
     if is_disconnected_exception(e)
         @debug "Disconnect." ex=(e, bt)
         return
@@ -74,6 +74,8 @@ function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
             close(pipe_to_vscode)
         end
     finally
-        exit(1)
+        if should_exit
+            exit(1)
+        end
     end
 end
