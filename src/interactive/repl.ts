@@ -351,7 +351,7 @@ async function startREPLWithVersion(versionName?: string) {
 }
 
 function juliaConnector(pipename: string, debugPipename: string, start = false) {
-    const connect = `VSCodeServer.serve(raw"${pipename}", raw"${debugPipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, raw"${telemetry.getCrashReportingPipename()}", "REPL"));nothing # re-establishing connection with VSCode`
+    const connect = `VSCodeServer.serve(raw"${pipename}", raw"${debugPipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, raw"${telemetry.getCrashReportingPipename()}", "REPL", should_exit=false));nothing # re-establishing connection with VSCode`
     if (start) {
         return (
             `include(raw"${path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'load_vscodeserver.jl')}");` +
