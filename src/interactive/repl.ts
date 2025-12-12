@@ -283,7 +283,7 @@ export async function startREPL(
                     if (exitCode === 0) {
                         return
                     }
-                    return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r`
+                    return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r\n\r`
                 },
             })
 

@@ -74,9 +74,9 @@ export class JuliaCommands {
             echoMessage: true,
             onExitMessage(exitCode) {
                 if (exitCode === 0) {
-                    return '\n\r\x1b[30;47m * \x1b[0m Successfully ran this command. Press any key to close the terminal.\n\r'
+                    return '\n\r\x1b[30;47m * \x1b[0m Successfully ran this command. Press any key to close the terminal.\n\r\n\r'
                 }
-                return `\n\r\x1b[30;47m * \x1b[0m Failed to run this command (exit code ${exitCode}). Press any key to close the terminal.\n\r`
+                return `\n\r\x1b[30;47m * \x1b[0m Failed to run this command (exit code ${exitCode}). Press any key to close the terminal.\n\r\n\r`
             },
         })
 

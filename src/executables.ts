@@ -71,9 +71,9 @@ export class JuliaupExecutable {
                 echoMessage: true,
                 onExitMessage: (exitCode) => {
                     if (exitCode === 0) {
-                        return `\n\r\x1b[30;47m * \x1b[0m 'juliaup ${args.join(' ')}' ran successfully.\n\r`
+                        return `\n\r\x1b[30;47m * \x1b[0m 'juliaup ${args.join(' ')}' ran successfully.\n\r\n\r`
                     } else {
-                        return `\n\r\x1b[30;47m * \x1b[0m 'juliaup ${args.join(' ')}' failed to run.\n\r`
+                        return `\n\r\x1b[30;47m * \x1b[0m 'juliaup ${args.join(' ')}' failed to run.\n\r\n\r`
                     }
                 },
             })
@@ -203,6 +203,7 @@ export class JuliaupExecutable {
         }
         try {
             await this.addChannels(channels, { show: true })
+
             vscode.window.showInformationMessage('All required juliaup channels where successfully installed!')
         } catch {
             vscode.window.showErrorMessage('Failed to install some of the required juliaup channels.')
@@ -470,7 +471,10 @@ export class ExecutableFeature {
     public async getJuliaupExecutable(): Promise<JuliaupExecutable> {
         // caching the juliaup path is ok since we don't expect it to change much
         if (this.juliaupExecutableCache) {
-            return await this.juliaupExecutableCache
+            const exe = await this.juliaupExecutableCache
+            if (exe) {
+                return exe
+            }
         }
 
         this.juliaupExecutableCache = this.getJuliaupExecutableNoCache()
@@ -497,21 +501,28 @@ export class ExecutableFeature {
     }
 
     // Impl
-    defaultJuliaupInstallLocation() {
+    installRoot() {
         if (process.platform === 'win32') {
-            // fill me in
-            return ''
+            return path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WindowsApps')
         } else {
             return path.join(os.homedir(), '.juliaup')
         }
     }
 
     defaultJuliaupBinaryLocation() {
-        return path.join(this.defaultJuliaupInstallLocation(), 'bin', 'juliaup')
+        const root = this.installRoot()
+        if (process.platform === 'win32') {
+            return path.join(root, 'juliaup.exe')
+        }
+        return path.join(root, 'bin', 'juliaup')
     }
 
     defaultJuliaupJuliaBinaryLocation() {
-        return path.join(this.defaultJuliaupBinaryLocation(), 'bin', 'julia')
+        const root = this.installRoot()
+        if (process.platform === 'win32') {
+            return path.join(root, 'julia.exe')
+        }
+        return path.join(root, 'bin', 'julia')
     }
 
     async tryGetJuliaVersion(command: string, args: string[] = []): Promise<string | undefined> {
@@ -556,12 +567,12 @@ export class ExecutableFeature {
 
         this.outputChannel.appendLine(outputPrefix + 'Finding juliaup executable...')
 
-        const spawnables = ['juliaup', this.defaultJuliaupBinaryLocation()]
+        const spawnables = [this.defaultJuliaupBinaryLocation(), 'juliaup']
 
         for (const cmd of spawnables) {
             this.outputChannel.appendLine(outputPrefix + `  Checking ${cmd}...`)
             try {
-                const { stdout } = await execFile(cmd, ['--version'], { shell: true })
+                const { stdout } = await execFile(cmd, ['--version'])
                 const version = stdout.toString().trim()
 
                 this.outputChannel.appendLine(`  ${cmd}: found 'juliaup' with version ${version}`)
@@ -577,13 +588,14 @@ export class ExecutableFeature {
             this.outputChannel.appendLine(outputPrefix + '-> Starting user-guided installation...')
             const exitCode = await installJuliaOrJuliaup(this, 'julia', requiredChannels())
 
-            if (exitCode === 1) {
+            if (exitCode === 0) {
+                vscode.window.showInformationMessage('Julia and the required juliaup channels are now fully installed!')
+
+                return await this.getJuliaupExecutableNoCache(false)
+            } else if (exitCode === 1) {
                 vscode.window.showErrorMessage('Failed to install Julia and the required juliaup channels!')
                 throw new Error('juliaup not available')
             }
-            vscode.window.showInformationMessage('Julia and the required juliaup channels are now fully installed!')
-
-            return await this.getJuliaupExecutableNoCache(false)
         } else {
             throw new Error('juliaup not available')
         }

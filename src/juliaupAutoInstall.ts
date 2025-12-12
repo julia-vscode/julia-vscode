@@ -114,9 +114,9 @@ export async function installJuliaOrJuliaupTask(
         echoMessage: `\n\r\x1b[30;47m * \x1b[0m ${command}\n\n\r`,
         onExitMessage(exitCode) {
             if (exitCode === 0) {
-                return '\n\r\x1b[30;47m * \x1b[0m Successfully installed Juliaup/Julia. Press any key to close the terminal.\n\r'
+                return '\n\r\x1b[30;47m * \x1b[0m Successfully installed Juliaup/Julia. Press any key to close the terminal.\n\r\n\r'
             }
-            return `\n\r\x1b[30;47m * \x1b[0m Failed to install Juliaup/Julia (exit code ${exitCode}). Press any key to close the terminal.\n\r`
+            return `\n\r\x1b[30;47m * \x1b[0m Failed to install Juliaup/Julia (exit code ${exitCode}). Press any key to close the terminal.\n\r\n\r`
         },
     })
 
