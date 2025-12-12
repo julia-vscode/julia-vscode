@@ -5,11 +5,10 @@ import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions } from 'vscode-languageclient/node'
-import * as semver from 'semver'
 
 import * as jlpkgenv from './jlpkgenv'
 import * as telemetry from './telemetry'
-import { JuliaExecutable, JuliaExecutablesFeature } from './juliaexepath'
+import { ExecutableFeature, JuliaExecutable } from './executables'
 import { registerCommand } from './utils'
 
 export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
@@ -33,7 +32,7 @@ export class LanguageClientFeature {
 
     constructor(
         private context: vscode.ExtensionContext,
-        private executable: JuliaExecutablesFeature
+        private executable: ExecutableFeature
     ) {
         this.context.subscriptions.push(
             registerCommand('language-julia.refreshLanguageServer', () => this.refreshLanguageServer()),
@@ -77,69 +76,24 @@ export class LanguageClientFeature {
         }
     }
 
-    public async start(envPath?: string) {
-        this.statusBarItem.text = 'Julia: Starting Language Server…'
-        this.statusBarItem.show()
+    public async startServer(envPath?: string) {
+        let juliaExecutable: JuliaExecutable
+        try {
+            juliaExecutable = await this.executable.getLsExecutable()
+        } catch {
+            this.statusBarItem.text = 'Julia: Not installed'
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground')
+            this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground')
+            this.statusBarItem.command = 'language-julia.restartLanguageServer'
+            this.statusBarItem.show()
 
-        let juliaLSExecutable: JuliaExecutable | null = null
-        const juliaExecutable = await this.executable.getActiveLaunguageServerJuliaExecutableAsync()
-
-        if (await this.executable.isJuliaup()) {
-            if (process.env.DEBUG_MODE) {
-                juliaLSExecutable = await this.executable.getActiveJuliaExecutableAsync()
-            } else {
-                const exePaths = await this.executable.getJuliaExePathsAsync()
-
-                // Determine which juliaup channel to use (priority: env var > config > default)
-                const preferredChannel =
-                    process.env.JULIA_VSCODE_LANGUAGESERVER_CHANNEL ||
-                    vscode.workspace.getConfiguration('julia').get<string>('languageServerJuliaupChannel') ||
-                    'release'
-
-                let channelExe = exePaths.filter((i) => i.channel === preferredChannel)
-
-                // Fallback to release if preferred channel not available
-                if (channelExe.length === 0 && preferredChannel !== 'release') {
-                    channelExe = exePaths.filter((i) => i.channel === 'release')
-                }
-
-                if (channelExe.length > 0) {
-                    juliaLSExecutable = channelExe[0]
-                } else {
-                    vscode.window.showErrorMessage(
-                        `Julia channel "${preferredChannel}" not found in Juliaup. Please ensure the channel is installed, or configure a different channel via the "julia.languageServerJuliaupChannel" setting or JULIA_VSCODE_LANGUAGESERVER_CHANNEL environment variable.`
-                    )
-                    this.statusBarItem.hide()
-                    return
-                }
-
-                if (juliaExecutable === undefined) {
-                    vscode.window.showErrorMessage(
-                        'You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.'
-                    )
-                    this.statusBarItem.hide()
-                    return
-                }
-            }
-        } else {
-            if (juliaExecutable === undefined) {
-                vscode.window.showErrorMessage(
-                    'You must have Julia installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.'
-                )
-                this.statusBarItem.hide()
-                return
-            }
-
-            if (semver.gte(juliaExecutable.getVersion(), '1.10.0')) {
-                juliaLSExecutable = juliaExecutable
-            } else {
-                vscode.window.showErrorMessage(
-                    'You must have at least Julia 1.10 installed for the best Julia experience in VS Code. You can download Julia from https://julialang.org/.'
-                )
-                this.statusBarItem.hide()
-                return
-            }
+            return
         }
+
+        this.statusBarItem.text = 'Julia: Starting Language Server…'
+        this.statusBarItem.backgroundColor = undefined
+        this.statusBarItem.color = undefined
+        this.statusBarItem.show()
 
         let jlEnvPath = ''
         if (envPath) {
@@ -189,7 +143,7 @@ export class LanguageClientFeature {
             useSymserverDownloads,
             symserverUpstream,
             '--detached=no',
-            juliaExecutable.getCommand(),
+            juliaExecutable.command,
             juliaExecutable.version,
         ]
         const serverArgsDebug: string[] = [
@@ -205,7 +159,7 @@ export class LanguageClientFeature {
             useSymserverDownloads,
             symserverUpstream,
             '--detached=no',
-            juliaExecutable.getCommand(),
+            juliaExecutable.command,
             juliaExecutable.version,
         ]
         const spawnOptions = {
@@ -229,13 +183,13 @@ export class LanguageClientFeature {
               }
             : {
                   run: {
-                      command: juliaLSExecutable.file,
-                      args: [...juliaLSExecutable.args, ...serverArgsRun],
+                      command: juliaExecutable.command,
+                      args: [...juliaExecutable.args, ...serverArgsRun],
                       options: spawnOptions,
                   },
                   debug: {
-                      command: juliaLSExecutable.file,
-                      args: [...juliaLSExecutable.args, ...serverArgsDebug],
+                      command: juliaExecutable.command,
+                      args: [...juliaExecutable.args, ...serverArgsDebug],
                       options: spawnOptions,
                   },
               }
@@ -341,17 +295,24 @@ export class LanguageClientFeature {
 
     async restartLanguageServer(envPath?: string) {
         if (this.languageClient !== null) {
-            await this.languageClient.stop()
+            try {
+                await this.languageClient.stop()
+            } catch (err) {
+                console.debug(`Stopping the language server failed: ${err}`)
+            }
             this.setLanguageClient()
         }
 
-        await this.start(envPath)
+        await this.startServer(envPath)
     }
 
     public async dispose(): Promise<void> {
-        this.statusBarItem.dispose()
         if (this.languageClient) {
             await this.languageClient.stop()
         }
+
+        this.statusBarItem.dispose()
+        this.outputChannel.dispose()
+        this.traceOutputChannel.dispose()
     }
 }
