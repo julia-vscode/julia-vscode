@@ -136,7 +136,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         const api = {
-            version: 5,
+            version: 6,
             async getEnvironment() {
                 return await jlpkgenv.getAbsEnvPath()
             },
@@ -153,8 +153,8 @@ export async function activate(context: vscode.ExtensionContext) {
             getPkgServer() {
                 return vscode.workspace.getConfiguration('julia').get('packageServer')
             },
-            async installJuliaOrJuliaup(taskName: string, customCommand?: string) {
-                return await installJuliaOrJuliaupTask(taskName, customCommand)
+            async installJuliaOrJuliaup(customCommand?: string) {
+                return await installJuliaOrJuliaupTask(executableFeature.taskRunner, customCommand)
             },
             executeInREPL: repl.executeInREPL,
         }
