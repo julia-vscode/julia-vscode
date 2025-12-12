@@ -220,7 +220,7 @@ export class WorkspaceFeature {
             // registries
             vscode.window.registerTreeDataProvider('REPLVariables', this._REPLTreeDataProvider),
             // listeners
-            onInit(wrapCrashReporting((conn) => this.openREPL(conn))),
+            onInit(wrapCrashReporting(({ connection: conn }) => this.openREPL(conn))),
             onExit(() => this.closeREPL()),
             // commands
             registerCommand('language-julia.showInVSCode', (node: VariableNode) => this.showInVSCode(node)),

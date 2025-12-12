@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext, languageClientFeature
     statusBarItem.tooltip = 'Choose Current Module'
 
     onInit(
-        wrapCrashReporting((conn) => {
+        wrapCrashReporting(({ connection: conn }) => {
             g_connection = conn
             updateStatusBarItem()
         })
