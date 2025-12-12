@@ -119,10 +119,12 @@ export class JuliaNotebookFeature {
 
         for (const juliaVersion of juliaVersions) {
             const ver = juliaVersion.getVersion()
-            const kernelId = juliaVersion.channel
-                ? `julia-vscode-channel-${juliaVersion.channel.name}`
+            const kernelId = juliaVersion.juliaupChannel
+                ? `julia-vscode-channel-${juliaVersion.juliaupChannel.name}`
                 : `julia-vscode-${ver.major}.${ver.minor}.${ver.patch}`
-            const displayName = juliaVersion.channel ? `Julia ${juliaVersion.channel.name} channel` : `Julia ${ver}`
+            const displayName = juliaVersion.juliaupChannel
+                ? `Julia ${juliaVersion.juliaupChannel.name} channel`
+                : `Julia ${ver}`
 
             const controller = vscode.notebooks.createNotebookController(kernelId, JupyterNotebookViewType, displayName)
             controller.supportedLanguages = ['julia', 'raw']
@@ -171,24 +173,24 @@ export class JuliaNotebookFeature {
         const perfectMatchVersions = Array.from(this._controllers.entries())
             .filter(([, juliaExec]) => juliaExec.getVersion().toString() === semver.parse(version).toString())
             .sort(([, a], [, b]) => {
-                if (a.channel.arch !== b.channel.arch) {
+                if (a.juliaupChannel.arch !== b.juliaupChannel.arch) {
                     // we give preference to x64 builds
-                    if (a.channel.arch === 'x64') {
+                    if (a.juliaupChannel.arch === 'x64') {
                         return -1
-                    } else if (b.channel.arch === 'x64') {
+                    } else if (b.juliaupChannel.arch === 'x64') {
                         return 1
                     } else {
                         return 0
                     }
                 }
                 // Then we give preference to release and lts channels
-                else if (a.channel.name === 'release' || a.channel.name.startsWith('release~')) {
+                else if (a.juliaupChannel.name === 'release' || a.juliaupChannel.name.startsWith('release~')) {
                     return -1
-                } else if (b.channel.name === 'release' || b.channel.name.startsWith('release~')) {
+                } else if (b.juliaupChannel.name === 'release' || b.juliaupChannel.name.startsWith('release~')) {
                     return 1
-                } else if (a.channel.name === 'lts' || a.channel.name.startsWith('lts~')) {
+                } else if (a.juliaupChannel.name === 'lts' || a.juliaupChannel.name.startsWith('lts~')) {
                     return -1
-                } else if (b.channel.name === 'lts' || b.channel.name.startsWith('lts~')) {
+                } else if (b.juliaupChannel.name === 'lts' || b.juliaupChannel.name.startsWith('lts~')) {
                     return 1
                 } else {
                     return 0
@@ -213,11 +215,11 @@ export class JuliaNotebookFeature {
                     const bVer = b.getVersion()
                     if (aVer.patch !== bVer.patch) {
                         return b.getVersion().patch - a.getVersion().patch
-                    } else if (a.channel.arch !== b.channel.arch) {
+                    } else if (a.juliaupChannel.arch !== b.juliaupChannel.arch) {
                         //  we give preference to x64 builds
-                        if (a.channel.arch === 'x64') {
+                        if (a.juliaupChannel.arch === 'x64') {
                             return -1
-                        } else if (b.channel.arch === 'x64') {
+                        } else if (b.juliaupChannel.arch === 'x64') {
                             return 1
                         } else {
                             return 0

@@ -214,7 +214,7 @@ export class JuliaExecutable {
     public command: string
     public version: string
     public args: string[]
-    public channel: JuliaupChannel
+    public juliaupChannel: JuliaupChannel
 
     private _rootFolder: string
 
@@ -224,7 +224,7 @@ export class JuliaExecutable {
             this.version = version
             this.args = []
         } else {
-            this.channel = commandOrChannel
+            this.juliaupChannel = commandOrChannel
             this.command = commandOrChannel.file
             this.version = commandOrChannel.version
             this.args = commandOrChannel.args
@@ -254,6 +254,41 @@ export class JuliaExecutable {
 
     public getVersion(): semver.SemVer {
         return semver.parse(this.version)
+    }
+
+    /**
+     * @deprecated Use `.command` instead.
+     */
+    public get file() {
+        return this.command
+    }
+
+    /**
+     * @deprecated Use `.juliaupChannel.arch` instead.
+     */
+    public get arch() {
+        return this.juliaupChannel?.arch
+    }
+
+    /**
+     * @deprecated Use `.juliaupChannel.name` instead.
+     */
+    public get channel() {
+        return this.juliaupChannel?.name
+    }
+
+    /**
+     * @deprecated Use .rootFolder() instead.
+     */
+    public async getBaseRootFolderPathAsync() {
+        return await this.rootFolder()
+    }
+
+    /**
+     * @deprecated This does not properly escape its arguments. Use the `.command` and `.args` fields individually instead.
+     */
+    public getCommand(...args: string[]): string {
+        return [this.command, ...this.args, ...args].join(' ')
     }
 }
 
@@ -386,7 +421,7 @@ export class ExecutableFeature {
                 const channel = await juliaup.getChannel(configuredChannel)
                 if (channel) {
                     const exe = new JuliaExecutable(channel)
-                    this.outputChannel.appendLine(outputPrefix + `using ${exe.channel.name} as LS channel`)
+                    this.outputChannel.appendLine(outputPrefix + `using ${exe.juliaupChannel.name} as LS channel`)
 
                     return exe
                 }
@@ -420,8 +455,8 @@ export class ExecutableFeature {
             return (
                 ind ===
                 self.findIndex((val2) => {
-                    if (val.channel && val2.channel) {
-                        return val.channel.name === val2.channel.name
+                    if (val.juliaupChannel && val2.juliaupChannel) {
+                        return val.juliaupChannel.name === val2.juliaupChannel.name
                     } else {
                         return val.command === val2.command
                     }
