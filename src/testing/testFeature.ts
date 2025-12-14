@@ -2,7 +2,7 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
-import { JuliaExecutable, JuliaExecutablesFeature } from '../juliaexepath'
+import { JuliaExecutable, ExecutableFeature } from '../executables'
 import * as path from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { TestControllerNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
@@ -98,7 +98,7 @@ export class JuliaTestController {
 
     constructor(
         private testFeature: TestFeature,
-        private juliaExecutablesFeature: JuliaExecutablesFeature,
+        private executableFeature: ExecutableFeature,
         private workspaceFeature: WorkspaceFeature,
         private context: vscode.ExtensionContext,
         private outputChannel: vscode.OutputChannel,
@@ -119,21 +119,20 @@ export class JuliaTestController {
         let juliaExecutable: JuliaExecutable | null = null
 
         if (process.env.DEBUG_MODE) {
-            juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+            juliaExecutable = await this.executableFeature.getExecutable()
         } else {
-            if (!(await this.juliaExecutablesFeature.isJuliaup())) {
+            if (!(await this.executableFeature.hasJuliaup())) {
                 vscode.window.showErrorMessage(
                     'You must install Julia using Juliaup to use the test item functionality.'
                 )
                 return true
             }
 
-            const exePaths = await this.juliaExecutablesFeature.getJuliaExePathsAsync()
-            const releaseChannelExe = exePaths.filter((i) => i.channel === 'release')
+            const juliaup = await this.executableFeature.getJuliaupExecutable()
 
-            if (releaseChannelExe.length > 0) {
-                juliaExecutable = releaseChannelExe[0]
-            } else {
+            try {
+                juliaExecutable = new JuliaExecutable(await juliaup.getChannel('release', true))
+            } catch {
                 vscode.window.showErrorMessage(
                     'You must have the "release" channel in Juliaup installed to use the test item functionality.'
                 )
@@ -144,7 +143,7 @@ export class JuliaTestController {
         const jlArgs = ['--startup-file=no', '--history-file=no', '--depwarn=no']
 
         this.process = spawn(
-            juliaExecutable.file,
+            juliaExecutable.command,
             [
                 ...juliaExecutable.args,
                 ...jlArgs,
@@ -324,7 +323,7 @@ export class JuliaTestController {
     ) {
         const nthreads = inferJuliaNumThreads()
 
-        const juliaExec = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        const juliaExec = await this.executableFeature.getExecutable()
 
         const testRunId = uuidv4()
         this.testRuns.set(testRunId, {
@@ -337,7 +336,7 @@ export class JuliaTestController {
                 {
                     id: 'id1',
                     label: 'default',
-                    juliaCmd: juliaExec.file,
+                    juliaCmd: juliaExec.command,
                     juliaArgs: juliaExec.args,
                     juliaNumThreads: nthreads,
                     juliaEnv: {},
@@ -468,7 +467,7 @@ export class TestFeature {
 
     constructor(
         private context: vscode.ExtensionContext,
-        private executableFeature: JuliaExecutablesFeature,
+        private executableFeature: ExecutableFeature,
         private workspaceFeature: WorkspaceFeature,
         private compiledProvider: DebugConfigTreeProvider,
         languageClientFeature: LanguageClientFeature
@@ -723,7 +722,7 @@ export class TestFeature {
         }
 
         if (mode === TestRunMode.Coverage) {
-            const ex = await this.executableFeature.getActiveJuliaExecutableAsync()
+            const ex = await this.executableFeature.getExecutable()
             if (ex.getVersion().compare('1.11.0-rc2') === -1) {
                 vscode.window.showErrorMessage('Running tests with coverage requires Julia 1.11 or newer.')
                 return

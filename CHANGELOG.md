@@ -5,12 +5,21 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.162.0] - 2025-12-12
+### Fixed
+- Fixed the incorrect sourcing of python envs on REPL startup in a new terminal ([#3920](https://github.com/julia-vscode/julia-vscode/pull/3920))
+- `image/png` is now once again preferred over `image/svg+xml` in the plotpane ([#3924](https://github.com/julia-vscode/julia-vscode/pull/3924))
+- Don't exit the REPL when a connection error occurs ([#3930](https://github.com/julia-vscode/julia-vscode/pull/3930))
+
+### Changed
+- The automated juliaup installer now also ensures that the configured channels are present. The extension now also activates faster and adds a status bar item if is not present ([#3928](https://github.com/julia-vscode/julia-vscode/pull/3928))
+- The extension API is now on version 6 ([#3928](https://github.com/julia-vscode/julia-vscode/pull/3928))
+
+## [1.161.0] - 2025-11-25
 ### Fixed
 - The REPL keep-alive logic is now optional due to problems on Windows ([#3917](https://github.com/julia-vscode/julia-vscode/pull/3917))
 - Fixed an issue where one cannot copy the plot ([#3916](https://github.com/julia-vscode/julia-vscode/pull/3916))
 - Fixed an issue resulting in re-compilation of stdlibs ([#3915](https://github.com/julia-vscode/julia-vscode/pull/3915))
-- Fixed the incorrect sourcing of python envs on REPL startup in a new terminal ([#3920](https://github.com/julia-vscode/julia-vscode/pull/3920))
-- `image/png` is now once again preferred over `image/svg+xml` in the plotpane ([#3924](https://github.com/julia-vscode/julia-vscode/pull/3924))
 
 ### Added
 - Restart language server and Change julia env command now takes an optional `envPath` argument ([#3914](https://github.com/julia-vscode/julia-vscode/pull/3914))

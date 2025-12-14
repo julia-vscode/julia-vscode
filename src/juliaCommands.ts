@@ -2,13 +2,14 @@ import * as vscode from 'vscode'
 
 import { registerCommand } from './utils'
 import * as jlpkgenv from './jlpkgenv'
-import { JuliaExecutablesFeature } from './juliaexepath'
-import { TaskRunnerTerminal } from './taskRunnerTerminal'
+import { ExecutableFeature } from './executables'
+import { TaskRunner } from './taskRunnerTerminal'
 
 export class JuliaCommands {
+    private taskRunner: TaskRunner
     constructor(
         context: vscode.ExtensionContext,
-        private juliaExecutableFeature: JuliaExecutablesFeature
+        private juliaExecutableFeature: ExecutableFeature
     ) {
         context.subscriptions.push(
             registerCommand('language-julia.runPackageCommand', async (cmd?: string, env?: string) => {
@@ -22,6 +23,7 @@ export class JuliaCommands {
                 await this.runPackageCommand('instantiate', env)
             })
         )
+        this.taskRunner = new TaskRunner('Julia Commands', new vscode.ThemeIcon('tools'))
     }
 
     private async runPackageCommandInteractive() {
@@ -52,7 +54,7 @@ export class JuliaCommands {
     }
 
     private async runCommand(cmd: string, juliaEnv?: string, name?: string, processEnv?: { [key: string]: string }) {
-        const juliaExecutable = await this.juliaExecutableFeature.getActiveJuliaExecutableAsync()
+        const juliaExecutable = await this.juliaExecutableFeature.getExecutable()
         const args = [...juliaExecutable.args]
 
         if (!juliaEnv) {
@@ -64,7 +66,7 @@ export class JuliaCommands {
 
         args.push(`--project=${juliaEnv}`, '-e', cmd)
 
-        const task = new TaskRunnerTerminal(name, juliaExecutable.file, args, {
+        const exitCode = await this.taskRunner.run(juliaExecutable.command, args, {
             env: {
                 ...process.env,
                 ...processEnv,
@@ -72,15 +74,10 @@ export class JuliaCommands {
             echoMessage: true,
             onExitMessage(exitCode) {
                 if (exitCode === 0) {
-                    return '\n\r\x1b[30;47m * \x1b[0m Successfully ran this command. Press any key to close the terminal.\n\r'
+                    return '\n\r\x1b[30;47m * \x1b[0m Successfully ran this command. Press any key to close the terminal.\n\r\n\r'
                 }
-                return `\n\r\x1b[30;47m * \x1b[0m Failed to run this command (exit code ${exitCode}). Press any key to close the terminal.\n\r`
+                return `\n\r\x1b[30;47m * \x1b[0m Failed to run this command (exit code ${exitCode}). Press any key to close the terminal.\n\r\n\r`
             },
-        })
-        task.show()
-
-        const exitCode = await new Promise((resolve) => {
-            task.onDidClose((ev) => resolve(ev))
         })
 
         return exitCode === 0

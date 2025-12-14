@@ -82,6 +82,51 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
         }
     }
 
+    public respawn(proc: JuliaProcess, opts: JuliaPTYOptions) {
+        this.dispose()
+        this.proc.terminate()
+        this.isClosed = false
+        this.exitCode = undefined
+
+        this.options = opts
+        this.proc = proc
+
+        this.disposables.push(
+            this.proc.onDidSpawn(() => {
+                if (this.options.echoMessage === true) {
+                    const exec = [this.proc.command, ...this.proc.args].join(' ')
+                    this.write(`\x1b[30;47m * \x1b[0m Executing ${exec}\n\n\r`)
+                } else if (typeof this.options.echoMessage === 'string') {
+                    this.write(this.options.echoMessage)
+                }
+            }),
+            this.proc.onDidWrite((data) => {
+                this.write(data.replace(/\n(\r)?/g, '\n\r'))
+            }),
+            this.proc.onDidThrowError((err) => {
+                vscode.window.showErrorMessage(`Process failed: ${err}`)
+
+                this.closeEmitter.fire()
+                this.dispose()
+            }),
+            this.proc.onDidClose((ev) => {
+                const msg = this.options?.onExitMessage?.(ev)
+
+                if (msg) {
+                    this.isClosed = true
+                    this.exitCode = ev
+                    this.write(msg)
+                } else {
+                    // we probably want to hide the vscode-native error pop-up by default
+                    this.closeEmitter.fire(this.options?.showDefaultErrorMessage ? ev : undefined)
+                    this.dispose()
+                }
+            })
+        )
+
+        this.proc.spawn()
+    }
+
     setDimensions(dimensions: vscode.TerminalDimensions): void {
         this.proc?.setDimensions(dimensions)
     }

@@ -10,7 +10,7 @@ import { ProfilerFeature } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import { WorkspaceFeature } from './interactive/workspace'
 import * as jlpkgenv from './jlpkgenv'
-import { JuliaExecutablesFeature } from './juliaexepath'
+import { ExecutableFeature } from './executables'
 import { LanguageClientFeature } from './languageClient'
 import { JuliaNotebookFeature } from './notebook/notebookFeature'
 import * as openpackagedirectory from './openpackagedirectory'
@@ -24,7 +24,7 @@ import { setContext } from './utils'
 import * as weave from './weave'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { JuliaCommands } from './juliaCommands'
-import { installJuliaOrJuliaupTask, installJuliaOrJuliaupExtension } from './juliaupAutoInstall'
+import { installJuliaOrJuliaupTask } from './juliaupAutoInstall'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -46,12 +46,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         console.debug('Activating extension language-julia')
 
-        // Config change
-
-        const juliaExecutablesFeature = new JuliaExecutablesFeature(context, globalDiagnosticOutputFeature)
-
-        // JuliaUp/julia auto-installation
-        await installJuliaOrJuliaupExtension(juliaExecutablesFeature)
+        const executableFeature = new ExecutableFeature(context)
 
         // Language settings
         vscode.languages.setLanguageConfiguration('julia', {
@@ -66,51 +61,44 @@ export async function activate(context: vscode.ExtensionContext) {
 
         // Active features from other files
 
-        const languageClientFeature: LanguageClientFeature = new LanguageClientFeature(context, juliaExecutablesFeature)
+        const languageClientFeature: LanguageClientFeature = new LanguageClientFeature(context, executableFeature)
         context.subscriptions.push(languageClientFeature)
 
         const compiledProvider = debugViewProvider.activate(context)
-        context.subscriptions.push(juliaExecutablesFeature)
-        await juliaExecutablesFeature.getActiveJuliaExecutableAsync() // We run this function now and await to make sure we don't run in twice simultaneously later
-        repl.activate(context, compiledProvider, juliaExecutablesFeature, profilerFeature, languageClientFeature)
-        weave.activate(context, juliaExecutablesFeature)
+        context.subscriptions.push(executableFeature)
+
+        repl.activate(context, compiledProvider, executableFeature, profilerFeature, languageClientFeature)
+        weave.activate(context, executableFeature)
         documentation.activate(context, languageClientFeature)
-        tasks.activate(context, juliaExecutablesFeature)
+        tasks.activate(context, executableFeature)
         smallcommands.activate(context)
-        packagepath.activate(context, juliaExecutablesFeature)
+        packagepath.activate(context, executableFeature)
         openpackagedirectory.activate(context)
-        jlpkgenv.activate(context, juliaExecutablesFeature, languageClientFeature)
+        jlpkgenv.activate(context, executableFeature, languageClientFeature)
 
         const workspaceFeature = new WorkspaceFeature(context)
         context.subscriptions.push(workspaceFeature)
-        const notebookFeature = new JuliaNotebookFeature(
-            context,
-            juliaExecutablesFeature,
-            workspaceFeature,
-            compiledProvider
-        )
+        const notebookFeature = new JuliaNotebookFeature(context, executableFeature, workspaceFeature, compiledProvider)
         context.subscriptions.push(notebookFeature)
-        context.subscriptions.push(new JuliaPackageDevFeature(context, juliaExecutablesFeature))
+        context.subscriptions.push(new JuliaPackageDevFeature(context, executableFeature))
 
         const testFeature = new TestFeature(
             context,
-            juliaExecutablesFeature,
+            executableFeature,
             workspaceFeature,
             compiledProvider,
             languageClientFeature
         )
         context.subscriptions.push(testFeature)
 
-        context.subscriptions.push(
-            new JuliaDebugFeature(context, compiledProvider, juliaExecutablesFeature, notebookFeature)
-        )
+        context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, executableFeature, notebookFeature))
 
-        context.subscriptions.push(new JuliaCommands(context, juliaExecutablesFeature))
+        context.subscriptions.push(new JuliaCommands(context, executableFeature))
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('symbolCacheDownload') === null) {
             vscode.window
                 .showInformationMessage(
-                    'The extension will now download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.',
+                    'The extension will download symbol server cache files from GitHub, if possible. You can disable this behaviour in the settings.',
                     'Open Settings'
                 )
                 .then((val) => {
@@ -123,7 +111,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 .update('symbolCacheDownload', true, vscode.ConfigurationTarget.Global)
         }
 
-        languageClientFeature.start()
+        languageClientFeature.startServer()
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
             const agree = 'Yes'
@@ -148,25 +136,25 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         const api = {
-            version: 5,
+            version: 6,
             async getEnvironment() {
                 return await jlpkgenv.getAbsEnvPath()
             },
             async getJuliaupExecutable() {
-                return await juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
+                return await executableFeature.getJuliaupExecutable()
             },
             async getJuliaExecutable() {
-                return await juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+                return await executableFeature.getExecutable()
             },
             async getJuliaPath() {
                 console.warn('Julia extension for VSCode: `getJuliaPath` API is deprecated.')
-                return (await juliaExecutablesFeature.getActiveJuliaExecutableAsync()).file
+                return (await executableFeature.getExecutable()).command
             },
             getPkgServer() {
                 return vscode.workspace.getConfiguration('julia').get('packageServer')
             },
-            async installJuliaOrJuliaup(taskName: string, customCommand?: string) {
-                return await installJuliaOrJuliaupTask(taskName, customCommand)
+            async installJuliaOrJuliaup(customCommand?: string) {
+                return await installJuliaOrJuliaupTask(executableFeature.taskRunner, customCommand)
             },
             executeInREPL: repl.executeInREPL,
         }
