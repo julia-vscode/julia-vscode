@@ -460,7 +460,7 @@ const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: unknown; 
 const notifyTypeOpenFile = new rpc.NotificationType<{ path: string; line: number; preserveFocus: boolean }>(
     'repl/openFile'
 )
-const notifyTypeCheckRevise = new rpc.NotificationType<boolean>('checkrevise')
+const notifyTypeCheckRevise = new rpc.NotificationType<boolean>('norevise')
 
 interface Progress {
     id: { value: number }
@@ -1196,7 +1196,7 @@ export async function executeInREPL(
         showResultInREPL = true,
         showErrorInREPL = false,
         softscope = true,
-    }
+    } = {}
 ): Promise<ReturnResult> {
     await startREPL(true, true)
     return await g_connection.sendRequest(requestTypeReplRunCode, {
@@ -1433,15 +1433,15 @@ export function activate(
 
                 if (useRevise && !hasRevise) {
                     const install = 'Install & Setup Revise'
-                    const turnOff = 'Turn off'
-                    const turnOffGlobally = 'Turn off globally'
+                    const turnOff = 'Disable (workspace)'
+                    const turnOffGlobally = 'Disable'
 
                     vscode.window
                         .showInformationMessage(
-                            'Load Revise on startup of the REPL is turned on, but Revise was not found.',
+                            'Julia is configured to load [Revise](https://timholy.github.io/Revise.jl/stable/) when the REPL starts, but [Revise](https://timholy.github.io/Revise.jl/stable/) is not installed.',
                             install,
-                            turnOff,
-                            turnOffGlobally
+                            turnOffGlobally,
+                            turnOff
                         )
                         .then(async (select) => {
                             switch (select) {
@@ -1452,7 +1452,7 @@ export function activate(
                                         'terminalserver',
                                         'install_revise.jl'
                                     )
-                                    const shellPath = juliaExecutable.file
+                                    const shellPath = juliaExecutable.command
                                     const shellArgs = [installReviseScript]
 
                                     const task = new TaskRunnerTerminal(`Install Revise`, shellPath, shellArgs, {
@@ -1466,9 +1466,9 @@ export function activate(
                                         },
                                     })
 
-                                    task.onDidClose(async (exitCode) => {
+                                    task.onDidExitProcess(async (exitCode) => {
                                         if (exitCode === 0) {
-                                            await executeInREPL('using Revise;', {})
+                                            await executeInREPL('using Revise;')
                                         }
 
                                         task.dispose()

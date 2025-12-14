@@ -31,5 +31,7 @@ let
     end
 
     VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, telemetry_pipename, "REPL"))
-    VSCodeServer.JSONRPC.send_notification(VSCodeServer.conn_endpoint[], "checkrevise", has_revise)
+    if !has_revise
+        VSCodeServer.JSONRPC.send_notification(VSCodeServer.conn_endpoint[], "norevise", has_revise)
+    end
 end

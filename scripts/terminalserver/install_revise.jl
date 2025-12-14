@@ -1,2 +1,2 @@
-using Pkg;
-Pkg.add("Revise");
+using Pkg
+Pkg.add("Revise")
