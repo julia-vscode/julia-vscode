@@ -296,6 +296,7 @@ export async function startREPL(
                 isTransient: true,
                 hideFromUser: true,
                 env,
+                cwd: workspaceFolder,
             })
         }
     }
