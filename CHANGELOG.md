@@ -6,7 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
-- The language server can now start with the Julia binary configured in `julia.executablePath` again instead of insisting on its own setting
+- The language server can now start with the Julia binary configured in `julia.executablePath` again instead of insisting on its own setting ([#3932](https://github.com/julia-vscode/julia-vscode/pull/3932))
+- Juliaup overrides are now properly taking into account when starting the REPL, but only if `julia.executablePath` is set to `julia` or some other program that resolves to juliaup's julia binary ([#3933](https://github.com/julia-vscode/julia-vscode/pull/3933))
 - Don't exit VSCodeServer when JSONRPC reports endpoint is closed ([#3674](https://github.com/julia-vscode/julia-vscode/pull/3674))
 
 ## [1.162.0] - 2025-12-12
