@@ -1,6 +1,7 @@
 [deps]
 AutoHashEquals = "15f4f7f2-30c1-5605-9d31-71845cf9641f"
 CSTParser = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
+CancellationTokens = "2e8d271d-f2e2-407b-a864-17eb2156783e"
 CommonMark = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
@@ -22,6 +23,37 @@ Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Salsa = "1fbf2c77-44e2-4d5d-8131-0fa618a5c278"
 StaticLint = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
 SymbolServer = "cf896787-08d5-524d-9de7-132aaa0cb996"
+TestItemDetection = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
 Tokenize = "0796e94c-ce3b-5d07-9a54-7f471281c624"
 URIParser = "30578b45-9adc-5946-b283-645ec420af67"
 URIs = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
+
+[sources]
+AutoHashEquals = {path = "../../../packages/AutoHashEquals"}
+CSTParser = {path = "../../../packages/CSTParser"}
+CancellationTokens = {path = "../../../packages/CancellationTokens"}
+CommonMark = {path = "../../../packages/CommonMark"}
+Compat = {path = "../../../packages/Compat"}
+Crayons = {path = "../../../packages/Crayons"}
+DataStructures = {path = "../../../packages/DataStructures"}
+DelimitedFiles = {path = "../../../packages/DelimitedFiles"}
+ExceptionUnwrapping = {path = "../../../packages/ExceptionUnwrapping"}
+FilePathsBase = {path = "../../../packages/FilePathsBase"}
+Glob = {path = "../../../packages/Glob"}
+JSON = {path = "../../../packages/JSON"}
+JSONRPC = {path = "../../../packages/JSONRPC"}
+JuliaFormatter = {path = "../../../packages/JuliaFormatter"}
+JuliaSyntax = {path = "../../../packages/JuliaSyntax"}
+JuliaWorkspaces = {path = "../../../packages/JuliaWorkspaces"}
+LanguageServer = {path = "../../../packages/LanguageServer"}
+MacroTools = {path = "../../../packages/MacroTools"}
+OrderedCollections = {path = "../../../packages/OrderedCollections"}
+PrecompileTools = {path = "../../../packages/PrecompileTools"}
+Preferences = {path = "../../../packages/Preferences"}
+Salsa = {path = "../../../packages/Salsa"}
+StaticLint = {path = "../../../packages/StaticLint"}
+SymbolServer = {path = "../../../packages/SymbolServer"}
+TestItemDetection = {path = "../../../packages/TestItemDetection"}
+Tokenize = {path = "../../../packages/Tokenize"}
+URIParser = {path = "../../../packages/URIParser"}
+URIs = {path = "../../../packages/URIs"}

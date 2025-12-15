@@ -2,12 +2,15 @@ import * as fs from 'async-file'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
-import { JuliaExecutablesFeature } from './juliaexepath'
+import { ExecutableFeature } from './executables'
 import * as telemetry from './telemetry'
 import { inferJuliaNumThreads } from './utils'
 
 class JuliaTaskProvider {
-    constructor(private context: vscode.ExtensionContext, private juliaExecutablesFeature: JuliaExecutablesFeature) { }
+    constructor(
+        private context: vscode.ExtensionContext,
+        private ExecutableFeature: ExecutableFeature
+    ) {}
 
     async provideTasks() {
         const emptyTasks: vscode.Task[] = []
@@ -38,7 +41,7 @@ class JuliaTaskProvider {
             const nthreads = inferJuliaNumThreads()
             const result: vscode.Task[] = []
 
-            const juliaExecutable = await this.juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+            const juliaExecutable = await this.ExecutableFeature.getExecutable()
             const pkgenvpath = await jlpkgenv.getAbsEnvPath()
 
             if (await fs.exists(path.join(rootPath, 'test', 'runtests.jl'))) {
@@ -54,44 +57,38 @@ class JuliaTaskProvider {
 
                 if (nthreads === 'auto') {
                     jlargs.splice(1, 0, '--threads=auto')
-                } else {
+                } else if (nthreads !== undefined) {
                     env['JULIA_NUM_THREADS'] = nthreads
                 }
                 const testTask = new vscode.Task(
                     {
                         type: 'julia',
-                        command: 'test'
+                        command: 'test',
                     },
                     folder,
                     `Run tests`,
                     'Julia',
-                    new vscode.ProcessExecution(
-                        juliaExecutable.file,
-                        jlargs,
-                        {
-                            env: env
-                        }
-                    ),
+                    new vscode.ProcessExecution(juliaExecutable.command, jlargs, {
+                        env: env,
+                    }),
                     ''
                 )
                 testTask.group = vscode.TaskGroup.Test
-                testTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
+                testTask.presentationOptions = {
+                    echo: false,
+                    focus: false,
+                    panel: vscode.TaskPanelKind.Dedicated,
+                    clear: true,
+                }
                 result.push(testTask)
 
                 const jlargs2 = [
                     ...juliaExecutable.args,
                     '--color=yes',
                     `--project=${pkgenvpath}`,
-                    path.join(
-                        this.context.extensionPath,
-                        'scripts',
-                        'tasks',
-                        'task_test.jl'
-                    ),
+                    path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_test.jl'),
                     folder.uri.fsPath,
-                    vscode.workspace
-                        .getConfiguration('julia')
-                        .get<boolean>('deleteJuliaCovFiles') ?? false
+                    (vscode.workspace.getConfiguration('julia').get<boolean>('deleteJuliaCovFiles') ?? false)
                         ? 'true'
                         : 'false',
                 ]
@@ -103,83 +100,51 @@ class JuliaTaskProvider {
                 const testTaskWithCoverage = new vscode.Task(
                     {
                         type: 'julia',
-                        command: 'testcoverage'
+                        command: 'testcoverage',
                     },
                     folder,
                     `Run tests with coverage`,
                     'Julia',
-                    new vscode.ProcessExecution(
-                        juliaExecutable.file,
-                        jlargs2,
-                        {
-                            env: env
-                        }
-                    ),
+                    new vscode.ProcessExecution(juliaExecutable.command, jlargs2, {
+                        env: env,
+                    }),
                     ''
                 )
                 testTaskWithCoverage.group = vscode.TaskGroup.Test
-                testTaskWithCoverage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
+                testTaskWithCoverage.presentationOptions = {
+                    echo: false,
+                    focus: false,
+                    panel: vscode.TaskPanelKind.Dedicated,
+                    clear: true,
+                }
                 result.push(testTaskWithCoverage)
-
-                // const livetestTask = new vscode.Task({ type: 'julia', command: 'livetest' }, folder, `Run tests live (experimental)`, 'julia', new vscode.ProcessExecution(jlexepath, ['--color=yes', `--project=${pkgenvpath}`, path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_liveunittesting.jl'), folder.name, vscode.workspace.getConfiguration('julia').get('liveTestFile')], { env: { JULIA_NUM_THREADS: inferJuliaNumThreads() } }), '')
-                // livetestTask.group = vscode.TaskGroup.Test
-                // livetestTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
-                // result.push(livetestTask)
-
-            }
-
-            if (juliaExecutable.getVersion().compare('1.6.0') >= 0) {
-                const buildJuliaSysimage = new vscode.Task(
-                    {
-                        type: 'julia',
-                        command: 'juliasysimagebuild',
-                    },
-                    folder,
-                    `Build custom sysimage for current environment (experimental)`,
-                    'Julia',
-                    new vscode.ProcessExecution(juliaExecutable.file, [
-                        ...juliaExecutable.args,
-                        '--color=yes',
-                        '--startup-file=no',
-                        '--history-file=no',
-                        path.join(
-                            this.context.extensionPath,
-                            'scripts',
-                            'tasks',
-                            'task_compileenv.jl'
-                        ),
-                        pkgenvpath,
-                    ]),
-                    ''
-                )
-                buildJuliaSysimage.group = vscode.TaskGroup.Build
-                buildJuliaSysimage.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
-                result.push(buildJuliaSysimage)
             }
 
             if (await fs.exists(path.join(rootPath, 'deps', 'build.jl'))) {
                 const buildTask = new vscode.Task(
                     {
                         type: 'julia',
-                        command: 'build'
+                        command: 'build',
                     },
                     folder,
                     `Run build`,
                     'Julia',
-                    new vscode.ProcessExecution(
-                        juliaExecutable.file,
-                        [
-                            ...juliaExecutable.args,
-                            '--color=yes',
-                            `--project=${pkgenvpath}`,
-                            '-e',
-                            `using Pkg; Pkg.build("${folder.name}")`
-                        ])
-                    ,
+                    new vscode.ProcessExecution(juliaExecutable.command, [
+                        ...juliaExecutable.args,
+                        '--color=yes',
+                        `--project=${pkgenvpath}`,
+                        '-e',
+                        `using Pkg; Pkg.build("${folder.name}")`,
+                    ]),
                     ''
                 )
                 buildTask.group = vscode.TaskGroup.Build
-                buildTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
+                buildTask.presentationOptions = {
+                    echo: false,
+                    focus: false,
+                    panel: vscode.TaskPanelKind.Dedicated,
+                    clear: true,
+                }
                 result.push(buildTask)
             }
 
@@ -187,25 +152,27 @@ class JuliaTaskProvider {
                 const benchmarkTask = new vscode.Task(
                     {
                         type: 'julia',
-                        command: 'benchmark'
+                        command: 'benchmark',
                     },
                     folder,
                     `Run benchmark`,
                     'Julia',
-                    new vscode.ProcessExecution(
-                        juliaExecutable.file,
-                        [
-                            ...juliaExecutable.args,
-                            '--color=yes',
-                            `--project=${pkgenvpath}`,
-                            '-e',
-                            'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], resultfile="benchmark/results.json")',
-                            folder.name
-                        ]
-                    ),
+                    new vscode.ProcessExecution(juliaExecutable.command, [
+                        ...juliaExecutable.args,
+                        '--color=yes',
+                        `--project=${pkgenvpath}`,
+                        '-e',
+                        'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], resultfile="benchmark/results.json")',
+                        folder.name,
+                    ]),
                     ''
                 )
-                benchmarkTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
+                benchmarkTask.presentationOptions = {
+                    echo: false,
+                    focus: false,
+                    panel: vscode.TaskPanelKind.Dedicated,
+                    clear: true,
+                }
                 result.push(benchmarkTask)
             }
 
@@ -213,42 +180,47 @@ class JuliaTaskProvider {
                 const buildTask = new vscode.Task(
                     {
                         type: 'julia',
-                        command: 'docbuild'
+                        command: 'docbuild',
                     },
                     folder,
                     `Build documentation`,
                     'Julia',
                     new vscode.ProcessExecution(
-                        juliaExecutable.file,
+                        juliaExecutable.command,
                         [
                             ...juliaExecutable.args,
                             `--project=${pkgenvpath}`,
                             '--color=yes',
                             path.join(this.context.extensionPath, 'scripts', 'tasks', 'task_docbuild.jl'),
                             path.join(rootPath, 'docs', 'make.jl'),
-                            path.join(rootPath, 'docs', 'build', 'index.html')
+                            path.join(rootPath, 'docs', 'build', 'index.html'),
                         ],
                         { cwd: rootPath }
                     ),
                     ''
                 )
                 buildTask.group = vscode.TaskGroup.Build
-                buildTask.presentationOptions = { echo: false, focus: false, panel: vscode.TaskPanelKind.Dedicated, clear: true }
+                buildTask.presentationOptions = {
+                    echo: false,
+                    focus: false,
+                    panel: vscode.TaskPanelKind.Dedicated,
+                    clear: true,
+                }
                 result.push(buildTask)
             }
 
             return result
-        } catch (e) {
+        } catch {
             // TODO Let things crash and go to crash reporting
             return emptyTasks
         }
     }
 
-    resolveTask(task: vscode.Task) {
+    resolveTask() {
         return undefined
     }
 }
 
-export function activate(context: vscode.ExtensionContext, juliaExecutablesFeature: JuliaExecutablesFeature) {
-    vscode.tasks.registerTaskProvider('julia', new JuliaTaskProvider(context, juliaExecutablesFeature))
+export function activate(context: vscode.ExtensionContext, ExecutableFeature: ExecutableFeature) {
+    vscode.tasks.registerTaskProvider('julia', new JuliaTaskProvider(context, ExecutableFeature))
 }

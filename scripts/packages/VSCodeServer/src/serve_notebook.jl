@@ -7,7 +7,7 @@ end
 
 const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NotebookRunCellArguments, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
-function notebook_runcell_request(conn, params::NotebookRunCellArguments)
+function notebook_runcell_request(conn, params::NotebookRunCellArguments, token)
     code = string('\n'^params.line, ' '^params.column, params.code)
 
     withpath(params.filename) do
@@ -19,7 +19,7 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
             if isready(DEBUG_SESSION[])
                 debug_session = fetch(DEBUG_SESSION[])
 
-                DebugAdapter.debug_code(debug_session, Main, code, params.filename, false)
+                DebugAdapter.debug_code(debug_session, Main, code, params.filename)
             else
                 Base.invokelatest(include_string, args...)
             end
@@ -133,8 +133,8 @@ function serve_notebook(pipename, debugger_pipename, outputchannel_logger; error
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
-        msg_dispatcher[repl_gettabledata_request_type] = get_table_data
-        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
+        msg_dispatcher[repl_gettabledata_request_type] = get_table_data_request
+        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table_notification
 
         Base.with_logger(outputchannel_logger) do
             @info "Julia Kernel started"

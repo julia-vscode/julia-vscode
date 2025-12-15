@@ -11,6 +11,7 @@ import Logging
 import InteractiveUtils
 
 include("../../JSON/src/JSON.jl")
+include("../../CancellationTokens/src/CancellationTokens.jl")
 include("../../CodeTracking/src/CodeTracking.jl")
 
 module IJuliaCore
@@ -22,6 +23,7 @@ include("../../IJuliaCore/src/packagedef.jl")
 end
 
 module JSONRPC
+import ..CancellationTokens
 import ..JSON
 import UUIDs
 
@@ -31,10 +33,12 @@ end
 module JuliaInterpreter
 using ..CodeTracking
 
-@static if VERSION >= v"1.6.0"
+@static if VERSION >= v"1.10.0"
     include("../../JuliaInterpreter/src/packagedef.jl")
+elseif VERSION >= v"1.6.0"
+    include("../../../packages-old/v1.9/JuliaInterpreter/src/packagedef.jl")
 else
-    include("../../../packages-old/JuliaInterpreter/src/packagedef.jl")
+    include("../../../packages-old/v1.5/JuliaInterpreter/src/packagedef.jl")
 end
 end
 
@@ -127,7 +131,7 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         msg_dispatcher = JSONRPC.MsgDispatcher()
 
         msg_dispatcher[repl_runcode_request_type] = repl_runcode_request
-        msg_dispatcher[repl_interrupt_notification_type] = repl_interrupt_request
+        msg_dispatcher[repl_interrupt_notification_type] = repl_interrupt_notification
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
@@ -135,22 +139,22 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         msg_dispatcher[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
         msg_dispatcher[repl_getcompletions_request_type] = repl_getcompletions_request
         msg_dispatcher[repl_resolvecompletion_request_type] = repl_resolvecompletion_request
-        msg_dispatcher[repl_toggle_plot_pane_notification_type] = toggle_plot_pane
-        msg_dispatcher[repl_toggle_diagnostics_notification_type] = toggle_diagnostics
-        msg_dispatcher[repl_toggle_inlay_hints_notification_type] = toggle_inlay_hints
-        msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress
-        msg_dispatcher[cd_notification_type] = cd_to_uri
-        msg_dispatcher[activate_project_notification_type] = activate_uri
+        msg_dispatcher[repl_toggle_plot_pane_notification_type] = toggle_plot_pane_notification
+        msg_dispatcher[repl_toggle_diagnostics_notification_type] = toggle_diagnostics_notification
+        msg_dispatcher[repl_toggle_inlay_hints_notification_type] = toggle_inlay_hints_notification
+        msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress_notification
+        msg_dispatcher[cd_notification_type] = cd_to_uri_notification
+        msg_dispatcher[activate_project_notification_type] = activate_uri_notification
         msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request
-        msg_dispatcher[repl_gettabledata_request_type] = get_table_data
-        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
+        msg_dispatcher[repl_gettabledata_request_type] = get_table_data_request
+        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table_notification
 
         send_queued_notifications!()
 
         @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
             msg = JSONRPC.get_next_message(conn_endpoint[])
 
-            if msg["method"] == repl_runcode_request_type.method
+            if msg.method == repl_runcode_request_type.method
                 @async try
                     dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
                 catch err

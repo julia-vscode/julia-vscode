@@ -8,7 +8,7 @@ function remove_lln!(ex::Expr)
     end
 end
 
-function debugger_getdebugitems_request(conn, params)
+function debugger_getdebugitems_request(conn, params, token)
     accessor = params.juliaAccessor
     out = DebugConfigTreeItem[]
     loaded_modules = Base.loaded_modules_array()
@@ -76,7 +76,7 @@ macro enter(command)
 
             debug_session = wait_for_debug_session()
 
-            DebugAdapter.debug_code(debug_session, Main, $(string(command)), $(string(__source__.file)), true)
+            DebugAdapter.debug_code(debug_session, Main, $(string(command)), $(string(__source__.file)))
 
             DebugAdapter.terminate(debug_session)
 
@@ -103,9 +103,9 @@ macro run(command)
         let
             JSONRPC.send_notification(conn_endpoint[], "debugger/attach", (pipename=DEBUG_PIPENAME[], stopOnEntry=false))
 
-            debug_session = take!(DEBUG_SESSION[])
+            debug_session = wait_for_debug_session()
 
-            DebugAdapter.debug_code(debug_session, Main, $(string(command)), $(string(__source__.file)), true)
+            DebugAdapter.debug_code(debug_session, Main, $(string(command)), $(string(__source__.file)))
 
             DebugAdapter.terminate(debug_session)
 

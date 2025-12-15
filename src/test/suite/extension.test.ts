@@ -1,7 +1,6 @@
 import * as assert from 'assert'
 import * as ext from '../../extension'
 
-
 suite('Indentation', () => {
     test('functions', () => {
         assert.strictEqual(ext.increaseIndentPattern.test('function f()'), true)

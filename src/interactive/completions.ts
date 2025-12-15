@@ -10,37 +10,41 @@ import { onExit, onInit } from './repl'
 
 const selector = [
     { language: 'julia', scheme: 'untitled' },
-    { language: 'julia', scheme: 'file' }
+    { language: 'julia', scheme: 'file' },
 ]
 const completionTriggerCharacters = [
-    '\.', // property/field completion
+    '.', // property/field completion
     '[', // dict completion
 ]
 export function activate(context: vscode.ExtensionContext) {
     let completionSubscription: undefined | Disposable = undefined
     context.subscriptions.push(
-        onInit(wrapCrashReporting(conn => {
-            completionSubscription = vscode.languages.registerCompletionItemProvider(
-                selector,
-                completionItemProvider(conn),
-                ...completionTriggerCharacters
-            )
-        })),
+        onInit(
+            wrapCrashReporting((conn) => {
+                completionSubscription = vscode.languages.registerCompletionItemProvider(
+                    selector,
+                    completionItemProvider(conn),
+                    ...completionTriggerCharacters
+                )
+            })
+        ),
         onExit(() => {
-            if (completionSubscription) { completionSubscription.dispose() }
+            if (completionSubscription) {
+                completionSubscription.dispose()
+            }
         })
     )
 }
 
 const requestTypeGetCompletionItems = new rpc.RequestType<
-    { line: string, mod: string }, // input type
+    { line: string; mod: string }, // input type
     vscode.CompletionItem[], // return type
     void
-    >('repl/getcompletions')
+>('repl/getcompletions')
 
 function completionItemProvider(conn: MessageConnection): vscode.CompletionItemProvider {
     return {
-        provideCompletionItems: async (document, position, token, context) => {
+        provideCompletionItems: async (document, position, token) => {
             if (!vscode.workspace.getConfiguration('julia').get('runtimeCompletions')) {
                 return
             }
@@ -50,42 +54,44 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
                     const lineRange = new vscode.Range(startPosition, position)
                     const line = document.getText(lineRange)
 
-                    const mod: string = await getModuleForEditor(document, position)
-                    if(token.isCancellationRequested) { return }
+                    const { module } = await getModuleForEditor(document, position)
+                    if (token.isCancellationRequested) {
+                        return
+                    }
 
-                    const items = await conn.sendRequest(requestTypeGetCompletionItems, { line, mod })
-                    if(token.isCancellationRequested) { return }
+                    const items = await conn.sendRequest(requestTypeGetCompletionItems, { line, mod: module })
+                    if (token.isCancellationRequested) {
+                        return
+                    }
 
                     return {
                         items: items,
-                        isIncomplete: true
+                        isIncomplete: true,
                     }
-                }
-                catch(err) {
+                } catch (err) {
                     handleNewCrashReportFromException(err, 'Extension')
-                    throw (err)
+                    throw err
                 }
             })()
 
-            const cancelPromise: Promise<vscode.CompletionList> = new Promise(resolve => {
-                token.onCancellationRequested(() => resolve({
-                    items: [],
-                    isIncomplete: true
-                }))
+            const cancelPromise: Promise<vscode.CompletionList> = new Promise((resolve) => {
+                token.onCancellationRequested(() =>
+                    resolve({
+                        items: [],
+                        isIncomplete: true,
+                    })
+                )
                 setTimeout(() => {
                     if (!token.isCancellationRequested) {
                         resolve({
                             items: [],
-                            isIncomplete: true
+                            isIncomplete: true,
                         })
                     }
                 }, 500)
             })
 
-            return Promise.race([
-                completionPromise,
-                cancelPromise
-            ])
-        }
+            return Promise.race([completionPromise, cancelPromise])
+        },
     }
 }
