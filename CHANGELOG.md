@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - `#+` is now a valid cell seperator to support Weave script format ([#3626](https://github.com/julia-vscode/julia-vscode/pull/3626))
+- Terminal output for Julia Pkg tasks is now prettier ([#3934](https://github.com/julia-vscode/julia-vscode/pull/3934))
 
 ## [1.162.0] - 2025-12-12
 ### Fixed
