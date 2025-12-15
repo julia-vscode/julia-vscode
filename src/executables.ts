@@ -300,6 +300,8 @@ export class ExecutableFeature {
     private juliaupExecutableCache: Promise<JuliaupExecutable | undefined>
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
 
+    private noJuliaupAlreadyNotified: boolean = false
+
     constructor(private context: vscode.ExtensionContext) {
         this.context.subscriptions.push(
             vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
@@ -397,6 +399,52 @@ export class ExecutableFeature {
             }
         }
 
+        // Either we can use juliaup's release channel here (preferred option) or we try re-using
+        // the global `julia.executablePath` setting if juliaup is not installed:
+        const hasJuliaup = await this.hasJuliaup()
+        if (!hasJuliaup) {
+            let installJuliaup = false
+            if (
+                !this.noJuliaupAlreadyNotified &&
+                vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
+            ) {
+                // only do this once per session
+                this.noJuliaupAlreadyNotified = true
+
+                const install = 'Install'
+                const doNotShowAgain = 'Do not show again'
+                const choice = await vscode.window.showWarningMessage(
+                    'Juliaup is the recommended version manager for Julia and used to ensure that the language server runs with a well known Julia version.',
+                    install,
+                    doNotShowAgain
+                )
+
+                if (choice === doNotShowAgain) {
+                    // never do this again
+                    vscode.workspace
+                        .getConfiguration('julia')
+                        .update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
+                } else if (choice === install) {
+                    installJuliaup = true
+                }
+            }
+
+            if (!installJuliaup) {
+                this.outputChannel.appendLine(outputPrefix + `juliaup not installed, trying the non-LS path`)
+                const config = vscode.workspace.getConfiguration('julia').get<string>('executablePath')
+
+                if (config) {
+                    const exe = await this.juliaExecutableFromPathConfig(config, outputPrefix)
+                    if (exe) {
+                        this.outputChannel.appendLine(outputPrefix + `using ${exe.command} as LS executable`)
+                        return exe
+                    }
+                }
+
+                throw new Error('Julia not installed')
+            }
+        }
+
         let configuredChannel = process.env.JULIA_VSCODE_LANGUAGESERVER_CHANNEL
         this.outputChannel.appendLine(
             outputPrefix +
@@ -468,7 +516,7 @@ export class ExecutableFeature {
 
     // it's safe to call this multiple times; the return value is cached if successful
     // this will install juliaup if necessary
-    public async getJuliaupExecutable(): Promise<JuliaupExecutable> {
+    public async getJuliaupExecutable(tryInstall = true): Promise<JuliaupExecutable> {
         // caching the juliaup path is ok since we don't expect it to change much
         if (this.juliaupExecutableCache) {
             const exe = await this.juliaupExecutableCache
@@ -477,18 +525,19 @@ export class ExecutableFeature {
             }
         }
 
-        this.juliaupExecutableCache = this.getJuliaupExecutableNoCache()
+        this.juliaupExecutableCache = this.getJuliaupExecutableNoCache(tryInstall)
 
         try {
             return await this.juliaupExecutableCache
-        } catch {
+        } catch (err) {
             this.juliaupExecutableCache = undefined
+            throw err
         }
     }
 
     public async hasJuliaup(): Promise<boolean> {
         try {
-            await this.getJuliaupExecutable()
+            await this.getJuliaupExecutable(false)
             return true
         } catch {
             return false

@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- The language server can now start with the Julia binary configured in `julia.executablePath` again instead of insisting on its own setting
+
 ## [1.162.0] - 2025-12-12
 ### Fixed
 - Fixed the incorrect sourcing of python envs on REPL startup in a new terminal ([#3920](https://github.com/julia-vscode/julia-vscode/pull/3920))
