@@ -28,6 +28,8 @@ export class LanguageClientFeature {
 
     private watchedEnvironment: string
 
+    private serverStarting: boolean = false
+
     languageClient: LanguageClient
 
     constructor(
@@ -77,7 +79,21 @@ export class LanguageClientFeature {
     }
 
     public async startServer(envPath?: string) {
+        if (this.serverStarting) {
+            return
+        }
+
+        this.serverStarting = true
+        try {
+            await this.startServerInner(envPath)
+        } finally {
+            this.serverStarting = false
+        }
+    }
+
+    public async startServerInner(envPath?: string) {
         let juliaExecutable: JuliaExecutable
+
         try {
             juliaExecutable = await this.executable.getLsExecutable()
         } catch {
