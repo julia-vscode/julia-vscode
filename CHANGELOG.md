@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The language server can now start with the Julia binary configured in `julia.executablePath` again instead of insisting on its own setting
 - Don't exit VSCodeServer when JSONRPC reports endpoint is closed ([#3674](https://github.com/julia-vscode/julia-vscode/pull/3674))
 
+### Changed
+- `#+` is now a valid cell seperator to support Weave script format ([#3626](https://github.com/julia-vscode/julia-vscode/pull/3626))
+
 ## [1.162.0] - 2025-12-12
 ### Fixed
 - Fixed the incorrect sourcing of python envs on REPL startup in a new terminal ([#3920](https://github.com/julia-vscode/julia-vscode/pull/3920))
@@ -144,7 +147,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * Items in the environment selector are now sorted more naturally and Pluto-internal environments are filtered out ([#3594](https://github.com/julia-vscode/julia-vscode/pull/3594))
-* `#+` is now a valid cell seperator to support Weave script format.
 
 ## [1.76.0] - 2024-04-05
 ### Fixed
