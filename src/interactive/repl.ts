@@ -876,7 +876,12 @@ async function selectJuliaBlock() {
     validateMoveAndReveal(editor, start_pos, end_pos)
 }
 
-let g_cellDelimiters = [/^##(?!#)/, /^#(\s?)%%/]
+let g_cellDelimiters = [
+    /^##(?!#)/,
+    /^#(\s?)%%/,
+    /^#(\s?)\+/,
+    /^#(\s?)-/
+]
 
 function isCellBorder(s: string, isStart: boolean, isJmd: boolean) {
     if (isJmd) {

@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Juliaup overrides are now properly taking into account when starting the REPL, but only if `julia.executablePath` is set to `julia` or some other program that resolves to juliaup's julia binary ([#3933](https://github.com/julia-vscode/julia-vscode/pull/3933))
 - Don't exit VSCodeServer when JSONRPC reports endpoint is closed ([#3674](https://github.com/julia-vscode/julia-vscode/pull/3674))
 
+### Changed
+- `#+` is now a valid cell seperator to support Weave script format ([#3626](https://github.com/julia-vscode/julia-vscode/pull/3626))
+
 ## [1.162.0] - 2025-12-12
 ### Fixed
 - Fixed the incorrect sourcing of python envs on REPL startup in a new terminal ([#3920](https://github.com/julia-vscode/julia-vscode/pull/3920))
