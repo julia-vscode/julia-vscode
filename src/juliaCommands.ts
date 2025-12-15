@@ -50,10 +50,26 @@ export class JuliaCommands {
     }
 
     private async runPackageCommand(cmd?: string, env?: string) {
-        return await this.runCommand(`using Pkg; pkg"${cmd}"`, env, `Julia: ${cmd}`, { JULIA_PKG_PRECOMPILE_AUTO: '0' })
+        return await this.runCommand(
+            `using Pkg
+            if isdefined(Pkg, :REPLMode) && isdefined(Pkg.REPLMode, :PRINTED_REPL_WARNING)
+                Pkg.REPLMode.PRINTED_REPL_WARNING[] = true
+            end
+            pkg"${cmd}"`,
+            cmd,
+            env,
+            `Julia: ${cmd}`,
+            { JULIA_PKG_PRECOMPILE_AUTO: '0' }
+        )
     }
 
-    private async runCommand(cmd: string, juliaEnv?: string, name?: string, processEnv?: { [key: string]: string }) {
+    private async runCommand(
+        cmd: string,
+        pkgCmd?: string,
+        juliaEnv?: string,
+        name?: string,
+        processEnv?: { [key: string]: string }
+    ) {
         const juliaExecutable = await this.juliaExecutableFeature.getExecutable()
         const args = [...juliaExecutable.args]
 
@@ -71,7 +87,7 @@ export class JuliaCommands {
                 ...process.env,
                 ...processEnv,
             },
-            echoMessage: true,
+            echoMessage: `\n\r\x1b[30;47m * \x1b[0m Executing '${pkgCmd}' in ${juliaEnv}\n\r\n\r`,
             onExitMessage(exitCode) {
                 if (exitCode === 0) {
                     return '\n\r\x1b[30;47m * \x1b[0m Successfully ran this command. Press any key to close the terminal.\n\r\n\r'
