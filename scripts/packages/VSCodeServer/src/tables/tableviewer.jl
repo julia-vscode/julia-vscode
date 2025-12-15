@@ -124,6 +124,7 @@ _get_label = (x, col) -> nothing
 const tabletraits_uuid = UUIDs.UUID("3783bdb8-4a98-5b6b-af9a-565f29a5fe9c")
 const datavalues_uuid = UUIDs.UUID("e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5")
 const dataapi_uuid = UUIDs.UUID("9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a")
+const observables_uuid = UUIDs.UUID("510215fc-4207-5dde-b226-833fc4488ee2")
 function on_pkg_load(pkg)
     if pkg.uuid == tabletraits_uuid
         TableTraits = get(Base.loaded_modules, pkg) do
@@ -153,6 +154,25 @@ function on_pkg_load(pkg)
         catch err
             @debug "Could not get column label for $col" exception=(err, catch_backtrace())
             return nothing
+        end
+    elseif pkg.uuid == observables_uuid
+        Observables = get(Base.loaded_modules, pkg) do
+            Base.require(pkg)
+        end
+
+        @eval begin
+            function Base.display(d::VSCodeServer.InlineDisplay, m::MIME, obs::$(Observables.Observable))
+                if !showable(m, obs[])
+                    throw(MethodError(display, (d, m, obs)))
+                end
+
+                id = rand(Int)
+                mime = MIME("$(string(m));id=$id")
+                $(Observables.on)(obs) do x
+                    display(d, mime, x)
+                end
+                return display(d, mime, obs[])
+            end
         end
     end
 end
@@ -237,7 +257,7 @@ function showtable(table::T, title = "") where {T}
     end
 end
 
-function get_table_data(conn, params::GetTableDataRequest)
+function get_table_data_request(conn, params::GetTableDataRequest, token)
     id = UUID(params.id)
     if !haskey(TABLES, id)
         return JSONRPC.JSONRPCError(-32600, "Table not found.", nothing)
@@ -284,7 +304,7 @@ function get_table_data(conn, params::GetTableDataRequest)
     )
 end
 
-function clear_lazy_table(conn, params::NamedTuple{(:id,),Tuple{String}})
+function clear_lazy_table_notification(conn, params::NamedTuple{(:id,),Tuple{String}})
     id = UUID(params.id)
     delete!(TABLES, id)
     delete!(FILTER_CACHE, id)

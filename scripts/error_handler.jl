@@ -9,14 +9,16 @@ is_disconnected_exception(err::Base.IOError) = true
 is_disconnected_exception(err::ErrorException) = startswith(err.msg, "Endpoint is not running, the current state is")
 is_disconnected_exception(err::CompositeException) = all(is_disconnected_exception, err.exceptions)
 
-function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
+function global_err_handler(e, bt, vscode_pipe_name, cloudRole; should_exit = true)
     if is_disconnected_exception(e)
-        @debug "Disconnect. Nothing to worry about."
+        @debug "Disconnect." ex=(e, bt)
         return
     end
 
     @error "Some Julia code in the VS Code extension crashed"
     Base.display_error(e, bt)
+    flush(stdout)
+    flush(stderr)
 
 
     try
@@ -75,6 +77,8 @@ function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
             close(pipe_to_vscode)
         end
     finally
-        exit(1)
+        if should_exit
+            exit(1)
+        end
     end
 end

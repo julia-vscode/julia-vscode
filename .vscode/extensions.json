@@ -5,6 +5,7 @@
     "recommendations": [
         "dbaeumer.vscode-eslint",
         "julialang.language-julia",
-        "ms-vscode.extension-test-runner"
-    ],
+        "ms-vscode.extension-test-runner",
+        "esbenp.prettier-vscode"
+    ]
 }
