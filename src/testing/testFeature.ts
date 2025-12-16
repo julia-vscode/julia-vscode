@@ -548,16 +548,16 @@ export class TestFeature {
             languageClientFeature.onDidSetLanguageClient((languageClient) => {
                 this.languageClient = languageClient
 
-                this.languageClient.onDidChangeState((event) => {
-                    if (event.newState === vslc.State.Running) {
-                        languageClient.onNotification(tlsp.notifyTypeTextDocumentPublishTests, (i) => {
-                            try {
-                                this.publishTestsHandler(i)
-                            } catch (err) {
-                                handleNewCrashReportFromException(err, 'Extension')
-                                throw err
-                            }
-                        })
+                if (!this.languageClient) {
+                    return
+                }
+
+                languageClient.onNotification(tlsp.notifyTypeTextDocumentPublishTests, (i) => {
+                    try {
+                        this.publishTestsHandler(i)
+                    } catch (err) {
+                        handleNewCrashReportFromException(err, 'Extension')
+                        throw err
                     }
                 })
             })
@@ -762,7 +762,7 @@ export class TestFeature {
         const testEnvPerFile = new Map<vscode.Uri, tlsp.GetTestEnvRequestParamsReturn>()
 
         for (const uri of uniqueFiles) {
-            const testEnv = await this.languageClient.sendRequest(tlsp.requestTypJuliaGetTestEnv, {
+            const testEnv = await this.languageClient?.sendRequest(tlsp.requestTypJuliaGetTestEnv, {
                 uri: uri.toString(),
             })
             testEnvPerFile.set(uri, testEnv)
