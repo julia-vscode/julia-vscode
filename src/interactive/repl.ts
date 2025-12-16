@@ -1469,7 +1469,7 @@ export function activate(
 
                                     task.onDidExitProcess(async (exitCode) => {
                                         if (exitCode === 0) {
-                                            await executeInREPL('using Revise;')
+                                            await executeInREPL('using Revise')
                                         }
 
                                         task.dispose()
