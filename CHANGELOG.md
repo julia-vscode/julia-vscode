@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Fix a bug that caused Julia test detection to fail ([#3935](https://github.com/julia-vscode/julia-vscode/pull/3935))
 
+### Added
+- Add suggestion to install Revise.jl if it is not present ([#3926](https://github.com/julia-vscode/julia-vscode/pull/3926))
+
 ## [1.163.0] - 2025-12-15
 ### Fixed
 - The language server can now start with the Julia binary configured in `julia.executablePath` again instead of insisting on its own setting ([#3932](https://github.com/julia-vscode/julia-vscode/pull/3932))
