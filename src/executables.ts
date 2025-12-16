@@ -12,6 +12,7 @@ import { resolvePath } from './utils'
 import { installJuliaOrJuliaup } from './juliaupAutoInstall'
 import { Mutex } from 'async-mutex'
 import { TaskRunner } from './taskRunnerTerminal'
+import { ExecFileOptions } from 'child_process'
 
 const juliaVersionPrefix = 'julia version '
 
@@ -300,6 +301,8 @@ export class ExecutableFeature {
     private juliaupExecutableCache: Promise<JuliaupExecutable | undefined>
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
 
+    private noJuliaupAlreadyNotified: boolean = false
+
     constructor(private context: vscode.ExtensionContext) {
         this.context.subscriptions.push(
             vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
@@ -330,11 +333,23 @@ export class ExecutableFeature {
             // first we try to interpret the config as a path
             const exe = await this.juliaExecutableFromPathConfig(config, outputPrefix)
             if (exe) {
-                this.outputChannel.appendLine(outputPrefix + `using ${exe.command} as executable`)
+                this.outputChannel.appendLine(outputPrefix + `using '${exe.command}' (v${exe.version}) as executable`)
                 return exe
             }
 
-            // but if that doesn't work, the input is expected to be a juliaup channel
+            // and then just try to spawn it
+            const version = await this.tryGetJuliaVersion(config, [], outputPrefix)
+
+            if (version) {
+                const exe = new JuliaExecutable(config, version)
+                this.outputChannel.appendLine(outputPrefix + `using '${exe.command}' (v${exe.version}) as executable`)
+
+                return exe
+            } else {
+                this.outputChannel.appendLine(outputPrefix + `'${config}' can not be started`)
+            }
+
+            // but if neither of those work, the input is expected to be a juliaup channel
             // and of the form 'julia +$channel' or '+$channel'
             configuredJuliaupChannel = juliaChannelFromPathConfig(config)
 
@@ -344,7 +359,7 @@ export class ExecutableFeature {
                         `${config} is not a path, interpreting it as a julia channel '${configuredJuliaupChannel}'`
                 )
             } else {
-                this.outputChannel.appendLine(outputPrefix + `${config} is invalid`)
+                this.outputChannel.appendLine(outputPrefix + `'${config}' is an invalid juliaup channel`)
             }
         }
 
@@ -394,6 +409,52 @@ export class ExecutableFeature {
             if (exe) {
                 this.outputChannel.appendLine(outputPrefix + `using ${exe.command} as LS executable`)
                 return exe
+            }
+        }
+
+        // Either we can use juliaup's release channel here (preferred option) or we try re-using
+        // the global `julia.executablePath` setting if juliaup is not installed:
+        const hasJuliaup = await this.hasJuliaup()
+        if (!hasJuliaup) {
+            let installJuliaup = false
+            if (
+                !this.noJuliaupAlreadyNotified &&
+                vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
+            ) {
+                // only do this once per session
+                this.noJuliaupAlreadyNotified = true
+
+                const install = 'Install'
+                const doNotShowAgain = 'Do not show again'
+                const choice = await vscode.window.showWarningMessage(
+                    'Juliaup is the recommended version manager for Julia and used to ensure that the language server runs with a well known Julia version.',
+                    install,
+                    doNotShowAgain
+                )
+
+                if (choice === doNotShowAgain) {
+                    // never do this again
+                    vscode.workspace
+                        .getConfiguration('julia')
+                        .update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
+                } else if (choice === install) {
+                    installJuliaup = true
+                }
+            }
+
+            if (!installJuliaup) {
+                this.outputChannel.appendLine(outputPrefix + `juliaup not installed, trying the non-LS path`)
+                const config = vscode.workspace.getConfiguration('julia').get<string>('executablePath')
+
+                if (config) {
+                    const exe = await this.juliaExecutableFromPathConfig(config, outputPrefix)
+                    if (exe) {
+                        this.outputChannel.appendLine(outputPrefix + `using ${exe.command} as LS executable`)
+                        return exe
+                    }
+                }
+
+                throw new Error('Julia not installed')
             }
         }
 
@@ -468,7 +529,7 @@ export class ExecutableFeature {
 
     // it's safe to call this multiple times; the return value is cached if successful
     // this will install juliaup if necessary
-    public async getJuliaupExecutable(): Promise<JuliaupExecutable> {
+    public async getJuliaupExecutable(tryInstall = true): Promise<JuliaupExecutable> {
         // caching the juliaup path is ok since we don't expect it to change much
         if (this.juliaupExecutableCache) {
             const exe = await this.juliaupExecutableCache
@@ -477,18 +538,19 @@ export class ExecutableFeature {
             }
         }
 
-        this.juliaupExecutableCache = this.getJuliaupExecutableNoCache()
+        this.juliaupExecutableCache = this.getJuliaupExecutableNoCache(tryInstall)
 
         try {
             return await this.juliaupExecutableCache
-        } catch {
+        } catch (err) {
             this.juliaupExecutableCache = undefined
+            throw err
         }
     }
 
     public async hasJuliaup(): Promise<boolean> {
         try {
-            await this.getJuliaupExecutable()
+            await this.getJuliaupExecutable(false)
             return true
         } catch {
             return false
@@ -525,26 +587,37 @@ export class ExecutableFeature {
         return path.join(root, 'bin', 'julia')
     }
 
-    async tryGetJuliaVersion(command: string, args: string[] = []): Promise<string | undefined> {
+    async tryGetJuliaVersion(
+        command: string,
+        args: string[] = [],
+        outputPrefix: string = ''
+    ): Promise<string | undefined> {
         try {
-            const { stdout } = await execFile(command, [...args, '--version'], {
-                shell: true,
+            const options: ExecFileOptions = {
                 env: { ...process.env, JULIA_VSCODE_INTERNAL: '1' },
-            })
+            }
+            const workspace = vscode.workspace.workspaceFolders?.[0]
+
+            if (workspace?.uri?.fsPath) {
+                options.cwd = workspace.uri.fsPath
+            }
+
+            const { stdout } = await execFile(command, [...args, '--version'], options)
             const versionString = stdout.toString().trim()
             if (!versionString.startsWith(juliaVersionPrefix)) {
                 this.outputChannel.appendLine(
-                    `runs, but does not return a parsable version string. Got '${versionString}'`
+                    outputPrefix +
+                        `'${command}' runs, but does not return a parsable version string. Got '${versionString}'`
                 )
                 return
             }
 
             const version = versionString.slice(juliaVersionPrefix.length)
 
-            this.outputChannel.appendLine(`runs and resolves to ${version}`)
+            this.outputChannel.appendLine(outputPrefix + `'${command}' runs and resolves to ${version}`)
             return version
         } catch {
-            this.outputChannel.appendLine(`failed to run`)
+            this.outputChannel.appendLine(outputPrefix + `'${command}' failed to run`)
         }
     }
 
@@ -554,7 +627,7 @@ export class ExecutableFeature {
         for (const pathOption of pathOptions) {
             if (path.isAbsolute(pathOption) && (await exists(pathOption))) {
                 this.outputChannel.appendLine(outputPrefix + `Trying ${pathOption} as an absolute path... `)
-                const version = await this.tryGetJuliaVersion(pathOption)
+                const version = await this.tryGetJuliaVersion(pathOption, [], outputPrefix)
                 if (version) {
                     return new JuliaExecutable(pathOption, version)
                 }

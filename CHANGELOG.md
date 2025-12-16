@@ -5,6 +5,17 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.163.0] - 2025-12-15
+### Fixed
+- The language server can now start with the Julia binary configured in `julia.executablePath` again instead of insisting on its own setting ([#3932](https://github.com/julia-vscode/julia-vscode/pull/3932))
+- Juliaup overrides are now properly taking into account when starting the REPL, but only if `julia.executablePath` is set to `julia` or some other program that resolves to juliaup's julia binary ([#3933](https://github.com/julia-vscode/julia-vscode/pull/3933))
+- Don't exit VSCodeServer when JSONRPC reports endpoint is closed ([#3674](https://github.com/julia-vscode/julia-vscode/pull/3674))
+
+### Changed
+- `#+` is now a valid cell seperator to support Weave script format ([#3626](https://github.com/julia-vscode/julia-vscode/pull/3626))
+- Terminal output for Julia Pkg tasks is now prettier ([#3934](https://github.com/julia-vscode/julia-vscode/pull/3934))
+
 ## [1.162.0] - 2025-12-12
 ### Fixed
 - Fixed the incorrect sourcing of python envs on REPL startup in a new terminal ([#3920](https://github.com/julia-vscode/julia-vscode/pull/3920))

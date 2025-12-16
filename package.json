@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.162.0",
+    "version": "1.164.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -866,7 +866,7 @@
                 "julia.executablePath": {
                     "type": "string",
                     "default": "",
-                    "description": "Points to the julia executable.",
+                    "markdownDescription": "Points to the Julia executable. This can either be an absolute path, an executable on your PATH, or a juliaup channel (valid formats `julia +$channel`, `+$channel`).",
                     "scope": "machine-overridable"
                 },
                 "julia.juliaup.install.hint": {
@@ -1104,7 +1104,8 @@
                         "^\\s?#\\s#+",
                         "^##(?!#)",
                         "^#(\\s?)%%",
-                        "^#-"
+                        "^#-",
+                        "^#+"
                     ],
                     "description": "Cell delimiter regular expressions for Julia files."
                 },
