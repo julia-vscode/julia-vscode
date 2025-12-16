@@ -1439,7 +1439,7 @@ export function activate(
 
                     vscode.window
                         .showInformationMessage(
-                            'Julia is configured to load [Revise](https://timholy.github.io/Revise.jl/stable/) when the REPL starts, but [Revise](https://timholy.github.io/Revise.jl/stable/) is not installed.',
+                            "Julia is configured to load [Revise](https://timholy.github.io/Revise.jl/stable/) when the REPL starts, but [Revise](https://timholy.github.io/Revise.jl/stable/) is not installed. Note that changes to packages loaded before installing Revise won't be reflected until you restart the REPL.",
                             install,
                             turnOffGlobally,
                             turnOff
