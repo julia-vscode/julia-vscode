@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- Fix a bug that caused Julia test detection to fail ([#3935](https://github.com/julia-vscode/julia-vscode/pull/3935))
 
 ## [1.163.0] - 2025-12-15
 ### Fixed
