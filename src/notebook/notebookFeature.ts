@@ -157,6 +157,13 @@ export class JuliaNotebookFeature {
         }
     }
 
+    private interruptActiveNotebook() {
+        const activeNotebook = vscode.window.activeNotebookEditor?.notebook
+        if (activeNotebook) {
+            void this.interrupt(activeNotebook)
+        }
+    }
+
     private onDidOpenNotebookDocument(e: vscode.NotebookDocument) {
         this.init()
 

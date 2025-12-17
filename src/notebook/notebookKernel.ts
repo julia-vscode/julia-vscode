@@ -20,6 +20,7 @@ import { getCrashReportingPipename, handleNewCrashReportFromException } from '..
 import { generatePipeName, inferJuliaNumThreads } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
+import { ProgressReporter, ProgressUpdate } from '../progress'
 
 const notifyTypeDisplay = new NotificationType<{
     items: { mimetype: string; data: string }[]
@@ -28,6 +29,7 @@ const notifyTypeStreamoutput = new NotificationType<{
     name: string
     data: string
 }>('streamoutput')
+const notifyTypeProgressUpdate = new NotificationType<ProgressUpdate>('repl/updateProgress')
 const requestTypeRunCell = new RequestType<
     { filename: string; line: number; column: number; code: string },
     { success: boolean; error: { message: string; name: string; stack: string } },
@@ -60,6 +62,11 @@ export class JuliaKernel {
 
     private _tokenSource = new vscode.CancellationTokenSource()
 
+    private progressReporter: ProgressReporter
+    private statusBarItem: vscode.StatusBarItem
+    private isActive = false
+    private statusProgressStarts = new Map<number, Date>()
+
     private debuggerPipename: string | null
     public activeDebugSession: vscode.DebugSession | null
     public stopDebugSessionAfterExecution: boolean
@@ -73,11 +80,44 @@ export class JuliaKernel {
         private notebookFeature: JuliaNotebookFeature,
         private compiledProvider: DebugConfigTreeProvider
     ) {
+        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 101)
+        this.progressReporter = new ProgressReporter(() => this.interrupt(), {
+            statusBarItem: this.statusBarItem,
+            statusBarPrefix: 'Notebook',
+            // No command: clicking notebook progress does nothing.
+            useWindowProgress: false,
+        })
+        this._localDisposables.push(this.statusBarItem)
+
+        // Track active notebook to gate status bar updates.
+        const setActive = () => {
+            const active = vscode.window.activeNotebookEditor?.notebook?.uri.toString()
+            const mine = this.notebook.uri.toString()
+            const wasActive = this.isActive
+            this.isActive = active === mine
+
+            if (!this.isActive && wasActive) {
+                this.progressReporter.clear()
+            }
+        }
+
+        setActive()
+        this._localDisposables.push(vscode.window.onDidChangeActiveNotebookEditor(setActive))
+
+        this._localDisposables.push(
+            vscode.workspace.onDidChangeConfiguration((event) => {
+                if (event.affectsConfiguration('julia.useProgressFrontend')) {
+                    this.sendProgressToggle()
+                }
+            })
+        )
+
         this.run(this._tokenSource.token)
     }
 
     public dispose() {
         this.stop()
+        this.progressReporter.clear()
         this._localDisposables.forEach((d) => d.dispose())
     }
 
@@ -135,6 +175,10 @@ export class JuliaKernel {
                     const runStartTime = Date.now()
                     this._currentExecutionRequest.start(runStartTime)
 
+                    if (this.isActive) {
+                        this.progressReporter.startIndeterminate()
+                    }
+
                     const result = await this._msgConnection.sendRequest(requestTypeRunCell, {
                         filename: cellPath,
                         line: 0,
@@ -154,6 +198,8 @@ export class JuliaKernel {
 
                     const runEndTime = Date.now()
                     this._currentExecutionRequest.end(result.success, runEndTime)
+
+                    this.progressReporter.clear()
                 }
                 this._currentExecutionRequest = null
 
@@ -239,6 +285,19 @@ export class JuliaKernel {
         }
     }
 
+    private sendProgressToggle() {
+        if (!this._msgConnection) {
+            return
+        }
+
+        const enable = vscode.workspace.getConfiguration('julia').get<boolean>('useProgressFrontend')
+        try {
+            this._msgConnection.sendNotification('repl/toggleProgress', { enable })
+        } catch (err) {
+            console.warn(err)
+        }
+    }
+
     private async run(token: CancellationToken) {
         try {
             const connectedPromise = new Subject()
@@ -305,9 +364,26 @@ export class JuliaKernel {
                     }
                 })
 
+                this._msgConnection.onNotification(notifyTypeProgressUpdate, (progress) => {
+                    if (!this.statusProgressStarts.has(progress.id.value)) {
+                        this.statusProgressStarts.set(progress.id.value, new Date())
+                    }
+
+                    if (this.isActive) {
+                        const started = this.statusProgressStarts.get(progress.id.value)
+                        void this.progressReporter.handleProgress(progress, started)
+                    }
+
+                    if (progress.done) {
+                        this.statusProgressStarts.delete(progress.id.value)
+                    }
+                })
+
                 this._msgConnection.listen()
 
                 this._onConnected.fire(null)
+
+                this.sendProgressToggle()
 
                 connectedPromise.notify()
             })
@@ -326,6 +402,8 @@ export class JuliaKernel {
             this.outputChannel.appendLine(`Post 'const cwdPath = await this.getCwdPathForNotebook()'`)
 
             const nthreads = inferJuliaNumThreads()
+
+            const useProgressFrontend = vscode.workspace.getConfiguration('julia').get<boolean>('useProgressFrontend')
 
             const args = ['--color=yes', `--project=${pkgenvpath}`, '--history-file=no']
 
@@ -356,6 +434,7 @@ export class JuliaKernel {
                     pn,
                     this.debuggerPipename,
                     getCrashReportingPipename(),
+                    `USE_PROGRESS=${useProgressFrontend}`,
                 ],
                 {
                     env,
@@ -379,6 +458,8 @@ export class JuliaKernel {
             this._kernelProcess.on('close', async (code) => {
                 tokenSource.cancel()
                 processExecutionRequests.notify()
+
+                this.progressReporter.clear()
 
                 this._onCellRunFinished.fire()
                 this._onStopped.fire(undefined)
