@@ -127,6 +127,10 @@ export class TaskRunner {
         return p
     }
 
+    public show() {
+        this.terminal?.show()
+    }
+
     private runQueueItem() {
         if (this.isRunning) {
             return
