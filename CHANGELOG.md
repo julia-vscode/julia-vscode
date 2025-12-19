@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Fixed
 - Correctly set up handlers for REPL-sent events, so that the plot pane and other integrations work again ([#3939](https://github.com/julia-vscode/julia-vscode/pull/3939))
+- Inline evaluation is now guaranteed to happen in the right order, even when evaluating multiple cells by line ([#3940](https://github.com/julia-vscode/julia-vscode/pull/3940))
 
 ### Changed
 - The REPL now prints a message when it loses connection to the editor ([#3937](https://github.com/julia-vscode/julia-vscode/pull/3937))
