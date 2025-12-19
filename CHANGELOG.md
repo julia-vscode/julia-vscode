@@ -5,6 +5,7 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.166.0] - 2025-12-19
 ### Fixed
 - Correctly set up handlers for REPL-sent events, so that the plot pane and other integrations work again ([#3939](https://github.com/julia-vscode/julia-vscode/pull/3939))
 - Inline evaluation is now guaranteed to happen in the right order, even when evaluating multiple cells by line ([#3940](https://github.com/julia-vscode/julia-vscode/pull/3940))
