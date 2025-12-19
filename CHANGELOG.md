@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- Re-enabled the REPL keep-alive on Windows ([#3941](https://github.com/julia-vscode/julia-vscode/pull/3941))
+
 ## [1.166.0] - 2025-12-19
 ### Fixed
 - Correctly set up handlers for REPL-sent events, so that the plot pane and other integrations work again ([#3939](https://github.com/julia-vscode/julia-vscode/pull/3939))

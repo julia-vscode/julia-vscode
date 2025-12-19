@@ -310,7 +310,7 @@ export class LanguageClientFeature {
     }
 
     async restartLanguageServer(envPath?: string) {
-        if (this.languageClient !== null) {
+        if (this.languageClient) {
             try {
                 await this.languageClient.stop()
             } catch (err) {
