@@ -1,25 +1,11 @@
 using Sockets
 import InteractiveUtils
 
-is_disconnected_exception(err) = false
-is_disconnected_exception(err::InvalidStateException) = err.state === :closed
-is_disconnected_exception(err::Base.IOError) = true
-# thrown by JSONRPC when the endpoint is not open anymore. 
-# FIXME: adjust this once JSONRPC throws its own error type
-is_disconnected_exception(err::ErrorException) = startswith(err.msg, "Endpoint is not running, the current state is")
-is_disconnected_exception(err::CompositeException) = all(is_disconnected_exception, err.exceptions)
-
 function global_err_handler(e, bt, vscode_pipe_name, cloudRole; should_exit = true)
-    if is_disconnected_exception(e)
-        @debug "Disconnect." ex=(e, bt)
-        return
-    end
-
     @error "Some Julia code in the VS Code extension crashed"
     Base.display_error(e, bt)
     flush(stdout)
     flush(stderr)
-
 
     try
         st = stacktrace(bt)
