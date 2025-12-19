@@ -30,10 +30,12 @@ import * as plots from './plots'
 import * as results from './results'
 import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
+import { promise as fastq } from 'fastq'
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
 let g_compiledProvider = null
+const g_evalQueue = fastq(sendEvalRequest, 1)
 
 let g_terminal: vscode.Terminal = null
 
@@ -48,11 +50,13 @@ function startREPLCommand() {
 
     startREPL(false, true)
 }
+
 function startREPLWithVersionCommand(versionName?: string) {
     telemetry.traceEvent('command-startreplwithversion')
 
     startREPLWithVersion(versionName)
 }
+
 async function confirmKill() {
     const strategy = vscode.workspace.getConfiguration('julia').get<string>('persistentSession.closeStrategy')
 
@@ -91,6 +95,7 @@ async function confirmKill() {
             return true
     }
 }
+
 async function stopREPL(onDeactivate = false) {
     const config = vscode.workspace.getConfiguration('julia')
     if (g_terminal_is_persistent && !onDeactivate) {
@@ -113,6 +118,7 @@ async function stopREPL(onDeactivate = false) {
         g_terminal = null
     }
 }
+
 async function restartREPL() {
     await stopREPL()
     await startREPL(false, true)
@@ -430,21 +436,19 @@ interface ReturnResult {
     stackframe: null | Array<Frame>
 }
 
-const requestTypeReplRunCode = new rpc.RequestType<
-    {
-        filename: string
-        line: number
-        column: number
-        code: string
-        mod: string
-        showCodeInREPL: boolean
-        showResultInREPL: boolean
-        showErrorInREPL: boolean
-        softscope: boolean
-    },
-    ReturnResult,
-    void
->('repl/runcode')
+interface RunCodeOptions {
+    filename: string
+    line: number
+    column: number
+    code: string
+    mod: string
+    showCodeInREPL: boolean
+    showResultInREPL: boolean
+    showErrorInREPL: boolean
+    softscope: boolean
+}
+
+const requestTypeReplRunCode = new rpc.RequestType<RunCodeOptions, ReturnResult, void>('repl/runcode')
 
 // interface DebugLaunchParams {
 //     code: string,
@@ -831,7 +835,7 @@ async function executeFile(uri?: vscode.Uri | string) {
         code = stripMarkdown(code)
     }
 
-    await g_connection.sendRequest(requestTypeReplRunCode, {
+    await g_evalQueue.push({
         filename: path,
         line: 0,
         column: 0,
@@ -1014,10 +1018,7 @@ async function executeCell(shouldMove: boolean = false) {
             currentPos = ed.document.validatePosition(nextPos)
             const code = doc.getText(curRange)
 
-            const success = await evaluate(ed, curRange, code, module)
-            if (!success) {
-                break
-            }
+            evaluate(ed, curRange, code, module)
         }
     } else {
         const code = doc.getText(cellrange)
@@ -1085,11 +1086,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
-        const success = await evaluate(editor, range, text, module)
-
-        if (!success) {
-            break
-        }
+        evaluate(editor, range, text, module)
     }
 }
 
@@ -1110,7 +1107,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         r = results.addResult(editor, range, ' ⟳ ', '')
     }
     try {
-        const result: ReturnResult = await g_connection.sendRequest(requestTypeReplRunCode, {
+        const opts = {
             filename: editor.document.fileName,
             line: range.start.line,
             column: range.start.character,
@@ -1120,7 +1117,21 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             showResultInREPL: resultType === 'REPL' || resultType === 'both',
             showErrorInREPL: resultType.indexOf('error') > -1,
             softscope: true,
-        })
+        }
+        const evalPromise = g_evalQueue.push(opts)
+        const cancelPromise = g_evalQueue.drained()
+        let result: ReturnResult | void = await Promise.race([evalPromise, cancelPromise])
+
+        if (!result) {
+            // interrupts killAndDrain the queue, but we still want to display the current item
+            if (opts === g_currentEvalItem) {
+                result = await evalPromise
+            } else {
+                r.remove(true)
+                return false
+            }
+        }
+
         const isError = Boolean(result.stackframe)
 
         if (resultType !== 'REPL') {
@@ -1132,6 +1143,10 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
                 results.setStackTrace(r, result.all, result.stackframe)
             }
             r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, isError))
+        }
+
+        if (isError) {
+            g_evalQueue.killAndDrain()
         }
 
         return !isError
@@ -1200,7 +1215,7 @@ export async function executeInREPL(
     } = {}
 ): Promise<ReturnResult> {
     await startREPL(true, true)
-    return await g_connection.sendRequest(requestTypeReplRunCode, {
+    return await g_evalQueue.push({
         filename,
         line,
         column,
@@ -1217,6 +1232,9 @@ const interrupts = []
 let last_interrupt_index = -1
 async function interrupt() {
     telemetry.traceEvent('command-interrupt')
+
+    g_evalQueue.killAndDrain()
+
     // always send out internal interrupt
     await softInterrupt()
     // but we'll try sending a SIGINT if more than 3 interrupts were sent in the last second
@@ -1389,6 +1407,12 @@ function updateCellDelimiters() {
 
 function isMarkdownEditor(editor: vscode.TextEditor) {
     return editor.document.languageId === 'juliamarkdown' || editor.document.languageId === 'markdown'
+}
+
+let g_currentEvalItem: RunCodeOptions
+async function sendEvalRequest(req: RunCodeOptions) {
+    g_currentEvalItem = req
+    return await g_connection.sendRequest(requestTypeReplRunCode, req)
 }
 
 export function activate(
