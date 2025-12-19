@@ -23,8 +23,7 @@ export async function installJuliaOrJuliaup(
     }
     // Options for Julia
     const configurePath = 'Configure path'
-    let message =
-        'Julia is not installed. Do you want to install it automatically using juliaup or manually add the path?'
+    let message = 'Julia is not installed. Do you want to install it using juliaup, the official Julia version manager?'
 
     options.push(configurePath)
 
@@ -39,7 +38,11 @@ export async function installJuliaOrJuliaup(
         options.push(doNotShow)
     }
 
-    const choice = await vscode.window.showInformationMessage(message + channelSuffix, ...options)
+    const choice = await vscode.window.showInformationMessage(
+        'Automatically install Julia?',
+        { modal: true, detail: message + channelSuffix },
+        ...options
+    )
 
     if (choice === configurePath) {
         vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')

@@ -128,7 +128,7 @@ export class JuliaTestController {
                 return true
             }
 
-            const juliaup = await this.executableFeature.getJuliaupExecutable()
+            const juliaup = await this.executableFeature.getJuliaupExecutable(false)
 
             try {
                 juliaExecutable = new JuliaExecutable(await juliaup.getChannel('release', true))

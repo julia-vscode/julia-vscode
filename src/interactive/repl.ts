@@ -200,7 +200,7 @@ export async function startREPL(
 
     let shellPath: string, shellArgs: string[]
     if (!juliaExecutable) {
-        juliaExecutable = await g_ExecutableFeature.getExecutable()
+        juliaExecutable = await g_ExecutableFeature.getExecutable(true)
     }
 
     if (g_terminal_is_persistent && isConnected()) {
