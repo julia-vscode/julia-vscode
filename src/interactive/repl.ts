@@ -36,6 +36,7 @@ let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
 let g_compiledProvider = null
 const g_evalQueue = fastq(sendEvalRequest, 1)
+const g_cellEvalQueue = fastq(evalCellByLine, 1)
 
 let g_terminal: vscode.Terminal = null
 
@@ -983,46 +984,28 @@ async function executeCell(shouldMove: boolean = false) {
 
     const doc = ed.document
     const selection = ed.selection
-    const cellrange = currentCellRange(ed)
-    if (cellrange === null) {
+    const cellRange = currentCellRange(ed)
+    if (cellRange === null) {
         return
     }
 
-    const { module } = await modules.getModuleForEditor(ed.document, cellrange.start)
+    const { module } = await modules.getModuleForEditor(ed.document, cellRange.start)
 
     await startREPL(true, false)
 
     if (shouldMove && ed.selection === selection) {
         const isJmd = isMarkdownEditor(ed)
-        const nextpos = new vscode.Position(nextCellBorder(doc, cellrange.end.line + 1, true, isJmd) + 1, 0)
+        const nextpos = new vscode.Position(nextCellBorder(doc, cellRange.end.line + 1, true, isJmd) + 1, 0)
         validateMoveAndReveal(ed, nextpos, nextpos)
     }
     if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation') === true) {
-        let currentPos: vscode.Position = ed.document.validatePosition(
-            new vscode.Position(cellrange.start.line, cellrange.start.character + 1)
-        )
-        let lastRange = new vscode.Range(0, 0, 0, 0)
-        while (currentPos.line <= cellrange.end.line) {
-            const [startPos, endPos, nextPos] = await getBlockRange(
-                getVersionedParamsAtPosition(ed.document, currentPos)
-            )
-            const lineEndPos = ed.document.validatePosition(new vscode.Position(endPos.line, Infinity))
-            const curRange = cellrange.intersection(new vscode.Range(startPos, lineEndPos))
-            if (curRange === undefined || curRange.isEqual(lastRange)) {
-                break
-            }
-            lastRange = curRange
-            if (curRange.isEmpty) {
-                continue
-            }
-            currentPos = ed.document.validatePosition(nextPos)
-            const code = doc.getText(curRange)
-
-            evaluate(ed, curRange, code, module)
+        const r = Promise.race([g_cellEvalQueue.push({ editor: ed, cellRange, module }), g_evalQueue.drained()])
+        if (!r) {
+            g_cellEvalQueue.kill()
         }
     } else {
-        const code = doc.getText(cellrange)
-        await evaluate(ed, cellrange, code, module)
+        const code = doc.getText(cellRange)
+        await evaluate(ed, cellRange, code, module)
     }
 }
 
@@ -1413,6 +1396,33 @@ let g_currentEvalItem: RunCodeOptions
 async function sendEvalRequest(req: RunCodeOptions) {
     g_currentEvalItem = req
     return await g_connection.sendRequest(requestTypeReplRunCode, req)
+}
+
+async function evalCellByLine({ editor, cellRange, module }) {
+    let currentPos: vscode.Position = editor.document.validatePosition(
+        new vscode.Position(cellRange.start.line, cellRange.start.character + 1)
+    )
+    let lastRange = new vscode.Range(0, 0, 0, 0)
+    while (currentPos.line <= cellRange.end.line) {
+        const [startPos, endPos, nextPos] = await getBlockRange(
+            getVersionedParamsAtPosition(editor.document, currentPos)
+        )
+        const lineEndPos = editor.document.validatePosition(new vscode.Position(endPos.line, Infinity))
+        const curRange = cellRange.intersection(new vscode.Range(startPos, lineEndPos))
+        if (curRange === undefined || curRange.isEqual(lastRange)) {
+            break
+        }
+        lastRange = curRange
+        if (curRange.isEmpty) {
+            continue
+        }
+        currentPos = editor.document.validatePosition(nextPos)
+        const code = editor.document.getText(curRange)
+
+        evaluate(editor, curRange, code, module)
+    }
+
+    return true
 }
 
 export function activate(
