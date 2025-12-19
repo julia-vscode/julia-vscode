@@ -30,10 +30,13 @@ import * as plots from './plots'
 import * as results from './results'
 import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
+import { promise as fastq } from 'fastq'
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
 let g_compiledProvider = null
+const g_evalQueue = fastq(sendEvalRequest, 1)
+const g_cellEvalQueue = fastq(evalCellByLine, 1)
 
 let g_terminal: vscode.Terminal = null
 
@@ -48,11 +51,13 @@ function startREPLCommand() {
 
     startREPL(false, true)
 }
+
 function startREPLWithVersionCommand(versionName?: string) {
     telemetry.traceEvent('command-startreplwithversion')
 
     startREPLWithVersion(versionName)
 }
+
 async function confirmKill() {
     const strategy = vscode.workspace.getConfiguration('julia').get<string>('persistentSession.closeStrategy')
 
@@ -91,6 +96,7 @@ async function confirmKill() {
             return true
     }
 }
+
 async function stopREPL(onDeactivate = false) {
     const config = vscode.workspace.getConfiguration('julia')
     if (g_terminal_is_persistent && !onDeactivate) {
@@ -113,6 +119,7 @@ async function stopREPL(onDeactivate = false) {
         g_terminal = null
     }
 }
+
 async function restartREPL() {
     await stopREPL()
     await startREPL(false, true)
@@ -430,21 +437,19 @@ interface ReturnResult {
     stackframe: null | Array<Frame>
 }
 
-const requestTypeReplRunCode = new rpc.RequestType<
-    {
-        filename: string
-        line: number
-        column: number
-        code: string
-        mod: string
-        showCodeInREPL: boolean
-        showResultInREPL: boolean
-        showErrorInREPL: boolean
-        softscope: boolean
-    },
-    ReturnResult,
-    void
->('repl/runcode')
+interface RunCodeOptions {
+    filename: string
+    line: number
+    column: number
+    code: string
+    mod: string
+    showCodeInREPL: boolean
+    showResultInREPL: boolean
+    showErrorInREPL: boolean
+    softscope: boolean
+}
+
+const requestTypeReplRunCode = new rpc.RequestType<RunCodeOptions, ReturnResult, void>('repl/runcode')
 
 // interface DebugLaunchParams {
 //     code: string,
@@ -831,7 +836,7 @@ async function executeFile(uri?: vscode.Uri | string) {
         code = stripMarkdown(code)
     }
 
-    await g_connection.sendRequest(requestTypeReplRunCode, {
+    await g_evalQueue.push({
         filename: path,
         line: 0,
         column: 0,
@@ -979,49 +984,28 @@ async function executeCell(shouldMove: boolean = false) {
 
     const doc = ed.document
     const selection = ed.selection
-    const cellrange = currentCellRange(ed)
-    if (cellrange === null) {
+    const cellRange = currentCellRange(ed)
+    if (cellRange === null) {
         return
     }
 
-    const { module } = await modules.getModuleForEditor(ed.document, cellrange.start)
+    const { module } = await modules.getModuleForEditor(ed.document, cellRange.start)
 
     await startREPL(true, false)
 
     if (shouldMove && ed.selection === selection) {
         const isJmd = isMarkdownEditor(ed)
-        const nextpos = new vscode.Position(nextCellBorder(doc, cellrange.end.line + 1, true, isJmd) + 1, 0)
+        const nextpos = new vscode.Position(nextCellBorder(doc, cellRange.end.line + 1, true, isJmd) + 1, 0)
         validateMoveAndReveal(ed, nextpos, nextpos)
     }
     if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation') === true) {
-        let currentPos: vscode.Position = ed.document.validatePosition(
-            new vscode.Position(cellrange.start.line, cellrange.start.character + 1)
-        )
-        let lastRange = new vscode.Range(0, 0, 0, 0)
-        while (currentPos.line <= cellrange.end.line) {
-            const [startPos, endPos, nextPos] = await getBlockRange(
-                getVersionedParamsAtPosition(ed.document, currentPos)
-            )
-            const lineEndPos = ed.document.validatePosition(new vscode.Position(endPos.line, Infinity))
-            const curRange = cellrange.intersection(new vscode.Range(startPos, lineEndPos))
-            if (curRange === undefined || curRange.isEqual(lastRange)) {
-                break
-            }
-            lastRange = curRange
-            if (curRange.isEmpty) {
-                continue
-            }
-            currentPos = ed.document.validatePosition(nextPos)
-            const code = doc.getText(curRange)
-
-            const success = await evaluate(ed, curRange, code, module)
-            if (!success) {
-                break
-            }
+        const r = Promise.race([g_cellEvalQueue.push({ editor: ed, cellRange, module }), g_evalQueue.drained()])
+        if (!r) {
+            g_cellEvalQueue.kill()
         }
     } else {
-        const code = doc.getText(cellrange)
-        await evaluate(ed, cellrange, code, module)
+        const code = doc.getText(cellRange)
+        await evaluate(ed, cellRange, code, module)
     }
 }
 
@@ -1085,11 +1069,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
-        const success = await evaluate(editor, range, text, module)
-
-        if (!success) {
-            break
-        }
+        evaluate(editor, range, text, module)
     }
 }
 
@@ -1110,7 +1090,7 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
         r = results.addResult(editor, range, ' ⟳ ', '')
     }
     try {
-        const result: ReturnResult = await g_connection.sendRequest(requestTypeReplRunCode, {
+        const opts = {
             filename: editor.document.fileName,
             line: range.start.line,
             column: range.start.character,
@@ -1120,7 +1100,21 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             showResultInREPL: resultType === 'REPL' || resultType === 'both',
             showErrorInREPL: resultType.indexOf('error') > -1,
             softscope: true,
-        })
+        }
+        const evalPromise = g_evalQueue.push(opts)
+        const cancelPromise = g_evalQueue.drained()
+        let result: ReturnResult | void = await Promise.race([evalPromise, cancelPromise])
+
+        if (!result) {
+            // interrupts killAndDrain the queue, but we still want to display the current item
+            if (opts === g_currentEvalItem) {
+                result = await evalPromise
+            } else {
+                r.remove(true)
+                return false
+            }
+        }
+
         const isError = Boolean(result.stackframe)
 
         if (resultType !== 'REPL') {
@@ -1132,6 +1126,10 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
                 results.setStackTrace(r, result.all, result.stackframe)
             }
             r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, isError))
+        }
+
+        if (isError) {
+            g_evalQueue.killAndDrain()
         }
 
         return !isError
@@ -1200,7 +1198,7 @@ export async function executeInREPL(
     } = {}
 ): Promise<ReturnResult> {
     await startREPL(true, true)
-    return await g_connection.sendRequest(requestTypeReplRunCode, {
+    return await g_evalQueue.push({
         filename,
         line,
         column,
@@ -1217,6 +1215,9 @@ const interrupts = []
 let last_interrupt_index = -1
 async function interrupt() {
     telemetry.traceEvent('command-interrupt')
+
+    g_evalQueue.killAndDrain()
+
     // always send out internal interrupt
     await softInterrupt()
     // but we'll try sending a SIGINT if more than 3 interrupts were sent in the last second
@@ -1391,6 +1392,39 @@ function isMarkdownEditor(editor: vscode.TextEditor) {
     return editor.document.languageId === 'juliamarkdown' || editor.document.languageId === 'markdown'
 }
 
+let g_currentEvalItem: RunCodeOptions
+async function sendEvalRequest(req: RunCodeOptions) {
+    g_currentEvalItem = req
+    return await g_connection.sendRequest(requestTypeReplRunCode, req)
+}
+
+async function evalCellByLine({ editor, cellRange, module }) {
+    let currentPos: vscode.Position = editor.document.validatePosition(
+        new vscode.Position(cellRange.start.line, cellRange.start.character + 1)
+    )
+    let lastRange = new vscode.Range(0, 0, 0, 0)
+    while (currentPos.line <= cellRange.end.line) {
+        const [startPos, endPos, nextPos] = await getBlockRange(
+            getVersionedParamsAtPosition(editor.document, currentPos)
+        )
+        const lineEndPos = editor.document.validatePosition(new vscode.Position(endPos.line, Infinity))
+        const curRange = cellRange.intersection(new vscode.Range(startPos, lineEndPos))
+        if (curRange === undefined || curRange.isEqual(lastRange)) {
+            break
+        }
+        lastRange = curRange
+        if (curRange.isEmpty) {
+            continue
+        }
+        currentPos = editor.document.validatePosition(nextPos)
+        const code = editor.document.getText(curRange)
+
+        evaluate(editor, curRange, code, module)
+    }
+
+    return true
+}
+
 export function activate(
     context: vscode.ExtensionContext,
     compiledProvider,
@@ -1408,12 +1442,15 @@ export function activate(
         languageClientFeature.onDidSetLanguageClient((languageClient) => {
             g_languageClient = languageClient
         }),
-        onInit(({ connection, juliaExecutable }) => {
-            wrapCrashReporting((connection) => {
+        onInit(
+            wrapCrashReporting(({ connection, juliaExecutable }) => {
                 connection.onNotification(notifyTypeDisplay, display)
                 connection.onNotification(notifyTypeReplAttachDebgger, debuggerAttach)
                 connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
                 connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
+                connection.onNotification(notifyTypeCheckRevise, (hasRevise: boolean) =>
+                    checkRevise(hasRevise, juliaExecutable)
+                )
                 connection.onNotification(notifyTypeShowProfilerResult, (data) =>
                     profilerFeature.showTrace({
                         data: data.trace,
@@ -1427,68 +1464,7 @@ export function activate(
                 setContext('julia.isEvaluating', false)
                 setContext('julia.hasREPL', true)
             })
-
-            connection.onNotification(notifyTypeCheckRevise, (hasRevise: boolean) => {
-                const config = vscode.workspace.getConfiguration('julia')
-                const useRevise = config.get('useRevise')
-
-                if (useRevise && !hasRevise) {
-                    const install = 'Install & Setup Revise'
-                    const turnOff = 'Disable (workspace)'
-                    const turnOffGlobally = 'Disable'
-
-                    vscode.window
-                        .showInformationMessage(
-                            "Julia is configured to load [Revise](https://timholy.github.io/Revise.jl/stable/) when the REPL starts, but [Revise](https://timholy.github.io/Revise.jl/stable/) is not installed. Note that changes to packages loaded before installing Revise won't be reflected until you restart the REPL.",
-                            install,
-                            turnOffGlobally,
-                            turnOff
-                        )
-                        .then(async (select) => {
-                            switch (select) {
-                                case install: {
-                                    const installReviseScript = path.join(
-                                        g_context.extensionPath,
-                                        'scripts',
-                                        'terminalserver',
-                                        'install_revise.jl'
-                                    )
-                                    const shellPath = juliaExecutable.command
-                                    const shellArgs = [installReviseScript]
-
-                                    const task = new TaskRunnerTerminal(`Install Revise`, shellPath, shellArgs, {
-                                        echoMessage: false,
-                                        onExitMessage(exitCode) {
-                                            if (exitCode === 0) {
-                                                return
-                                            }
-
-                                            return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r`
-                                        },
-                                    })
-
-                                    task.onDidExitProcess(async (exitCode) => {
-                                        if (exitCode === 0) {
-                                            await executeInREPL('using Revise')
-                                        }
-
-                                        task.dispose()
-                                    })
-                                    break
-                                }
-                                case turnOff: {
-                                    config.update('useRevise', false)
-                                    break
-                                }
-                                case turnOffGlobally: {
-                                    config.update('useRevise', false, true)
-                                    break
-                                }
-                            }
-                        })
-                }
-            })
-        }),
+        ),
         onExit(() => {
             results.removeAll()
             clearDiagnostics()
@@ -1606,6 +1582,67 @@ export function activate(
     plots.activate(context)
     modules.activate(context, languageClientFeature)
     completions.activate(context)
+}
+
+function checkRevise(hasRevise: boolean, juliaExecutable: JuliaExecutable) {
+    const config = vscode.workspace.getConfiguration('julia')
+    const useRevise = config.get('useRevise')
+
+    if (useRevise && !hasRevise) {
+        const install = 'Install & Setup Revise'
+        const turnOff = 'Disable (workspace)'
+        const turnOffGlobally = 'Disable'
+
+        vscode.window
+            .showInformationMessage(
+                "Julia is configured to load [Revise](https://timholy.github.io/Revise.jl/stable/) when the REPL starts, but [Revise](https://timholy.github.io/Revise.jl/stable/) is not installed. Note that changes to packages loaded before installing Revise won't be reflected until you restart the REPL.",
+                install,
+                turnOffGlobally,
+                turnOff
+            )
+            .then(async (select) => {
+                switch (select) {
+                    case install: {
+                        const installReviseScript = path.join(
+                            g_context.extensionPath,
+                            'scripts',
+                            'terminalserver',
+                            'install_revise.jl'
+                        )
+                        const shellPath = juliaExecutable.command
+                        const shellArgs = [installReviseScript]
+
+                        const task = new TaskRunnerTerminal(`Install Revise`, shellPath, shellArgs, {
+                            echoMessage: false,
+                            onExitMessage(exitCode) {
+                                if (exitCode === 0) {
+                                    return
+                                }
+
+                                return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r`
+                            },
+                        })
+
+                        task.onDidExitProcess(async (exitCode) => {
+                            if (exitCode === 0) {
+                                await executeInREPL('using Revise')
+                            }
+
+                            task.dispose()
+                        })
+                        break
+                    }
+                    case turnOff: {
+                        config.update('useRevise', false)
+                        break
+                    }
+                    case turnOffGlobally: {
+                        config.update('useRevise', false, true)
+                        break
+                    }
+                }
+            })
+    }
 }
 
 export function deactivate() {

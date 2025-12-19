@@ -98,6 +98,14 @@ include("debugger.jl")
 include("notebookdisplay.jl")
 include("serve_notebook.jl")
 
+is_disconnected_exception(err) = false
+is_disconnected_exception(err::InvalidStateException) = err.state === :closed
+is_disconnected_exception(err::Base.IOError) = true
+# thrown by JSONRPC when the endpoint is not open anymore.
+# FIXME: adjust this once JSONRPC throws its own error type
+is_disconnected_exception(err::ErrorException) = startswith(err.msg, "Endpoint is not running, the current state is")
+is_disconnected_exception(err::CompositeException) = all(is_disconnected_exception, err.exceptions)
+
 function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     if is_dev
         try
@@ -169,9 +177,8 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
             end
         end
     catch err
-        if !isopen(conn) && is_disconnected_exception(err)
-            # expected error
-            @debug "remote closed the connection"
+        if is_disconnected_exception(err)
+            println(stderr, "\n\n\x1b[30;41m * \x1b[0m Lost connection to the editor. You can use the 'Julia: Connect External REPL' command to reconnect. \x1b[30;41m * \x1b[0m\n\n")
         else
             try
                 error_handler(err, catch_backtrace())
