@@ -178,12 +178,7 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         end
     catch err
         if is_disconnected_exception(err)
-            if !isopen(conn)
-                # expected error
-                @debug "remote closed the connection"
-            else
-                @error "REPL got disconnected from the editor!"
-            end
+            println(stderr, "\n\n\x1b[30;41m * \x1b[0m Lost connection to the editor. You can use the 'Julia: Connect External REPL' command to reconnect. \x1b[30;41m * \x1b[0m\n\n")
         else
             try
                 error_handler(err, catch_backtrace())
