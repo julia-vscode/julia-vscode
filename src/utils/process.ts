@@ -73,7 +73,11 @@ export class JuliaProcess implements vscode.Disposable {
             const isWindows = process.platform === 'win32'
             // The pty process hangs on Windows when debugging the extension if we use conpty
             // See https://github.com/microsoft/node-pty/issues/640
-            const useConpty = isWindows && process.env['DEBUG_MODE'] === 'true' ? false : true
+            // const useConpty = isWindows && process.env['DEBUG_MODE'] === 'true' ? false : true
+
+            // disable conpty, since it causes rendering issues in the REPL
+            const useConpty = false
+
             this.pty = spawn(this.command, this.args, {
                 cwd: this.options.cwd,
                 env: { ...process.env, ...this.options.env },
