@@ -4,10 +4,7 @@ import * as path from 'path'
 import * as process from 'process'
 import { execFile } from 'promisify-child-process'
 import * as semver from 'semver'
-// import stringArgv from 'string-argv'
 import * as vscode from 'vscode'
-// import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
-// import { setCurrentJuliaVersion, traceEvent } from './telemetry'
 import { resolvePath } from './utils'
 import { installJuliaOrJuliaup } from './juliaupAutoInstall'
 import { Mutex } from 'async-mutex'
@@ -318,7 +315,7 @@ export class ExecutableFeature {
     }
 
     // Interface
-    public async getExecutable(): Promise<JuliaExecutable> {
+    public async getExecutable(tryInstall: boolean = false): Promise<JuliaExecutable> {
         this.outputChannel.appendLine('Determining Julia executable for interactive usage...')
 
         let outputPrefix = '[config]  '
@@ -366,7 +363,7 @@ export class ExecutableFeature {
         // At this point, we're sure we need to use juliaup. We may already have extraced the intended
         // channel from the configuration though
         outputPrefix = '[juliaup] '
-        const juliaup = await this.getJuliaupExecutable()
+        const juliaup = await this.getJuliaupExecutable(tryInstall)
 
         if (configuredJuliaupChannel) {
             try {

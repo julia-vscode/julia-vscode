@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - The REPL now prints a message when it loses connection to the editor ([#3937](https://github.com/julia-vscode/julia-vscode/pull/3937))
+- Improved the automatic Julia installation process UX ([#3942](https://github.com/julia-vscode/julia-vscode/pull/3942))
 
 ## [1.165.0] - 2025-12-15
 ### Fixed

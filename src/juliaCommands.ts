@@ -94,7 +94,12 @@ export class JuliaCommands {
                 }
                 return `\n\r\x1b[30;47m * \x1b[0m Failed to run this command (exit code ${exitCode}). Press any key to close the terminal.\n\r\n\r`
             },
+            show: false,
         })
+
+        if (exitCode !== 0) {
+            this.taskRunner.show()
+        }
 
         return exitCode === 0
     }

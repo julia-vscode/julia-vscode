@@ -143,8 +143,8 @@ export async function activate(context: vscode.ExtensionContext) {
             async getJuliaupExecutable() {
                 return await executableFeature.getJuliaupExecutable()
             },
-            async getJuliaExecutable() {
-                return await executableFeature.getExecutable()
+            async getJuliaExecutable(tryInstall: boolean = true) {
+                return await executableFeature.getExecutable(tryInstall)
             },
             async getJuliaPath() {
                 console.warn('Julia extension for VSCode: `getJuliaPath` API is deprecated.')
