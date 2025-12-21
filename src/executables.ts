@@ -401,11 +401,23 @@ export class ExecutableFeature {
                 '`julia.languageServerExecutablePath` is ' +
                 (pathConfig ? `set to '${pathConfig}'` : 'not set')
         )
+
         if (pathConfig) {
             const exe = await this.juliaExecutableFromPathConfig(pathConfig, outputPrefix)
             if (exe) {
                 this.outputChannel.appendLine(outputPrefix + `using ${exe.command} as LS executable`)
                 return exe
+            }
+
+            const version = await this.tryGetJuliaVersion(pathConfig, [], outputPrefix)
+
+            if (version) {
+                const exe = new JuliaExecutable(pathConfig, version)
+                this.outputChannel.appendLine(outputPrefix + `using '${exe.command}' (v${exe.version}) as executable`)
+
+                return exe
+            } else {
+                this.outputChannel.appendLine(outputPrefix + `'${pathConfig}' can not be started`)
             }
         }
 
