@@ -429,7 +429,7 @@ export class ExecutableFeature {
             const config = vscode.workspace.getConfiguration('julia').get<string>('executablePath')
 
             if (config) {
-                const exe = await this.juliaExecutableFromPathConfig(config, outputPrefix)
+                const exe = await this.getExecutable(false)
                 if (exe) {
                     this.outputChannel.appendLine(outputPrefix + `using ${exe.command} as LS executable`)
 
