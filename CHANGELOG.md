@@ -6,8 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
-- Fixed a typo in default cell delimiter setting ([#3955](https://github.com/julia-vscode/julia-vscode/pull/3955))
+- Fixed a typo in default cell delimiter setting ([#3945](https://github.com/julia-vscode/julia-vscode/pull/3945))
 - Improved path resolution logic in some edge cases ([#3943](https://github.com/julia-vscode/julia-vscode/pull/3943), [#3956](https://github.com/julia-vscode/julia-vscode/pull/3956))
+- The REPL link handler now works with absolute paths again ([#3953](https://github.com/julia-vscode/julia-vscode/pull/3953))
 
 ## [1.167.0] - 2025-12-19
 ### Changed
