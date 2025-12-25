@@ -1203,7 +1203,7 @@
                 },
                 "julia.repl.keepAlive": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "scope": "machine-overridable",
                     "markdownDescription": "Experimental: Keeps the terminal window around even if the underlying Julia process is terminated to help debugging of fatal errors. Try disabling this if you see rendering issues in the integrated Julia REPL."
                 },
