@@ -1,3 +1,18 @@
+"""
+    InlineDisplay
+
+Internal display for plots, html elements, and custom panes in VS Code. Supports various
+standard MIME-types out of the box, but also two VS Code specific ones:
+
+- `application/vnd.julia-vscode.plotpane+html`: For outputting HTML into the plotpane.
+- `application/vnd.julia-vscode.custompane+html`: For outputting HTML into custom panes,
+specified by the `id` parameter (see below)
+
+All MIME-types passed into the `display` call may specify a `;id=[^,]+` parameter, which is
+used to identify the object being shown. In the plotpane, an object with the same id as a
+previously shown one will overwrite the older one. For the `custompane` MIME-type, this id
+is also used as the title of the custom pane (in addition to uniquely identifying it).
+"""
 struct InlineDisplay <: AbstractDisplay
     is_repl::Bool
 end
@@ -9,19 +24,19 @@ const DIAGNOSTICS_ENABLED = Ref(true)
 const INLAY_HINTS_ENABLED = Ref(true)
 const PROGRESS_ENABLED = Ref(true)
 
-function toggle_plot_pane(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+function toggle_plot_pane_notification(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     PLOT_PANE_ENABLED[] = params.enable
 end
 
-function toggle_diagnostics(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+function toggle_diagnostics_notification(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     DIAGNOSTICS_ENABLED[] = params.enable
 end
 
-function toggle_inlay_hints(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+function toggle_inlay_hints_notification(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     INLAY_HINTS_ENABLED[] = params.enable
 end
 
-function toggle_progress(_, params::NamedTuple{(:enable,),Tuple{Bool}})
+function toggle_progress_notification(_, params::NamedTuple{(:enable,),Tuple{Bool}})
     PROGRESS_ENABLED[] = params.enable
 end
 
@@ -34,10 +49,10 @@ function fix_displays(; is_repl = false)
     pushdisplay(InlineDisplay(is_repl))
 end
 
-function with_no_default_display(f)
+function with_no_default_display(f; allow_inline = false)
     stack = copy(Base.Multimedia.displays)
     filter!(Base.Multimedia.displays) do d
-        !(d isa REPL.REPLDisplay || d isa TextDisplay || d isa InlineDisplay)
+        !(d isa REPL.REPLDisplay || d isa TextDisplay || (!allow_inline && d isa InlineDisplay))
     end
     try
         return f()
@@ -47,20 +62,45 @@ function with_no_default_display(f)
     end
 end
 
-function sendDisplayMsg(kind, data)
-    JSONRPC.send_notification(conn_endpoint[], "display", Dict{String,Any}("kind" => kind, "data" => data))
-    JSONRPC.flush(conn_endpoint[])
+
+function sendDisplayMsg(kind, data, id = missing)
+    msg = Dict{String,Any}("kind" => kind, "data" => data, "id" => id)
+    try
+        JSONRPC.send_notification(conn_endpoint[], "display", msg)
+        JSONRPC.flush(conn_endpoint[])
+    catch
+        maybe_queue_notification!("display", msg) || rethrow()
+    end
 end
 
-function Base.display(d::InlineDisplay, m::MIME, x)
+function extract_mime_id(m::MIME)
+    mime = string(m)
+
+    parts = split(mime, ";")
+    if length(parts) === 1
+        return mime, missing
+    end
+
+    mime, params = parts
+    mat = match(r"\bid=([^,]+)\b", params)
+
+    if mat !== nothing
+        return mime, mat[1]
+    end
+
+    return mime, missing
+end
+
+function Base.display(d::InlineDisplay, m::MIME, @nospecialize(x))
     if !PLOT_PANE_ENABLED[]
         with_no_default_display(() -> display(m, x))
     else
-        mime = string(m)
+        mime, id = extract_mime_id(m)
+        m = MIME(mime)
         if mime in DISPLAYABLE_MIMES
-            # we now all except for `image/...` mime types are not binary
+            # non-`image/...` mime types are not binary
             payload = startswith(mime, "image") ? stringmime(m, x) : String(repr(m, x))
-            sendDisplayMsg(mime, payload)
+            sendDisplayMsg(mime, payload, id)
         else
             throw(MethodError(display, (d, m, x)))
         end
@@ -69,17 +109,25 @@ function Base.display(d::InlineDisplay, m::MIME, x)
 end
 
 Base.Multimedia.istextmime(::MIME{Symbol("juliavscode/html")}) = true
+Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.julia-vscode.plotpane+html")}) = true
+Base.Multimedia.istextmime(::MIME{Symbol("application/vnd.julia-vscode.custompane+html")}) = true
 
 Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.dataresource+json")}) = true
 
-function Base.display(d::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
+function Base.display(::InlineDisplay, m::MIME{Symbol("application/vnd.dataresource+json")}, x)
     payload = String(repr(m, x))
     sendDisplayMsg(string(m), payload)
 end
 
 Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plotly.v1+json")}) = true
 
-Base.Multimedia.displayable(_::InlineDisplay, mime::MIME) = PLOT_PANE_ENABLED[] && string(mime) in DISPLAYABLE_MIMES
+function Base.Multimedia.displayable(_::InlineDisplay, mime::MIME)
+    if PLOT_PANE_ENABLED[]
+        m, _ = extract_mime_id(mime)
+        return m in DISPLAYABLE_MIMES
+    end
+    return false
+end
 
 const DISPLAYABLE_MIMES = [
     "application/vnd.vegalite.v5+json",
@@ -90,10 +138,12 @@ const DISPLAYABLE_MIMES = [
     "application/vnd.vega.v4+json",
     "application/vnd.vega.v3+json",
     "application/vnd.plotly.v1+json",
-    "juliavscode/html",
+    "application/vnd.julia-vscode.plotpane+html", # displays html
+    "application/vnd.julia-vscode.custompane+html", # displays html in custom pane (metadata via parameter)
+    "juliavscode/html", # deprecated
     # "text/html",
-    "image/svg+xml",
     "image/png",
+    "image/svg+xml",
     "image/gif",
 ]
 
@@ -188,9 +238,12 @@ function can_display(x)
     return is_table_like(x)
 end
 
-function Base.display(d::InlineDisplay, x)
+function Base.display(d::InlineDisplay, @nospecialize(x))
     if DIAGNOSTICS_ENABLED[] && showable(DIAGNOSTIC_MIME, x)
         return display(d, DIAGNOSTIC_MIME, x)
+    end
+    if INLAY_HINTS_ENABLED[] && showable(INLAY_HINTS_MIME, x)
+        return display(d, INLAY_HINTS_MIME, x)
     end
     if PLOT_PANE_ENABLED[]
         for mime in DISPLAYABLE_MIMES
@@ -200,9 +253,6 @@ function Base.display(d::InlineDisplay, x)
         end
     else
         return with_no_default_display(() -> display(x))
-    end
-    if INLAY_HINTS_ENABLED[] && showable(INLAY_HINTS_MIME, x)
-        return display(d, INLAY_HINTS_MIME, x)
     end
 
     throw(MethodError(display, (d, x)))

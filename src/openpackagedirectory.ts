@@ -10,7 +10,7 @@ async function openPackageDirectoryCommand() {
     telemetry.traceEvent('command-openpackagedirectory')
 
     const optionsPackage: vscode.QuickPickOptions = {
-        placeHolder: 'Select package'
+        placeHolder: 'Select package',
     }
 
     try {
@@ -18,12 +18,13 @@ async function openPackageDirectoryCommand() {
 
         const files = await fs.readdir(juliaVersionHomeDir)
 
-        const filteredPackages = files.filter(path => !path.startsWith('.') && ['METADATA', 'REQUIRE', 'META_BRANCH'].indexOf(path) < 0)
+        const filteredPackages = files.filter(
+            (path) => !path.startsWith('.') && ['METADATA', 'REQUIRE', 'META_BRANCH'].indexOf(path) < 0
+        )
 
         if (filteredPackages.length === 0) {
             vscode.window.showInformationMessage('Error: There are no packages installed.')
-        }
-        else {
+        } else {
             const resultPackage = await vscode.window.showQuickPick(filteredPackages, optionsPackage)
 
             if (resultPackage !== undefined) {
@@ -31,14 +32,12 @@ async function openPackageDirectoryCommand() {
 
                 try {
                     await vscode.commands.executeCommand('vscode.openFolder', folder, true)
-                }
-                catch (e) {
+                } catch {
                     vscode.window.showInformationMessage('Could not open the package.')
                 }
             }
         }
-    }
-    catch (e) {
+    } catch {
         vscode.window.showInformationMessage('Error: Could not read package directory.')
     }
 }

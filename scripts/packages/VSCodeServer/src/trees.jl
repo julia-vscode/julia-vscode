@@ -123,7 +123,14 @@ function treerender(x::AbstractDict{K,V}) where {K,V}
 end
 
 function treerender(x::AbstractArray{T,N}) where {T,N}
-    treerender(LazyTree(string(typeof(x), " with $(pluralize(size(x), "element", "elements"))"), wsicon(x), length(x) == 0,
+    n_elements = try
+        # while size should be implemented for AbstractArrays, some types choose not to do
+        # that, e.g. JuMP.Containers.SparseAxisArray
+        pluralize(size(x), "element", "elements")
+    catch
+        "an unknown number of elements"
+    end
+    treerender(LazyTree(string(typeof(x), " with $(n_elements)"), wsicon(x), length(x) == 0,
             function ()
                 out = if length(x) > MAX_PARTITION_LENGTH
                     partition_by_keys(x, sz = MAX_PARTITION_LENGTH)
@@ -266,7 +273,9 @@ end
 
 # workspace
 
-repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}) =  Base.invokelatest(getvariables, params.modules)
+function repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}, token)
+    return Base.invokelatest(getvariables, params.modules)
+end
 
 function getvariables(show_modules)
     M = Main
@@ -301,6 +310,7 @@ function getvariables(show_modules)
             #
             # printstyled("Internal Error: ", bold=true, color=Base.error_color())
             # Base.display_error(err, catch_backtrace())
+            @debug "failed to render tree item '$s'" exception=(err, catch_backtrace())
         end
     end
 
@@ -333,7 +343,9 @@ wsicon(::Undef) = "question"
 
 # handle lazy clicks
 
-repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}) = Base.invokelatest(get_lazy, params.id)
+function repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}, token)
+    return Base.invokelatest(get_lazy, params.id)
+end
 
 function get_lazy(id::Int)
     try

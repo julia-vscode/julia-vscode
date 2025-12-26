@@ -1,20 +1,11 @@
 using Sockets
 import InteractiveUtils
 
-is_disconnected_exception(err) = false
-is_disconnected_exception(err::InvalidStateException) = err.state === :closed
-is_disconnected_exception(err::Base.IOError) = true
-is_disconnected_exception(err::CompositeException) = all(is_disconnected_exception, err.exceptions)
-
-function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
-    if is_disconnected_exception(e)
-        @debug "Disconnect. Nothing to worry about."
-        return
-    end
-
+function global_err_handler(e, bt, vscode_pipe_name, cloudRole; should_exit = true)
     @error "Some Julia code in the VS Code extension crashed"
     Base.display_error(e, bt)
-
+    flush(stdout)
+    flush(stderr)
 
     try
         st = stacktrace(bt)
@@ -72,6 +63,8 @@ function global_err_handler(e, bt, vscode_pipe_name, cloudRole)
             close(pipe_to_vscode)
         end
     finally
-        exit(1)
+        if should_exit
+            exit(1)
+        end
     end
 end

@@ -1,10 +1,6 @@
 println(Base.stderr, "Starting notebook kernel server")
 
-pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..", "packages"))
-using VSCodeServer
-popfirst!(LOAD_PATH)
-
-println(Base.stderr, "Core notebook support loaded")
+include("../terminalserver/load_vscodeserver.jl")
 
 using InteractiveUtils
 
@@ -15,9 +11,9 @@ let
         @info "Processing command line arguments..."
     end
 
-    args = [popfirst!(Base.ARGS) for _ in 1:2]
+    args = [popfirst!(Base.ARGS) for _ in 1:3]
 
-    conn_pipeline, telemetry_pipeline = args[1:2]
+    conn_pipename, debugger_pipename, telemetry_pipename = args[1:3]
 
     Base.with_logger(outputchannel_logger) do
         @info "Command line arguments processed"
@@ -29,5 +25,5 @@ let
         @info "Handing things off to VSCodeServer.serve_notebook"
     end
 
-    VSCodeServer.serve_notebook(conn_pipeline, outputchannel_logger, crashreporting_pipename=telemetry_pipeline)
+    VSCodeServer.serve_notebook(conn_pipename, debugger_pipename, outputchannel_logger, error_handler=(err,bt) -> global_err_handler(err, bt, telemetry_pipename, "Notebook"))
 end

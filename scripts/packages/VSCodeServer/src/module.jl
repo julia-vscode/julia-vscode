@@ -1,6 +1,10 @@
-repl_loadedModules_request(conn, params::Nothing) = string.(collect(get_modules()))
+function repl_loadedModules_request(conn, params::Nothing, token)
+    return string.(collect(Base.invokelatest(get_modules)))
+end
 
-repl_isModuleLoaded_request(conn, params::NamedTuple{(:mod,),Tuple{String}}) = is_module_loaded(params.mod)
+function repl_isModuleLoaded_request(conn, params::NamedTuple{(:mod,),Tuple{String}}, token)
+    return Base.invokelatest(is_module_loaded, params.mod)
+end
 
 function module_from_string(mod)
     ms = split(mod, '.')

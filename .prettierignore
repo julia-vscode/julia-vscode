@@ -1,0 +1,13 @@
+*.*
+!*.js
+!*.mjs
+!*.json
+!*.ts
+
+/dist/
+/scripts/
+!/scripts/plots
+/projectmanagement/
+/libs/
+/images/
+/syntaxes/
