@@ -31,10 +31,10 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams, tok
         if length(identifierSplit) > 1
             parentIdentifier = identifierSplit[1]
         end
-        if isdefined(mod, Symbol(parentIdentifier))
+        if Base.invokelatest(isdefined, mod, Symbol(parentIdentifier))
             idtype = nothing
             if length(identifierSplit) > 1
-                parentI = getfield(mod, Symbol(parentIdentifier))
+                parentI = Base.invokelatest(getfield, mod, Symbol(parentIdentifier))
                 getSubI = parentI
                 subIFound = true
                 for subI in identifierSplit[2:end]
@@ -49,10 +49,10 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams, tok
                     idtype = typeof(getSubI)
                 end
             else
-                idtype = typeof(getfield(mod, Symbol(identifier)))
+                idtype = typeof(Base.invokelatest(getfield, mod, Symbol(identifier)))
             end
             if !isnothing(idtype) && !(idtype isa Function)
-                supertypesOfid = supertypes(idtype)
+                supertypesOfid =  Base.invokelatest(supertypes, idtype)
                 if length(supertypesOfid) > 1
                     supertypesOfid = supertypesOfid[1:end-1]
                 end
