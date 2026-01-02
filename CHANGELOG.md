@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- We now try to interpret an empty `julia.executablePath` as `julia.exe`/`julia`, matching previous behaviour ()
+
 ## [1.170.0] - 2025-12-25
 ### Fixed
 - Fixed a typo in default cell delimiter setting ([#3945](https://github.com/julia-vscode/julia-vscode/pull/3945))
