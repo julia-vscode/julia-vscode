@@ -53,8 +53,12 @@ function isPlotly() {
     return document.querySelector('#plot-element .plotly') !== null
 }
 
-function isSvgTag() {
-    return document.querySelector('svg') !== null
+function getSvgTag() {
+    return document.querySelector(':not(button) > svg')
+}
+
+function isSvg() {
+    return getSvgTag() !== null
 }
 
 
@@ -78,9 +82,8 @@ function handlePlotSaveRequest(index) {
 
             postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, index })
         })
-    } else if (isSvgTag()) {
-        const svg = document.querySelector('svg').outerHTML
-
+    } else if (isSvg()) {
+        const svg = getSvgTag().outerHTML
         postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, index })
     } else {
         // e.g. Makie may display png images via a HTML mime type. If the plot pane content is a div (so we didn't have one of the image MIME types
@@ -117,23 +120,18 @@ function getSingleImgFromHtmlContent(el){
 }
 
 function handlePlotCopyRequest() {
-    const plot = document.querySelector('svg') || getPlotElement()
-    const isSvg = document.querySelector('svg') !== null
-
-    const width = plot.offsetWidth
-    const height = plot.offsetHeight
-
     if (!document.hasFocus()) {
         postMessageToHost(COPY_FAILED_MESSAGE_TYPE, 'Plot pane does not have focus.')
         return
     }
 
-    if (isSvg) {
+    if (isSvg()) {
+        const svg = getSvgTag()
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
 
         const image = new Image()
-        const data = new XMLSerializer().serializeToString(plot)
+        const data = new XMLSerializer().serializeToString(svg)
         const blob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' })
         const url = window.URL.createObjectURL(blob)
 
@@ -157,6 +155,11 @@ function handlePlotCopyRequest() {
         }
         image.src = url
     } else {
+        const plot = getPlotElement()
+
+        const width = plot.offsetWidth
+        const height = plot.offsetHeight
+
         html2canvas(plot, { height, width }).then(
             (canvas) => {
                 canvas.toBlob((blob) => {
@@ -258,7 +261,7 @@ function addCopyButton() {
     button.id = "copy-plot-btn"
     button.innerHTML = `${vscodeCopyIcon} <span id="copy-plot-btn-desc">Copy Plot</span>`
     button.onclick = handlePlotCopyRequest
-    document.body.insertBefore(button, document.body.firstChild)
+    document.body.append(button)
 }
 
 window.addEventListener('load', () => {
