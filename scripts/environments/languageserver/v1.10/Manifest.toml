@@ -68,7 +68,7 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 deps = ["Mmap"]
 path = "../../../packages/DelimitedFiles"
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
-version = "1.9.0"
+version = "1.9.1"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
