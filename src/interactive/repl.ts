@@ -112,6 +112,7 @@ async function stopREPL(onDeactivate = false) {
     }
     if (isConnected()) {
         g_connection.end()
+        g_connection.dispose()
         g_connection = undefined
     }
     if (g_terminal) {
@@ -414,6 +415,7 @@ function disconnectREPL() {
     } else {
         if (isConnected()) {
             g_connection.end()
+            g_connection.dispose()
             g_connection = undefined
         }
     }
@@ -491,13 +493,16 @@ function startREPLMsgServer(pipename: string, juliaExecutable?: JuliaExecutable)
     const connected = new Subject()
 
     if (g_connection) {
+        g_connection?.dispose()
         g_connection = undefined
     }
 
     const server = net.createServer((socket: net.Socket) => {
         socket.on('close', (hadError) => {
-            g_onExit.fire(hadError)
+            g_connection?.dispose()
             g_connection = undefined
+
+            g_onExit.fire(hadError)
             server.close()
         })
 
@@ -835,18 +840,22 @@ async function executeFile(uri?: vscode.Uri | string) {
     if (isJmd) {
         code = stripMarkdown(code)
     }
-
-    await g_evalQueue.push({
-        filename: path,
-        line: 0,
-        column: 0,
-        mod: module,
-        code: code,
-        showCodeInREPL: false,
-        showResultInREPL: true,
-        showErrorInREPL: true,
-        softscope: false,
-    })
+    try {
+        await g_evalQueue.push({
+            filename: path,
+            line: 0,
+            column: 0,
+            mod: module,
+            code: code,
+            showCodeInREPL: false,
+            showResultInREPL: true,
+            showErrorInREPL: true,
+            softscope: false,
+        })
+    } catch (err) {
+        console.log(err)
+        vscode.window.showErrorMessage(`Error while executing ${path}.`)
+    }
 }
 
 async function getBlockRange(params: VersionedTextDocumentPositionParams): Promise<vscode.Position[]> {
@@ -1466,9 +1475,16 @@ export function activate(
             })
         ),
         onExit(() => {
+            g_evalQueue.killAndDrain()
+            g_cellEvalQueue.killAndDrain()
+
+            g_connection?.dispose()
+
             results.removeAll()
             clearDiagnostics()
             clearInlayHints()
+            clearProgress()
+
             setContext('julia.isEvaluating', false)
             setContext('julia.hasREPL', false)
         }),
