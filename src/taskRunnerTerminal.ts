@@ -42,6 +42,7 @@ export class TaskRunnerTerminal {
             isTransient: true,
             pty: this.pty,
             iconPath: new vscode.ThemeIcon('tools'),
+            cwd: vscode.workspace.workspaceFolders?.[0]?.uri,
             ...opts,
         }
 

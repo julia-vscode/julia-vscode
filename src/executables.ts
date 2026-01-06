@@ -326,37 +326,42 @@ export class ExecutableFeature {
         )
 
         let configuredJuliaupChannel: string
-        if (config) {
+        for (const option of [config, 'julia.exe', 'julia']) {
+            if (!option) {
+                continue
+            }
+
             // first we try to interpret the config as a path
-            const exe = await this.juliaExecutableFromPathConfig(config, outputPrefix)
+            const exe = await this.juliaExecutableFromPathConfig(option, outputPrefix)
             if (exe) {
                 this.outputChannel.appendLine(outputPrefix + `using '${exe.command}' (v${exe.version}) as executable`)
                 return exe
             }
 
             // and then just try to spawn it
-            const version = await this.tryGetJuliaVersion(config, [], outputPrefix)
+            const version = await this.tryGetJuliaVersion(option, [], outputPrefix)
 
             if (version) {
-                const exe = new JuliaExecutable(config, version)
+                const exe = new JuliaExecutable(option, version)
                 this.outputChannel.appendLine(outputPrefix + `using '${exe.command}' (v${exe.version}) as executable`)
 
                 return exe
             } else {
-                this.outputChannel.appendLine(outputPrefix + `'${config}' can not be started`)
+                this.outputChannel.appendLine(outputPrefix + `'${option}' can not be started`)
             }
 
             // but if neither of those work, the input is expected to be a juliaup channel
             // and of the form 'julia +$channel' or '+$channel'
-            configuredJuliaupChannel = juliaChannelFromPathConfig(config)
+            configuredJuliaupChannel = juliaChannelFromPathConfig(option)
 
             if (configuredJuliaupChannel) {
                 this.outputChannel.appendLine(
                     outputPrefix +
-                        `${config} is not a path, interpreting it as a julia channel '${configuredJuliaupChannel}'`
+                        `${option} is not a path, interpreting it as a julia channel '${configuredJuliaupChannel}'`
                 )
+                break
             } else {
-                this.outputChannel.appendLine(outputPrefix + `'${config}' is an invalid juliaup channel`)
+                this.outputChannel.appendLine(outputPrefix + `'${option}' is an invalid juliaup channel`)
             }
         }
 
