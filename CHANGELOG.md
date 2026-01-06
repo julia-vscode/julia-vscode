@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.171.0] - 2026-01-06
 ### Fixed
 - We now try to interpret an empty `julia.executablePath` as `julia.exe`/`julia`, matching previous behaviour ()
 - Properly copy/save plots from the plot pane ([#3960](https://github.com/julia-vscode/julia-vscode/pull/3960))
