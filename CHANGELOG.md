@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - We now try to interpret an empty `julia.executablePath` as `julia.exe`/`julia`, matching previous behaviour ()
 - Properly copy/save plots from the plot pane ([#3960](https://github.com/julia-vscode/julia-vscode/pull/3960))
+- Clear eval queue when Julia process dies ([85b20fa](https://github.com/julia-vscode/julia-vscode/commit/85b20fac555d11e8977141d0a75867e8af35e6c2))
 
 ## [1.170.0] - 2025-12-25
 ### Fixed
