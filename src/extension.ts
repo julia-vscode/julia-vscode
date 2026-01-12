@@ -48,6 +48,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const executableFeature = new ExecutableFeature(context)
 
+        if (executableFeature.hasJulia()) {
+            executableFeature.setJuliaInstalled(true)
+        }
+
         // Language settings
         vscode.languages.setLanguageConfiguration('julia', {
             indentationRules: {

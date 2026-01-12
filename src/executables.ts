@@ -335,6 +335,8 @@ export class ExecutableFeature {
             const exe = await this.juliaExecutableFromPathConfig(option, outputPrefix)
             if (exe) {
                 this.outputChannel.appendLine(outputPrefix + `using '${exe.command}' (v${exe.version}) as executable`)
+                this.setJuliaInstalled(true)
+
                 return exe
             }
 
@@ -344,6 +346,7 @@ export class ExecutableFeature {
             if (version) {
                 const exe = new JuliaExecutable(option, version)
                 this.outputChannel.appendLine(outputPrefix + `using '${exe.command}' (v${exe.version}) as executable`)
+                this.setJuliaInstalled(true)
 
                 return exe
             } else {
@@ -374,6 +377,8 @@ export class ExecutableFeature {
             try {
                 const channel = await juliaup.getChannel(configuredJuliaupChannel)
                 this.outputChannel.appendLine(outputPrefix + `using juliaup channel ${channel.name}`)
+                this.setJuliaInstalled(true)
+
                 return new JuliaExecutable(channel)
             } catch {
                 this.outputChannel.appendLine(
@@ -385,11 +390,14 @@ export class ExecutableFeature {
         try {
             const channel = await juliaup.getDefaultChannel()
             this.outputChannel.appendLine(outputPrefix + `using default juliaup channel ${channel.name}`)
+            this.setJuliaInstalled(true)
+
             return new JuliaExecutable(channel)
         } catch {
             this.outputChannel.appendLine(outputPrefix + `default juliaup channel is not installed`)
         }
 
+        this.setJuliaInstalled(false)
         this.outputChannel.appendLine('!!! Julia was not found. Most extension features will be nonfunctional.')
         throw new Error('Julia not installed')
     }
@@ -543,6 +551,8 @@ export class ExecutableFeature {
         if (this.juliaupExecutableCache) {
             const exe = await this.juliaupExecutableCache
             if (exe) {
+                this.setJuliaupInstalled(true)
+
                 return exe
             }
         }
@@ -566,9 +576,26 @@ export class ExecutableFeature {
         }
     }
 
+    public async hasJulia(): Promise<boolean> {
+        try {
+            await this.getExecutable(false)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     public dispose() {
         this.outputChannel.dispose()
         this.statusBarItem.dispose()
+    }
+
+    public setJuliaInstalled(isInstalled: boolean) {
+        vscode.commands.executeCommand('setContext', 'julia.juliaInstalled', isInstalled)
+    }
+
+    public setJuliaupInstalled(isInstalled: boolean) {
+        vscode.commands.executeCommand('setContext', 'julia.juliaupInstalled', isInstalled)
     }
 
     // Impl
@@ -658,6 +685,8 @@ export class ExecutableFeature {
                 const version = stdout.toString().trim()
 
                 this.outputChannel.appendLine(`  ${cmd}: found 'juliaup' with version ${version}`)
+                this.setJuliaupInstalled(true)
+
                 return new JuliaupExecutable(cmd, version, this.taskRunner)
             } catch {
                 // TODO: maybe check the actual error here?
@@ -676,9 +705,13 @@ export class ExecutableFeature {
                 return await this.getJuliaupExecutableNoCache(false)
             } else if (exitCode === 1) {
                 vscode.window.showErrorMessage('Failed to install Julia and the required juliaup channels!')
+                this.setJuliaupInstalled(false)
+
                 throw new Error('juliaup not available')
             }
         } else {
+            this.setJuliaupInstalled(false)
+
             throw new Error('juliaup not available')
         }
     }
