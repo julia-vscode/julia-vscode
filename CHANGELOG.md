@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Select `all` by default in profile viewer ([#3968](https://github.com/julia-vscode/julia-vscode/pull/3968))
 - Also show "Copy Plot" button for HTML plots ([#3969](https://github.com/julia-vscode/julia-vscode/pull/3969))
+- Start LS when `julia.executablePath` is empty, matching previous behaviour ([#3975](https://github.com/julia-vscode/julia-vscode/pull/3975))
 
 ## [1.171.0] - 2026-01-06
 ### Fixed
