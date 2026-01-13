@@ -5,8 +5,10 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.173.0] - 2026-01-13
 ### Fixed
-- Stop requiring juliaup to be installed for notebook kernel selection ([#3978](https://github.com/julia-vscode/julia-vscode/pull/3978))
+- Stop requiring juliaup to be installed for notebook kernel selection ([c2c9091](https://github.com/julia-vscode/julia-vscode/commit/c2c9091213d86311be7b1fae2685cc5209d3323d))
 
 ## [1.172.0] - 2026-01-12
 ### Fixed
