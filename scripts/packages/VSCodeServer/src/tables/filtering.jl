@@ -55,7 +55,12 @@ function generate_filter(params, col)
 end
 
 function generate_number_filter(params, col)
-    row -> filterMapping[params["type"]](col_access(row, col), params["filter"])
+    typ = params["type"]
+    if typ == "inRange"
+        return row -> params["filter"] <= col_access(row, col) <= params["filterTo"]
+    else
+        return row -> filterMapping[params["type"]](col_access(row, col), params["filter"])
+    end
 end
 
 function regex_escape(s::AbstractString)
