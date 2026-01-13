@@ -524,11 +524,15 @@ export class ExecutableFeature {
     }
 
     public async getExecutables(): Promise<JuliaExecutable[]> {
-        const juliaup = await this.getJuliaupExecutable()
-        const channels = await juliaup.installed()
-        const executables = channels.map((channel) => new JuliaExecutable(channel))
+        const executables = []
+        executables.push(await this.getExecutable(true))
 
-        executables.push(await this.getExecutable())
+        if (await this.hasJuliaup()) {
+            const juliaup = await this.getJuliaupExecutable()
+            const channels = await juliaup.installed()
+
+            executables.push(channels.map((channel) => new JuliaExecutable(channel)))
+        }
 
         return executables.filter((val, ind, self) => {
             return (

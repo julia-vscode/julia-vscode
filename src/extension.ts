@@ -144,8 +144,8 @@ export async function activate(context: vscode.ExtensionContext) {
             async getEnvironment() {
                 return await jlpkgenv.getAbsEnvPath()
             },
-            async getJuliaupExecutable() {
-                return await executableFeature.getJuliaupExecutable()
+            async getJuliaupExecutable(tryInstall: boolean = true) {
+                return await executableFeature.getJuliaupExecutable(tryInstall)
             },
             async getJuliaExecutable(tryInstall: boolean = true) {
                 return await executableFeature.getExecutable(tryInstall)
