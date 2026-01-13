@@ -258,6 +258,14 @@ function showtable(table::T, title = "") where {T}
 end
 
 function get_table_data_request(conn, params::GetTableDataRequest, token)
+    try
+        _get_table_data_request(conn, params::GetTableDataRequest, token)
+    catch err
+        @error "Error while requesting table data" ex=(err, catch_backtrace())
+    end
+end
+
+function _get_table_data_request(conn, params::GetTableDataRequest, token)
     id = UUID(params.id)
     if !haskey(TABLES, id)
         return JSONRPC.JSONRPCError(-32600, "Table not found.", nothing)
