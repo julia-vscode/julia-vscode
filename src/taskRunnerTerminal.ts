@@ -6,6 +6,7 @@ export interface TaskRunnerTerminalOptions extends JuliaPTYOptions {
     cwd?: string | vscode.Uri
     env?: { [key: string]: string }
     iconPath?: vscode.IconPath
+    shellIntegrationNonce?: string
     hideFromUser?: boolean // currently not functional
 }
 

@@ -31,6 +31,7 @@ import * as results from './results'
 import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
 import { promise as fastq } from 'fastq'
+import { randomUUID } from 'crypto'
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
@@ -287,6 +288,7 @@ export async function startREPL(
                 env,
                 iconPath: juliaIconPath,
                 echoMessage: false,
+                shellIntegrationNonce: randomUUID(),
                 onExitMessage(exitCode) {
                     if (exitCode === 0) {
                         return
@@ -305,6 +307,7 @@ export async function startREPL(
                 hideFromUser: true,
                 env,
                 cwd: workspaceFolder,
+                shellIntegrationNonce: randomUUID(),
             })
         }
     }
