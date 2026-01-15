@@ -74,7 +74,19 @@ end
 si(f) = (args...) -> ENABLE_SHELL_INTEGRATION[] ? f(args...) : ""
 
 function sanitize_shell_integration_string(cmd)
-    replace(replace(replace(cmd, "\n" => "<LF>"), ";" => "<CL>"), "\a" => "<ST>")
+    outbuffer = IOBuffer()
+    for char in cmd
+        ichar = UInt(char)
+        if char === '\\'
+            print(outbuffer, "\\\\")
+        elseif ichar <= 0x20 || char === ';'
+            ichar %= UInt8
+            print(outbuffer, "\\0x", bytes2hex(ichar))
+        else
+            print(outbuffer, char)
+        end
+    end
+    return String(take!(outbuffer))
 end
 
 const SHELL = (
@@ -119,7 +131,7 @@ function install_vscode_shell_integration(prompt)
     nonce = ""
     if haskey(ENV, "VSCODE_NONCE")
         nonce = ENV["VSCODE_NONCE"]
-        delete(ENV, "VSCODE_NONCE")
+        delete!(ENV, "VSCODE_NONCE")
     end
 
     prefix = as_func(prompt.prompt_prefix)
