@@ -63,7 +63,13 @@ export class TaskRunnerTerminal {
         this.proc?.dispose()
 
         const cwd = opts.cwd instanceof vscode.Uri ? opts.cwd.fsPath : opts.cwd
-        this.proc = new JuliaProcess(shellPath, shellArgs, { cwd, env: opts.env })
+        this.proc = new JuliaProcess(shellPath, shellArgs, {
+            cwd,
+            env: {
+                VSCODE_NONCE: opts.shellIntegrationNonce,
+                ...opts.env,
+            },
+        })
         this.proc.onDidClose((ev) => {
             this.onDidExitProcessEmitter.fire(ev)
         })
