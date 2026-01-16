@@ -1140,10 +1140,6 @@ async function evaluate(editor: vscode.TextEditor, range: vscode.Range, text: st
             r.setContent(results.resultContent(' ' + result.inline + ' ', result.all, isError))
         }
 
-        if (isError) {
-            g_evalQueue.killAndDrain()
-        }
-
         return !isError
     } catch (err) {
         r.remove(true)
@@ -1403,11 +1399,16 @@ function updateCellDelimiters() {
 function isMarkdownEditor(editor: vscode.TextEditor) {
     return editor.document.languageId === 'juliamarkdown' || editor.document.languageId === 'markdown'
 }
-
 let g_currentEvalItem: RunCodeOptions
 async function sendEvalRequest(req: RunCodeOptions) {
     g_currentEvalItem = req
-    return await g_connection.sendRequest(requestTypeReplRunCode, req)
+    const r = await g_connection.sendRequest(requestTypeReplRunCode, req)
+
+    if (r.stackframe) {
+        g_evalQueue.killAndDrain()
+    }
+
+    return r
 }
 
 async function evalCellByLine({ editor, cellRange, module }) {
