@@ -5,13 +5,14 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.175.0] - 2026-01-16
 ### Changed
 - The extension now requires VS Code version 1.108 or newer ([#3982](https://github.com/julia-vscode/julia-vscode/pull/3982))
 - The integrated Julia REPL now runs with rich shell integration ([#3982](https://github.com/julia-vscode/julia-vscode/pull/3982))
 
 ### Fixed
 - No longer show an additional result on error after queuing up multiple inline evaluations ([#3986](https://github.com/julia-vscode/julia-vscode/pull/3986))
-- Handle juliaup aliases correctly ([#3987](https://github.com/julia-vscode/julia-vscode/pull/3987))
+- Handle juliaup aliases correctly ([#3988](https://github.com/julia-vscode/julia-vscode/pull/3988))
 
 ## [1.174.0] - 2026-01-14
 ### Fixed
