@@ -37,6 +37,37 @@ function toJuliaupChannel(info: JuliaupApiGetinfoReturnChannel, isDefault: boole
     }
 }
 
+// Currently, juliaup channel aliases will have their File field set to `alias-to-$channel`,
+// which we can resolve here. Luckily, we're guaranteed that each alias resolves to a
+// proper channel, so we can just steal the File from there.
+const aliasPrefix = 'alias-to-'
+function resolveAliases(channels: JuliaupChannel[]) {
+    return channels
+        .map((channel) => {
+            if (channel.file.startsWith(aliasPrefix)) {
+                const aliasName = channel.file.slice(aliasPrefix.length)
+
+                const aliasChannel = channels.find((c) => c.name === aliasName)
+
+                if (!aliasChannel) {
+                    vscode.window.showErrorMessage(
+                        `Invalid juliaup configuration. Alias target '${aliasName}' not found.`
+                    )
+                    return undefined
+                }
+
+                return {
+                    ...channel,
+                    file: aliasChannel.file,
+                    version: aliasChannel.version,
+                }
+            }
+
+            return channel
+        })
+        .filter((channel) => channel !== undefined)
+}
+
 interface JuliaupApiGetinfoReturnChannel {
     Name: string
     File: string
@@ -112,7 +143,7 @@ export class JuliaupExecutable {
                 const defaultVersion = installedVersions.DefaultChannel
                 const otherVersions = installedVersions.OtherChannels
 
-                const channels: JuliaupChannel[] = []
+                let channels: JuliaupChannel[] = []
 
                 if (defaultVersion) {
                     channels.push(toJuliaupChannel(defaultVersion, true))
@@ -120,6 +151,8 @@ export class JuliaupExecutable {
                 for (const version of otherVersions) {
                     channels.push(toJuliaupChannel(version))
                 }
+
+                channels = resolveAliases(channels)
 
                 resolve(channels)
             } catch (err) {
