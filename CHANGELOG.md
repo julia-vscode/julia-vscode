@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - No longer show an additional result on error after queuing up multiple inline evaluations ([#3986](https://github.com/julia-vscode/julia-vscode/pull/3986))
+- Handle juliaup aliases correctly ([#3987](https://github.com/julia-vscode/julia-vscode/pull/3987))
 
 ## [1.174.0] - 2026-01-14
 ### Fixed
