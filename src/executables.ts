@@ -358,8 +358,14 @@ export class ExecutableFeature {
             outputPrefix + '`julia.executablePath` is ' + (config ? `set to '${config}'` : 'not set')
         )
 
+        const options = [config]
+        if (os.platform() === 'win32') {
+            options.push('julia.exe', 'julia.cmd')
+        }
+        options.push('julia')
+
         let configuredJuliaupChannel: string
-        for (const option of [config, 'julia.exe', 'julia']) {
+        for (const option of options) {
             if (!option) {
                 continue
             }
