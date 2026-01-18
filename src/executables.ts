@@ -570,7 +570,7 @@ export class ExecutableFeature {
             const juliaup = await this.getJuliaupExecutable()
             const channels = await juliaup.installed()
 
-            executables.push(channels.map((channel) => new JuliaExecutable(channel)))
+            executables.push(...channels.map((channel) => new JuliaExecutable(channel)))
         }
 
         return executables.filter((val, ind, self) => {
