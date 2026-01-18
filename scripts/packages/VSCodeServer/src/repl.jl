@@ -106,7 +106,8 @@ const SHELL = (
             return "\e]633;D;$(Int(exitcode))\a"
         end
     end),
-    update_cmd = si(function (cmd, nonce)
+    update_cmd = si(function (cmd)
+        nonce = SHELL_NONCE[]
         cmd = sanitize_shell_integration_string(cmd)
         if length(nonce) > 0
             "\e]633;E;$cmd;$nonce\a"
@@ -122,15 +123,15 @@ const SHELL = (
 as_func(x) = () -> x
 as_func(x::Function) = x
 
+const SHELL_NONCE = Ref("")
 function install_vscode_shell_integration(prompt)
     if Sys.iswindows()
         print(stdout, SHELL.windows_compat())
     end
     print(stdout, SHELL.rich_integration())
 
-    nonce = ""
     if haskey(ENV, "VSCODE_NONCE")
-        nonce = ENV["VSCODE_NONCE"]
+        SHELL_NONCE[] = ENV["VSCODE_NONCE"]
         delete!(ENV, "VSCODE_NONCE")
     end
 
@@ -141,7 +142,7 @@ function install_vscode_shell_integration(prompt)
 
     on_done = prompt.on_done
     prompt.on_done = function (mi, buf, ok)
-        print(stdout, SHELL.update_cmd(String(take!(deepcopy(buf))), nonce), SHELL.output_start())
+        print(stdout, SHELL.update_cmd(String(take!(deepcopy(buf)))), SHELL.output_start())
         REPL_PROMPT_STATE[] = REPLPromptStates.NoStatus
         on_done(mi, buf, ok)
     end
