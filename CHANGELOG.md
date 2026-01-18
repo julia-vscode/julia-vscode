@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- Kernel selection for Jupyter notebooks should now work properly again ([#3992](https://github.com/julia-vscode/julia-vscode/pull/3992))
+
 ## [1.175.0] - 2026-01-16
 ### Changed
 - The extension now requires VS Code version 1.108 or newer ([#3982](https://github.com/julia-vscode/julia-vscode/pull/3982))
