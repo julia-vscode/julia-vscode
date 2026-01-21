@@ -16,7 +16,7 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 version = "1.11.0"
 
     [deps.Artifacts.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.AutoHashEquals]]
 git-tree-sha1 = "45bb6705d93be619b81451bb2006b7ee5d4e4453"
@@ -29,7 +29,7 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 version = "1.11.0"
 
     [deps.Base64.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
@@ -148,7 +148,7 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
     [deps.Dates.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.DocumentFormat]]
 deps = ["FilePathsBase", "JuliaFormatter"]
@@ -198,14 +198,14 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 version = "1.11.0"
 
     [deps.FileWatching.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.GitHub]]
 deps = ["Base64", "Dates", "HTTP", "JSON", "MbedTLS", "Sockets", "SodiumSeal", "URIs"]
-git-tree-sha1 = "12d0b1886e60c9d2a3d42ef1612bdfbedec68b42"
+git-tree-sha1 = "ef535d4e8cb96c4fb6753212744ee737fad1bc50"
 registries = "General"
 uuid = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
-version = "5.11.0"
+version = "5.12.0"
 
     [deps.GitHub.syntax]
     julia_version = "1.6.0"
@@ -235,7 +235,7 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 version = "1.11.0"
 
     [deps.InteractiveUtils.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.IteratorInterfaceExtensions]]
 git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
@@ -295,7 +295,7 @@ version = "1.0.0"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "Zlib_jll", "Zstd_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.17.0+0"
+version = "8.18.0+0"
 
     [deps.LibCURL_jll.syntax]
     julia_version = "1.11.0"
@@ -306,7 +306,7 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 version = "1.11.0"
 
     [deps.LibGit2.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.LibGit2_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "PCRE2_jll", "Zlib_jll"]
@@ -329,14 +329,14 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 version = "1.11.0"
 
     [deps.Libdl.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 version = "1.11.0"
 
     [deps.Logging.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.LoggingExtras]]
 deps = ["Dates", "Logging"]
@@ -354,7 +354,7 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 version = "1.11.0"
 
     [deps.Markdown.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "NetworkOptions", "Random", "Sockets"]
@@ -381,14 +381,14 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 version = "1.11.0"
 
     [deps.Mmap.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2025.12.2"
 
     [deps.MozillaCACerts_jll.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.Mustache]]
 deps = ["Printf", "Tables"]
@@ -512,7 +512,7 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 version = "1.11.0"
 
     [deps.Printf.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.Random]]
 deps = ["SHA"]
@@ -520,7 +520,7 @@ uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 version = "1.11.0"
 
     [deps.Random.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.RegistryTools]]
 deps = ["AutoHashEquals", "LibGit2", "Pkg", "SHA", "UUIDs"]
@@ -544,7 +544,7 @@ uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 version = "1.11.0"
 
     [deps.Serialization.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.SimpleBufferStream]]
 git-tree-sha1 = "f305871d2f381d21527c770d4788c06c097c9bc1"
@@ -560,7 +560,7 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 version = "1.11.0"
 
     [deps.Sockets.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.SodiumSeal]]
 deps = ["Base64", "Libdl", "libsodium_jll"]
@@ -621,7 +621,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
     [deps.Test.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.Tokenize]]
 git-tree-sha1 = "468b4685af4abe0e9fd4d7bf495a6554a6276e75"
@@ -656,14 +656,14 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 version = "1.11.0"
 
     [deps.UUIDs.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 version = "1.11.0"
 
     [deps.Unicode.syntax]
-    julia_version = "1.14.0-DEV.1550"
+    julia_version = "1.14.0-DEV.1555"
 
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
