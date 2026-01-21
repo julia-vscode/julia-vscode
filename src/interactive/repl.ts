@@ -205,6 +205,8 @@ export async function startREPL(
         juliaExecutable = await g_ExecutableFeature.getExecutable(true)
     }
 
+    const terminalName = makeTerminalName(juliaExecutable)
+
     if (g_terminal_is_persistent && isConnected()) {
         shellPath = config.get('persistentSession.shell')
         const sessionName = parseSessionArgs(config.get('persistentSession.tmuxSessionName'))
@@ -214,7 +216,7 @@ export async function startREPL(
         shellArgs = [...shellExecutionArgs, `tmux attach -t ${sessionName}`]
 
         g_terminal = vscode.window.createTerminal({
-            name: `Julia REPL (v${juliaExecutable.version})`,
+            name: terminalName,
             shellPath: shellPath,
             shellArgs: shellArgs,
             isTransient: true,
@@ -267,7 +269,7 @@ export async function startREPL(
         }
         g_terminal_is_persistent = true
         g_terminal = vscode.window.createTerminal({
-            name: `Julia REPL (v${juliaExecutable.version})`,
+            name: terminalName,
             shellPath: shellPath,
             shellArgs: shellArgs,
             isTransient: true,
@@ -283,7 +285,7 @@ export async function startREPL(
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri
 
         if (config.get('repl.keepAlive')) {
-            const task = new TaskRunnerTerminal(`Julia REPL (v${juliaExecutable.version})`, shellPath, shellArgs, {
+            const task = new TaskRunnerTerminal(terminalName, shellPath, shellArgs, {
                 cwd: workspaceFolder,
                 env,
                 iconPath: juliaIconPath,
@@ -300,7 +302,7 @@ export async function startREPL(
             g_terminal = task.terminal
         } else {
             g_terminal = vscode.window.createTerminal({
-                name: `Julia REPL (v${juliaExecutable.version})`,
+                name: terminalName,
                 shellPath: shellPath,
                 shellArgs: shellArgs,
                 isTransient: true,
@@ -314,6 +316,20 @@ export async function startREPL(
 
     g_terminal.show(preserveFocus)
     await juliaIsConnectedPromise.wait()
+}
+
+function makeTerminalName(juliaExecutable: JuliaExecutable) {
+    const version = juliaExecutable.version
+    const channelName = juliaExecutable.juliaupChannel?.name
+    let name = `Julia REPL (v${version}`
+
+    if (channelName && version.includes(channelName)) {
+        name += ')'
+    } else {
+        name += `, +${channelName})`
+    }
+
+    return name
 }
 
 async function startREPLWithVersion(channelName?: string) {
