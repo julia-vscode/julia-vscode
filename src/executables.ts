@@ -246,7 +246,7 @@ export class JuliaExecutable {
     public command: string
     public version: string
     public args: string[]
-    public juliaupChannel: JuliaupChannel
+    public juliaupChannel?: JuliaupChannel
 
     private _rootFolder: string
 
