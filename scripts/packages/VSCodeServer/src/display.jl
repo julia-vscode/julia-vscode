@@ -143,7 +143,13 @@ function parse_mime_parameters(params_str::AbstractString)
             parsing_error("expected '=' after parameter name '$param_name'", pos)
         end
         if params_str[pos] != '='
-            parsing_error("expected '=' after parameter name '$param_name', got '$(params_str[pos])'", pos)
+            c = params_str[pos]
+            # Check if this is a non-ASCII character that's not allowed in parameter names
+            if !isascii(c)
+                parsing_error("character '$c' is not allowed in parameter names (only ASCII alphanumerics and !#\$%&'*+-.^_`|~ are allowed)", pos)
+            else
+                parsing_error("expected '=' after parameter name '$param_name', got '$c'", pos)
+            end
         end
         pos = nextind(params_str, pos)  # skip '='
 
@@ -215,7 +221,13 @@ function parse_mime_parameters(params_str::AbstractString)
             break
         elseif params_str[pos] != ';'
             # Unexpected character after parameter
-            parsing_error("expected ';' or end of parameters after '$param_name=$param_value', got '$(params_str[pos])'", pos)
+            c = params_str[pos]
+            # Check if this is a non-ASCII character that's not allowed in tokens
+            if !isascii(c)
+                parsing_error("character '$c' is not allowed in unquoted token values (use quotes: $param_name=\"$param_value$c...\")", pos)
+            else
+                parsing_error("expected ';' or end of parameters after '$param_name=$param_value', got '$c'", pos)
+            end
         end
         # If we get here, we're at a semicolon and the while loop will continue
     end
