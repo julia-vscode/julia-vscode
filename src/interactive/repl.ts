@@ -323,7 +323,7 @@ function makeTerminalName(juliaExecutable: JuliaExecutable) {
     const channelName = juliaExecutable.juliaupChannel?.name
     let name = `Julia REPL (v${version}`
 
-    if (channelName && version.includes(channelName)) {
+    if (channelName === undefined || version.includes(channelName)) {
         name += ')'
     } else {
         name += `, +${channelName})`
