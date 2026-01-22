@@ -52,7 +52,7 @@ function toggle_progress_notification(_, params::NamedTuple{(:enable,),Tuple{Boo
     PROGRESS_ENABLED[] = params.enable
 end
 
-function fix_displays(; is_repl = false)
+function fix_displays(; is_repl=false)
     for d in reverse(Base.Multimedia.displays)
         if d isa InlineDisplay
             popdisplay(d)
@@ -61,7 +61,7 @@ function fix_displays(; is_repl = false)
     pushdisplay(InlineDisplay(is_repl))
 end
 
-function with_no_default_display(f; allow_inline = false)
+function with_no_default_display(f; allow_inline=false)
     stack = copy(Base.Multimedia.displays)
     filter!(Base.Multimedia.displays) do d
         !(d isa REPL.REPLDisplay || d isa TextDisplay || (!allow_inline && d isa InlineDisplay))
@@ -75,8 +75,8 @@ function with_no_default_display(f; allow_inline = false)
 end
 
 
-function sendDisplayMsg(kind, data, id = missing, title = missing)
-    msg = Dict{String, Any}("kind" => kind, "data" => data, "id" => id, "title" => title)
+function sendDisplayMsg(kind, data, id=missing, title=missing)
+    msg = Dict{String,Any}("kind" => kind, "data" => data, "id" => id, "title" => title)
     return try
         JSONRPC.send_notification(conn_endpoint[], "display", msg)
         JSONRPC.flush(conn_endpoint[])
@@ -92,14 +92,14 @@ function parse_mime_parameters(params_str::AbstractString)
     # token = 1*tchar where tchar excludes delimiters
     # quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
 
-    params = Dict{String, String}()
+    params = Dict{String,String}()
     pos = 1
 
     # tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." /
     #         "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
     token_re = r"[!#$%&'*+\-.0-9A-Z^-z|~]+"
 
-    function get_context(pos, width = 20)
+    function get_context(pos, width=20)
         start_pos = max(1, pos - width)
         end_pos = min(length(params_str), pos + width)
         context = params_str[start_pos:end_pos]
@@ -112,20 +112,20 @@ function parse_mime_parameters(params_str::AbstractString)
         error("Invalid MIME parameter: $message at position $pos\n\n$(get_context(pos))")
     end
 
-    while pos <= length(params_str)
+    while pos <= ncodeunits(params_str)
         # Expect semicolon at this point (we've either just started or completed a previous parameter)
         if params_str[pos] != ';'
             parsing_error("expected ';'", pos)
         end
-        pos += 1  # skip semicolon
+        pos = nextind(params_str, pos)  # skip semicolon
 
         # Skip OWS after semicolon
         ows = findnext(r"[ \t]*", params_str, pos)
         if ows !== nothing
-            pos = ows.stop + 1
+            pos = nextind(params_str, ows.stop)
         end
 
-        if pos > length(params_str)
+        if pos > ncodeunits(params_str)
             # Empty parameter after semicolon - valid per spec (optional parameter)
             break
         end
@@ -136,18 +136,18 @@ function parse_mime_parameters(params_str::AbstractString)
             parsing_error("expected token (parameter name)", pos)
         end
         param_name = lowercase(params_str[name_match])  # parameter names are case-insensitive
-        pos = name_match.stop + 1
+        pos = nextind(params_str, name_match.stop)
 
         # Expect '=' with no whitespace around it (per spec)
-        if pos > length(params_str)
+        if pos > ncodeunits(params_str)
             parsing_error("expected '=' after parameter name '$param_name'", pos)
         end
         if params_str[pos] != '='
             parsing_error("expected '=' after parameter name '$param_name', got '$(params_str[pos])'", pos)
         end
-        pos += 1  # skip '='
+        pos = nextind(params_str, pos)  # skip '='
 
-        if pos > length(params_str)
+        if pos > ncodeunits(params_str)
             parsing_error("expected value after '$param_name='", pos)
         end
 
@@ -157,30 +157,30 @@ function parse_mime_parameters(params_str::AbstractString)
             # qdtext = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
             # quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
             quote_start = pos
-            pos += 1  # skip opening DQUOTE
+            pos = nextind(params_str, pos)  # skip opening DQUOTE
             value_chars = Char[]
             found_closing_quote = false
 
-            while pos <= length(params_str)
+            while pos <= ncodeunits(params_str)
                 c = params_str[pos]
                 if c == '\\'
                     # quoted-pair: backslash followed by HTAB / SP / VCHAR / obs-text
-                    pos += 1
-                    if pos <= length(params_str)
+                    pos = nextind(params_str, pos)
+                    if pos <= ncodeunits(params_str)
                         push!(value_chars, params_str[pos])
-                        pos += 1
+                        pos = nextind(params_str, pos)
                     else
                         parsing_error("unterminated escape sequence in quoted string for '$param_name'", pos)
                     end
                 elseif c == '"'
                     # End of quoted-string
                     found_closing_quote = true
-                    pos += 1
+                    pos = nextind(params_str, pos)
                     break
                 else
                     # qdtext character
                     push!(value_chars, c)
-                    pos += 1
+                    pos = nextind(params_str, pos)
                 end
             end
 
@@ -197,7 +197,7 @@ function parse_mime_parameters(params_str::AbstractString)
                 parsing_error("expected token or quoted-string value for '$param_name'", pos)
             end
             param_value = params_str[value_match]
-            pos = value_match.stop + 1
+            pos = nextind(params_str, value_match.stop)
         end
 
         params[param_name] = param_value
@@ -206,11 +206,11 @@ function parse_mime_parameters(params_str::AbstractString)
         # Skip OWS (optional whitespace)
         ows = findnext(r"[ \t]*", params_str, pos)
         if ows !== nothing
-            pos = ows.stop + 1
+            pos = nextind(params_str, ows.stop)
         end
 
         # Now we should be at either end of string or semicolon
-        if pos > length(params_str)
+        if pos > ncodeunits(params_str)
             # End of string - we're done
             break
         elseif params_str[pos] != ';'
@@ -232,7 +232,7 @@ function extract_mime_id(m::MIME)
         return mime, missing, missing
     end
 
-    mime_type = mime[1:(semicolon_idx - 1)]
+    mime_type = mime[1:(semicolon_idx-1)]
     params_str = mime[semicolon_idx:end]
 
     params = parse_mime_parameters(params_str)
@@ -436,7 +436,7 @@ function repl_showingrid_notification(conn, params::NamedTuple{(:code,),Tuple{St
     end
 end
 
-function internal_vscodedisplay(x, title::AbstractString = "")
+function internal_vscodedisplay(x, title::AbstractString="")
     if is_table_like(x)
         showtable(x, title)
     else
@@ -444,7 +444,7 @@ function internal_vscodedisplay(x, title::AbstractString = "")
     end
 end
 
-vscodedisplay(x, title::AbstractString = "") = internal_vscodedisplay(x, title)
+vscodedisplay(x, title::AbstractString="") = internal_vscodedisplay(x, title)
 vscodedisplay(title::AbstractString) = i -> vscodedisplay(i, title)
 macro vscodedisplay(x)
     :(vscodedisplay($(esc(x)), $(string(x))))

@@ -55,6 +55,11 @@ using VSCodeServer
             @test VSCodeServer.parse_mime_parameters(";v1.0=1.0") == Dict("v1.0" => "1.0")
         end
 
+        @testset "Unicode is allowed in quoted strings" begin
+            # Non-ASCII UTF-8 characters in token
+            @test VSCodeServer.parse_mime_parameters(";x=\"Résumé\"") == Dict("x" => "Résumé")
+        end
+
         # Empty trailing parameter
         @testset "Empty trailing parameter" begin
             @test VSCodeServer.parse_mime_parameters(";a=1;") == Dict("a" => "1")
@@ -89,6 +94,12 @@ using VSCodeServer
 
             # Invalid character after parameter
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";a=1 b=2")
+
+            # Non-ASCII UTF-8 characters in parameter name
+            @test_throws ErrorException VSCodeServer.parse_mime_parameters(";Résumé=abc")
+
+            # Non-ASCII UTF-8 characters in parameter value in token form (unquoted)
+            @test_throws ErrorException VSCodeServer.parse_mime_parameters(";abc=Résumé")
         end
     end
 
