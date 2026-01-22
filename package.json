@@ -1098,6 +1098,11 @@
                     ],
                     "scope": "window"
                 },
+                "julia.completeFunctionParens": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Add parentheses to function completions."
+                },
                 "julia.cellDelimiters": {
                     "type": "array",
                     "default": [
