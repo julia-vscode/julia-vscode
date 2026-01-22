@@ -65,28 +65,28 @@ using VSCodeServer
         @testset "Error cases" begin
             # Missing semicolon at start
             @test_throws ErrorException VSCodeServer.parse_mime_parameters("a=1")
-            
+
             # Invalid parameter name (contains invalid characters)
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";a b=1")
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";\"quoted\"=value")
-            
+
             # Missing equals sign
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";a")
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";a;b=2")
-            
+
             # Whitespace around equals (not allowed per spec)
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";a =1")
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";a= 1")
-            
+
             # Missing value
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";a=")
-            
+
             # Unterminated quoted string
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";title=\"unterminated")
-            
+
             # Unterminated escape sequence
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";title=\"test\\")
-            
+
             # Invalid character after parameter
             @test_throws ErrorException VSCodeServer.parse_mime_parameters(";a=1 b=2")
         end
