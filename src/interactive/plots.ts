@@ -514,8 +514,8 @@ function addOrUpdatePlot(plotPaneContent: string, id?: string) {
     showPlotPane()
 }
 
-export function displayPlot(params: { kind: string; data: string; id?: string }, kernel?: JuliaKernel) {
-    const { kind, data: payload, id } = params
+export function displayPlot(params: { kind: string; data: string; id?: string; title?: string }, kernel?: JuliaKernel) {
+    const { kind, data: payload, id, title } = params
 
     if (kind === 'image/svg+xml') {
         const has_xmlns_attribute = payload.includes('xmlns=')
@@ -880,7 +880,7 @@ export function displayPlot(params: { kind: string; data: string; id?: string },
     } else if (kind === 'application/vnd.dataresource+lazy') {
         return displayTable(payload, g_context, true, kernel)
     } else if (kind === 'application/vnd.julia-vscode.custompane+html') {
-        return displayCustom(payload, id)
+        return displayCustom(payload, id, title)
     } else {
         throw new Error()
     }
@@ -891,14 +891,16 @@ export function displayPlot(params: { kind: string; data: string; id?: string },
 }
 
 const CUSTOM_PANELS = new Map<string, vscode.WebviewPanel>()
-function displayCustom(payload, id) {
+function displayCustom(payload, id, title?: string) {
+    const panelTitle = title || id
     let panel: vscode.WebviewPanel
     if (CUSTOM_PANELS.has(id)) {
         panel = CUSTOM_PANELS.get(id)
+        panel.title = panelTitle
     } else {
         panel = vscode.window.createWebviewPanel(
             `julia.custom_pane.${id}`,
-            id,
+            panelTitle,
             {
                 preserveFocus: true,
                 viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Two),
