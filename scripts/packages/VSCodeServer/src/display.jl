@@ -18,12 +18,12 @@ Supported parameters:
 - `title`: (Optional) Sets a custom title for the pane. For `custompane`, if not provided,
   the id is used as the title.
 
-Parameter names are case-insensitive. Parameter values may be unquoted tokens (alphanumeric
-and `! # \$ % & ' * + - . ^ _ \` | ~`) or quoted strings. Within quoted strings, use `\\"`
-to escape a double quote and `\\\\` to escape a backslash. Semicolons and other special
-characters within quoted strings are treated as part of the value.
+Parameter names are case-insensitive and must be ASCII tokens (alphanumeric and `! # \$ % & ' * + - . ^ _ \` | ~`).
+Parameter values may be unquoted tokens (same ASCII character set as names) or quoted strings.
+Quoted strings support full UTF-8 encoding and can contain any characters including semicolons.
+Within quoted strings, use `\\"` to escape a double quote and `\\\\` to escape a backslash.
 
-Example: `MIME("application/vnd.julia-vscode.custompane+html;id=my-pane;title=\\"Report; Final\\"")`
+Example: `MIME("application/vnd.julia-vscode.custompane+html;id=my-pane;title=\\"Résumé; Final\\"")`
 """
 struct InlineDisplay <: AbstractDisplay
     is_repl::Bool
