@@ -8,10 +8,22 @@ standard MIME-types out of the box, but also two VS Code specific ones:
 - `application/vnd.julia-vscode.custompane+html`: For outputting HTML into custom panes,
 specified by the `id` parameter (see below)
 
-All MIME-types passed into the `display` call may specify a `;id=[^,]+` parameter, which is
-used to identify the object being shown. In the plotpane, an object with the same id as a
-previously shown one will overwrite the older one. For the `custompane` MIME-type, this id
-is also used as the title of the custom pane (in addition to uniquely identifying it).
+All MIME-types passed into the `display` call may specify parameters following RFC 9110
+Section 5.6.6. Parameters use the form `;param=value` or `;param="quoted value"`.
+Supported parameters:
+
+- `id`: Identifies the object being shown. In the plotpane, an object with the same id as a
+  previously shown one will overwrite the older one. For the `custompane` MIME-type, this id
+  uniquely identifies the pane.
+- `title`: (Optional) Sets a custom title for the pane. For `custompane`, if not provided,
+  the id is used as the title.
+
+Parameter names are case-insensitive and must be ASCII tokens (alphanumeric and `! # \$ % & ' * + - . ^ _ \` | ~`).
+Parameter values may be unquoted tokens (same ASCII character set as names) or quoted strings.
+Quoted strings support full UTF-8 encoding and can contain any characters including semicolons.
+Within quoted strings, use `\\"` to escape a double quote and `\\\\` to escape a backslash.
+
+Example: `MIME("application/vnd.julia-vscode.custompane+html;id=my-pane;title=\\"Résumé; Final\\"")`
 """
 struct InlineDisplay <: AbstractDisplay
     is_repl::Bool
@@ -40,7 +52,7 @@ function toggle_progress_notification(_, params::NamedTuple{(:enable,),Tuple{Boo
     PROGRESS_ENABLED[] = params.enable
 end
 
-function fix_displays(; is_repl = false)
+function fix_displays(; is_repl=false)
     for d in reverse(Base.Multimedia.displays)
         if d isa InlineDisplay
             popdisplay(d)
@@ -49,7 +61,7 @@ function fix_displays(; is_repl = false)
     pushdisplay(InlineDisplay(is_repl))
 end
 
-function with_no_default_display(f; allow_inline = false)
+function with_no_default_display(f; allow_inline=false)
     stack = copy(Base.Multimedia.displays)
     filter!(Base.Multimedia.displays) do d
         !(d isa REPL.REPLDisplay || d isa TextDisplay || (!allow_inline && d isa InlineDisplay))
@@ -63,9 +75,9 @@ function with_no_default_display(f; allow_inline = false)
 end
 
 
-function sendDisplayMsg(kind, data, id = missing)
-    msg = Dict{String,Any}("kind" => kind, "data" => data, "id" => id)
-    try
+function sendDisplayMsg(kind, data, id=missing, title=missing)
+    msg = Dict{String,Any}("kind" => kind, "data" => data, "id" => id, "title" => title)
+    return try
         JSONRPC.send_notification(conn_endpoint[], "display", msg)
         JSONRPC.flush(conn_endpoint[])
     catch
@@ -73,34 +85,191 @@ function sendDisplayMsg(kind, data, id = missing)
     end
 end
 
+function parse_mime_parameters(params_str::AbstractString)
+    # Parse parameters according to RFC 9110 Section 5.6.6
+    # parameters = *( OWS ";" OWS [ parameter ] )
+    # parameter = token "=" ( token / quoted-string )
+    # token = 1*tchar where tchar excludes delimiters
+    # quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+
+    params = Dict{String,String}()
+    pos = 1
+
+    # tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." /
+    #         "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
+    token_re = r"[!#$%&'*+\-.0-9A-Z^-z|~]+"
+
+    function get_context(pos, width=20)
+        last_idx = lastindex(params_str)
+        # Clamp pos to valid range before using prevind/nextind
+        pos = clamp(pos, 1, last_idx)
+
+        start_pos = max(1, prevind(params_str, pos, width))
+        end_pos = min(last_idx, nextind(params_str, pos, width))
+
+        context = params_str[start_pos:end_pos]
+        caret_pos = textwidth(params_str[start_pos:prevind(params_str, pos)]) + 1
+        caret_line = " "^(caret_pos - 1) * "^"
+        return context * "\n" * caret_line
+    end
+
+    function parsing_error(message, pos)
+        error("Invalid MIME parameter: $message at position $pos\n\n$(get_context(pos))")
+    end
+
+    while pos <= ncodeunits(params_str)
+        # Expect semicolon at this point (we've either just started or completed a previous parameter)
+        if params_str[pos] != ';'
+            parsing_error("expected ';'", pos)
+        end
+        pos = nextind(params_str, pos)  # skip semicolon
+
+        # Skip OWS after semicolon
+        ows = findnext(r"[ \t]*", params_str, pos)
+        if ows !== nothing
+            pos = nextind(params_str, ows.stop)
+        end
+
+        if pos > ncodeunits(params_str)
+            # Empty parameter after semicolon - valid per spec (optional parameter)
+            break
+        end
+
+        # Parse parameter name (token)
+        name_match = findnext(token_re, params_str, pos)
+        if name_match === nothing || name_match.start != pos
+            parsing_error("expected token (parameter name)", pos)
+        end
+        param_name = lowercase(params_str[name_match])  # parameter names are case-insensitive
+        pos = nextind(params_str, name_match.stop)
+
+        # Expect '=' with no whitespace around it (per spec)
+        if pos > ncodeunits(params_str)
+            parsing_error("expected '=' after parameter name '$param_name'", pos)
+        end
+        if params_str[pos] != '='
+            c = params_str[pos]
+            # Check if this is a non-ASCII character that's not allowed in parameter names
+            if !isascii(c)
+                parsing_error("character '$c' is not allowed in parameter names (only ASCII alphanumerics and !#\$%&'*+-.^_`|~ are allowed)", pos)
+            else
+                parsing_error("expected '=' after parameter name '$param_name', got '$c'", pos)
+            end
+        end
+        pos = nextind(params_str, pos)  # skip '='
+
+        if pos > ncodeunits(params_str)
+            parsing_error("expected value after '$param_name='", pos)
+        end
+
+        # Parse parameter value (token or quoted-string)
+        if params_str[pos] == '"'
+            # quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+            # qdtext = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
+            # quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
+            quote_start = pos
+            pos = nextind(params_str, pos)  # skip opening DQUOTE
+            value_chars = Char[]
+            found_closing_quote = false
+
+            while pos <= ncodeunits(params_str)
+                c = params_str[pos]
+                if c == '\\'
+                    # quoted-pair: backslash followed by HTAB / SP / VCHAR / obs-text
+                    pos = nextind(params_str, pos)
+                    if pos <= ncodeunits(params_str)
+                        push!(value_chars, params_str[pos])
+                        pos = nextind(params_str, pos)
+                    else
+                        parsing_error("unterminated escape sequence in quoted string for '$param_name'", pos)
+                    end
+                elseif c == '"'
+                    # End of quoted-string
+                    found_closing_quote = true
+                    pos = nextind(params_str, pos)
+                    break
+                else
+                    # qdtext character
+                    push!(value_chars, c)
+                    pos = nextind(params_str, pos)
+                end
+            end
+
+            # Check if we found a closing quote
+            if !found_closing_quote
+                parsing_error("unterminated quoted string for '$param_name' starting", quote_start)
+            end
+
+            param_value = String(value_chars)
+        else
+            # token value
+            value_match = findnext(token_re, params_str, pos)
+            if value_match === nothing || value_match.start != pos
+                parsing_error("expected token or quoted-string value for '$param_name'", pos)
+            end
+            param_value = params_str[value_match]
+            pos = nextind(params_str, value_match.stop)
+        end
+
+        params[param_name] = param_value
+
+        # After a parameter, we expect OWS followed by either ';' or end of string
+        # Skip OWS (optional whitespace)
+        ows = findnext(r"[ \t]*", params_str, pos)
+        if ows !== nothing
+            pos = nextind(params_str, ows.stop)
+        end
+
+        # Now we should be at either end of string or semicolon
+        if pos > ncodeunits(params_str)
+            # End of string - we're done
+            break
+        elseif params_str[pos] != ';'
+            # Unexpected character after parameter
+            c = params_str[pos]
+            # Check if this is a non-ASCII character that's not allowed in tokens
+            if !isascii(c)
+                parsing_error("character '$c' is not allowed in unquoted token values (use quotes: $param_name=\"$param_value$c...\")", pos)
+            else
+                parsing_error("expected ';' or end of parameters after '$param_name=$param_value', got '$c'", pos)
+            end
+        end
+        # If we get here, we're at a semicolon and the while loop will continue
+    end
+
+    return params
+end
+
 function extract_mime_id(m::MIME)
     mime = string(m)
 
-    parts = split(mime, ";")
-    if length(parts) === 1
-        return mime, missing
+    # Find first semicolon to separate mime type from parameters
+    semicolon_idx = findfirst(';', mime)
+    if semicolon_idx === nothing
+        return mime, missing, missing
     end
 
-    mime, params = parts
-    mat = match(r"\bid=([^,]+)\b", params)
+    mime_type = mime[1:(semicolon_idx-1)]
+    params_str = mime[semicolon_idx:end]
 
-    if mat !== nothing
-        return mime, mat[1]
-    end
+    params = parse_mime_parameters(params_str)
 
-    return mime, missing
+    id = get(params, "id", missing)
+    title = get(params, "title", missing)
+
+    return mime_type, id, title
 end
 
 function Base.display(d::InlineDisplay, m::MIME, @nospecialize(x))
     if !PLOT_PANE_ENABLED[]
         with_no_default_display(() -> display(m, x))
     else
-        mime, id = extract_mime_id(m)
+        mime, id, title = extract_mime_id(m)
         m = MIME(mime)
         if mime in DISPLAYABLE_MIMES
             # non-`image/...` mime types are not binary
             payload = startswith(mime, "image") ? stringmime(m, x) : String(repr(m, x))
-            sendDisplayMsg(mime, payload, id)
+            sendDisplayMsg(mime, payload, id, title)
         else
             throw(MethodError(display, (d, m, x)))
         end
@@ -123,7 +292,7 @@ Base.Multimedia.displayable(d::InlineDisplay, ::MIME{Symbol("application/vnd.plo
 
 function Base.Multimedia.displayable(_::InlineDisplay, mime::MIME)
     if PLOT_PANE_ENABLED[]
-        m, _ = extract_mime_id(mime)
+        m, _, _ = extract_mime_id(mime)
         return m in DISPLAYABLE_MIMES
     end
     return false
@@ -284,7 +453,7 @@ function repl_showingrid_notification(conn, params::NamedTuple{(:code,),Tuple{St
     end
 end
 
-function internal_vscodedisplay(x, title::AbstractString = "")
+function internal_vscodedisplay(x, title::AbstractString="")
     if is_table_like(x)
         showtable(x, title)
     else
@@ -292,7 +461,7 @@ function internal_vscodedisplay(x, title::AbstractString = "")
     end
 end
 
-vscodedisplay(x, title::AbstractString = "") = internal_vscodedisplay(x, title)
+vscodedisplay(x, title::AbstractString="") = internal_vscodedisplay(x, title)
 vscodedisplay(title::AbstractString) = i -> vscodedisplay(i, title)
 macro vscodedisplay(x)
     :(vscodedisplay($(esc(x)), $(string(x))))
