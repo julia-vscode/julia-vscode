@@ -100,10 +100,11 @@ function parse_mime_parameters(params_str::AbstractString)
     token_re = r"[!#$%&'*+\-.0-9A-Z^-z|~]+"
 
     function get_context(pos, width=20)
-        start_pos = max(1, pos - width)
-        end_pos = min(length(params_str), pos + width)
+        start_pos = max(1, prevind(params_str, pos, width))
+        end_pos = min(lastindex(params_str), nextind(params_str, pos, width))
+        
         context = params_str[start_pos:end_pos]
-        caret_pos = pos - start_pos + 1
+        caret_pos = textwidth(params_str[start_pos:prevind(params_str, pos)]) + 1
         caret_line = " "^(caret_pos - 1) * "^"
         return context * "\n" * caret_line
     end
