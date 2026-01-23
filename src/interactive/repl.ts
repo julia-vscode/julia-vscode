@@ -1650,6 +1650,9 @@ function checkRevise(hasRevise: boolean, juliaExecutable: JuliaExecutable) {
 
                         const task = new TaskRunnerTerminal(`Install Revise`, shellPath, shellArgs, {
                             echoMessage: false,
+                            env: {
+                                JULIA_PKG_PRECOMPILE_AUTO: '0',
+                            },
                             onExitMessage(exitCode) {
                                 if (exitCode === 0) {
                                     return

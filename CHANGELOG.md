@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - The Julia REPL terminal now contains the juliaup channel in the title if applicable ([#3998](https://github.com/julia-vscode/julia-vscode/pull/3998))
 
+### Fixed
+- Adding Revise on REPL startup no longer auto-precompiles ([#4002](https://github.com/julia-vscode/julia-vscode/pull/4002))
+
 ## [1.176.0] - 2026-01-18
 ### Fixed
 - Only check for `julia.exe` on Windows systems, to prevent issues with WSL setups picking the wrong Julia executable ([#3990](https://github.com/julia-vscode/julia-vscode/pull/3990))
