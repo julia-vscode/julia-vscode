@@ -6,7 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
-- The `application/vnd.julia-vscode.custompane+html` MIME type now supports an optional `;title=[^,]+` parameter to set a custom title for the pane, separate from the `id` parameter ([#4000](https://github.com/julia-vscode/julia-vscode/pull/4000))
+- The `application/vnd.julia-vscode.custompane+html` MIME type now supports an optional `;title=[^,]+` parameter to set a custom title for the pane, separate from the `id` parameter ([#4000](https://github.com/julia-vscode/julia-vscode/pull/4000)).
+- Optional Contents outline for markdown-style section headers in Julia files ([#2894](https://github.com/julia-vscode/julia-vscode/issues/2894)).
 
 ### Changed
 - The Julia REPL terminal now contains the juliaup channel in the title if applicable ([#3998](https://github.com/julia-vscode/julia-vscode/pull/3998))

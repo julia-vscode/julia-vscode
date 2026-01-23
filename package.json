@@ -1109,6 +1109,11 @@
                     ],
                     "description": "Cell delimiter regular expressions for Julia files."
                 },
+                "julia.outline.contents.enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Show markdown-style Contents headers in the Outline for Julia files."
+                },
                 "julia.execution.resultType": {
                     "type": "string",
                     "default": "both",

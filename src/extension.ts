@@ -25,6 +25,7 @@ import * as weave from './weave'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { JuliaCommands } from './juliaCommands'
 import { installJuliaOrJuliaupTask } from './juliaupAutoInstall'
+import * as markdownCellOutline from './outline/markdownCellOutline'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -78,6 +79,7 @@ export async function activate(context: vscode.ExtensionContext) {
         smallcommands.activate(context)
         packagepath.activate(context, executableFeature)
         openpackagedirectory.activate(context)
+        markdownCellOutline.activate(context)
         jlpkgenv.activate(context, executableFeature, languageClientFeature)
 
         const workspaceFeature = new WorkspaceFeature(context)
