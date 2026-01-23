@@ -84,6 +84,7 @@ function collectMarkdownHeaders(doc: vscode.TextDocument): vscode.DocumentSymbol
 class MarkdownCellOutlineProvider implements vscode.DocumentSymbolProvider {
     async provideDocumentSymbols(
         document: vscode.TextDocument,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _token: vscode.CancellationToken
     ): Promise<vscode.DocumentSymbol[]> {
         const enabled = vscode.workspace.getConfiguration('julia').get<boolean>('outline.contents.enabled')
