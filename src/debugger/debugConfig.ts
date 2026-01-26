@@ -296,7 +296,7 @@ export function activate(context: vscode.ExtensionContext) {
             setContext('julia.debuggerCompiledMode', false)
         }),
         onInit(
-            wrapCrashReporting((connection) => {
+            wrapCrashReporting(({ connection }) => {
                 provider.setConnection(connection)
                 provider.refresh()
             })

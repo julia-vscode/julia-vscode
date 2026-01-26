@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.7"
+julia_version = "1.11.8"
 manifest_format = "2.0"
 project_hash = "2677c086c5b2157722d5aec33dd64369b5ff7044"
 
@@ -71,7 +71,7 @@ version = "1.11.0"
 deps = ["Mmap"]
 path = "../../../packages/DelimitedFiles"
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
-version = "1.9.0"
+version = "1.9.1"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
@@ -102,7 +102,7 @@ version = "1.11.0"
 [[deps.Glob]]
 path = "../../../packages/Glob"
 uuid = "c27321d9-0574-5035-807b-f59d2c89b15c"
-version = "1.3.1"
+version = "1.4.0"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -228,7 +228,7 @@ version = "1.2.1"
 deps = ["TOML"]
 path = "../../../packages/Preferences"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.5.0"
+version = "1.5.1"
 
 [[deps.Printf]]
 deps = ["Unicode"]

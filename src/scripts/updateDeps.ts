@@ -38,7 +38,7 @@ async function replace_backslash_in_manifest(project_path: string) {
 
 async function main() {
     await download(
-        'https://raw.githubusercontent.com/JuliaEditorSupport/atom-language-julia/master/grammars/julia_vscode.json',
+        'https://raw.githubusercontent.com/JuliaEditorSupport/atom-language-julia/master/variants/julia_vscode.json',
         'syntaxes/julia_vscode.json'
     )
 

@@ -6,7 +6,7 @@ import * as modules from './modules'
 import * as repl from './repl'
 import * as results from './results'
 
-let g_cellDelimiters: RegExp[] = [/^##(?!#)/, /^#(\s?)%%/]
+let g_cellDelimiters: RegExp[] = [/^##(?!#)/, /^#(\s?)%%/, /^#(\s?)\+/, /^#(\s?)-/]
 
 function updateCellDelimiters() {
     const delims = vscode.workspace.getConfiguration('julia').get<string[]>('cellDelimiters')
@@ -244,7 +244,7 @@ async function _executeCellsInline(editor: vscode.TextEditor, cells: JuliaCell[]
         results.addResult(editor, codeRange, PENDING_SIGN, '')
     )
     await repl.startREPL(true, false)
-    const module: string = await modules.getModuleForEditor(document, codeRanges[0].start)
+    const { module } = await modules.getModuleForEditor(document, codeRanges[0].start)
     for (const cell of cells) {
         cellPendings.shift().remove(true)
         if (cell.codeRange === undefined) {
@@ -287,8 +287,8 @@ async function _executeCells(editor: vscode.TextEditor, cells: JuliaCell[]): Pro
     const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
         results.addResult(editor, codeRange, PENDING_SIGN, '')
     )
+    const { module } = await modules.getModuleForEditor(document, codeRanges[0].start)
     await repl.startREPL(true, false)
-    const module: string = await modules.getModuleForEditor(document, codeRanges[0].start)
     for (const codeRange of codeRanges) {
         cellPendings.shift().remove(true)
         const code = document.getText(codeRange)

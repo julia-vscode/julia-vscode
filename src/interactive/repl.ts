@@ -8,10 +8,10 @@ import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import * as vslc from 'vscode-languageclient/node'
-import { onSetLanguageClient } from '../extension'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
-import { JuliaExecutable, JuliaExecutablesFeature, JuliaupChannelInfo } from '../juliaexepath'
+import { LanguageClientFeature } from '../languageClient'
+import { JuliaExecutable, ExecutableFeature, JuliaupChannel } from '../executables'
 import * as telemetry from '../telemetry'
 import {
     generatePipeName,
@@ -29,10 +29,14 @@ import * as plots from './plots'
 import * as results from './results'
 import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
+import { promise as fastq } from 'fastq'
+import { randomUUID } from 'crypto'
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
 let g_compiledProvider = null
+export const g_evalQueue = fastq(sendEvalRequest, 1)
+export const g_cellEvalQueue = fastq(evalCellByLine, 1)
 
 let g_terminal: vscode.Terminal = null
 
@@ -40,18 +44,20 @@ export let g_connection: rpc.MessageConnection = undefined
 
 let g_terminal_is_persistent: boolean = false
 
-let g_juliaExecutablesFeature: JuliaExecutablesFeature
+let g_ExecutableFeature: ExecutableFeature
 
 function startREPLCommand() {
     telemetry.traceEvent('command-startrepl')
 
     startREPL(false, true)
 }
+
 function startREPLWithVersionCommand(versionName?: string) {
     telemetry.traceEvent('command-startreplwithversion')
 
     startREPLWithVersion(versionName)
 }
+
 async function confirmKill() {
     const strategy = vscode.workspace.getConfiguration('julia').get<string>('persistentSession.closeStrategy')
 
@@ -90,6 +96,7 @@ async function confirmKill() {
             return true
     }
 }
+
 async function stopREPL(onDeactivate = false) {
     const config = vscode.workspace.getConfiguration('julia')
     if (g_terminal_is_persistent && !onDeactivate) {
@@ -105,6 +112,7 @@ async function stopREPL(onDeactivate = false) {
     }
     if (isConnected()) {
         g_connection.end()
+        g_connection.dispose()
         g_connection = undefined
     }
     if (g_terminal) {
@@ -112,6 +120,7 @@ async function stopREPL(onDeactivate = false) {
         g_terminal = null
     }
 }
+
 async function restartREPL() {
     await stopREPL()
     await startREPL(false, true)
@@ -192,8 +201,10 @@ export async function startREPL(
 
     let shellPath: string, shellArgs: string[]
     if (!juliaExecutable) {
-        juliaExecutable = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
+        juliaExecutable = await g_ExecutableFeature.getExecutable(true)
     }
+
+    const terminalName = makeTerminalName(juliaExecutable)
 
     if (g_terminal_is_persistent && isConnected()) {
         shellPath = config.get('persistentSession.shell')
@@ -204,10 +215,11 @@ export async function startREPL(
         shellArgs = [...shellExecutionArgs, `tmux attach -t ${sessionName}`]
 
         g_terminal = vscode.window.createTerminal({
-            name: `Julia REPL (v${juliaExecutable.getVersion()})`,
+            name: terminalName,
             shellPath: shellPath,
             shellArgs: shellArgs,
             isTransient: true,
+            hideFromUser: true,
             env: env,
         })
         g_terminal_is_persistent = true
@@ -215,7 +227,7 @@ export async function startREPL(
         return
     }
 
-    const juliaIsConnectedPromise = startREPLMsgServer(pipename)
+    const juliaIsConnectedPromise = startREPLMsgServer(pipename, juliaExecutable)
 
     const additionalArgs = ((config.get('additionalArgs') as string[]) || []).map((arg) => parseVSCodeVariables(arg))
     const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(additionalArgs)
@@ -232,7 +244,7 @@ export async function startREPL(
             const connectJuliaCode = juliaConnector(pipename, debugPipename)
 
             const juliaAndArgs =
-                `JULIA_VSCODE_REPL='1' JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.file} ${[
+                `JULIA_VSCODE_REPL='1' JULIA_NUM_THREADS=${env.JULIA_NUM_THREADS ?? ''} JULIA_EDITOR=${getEditor()} ${juliaExecutable.command} ${[
                     ...juliaExecutable.args,
                     ...jlarg1,
                     ...getArgs(),
@@ -256,42 +268,72 @@ export async function startREPL(
         }
         g_terminal_is_persistent = true
         g_terminal = vscode.window.createTerminal({
-            name: `Julia REPL (v${juliaExecutable.getVersion()})`,
+            name: terminalName,
             shellPath: shellPath,
             shellArgs: shellArgs,
             isTransient: true,
             iconPath: juliaIconPath,
+            hideFromUser: true,
             env,
         })
     } else {
-        shellPath = juliaExecutable.file
+        shellPath = juliaExecutable.command
         shellArgs = [...juliaExecutable.args, ...jlarg1, ...getArgs()]
         g_terminal_is_persistent = false
 
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri
-        const task = new TaskRunnerTerminal(`Julia REPL (v${juliaExecutable.getVersion()})`, shellPath, shellArgs, {
-            cwd: workspaceFolder,
-            env,
-            iconPath: juliaIconPath,
-            echoMessage: false,
-            onExitMessage(exitCode) {
-                if (exitCode === 0) {
-                    return
-                }
-                return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r`
-            },
-        })
 
-        g_terminal = task.terminal
+        if (config.get('repl.keepAlive')) {
+            const task = new TaskRunnerTerminal(terminalName, shellPath, shellArgs, {
+                cwd: workspaceFolder,
+                env,
+                iconPath: juliaIconPath,
+                echoMessage: false,
+                shellIntegrationNonce: randomUUID(),
+                onExitMessage(exitCode) {
+                    if (exitCode === 0) {
+                        return
+                    }
+                    return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r\n\r`
+                },
+            })
+
+            g_terminal = task.terminal
+        } else {
+            g_terminal = vscode.window.createTerminal({
+                name: terminalName,
+                shellPath: shellPath,
+                shellArgs: shellArgs,
+                isTransient: true,
+                hideFromUser: true,
+                env,
+                cwd: workspaceFolder,
+                shellIntegrationNonce: randomUUID(),
+            })
+        }
     }
 
     g_terminal.show(preserveFocus)
     await juliaIsConnectedPromise.wait()
 }
 
-async function startREPLWithVersion(versionName?: string) {
-    const isInteractive = versionName === undefined
-    const juliaup = await g_juliaExecutablesFeature.getActiveJuliaupExecutableAsync()
+function makeTerminalName(juliaExecutable: JuliaExecutable) {
+    const version = juliaExecutable.version
+    const channelName = juliaExecutable.juliaupChannel?.name
+    let name = `Julia REPL (v${version}`
+
+    if (channelName === undefined || version.includes(channelName)) {
+        name += ')'
+    } else {
+        name += `, +${channelName})`
+    }
+
+    return name
+}
+
+async function startREPLWithVersion(channelName?: string) {
+    const isInteractive = channelName === undefined
+    const juliaup = await g_ExecutableFeature.getJuliaupExecutable()
 
     if (!juliaup) {
         if (isInteractive) {
@@ -302,8 +344,14 @@ async function startREPLWithVersion(versionName?: string) {
         }
     }
 
-    const versions = await g_juliaExecutablesFeature.getInstalledJuliaVersions(juliaup)
-    let juliaObj: Partial<JuliaupChannelInfo & vscode.QuickPickItem & { default: boolean }>
+    const versions = (await juliaup.installed()).map((c) => {
+        return {
+            ...c,
+            label: c.name,
+        }
+    })
+
+    let selectedChannel: JuliaupChannel & vscode.QuickPickItem
 
     if (isInteractive) {
         const select = await vscode.window.showQuickPick(versions, {
@@ -314,29 +362,22 @@ async function startREPLWithVersion(versionName?: string) {
         if (!select) {
             return
         }
-        juliaObj = select
+        selectedChannel = select
     } else {
-        const juliaObj = versions.find((ele) => ele.Name === versionName)
+        const juliaObj = versions.find((ele) => ele.name === channelName)
 
         if (!juliaObj && !isInteractive) {
             throw Error('Requested julia version might not be installed, please recheck the version name!')
         }
     }
 
-    const juliaExecutable = new JuliaExecutable(
-        juliaObj.Version,
-        juliaObj.File,
-        juliaObj.Args,
-        juliaObj.Arch,
-        juliaObj.Name,
-        true
-    )
+    const juliaExecutable = new JuliaExecutable(selectedChannel)
 
     await startREPL(false, true, juliaExecutable)
 }
 
 function juliaConnector(pipename: string, debugPipename: string, start = false) {
-    const connect = `VSCodeServer.serve(raw"${pipename}", raw"${debugPipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, raw"${telemetry.getCrashReportingPipename()}", "REPL"));nothing # re-establishing connection with VSCode`
+    const connect = `VSCodeServer.serve(raw"${pipename}", raw"${debugPipename}"; is_dev = "DEBUG_MODE=true" in Base.ARGS, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, raw"${telemetry.getCrashReportingPipename()}", "REPL", should_exit=false));nothing # re-establishing connection with VSCode`
     if (start) {
         return (
             `include(raw"${path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'load_vscodeserver.jl')}");` +
@@ -392,6 +433,7 @@ function disconnectREPL() {
     } else {
         if (isConnected()) {
             g_connection.end()
+            g_connection.dispose()
             g_connection = undefined
         }
     }
@@ -415,21 +457,19 @@ interface ReturnResult {
     stackframe: null | Array<Frame>
 }
 
-const requestTypeReplRunCode = new rpc.RequestType<
-    {
-        filename: string
-        line: number
-        column: number
-        code: string
-        mod: string
-        showCodeInREPL: boolean
-        showResultInREPL: boolean
-        showErrorInREPL: boolean
-        softscope: boolean
-    },
-    ReturnResult,
-    void
->('repl/runcode')
+interface RunCodeOptions {
+    filename: string
+    line: number
+    column: number
+    code: string
+    mod: string
+    showCodeInREPL: boolean
+    showResultInREPL: boolean
+    showErrorInREPL: boolean
+    softscope: boolean
+}
+
+const requestTypeReplRunCode = new rpc.RequestType<RunCodeOptions, ReturnResult, void>('repl/runcode')
 
 // interface DebugLaunchParams {
 //     code: string,
@@ -446,6 +486,7 @@ const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: unknown; 
 const notifyTypeOpenFile = new rpc.NotificationType<{ path: string; line: number; preserveFocus: boolean }>(
     'repl/openFile'
 )
+const notifyTypeCheckRevise = new rpc.NotificationType<boolean>('norevise')
 
 interface Progress {
     id: { value: number }
@@ -455,7 +496,7 @@ interface Progress {
 }
 const notifyTypeProgress = new rpc.NotificationType<Progress>('repl/updateProgress')
 
-const g_onInit = new vscode.EventEmitter<rpc.MessageConnection>()
+const g_onInit = new vscode.EventEmitter<{ connection: rpc.MessageConnection; juliaExecutable?: JuliaExecutable }>()
 export const onInit = g_onInit.event
 const g_onExit = new vscode.EventEmitter<boolean>()
 export const onExit = g_onExit.event
@@ -466,17 +507,20 @@ export const onFinishEval = g_onFinishEval.event
 
 // code execution start
 
-function startREPLMsgServer(pipename: string): Subject {
+function startREPLMsgServer(pipename: string, juliaExecutable?: JuliaExecutable): Subject {
     const connected = new Subject()
 
     if (g_connection) {
+        g_connection?.dispose()
         g_connection = undefined
     }
 
     const server = net.createServer((socket: net.Socket) => {
         socket.on('close', (hadError) => {
-            g_onExit.fire(hadError)
+            g_connection?.dispose()
             g_connection = undefined
+
+            g_onExit.fire(hadError)
             server.close()
         })
 
@@ -487,7 +531,7 @@ function startREPLMsgServer(pipename: string): Subject {
 
         g_connection.listen()
 
-        g_onInit.fire(g_connection)
+        g_onInit.fire({ connection: g_connection, juliaExecutable })
 
         connected.notify()
     })
@@ -806,7 +850,7 @@ async function executeFile(uri?: vscode.Uri | string) {
         code = editor.document.getText()
 
         const pos = editor.document.validatePosition(new vscode.Position(0, 1)) // xref: https://github.com/julia-vscode/julia-vscode/issues/1500
-        module = await modules.getModuleForEditor(editor.document, pos)
+        module = (await modules.getModuleForEditor(editor.document, pos)).module
         isJmd = isMarkdownEditor(editor)
     }
 
@@ -814,18 +858,22 @@ async function executeFile(uri?: vscode.Uri | string) {
     if (isJmd) {
         code = stripMarkdown(code)
     }
-
-    await g_connection.sendRequest(requestTypeReplRunCode, {
-        filename: path,
-        line: 0,
-        column: 0,
-        mod: module,
-        code: code,
-        showCodeInREPL: false,
-        showResultInREPL: true,
-        showErrorInREPL: true,
-        softscope: false,
-    })
+    try {
+        await g_evalQueue.push({
+            filename: path,
+            line: 0,
+            column: 0,
+            mod: module,
+            code: code,
+            showCodeInREPL: false,
+            showResultInREPL: true,
+            showErrorInREPL: true,
+            softscope: false,
+        })
+    } catch (err) {
+        console.log(err)
+        vscode.window.showErrorMessage(`Error while executing ${path}.`)
+    }
 }
 
 export async function getBlockRange(params: VersionedTextDocumentPositionParams): Promise<vscode.Position[]> {
@@ -889,7 +937,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
         const cursorPos: vscode.Position = editor.document.validatePosition(
             new vscode.Position(selection.start.line, selection.start.character)
         )
-        const module: string = await modules.getModuleForEditor(editor.document, cursorPos)
+        const { module } = await modules.getModuleForEditor(editor.document, cursorPos)
 
         if (selection.isEmpty) {
             const [startPos, endPos, nextPos] = await getBlockRange(
@@ -929,11 +977,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
             editor.setDecorations(tempDecoration, [])
         }, 200)
 
-        const success = await evaluate(editor, range, text, module)
-
-        if (!success) {
-            break
-        }
+        evaluate(editor, range, text, module)
     }
 }
 
@@ -959,7 +1003,7 @@ export async function evaluate(
         r = results.addResult(editor, range, ' ⟳ ', '')
     }
     try {
-        const result: ReturnResult = await g_connection.sendRequest(requestTypeReplRunCode, {
+        const opts = {
             filename: editor.document.fileName,
             line: range.start.line,
             column: range.start.character,
@@ -969,7 +1013,21 @@ export async function evaluate(
             showResultInREPL: resultType === 'REPL' || resultType === 'both',
             showErrorInREPL: resultType.indexOf('error') > -1,
             softscope: true,
-        })
+        }
+        const evalPromise = g_evalQueue.push(opts)
+        const cancelPromise = g_evalQueue.drained()
+        let result: ReturnResult | void = await Promise.race([evalPromise, cancelPromise])
+
+        if (!result) {
+            // interrupts killAndDrain the queue, but we still want to display the current item
+            if (opts === g_currentEvalItem) {
+                result = await evalPromise
+            } else {
+                r.remove(true)
+                return false
+            }
+        }
+
         const isError = Boolean(result.stackframe)
 
         if (resultType !== 'REPL') {
@@ -1046,10 +1104,10 @@ export async function executeInREPL(
         showResultInREPL = true,
         showErrorInREPL = false,
         softscope = true,
-    }
+    } = {}
 ): Promise<ReturnResult> {
     await startREPL(true, true)
-    return await g_connection.sendRequest(requestTypeReplRunCode, {
+    return await g_evalQueue.push({
         filename,
         line,
         column,
@@ -1066,6 +1124,9 @@ const interrupts = []
 let last_interrupt_index = -1
 async function interrupt() {
     telemetry.traceEvent('command-interrupt')
+
+    g_evalQueue.killAndDrain()
+
     // always send out internal interrupt
     await softInterrupt()
     // but we'll try sending a SIGINT if more than 3 interrupts were sent in the last second
@@ -1194,10 +1255,10 @@ async function linkHandler(link: JuliaTerminalLink) {
 
     if (file.startsWith('~')) {
         file = path.join(homedir(), file.slice(1))
-    } else {
+    } else if (!path.isAbsolute(file)) {
         // Base file
-        const exe = await g_juliaExecutablesFeature.getActiveJuliaExecutableAsync()
-        file = path.join(await exe.getBaseRootFolderPathAsync(), file)
+        const exe = await g_ExecutableFeature.getExecutable()
+        file = path.join(await exe.rootFolder(), file)
     }
     try {
         await openFile(file, line)
@@ -1232,29 +1293,71 @@ function linkProvider(context: vscode.TerminalLinkContext): JuliaTerminalLink[] 
 function isMarkdownEditor(editor: vscode.TextEditor) {
     return editor.document.languageId === 'juliamarkdown' || editor.document.languageId === 'markdown'
 }
+let g_currentEvalItem: RunCodeOptions
+async function sendEvalRequest(req: RunCodeOptions) {
+    g_currentEvalItem = req
+    const r = await g_connection.sendRequest(requestTypeReplRunCode, req)
+
+    if (r.stackframe) {
+        g_evalQueue.killAndDrain()
+    }
+
+    return r
+}
+
+async function evalCellByLine({ editor, cellRange, module }) {
+    let currentPos: vscode.Position = editor.document.validatePosition(
+        new vscode.Position(cellRange.start.line, cellRange.start.character + 1)
+    )
+    let lastRange = new vscode.Range(0, 0, 0, 0)
+    while (currentPos.line <= cellRange.end.line) {
+        const [startPos, endPos, nextPos] = await getBlockRange(
+            getVersionedParamsAtPosition(editor.document, currentPos)
+        )
+        const lineEndPos = editor.document.validatePosition(new vscode.Position(endPos.line, Infinity))
+        const curRange = cellRange.intersection(new vscode.Range(startPos, lineEndPos))
+        if (curRange === undefined || curRange.isEqual(lastRange)) {
+            break
+        }
+        lastRange = curRange
+        if (curRange.isEmpty) {
+            continue
+        }
+        currentPos = editor.document.validatePosition(nextPos)
+        const code = editor.document.getText(curRange)
+
+        evaluate(editor, curRange, code, module)
+    }
+
+    return true
+}
 
 export function activate(
     context: vscode.ExtensionContext,
     compiledProvider,
-    juliaExecutablesFeature: JuliaExecutablesFeature,
-    profilerFeature
+    ExecutableFeature: ExecutableFeature,
+    profilerFeature,
+    languageClientFeature: LanguageClientFeature
 ) {
     g_context = context
-    g_juliaExecutablesFeature = juliaExecutablesFeature
+    g_ExecutableFeature = ExecutableFeature
 
     g_compiledProvider = compiledProvider
 
     context.subscriptions.push(
         // listeners
-        onSetLanguageClient((languageClient) => {
+        languageClientFeature.onDidSetLanguageClient((languageClient) => {
             g_languageClient = languageClient
         }),
         onInit(
-            wrapCrashReporting((connection) => {
+            wrapCrashReporting(({ connection, juliaExecutable }) => {
                 connection.onNotification(notifyTypeDisplay, display)
                 connection.onNotification(notifyTypeReplAttachDebgger, debuggerAttach)
                 connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
                 connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
+                connection.onNotification(notifyTypeCheckRevise, (hasRevise: boolean) =>
+                    checkRevise(hasRevise, juliaExecutable)
+                )
                 connection.onNotification(notifyTypeShowProfilerResult, (data) =>
                     profilerFeature.showTrace({
                         data: data.trace,
@@ -1270,9 +1373,16 @@ export function activate(
             })
         ),
         onExit(() => {
+            g_evalQueue.killAndDrain()
+            g_cellEvalQueue.killAndDrain()
+
+            g_connection?.dispose()
+
             results.removeAll()
             clearDiagnostics()
             clearInlayHints()
+            clearProgress()
+
             setContext('julia.isEvaluating', false)
             setContext('julia.hasREPL', false)
         }),
@@ -1376,8 +1486,72 @@ export function activate(
 
     results.activate(context)
     plots.activate(context)
-    modules.activate(context)
+    modules.activate(context, languageClientFeature)
     completions.activate(context)
+}
+
+function checkRevise(hasRevise: boolean, juliaExecutable: JuliaExecutable) {
+    const config = vscode.workspace.getConfiguration('julia')
+    const useRevise = config.get('useRevise')
+
+    if (useRevise && !hasRevise) {
+        const install = 'Install & Setup Revise'
+        const turnOff = 'Disable (workspace)'
+        const turnOffGlobally = 'Disable'
+
+        vscode.window
+            .showInformationMessage(
+                "Julia is configured to load [Revise](https://timholy.github.io/Revise.jl/stable/) when the REPL starts, but [Revise](https://timholy.github.io/Revise.jl/stable/) is not installed. Note that changes to packages loaded before installing Revise won't be reflected until you restart the REPL.",
+                install,
+                turnOffGlobally,
+                turnOff
+            )
+            .then(async (select) => {
+                switch (select) {
+                    case install: {
+                        const installReviseScript = path.join(
+                            g_context.extensionPath,
+                            'scripts',
+                            'terminalserver',
+                            'install_revise.jl'
+                        )
+                        const shellPath = juliaExecutable.command
+                        const shellArgs = [installReviseScript]
+
+                        const task = new TaskRunnerTerminal(`Install Revise`, shellPath, shellArgs, {
+                            echoMessage: false,
+                            env: {
+                                JULIA_PKG_PRECOMPILE_AUTO: '0',
+                            },
+                            onExitMessage(exitCode) {
+                                if (exitCode === 0) {
+                                    return
+                                }
+
+                                return `\n\rThis Julia process exited with code ${exitCode}. Press any key to close the terminal.\n\r`
+                            },
+                        })
+
+                        task.onDidExitProcess(async (exitCode) => {
+                            if (exitCode === 0) {
+                                await executeInREPL('using Revise')
+                            }
+
+                            task.dispose()
+                        })
+                        break
+                    }
+                    case turnOff: {
+                        config.update('useRevise', false)
+                        break
+                    }
+                    case turnOffGlobally: {
+                        config.update('useRevise', false, true)
+                        break
+                    }
+                }
+            })
+    }
 }
 
 export function deactivate() {

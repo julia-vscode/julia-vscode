@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
     let completionSubscription: undefined | Disposable = undefined
     context.subscriptions.push(
         onInit(
-            wrapCrashReporting((conn) => {
+            wrapCrashReporting(({ connection: conn }) => {
                 completionSubscription = vscode.languages.registerCompletionItemProvider(
                     selector,
                     completionItemProvider(conn),
@@ -54,12 +54,12 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
                     const lineRange = new vscode.Range(startPosition, position)
                     const line = document.getText(lineRange)
 
-                    const mod: string = await getModuleForEditor(document, position)
+                    const { module } = await getModuleForEditor(document, position)
                     if (token.isCancellationRequested) {
                         return
                     }
 
-                    const items = await conn.sendRequest(requestTypeGetCompletionItems, { line, mod })
+                    const items = await conn.sendRequest(requestTypeGetCompletionItems, { line, mod: module })
                     if (token.isCancellationRequested) {
                         return
                     }

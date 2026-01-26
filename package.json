@@ -2,11 +2,11 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.160.0",
+    "version": "1.176.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.96.0"
+        "vscode": "^1.108.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -866,7 +866,7 @@
                 "julia.executablePath": {
                     "type": "string",
                     "default": "",
-                    "description": "Points to the julia executable.",
+                    "markdownDescription": "Points to the Julia executable. This can either be an absolute path, an executable on your PATH, or a juliaup channel (valid formats `julia +$channel`, `+$channel`).",
                     "scope": "machine-overridable"
                 },
                 "julia.juliaup.install.hint": {
@@ -874,6 +874,11 @@
                     "default": true,
                     "description": "Show Juliaup install recommendation.",
                     "scope": "machine-overridable"
+                },
+                "julia.juliaup.server": {
+                    "type": "string",
+                    "description": "Juliaup mirror. Defaults to the official sources.",
+                    "scope": "resource"
                 },
                 "julia.lint.run": {
                     "type": "boolean",
@@ -1099,7 +1104,8 @@
                         "^\\s?#\\s#+",
                         "^##(?!#)",
                         "^#(\\s?)%%",
-                        "^#-"
+                        "^##(\\s?)-",
+                        "^##(\\s?)\\+"
                     ],
                     "description": "Cell delimiter regular expressions for Julia files."
                 },
@@ -1136,6 +1142,12 @@
                     "default": false,
                     "scope": "window",
                     "markdownDescription": "Show separate inline results for all code blocks in a cell"
+                },
+                "julia.execution.module": {
+                    "type": "string",
+                    "default": "",
+                    "scope": "global",
+                    "markdownDescription": "Global override for the code execution module. Leave empty to automatically choose a context module."
                 },
                 "julia.packageServer": {
                     "type": "string",
@@ -1188,6 +1200,12 @@
                     "default": false,
                     "scope": "application",
                     "description": "Always copy the command for connecting to an external REPL to the clipboard."
+                },
+                "julia.repl.keepAlive": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "machine-overridable",
+                    "markdownDescription": "Experimental: Keeps the terminal window around even if the underlying Julia process is terminated to help debugging of fatal errors. Try disabling this if you see rendering issues in the integrated Julia REPL."
                 },
                 "julia.deleteJuliaCovFiles": {
                     "type": "boolean",
@@ -1552,7 +1570,9 @@
         "@vscode/debugprotocol": "^1.55.1",
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
+        "async-mutex": "^0.5.0",
         "await-notify": "^1.0.1",
+        "fastq": "^1.19.1",
         "lodash.isequal": "^4.5.0",
         "markdown-it": "^14.1.0",
         "markdown-it-footnote": "^4.0.0",
@@ -1561,7 +1581,7 @@
         "source-map-support": "^0.5.21",
         "string-argv": "^0.3.1",
         "uuid": "^11.0.3",
-        "vscode-jsonrpc": "^8.2.0",
+        "vscode-jsonrpc": "^8.2.1",
         "vscode-languageclient": "^9.0.0",
         "which": "5"
     },
@@ -1573,7 +1593,7 @@
         "@types/node": "^22",
         "@types/semver": "^7.3.9",
         "@types/source-map-support": "^0.5.4",
-        "@types/vscode": "1.96.0",
+        "@types/vscode": "1.108.0",
         "@typescript-eslint/eslint-plugin": "^8.10.0",
         "@typescript-eslint/parser": "^8.7.0",
         "@vscode/test-cli": "^0.0.10",

@@ -3,6 +3,7 @@
   "fileTypes": [
     "jl"
   ],
+  "scopeName": "source.julia",
   "firstLineMatch": "^#!.*\\bjulia\\s*$",
   "name": "Julia",
   "patterns": [
@@ -1082,6 +1083,5 @@
         }
       ]
     }
-  },
-  "scopeName": "source.julia"
+  }
 }

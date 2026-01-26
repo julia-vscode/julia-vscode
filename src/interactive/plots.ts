@@ -456,6 +456,14 @@ function wrapImagelike(srcString: string) {
         svgTag = `<div id="plot-element">${svgTag}</div>`
     }
 
+    return wrapHtml(
+        isSvg
+            ? svgTag
+            : `<img id= "plot-element" style = "max-height: 100vh; max-width: 100vw; display:block;" src = "${srcString}" >`
+    )
+}
+
+function wrapHtml(el: string) {
     return `<html lang="en" style="padding:0;margin:0;">
         <head>
             <meta charset="UTF-8">
@@ -466,7 +474,7 @@ function wrapImagelike(srcString: string) {
             </style>
         </head>
         <body style="padding:0;margin:0;">
-            ${isSvg ? svgTag : `<img id= "plot-element" style = "max-height: 100vh; max-width: 100vw; display:block;" src = "${srcString}" >`}
+            ${el}
         </body>
         </html>`
 }
@@ -506,8 +514,8 @@ function addOrUpdatePlot(plotPaneContent: string, id?: string) {
     showPlotPane()
 }
 
-export function displayPlot(params: { kind: string; data: string; id?: string }, kernel?: JuliaKernel) {
-    const { kind, data: payload, id } = params
+export function displayPlot(params: { kind: string; data: string; id?: string; title?: string }, kernel?: JuliaKernel) {
+    const { kind, data: payload, id, title } = params
 
     if (kind === 'image/svg+xml') {
         const has_xmlns_attribute = payload.includes('xmlns=')
@@ -532,8 +540,7 @@ export function displayPlot(params: { kind: string; data: string; id?: string },
         addOrUpdatePlot(plotPaneContent, id)
     } else if (kind === 'juliavscode/html' || kind === 'application/vnd.julia-vscode.plotpane+html') {
         // the wrapper doesn't do anything visually, just lets us pick up the plot pane content via the id later
-        const wrapped = `<div id="plot-element" style="position: absolute; max-width: 100%; max-height: 100vh; top: 0; left: 0;">${payload}</div>`
-        addOrUpdatePlot(wrapped, id)
+        addOrUpdatePlot(wrapHtml(payload), id)
     } else if (kind === 'application/vnd.vegalite.v2+json') {
         showPlotPane()
         const uriPanZoom = g_plotPanel.webview.asWebviewUri(
@@ -873,7 +880,7 @@ export function displayPlot(params: { kind: string; data: string; id?: string },
     } else if (kind === 'application/vnd.dataresource+lazy') {
         return displayTable(payload, g_context, true, kernel)
     } else if (kind === 'application/vnd.julia-vscode.custompane+html') {
-        return displayCustom(payload, id)
+        return displayCustom(payload, id, title)
     } else {
         throw new Error()
     }
@@ -884,14 +891,16 @@ export function displayPlot(params: { kind: string; data: string; id?: string },
 }
 
 const CUSTOM_PANELS = new Map<string, vscode.WebviewPanel>()
-function displayCustom(payload, id) {
+function displayCustom(payload, id, title?: string) {
+    const panelTitle = title || id
     let panel: vscode.WebviewPanel
     if (CUSTOM_PANELS.has(id)) {
         panel = CUSTOM_PANELS.get(id)
+        panel.title = panelTitle
     } else {
         panel = vscode.window.createWebviewPanel(
             `julia.custom_pane.${id}`,
-            id,
+            panelTitle,
             {
                 preserveFocus: true,
                 viewColumn: g_context.globalState.get('juliaPlotPanelViewColumn', vscode.ViewColumn.Two),

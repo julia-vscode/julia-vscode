@@ -23,7 +23,7 @@ version = "1.0.0"
 deps = ["InteractiveUtils", "UUIDs"]
 path = "../../../packages/CodeTracking"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-version = "2.0.2"
+version = "3.0.0"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -63,7 +63,7 @@ version = "2.0.2-DEV"
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
 path = "../../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.10.7"
+version = "0.10.9"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]

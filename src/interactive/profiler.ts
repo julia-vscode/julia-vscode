@@ -263,7 +263,6 @@ export class ProfilerFeature {
         if (this.profileCount > 0) {
             const profile = this.profiles[this.currentProfileIndex]
             this.panel.webview.postMessage(profile)
-            this.selection = Object.keys(profile.data)[0]
             this.setInlineTrace(profile.data)
         } else {
             this.panel.webview.postMessage(null)

@@ -5,7 +5,104 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- The `application/vnd.julia-vscode.custompane+html` MIME type now supports an optional `;title=[^,]+` parameter to set a custom title for the pane, separate from the `id` parameter ([#4000](https://github.com/julia-vscode/julia-vscode/pull/4000))
+
+### Changed
+- The Julia REPL terminal now contains the juliaup channel in the title if applicable ([#3998](https://github.com/julia-vscode/julia-vscode/pull/3998))
+
 ### Fixed
+- Adding Revise on REPL startup no longer auto-precompiles ([#4002](https://github.com/julia-vscode/julia-vscode/pull/4002))
+
+## [1.176.0] - 2026-01-18
+### Fixed
+- Only check for `julia.exe` on Windows systems, to prevent issues with WSL setups picking the wrong Julia executable ([#3990](https://github.com/julia-vscode/julia-vscode/pull/3990))
+- Kernel selection for Jupyter notebooks should now work properly again ([#3992](https://github.com/julia-vscode/julia-vscode/pull/3992))
+- Fix shell integration for inline eval when echoing to REPL ([#3993](https://github.com/julia-vscode/julia-vscode/pull/3993))
+
+## [1.175.0] - 2026-01-16
+### Changed
+- The extension now requires VS Code version 1.108 or newer ([#3982](https://github.com/julia-vscode/julia-vscode/pull/3982))
+- The integrated Julia REPL now runs with rich shell integration ([#3982](https://github.com/julia-vscode/julia-vscode/pull/3982))
+
+### Fixed
+- No longer show an additional result on error after queuing up multiple inline evaluations ([#3986](https://github.com/julia-vscode/julia-vscode/pull/3986))
+- Handle juliaup aliases correctly ([#3988](https://github.com/julia-vscode/julia-vscode/pull/3988))
+
+## [1.174.0] - 2026-01-14
+### Fixed
+- Errors in the table viewer backend no longer kill the Julia REPL ([#3979](https://github.com/julia-vscode/julia-vscode/pull/3979))
+- Add missing dependency for test runner functionality ([TestItemControllers#14](https://github.com/julia-vscode/TestItemControllers.jl/pull/14))
+
+### Added
+- The `inRange` filter is now supported in the table viewer ([#3979](https://github.com/julia-vscode/julia-vscode/pull/3979))
+
+## [1.173.0] - 2026-01-13
+### Fixed
+- Stop requiring juliaup to be installed for notebook kernel selection ([c2c9091](https://github.com/julia-vscode/julia-vscode/commit/c2c9091213d86311be7b1fae2685cc5209d3323d))
+
+## [1.172.0] - 2026-01-12
+### Fixed
+- Select `all` by default in profile viewer ([#3968](https://github.com/julia-vscode/julia-vscode/pull/3968))
+- Also show "Copy Plot" button for HTML plots ([#3969](https://github.com/julia-vscode/julia-vscode/pull/3969))
+- Start LS when `julia.executablePath` is empty, matching previous behaviour ([#3975](https://github.com/julia-vscode/julia-vscode/pull/3975))
+
+## [1.171.0] - 2026-01-06
+### Fixed
+- We now try to interpret an empty `julia.executablePath` as `julia.exe`/`julia`, matching previous behaviour ([#3961](https://github.com/julia-vscode/julia-vscode/pull/3961))
+- Properly copy/save plots from the plot pane ([#3960](https://github.com/julia-vscode/julia-vscode/pull/3960))
+- Clear eval queue when Julia process dies ([85b20fa](https://github.com/julia-vscode/julia-vscode/commit/85b20fac555d11e8977141d0a75867e8af35e6c2))
+
+## [1.170.0] - 2025-12-25
+### Fixed
+- Fixed a typo in default cell delimiter setting ([#3945](https://github.com/julia-vscode/julia-vscode/pull/3945))
+- Improved path resolution logic in some edge cases ([#3943](https://github.com/julia-vscode/julia-vscode/pull/3943), [#3956](https://github.com/julia-vscode/julia-vscode/pull/3956))
+- The REPL link handler now works with absolute paths again ([#3953](https://github.com/julia-vscode/julia-vscode/pull/3953))
+- Disable `julia.repl.keepAlive` again because of issues on Windows ([#3954](https://github.com/julia-vscode/julia-vscode/pull/3954))
+
+## [1.167.0] - 2025-12-19
+### Changed
+- Re-enabled the REPL keep-alive on Windows ([#3941](https://github.com/julia-vscode/julia-vscode/pull/3941))
+
+## [1.166.0] - 2025-12-19
+### Fixed
+- Correctly set up handlers for REPL-sent events, so that the plot pane and other integrations work again ([#3939](https://github.com/julia-vscode/julia-vscode/pull/3939))
+- Inline evaluation is now guaranteed to happen in the right order, even when evaluating multiple cells by line ([#3940](https://github.com/julia-vscode/julia-vscode/pull/3940))
+
+### Changed
+- The REPL now prints a message when it loses connection to the editor ([#3937](https://github.com/julia-vscode/julia-vscode/pull/3937))
+- Improved the automatic Julia installation process UX ([#3942](https://github.com/julia-vscode/julia-vscode/pull/3942))
+
+## [1.165.0] - 2025-12-15
+### Fixed
+- Fix a bug that caused Julia test detection to fail ([#3935](https://github.com/julia-vscode/julia-vscode/pull/3935))
+
+### Added
+- Add suggestion to install Revise.jl if it is not present ([#3926](https://github.com/julia-vscode/julia-vscode/pull/3926))
+
+## [1.163.0] - 2025-12-15
+### Fixed
+- The language server can now start with the Julia binary configured in `julia.executablePath` again instead of insisting on its own setting ([#3932](https://github.com/julia-vscode/julia-vscode/pull/3932))
+- Juliaup overrides are now properly taking into account when starting the REPL, but only if `julia.executablePath` is set to `julia` or some other program that resolves to juliaup's julia binary ([#3933](https://github.com/julia-vscode/julia-vscode/pull/3933))
+- Don't exit VSCodeServer when JSONRPC reports endpoint is closed ([#3674](https://github.com/julia-vscode/julia-vscode/pull/3674))
+
+### Changed
+- `#+` is now a valid cell seperator to support Weave script format ([#3626](https://github.com/julia-vscode/julia-vscode/pull/3626))
+- Terminal output for Julia Pkg tasks is now prettier ([#3934](https://github.com/julia-vscode/julia-vscode/pull/3934))
+
+## [1.162.0] - 2025-12-12
+### Fixed
+- Fixed the incorrect sourcing of python envs on REPL startup in a new terminal ([#3920](https://github.com/julia-vscode/julia-vscode/pull/3920))
+- `image/png` is now once again preferred over `image/svg+xml` in the plotpane ([#3924](https://github.com/julia-vscode/julia-vscode/pull/3924))
+- Don't exit the REPL when a connection error occurs ([#3930](https://github.com/julia-vscode/julia-vscode/pull/3930))
+
+### Changed
+- The automated juliaup installer now also ensures that the configured channels are present. The extension now also activates faster and adds a status bar item if is not present ([#3928](https://github.com/julia-vscode/julia-vscode/pull/3928))
+- The extension API is now on version 6 ([#3928](https://github.com/julia-vscode/julia-vscode/pull/3928))
+
+## [1.161.0] - 2025-11-25
+### Fixed
+- The REPL keep-alive logic is now optional due to problems on Windows ([#3917](https://github.com/julia-vscode/julia-vscode/pull/3917))
 - Fixed an issue where one cannot copy the plot ([#3916](https://github.com/julia-vscode/julia-vscode/pull/3916))
 - Fixed an issue resulting in re-compilation of stdlibs ([#3915](https://github.com/julia-vscode/julia-vscode/pull/3915))
 
