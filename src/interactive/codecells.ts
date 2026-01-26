@@ -237,65 +237,31 @@ async function _commandCommonSave(editor: vscode.TextEditor): Promise<boolean> {
 
 const PENDING_SIGN = ' ⧗ '
 
-async function _executeCellsInline(editor: vscode.TextEditor, cells: JuliaCell[]): Promise<boolean> {
-    const document = editor.document
-    const codeRanges: vscode.Range[] = cells.map((cell) => cell.codeRange).filter((cr) => cr !== undefined)
-    const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
-        results.addResult(editor, codeRange, PENDING_SIGN, '')
-    )
-    await repl.startREPL(true, false)
-    const { module } = await modules.getModuleForEditor(document, codeRanges[0].start)
-    for (const cell of cells) {
-        cellPendings.shift().remove(true)
-        if (cell.codeRange === undefined) {
-            continue
-        }
-        const codeRange = cell.codeRange
-        let currentPos: vscode.Position = document.validatePosition(codeRange.start)
-        let lastRange = new vscode.Range(0, 0, 0, 0)
-        while (currentPos.isBefore(codeRange.end)) {
-            const [startPos, endPos, nextPos] = await repl.getBlockRange(
-                getVersionedParamsAtPosition(document, currentPos)
-            )
-            const lineEndPos = document.validatePosition(new vscode.Position(endPos.line, Infinity))
-            const curRange = codeRange.intersection(new vscode.Range(startPos, lineEndPos))
-            if (curRange === undefined || curRange.isEqual(lastRange)) {
-                break
-            }
-            lastRange = curRange
-            if (curRange.isEmpty) {
-                continue
-            }
-            currentPos = document.validatePosition(nextPos)
-            const code = document.getText(curRange)
-            const success: boolean = await repl.evaluate(editor, curRange, code, module)
-            if (success === false) {
-                cellPendings.map((cr) => cr.remove(true))
-                return false
-            }
-        }
-    }
-    return true
-}
-
 async function _executeCells(editor: vscode.TextEditor, cells: JuliaCell[]): Promise<boolean> {
-    if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation') === true) {
-        return await _executeCellsInline(editor, cells)
-    }
     const document = editor.document
     const codeRanges: vscode.Range[] = cells.map((cell) => cell.codeRange).filter((cr) => cr !== undefined)
     const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
         results.addResult(editor, codeRange, PENDING_SIGN, '')
     )
+    const isInline = vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation', false)
     const { module } = await modules.getModuleForEditor(document, codeRanges[0].start)
     await repl.startREPL(true, false)
     for (const codeRange of codeRanges) {
         cellPendings.shift().remove(true)
         const code = document.getText(codeRange)
-        const success: boolean = await repl.evaluate(editor, codeRange, code, module)
-        if (success === false) {
-            cellPendings.map((cr) => cr.remove(true))
-            return false
+        if (isInline === true) {
+            const r = Promise.race([repl.g_cellEvalQueue.push({ editor, cellRange: codeRange, module }), repl.g_evalQueue.drained()])
+            if (!r) {
+                repl.g_cellEvalQueue.kill()
+                cellPendings.map((cr) => cr.remove(true))
+                return false
+            }
+        } else {
+            const success: boolean = await repl.evaluate(editor, codeRange, code, module)
+            if (success === false) {
+                cellPendings.map((cr) => cr.remove(true))
+                return false
+            }
         }
     }
     return true
