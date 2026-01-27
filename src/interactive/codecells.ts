@@ -348,7 +348,7 @@ async function executeCell(cell?: JuliaCell): Promise<boolean> {
     if ((await _commandCommonSave(editor)) === false) {
         return false
     }
-    let cells!: JuliaCell[]
+    let cells: JuliaCell[]
     if (cell !== undefined) {
         cells = [cell]
     } else {
@@ -361,7 +361,7 @@ async function executeCell(cell?: JuliaCell): Promise<boolean> {
 async function executeCellAndMove(
     cell?: JuliaCell,
     direction: 'down' | 'up' = 'down',
-    docCells: JuliaCell[] = _getDocCells()
+    docCells: readonly JuliaCell[] = _getDocCells()
 ): Promise<boolean> {
     telemetry.traceEvent('command-executeCellAndMove')
     const editor = vscode.window.activeTextEditor
@@ -388,7 +388,7 @@ async function executeCurrentAndBelowCells(cell?: JuliaCell, docCells: JuliaCell
     if ((await _commandCommonSave(editor)) === false) {
         return false
     }
-    let beginId!: number
+    let beginId: number
     if (cell !== undefined) {
         beginId = cell.id
     } else {
@@ -402,13 +402,13 @@ async function executeCurrentAndBelowCells(cell?: JuliaCell, docCells: JuliaCell
     return await _executeCells(editor, docCells.slice(beginId, docCells.length))
 }
 
-async function executeAboveCells(cell?: JuliaCell, docCells: JuliaCell[] = _getDocCells()): Promise<boolean> {
+async function executeAboveCells(cell?: JuliaCell, docCells: readonly JuliaCell[] = _getDocCells()): Promise<boolean> {
     telemetry.traceEvent('command-executeAboveCells')
     const editor = vscode.window.activeTextEditor
     if ((await _commandCommonSave(editor)) === false) {
         return false
     }
-    let endId!: number
+    let endId: number
     if (cell !== undefined) {
         endId = cell.id
     } else {
@@ -449,8 +449,10 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
             isWholeLine: true,
         })
 
-        vscode.workspace.onDidChangeConfiguration(() => {
-            this._onDidChangeCodeLenses.fire()
+        vscode.workspace.onDidChangeConfiguration((event) => {
+            if (event.affectsConfiguration('julia.cellDelimiters')) {
+                this._onDidChangeCodeLenses.fire()
+            }
         })
         this.onDidChangeTextEditorSelectionHandler = vscode.window.onDidChangeTextEditorSelection(
             (event: vscode.TextEditorSelectionChangeEvent) => this.onDidChangeTextEditorSelection(event)
@@ -613,16 +615,15 @@ export function activate(context: vscode.ExtensionContext) {
             if (event.affectsConfiguration('julia.cellDelimiters')) {
                 updateCellDelimiters()
             }
-        })
+        }),
+
+        // Register commands
+        registerCommand('language-julia.moveCellUp', () => cellMove(undefined, 'up')),
+        registerCommand('language-julia.moveCellDown', () => cellMove(undefined, 'down')),
+        registerCommand('language-julia.executeCell', executeCell),
+        registerCommand('language-julia.executeCellAndMove', executeCellAndMove),
+        registerCommand('language-julia.executeCurrentAndBelowCells', executeCurrentAndBelowCells),
+        registerCommand('language-julia.executeAboveCells', executeAboveCells)
     )
-
-    // Register commands
-    registerCommand('language-julia.moveCellUp', () => cellMove(undefined, 'up'))
-    registerCommand('language-julia.moveCellDown', () => cellMove(undefined, 'down'))
-    registerCommand('language-julia.executeCell', executeCell)
-    registerCommand('language-julia.executeCellAndMove', executeCellAndMove)
-    registerCommand('language-julia.executeCurrentAndBelowCells', executeCurrentAndBelowCells)
-    registerCommand('language-julia.executeAboveCells', executeAboveCells)
-
     updateCellDelimiters()
 }
