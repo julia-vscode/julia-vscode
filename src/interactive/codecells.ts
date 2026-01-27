@@ -56,32 +56,27 @@ function getDocCells(document: vscode.TextDocument): JuliaCell[] {
         }
     }
     indexes.unshift(0) // Start with the start of the document
-    const endPosition = document.lineAt(document.lineCount - 1).range.end;
+    const endPosition = document.lineAt(document.lineCount - 1).range.end
     indexes.push(document.offsetAt(endPosition) + 1) // End with the end of the document
     const docCells: JuliaCell[] = []
-    let id = 0
-    const cellRangeStart = document.positionAt(indexes[id])
-    const cellRangeEnd = document.positionAt(indexes[id + 1] - 1)
-    docCells.push({
-        id: id,
-        cellRange: new vscode.Range(cellRangeStart, cellRangeEnd),
-        codeRange: cellRangeEnd.isBeforeOrEqual(cellRangeStart)
-            ? undefined
-            : new vscode.Range(cellRangeStart, cellRangeEnd),
-    })
-    for (id = 1; id < indexes.length - 1; id++) {
+    for (let id = 0; id < indexes.length - 1; id++) {
         const cellRangeStart = document.positionAt(indexes[id])
         const cellRangeEnd = document.positionAt(indexes[id + 1] - 1)
         const cellRange = new vscode.Range(cellRangeStart, cellRangeEnd)
-        const codeRangeStart = cellRangeStart.translate(1, 0)
+        const codeRangeStart = id === 0 ? cellRangeStart : cellRangeStart.translate(1, 0)
         const codeRangeEnd = cellRangeEnd
-        const codeRange = codeRangeEnd.isBefore(codeRangeStart)
-            ? undefined
-            : new vscode.Range(codeRangeStart, codeRangeEnd)
+        const codeRange =
+            id === 0
+                ? codeRangeEnd.isBeforeOrEqual(codeRangeStart)
+                    ? undefined
+                    : new vscode.Range(codeRangeStart, codeRangeEnd)
+                : codeRangeEnd.isBefore(codeRangeStart)
+                  ? undefined
+                  : new vscode.Range(codeRangeStart, codeRangeEnd)
         docCells.push({
-            id: id,
-            cellRange: cellRange,
-            codeRange: codeRange,
+            id,
+            cellRange,
+            codeRange,
         })
     }
     return docCells
@@ -92,36 +87,31 @@ function getJmdDocCells(document: vscode.TextDocument): JuliaCell[] {
     const endRegex = /^```(?!\w)/gm
     const text = document.getText()
     const docCells: JuliaCell[] = []
-    let id = 0
     docCells.push({
         id: 0,
         cellRange: new vscode.Range(0, 0, 0, 0),
         codeRange: undefined,
     })
-    id = 1
     let startMatch: RegExpExecArray | null
-    while ((startMatch = startRegex.exec(text)) !== null) {
+    for (let id = 1; (startMatch = startRegex.exec(text)) !== null; id++) {
         const cellRangeStart = document.positionAt(startMatch.index)
         endRegex.lastIndex = startMatch.index + startMatch[0].length
         const endMatch = endRegex.exec(text)
-        if (!endMatch) {
-            const cellRangeEnd = document.positionAt(text.length)
-            const codeRangeStart = cellRangeStart.translate(1, 0)
-            docCells.push({
-                id: id++,
-                cellRange: new vscode.Range(cellRangeStart, cellRangeEnd),
-                codeRange: new vscode.Range(codeRangeStart, cellRangeEnd),
-            })
-            break
-        }
-        const cellRangeEnd = document.positionAt(endMatch.index + endMatch[0].length - 1)
+        const cellRangeEnd = endMatch
+            ? document.positionAt(endMatch.index + endMatch[0].length - 1)
+            : document.positionAt(text.length)
         const codeRangeStart = cellRangeStart.translate(1, 0)
-        const codeRangeEnd = document.positionAt(endMatch.index - 1)
+        const codeRangeEnd = endMatch
+            ? document.positionAt(endMatch.index - 1)
+            : cellRangeEnd
         docCells.push({
-            id: id++,
+            id,
             cellRange: new vscode.Range(cellRangeStart, cellRangeEnd),
             codeRange: new vscode.Range(codeRangeStart, codeRangeEnd),
         })
+        if (!endMatch) {
+            break
+        }
         startRegex.lastIndex = endMatch.index + endMatch[0].length
     }
     return docCells
@@ -244,14 +234,19 @@ async function _executeCells(editor: vscode.TextEditor, cells: JuliaCell[]): Pro
     const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
         results.addResult(editor, codeRange, PENDING_SIGN, '')
     )
-    const isInline = vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation', false)
+    const isInline = vscode.workspace
+        .getConfiguration('julia')
+        .get<boolean>('execution.inlineResultsForCellEvaluation', false)
     const { module } = await modules.getModuleForEditor(document, codeRanges[0].start)
     await repl.startREPL(true, false)
     for (const codeRange of codeRanges) {
         cellPendings.shift().remove(true)
         const code = document.getText(codeRange)
         if (isInline === true) {
-            const r = Promise.race([repl.g_cellEvalQueue.push({ editor, cellRange: codeRange, module }), repl.g_evalQueue.drained()])
+            const r = Promise.race([
+                repl.g_cellEvalQueue.push({ editor, cellRange: codeRange, module }),
+                repl.g_evalQueue.drained(),
+            ])
             if (!r) {
                 repl.g_cellEvalQueue.kill()
                 cellPendings.map((cr) => cr.remove(true))
