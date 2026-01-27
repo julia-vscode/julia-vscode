@@ -101,9 +101,7 @@ function getJmdDocCells(document: vscode.TextDocument): JuliaCell[] {
             ? document.positionAt(endMatch.index + endMatch[0].length - 1)
             : document.positionAt(text.length)
         const codeRangeStart = cellRangeStart.translate(1, 0)
-        const codeRangeEnd = endMatch
-            ? document.positionAt(endMatch.index - 1)
-            : cellRangeEnd
+        const codeRangeEnd = endMatch ? document.positionAt(endMatch.index - 1) : cellRangeEnd
         docCells.push({
             id,
             cellRange: new vscode.Range(cellRangeStart, cellRangeEnd),
@@ -125,94 +123,181 @@ function _getDocCells(): JuliaCell[] {
     return getDocCells(editor.document)
 }
 
-// Return:
-// - [] if cells is empty.
-// - [cellX] if the cellX is strictly contains the position.
-// - [cellX, cellY] if the position is between cellX and cellY.
-// - [cell0, cell0] if the position is before the first cell.
-// - [cellN, cellN] if the position is after the last cell.
-function getCurrentCells(cells: JuliaCell[] = _getDocCells(), position?: vscode.Position): JuliaCell[] {
-    if (cells.length === 0) {
-        return []
-    }
-    if (position === undefined) {
-        position = vscode.window.activeTextEditor.selection.active
-    }
-    if (position.isBefore(cells[0].cellRange.start)) {
-        return [cells[0], cells[0]]
-    }
-    let last: number = 0
-    while (last < cells.length) {
-        const cellRange = cells[last].cellRange
-        if (position.isBeforeOrEqual(cellRange.end)) {
-            break
+interface CellContext {
+    /** Infimum cell of the current selections, undefined if no cells exist */
+    inf?: JuliaCell
+    /** All cells intersecting with the current selections, empty if no cells exist */
+    current: JuliaCell[]
+    /** Supremum cell of the current selections, undefined if no cells exist */
+    sup?: JuliaCell
+}
+
+function getSelectionsCellContext(
+    docCells: readonly JuliaCell[] = _getDocCells(),
+    selections: readonly vscode.Selection[] = vscode.window.activeTextEditor?.selections ?? []
+): CellContext {
+    if (docCells.length === 0 || selections.length === 0) {
+        return {
+            inf: undefined,
+            current: [],
+            sup: undefined,
         }
-        last++
     }
-    if (last === cells.length) {
-        return [cells[last - 1], cells[last - 1]]
-    }
-    if (cells[last].cellRange.start.isBeforeOrEqual(position)) {
-        return [cells[last]]
+    const sortedSelections = [...selections].sort((a, b) => a.start.compareTo(b.start))
+    const firstPos = sortedSelections[0].start
+    const infIndex = _findSortedInfCellIndex(docCells, firstPos, 0)
+    let inf: JuliaCell
+    if (infIndex === -1) {
+        inf = docCells[docCells.length - 1]
+    } else if (firstPos.isBefore(docCells[infIndex].cellRange.start)) {
+        inf = infIndex === 0 ? docCells[0] : docCells[infIndex - 1]
     } else {
-        return [cells[last - 1], cells[last]]
+        inf = docCells[infIndex]
     }
+    const currentCells = new Set<JuliaCell>()
+    // We use `searchHintIndex` to optimize the search.
+    let searchHintIndex = infIndex !== -1 ? infIndex : docCells.length
+    let maxEnd = sortedSelections[0].end
+    for (const selection of sortedSelections) {
+        // Update maxEnd if this selection extends further than any previous one.
+        // This handles overlapping cases like selA=[0,100], selB=[10,20].
+        if (selection.end.isAfter(maxEnd)) {
+            maxEnd = selection.end
+        }
+        let idx = _findSortedInfCellIndex(docCells, selection.start, searchHintIndex)
+        if (idx === -1) {
+            searchHintIndex = docCells.length
+            continue
+        }
+        searchHintIndex = idx
+        while (idx < docCells.length) {
+            const cell = docCells[idx]
+            if (cell.cellRange.start.isAfter(selection.end)) {
+                break
+            }
+            if (selection.intersection(cell.cellRange)) {
+                currentCells.add(cell)
+            } else if (selection.isEmpty && cell.cellRange.contains(selection.active)) {
+                currentCells.add(cell)
+            }
+            idx++
+        }
+    }
+    const supIndex = _findSortedInfCellIndex(docCells, maxEnd, infIndex)
+    let sup: JuliaCell
+    if (supIndex === -1) {
+        sup = docCells[docCells.length - 1]
+    } else if (maxEnd.isBefore(docCells[supIndex].cellRange.end)) {
+        sup = docCells[supIndex]
+    } else {
+        sup = supIndex + 1 < docCells.length ? docCells[supIndex + 1] : docCells[docCells.length - 1]
+    }
+    return {
+        inf,
+        current: Array.from(currentCells).sort((a, b) => a.id - b.id),
+        sup,
+    }
+}
+
+/**
+ * Binary search to find the index of the first cell whose end is >= position
+ *
+ * @param docCells - Array of JuliaCell, assumed to be sorted by cellRange.start
+ * @param position - The Position to search for
+ * @param searchStartIdx - Optimization: The index to start searching from
+ * @returns The index of the first cell whose end is >= position, or -1 if none found
+ */
+function _findSortedInfCellIndex(
+    docCells: readonly JuliaCell[],
+    position: vscode.Position,
+    searchStartIdx: number = 0
+): number {
+    let low = searchStartIdx
+    let high = docCells.length - 1
+    let result = -1
+    while (low <= high) {
+        const mid = (low + high) >>> 1
+        const cell = docCells[mid]
+        if (position.isBeforeOrEqual(cell.cellRange.end)) {
+            result = mid
+            high = mid - 1
+        } else {
+            low = mid + 1
+        }
+    }
+    return result
 }
 
 // Get previous valid cell which contains code
-function getPreviousCell(position: vscode.Position, cells: JuliaCell[] = _getDocCells()): JuliaCell | undefined {
-    for (let i = cells.length - 1; i >= 0; i--) {
-        const cell = cells[i]
-        if (position.isBeforeOrEqual(cell.cellRange.start)) {
-            continue
-        }
-        if (cell.cellRange.contains(position)) {
-            continue
-        }
+function getPreviousCell(
+    cellContext: CellContext,
+    docCells: readonly JuliaCell[] = _getDocCells()
+): JuliaCell | undefined {
+    if (cellContext.inf === undefined || docCells.length === 0) {
+        return undefined
+    }
+    const isClosedInterval = cellContext.current.at(0).id === cellContext.inf.id
+    const startIdx = isClosedInterval ? cellContext.inf.id - 1 : cellContext.inf.id
+    for (let i = startIdx; i >= 0; i--) {
+        const cell = docCells[i]
         if (cell.codeRange !== undefined) {
             return cell
         }
     }
-    return cells.at(0)
+    return docCells.at(0)
 }
 
 // Get next valid cell which contains code
-function getNextCell(position: vscode.Position, cells: JuliaCell[] = _getDocCells()): JuliaCell | undefined {
-    for (const cell of cells) {
-        if (cell.cellRange.end.isBeforeOrEqual(position)) {
-            continue
-        }
-        if (cell.cellRange.contains(position)) {
-            continue
-        }
+function getNextCell(
+    cellContext: CellContext,
+    docCells: readonly JuliaCell[] = _getDocCells()
+): JuliaCell | undefined {
+    if (cellContext.sup === undefined || docCells.length === 0) {
+        return undefined
+    }
+    const isClosedInterval = cellContext.current.at(-1).id === cellContext.sup.id
+    const startIdx = isClosedInterval ? cellContext.sup.id + 1 : cellContext.sup.id
+    for (let i = startIdx; i < docCells.length; i++) {
+        const cell = docCells[i]
         if (cell.codeRange !== undefined) {
             return cell
         }
     }
-    return cells.at(-1)
+    return docCells.at(-1)
 }
 
-function _cellMove(editor: vscode.TextEditor, cells: JuliaCell[], direction: 'down' | 'up', docCells: JuliaCell[]) {
+function _cellMove(
+    editor: vscode.TextEditor,
+    cellContext: CellContext,
+    direction: 'down' | 'up',
+    docCells: readonly JuliaCell[]
+) {
     const nextCell =
         direction === 'down'
-            ? getNextCell(cells.at(0).cellRange.end, docCells)
-            : getPreviousCell(cells.at(-1).cellRange.start, docCells)
-    const nextPosition = nextCell.codeRange?.start ?? nextCell.cellRange.start
-    repl.validateMoveAndReveal(editor, nextPosition, nextPosition)
+            ? getNextCell(cellContext, docCells)
+            : getPreviousCell(cellContext, docCells)
+    const newPosition = nextCell.codeRange?.start ?? nextCell.cellRange.start
+    repl.validateMoveAndReveal(editor, newPosition, newPosition)
 }
 
 function cellMove(
     cell?: JuliaCell,
     direction: 'down' | 'up' = 'down',
-    docCells: JuliaCell[] = _getDocCells()
+    docCells: readonly JuliaCell[] = _getDocCells()
 ): boolean {
     telemetry.traceEvent('command-cellMove')
     const editor = vscode.window.activeTextEditor
     if (editor === undefined) {
         return false
     }
-    const cells = cell ? [cell] : getCurrentCells(docCells)
-    _cellMove(editor, cells, direction, docCells)
+    const cellContext = cell
+        ? {
+              inf: cell,
+              current: [cell],
+              sup: cell,
+          } satisfies CellContext
+        : getSelectionsCellContext(docCells)
+    _cellMove(editor, cellContext, direction, docCells)
     return true
 }
 
@@ -228,7 +313,10 @@ async function _commandCommonSave(editor: vscode.TextEditor): Promise<boolean> {
 
 const PENDING_SIGN = ' ⧗ '
 
-async function _executeCells(editor: vscode.TextEditor, cells: JuliaCell[]): Promise<boolean> {
+async function _executeCells(
+    editor: vscode.TextEditor,
+    cells: readonly JuliaCell[]
+): Promise<boolean> {
     const document = editor.document
     const codeRanges: vscode.Range[] = cells.map((cell) => cell.codeRange).filter((cr) => cr !== undefined)
     const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
@@ -269,14 +357,14 @@ async function executeCell(cell?: JuliaCell): Promise<boolean> {
     if ((await _commandCommonSave(editor)) === false) {
         return false
     }
-    if (cell === undefined) {
-        const cells = getCurrentCells()
-        if (cells.length !== 1) {
-            return false
-        }
-        cell = cells[0]
+    let cells!: JuliaCell[]
+    if (cell !== undefined) {
+        cells = [cell]
+    } else {
+        const cellContext = getSelectionsCellContext()
+        cells = cellContext.current
     }
-    return await _executeCells(editor, [cell])
+    return await _executeCells(editor, cells)
 }
 
 async function executeCellAndMove(
@@ -289,25 +377,41 @@ async function executeCellAndMove(
     if ((await _commandCommonSave(editor)) === false) {
         return false
     }
-    const cells = cell ? [cell] : getCurrentCells(docCells)
-    _cellMove(editor, cells, direction, docCells)
-    if (cells.length !== 1) {
+    const cellContext = cell
+        ? {
+              inf: cell,
+              current: [cell],
+              sup: cell,
+          } satisfies CellContext
+        : getSelectionsCellContext(docCells)
+    _cellMove(editor, cellContext, direction, docCells)
+    if (cellContext.current.length === 0) {
         return false
     }
-    return await _executeCells(editor, [cells[0]])
+    return await _executeCells(editor, cellContext.current)
 }
 
-async function executeCurrentAndBelowCells(cell?: JuliaCell, docCells: JuliaCell[] = _getDocCells()): Promise<boolean> {
+async function executeCurrentAndBelowCells(
+    cell?: JuliaCell,
+    docCells: JuliaCell[] = _getDocCells()
+): Promise<boolean> {
     telemetry.traceEvent('command-executeCurrentAndBelowCells')
     const editor = vscode.window.activeTextEditor
     if ((await _commandCommonSave(editor)) === false) {
         return false
     }
-    const cells = cell ? [cell] : getCurrentCells(docCells)
-    if (cells.length === 2 && cells[0].id === cells[1].id) {
-        return false
+    let beginId!: number
+    if (cell !== undefined) {
+        beginId = cell.id
+    } else {
+        const cellContext = getSelectionsCellContext(docCells)
+        if (cellContext.current.length === 0) {
+            beginId = cellContext.sup?.id ?? docCells.length
+        } else {
+            beginId = cellContext.current.at(0).id
+        }
     }
-    return await _executeCells(editor, docCells.slice(cells.at(-1).id, docCells.length))
+    return await _executeCells(editor, docCells.slice(beginId, docCells.length))
 }
 
 async function executeAboveCells(cell?: JuliaCell, docCells: JuliaCell[] = _getDocCells()): Promise<boolean> {
@@ -316,11 +420,18 @@ async function executeAboveCells(cell?: JuliaCell, docCells: JuliaCell[] = _getD
     if ((await _commandCommonSave(editor)) === false) {
         return false
     }
-    const cells = cell ? [cell] : getCurrentCells(docCells)
-    if (cells.length === 2 && cells[0].id === cells[1].id) {
-        return false
+    let endId!: number
+    if (cell !== undefined) {
+        endId = cell.id
+    } else {
+        const cellContext = getSelectionsCellContext(docCells)
+        if (cellContext.current.length === 0) {
+            endId = cellContext.inf?.id ?? 0
+        } else {
+            endId = cellContext.current.at(-1).id
+        }
     }
-    return await _executeCells(editor, docCells.slice(0, cells[0].id))
+    return await _executeCells(editor, docCells.slice(0, endId))
 }
 
 export class CodeLensProvider implements vscode.CodeLensProvider {
@@ -372,7 +483,8 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
     }
 
     private highlightCurrentCell(editor: vscode.TextEditor): void {
-        const cells = getCurrentCells(this.docCells, editor.selection.active)
+        const cellContext = getSelectionsCellContext(this.docCells, [new vscode.Selection(editor.selection.active, editor.selection.active)])
+        const cells = cellContext.current
         if (cells.length !== 1) {
             return
         }
