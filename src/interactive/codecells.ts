@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 
 import * as telemetry from '../telemetry'
-import { getVersionedParamsAtPosition, registerCommand } from '../utils'
+import { registerCommand } from '../utils'
 import * as modules from './modules'
 import * as repl from './repl'
 import * as results from './results'
@@ -56,7 +56,8 @@ function getDocCells(document: vscode.TextDocument): JuliaCell[] {
         }
     }
     indexes.unshift(0) // Start with the start of the document
-    indexes.push(document.getText().length + 1) // End with the end of the document
+    const endPosition = document.lineAt(document.lineCount - 1).range.end;
+    indexes.push(document.offsetAt(endPosition) + 1) // End with the end of the document
     const docCells: JuliaCell[] = []
     let id = 0
     const cellRangeStart = document.positionAt(indexes[id])
