@@ -248,10 +248,7 @@ function getPreviousCell(
 }
 
 // Get next valid cell which contains code
-function getNextCell(
-    cellContext: CellContext,
-    docCells: readonly JuliaCell[] = _getDocCells()
-): JuliaCell | undefined {
+function getNextCell(cellContext: CellContext, docCells: readonly JuliaCell[] = _getDocCells()): JuliaCell | undefined {
     if (cellContext.sup === undefined || docCells.length === 0) {
         return undefined
     }
@@ -272,10 +269,7 @@ function _cellMove(
     direction: 'down' | 'up',
     docCells: readonly JuliaCell[]
 ) {
-    const nextCell =
-        direction === 'down'
-            ? getNextCell(cellContext, docCells)
-            : getPreviousCell(cellContext, docCells)
+    const nextCell = direction === 'down' ? getNextCell(cellContext, docCells) : getPreviousCell(cellContext, docCells)
     const newPosition = nextCell.codeRange?.start ?? nextCell.cellRange.start
     repl.validateMoveAndReveal(editor, newPosition, newPosition)
 }
@@ -291,11 +285,11 @@ function cellMove(
         return false
     }
     const cellContext = cell
-        ? {
+        ? ({
               inf: cell,
               current: [cell],
               sup: cell,
-          } satisfies CellContext
+          } satisfies CellContext)
         : getSelectionsCellContext(docCells)
     _cellMove(editor, cellContext, direction, docCells)
     return true
@@ -313,10 +307,7 @@ async function _commandCommonSave(editor: vscode.TextEditor): Promise<boolean> {
 
 const PENDING_SIGN = ' ⧗ '
 
-async function _executeCells(
-    editor: vscode.TextEditor,
-    cells: readonly JuliaCell[]
-): Promise<boolean> {
+async function _executeCells(editor: vscode.TextEditor, cells: readonly JuliaCell[]): Promise<boolean> {
     const document = editor.document
     const codeRanges: vscode.Range[] = cells.map((cell) => cell.codeRange).filter((cr) => cr !== undefined)
     const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
@@ -378,11 +369,11 @@ async function executeCellAndMove(
         return false
     }
     const cellContext = cell
-        ? {
+        ? ({
               inf: cell,
               current: [cell],
               sup: cell,
-          } satisfies CellContext
+          } satisfies CellContext)
         : getSelectionsCellContext(docCells)
     _cellMove(editor, cellContext, direction, docCells)
     if (cellContext.current.length === 0) {
@@ -391,10 +382,7 @@ async function executeCellAndMove(
     return await _executeCells(editor, cellContext.current)
 }
 
-async function executeCurrentAndBelowCells(
-    cell?: JuliaCell,
-    docCells: JuliaCell[] = _getDocCells()
-): Promise<boolean> {
+async function executeCurrentAndBelowCells(cell?: JuliaCell, docCells: JuliaCell[] = _getDocCells()): Promise<boolean> {
     telemetry.traceEvent('command-executeCurrentAndBelowCells')
     const editor = vscode.window.activeTextEditor
     if ((await _commandCommonSave(editor)) === false) {
@@ -483,7 +471,9 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
     }
 
     private highlightCurrentCell(editor: vscode.TextEditor): void {
-        const cellContext = getSelectionsCellContext(this.docCells, [new vscode.Selection(editor.selection.active, editor.selection.active)])
+        const cellContext = getSelectionsCellContext(this.docCells, [
+            new vscode.Selection(editor.selection.active, editor.selection.active),
+        ])
         const cells = cellContext.current
         if (cells.length !== 1) {
             return
@@ -506,6 +496,12 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
         }
     }
 
+    private unhighlight(editor: vscode.TextEditor): void {
+        editor.setDecorations(this.decoration, [])
+        editor.setDecorations(this.currentCellTop, [])
+        editor.setDecorations(this.currentCellBottom, [])
+    }
+
     public provideCodeLenses(
         document: vscode.TextDocument,
         // prettier-ignore
@@ -514,13 +510,16 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
     ): vscode.ProviderResult<vscode.CodeLens[]> {
         const codeLenses: vscode.CodeLens[] = []
         this.docCells = getDocCells(document)
-        if (this.docCells.length <= 1) {
+        const editor = vscode.window.activeTextEditor
+        if (editor === undefined || editor.document !== document) {
             return codeLenses
         }
-        const editor = vscode.window.activeTextEditor
-        if (editor !== undefined && editor.document === document) {
-            this.highlight(editor)
+        if (this.docCells.length <= 1) {
+            this.unhighlight(editor)
+            return codeLenses
         }
+        this.highlight(editor)
+
         // The first cell would be skipped since it is preceded by a delimiter
         const cell = this.docCells[1]
         codeLenses.push(
