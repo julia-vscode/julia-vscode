@@ -6,7 +6,7 @@ import * as vscode from 'vscode'
 import * as debugViewProvider from './debugger/debugConfig'
 import { JuliaDebugFeature } from './debugger/debugFeature'
 import * as documentation from './docbrowser/documentation'
-import * as codecells from './interactive/codecells'
+import { CodeCellFeature } from './interactive/codecells'
 import { ProfilerFeature } from './interactive/profiler'
 import * as repl from './interactive/repl'
 import { WorkspaceFeature } from './interactive/workspace'
@@ -60,8 +60,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 decreaseIndentPattern: decreaseIndentPattern,
             },
         })
-        vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], new codecells.CodeLensProvider())
-        vscode.languages.registerFoldingRangeProvider(['julia', 'juliamarkdown'], new codecells.FoldingRangeProvider())
 
         const profilerFeature = new ProfilerFeature(context)
         context.subscriptions.push(profilerFeature)
@@ -73,8 +71,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const compiledProvider = debugViewProvider.activate(context)
         context.subscriptions.push(executableFeature)
-
-        codecells.activate(context)
         repl.activate(context, compiledProvider, executableFeature, profilerFeature, languageClientFeature)
         weave.activate(context, executableFeature)
         documentation.activate(context, languageClientFeature)
@@ -84,6 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
         openpackagedirectory.activate(context)
         jlpkgenv.activate(context, executableFeature, languageClientFeature)
 
+        context.subscriptions.push(new CodeCellFeature(context))
         const workspaceFeature = new WorkspaceFeature(context)
         context.subscriptions.push(workspaceFeature)
         const notebookFeature = new JuliaNotebookFeature(context, executableFeature, workspaceFeature, compiledProvider)

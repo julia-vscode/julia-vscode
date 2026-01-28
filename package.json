@@ -132,7 +132,7 @@
                 "title": "Julia: Disconnect external REPL"
             },
             {
-                "command": "language-julia.executeCodeBlockOrSelection",
+                "command": "language-julia.executeSelectionOrCell",
                 "title": "Julia: Execute Code in REPL"
             },
             {
@@ -140,7 +140,7 @@
                 "title": "Julia: Send Current Line or Selection to REPL"
             },
             {
-                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
+                "command": "language-julia.executeSelectionOrCellAndMove",
                 "title": "Julia: Execute Code in REPL and Move"
             },
             {
@@ -272,14 +272,6 @@
                 "title": "Julia: Delete All Plots"
             },
             {
-                "command": "language-julia.executeCell",
-                "title": "Julia: Execute Code Cell in REPL"
-            },
-            {
-                "command": "language-julia.executeCellAndMove",
-                "title": "Julia: Execute Code Cell in REPL and Move"
-            },
-            {
                 "command": "language-julia.moveCellUp",
                 "title": "Julia: Move to Previous Cell"
             },
@@ -288,8 +280,24 @@
                 "title": "Julia: Move to Next Cell"
             },
             {
-                "command": "language-julia.selectBlock",
-                "title": "Julia: Select Code Block"
+                "command": "language-julia.selectCell",
+                "title": "Julia: Select Code Cell"
+            },
+            {
+                "command": "language-julia.executeCell",
+                "title": "Julia: Execute Code Cell in REPL"
+            },
+            {
+                "command": "language-julia.executeCellAndMove",
+                "title": "Julia: Execute Code Cell in REPL and Move"
+            },
+            {
+                "command": "language-julia.executeCurrentAndBelowCells",
+                "title": "Julia: Execute Current and Below Code Cells in REPL"
+            },
+            {
+                "command": "language-julia.executeAboveCells",
+                "title": "Julia: Execute Above Code Cells in REPL"
             },
             {
                 "command": "language-julia.showInVSCode",
@@ -681,7 +689,7 @@
             ],
             "editor/context": [
                 {
-                    "command": "language-julia.executeCodeBlockOrSelection",
+                    "command": "language-julia.executeSelectionOrCell",
                     "when": "activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds",
                     "group": "z_commands"
                 },
@@ -736,12 +744,12 @@
         },
         "keybindings": [
             {
-                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
+                "command": "language-julia.executeSelectionOrCellAndMove",
                 "key": "Shift+Enter",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
-                "command": "language-julia.executeCodeBlockOrSelection",
+                "command": "language-julia.executeSelectionOrCell",
                 "key": "Ctrl+Enter",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
