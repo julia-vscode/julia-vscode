@@ -470,7 +470,7 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
         if (cellContext.inf === undefined || docCells.length === 0) {
             return undefined
         }
-        const isClosedInterval = cellContext.current.at(0).id === cellContext.inf.id
+        const isClosedInterval = cellContext.current[0].id === cellContext.inf.id
         const startIdx = isClosedInterval ? cellContext.inf.id - 1 : cellContext.inf.id
         for (let i = startIdx; i >= 0; i--) {
             const cell = docCells[i]
@@ -478,7 +478,7 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
                 return cell
             }
         }
-        return docCells.at(0)
+        return docCells[0]
     }
 
     /** Get next valid cell which contains code */
@@ -686,7 +686,7 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
             if (cellContext.current.length === 0) {
                 beginId = cellContext.sup?.id ?? docCells.length
             } else {
-                beginId = cellContext.current.at(0).id
+                beginId = cellContext.current[0].id
             }
         }
         return await this._executeCells(editor, docCells.slice(beginId, docCells.length))
