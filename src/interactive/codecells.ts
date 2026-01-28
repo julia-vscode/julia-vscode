@@ -522,23 +522,7 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
         }
         this.highlight(editor)
 
-        // The first cell would be skipped since it is preceded by a delimiter
-        const cell = this.docCells[1]
-        codeLenses.push(
-            new vscode.CodeLens(cell.cellRange, {
-                title: 'Run Cell',
-                tooltip: 'Execute the cell in the Julia REPL',
-                command: 'language-julia.executeCell',
-                arguments: [cell, this.docCells],
-            }),
-            new vscode.CodeLens(cell.cellRange, {
-                title: 'Run Below',
-                tooltip: 'Execute all cells below in the Julia REPL',
-                command: 'language-julia.executeCurrentAndBelowCells',
-                arguments: [cell, this.docCells],
-            })
-        )
-        for (const cell of this.docCells.slice(2)) {
+        for (const cell of this.docCells.slice(1)) {
             if (cell.codeRange === undefined) {
                 continue
             }
@@ -549,12 +533,20 @@ export class CodeLensProvider implements vscode.CodeLensProvider {
                     command: 'language-julia.executeCell',
                     arguments: [cell, this.docCells],
                 }),
-                new vscode.CodeLens(cell.cellRange, {
-                    title: 'Run Above',
-                    tooltip: 'Execute all cells above in the Julia REPL',
-                    command: 'language-julia.executeAboveCells',
-                    arguments: [cell, this.docCells],
-                })
+                cell.id === 1
+                    ? // The first cell would be skipped since it is preceded by a delimiter
+                      new vscode.CodeLens(cell.cellRange, {
+                          title: 'Run Below',
+                          tooltip: 'Execute all cells below in the Julia REPL',
+                          command: 'language-julia.executeCurrentAndBelowCells',
+                          arguments: [cell, this.docCells],
+                      })
+                    : new vscode.CodeLens(cell.cellRange, {
+                          title: 'Run Above',
+                          tooltip: 'Execute all cells above in the Julia REPL',
+                          command: 'language-julia.executeAboveCells',
+                          arguments: [cell, this.docCells],
+                      })
             )
         }
         return codeLenses
