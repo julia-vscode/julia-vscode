@@ -44,6 +44,7 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
     private _onDidChangeCellDelimiters = new vscode.EventEmitter<void>()
     public readonly onDidChangeCodeLenses = this._onDidChangeCellDelimiters.event
     public readonly onDidChangeFoldingRanges = this._onDidChangeCellDelimiters.event
+    private shouldSaveOnEval: boolean
 
     private cellDelimiters: RegExp[] = []
     private readonly decoration = vscode.window.createTextEditorDecorationType({
@@ -78,6 +79,9 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
                     this.updateCellDelimiters()
                     this.clearDocCells()
                     this._onDidChangeCellDelimiters.fire()
+                }
+                if (event.affectsConfiguration('julia.execution.saveOnEval')) {
+                    this.updateSaveOnEval()
                 }
             })
         )
@@ -200,7 +204,7 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
     private onDidChangeTextEditorSelection(event: vscode.TextEditorSelectionChangeEvent): void {
         const editor = event.textEditor
         const document = editor.document
-        if (document.languageId !== 'julia') {
+        if (!this.isJuliaDocument(document)) {
             return
         }
         const docCells = this.getDocCells(document)
@@ -209,6 +213,10 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
         }
         const selections = [new vscode.Selection(event.selections[0].active, event.selections[0].active)]
         this.highlight(editor, docCells, selections)
+    }
+
+    private isJuliaDocument(document: vscode.TextDocument): boolean {
+        return document.languageId === 'julia'
     }
 
     private isJmdDocument(document: vscode.TextDocument): boolean {
@@ -257,8 +265,12 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
         }
     }
 
+    private updateSaveOnEval() {
+        this.shouldSaveOnEval = vscode.workspace.getConfiguration('julia').get<boolean>('execution.saveOnEval') === true
+    }
+
     private updateDocCells(document: vscode.TextDocument): void {
-        if (document.languageId !== 'julia' && document.languageId !== 'juliamarkdown') {
+        if (!this.isJuliaDocument(document) && !this.isJmdDocument(document)) {
             return
         }
         const documentKey = document.uri.toString()
@@ -551,7 +563,7 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
         if (editor === undefined) {
             return false
         }
-        if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.saveOnEval') === true) {
+        if (this.shouldSaveOnEval) {
             await editor.document.save()
         }
         return true
