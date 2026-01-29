@@ -603,7 +603,7 @@ export class CodeCellFeature
     })
     private readonly currentCellTop = vscode.window.createTextEditorDecorationType({
         borderColor: new vscode.ThemeColor('interactive.activeCodeBorder'),
-        borderWidth: '2px 0px 0px 0px',
+        borderWidth: '1px 0px 0px 0px',
         borderStyle: 'solid',
         isWholeLine: true,
     })
