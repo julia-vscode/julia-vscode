@@ -38,235 +38,73 @@ interface CellContext {
     sup?: JuliaCell
 }
 
-export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingRangeProvider {
-    private readonly PENDING_SIGN = ' ⧗ '
-    private documentCells = new Map<string, JuliaDocCells>()
-    private _onDidChangeCellDelimiters = new vscode.EventEmitter<void>()
-    public readonly onDidChangeCodeLenses = this._onDidChangeCellDelimiters.event
-    public readonly onDidChangeFoldingRanges = this._onDidChangeCellDelimiters.event
-    private shouldSaveOnEval: boolean
+class JuliaCellManager implements vscode.Disposable {
+    private readonly documentCells = new Map<string, JuliaDocCells>()
+    protected readonly onDidChangeCellDelimiters = new vscode.EventEmitter<void>()
+    private readonly cellDelimiters: RegExp[] = []
 
-    private cellDelimiters: RegExp[] = []
-    private readonly decoration = vscode.window.createTextEditorDecorationType({
-        backgroundColor: new vscode.ThemeColor('editor.rangeHighlightBackground'),
-        isWholeLine: true,
-    })
-    private readonly currentCellTop = vscode.window.createTextEditorDecorationType({
-        borderColor: new vscode.ThemeColor('interactive.activeCodeBorder'),
-        borderWidth: '2px 0px 0px 0px',
-        borderStyle: 'solid',
-        isWholeLine: true,
-    })
-    private readonly currentCellBottom = vscode.window.createTextEditorDecorationType({
-        borderColor: new vscode.ThemeColor('interactive.activeCodeBorder'),
-        borderWidth: '0px 0px 1px 0px',
-        borderStyle: 'solid',
-        isWholeLine: true,
-    })
-
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(protected context: vscode.ExtensionContext) {
         this.updateCellDelimiters()
-        // General subscriptions
         this.context.subscriptions.push(
-            vscode.workspace.onDidChangeTextDocument((event) => {
-                this.updateDocCells(event.document)
-            }),
-            vscode.workspace.onDidCloseTextDocument((document) => {
-                this.removeDocCells(document)
-            }),
-            vscode.workspace.onDidChangeConfiguration((event) => {
-                if (event.affectsConfiguration('julia.cellDelimiters')) {
-                    this.updateCellDelimiters()
-                    this.clearDocCells()
-                    this._onDidChangeCellDelimiters.fire()
-                }
-                if (event.affectsConfiguration('julia.execution.saveOnEval')) {
-                    this.updateSaveOnEval()
-                }
-            })
-        )
-        // CodeLens
-        this.context.subscriptions.push(
-            vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], this),
-            vscode.window.onDidChangeTextEditorSelection(this.onDidChangeTextEditorSelection.bind(this))
-        )
-        // FoldingRange
-        this.context.subscriptions.push(vscode.languages.registerFoldingRangeProvider(['julia', 'juliamarkdown'], this))
-        // Cell commands
-        this.context.subscriptions.push(
-            registerCommand('language-julia.moveCellUp', this.moveCell.bind(this, 'up')),
-            registerCommand('language-julia.moveCellDown', this.moveCell.bind(this, 'down')),
-            registerCommand('language-julia.selectCell', this.selectCell.bind(this)),
-            registerCommand('language-julia.executeCell', this.executeCell.bind(this)),
-            registerCommand('language-julia.executeCellAndMove', this.executeCellAndMove.bind(this, 'down')),
-            registerCommand('language-julia.executeSelectionOrCell', this.executeSelectionOrCell.bind(this, false)),
-            registerCommand(
-                'language-julia.executeSelectionOrCellAndMove',
-                this.executeSelectionOrCell.bind(this, true)
-            ),
-            registerCommand('language-julia.executeCurrentAndBelowCells', this.executeCurrentAndBelowCells.bind(this)),
-            registerCommand('language-julia.executeAboveCells', this.executeAboveCells.bind(this))
+            vscode.workspace.onDidChangeTextDocument(this.onDidChangeTextDocument.bind(this)),
+            vscode.workspace.onDidCloseTextDocument(this.onDidCloseTextDocument.bind(this)),
+            vscode.workspace.onDidChangeConfiguration(this.onDidChangeConfiguration.bind(this))
         )
     }
 
     public dispose() {
-        this._onDidChangeCellDelimiters.dispose()
-        this.decoration.dispose()
-        this.currentCellTop.dispose()
-        this.currentCellBottom.dispose()
+        this.onDidChangeCellDelimiters.dispose()
     }
 
-    public provideCodeLenses(
-        document: vscode.TextDocument,
-        // prettier-ignore
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        token: vscode.CancellationToken
-    ): vscode.ProviderResult<vscode.CodeLens[]> {
-        const codeLenses: vscode.CodeLens[] = []
-        const docCells = this.getDocCells(document)
-        const editor = vscode.window.activeTextEditor
-        if (editor === undefined || editor.document !== document) {
-            return codeLenses
+    protected onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
+        if (event.affectsConfiguration('julia.cellDelimiters')) {
+            this.updateCellDelimiters()
+            this.clearDocCells()
+            this.onDidChangeCellDelimiters.fire()
         }
-        if (docCells.length <= 1) {
-            this.unhighlight(editor)
-            return codeLenses
-        }
-        const selections = [new vscode.Selection(editor.selection.active, editor.selection.active)]
-        this.highlight(editor, docCells, selections)
-
-        for (const cell of docCells.slice(1)) {
-            if (cell.codeRange === undefined) {
-                continue
-            }
-            codeLenses.push(
-                new vscode.CodeLens(cell.cellRange, {
-                    title: 'Run Cell',
-                    tooltip: 'Execute the cell in the Julia REPL',
-                    command: 'language-julia.executeCell',
-                    arguments: [cell, docCells],
-                }),
-                cell.id === 1
-                    ? // The first cell would be skipped since it is preceded by a delimiter
-                      new vscode.CodeLens(cell.cellRange, {
-                          title: 'Run Below',
-                          tooltip: 'Execute all cells below in the Julia REPL',
-                          command: 'language-julia.executeCurrentAndBelowCells',
-                          arguments: [cell, docCells],
-                      })
-                    : new vscode.CodeLens(cell.cellRange, {
-                          title: 'Run Above',
-                          tooltip: 'Execute all cells above in the Julia REPL',
-                          command: 'language-julia.executeAboveCells',
-                          arguments: [cell, docCells],
-                      })
-            )
-        }
-        return codeLenses
     }
 
-    public provideFoldingRanges(
-        document: vscode.TextDocument,
-        // prettier-ignore
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        context: vscode.FoldingContext,
-        // prettier-ignore
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        token: vscode.CancellationToken
-    ): vscode.ProviderResult<vscode.FoldingRange[]> {
-        const docCells = this.getDocCells(document)
-        const foldingRanges: vscode.FoldingRange[] = []
-        const cell = docCells[0]
-        if (cell.codeRange !== undefined) {
-            foldingRanges.push(
-                new vscode.FoldingRange(
-                    cell.cellRange.start.line,
-                    cell.cellRange.end.line,
-                    vscode.FoldingRangeKind.Imports
-                )
-            )
-        }
-        for (const cell of docCells.slice(1)) {
-            if (cell.codeRange === undefined) {
-                continue
-            }
-            foldingRanges.push(
-                new vscode.FoldingRange(
-                    cell.cellRange.start.line,
-                    cell.cellRange.end.line,
-                    vscode.FoldingRangeKind.Region
-                )
-            )
-        }
-        return foldingRanges
+    protected onDidChangeTextDocument(event: vscode.TextDocumentChangeEvent) {
+        this.updateDocCells(event.document)
     }
 
-    private onDidChangeTextEditorSelection(event: vscode.TextEditorSelectionChangeEvent): void {
-        const editor = event.textEditor
-        const document = editor.document
-        if (!this.isJuliaDocument(document)) {
-            return
-        }
-        const docCells = this.getDocCells(document)
-        if (docCells.length <= 1) {
-            return
-        }
-        const selections = [new vscode.Selection(event.selections[0].active, event.selections[0].active)]
-        this.highlight(editor, docCells, selections)
+    protected onDidCloseTextDocument(document: vscode.TextDocument) {
+        this.removeDocCells(document)
     }
 
-    private isJuliaDocument(document: vscode.TextDocument): boolean {
+    protected isJuliaDocument(document: vscode.TextDocument): boolean {
         return document.languageId === 'julia'
     }
 
-    private isJmdDocument(document: vscode.TextDocument): boolean {
+    protected isJmdDocument(document: vscode.TextDocument): boolean {
         return document.languageId === 'juliamarkdown' || document.languageId === 'markdown'
-    }
-
-    private highlightCells(editor: vscode.TextEditor, docCells: readonly JuliaCell[]): void {
-        const cellRanges = docCells.map((cell) => cell.cellRange).slice(1)
-        editor.setDecorations(this.decoration, cellRanges)
-    }
-
-    private highlightCurrentCell(editor: vscode.TextEditor, cellContext: CellContext): void {
-        const cells = cellContext.current
-        if (cells.length !== 1) {
-            return
-        }
-        const cell = cells[0]
-        editor.setDecorations(this.currentCellTop, [new vscode.Range(cell.cellRange.start, cell.cellRange.start)])
-        editor.setDecorations(this.currentCellBottom, [new vscode.Range(cell.cellRange.end, cell.cellRange.end)])
-    }
-
-    private highlight(
-        editor: vscode.TextEditor,
-        docCells: readonly JuliaCell[],
-        selections?: readonly vscode.Selection[]
-    ): void {
-        if (this.isJmdDocument(editor.document)) {
-            this.highlightCells(editor, docCells)
-        }
-        if (selections !== undefined) {
-            const cellContext = this.getSelectionsCellContext(docCells, selections)
-            this.highlightCurrentCell(editor, cellContext)
-        }
-    }
-
-    private unhighlight(editor: vscode.TextEditor): void {
-        editor.setDecorations(this.decoration, [])
-        editor.setDecorations(this.currentCellTop, [])
-        editor.setDecorations(this.currentCellBottom, [])
     }
 
     private updateCellDelimiters() {
         const delims = vscode.workspace.getConfiguration('julia').get<string[]>('cellDelimiters')
         if (delims !== undefined) {
-            this.cellDelimiters = delims.map((s) => RegExp(s))
+            this.cellDelimiters.length = 0
+            for (const delim of delims) {
+                try {
+                    this.cellDelimiters.push(new RegExp(delim, 'm'))
+                } catch (e) {
+                    console.warn(`Invalid cell delimiter regex: ${delim}`)
+                }
+            }
         }
     }
 
-    private updateSaveOnEval() {
-        this.shouldSaveOnEval = vscode.workspace.getConfiguration('julia').get<boolean>('execution.saveOnEval') === true
+    protected getDocCells(document?: vscode.TextDocument): JuliaCell[] {
+        if (document === undefined) {
+            const editor = vscode.window.activeTextEditor
+            if (editor === undefined) {
+                return []
+            }
+            document = editor.document
+        }
+        this.updateDocCells(document)
+        const documentKey = document.uri.toString()
+        return this.documentCells.get(documentKey)?.cells ?? []
     }
 
     private updateDocCells(document: vscode.TextDocument): void {
@@ -286,26 +124,13 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
         }
     }
 
-    private clearDocCells(): void {
-        this.documentCells.clear()
-    }
-
-    private getDocCells(document?: vscode.TextDocument): JuliaCell[] {
-        if (document === undefined) {
-            const editor = vscode.window.activeTextEditor
-            if (editor === undefined) {
-                return []
-            }
-            document = editor.document
-        }
-        this.updateDocCells(document)
-        const documentKey = document.uri.toString()
-        return this.documentCells.get(documentKey)?.cells ?? []
-    }
-
     private removeDocCells(document: vscode.TextDocument): void {
         const documentKey = document.uri.toString()
         this.documentCells.delete(documentKey)
+    }
+
+    private clearDocCells(): void {
+        this.documentCells.clear()
     }
 
     private buildDocCells(document: vscode.TextDocument): JuliaCell[] {
@@ -381,7 +206,7 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
         return docCells
     }
 
-    private getSelectionsCellContext(
+    protected getSelectionsCellContext(
         docCells: readonly JuliaCell[] = this.getDocCells(),
         selections: readonly vscode.Selection[] = vscode.window.activeTextEditor?.selections.slice() ?? []
     ): CellContext {
@@ -475,6 +300,41 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
             }
         }
         return result
+    }
+}
+
+class CodeCellExecutionFeature extends JuliaCellManager {
+    private readonly PENDING_SIGN = ' ⧗ '
+    private shouldSaveOnEval: boolean
+
+    constructor(context: vscode.ExtensionContext) {
+        super(context)
+        this.updateSaveOnEval()
+        this.context.subscriptions.push(
+            registerCommand('language-julia.moveCellUp', this.moveCell.bind(this, 'up')),
+            registerCommand('language-julia.moveCellDown', this.moveCell.bind(this, 'down')),
+            registerCommand('language-julia.selectCell', this.selectCell.bind(this)),
+            registerCommand('language-julia.executeCell', this.executeCell.bind(this)),
+            registerCommand('language-julia.executeCellAndMove', this.executeCellAndMove.bind(this, 'down')),
+            registerCommand('language-julia.executeSelectionOrCell', this.executeSelectionOrCell.bind(this, false)),
+            registerCommand(
+                'language-julia.executeSelectionOrCellAndMove',
+                this.executeSelectionOrCell.bind(this, true)
+            ),
+            registerCommand('language-julia.executeCurrentAndBelowCells', this.executeCurrentAndBelowCells.bind(this)),
+            registerCommand('language-julia.executeAboveCells', this.executeAboveCells.bind(this))
+        )
+    }
+
+    protected override onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
+        super.onDidChangeConfiguration(event)
+        if (event.affectsConfiguration('julia.execution.saveOnEval')) {
+            this.updateSaveOnEval()
+        }
+    }
+
+    private updateSaveOnEval() {
+        this.shouldSaveOnEval = vscode.workspace.getConfiguration('julia').get<boolean>('execution.saveOnEval') === true
     }
 
     /** Get previous valid cell which contains code */
@@ -726,5 +586,181 @@ export class CodeCellFeature implements vscode.CodeLensProvider, vscode.FoldingR
             }
         }
         return await this._executeCells(editor, docCells.slice(0, endId))
+    }
+}
+
+export class CodeCellFeature
+    extends CodeCellExecutionFeature
+    implements vscode.CodeLensProvider, vscode.FoldingRangeProvider
+{
+    public readonly onDidChangeCodeLenses = this.onDidChangeCellDelimiters.event
+    public readonly onDidChangeFoldingRanges = this.onDidChangeCellDelimiters.event
+
+    private readonly decoration = vscode.window.createTextEditorDecorationType({
+        backgroundColor: new vscode.ThemeColor('editor.rangeHighlightBackground'),
+        isWholeLine: true,
+    })
+    private readonly currentCellTop = vscode.window.createTextEditorDecorationType({
+        borderColor: new vscode.ThemeColor('interactive.activeCodeBorder'),
+        borderWidth: '2px 0px 0px 0px',
+        borderStyle: 'solid',
+        isWholeLine: true,
+    })
+    private readonly currentCellBottom = vscode.window.createTextEditorDecorationType({
+        borderColor: new vscode.ThemeColor('interactive.activeCodeBorder'),
+        borderWidth: '0px 0px 1px 0px',
+        borderStyle: 'solid',
+        isWholeLine: true,
+    })
+
+    constructor(context: vscode.ExtensionContext) {
+        super(context)
+        this.context.subscriptions.push(
+            vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], this),
+            vscode.window.onDidChangeTextEditorSelection(this.onDidChangeTextEditorSelection.bind(this))
+        )
+        // FoldingRange
+        this.context.subscriptions.push(vscode.languages.registerFoldingRangeProvider(['julia', 'juliamarkdown'], this))
+    }
+
+    public override dispose() {
+        super.dispose()
+        this.decoration.dispose()
+        this.currentCellTop.dispose()
+        this.currentCellBottom.dispose()
+    }
+
+    public provideCodeLenses(
+        document: vscode.TextDocument,
+        // prettier-ignore
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        token: vscode.CancellationToken
+    ): vscode.ProviderResult<vscode.CodeLens[]> {
+        const codeLenses: vscode.CodeLens[] = []
+        const docCells = this.getDocCells(document)
+        const editor = vscode.window.activeTextEditor
+        if (editor === undefined || editor.document !== document) {
+            return codeLenses
+        }
+        if (docCells.length <= 1) {
+            this.unhighlight(editor)
+            return codeLenses
+        }
+        const selections = [new vscode.Selection(editor.selection.active, editor.selection.active)]
+        this.highlight(editor, docCells, selections)
+
+        for (const cell of docCells.slice(1)) {
+            if (cell.codeRange === undefined) {
+                continue
+            }
+            codeLenses.push(
+                new vscode.CodeLens(cell.cellRange, {
+                    title: 'Run Cell',
+                    tooltip: 'Execute the cell in the Julia REPL',
+                    command: 'language-julia.executeCell',
+                    arguments: [cell, docCells],
+                }),
+                cell.id === 1
+                    ? // The first cell would be skipped since it is preceded by a delimiter
+                      new vscode.CodeLens(cell.cellRange, {
+                          title: 'Run Below',
+                          tooltip: 'Execute all cells below in the Julia REPL',
+                          command: 'language-julia.executeCurrentAndBelowCells',
+                          arguments: [cell, docCells],
+                      })
+                    : new vscode.CodeLens(cell.cellRange, {
+                          title: 'Run Above',
+                          tooltip: 'Execute all cells above in the Julia REPL',
+                          command: 'language-julia.executeAboveCells',
+                          arguments: [cell, docCells],
+                      })
+            )
+        }
+        return codeLenses
+    }
+
+    public provideFoldingRanges(
+        document: vscode.TextDocument,
+        // prettier-ignore
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        context: vscode.FoldingContext,
+        // prettier-ignore
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        token: vscode.CancellationToken
+    ): vscode.ProviderResult<vscode.FoldingRange[]> {
+        const docCells = this.getDocCells(document)
+        const foldingRanges: vscode.FoldingRange[] = []
+        const cell = docCells[0]
+        if (cell.codeRange !== undefined) {
+            foldingRanges.push(
+                new vscode.FoldingRange(
+                    cell.cellRange.start.line,
+                    cell.cellRange.end.line,
+                    vscode.FoldingRangeKind.Imports
+                )
+            )
+        }
+        for (const cell of docCells.slice(1)) {
+            if (cell.codeRange === undefined) {
+                continue
+            }
+            foldingRanges.push(
+                new vscode.FoldingRange(
+                    cell.cellRange.start.line,
+                    cell.cellRange.end.line,
+                    vscode.FoldingRangeKind.Region
+                )
+            )
+        }
+        return foldingRanges
+    }
+
+    private onDidChangeTextEditorSelection(event: vscode.TextEditorSelectionChangeEvent): void {
+        const editor = event.textEditor
+        const document = editor.document
+        if (!this.isJuliaDocument(document)) {
+            return
+        }
+        const docCells = this.getDocCells(document)
+        if (docCells.length <= 1) {
+            return
+        }
+        const selections = [new vscode.Selection(event.selections[0].active, event.selections[0].active)]
+        this.highlight(editor, docCells, selections)
+    }
+
+    private highlightCells(editor: vscode.TextEditor, docCells: readonly JuliaCell[]): void {
+        const cellRanges = docCells.map((cell) => cell.cellRange).slice(1)
+        editor.setDecorations(this.decoration, cellRanges)
+    }
+
+    private highlightCurrentCell(editor: vscode.TextEditor, cellContext: CellContext): void {
+        const cells = cellContext.current
+        if (cells.length !== 1) {
+            return
+        }
+        const cell = cells[0]
+        editor.setDecorations(this.currentCellTop, [new vscode.Range(cell.cellRange.start, cell.cellRange.start)])
+        editor.setDecorations(this.currentCellBottom, [new vscode.Range(cell.cellRange.end, cell.cellRange.end)])
+    }
+
+    private highlight(
+        editor: vscode.TextEditor,
+        docCells: readonly JuliaCell[],
+        selections?: readonly vscode.Selection[]
+    ): void {
+        if (this.isJmdDocument(editor.document)) {
+            this.highlightCells(editor, docCells)
+        }
+        if (selections !== undefined) {
+            const cellContext = this.getSelectionsCellContext(docCells, selections)
+            this.highlightCurrentCell(editor, cellContext)
+        }
+    }
+
+    private unhighlight(editor: vscode.TextEditor): void {
+        editor.setDecorations(this.decoration, [])
+        editor.setDecorations(this.currentCellTop, [])
+        editor.setDecorations(this.currentCellBottom, [])
     }
 }
