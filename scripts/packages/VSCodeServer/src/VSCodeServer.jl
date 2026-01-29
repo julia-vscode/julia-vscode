@@ -9,6 +9,7 @@ import Dates
 import Profile
 import Logging
 import InteractiveUtils
+import FileWatching
 
 include("../../JSON/src/JSON.jl")
 include("../../CancellationTokens/src/CancellationTokens.jl")
