@@ -1025,6 +1025,14 @@ async function executeCell(shouldMove: boolean = false) {
         const isJmd = isMarkdownEditor(ed)
         const nextpos = new vscode.Position(nextCellBorder(doc, cellRange.end.line + 1, true, isJmd) + 1, 0)
         validateMoveAndReveal(ed, nextpos, nextpos)
+        const cellSep = '\n##\n'
+        const cellSepCompare = '##'
+        const peekSep = ed.document.getText(new vscode.Range(new vscode.Position(nextpos.line-1, 0), new vscode.Position(nextpos.line-1, 2)))
+        if (peekSep !== cellSepCompare) {
+            ed.edit(editBuilder => {
+                editBuilder.insert(ed.selection.active, cellSep)
+            })
+        }
     }
     if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation') === true) {
         const r = Promise.race([g_cellEvalQueue.push({ editor: ed, cellRange, module }), g_evalQueue.drained()])
