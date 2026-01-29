@@ -157,6 +157,9 @@ export class JuliaupExecutable {
                 resolve(channels)
             } catch (err) {
                 console.error(err)
+                vscode.window.showErrorMessage(
+                    'The juliaup config API failed to return a valid response. Please check whether `juliaup api getconfig1` returns well-formatted JSON when run in a terminal.'
+                )
                 reject()
             } finally {
                 this.installedPromise = undefined
