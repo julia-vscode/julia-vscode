@@ -87,6 +87,7 @@ class JuliaCellManager implements vscode.Disposable {
             for (const delim of delims) {
                 try {
                     this.cellDelimiters.push(new RegExp(delim, 'm'))
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 } catch (e) {
                     console.warn(`Invalid cell delimiter regex: ${delim}`)
                 }
