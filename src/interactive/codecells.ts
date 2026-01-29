@@ -17,26 +17,41 @@ function anyEvent<T>(...events: vscode.Event<T>[]): vscode.Event<T> {
     }
 }
 
-// Cell structure explanation:
-// - Each cell's cellRange extends from its delimiter to the next cell's delimiter.
-// - The first cell always starts at the beginning of the document (position 0), regardless of delimiter positioning. (CodeLens assumes this.)
-//   Specifically, in normal julia files, if a delimiter exists at position 0, the first cell might contain an empty range;
-//   in Julia Markdown files, the range in the first cell is always empty.
-// - The last cell always extends to the end of the document.
-// - For cells with code, codeRange excludes the delimiter line.
-// - All `cellRange` and `codeRange` are treated as closed on both ends,
-//   even though console.log prints them as [xxx). Therefore,
-//   * `vscode.Range.contains` (OK)
-//   * `vscode.Range.isEmpty` (DO NOT USE, set as undefined if empty)
+/** A cell in a Julia document */
 interface JuliaCell {
+    /** Cell ID, starting from 0 */
     id: number
+    /**
+     * Range of the entire cell, including delimiters.
+     * Closed at both ends, even though VS Code displays ranges as [start, end).
+     * Therefore:
+     * * `vscode.Range.contains` (OK)
+     * * `vscode.Range.isEmpty` (DO NOT USE; `cellRange` is never empty)
+     */
     cellRange: vscode.Range
+    /**
+     * Range of the code within the cell, excluding delimiters.
+     * Closed at both ends, with the same notes as `cellRange` apply.
+     * Undefined if the cell has no code.
+     */
     codeRange?: vscode.Range
 }
 
+/** Cells in a Julia document */
 interface JuliaDocCells {
+    /** Document version when cells were last computed */
     version: number
+    /** Language ID of the document */
     languageId: string
+    /**
+     * Cells in the document.
+     *
+     * The cells are ordered by appearance in the document,
+     * and each cell's `id` matches its index in this array.
+     * For regular Julia files, the first cell always starts at the beginning of the document,
+     * regardless of whether a delimiter appears at that position,
+     * and the last cell always ends at the end of the document.
+     */
     cells: JuliaCell[]
 }
 
@@ -158,7 +173,10 @@ class JuliaCellManager implements vscode.Disposable {
                 indexes.push(matches.index)
             }
         }
-        indexes.unshift(0) // Start with the start of the document
+        if (indexes[0] !== 0) {
+            // No delimiter or first delimiter not at start
+            indexes.unshift(0)
+        }
         const endPosition = document.lineAt(document.lineCount - 1).range.end
         indexes.push(document.offsetAt(endPosition) + 1) // End with the end of the document
         const docCells: JuliaCell[] = []
@@ -190,13 +208,8 @@ class JuliaCellManager implements vscode.Disposable {
         const endRegex = /^```(?!\w)/gm
         const text = document.getText()
         const docCells: JuliaCell[] = []
-        docCells.push({
-            id: 0,
-            cellRange: new vscode.Range(0, 0, 0, 0),
-            codeRange: undefined,
-        })
         let startMatch: RegExpExecArray | null
-        for (let id = 1; (startMatch = startRegex.exec(text)) !== null; id++) {
+        for (let id = 0; (startMatch = startRegex.exec(text)) !== null; id++) {
             const cellRangeStart = document.positionAt(startMatch.index)
             endRegex.lastIndex = startMatch.index + startMatch[0].length
             const endMatch = endRegex.exec(text)
@@ -696,7 +709,7 @@ export class CodeCellFeature
         const selections = [new vscode.Selection(editor.selection.active, editor.selection.active)]
         this.highlight(editor, docCells, selections)
 
-        for (const cell of docCells.slice(1)) {
+        for (const cell of docCells.slice()) {
             if (cell.codeRange === undefined) {
                 continue
             }
@@ -707,7 +720,7 @@ export class CodeCellFeature
                     command: 'language-julia.executeCell',
                     arguments: [cell, docCells],
                 }),
-                cell.id === 1
+                cell.id === 0
                     ? // The first cell would be skipped since it is preceded by a delimiter
                       new vscode.CodeLens(cell.cellRange, {
                           title: 'Run Below',
