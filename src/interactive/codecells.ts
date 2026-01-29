@@ -6,6 +6,17 @@ import * as modules from './modules'
 import * as repl from './repl'
 import * as results from './results'
 
+/** Combine multiple events into one event that fires when any of them fire */
+function anyEvent<T>(...events: vscode.Event<T>[]): vscode.Event<T> {
+    return (listener: (e: T) => unknown, thisArgs?: unknown, disposables?: vscode.Disposable[]) => {
+        const disposablesLocal: vscode.Disposable[] = []
+        for (const e of events) {
+            disposablesLocal.push(e(listener, thisArgs, disposables))
+        }
+        return vscode.Disposable.from(...disposablesLocal)
+    }
+}
+
 // Cell structure explanation:
 // - Each cell's cellRange extends from its delimiter to the next cell's delimiter.
 // - The first cell always starts at the beginning of the document (position 0), regardless of delimiter positioning. (CodeLens assumes this.)
@@ -87,7 +98,7 @@ class JuliaCellManager implements vscode.Disposable {
             for (const delim of delims) {
                 try {
                     this.cellDelimiters.push(new RegExp(delim, 'm'))
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 } catch (e) {
                     console.warn(`Invalid cell delimiter regex: ${delim}`)
                 }
@@ -594,8 +605,15 @@ export class CodeCellFeature
     extends CodeCellExecutionFeature
     implements vscode.CodeLensProvider, vscode.FoldingRangeProvider
 {
-    public readonly onDidChangeCodeLenses = this.onDidChangeCellDelimiters.event
+    private readonly onDidChangeCodeLensConfiguration = new vscode.EventEmitter<void>()
+    public readonly onDidChangeCodeLenses = anyEvent(
+        this.onDidChangeCellDelimiters.event,
+        this.onDidChangeCodeLensConfiguration.event
+    )
     public readonly onDidChangeFoldingRanges = this.onDidChangeCellDelimiters.event
+
+    private useCodeLens: boolean
+    private useCellHighlighting: boolean
 
     private readonly decoration = vscode.window.createTextEditorDecorationType({
         backgroundColor: new vscode.ThemeColor('editor.rangeHighlightBackground'),
@@ -616,6 +634,8 @@ export class CodeCellFeature
 
     constructor(context: vscode.ExtensionContext) {
         super(context)
+        this.updateUseCodeLens()
+        this.updateUseCellHighlighting()
         this.context.subscriptions.push(
             vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], this),
             vscode.window.onDidChangeTextEditorSelection(this.onDidChangeTextEditorSelection.bind(this))
@@ -631,6 +651,26 @@ export class CodeCellFeature
         this.currentCellBottom.dispose()
     }
 
+    private updateUseCodeLens() {
+        this.useCodeLens = vscode.workspace.getConfiguration('julia').get<boolean>('useCodeLens', true)
+    }
+
+    private updateUseCellHighlighting() {
+        this.useCellHighlighting = vscode.workspace.getConfiguration('julia').get<boolean>('useCellHighlighting', true)
+    }
+
+    protected override onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
+        super.onDidChangeConfiguration(event)
+        if (event.affectsConfiguration('julia.useCodeLens')) {
+            this.updateUseCodeLens()
+            this.onDidChangeCellDelimiters.fire()
+        }
+        if (event.affectsConfiguration('julia.useCellHighlighting')) {
+            this.updateUseCellHighlighting()
+            this.onDidChangeCellDelimiters.fire()
+        }
+    }
+
     public provideCodeLenses(
         document: vscode.TextDocument,
         // prettier-ignore
@@ -638,11 +678,17 @@ export class CodeCellFeature
         token: vscode.CancellationToken
     ): vscode.ProviderResult<vscode.CodeLens[]> {
         const codeLenses: vscode.CodeLens[] = []
-        const docCells = this.getDocCells(document)
         const editor = vscode.window.activeTextEditor
         if (editor === undefined || editor.document !== document) {
             return codeLenses
         }
+        if (!this.useCellHighlighting) {
+            this.unhighlight(editor)
+        }
+        if (!this.useCodeLens) {
+            return codeLenses
+        }
+        const docCells = this.getDocCells(document)
         if (docCells.length <= 1) {
             this.unhighlight(editor)
             return codeLenses
@@ -750,6 +796,9 @@ export class CodeCellFeature
         docCells: readonly JuliaCell[],
         selections?: readonly vscode.Selection[]
     ): void {
+        if (!this.useCellHighlighting) {
+            return
+        }
         if (this.isJmdDocument(editor.document)) {
             this.highlightCells(editor, docCells)
         }

@@ -1000,6 +1000,16 @@
                     "default": true,
                     "description": "Display plots within VS Code. Might require a restart of the Julia process."
                 },
+                "julia.useCodeLens": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Enable CodeLens for showing run actions above cells delimited by `#julia.cellDelimiters#`."
+                },
+                "julia.useCellHighlighting": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Enable highlighting of the current cell delimited by `#julia.cellDelimiters#`."
+                },
                 "julia.showRuntimeDiagnostics": {
                     "type": "boolean",
                     "default": true,
