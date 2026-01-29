@@ -134,7 +134,7 @@ class JuliaCellManager implements vscode.Disposable {
         return this.documentCells.get(documentKey)?.cells ?? []
     }
 
-    private updateDocCells(document: vscode.TextDocument): void {
+    private updateDocCells(document: vscode.TextDocument) {
         if (!this.isJuliaDocument(document) && !this.isJmdDocument(document)) {
             return
         }
@@ -144,16 +144,20 @@ class JuliaCellManager implements vscode.Disposable {
 
         const docCells = this.documentCells.get(documentKey)
         if (docCells === undefined || docCells.version !== version || docCells.languageId !== languageId) {
-            this.documentCells.set(documentKey, { version, languageId, cells: this.buildDocCells(document) })
+            this.documentCells.set(documentKey, {
+                version,
+                languageId,
+                cells: this.buildDocCells(document),
+            })
         }
     }
 
-    private removeDocCells(document: vscode.TextDocument): void {
+    private removeDocCells(document: vscode.TextDocument) {
         const documentKey = document.uri.toString()
         this.documentCells.delete(documentKey)
     }
 
-    private clearDocCells(): void {
+    private clearDocCells() {
         this.documentCells.clear()
     }
 
@@ -441,7 +445,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     }
 
     /** Select the specified cell, or the cell intersecting with the current active selection */
-    private selectCell(cell?: JuliaCell, docCells: readonly JuliaCell[] = this.getDocCells()): void {
+    private selectCell(cell?: JuliaCell, docCells: readonly JuliaCell[] = this.getDocCells()) {
         telemetry.traceEvent('command-selectCell')
         const editor = vscode.window.activeTextEditor
         if (editor === undefined) {
@@ -478,7 +482,11 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             const code = document.getText(codeRange)
             if (isInline) {
                 const r = Promise.race([
-                    repl.g_cellEvalQueue.push({ editor, cellRange: codeRange, module }),
+                    repl.g_cellEvalQueue.push({
+                        editor,
+                        cellRange: codeRange,
+                        module,
+                    }),
                     repl.g_evalQueue.drained(),
                 ])
                 if (!r) {
@@ -518,7 +526,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     private async executeSelectionOrCell(
         shouldMove: boolean = false,
         docCells: readonly JuliaCell[] = this.getDocCells()
-    ): Promise<void> {
+    ) {
         telemetry.traceEvent('command-executeSelectionOrCell')
         const editor = vscode.window.activeTextEditor
         if ((await this._commandCommonSave(editor)) === false) {
@@ -783,7 +791,7 @@ export class CodeCellFeature
         return foldingRanges
     }
 
-    private onDidChangeTextEditorSelection(event: vscode.TextEditorSelectionChangeEvent): void {
+    private onDidChangeTextEditorSelection(event: vscode.TextEditorSelectionChangeEvent) {
         const editor = event.textEditor
         const document = editor.document
         if (!this.isJuliaDocument(document)) {
@@ -797,12 +805,12 @@ export class CodeCellFeature
         this.highlight(editor, docCells, selections)
     }
 
-    private highlightCells(editor: vscode.TextEditor, docCells: readonly JuliaCell[]): void {
+    private highlightCells(editor: vscode.TextEditor, docCells: readonly JuliaCell[]) {
         const cellRanges = docCells.map((cell) => cell.cellRange).slice(1)
         editor.setDecorations(this.decoration, cellRanges)
     }
 
-    private highlightCurrentCell(editor: vscode.TextEditor, cellContext: CellContext): void {
+    private highlightCurrentCell(editor: vscode.TextEditor, cellContext: CellContext) {
         const cells = cellContext.current
         if (cells.length !== 1) {
             return
@@ -816,7 +824,7 @@ export class CodeCellFeature
         editor: vscode.TextEditor,
         docCells: readonly JuliaCell[],
         selections?: readonly vscode.Selection[]
-    ): void {
+    ) {
         if (!this.useCellHighlighting) {
             return
         }
@@ -829,7 +837,7 @@ export class CodeCellFeature
         }
     }
 
-    private unhighlight(editor: vscode.TextEditor): void {
+    private unhighlight(editor: vscode.TextEditor) {
         editor.setDecorations(this.decoration, [])
         editor.setDecorations(this.currentCellTop, [])
         editor.setDecorations(this.currentCellBottom, [])
