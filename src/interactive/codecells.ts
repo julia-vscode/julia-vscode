@@ -141,12 +141,9 @@ class JuliaCellManager implements vscode.Disposable {
         const documentKey = document.uri.toString()
         const version = document.version
         const languageId = document.languageId
-        if (!this.documentCells.has(documentKey)) {
-            this.documentCells.set(documentKey, { version, languageId, cells: this.buildDocCells(document) })
-            return
-        }
-        const docCells = this.documentCells.get(documentKey)!
-        if (docCells.version !== version || docCells.languageId !== languageId) {
+
+        const docCells = this.documentCells.get(documentKey)
+        if (docCells === undefined || docCells.version !== version || docCells.languageId !== languageId) {
             this.documentCells.set(documentKey, { version, languageId, cells: this.buildDocCells(document) })
         }
     }
@@ -173,8 +170,10 @@ class JuliaCellManager implements vscode.Disposable {
                 indexes.push(matches.index)
             }
         }
+        let hasDelimiterAtStart = true
         if (indexes[0] !== 0) {
             // No delimiter or first delimiter not at start
+            hasDelimiterAtStart = false
             indexes.unshift(0)
         }
         const endPosition = document.lineAt(document.lineCount - 1).range.end
@@ -184,7 +183,7 @@ class JuliaCellManager implements vscode.Disposable {
             const cellRangeStart = document.positionAt(indexes[id])
             const cellRangeEnd = document.positionAt(indexes[id + 1] - 1)
             const cellRange = new vscode.Range(cellRangeStart, cellRangeEnd)
-            const codeRangeStart = id === 0 ? cellRangeStart : cellRangeStart.translate(1, 0)
+            const codeRangeStart = id === 0 && !hasDelimiterAtStart ? cellRangeStart : cellRangeStart.translate(1, 0)
             const codeRangeEnd = cellRangeEnd
             const codeRange =
                 id === 0
