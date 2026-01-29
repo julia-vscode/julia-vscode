@@ -331,10 +331,12 @@ class JuliaCellManager implements vscode.Disposable {
 class CodeCellExecutionFeature extends JuliaCellManager {
     private readonly PENDING_SIGN = ' ⧗ '
     private shouldSaveOnEval: boolean
+    private inlineResultsForCellEvaluation: boolean
 
     constructor(context: vscode.ExtensionContext) {
         super(context)
         this.updateSaveOnEval()
+        this.updateInlineResultsForCellEvaluation()
         this.context.subscriptions.push(
             registerCommand('language-julia.moveCellUp', this.moveCell.bind(this, 'up')),
             registerCommand('language-julia.moveCellDown', this.moveCell.bind(this, 'down')),
@@ -356,10 +358,17 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         if (event.affectsConfiguration('julia.execution.saveOnEval')) {
             this.updateSaveOnEval()
         }
+        if (event.affectsConfiguration('julia.execution.inlineResultsForCellEvaluation')) {
+            this.updateInlineResultsForCellEvaluation()
+        }
     }
 
     private updateSaveOnEval() {
-        this.shouldSaveOnEval = vscode.workspace.getConfiguration('julia').get<boolean>('execution.saveOnEval') === true
+        this.shouldSaveOnEval = vscode.workspace.getConfiguration('julia').get<boolean>('execution.saveOnEval', false)
+    }
+
+    private updateInlineResultsForCellEvaluation() {
+        this.inlineResultsForCellEvaluation = vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation', false)
     }
 
     /** Get previous valid cell which contains code */
@@ -460,15 +469,13 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
             results.addResult(editor, codeRange, this.PENDING_SIGN, '')
         )
-        const isInline = vscode.workspace
-            .getConfiguration('julia')
-            .get<boolean>('execution.inlineResultsForCellEvaluation', false)
+        const isInline = this.inlineResultsForCellEvaluation
         const { module } = await modules.getModuleForEditor(document, codeRanges[0].start)
         await repl.startREPL(true, false)
         for (const codeRange of codeRanges) {
             cellPendings.shift().remove(true)
             const code = document.getText(codeRange)
-            if (isInline === true) {
+            if (isInline) {
                 const r = Promise.race([
                     repl.g_cellEvalQueue.push({ editor, cellRange: codeRange, module }),
                     repl.g_evalQueue.drained(),
