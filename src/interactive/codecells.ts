@@ -368,7 +368,9 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     }
 
     private updateInlineResultsForCellEvaluation() {
-        this.inlineResultsForCellEvaluation = vscode.workspace.getConfiguration('julia').get<boolean>('execution.inlineResultsForCellEvaluation', false)
+        this.inlineResultsForCellEvaluation = vscode.workspace
+            .getConfiguration('julia')
+            .get<boolean>('execution.inlineResultsForCellEvaluation', false)
     }
 
     /** Get previous valid cell which contains code */
