@@ -228,7 +228,11 @@ export class JuliaupExecutable {
         channels.add(channel)
 
         const choice = await vscode.window.showInformationMessage(
-            `The extension is configured to use the following juliaup channels, but they are not installed: ${[...channels].join(', ')}. We can automatically add them for you.`,
+            'Install required Julia channels?',
+            {
+                modal: true,
+                detail: `The extension is configured to use the following juliaup channels, but they are not installed: ${[...channels].join(', ')}. We can automatically add them for you.`,
+            },
             'Add required channels'
         )
 
