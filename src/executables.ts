@@ -157,6 +157,9 @@ export class JuliaupExecutable {
                 resolve(channels)
             } catch (err) {
                 console.error(err)
+                vscode.window.showErrorMessage(
+                    'The juliaup config API failed to return a valid response. Please check whether `juliaup api getconfig1` returns well-formatted JSON when run in a terminal.'
+                )
                 reject()
             } finally {
                 this.installedPromise = undefined
@@ -225,7 +228,11 @@ export class JuliaupExecutable {
         channels.add(channel)
 
         const choice = await vscode.window.showInformationMessage(
-            `The extension is configured to use the following juliaup channels, but they are not installed: ${[...channels].join(', ')}. We can automatically add them for you.`,
+            'Install required Julia channels?',
+            {
+                modal: true,
+                detail: `The extension is configured to use the following juliaup channels, but they are not installed: ${[...channels].join(', ')}. We can automatically add them for you.`,
+            },
             'Add required channels'
         )
 
