@@ -1,10 +1,11 @@
 import * as vscode from 'vscode'
 
 import * as telemetry from '../telemetry'
-import { registerCommand } from '../utils'
+import { getVersionedParamsAtPosition, registerCommand } from '../utils'
 import * as modules from './modules'
 import * as repl from './repl'
 import * as results from './results'
+import fastq from 'fastq'
 
 /** Combine multiple events into one event that fires when any of them fire */
 function anyEvent<T>(...events: vscode.Event<T>[]): vscode.Event<T> {
@@ -331,7 +332,17 @@ class JuliaCellManager implements vscode.Disposable {
     }
 }
 
+interface EvaluateRangeByLineTask {
+    editor: vscode.TextEditor
+    range: vscode.Range
+    module: string
+}
+
 class CodeCellExecutionFeature extends JuliaCellManager {
+    private readonly evaluationByLineQueue = fastq.promise<unknown, EvaluateRangeByLineTask>(
+        this._evaluateRangeByLine.bind(this),
+        1
+    )
     private readonly PENDING_SIGN = ' ⟳ '
     private shouldSaveOnEval: boolean
     private inlineResultsForCellEvaluation: boolean
@@ -354,6 +365,11 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             registerCommand('language-julia.executeCurrentAndBelowCells', this.executeCurrentAndBelowCells.bind(this)),
             registerCommand('language-julia.executeAboveCells', this.executeAboveCells.bind(this))
         )
+    }
+
+    public override dispose() {
+        super.dispose()
+        this.evaluationByLineQueue.killAndDrain()
     }
 
     protected override onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
@@ -479,28 +495,52 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         await repl.startREPL(true, false)
         for (const codeRange of codeRanges) {
             cellPendings.shift().remove(true)
-            const code = document.getText(codeRange)
             if (isInline) {
                 const r = Promise.race([
-                    repl.g_cellEvalQueue.push({
+                    this.evaluationByLineQueue.push({
                         editor,
-                        cellRange: codeRange,
+                        range: codeRange,
                         module,
                     }),
                     repl.g_evalQueue.drained(),
                 ])
                 if (!r) {
-                    repl.g_cellEvalQueue.kill()
+                    this.evaluationByLineQueue.kill()
                     cellPendings.map((cr) => cr.remove(true))
                     return false
                 }
             } else {
+                const code = document.getText(codeRange)
                 const success: boolean = await repl.evaluate(editor, codeRange, code, module)
                 if (success === false) {
                     cellPendings.map((cr) => cr.remove(true))
                     return false
                 }
             }
+        }
+        return true
+    }
+
+    private async _evaluateRangeByLine({ editor, range, module }: EvaluateRangeByLineTask): Promise<boolean> {
+        const document = editor.document
+        let currentPos = range.start
+        let lastRange = new vscode.Range(0, 0, 0, 0)
+        while (currentPos.line <= range.end.line) {
+            const [startPos, endPos, nextPos] = await repl.getBlockRange(
+                getVersionedParamsAtPosition(document, currentPos)
+            )
+            const lineEndPos = document.lineAt(endPos.line).range.end
+            const curRange = range.intersection(new vscode.Range(startPos, lineEndPos))
+            if (curRange === undefined || curRange.isEqual(lastRange)) {
+                break
+            }
+            lastRange = curRange
+            if (curRange.isEmpty) {
+                continue
+            }
+            currentPos = document.validatePosition(nextPos)
+            const code = document.getText(curRange)
+            repl.evaluate(editor, curRange, code, module)
         }
         return true
     }

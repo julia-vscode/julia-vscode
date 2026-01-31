@@ -15,7 +15,6 @@ import { JuliaExecutable, ExecutableFeature, JuliaupChannel } from '../executabl
 import * as telemetry from '../telemetry'
 import {
     generatePipeName,
-    getVersionedParamsAtPosition,
     inferJuliaNumThreads,
     registerCommand,
     setContext,
@@ -36,7 +35,6 @@ let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
 let g_compiledProvider = null
 export const g_evalQueue = fastq(sendEvalRequest, 1)
-export const g_cellEvalQueue = fastq(evalCellByLine, 1)
 
 let g_terminal: vscode.Terminal = null
 
@@ -1229,33 +1227,6 @@ async function sendEvalRequest(req: RunCodeOptions) {
     return r
 }
 
-async function evalCellByLine({ editor, cellRange, module }) {
-    let currentPos: vscode.Position = editor.document.validatePosition(
-        new vscode.Position(cellRange.start.line, cellRange.start.character + 1)
-    )
-    let lastRange = new vscode.Range(0, 0, 0, 0)
-    while (currentPos.line <= cellRange.end.line) {
-        const [startPos, endPos, nextPos] = await getBlockRange(
-            getVersionedParamsAtPosition(editor.document, currentPos)
-        )
-        const lineEndPos = editor.document.validatePosition(new vscode.Position(endPos.line, Infinity))
-        const curRange = cellRange.intersection(new vscode.Range(startPos, lineEndPos))
-        if (curRange === undefined || curRange.isEqual(lastRange)) {
-            break
-        }
-        lastRange = curRange
-        if (curRange.isEmpty) {
-            continue
-        }
-        currentPos = editor.document.validatePosition(nextPos)
-        const code = editor.document.getText(curRange)
-
-        evaluate(editor, curRange, code, module)
-    }
-
-    return true
-}
-
 export function activate(
     context: vscode.ExtensionContext,
     compiledProvider,
@@ -1298,7 +1269,6 @@ export function activate(
         ),
         onExit(() => {
             g_evalQueue.killAndDrain()
-            g_cellEvalQueue.killAndDrain()
 
             g_connection?.dispose()
 
