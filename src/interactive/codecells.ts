@@ -332,7 +332,7 @@ class JuliaCellManager implements vscode.Disposable {
 }
 
 class CodeCellExecutionFeature extends JuliaCellManager {
-    private readonly PENDING_SIGN = ' ⧗ '
+    private readonly PENDING_SIGN = ' ⟳ '
     private shouldSaveOnEval: boolean
     private inlineResultsForCellEvaluation: boolean
 
