@@ -84,6 +84,10 @@
                 "title": "Julia: Restart Language Server"
             },
             {
+                "command": "language-julia.refreshExtensionStatus",
+                "title": "Julia: Refresh Extension Status"
+            },
+            {
                 "command": "language-julia.openPackageDirectory",
                 "title": "Julia: Open Package Directory in New Window"
             },
@@ -1358,6 +1362,12 @@
         },
         "views": {
             "julia-explorer": [
+                {
+                    "type": "tree",
+                    "id": "julia-extension-status",
+                    "name": "Extension Status",
+                    "when": "julia.isActive"
+                },
                 {
                     "type": "tree",
                     "id": "REPLVariables",
