@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Added `CodeLens` and `FoldingRange` support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#3586](https://github.com/julia-vscode/julia-vscode/pull/3586))
 
 ## [1.177.0] - 2026-01-18
 ### Added
@@ -111,7 +113,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Restart language server and Change julia env command now takes an optional `envPath` argument ([#3914](https://github.com/julia-vscode/julia-vscode/pull/3914))
-- Added `CodeLens` and `FoldingRange` support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#3586](https://github.com/julia-vscode/julia-vscode/pull/3586))
 
 ## [1.160.0] - 2025-11-20
 ### Fixed
