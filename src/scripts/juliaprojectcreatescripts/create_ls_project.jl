@@ -1,9 +1,14 @@
 using Pkg
 
 packages_to_dev = [
+    PackageSpec(path="../../../packages/AutoHashEquals"),
+    PackageSpec(path="../../../packages/CancellationTokens"),
     PackageSpec(path="../../../packages/CSTParser"),
     PackageSpec(path="../../../packages/CommonMark"),
+    PackageSpec(path="../../../packages/Compat"),
+    PackageSpec(path="../../../packages/Crayons"),
     PackageSpec(path="../../../packages/DataStructures"),
+    PackageSpec(path="../../../packages/DelimitedFiles"),
     PackageSpec(path="../../../packages/Glob"),
     PackageSpec(path="../../../packages/FilePathsBase"),
     PackageSpec(path="../../../packages/JSON"),
@@ -20,19 +25,10 @@ packages_to_dev = [
     PackageSpec(path="../../../packages/Tokenize"),
     PackageSpec(path="../../../packages/URIParser"),
     PackageSpec(path="../../../packages/URIs"),
+    PackageSpec(path="../../../packages/ExceptionUnwrapping"),
+    PackageSpec(path="../../../packages/MacroTools"),
+    PackageSpec(path="../../../packages/Salsa"),
     PackageSpec(path="../../../packages/TestItemDetection"),
 ]
-
-if VERSION>=v"1.9-DEV"
-    push!(packages_to_dev, PackageSpec(path="../../../packages/DelimitedFiles"))
-end
-
-if VERSION>=v"1.6.0"
-    push!(packages_to_dev, PackageSpec(path="../../../packages/Compat"))
-    push!(packages_to_dev, PackageSpec(path="../../../packages/Crayons"))
-else
-    push!(packages_to_dev, PackageSpec(path="../../../packages-old/Compat"))
-    push!(packages_to_dev, PackageSpec(path="../../../packages-old/Crayons"))
-end
 
 Pkg.develop(packages_to_dev)

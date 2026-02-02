@@ -74,7 +74,19 @@ end
 si(f) = (args...) -> ENABLE_SHELL_INTEGRATION[] ? f(args...) : ""
 
 function sanitize_shell_integration_string(cmd)
-    replace(replace(replace(cmd, "\n" => "<LF>"), ";" => "<CL>"), "\a" => "<ST>")
+    outbuffer = IOBuffer()
+    for char in cmd
+        ichar = UInt(char)
+        if char === '\\'
+            print(outbuffer, "\\\\")
+        elseif ichar <= 0x20 || char === ';'
+            ichar %= UInt8
+            print(outbuffer, "\\0x", bytes2hex(ichar))
+        else
+            print(outbuffer, char)
+        end
+    end
+    return String(take!(outbuffer))
 end
 
 const SHELL = (
@@ -82,34 +94,47 @@ const SHELL = (
     prompt_end = si(() -> "\e]633;B\a"),
     output_start = si(() -> "\e]633;C\a"),
     output_end = si(function ()
-        if REPL_PROMPT_STATE[] === REPLPromptStates.NoUpdate
+        state = REPL_PROMPT_STATE[]
+        REPL_PROMPT_STATE[] = REPLPromptStates.NoUpdate
+
+        if state === REPLPromptStates.NoUpdate
             return ""
-        elseif REPL_PROMPT_STATE[] === REPLPromptStates.NoStatus
-            REPL_PROMPT_STATE[] = REPLPromptStates.NoUpdate
+        elseif state === REPLPromptStates.NoStatus
             return "\e]633;D\a"
         else
-            exitcode = REPL_PROMPT_STATE[] == REPLPromptStates.Error
-            REPL_PROMPT_STATE[] = REPLPromptStates.NoUpdate
+            exitcode = state == REPLPromptStates.Error
             return "\e]633;D;$(Int(exitcode))\a"
         end
     end),
     update_cmd = si(function (cmd)
+        nonce = SHELL_NONCE[]
         cmd = sanitize_shell_integration_string(cmd)
-        "\e]633;E;$cmd\a"
+        if length(nonce) > 0
+            "\e]633;E;$cmd;$nonce\a"
+        else
+            "\e]633;E;$cmd\a"
+        end
     end),
-    continuation_prompt_start = si(() -> "\e]633;F\a"),
-    continuation_prompt_end = si(() -> "\e]633;G\a"),
     update_cwd = si(() -> "\e]633;P;Cwd=$(pwd())\a"),
-    windows_compat = si(() -> "\e]633;P;IsWindows=True\a")
+    windows_compat = si(() -> "\e]633;P;IsWindows=True\a"),
+    rich_integration = si(() -> "\e]633;P;HasRichCommandDetection=True\a")
 )
 
 as_func(x) = () -> x
 as_func(x::Function) = x
 
+const SHELL_NONCE = Ref("")
 function install_vscode_shell_integration(prompt)
     if Sys.iswindows()
         print(stdout, SHELL.windows_compat())
     end
+    print(stdout, SHELL.rich_integration())
+
+    if haskey(ENV, "VSCODE_NONCE")
+        SHELL_NONCE[] = ENV["VSCODE_NONCE"]
+        delete!(ENV, "VSCODE_NONCE")
+    end
+
     prefix = as_func(prompt.prompt_prefix)
     suffix = as_func(prompt.prompt_suffix)
     prompt.prompt_prefix = () -> string(SHELL.output_end(), SHELL.prompt_start(), prefix())
@@ -117,7 +142,7 @@ function install_vscode_shell_integration(prompt)
 
     on_done = prompt.on_done
     prompt.on_done = function (mi, buf, ok)
-        print(stdout, SHELL.output_start(), SHELL.update_cmd(String(take!(deepcopy(buf)))))
+        print(stdout, SHELL.update_cmd(String(take!(deepcopy(buf)))), SHELL.output_start())
         REPL_PROMPT_STATE[] = REPLPromptStates.NoStatus
         on_done(mi, buf, ok)
     end
@@ -142,10 +167,10 @@ function hook_repl(repl)
 
     if VERSION > v"1.5-"
         for _ = 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
-            isdefined(Base, :active_repl_backend) && continue
+            has_repl_backend() && continue
             sleep(0.5)
         end
-        if isdefined(Base, :active_repl_backend)
+        if has_repl_backend()
             push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
             HAS_REPL_TRANSFORM[] = true
             install_vscode_shell_integration(main_mode)
@@ -163,6 +188,8 @@ function hook_repl(repl)
     HAS_REPL_TRANSFORM[] = true
     return nothing
 end
+
+has_repl_backend() = isdefined(Base, :active_repl_backend) && !isnothing(Base.active_repl_backend)
 
 function transform_backend(ast, repl, main_mode)
     quote
@@ -197,6 +224,7 @@ function evalrepl(m, line, repl, main_mode)
             display_repl_error(stderr, r.err, r.bt)
             nothing
         elseif r isa EvalErrorStack
+            set_error_global(r)
             display_repl_error(stderr, r)
             nothing
         else
@@ -228,21 +256,41 @@ end
     return Base.eval(m, code)
 end
 
+replcontext(io, limitflag) = IOContext(
+    io,
+    :limit => true,
+    :displaysize => get(stdout, :displaysize, (60, 120)),
+    :stacktrace_types_limited => limitflag,
+)
+
 # basically the same as Base's `display_error`, with internal frames removed
-function display_repl_error(io, err, bt)
+display_repl_error(io, err::EvalError; unwrap=false) = display_repl_error(io, err.err, err.bt; unwrap = unwrap)
+
+function display_repl_error(io, err, bt; unwrap = false)
+    limitflag = Ref(false)
+
     st = stacktrace(crop_backtrace(bt))
     printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
-    showerror(IOContext(io, :limit => true), err, st)
+    showerror(replcontext(io, limitflag), err, st)
+    if limitflag[]
+        print(io, "Some type information was truncated. Use `show(err)` to see complete types.")
+    end
     println(io)
 end
 
-function display_repl_error(io, stack::EvalErrorStack)
+function display_repl_error(io, stack::EvalErrorStack; unwrap = false)
+    limitflag = Ref(false)
+
     printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
     for (i, (err, bt)) in enumerate(reverse(stack.stack))
         i !== 1 && print(io, "\ncaused by: ")
         st = stacktrace(crop_backtrace(bt))
-        showerror(IOContext(io, :limit => true), i == 1 ? unwrap_loaderror(err) : err, st)
+        showerror(replcontext(io, limitflag), unwrap && i == 1 ? unwrap_loaderror(err) : err, st)
         println(io)
+    end
+
+    if limitflag[]
+        println(io, "Some type information was truncated. Use `show(err)` to see complete types.")
     end
 end
 

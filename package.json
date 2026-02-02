@@ -2,11 +2,11 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.48.0",
+    "version": "1.177.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
-        "vscode": "^1.78.0"
+        "vscode": "^1.108.0"
     },
     "license": "SEE LICENSE IN LICENSE",
     "bugs": {
@@ -30,38 +30,6 @@
     "activationEvents": [
         "onDebugInitialConfigurations",
         "onDebugResolve:julia",
-        "onCommand:language-julia.openPackageDirectory",
-        "onCommand:language-julia.changeCurrentEnvironment",
-        "onCommand:language-julia.startREPL",
-        "onCommand:language-julia.connectREPL",
-        "onCommand:language-julia.stopREPL",
-        "onCommand:language-julia.stopTestProcess",
-        "onCommand:language-julia.restartREPL",
-        "onCommand:language-julia.executeCodeBlockOrSelection",
-        "onCommand:language-julia.executeFile",
-        "onCommand:language-julia.executeActiveFile",
-        "onCommand:language-julia.toggleLinter",
-        "onCommand:language-julia.weave-open-preview",
-        "onCommand:language-julia.weave-open-preview-side",
-        "onCommand:language-julia.weave-save",
-        "onCommand:language-julia.show-plotpane",
-        "onCommand:language-julia.openProfiler",
-        "onCommand:language-julia.nextProfile",
-        "onCommand:language-julia.previousProfile",
-        "onCommand:language-julia.executeCell",
-        "onCommand:language-julia.executeJuliaBlockInREPL",
-        "onCommand:language-julia.selectBlock",
-        "onCommand:language-julia.moveCellUp",
-        "onCommand:language-julia.moveCellDown",
-        "onCommand:language-julia.debug.getActiveJuliaEnvironment",
-        "onCommand:language-julia.debugEditorContents",
-        "onCommand:language-julia.runEditorContents",
-        "onCommand:language-julia.interrupt",
-        "onCommand:language-julia.cdHere",
-        "onCommand:language-julia.activateHere",
-        "onCommand:language-julia.activateFromDir",
-        "onCommand:language-julia.tagNewPackageVersion",
-        "onCommand:language-julia.newJuliaFile",
         "onLanguage:julia",
         "onLanguage:juliamarkdown",
         "onNotebook:jupyter-notebook",
@@ -92,6 +60,13 @@
                 "embeddedLanguages": {
                     "meta.embedded.block.julia": "julia"
                 }
+            },
+            {
+                "scopeName": "source.docstring.julia",
+                "path": "./syntaxes/juliadocstring.json",
+                "injectTo": [
+                    "source.julia"
+                ]
             }
         ],
         "commands": [
@@ -125,6 +100,10 @@
                 "title": "Julia: Start REPL"
             },
             {
+                "command": "language-julia.startREPLWithVersion",
+                "title": "Julia: Start REPL with specific version"
+            },
+            {
                 "command": "language-julia.connectREPL",
                 "title": "Julia: Connect external REPL"
             },
@@ -141,6 +120,11 @@
             {
                 "command": "language-julia.stopTestProcess",
                 "title": "Julia: Stop Test Process",
+                "icon": "$(debug-stop)"
+            },
+            {
+                "command": "language-julia.stopTestController",
+                "title": "Julia: Stop Test Controller",
                 "icon": "$(debug-stop)"
             },
             {
@@ -277,11 +261,6 @@
                 "command": "language-julia.plotpane-delete",
                 "title": "Julia: Delete plot",
                 "icon": "$(trash)"
-            },
-            {
-                "command": "language-julia.copy-plot",
-                "title": "Julia: Copy Plot",
-                "icon": "$(explorer-view-icon)"
             },
             {
                 "command": "language-julia.save-plot",
@@ -440,6 +419,19 @@
             {
                 "command": "language-julia.hideModules",
                 "title": "Hide modules in Workspace"
+            },
+            {
+                "title": "Debug Cell",
+                "command": "language-julia.runAndDebugCell",
+                "icon": "$(debug-alt-small)"
+            },
+            {
+                "title": "Julia: Run Package Command",
+                "command": "language-julia.runPackageCommand"
+            },
+            {
+                "title": "Julia: Instantiate Environment",
+                "command": "language-julia.instantiateEnvironment"
             }
         ],
         "menus": {
@@ -522,24 +514,19 @@
                     "group": "navigation@-3"
                 },
                 {
-                    "when": "julia.plotpaneFocus",
-                    "command": "language-julia.copy-plot",
-                    "group": "1-julia@0"
-                },
-                {
                     "when": "julia.plotpaneFocus && config.julia.usePlotPane",
                     "command": "language-julia.plotpane-disable",
-                    "group": "1-julia@1"
+                    "group": "1-julia@0"
                 },
                 {
                     "when": "julia.plotpaneFocus && !config.julia.usePlotPane",
                     "command": "language-julia.plotpane-enable",
-                    "group": "1-julia@1"
+                    "group": "1-julia@0"
                 },
                 {
                     "when": "julia.plotpaneFocus",
                     "command": "language-julia.plotpane-delete-all",
-                    "group": "1-julia@2"
+                    "group": "1-julia@1"
                 },
                 {
                     "command": "language-julia.clearAllInlineResultsInEditor",
@@ -612,6 +599,11 @@
                 {
                     "command": "language-julia.stopTestProcess",
                     "when": "view == REPLVariables && viewItem == juliatestprocess",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.stopTestController",
+                    "when": "view == REPLVariables && viewItem == juliatestcontroller",
                     "group": "inline"
                 },
                 {
@@ -711,6 +703,12 @@
                     "when": "notebookType == 'jupyter-notebook' && isWorkspaceTrusted && notebookKernel =~ /julialang/"
                 }
             ],
+            "notebook/cell/execute": [
+                {
+                    "command": "language-julia.runAndDebugCell",
+                    "when": "notebookType == jupyter-notebook && isWorkspaceTrusted && notebookCellType == code  && notebookKernel =~ /julialang/"
+                }
+            ],
             "commandPalette": [
                 {
                     "command": "language-julia.restartKernel",
@@ -769,7 +767,7 @@
             },
             {
                 "command": "language-julia.clearAllInlineResultsInEditor",
-                "key": "Ctrl+I Ctrl+C",
+                "key": "Alt+J Alt+C",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
@@ -852,10 +850,6 @@
                 "when": "julia.plotpaneFocus"
             },
             {
-                "command": "language-julia.copy-plot",
-                "when": "julia.plotpaneFocus"
-            },
-            {
                 "command": "language-julia.save-plot",
                 "when": "julia.plotpaneFocus"
             },
@@ -872,8 +866,19 @@
                 "julia.executablePath": {
                     "type": "string",
                     "default": "",
-                    "description": "Points to the julia executable.",
+                    "markdownDescription": "Points to the Julia executable. This can either be an absolute path, an executable on your PATH, or a juliaup channel (valid formats `julia +$channel`, `+$channel`).",
                     "scope": "machine-overridable"
+                },
+                "julia.juliaup.install.hint": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show Juliaup install recommendation.",
+                    "scope": "machine-overridable"
+                },
+                "julia.juliaup.server": {
+                    "type": "string",
+                    "description": "Juliaup mirror. Defaults to the official sources.",
+                    "scope": "resource"
                 },
                 "julia.lint.run": {
                     "type": "boolean",
@@ -901,7 +906,7 @@
                 "julia.lint.call": {
                     "type": "boolean",
                     "default": true,
-                    "description": "This compares  call signatures against all known methods for the called function. Calls with too many or too few arguments, or unknown keyword parameters are highlighted."
+                    "description": "This compares call signatures against all known methods for the called function. Calls with too many or too few arguments, or unknown keyword parameters are highlighted."
                 },
                 "julia.lint.iter": {
                     "type": "boolean",
@@ -911,12 +916,12 @@
                 "julia.lint.nothingcomp": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for use of `==` rather than `===` when comparing against `nothing`. "
+                    "description": "Check for use of `==` rather than `===` when comparing against `nothing`."
                 },
                 "julia.lint.constif": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check for constant conditionals in if statements that result in branches never being reached.."
+                    "description": "Check for constant conditionals in if statements that result in branches never being reached."
                 },
                 "julia.lint.lazy": {
                     "type": "boolean",
@@ -992,10 +997,30 @@
                     "default": true,
                     "markdownDescription": "Enable display of runtime diagnostics. These diagnostics are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.diagnostics` MIME type."
                 },
-                "julia.showInlayHints": {
+                "julia.inlayHints.runtime.enabled": {
                     "type": "boolean",
                     "default": true,
-                    "markdownDescription": "Enable display of inlay hints. These hints are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.inlayHints` MIME type."
+                    "markdownDescription": "Enable display of runtime inlay hints. These hints are provided by packages that overload a `show` method for the `application/vnd.julia-vscode.inlayHints` MIME type."
+                },
+                "julia.inlayHints.static.enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDescription": "Enable display of static inlay hints."
+                },
+                "julia.inlayHints.static.variableTypes.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Enable type hints for variable definitions:\n```julia\nfoo #=::Int64=# = 42\n```"
+                },
+                "julia.inlayHints.static.parameterNames.enabled": {
+                    "type": "string",
+                    "default": "literals",
+                    "enum": [
+                        "none",
+                        "literals",
+                        "all"
+                    ],
+                    "markdownDescription": "Enable name hints for function parameters:\n```julia\nfoo(#= bar: =# 42)\n```"
                 },
                 "julia.focusPlotNavigator": {
                     "type": "boolean",
@@ -1018,14 +1043,8 @@
                         "null"
                     ],
                     "default": null,
-                    "description": "Path to a julia environment. VS Code needs to be reloaded for changes to take effect.",
+                    "markdownDescription": "Path to a julia environment. VS Code needs to be reloaded for changes to take effect. Explicitly supports substitution for the `${userHome}`, `${workspaceFolder}`, `${workspaceFolderBasename}`, `${workspaceFolder:<FOLDER_NAME>}`, `${pathSeparator}`, `${env:<ENVIRONMENT_VARIABLE>}`, `${config:<CONFIG_VARIABLE>}` tokens.",
                     "scope": "window"
-                },
-                "julia.useCustomSysimage": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Use an existing custom sysimage when starting the REPL",
-                    "scope": "application"
                 },
                 "julia.symbolCacheDownload": {
                     "type": [
@@ -1082,9 +1101,11 @@
                 "julia.cellDelimiters": {
                     "type": "array",
                     "default": [
+                        "^\\s?#\\s#+",
                         "^##(?!#)",
                         "^#(\\s?)%%",
-                        "^#-"
+                        "^##(\\s?)-",
+                        "^##(\\s?)\\+"
                     ],
                     "description": "Cell delimiter regular expressions for Julia files."
                 },
@@ -1122,23 +1143,23 @@
                     "scope": "window",
                     "markdownDescription": "Show separate inline results for all code blocks in a cell"
                 },
+                "julia.execution.module": {
+                    "type": "string",
+                    "default": "",
+                    "scope": "global",
+                    "markdownDescription": "Global override for the code execution module. Leave empty to automatically choose a context module."
+                },
                 "julia.packageServer": {
                     "type": "string",
                     "default": "",
                     "markdownDescription": "Julia package server. Sets the `JULIA_PKG_SERVER` environment variable *before* starting a Julia process. Leave this empty to use the systemwide default. Requires a restart of the Julia process.",
                     "scope": "machine-overridable"
                 },
-                "julia.liveTestFile": {
-                    "type": "string",
-                    "default": "test/runtests.jl",
-                    "description": "A workspace relative path to a Julia file that contains the tests that should be run for live testing.",
-                    "scope": "window"
-                },
                 "julia.persistentSession.enabled": {
                     "type": "boolean",
                     "default": false,
                     "scope": "machine-overridable",
-                    "markdownDescription": "Experimental: Starts the interactive Julia session in a persistent `tmux` session. Note that `tmux` must be available in the shell defined below. If present the string `$[workspace]` will be replaced with the current file's workspace when the REPL is first opened."
+                    "markdownDescription": "Experimental: Starts the interactive Julia session in a persistent `tmux` session. Note that `tmux` must be available in the shell defined with `#julia.persistentSession.shell#`."
                 },
                 "julia.persistentSession.shell": {
                     "type": "string",
@@ -1150,25 +1171,41 @@
                     "type": "string",
                     "default": "-c",
                     "scope": "machine",
-                    "markdownDescription": "Argument to execute code in the configured shell, e.g. `-c` for sh-likes or `/c` for `cmd`."
+                    "markdownDescription": "Argument to execute code in the configured shell, e.g. `-c` for sh-likes or `/c` for `cmd`. Can contain multiple arguments separated by spaces."
                 },
                 "julia.persistentSession.tmuxSessionName": {
                     "type": "string",
                     "default": "julia_vscode",
                     "scope": "machine-overridable",
-                    "markdownDescription": "Name of the `tmux` session."
+                    "markdownDescription": "Name of the `tmux` session. Explicitly supports substitution for the `${userHome}`, `${workspaceFolder}`, `${workspaceFolderBasename}`, `${workspaceFolder:<FOLDER_NAME>}`, `${pathSeparator}`, `${env:<ENVIRONMENT_VARIABLE>}`, `${config:<CONFIG_VARIABLE>} tokens."
                 },
-                "julia.persistentSession.warnOnKill": {
-                    "type": "boolean",
-                    "default": true,
-                    "scope": "application",
-                    "description": "Warn when stopping a persistent session."
+                "julia.persistentSession.closeStrategy": {
+                    "type": "string",
+                    "enum": [
+                        "ask",
+                        "close",
+                        "disconnect"
+                    ],
+                    "default": "ask",
+                    "scope": "machine-overridable",
+                    "description": "Behaviour when stopping a persistent session.",
+                    "enumDescriptions": [
+                        "Always ask",
+                        "Close the tmux session",
+                        "Disconnect, but keep the tmux session"
+                    ]
                 },
                 "julia.persistentSession.alwaysCopy": {
                     "type": "boolean",
                     "default": false,
                     "scope": "application",
                     "description": "Always copy the command for connecting to an external REPL to the clipboard."
+                },
+                "julia.repl.keepAlive": {
+                    "type": "boolean",
+                    "default": false,
+                    "scope": "machine-overridable",
+                    "markdownDescription": "Experimental: Keeps the terminal window around even if the underlying Julia process is terminated to help debugging of fatal errors. Try disabling this if you see rendering issues in the integrated Julia REPL."
                 },
                 "julia.deleteJuliaCovFiles": {
                     "type": "boolean",
@@ -1181,6 +1218,7 @@
                     "default": [
                         "Base.",
                         "-Base.!",
+                        "-Base.|>",
                         "-Base.all",
                         "-Base.all!",
                         "-Base.any",
@@ -1256,6 +1294,18 @@
                     "default": true,
                     "description": "Show top-level modules in the workspace.",
                     "scope": "application"
+                },
+                "julia.languageServerExecutablePath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Points to the julia executable used to launch the language server process. This overwrites julia.executablePath for the language server launch if present.",
+                    "scope": "machine-overridable"
+                },
+                "julia.languageServerJuliaupChannel": {
+                    "type": "string",
+                    "default": "release",
+                    "description": "Juliaup channel to use for the language server (e.g., 'release', 'lts', 'beta'). Can be overridden by JULIA_VSCODE_LANGUAGESERVER_CHANNEL environment variable.",
+                    "scope": "machine-overridable"
                 }
             }
         },
@@ -1359,10 +1409,26 @@
                                     "type": "string"
                                 }
                             },
+                            "env": {
+                                "additionalProperties": {
+                                    "type": "string"
+                                },
+                                "default": {},
+                                "description": "Environment variables defined as a key value pair. Property ends up being the Environment Variable and the value of the property ends up being the value of the Env Variable.",
+                                "type": "object"
+                            },
                             "juliaEnv": {
                                 "type": "string",
                                 "description": "Absolute path to the Julia environment.",
                                 "default": "${command:activeJuliaEnvironment}"
+                            },
+                            "juliaAdditionalArgs": {
+                                "type": "array",
+                                "description": "Additional command line arguments passed to the Julia executable",
+                                "default": [],
+                                "items": {
+                                    "type": "string"
+                                }
                             }
                         }
                     }
@@ -1375,6 +1441,7 @@
                         "program": "${file}",
                         "stopOnEntry": false,
                         "cwd": "${workspaceFolder}",
+                        "env": {},
                         "juliaEnv": "${command:activeJuliaEnvironment}"
                     }
                 ],
@@ -1481,15 +1548,15 @@
         ]
     },
     "scripts": {
-        "vscode:prepublish": "webpack --mode production",
-        "webpack": "webpack --mode development",
-        "webpack-dev": "webpack --mode development --watch",
+        "vscode:prepublish": "npm run bundle",
+        "bundle": "esbuild ./src/extension.ts --bundle --outdir=./dist --external:vscode --external:applicationinsights-native-metrics --external:@opentelemetry/instrumentation --external:@azure/opentelemetry-instrumentation-azure-sdk --format=cjs --platform=node --minify --sourcemap",
         "eslint": "eslint --ext .ts --fix .",
         "eslint-dry-run": "eslint --ext .ts --fix-dry-run .",
+        "format": "prettier --write .",
         "compile": "tsc -p ./",
         "compile-dry-run": "tsc -p ./ --noEmit --pretty",
         "watch": "tsc -watch -p ./",
-        "test": "node ./out/test/runTest.js",
+        "test": "vscode-test",
         "initialsetup": "npm i && git submodule init && git submodule update",
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run webpack",
         "package": "vsce package",
@@ -1498,41 +1565,48 @@
         "tagmajor": "npm version major && git push --tags && git push"
     },
     "dependencies": {
-        "@traptitech/markdown-it-katex": "^3.5.0",
+        "@traptitech/markdown-it-katex": "^3.6.0",
         "@vscode/debugadapter": "^1.55.1",
         "@vscode/debugprotocol": "^1.55.1",
-        "@vscode/test-electron": "^2.2.0",
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
+        "async-mutex": "^0.5.0",
         "await-notify": "^1.0.1",
-        "markdown-it": "^12.3.2",
-        "markdown-it-footnote": "^3.0.3",
-        "promised-temp": "^v0.1.0",
+        "fastq": "^1.19.1",
+        "lodash.isequal": "^4.5.0",
+        "markdown-it": "^14.1.0",
+        "markdown-it-footnote": "^4.0.0",
         "promisify-child-process": "^4.1.1",
         "semver": "^7.3.5",
         "source-map-support": "^0.5.21",
         "string-argv": "^0.3.1",
-        "uuidv4": "^6.2.12",
-        "vscode-jsonrpc": "^8.0.0",
-        "vscode-languageclient": "^8.0.0",
-        "which": "^2.0.2"
+        "uuid": "^11.0.3",
+        "vscode-jsonrpc": "^8.2.1",
+        "vscode-languageclient": "^9.0.0",
+        "which": "5"
     },
     "devDependencies": {
-        "@types/download": "^8.0.1",
-        "@types/markdown-it": "^12.2.3",
-        "@types/mocha": "^9.1.0",
-        "@types/node": "^16",
+        "@eslint/js": "^9.39.1",
+        "@types/lodash.isequal": "^4.5.8",
+        "@types/markdown-it": "^14.1.1",
+        "@types/mocha": "^10",
+        "@types/node": "^22",
         "@types/semver": "^7.3.9",
         "@types/source-map-support": "^0.5.4",
-        "@types/vscode": "1.78.0",
-        "@typescript-eslint/parser": "^5.14.0",
-        "@vscode/vsce": "^2.19.0",
-        "download": "^8.0.0",
-        "eslint": "^8.11.0",
-        "mocha": "^9.2.2",
+        "@types/vscode": "1.108.0",
+        "@typescript-eslint/eslint-plugin": "^8.10.0",
+        "@typescript-eslint/parser": "^8.7.0",
+        "@vscode/test-cli": "^0.0.10",
+        "@vscode/test-electron": "^2.3.6",
+        "@vscode/vsce": "3",
+        "esbuild": "^0.27.0",
+        "eslint": "^9.39.1",
+        "eslint-config-prettier": "^10.1.8",
+        "globals": "^15.12.0",
+        "mocha": "11",
+        "prettier": "^3.6.2",
         "ts-loader": "^9.2.8",
-        "typescript": "^5",
-        "webpack": "^5.70.0",
-        "webpack-cli": "^5"
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.46.4"
     }
 }

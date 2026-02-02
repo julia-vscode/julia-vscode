@@ -7,7 +7,7 @@ end
 
 const notebook_runcell_request_type = JSONRPC.RequestType("notebook/runcell", NotebookRunCellArguments, NamedTuple{(:success, :error),Tuple{Bool,NamedTuple{(:message, :name, :stack),Tuple{String,String,String}}}})
 
-function notebook_runcell_request(conn, params::NotebookRunCellArguments)
+function notebook_runcell_request(conn, params::NotebookRunCellArguments, token)
     code = string('\n'^params.line, ' '^params.column, params.code)
 
     withpath(params.filename) do
@@ -16,7 +16,13 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments)
         args = VERSION >= v"1.5" ? (REPL.softscope, Main, code, params.filename) : (Main, code, params.filename)
 
         result = try
-            Base.invokelatest(include_string, args...)
+            if isready(DEBUG_SESSION[])
+                debug_session = fetch(DEBUG_SESSION[])
+
+                DebugAdapter.debug_code(debug_session, Main, code, params.filename)
+            else
+                Base.invokelatest(include_string, args...)
+            end
         catch err
             bt = crop_backtrace(catch_backtrace())
 
@@ -72,7 +78,7 @@ function io_send_callback(name, data)
     JSONRPC.send_notification(conn_endpoint[], "streamoutput", Dict{String,Any}("name" => name, "data" => data))
 end
 
-function serve_notebook(pipename, outputchannel_logger; crashreporting_pipename::Union{AbstractString,Nothing}=nothing)
+function serve_notebook(pipename, debugger_pipename, outputchannel_logger; error_handler=nothing)
     Base.with_logger(outputchannel_logger) do
         @info "Trying to connect..."
     end
@@ -87,6 +93,8 @@ function serve_notebook(pipename, outputchannel_logger; crashreporting_pipename:
     Base.with_logger(outputchannel_logger) do
         @info "Starting JSONRPC endpoint..."
     end
+
+    start_debug_backend(debugger_pipename, error_handler)
 
     run(conn_endpoint[])
 
@@ -125,8 +133,8 @@ function serve_notebook(pipename, outputchannel_logger; crashreporting_pipename:
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
-        msg_dispatcher[repl_gettabledata_request_type] = get_table_data
-        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table
+        msg_dispatcher[repl_gettabledata_request_type] = get_table_data_request
+        msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table_notification
 
         Base.with_logger(outputchannel_logger) do
             @info "Julia Kernel started"
@@ -146,7 +154,7 @@ function serve_notebook(pipename, outputchannel_logger; crashreporting_pipename:
         bt = catch_backtrace()
         Base.display_error(IJuliaCore.orig_stderr[], err, bt)
         try
-            global_err_handler(err, bt, crashreporting_pipename, "Notebook")
+            error_handler(err, bt)
         catch err
             @error "Error handler threw an error." exception = (err, bt)
         end

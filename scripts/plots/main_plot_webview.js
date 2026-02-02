@@ -53,8 +53,12 @@ function isPlotly() {
     return document.querySelector('#plot-element .plotly') !== null
 }
 
-function isSvgTag() {
-    return document.querySelector('svg') !== null
+function getSvgTag() {
+    return document.querySelector(':not(button) > svg')
+}
+
+function isSvg() {
+    return getSvgTag() !== null
 }
 
 
@@ -71,18 +75,24 @@ const COPY_SUCCESS_MESSAGE_TYPE = 'copySuccess'
  * @param {number} index
  */
 function handlePlotSaveRequest(index) {
-    const plot = getPlotElement()
+    let plot = getPlotElement()
     if (isPlotly()) {
         Plotly.Snapshot.toImage(plot, { format: 'svg' }).once('success', (url) => {
             const svg = decodeURIComponent(url).replace(/data:image\/svg\+xml,/, '')
 
             postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, index })
         })
-    } else if (isSvgTag()) {
-        const svg = document.querySelector('svg').outerHTML
-
+    } else if (isSvg()) {
+        const svg = getSvgTag().outerHTML
         postMessageToHost(SAVE_PLOT_MESSAGE_TYPE, { svg, index })
     } else {
+        // e.g. Makie may display png images via a HTML mime type. If the plot pane content is a div (so we didn't have one of the image MIME types
+        // that we wrap in <img> ourselves) we can check if there's a single <img> in there, and if so, continue the plot saving logic with that.
+        const innerPlot = getSingleImgFromHtmlContent(plot);
+        if (innerPlot !== null){
+            plot = innerPlot;
+        }
+
         const { src } = plot
 
         const svg = src.includes('image/svg')
@@ -99,24 +109,29 @@ function handlePlotSaveRequest(index) {
     }
 }
 
+function getSingleImgFromHtmlContent(el){
+    if (el.tagName.toLowerCase() === "div") {
+        const child = el.children.length === 1 ? el.children[0] : undefined;
+        if (child && child.tagName.toLowerCase() === "img") {
+            return child;
+        }
+    }
+    return null
+}
+
 function handlePlotCopyRequest() {
-    const plot = document.querySelector('svg') || getPlotElement()
-    const isSvg = document.querySelector('svg') !== null
-
-    const width = plot.offsetWidth
-    const height = plot.offsetHeight
-
     if (!document.hasFocus()) {
         postMessageToHost(COPY_FAILED_MESSAGE_TYPE, 'Plot pane does not have focus.')
         return
     }
 
-    if (isSvg) {
+    if (isSvg()) {
+        const svg = getSvgTag()
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
 
         const image = new Image()
-        const data = new XMLSerializer().serializeToString(plot)
+        const data = new XMLSerializer().serializeToString(svg)
         const blob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' })
         const url = window.URL.createObjectURL(blob)
 
@@ -140,6 +155,11 @@ function handlePlotCopyRequest() {
         }
         image.src = url
     } else {
+        const plot = getPlotElement()
+
+        const width = plot.offsetWidth
+        const height = plot.offsetHeight
+
         html2canvas(plot, { height, width }).then(
             (canvas) => {
                 canvas.toBlob((blob) => {
@@ -233,9 +253,23 @@ function initPanZoom() {
     }
 }
 
+const vscodeCopyIcon = `<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M3 5V12.73C2.4 12.38 2 11.74 2 11V5C2 2.79 3.79 1 6 1H9C9.74 1 10.38 1.4 10.73 2H6C4.35 2 3 3.35 3 5ZM11 15H6C4.897 15 4 14.103 4 13V5C4 3.897 4.897 3 6 3H11C12.103 3 13 3.897 13 5V13C13 14.103 12.103 15 11 15ZM12 5C12 4.448 11.552 4 11 4H6C5.448 4 5 4.448 5 5V13C5 13.552 5.448 14 6 14H11C11.552 14 12 13.552 12 13V5Z"></path></svg>`
+
+function addCopyButton() {
+    // We do this because vscode has issues focusing document body
+    let button = document.createElement("button")
+    button.id = "copy-plot-btn"
+    button.innerHTML = `${vscodeCopyIcon} <span id="copy-plot-btn-desc">Copy Plot</span>`
+    button.onclick = handlePlotCopyRequest
+    document.body.append(button)
+}
+
 window.addEventListener('load', () => {
     removePlotlyBuiltinExport()
     initPanZoom()
+    // Disable context menu
+    document.body.setAttribute('data-vscode-context', '{ "preventDefaultContextMenuItems": true }')
+    addCopyButton()
 })
 
 window.addEventListener('message', ({ data }) => {
@@ -244,7 +278,11 @@ window.addEventListener('message', ({ data }) => {
         handlePlotSaveRequest(data.body.index)
         break
     case REQUEST_COPY_PLOT_TYPE:
-        handlePlotCopyRequest()
+        // according to https://stackoverflow.com/questions/77465342/how-do-i-ensure-that-the-website-has-focus-so-the-copy-to-clipboard-can-happen
+        // `setTimeout` avoids that the focus check in handlePlotCopyRequest fails because
+        // the browser doesn't give the document focus back quickly enough after the user clicks the button
+        // triggering the clipboard interaction (which is only allowed with focus)
+        setTimeout(handlePlotCopyRequest, 0.05);
         break
     default:
         console.error(new Error('Unknown plot request!'))

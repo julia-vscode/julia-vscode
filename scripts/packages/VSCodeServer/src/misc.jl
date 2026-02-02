@@ -4,30 +4,52 @@ import InteractiveUtils: @which
 # error handling
 # --------------
 function crop_backtrace(bt)
-    i = find_first_topelevel_scope(bt)
-    return bt[1:(i === nothing ? end : i)]
+    e = length(bt)
+
+    i_repleval = find_first_trace_entry(bt, r"^#?repleval[#\d]*$")
+    if i_repleval !== nothing
+        offset = something(find_first_trace_entry(reverse(bt[1:i_repleval]), "eval"), 0)
+        i_repleval -= offset
+    end
+
+    i_inlineeval = find_first_trace_entry(bt, r"^#?inlineeval[#\d]*$")
+    if i_inlineeval !== nothing
+        offset = something(find_first_trace_entry(reverse(bt[1:i_inlineeval]), "include_string"), 0)
+        i_inlineeval -= offset
+    end
+
+    i_toplevel = find_first_trace_entry(bt, "top-level scope")
+
+    i = min(
+        something(i_toplevel, e),
+        something(i_repleval, e),
+        something(i_inlineeval, e)
+    )
+
+    return bt[1:i]
 end
 
-function find_first_topelevel_scope(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}})
+function find_first_trace_entry(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}}}, name)
     for (i, ip) in enumerate(bt)
         st = Base.StackTraces.lookup(ip)
         ind = findfirst(st) do frame
             linfo = frame.linfo
-            if linfo isa Core.CodeInfo
+            if linfo isa Core.CodeInfo && hasproperty(linfo, :linetable)
                 linetable = linfo.linetable
                 if isa(linetable, Vector) && length(linetable) ≥ 1
                     lin = first(linetable)
-                    if isa(lin, Core.LineInfoNode) && lin.method === Symbol("top-level scope")
+                    if isa(lin, Core.LineInfoNode) && occursin(name, string(lin.method))
                         return true
                     end
                 end
+                return false
             else
-                return frame.func === Symbol("top-level scope")
+                return occursin(name, string(frame.func))
             end
         end
         ind === nothing || return i
     end
-    return
+    return nothing
 end
 
 # path utilitiles
@@ -168,13 +190,41 @@ end
 
 vscode_cmd_uri(cmd; cmdargs...) = string("command:", cmd, '?', encode_uri_component(JSON.json(cmdargs)))
 
+# Notificataion queueing
+const MAX_NOTIFICATION_BUFFER_SIZE = 100
+const NOTIFICATION_BUFFER = Tuple{String, Any}[]
+
+function maybe_queue_notification!(type, content)
+    if conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && conn_endpoint[].status !== :running
+        push!(NOTIFICATION_BUFFER, (type, content))
+
+        if length(NOTIFICATION_BUFFER) > MAX_NOTIFICATION_BUFFER_SIZE
+            popfirst!(NOTIFICATION_BUFFER)
+        end
+        return true
+    end
+    return false
+end
+
+function send_queued_notifications!()
+    while !isempty(NOTIFICATION_BUFFER)
+        (type, content) = popfirst!(NOTIFICATION_BUFFER)
+        try
+            JSONRPC.send_notification(conn_endpoint[], type, content)
+        catch err
+            @debug "Could not send enqueued notification" exception=(err, catch_backtrace())
+        end
+    end
+    JSONRPC.flush(conn_endpoint[])
+end
+
 # Misc handlers
-function cd_to_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
+function cd_to_uri_notification(conn, params::NamedTuple{(:uri,),Tuple{String}})
     cd(params.uri)
     return nothing
 end
 
-function activate_uri(conn, params::NamedTuple{(:uri,),Tuple{String}})
+function activate_uri_notification(conn, params::NamedTuple{(:uri,),Tuple{String}})
     hideprompt(() -> Pkg.activate(params.uri))
     return nothing
 end

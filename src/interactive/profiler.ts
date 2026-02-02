@@ -5,14 +5,14 @@ import { registerCommand, setContext } from '../utils'
 import { openFile } from './results'
 
 interface ProfilerFrame {
-    func: string;
-    file: string;
-    path: string;
-    line: number;
-    count: number;
+    func: string
+    file: string
+    path: string
+    line: number
+    count: number
     countLabel?: number | string
-    flags: number;
-    children: ProfilerFrame[];
+    flags: number
+    children: ProfilerFrame[]
 }
 
 interface ProfileRoot {
@@ -21,12 +21,12 @@ interface ProfileRoot {
 }
 
 interface InlineTraceElement {
-    path: string;
-    line: number;
-    fraction: number;
-    count: number;
+    path: string
+    line: number
+    fraction: number
+    count: number
     countLabel?: number | string
-    flags: number;
+    flags: number
 }
 
 function flagString(flags: number) {
@@ -83,9 +83,7 @@ export class ProfilerFeature {
             registerCommand('language-julia.saveProfileToFile', () => {
                 this.saveToFile()
             }),
-            vscode.window.onDidChangeVisibleTextEditors((editors) =>
-                this.refreshInlineTrace(editors)
-            )
+            vscode.window.onDidChangeVisibleTextEditors((editors) => this.refreshInlineTrace(editors))
         )
     }
 
@@ -151,23 +149,21 @@ export class ProfilerFeature {
                     const fraction = (edHighlights[uri][line]?.fraction ?? 0) + highlight.fraction
                     const flags = (edHighlights[uri][line]?.flags ?? 0) | highlight.flags
 
-                    const hoverMessage = (highlight.countLabel || `${count} samples`).toString() + ` (${(fraction * 100).toFixed()}%) ${flagString(flags)}`
+                    const hoverMessage =
+                        (highlight.countLabel || `${count} samples`).toString() +
+                        ` (${(fraction * 100).toFixed()}%) ${flagString(flags)}`
                     edHighlights[uri][line] = {
                         count,
                         fraction,
                         flags,
-                        range: new vscode.Range(
-                            new vscode.Position(line, 0),
-                            new vscode.Position(line, 0)
-                        ),
+                        range: new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, 0)),
                         hoverMessage,
                         renderOptions: {
                             before: {
                                 contentText: ' ',
                                 backgroundColor: this.inlineTraceColor(flags),
                                 width: fraction * 20 + 'em',
-                                textDecoration:
-                                                'none; white-space: pre; position: absolute; pointer-events: none', // :grimacing:
+                                textDecoration: 'none; white-space: pre; position: absolute; pointer-events: none', // :grimacing:
                             },
                         },
                     }
@@ -188,10 +184,10 @@ export class ProfilerFeature {
             const uri = editor.document.uri.toString()
             if (edHighlights[uri]) {
                 const highlights: {
-                                    range: vscode.Range;
-                                    hoverMessage: string;
-                                    renderOptions;
-                                }[] = Object.values(edHighlights[uri])
+                    range: vscode.Range
+                    hoverMessage: string
+                    renderOptions
+                }[] = Object.values(edHighlights[uri])
                 editor.setDecorations(this.decoration, highlights)
             }
         }
@@ -206,10 +202,7 @@ export class ProfilerFeature {
             this.makeTitle(),
             {
                 preserveFocus: true,
-                viewColumn: this.context.globalState.get(
-                    'juliaProfilerViewColumn',
-                    vscode.ViewColumn.Two
-                ),
+                viewColumn: this.context.globalState.get('juliaProfilerViewColumn', vscode.ViewColumn.Two),
             },
             {
                 enableScripts: true,
@@ -248,15 +241,10 @@ export class ProfilerFeature {
 
         await loadedPromise
 
-        const viewStateListener = this.panel.onDidChangeViewState(
-            ({ webviewPanel }) => {
-                this.context.globalState.update(
-                    'juliaProfilerViewColumn',
-                    webviewPanel.viewColumn
-                )
-                setContext(profilerContextKey, webviewPanel.active)
-            }
-        )
+        const viewStateListener = this.panel.onDidChangeViewState(({ webviewPanel }) => {
+            this.context.globalState.update('juliaProfilerViewColumn', webviewPanel.viewColumn)
+            setContext(profilerContextKey, webviewPanel.active)
+        })
 
         this.panel.onDidDispose(() => {
             viewStateListener.dispose()
@@ -275,7 +263,6 @@ export class ProfilerFeature {
         if (this.profileCount > 0) {
             const profile = this.profiles[this.currentProfileIndex]
             this.panel.webview.postMessage(profile)
-            this.selection = Object.keys(profile.data)[0]
             this.setInlineTrace(profile.data)
         } else {
             this.panel.webview.postMessage(null)
@@ -293,19 +280,11 @@ export class ProfilerFeature {
     }
 
     profileViewerJSPath() {
-        return path.join(
-            this.context.extensionPath,
-            'libs',
-            'jl-profile',
-            'dist',
-            'profile-viewer.js'
-        )
+        return path.join(this.context.extensionPath, 'libs', 'jl-profile', 'dist', 'profile-viewer.js')
     }
 
     getContent() {
-        const profilerURL = this.panel.webview.asWebviewUri(
-            vscode.Uri.file(this.profileViewerJSPath())
-        )
+        const profilerURL = this.panel.webview.asWebviewUri(vscode.Uri.file(this.profileViewerJSPath()))
 
         return `
         <!DOCTYPE html>
@@ -414,22 +393,24 @@ export class ProfilerFeature {
         let defaultUri = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0]?.uri : undefined
         if (defaultUri) {
             defaultUri = defaultUri.with({
-                path: defaultUri.path + '/profile.html'
+                path: defaultUri.path + '/profile.html',
             })
         }
         const savePath = await vscode.window.showSaveDialog({
             title: 'Save Profile Trace',
             filters: {
-                'HTML': ['html']
+                HTML: ['html'],
             },
-            defaultUri
+            defaultUri,
         })
         if (!savePath) {
             return
         }
         const jsProfileScript = await readFile(this.profileViewerJSPath())
         const jsProfileDataUrl = 'data:text/javascript;base64,' + btoa(jsProfileScript.toString())
-        writeFile(savePath.fsPath, `
+        writeFile(
+            savePath.fsPath,
+            `
         <!DOCTYPE html>
         <html lang="en">
         <head>
@@ -464,7 +445,8 @@ export class ProfilerFeature {
             </script>
         </body>
         </html>
-        `)
+        `
+        )
     }
 
     previous() {
@@ -483,10 +465,7 @@ export class ProfilerFeature {
 
     delete() {
         this.profiles.splice(this.currentProfileIndex, 1)
-        this.currentProfileIndex = Math.min(
-            this.currentProfileIndex + 1,
-            this.profiles.length - 1
-        )
+        this.currentProfileIndex = Math.min(this.currentProfileIndex + 1, this.profiles.length - 1)
         this.show()
     }
 

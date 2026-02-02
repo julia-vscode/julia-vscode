@@ -4,13 +4,17 @@ import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { g_connection } from './repl'
 
-const requestTypeGetTableData = new rpc.RequestType<{
-    id: string,
-    startRow: Number,
-    endRow: Number,
-    filterModel: any,
-    sortModel: any
-}, string, void>('repl/getTableData')
+const requestTypeGetTableData = new rpc.RequestType<
+    {
+        id: string
+        startRow: number
+        endRow: number
+        filterModel: object
+        sortModel: object
+    },
+    string,
+    void
+>('repl/getTableData')
 const clearLazyTable = new rpc.NotificationType<{
     id: string
 }>('repl/clearLazyTable')
@@ -19,32 +23,95 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
     const parsedPayload = JSON.parse(payload)
     const title = parsedPayload.name
 
-    const panel = vscode.window.createWebviewPanel('jlgrid', title ? 'Julia Table: ' + title : 'Julia Table', {
-        preserveFocus: true,
-        viewColumn: vscode.ViewColumn.Active
-    }, {
-        enableScripts: true,
-        retainContextWhenHidden: true
-    })
+    const panel = vscode.window.createWebviewPanel(
+        'jlgrid',
+        title ? 'Julia Table: ' + title : 'Julia Table',
+        {
+            preserveFocus: true,
+            viewColumn: vscode.ViewColumn.Active,
+        },
+        {
+            enableScripts: true,
+            retainContextWhenHidden: true,
+        }
+    )
 
-    const uriAgGrid = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', 'ag-grid.js')))
-    const uriAgGridCSS = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css')))
+    const uriAgGrid = panel.webview.asWebviewUri(
+        vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', 'ag-grid.js'))
+    )
+    const uriAgGridCSS = panel.webview.asWebviewUri(
+        vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', 'ag-grid.css'))
+    )
     const theme = vscode.window.activeColorTheme.kind === 1 ? '' : '-dark'
-    const uriAgGridThemeCSS = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', `ag-grid-balham${theme}.css`)))
+    const uriAgGridThemeCSS = panel.webview.asWebviewUri(
+        vscode.Uri.file(path.join(context.extensionPath, 'libs', 'ag-grid', `ag-grid-balham${theme}.css`))
+    )
 
-    let script
+    let script = `
+    <script type="text/javascript">
+        const vscodeAPI = acquireVsCodeApi()
+        const payload = ${payload};
+
+        function headerTemplateWithLabel(label) {
+            return \`
+            <div class="ag-cell-label-container" role="presentation">
+                <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button" aria-hidden="true"></span>
+                <div ref="eLabel" class="ag-header-cell-label" role="presentation">
+                    <div class="header-cell-title-container">
+                        <span ref="eText" class="ag-header-cell-text">b</span>
+                        \${label ? \`<small class="header-cell-subtitle">\${label}</small>\` : ''}
+                    </div>
+                    <span ref="eFilter" class="ag-header-icon ag-header-label-icon ag-filter-icon" aria-hidden="true"></span>
+                    <span ref="eSortOrder" class="ag-header-icon ag-header-label-icon ag-sort-order" aria-hidden="true"></span>
+                    <span ref="eSortAsc" class="ag-header-icon ag-header-label-icon ag-sort-ascending-icon" aria-hidden="true"></span>
+                    <span ref="eSortDesc" class="ag-header-icon ag-header-label-icon ag-sort-descending-icon" aria-hidden="true"></span>
+                    <span ref="eSortNone" class="ag-header-icon ag-header-label-icon ag-sort-none-icon" aria-hidden="true"></span>
+                </div>
+            </div>
+            \`
+        }
+
+        const coldefs = payload.schema.fields.map(f => {
+            return {
+                field: f.name,
+                headerName: f.name,
+                type: f.ag_type,
+                headerTooltip: f.jl_type,
+                filter: f.ag_filter,
+                sortable: true,
+                resizable: true,
+                headerComponentParams: {
+                    template: headerTemplateWithLabel(f.jl_label)
+                }
+            }
+        });
+        coldefs.unshift({
+            headerName: 'Row',
+            editable: false,
+            headerTooltip: '',
+            field: '__row__',
+            sortable: false,
+            type: 'numericColumn',
+            cellRenderer: 'rowNumberRenderer',
+            resizable: true,
+            filter: false,
+            pinned: 'left',
+            lockPinned: true,
+            suppressNavigable: true,
+            lockPosition: true,
+            suppressMovable: true,
+            cellClass: 'row-number-cell'
+        })
+    `
 
     if (isLazy) {
         const objectId = parsedPayload.id
 
         panel.onDidDispose(async () => {
             try {
-                await g_connection.sendNotification(
-                    clearLazyTable,
-                    {
-                        id: objectId
-                    }
-                )
+                await g_connection.sendNotification(clearLazyTable, {
+                    id: objectId,
+                })
             } catch (err) {
                 console.debug('Could not dispose of lazy table object on the Julia side: ', err)
             }
@@ -55,20 +122,17 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                 let response
                 const conn = kernel?._msgConnection || g_connection
                 try {
-                    const data = await conn.sendRequest(
-                        requestTypeGetTableData,
-                        {
-                            id: objectId,
-                            startRow: message.content.startRow,
-                            endRow: message.content.endRow,
-                            filterModel: message.content.filterModel,
-                            sortModel: message.content.sortModel
-                        }
-                    )
+                    const data = await conn.sendRequest(requestTypeGetTableData, {
+                        id: objectId,
+                        startRow: message.content.startRow,
+                        endRow: message.content.endRow,
+                        filterModel: message.content.filterModel,
+                        sortModel: message.content.sortModel,
+                    })
                     response = {
                         type: 'getRows',
                         id: message.id,
-                        data: data
+                        data: data,
                     }
                 } catch (err) {
                     console.debug('Error while processing message: ', err)
@@ -76,12 +140,18 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                     let warning: Thenable<string | undefined>
                     const button = 'Close table'
                     if (conn) {
-                        warning = vscode.window.showWarningMessage('Could not fetch table data. The object might have been deleted or modified.', button)
+                        warning = vscode.window.showWarningMessage(
+                            'Could not fetch table data. The object might have been deleted or modified.',
+                            button
+                        )
                     } else {
-                        warning = vscode.window.showWarningMessage('Could not fetch table data. The Julia process is no longer available.', button)
+                        warning = vscode.window.showWarningMessage(
+                            'Could not fetch table data. The Julia process is no longer available.',
+                            button
+                        )
                     }
 
-                    warning.then(r => {
+                    warning.then((r) => {
                         if (r === button) {
                             panel.dispose()
                         }
@@ -91,8 +161,8 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                         type: 'getRows',
                         id: message.id,
                         data: {
-                            error: true
-                        }
+                            error: true,
+                        },
                     }
                 }
                 try {
@@ -104,40 +174,8 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                 console.debug('invalid message received: ', message)
             }
         })
-        script = `
-            <script type="text/javascript">
-                const vscodeAPI = acquireVsCodeApi()
-
+        script += `
                 const requests = {}
-                const payload = ${payload};
-                const coldefs = payload.schema.fields.map(f => {
-                    return {
-                        field: f.name,
-                        headerName: f.name,
-                        type: f.ag_type,
-                        headerTooltip: f.jl_type,
-                        filter: f.ag_filter,
-                        sortable: f.ag_sortable,
-                        resizable: true
-                    }
-                });
-                coldefs.unshift({
-                    headerName: 'Row',
-                    editable: false,
-                    headerTooltip: '',
-                    field: '__row__',
-                    sortable: false,
-                    type: 'numericColumn',
-                    cellRenderer: 'rowNumberRenderer',
-                    resizable: true,
-                    filter: false,
-                    pinned: 'left',
-                    lockPinned: true,
-                    suppressNavigable: true,
-                    lockPosition: true,
-                    suppressMovable: true,
-                    cellClass: 'row-number-cell'
-                })
 
                 function getRows({startRow, endRow, filterModel, sortModel, successCallback, failCallback}) {
                     const id  = Math.random()
@@ -202,38 +240,7 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
             </script>
         `
     } else {
-        script = `
-            <script type="text/javascript">
-                const payload = ${payload};
-
-                const coldefs = payload.schema.fields.map(f => {
-                    return {
-                        field: f.name,
-                        headerName: f.name,
-                        type: f.ag_type,
-                        headerTooltip: f.jl_type,
-                        filter: f.ag_filter,
-                        sortable: true,
-                        resizable: true
-                    }
-                });
-                coldefs.unshift({
-                    headerName: 'Row',
-                    editable: false,
-                    headerTooltip: '',
-                    field: '__row__',
-                    sortable: false,
-                    type: 'numericColumn',
-                    cellRenderer: 'rowNumberRenderer',
-                    resizable: true,
-                    filter: false,
-                    pinned: 'left',
-                    lockPinned: true,
-                    suppressNavigable: true,
-                    lockPosition: true,
-                    suppressMovable: true,
-                    cellClass: 'row-number-cell'
-                })
+        script += `
                 const gridOptions = {
                     columnDefs: coldefs,
                     rowData: payload.data,
@@ -259,6 +266,15 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                 <link rel="stylesheet" href="${uriAgGridCSS}">
                 <link rel="stylesheet" href="${uriAgGridThemeCSS}">
                 <style type="text/css">
+                    .header-cell-title-container {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: end;
+                    }
+                    .header-cell-subtitle {
+                        font-size: 0.8em;
+                        opacity: 0.8;
+                    }
                     .row-number {
                         user-select: none;
                         font-weight: bold;
