@@ -1,5 +1,4 @@
 import * as vscode from 'vscode'
-
 import * as telemetry from '../telemetry'
 import { getVersionedParamsAtPosition, registerCommand } from '../utils'
 import * as modules from './modules'
@@ -338,6 +337,21 @@ interface EvaluateRangeByLineTask {
     module: string
 }
 
+type KnownKeys<T> = {
+    [K in keyof T as string extends K ? never : K]: T[K]
+}
+
+interface InlineDebugConfiguration extends KnownKeys<vscode.DebugConfiguration> {
+    pipename?: string
+    stopOnEntry: boolean
+    /** Path of the Julia file to launch or attach to */
+    program: string
+    /** Newline-padded inline code to run instead of loading from the file on disk */
+    code: string
+    /** Internal flag marking this configuration as an inline debug session */
+    __juliaInlineDebug: boolean
+}
+
 class CodeCellExecutionFeature extends JuliaCellManager {
     private readonly evaluationByLineQueue = fastq.promise<unknown, EvaluateRangeByLineTask>(
         this._evaluateRangeByLine.bind(this),
@@ -346,6 +360,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     private readonly PENDING_SIGN = ' ⟳ '
     private shouldSaveOnEval: boolean
     private inlineResultsForCellEvaluation: boolean
+    private inlineDebugSession: vscode.DebugSession | undefined
 
     constructor(context: vscode.ExtensionContext) {
         super(context)
@@ -363,7 +378,24 @@ class CodeCellExecutionFeature extends JuliaCellManager {
                 this.executeSelectionOrCell.bind(this, true)
             ),
             registerCommand('language-julia.executeCurrentAndBelowCells', this.executeCurrentAndBelowCells.bind(this)),
-            registerCommand('language-julia.executeAboveCells', this.executeAboveCells.bind(this))
+            registerCommand('language-julia.executeAboveCells', this.executeAboveCells.bind(this)),
+            registerCommand('language-julia.debugCell', this.debugCell.bind(this))
+        )
+
+        this.context.subscriptions.push(
+            vscode.debug.onDidStartDebugSession((session) => {
+                if (
+                    session.type === 'julia' &&
+                    (session.configuration as InlineDebugConfiguration).__juliaInlineDebug === true
+                ) {
+                    this.inlineDebugSession = session
+                }
+            }),
+            vscode.debug.onDidTerminateDebugSession((session) => {
+                if (this.inlineDebugSession && session.id === this.inlineDebugSession.id) {
+                    this.inlineDebugSession = undefined
+                }
+            })
         )
     }
 
@@ -668,6 +700,86 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         }
         return await this._executeCells(editor, docCells.slice(0, endId))
     }
+
+    private async _ensureInlineDebugSession(document: vscode.TextDocument, inlineCode?: string): Promise<boolean> {
+        if (this.inlineDebugSession) {
+            await vscode.debug.stopDebugging(this.inlineDebugSession)
+            this.inlineDebugSession = undefined
+        }
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri) ?? undefined
+        // Prefer attaching to the running REPL so globals are shared
+        await repl.startREPL(true, false)
+        const replDebugPipe = repl.g_replDebugPipename
+        const isAttach = replDebugPipe !== undefined
+        const debugConfig: InlineDebugConfiguration = {
+            type: 'julia',
+            name: isAttach ? 'Debug Julia Cell (REPL)' : 'Debug Julia Cell',
+            request: isAttach ? 'attach' : 'launch',
+            pipename: replDebugPipe,
+            stopOnEntry: false,
+            program: document.fileName,
+            code: inlineCode,
+            __juliaInlineDebug: true,
+        }
+        const success = await vscode.debug.startDebugging(workspaceFolder, debugConfig)
+        return success
+    }
+
+    /** Build inline code from the given cells to be used for debugging */
+    private _buildInlineCode(document: vscode.TextDocument, cells: readonly JuliaCell[]): string {
+        let inlineCode = ''
+        let currentLine = 0
+        for (const cell of cells) {
+            if (cell.codeRange === undefined) {
+                continue
+            }
+            const codeRange = cell.codeRange
+            // Add newlines to preserve line numbers
+            while (currentLine < codeRange.start.line) {
+                inlineCode += '\n'
+                currentLine++
+            }
+            inlineCode += document.getText(codeRange) + '\n'
+            currentLine = codeRange.end.line + 1
+        }
+        return inlineCode
+    }
+
+    /** Ensure a debug session is running for the current file */
+    private async debugCell(cell?: JuliaCell, docCells: readonly JuliaCell[] = this.getDocCells()): Promise<boolean> {
+        telemetry.traceEvent('command-debugCell')
+        const editor = vscode.window.activeTextEditor
+        // Debugging always saves the file
+        if (editor === undefined) {
+            return false
+        }
+        const cellContext = cell
+            ? ({
+                  inf: cell,
+                  current: [cell],
+                  sup: cell,
+              } satisfies CellContext)
+            : this.getSelectionsCellContext(docCells)
+        const cells = cellContext.current // in document order
+        if (cells.length === 0) {
+            return true
+        }
+        try {
+            const document = editor.document
+            const inlineCode = this._buildInlineCode(document, cells)
+            const success = await this._ensureInlineDebugSession(document, inlineCode)
+            if (!success) {
+                vscode.window.showWarningMessage(
+                    'Could not start debug session for the selected Julia cell. Please try to start a Julia REPL first.'
+                )
+            }
+            return success
+        } catch (err) {
+            console.error(err)
+            vscode.window.showErrorMessage('Failed to prepare debug session for the selected Julia cell.')
+            return false
+        }
+    }
 }
 
 export class CodeCellFeature
@@ -771,7 +883,7 @@ export class CodeCellFeature
             }
             codeLenses.push(
                 new vscode.CodeLens(cell.cellRange, {
-                    title: 'Run Cell',
+                    title: '$(play) Run',
                     tooltip: 'Execute the cell in the Julia REPL',
                     command: 'language-julia.executeCell',
                     arguments: [cell, docCells],
@@ -779,17 +891,23 @@ export class CodeCellFeature
                 cell.id === 0
                     ? // The first cell would be skipped since it is preceded by a delimiter
                       new vscode.CodeLens(cell.cellRange, {
-                          title: 'Run Below',
+                          title: '$(play) Below',
                           tooltip: 'Execute all cells below in the Julia REPL',
                           command: 'language-julia.executeCurrentAndBelowCells',
                           arguments: [cell, docCells],
                       })
                     : new vscode.CodeLens(cell.cellRange, {
-                          title: 'Run Above',
+                          title: '$(play) Above',
                           tooltip: 'Execute all cells above in the Julia REPL',
                           command: 'language-julia.executeAboveCells',
                           arguments: [cell, docCells],
-                      })
+                      }),
+                new vscode.CodeLens(cell.cellRange, {
+                    title: '$(debug) Debug',
+                    tooltip: 'Debug the cell in the Julia REPL',
+                    command: 'language-julia.debugCell',
+                    arguments: [cell, docCells],
+                })
             )
         }
         return codeLenses

@@ -39,6 +39,7 @@ export const g_evalQueue = fastq(sendEvalRequest, 1)
 let g_terminal: vscode.Terminal = null
 
 export let g_connection: rpc.MessageConnection = undefined
+export let g_replDebugPipename: string | undefined = undefined
 
 let g_terminal_is_persistent: boolean = false
 
@@ -161,6 +162,7 @@ export async function startREPL(
     const terminalConfig = vscode.workspace.getConfiguration('terminal')
     const pipename = generatePipeName(uuidv4(), 'vsc-jl-repl')
     const debugPipename = generatePipeName(uuidv4(), 'vsc-jl-repldbg')
+    g_replDebugPipename = debugPipename
     const startupPath = path.join(g_context.extensionPath, 'scripts', 'terminalserver', 'terminalserver.jl')
     const nthreads = inferJuliaNumThreads()
     const pkgenvpath = await jlpkgenv.getAbsEnvPath()
@@ -389,6 +391,7 @@ function juliaConnector(pipename: string, debugPipename: string, start = false) 
 async function connectREPL() {
     const pipename = generatePipeName(uuidv4(), 'vsc-jl-repl')
     const debugPipename = generatePipeName(uuidv4(), 'vsc-jl-repldbg')
+    g_replDebugPipename = debugPipename
     const juliaIsConnectedPromise = startREPLMsgServer(pipename)
     const connectJuliaCode = juliaConnector(pipename, debugPipename, true)
 
