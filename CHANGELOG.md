@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
+- Added inline debugging support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#4011](https://github.com/julia-vscode/julia-vscode/pull/4011))
 - Added `CodeLens` and `FoldingRange` support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#3586](https://github.com/julia-vscode/julia-vscode/pull/3586))
 
 ## [1.177.0] - 2026-01-18
