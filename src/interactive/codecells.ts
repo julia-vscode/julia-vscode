@@ -883,7 +883,7 @@ export class CodeCellFeature
             }
             codeLenses.push(
                 new vscode.CodeLens(cell.cellRange, {
-                    title: '$(play) Run',
+                    title: '$(run) Run',
                     tooltip: 'Execute the cell in the Julia REPL',
                     command: 'language-julia.executeCell',
                     arguments: [cell, docCells],
@@ -891,19 +891,19 @@ export class CodeCellFeature
                 cell.id === 0
                     ? // The first cell would be skipped since it is preceded by a delimiter
                       new vscode.CodeLens(cell.cellRange, {
-                          title: '$(play) Below',
+                          title: '$(run-below) Below',
                           tooltip: 'Execute all cells below in the Julia REPL',
                           command: 'language-julia.executeCurrentAndBelowCells',
                           arguments: [cell, docCells],
                       })
                     : new vscode.CodeLens(cell.cellRange, {
-                          title: '$(play) Above',
+                          title: '$(run-above) Above',
                           tooltip: 'Execute all cells above in the Julia REPL',
                           command: 'language-julia.executeAboveCells',
                           arguments: [cell, docCells],
                       }),
                 new vscode.CodeLens(cell.cellRange, {
-                    title: '$(debug) Debug',
+                    title: '$(debug-alt) Debug',
                     tooltip: 'Debug the cell in the Julia REPL',
                     command: 'language-julia.debugCell',
                     arguments: [cell, docCells],

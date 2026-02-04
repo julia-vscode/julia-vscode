@@ -289,27 +289,27 @@
             {
                 "command": "language-julia.executeCell",
                 "title": "Julia: Execute Code Cell in REPL",
-                "icon": "$(play)"
+                "icon": "$(run)"
             },
             {
                 "command": "language-julia.executeCellAndMove",
                 "title": "Julia: Execute Code Cell in REPL and Move",
-                "icon": "$(play)"
+                "icon": "$(run)"
             },
             {
                 "command": "language-julia.executeCurrentAndBelowCells",
                 "title": "Julia: Execute Current and Below Code Cells in REPL",
-                "icon": "$(play)"
+                "icon": "$(run-below)"
             },
             {
                 "command": "language-julia.executeAboveCells",
                 "title": "Julia: Execute Above Code Cells in REPL",
-                "icon": "$(play)"
+                "icon": "$(run-above)"
             },
             {
                 "command": "language-julia.debugCell",
                 "title": "Julia: Debug Code Cell",
-                "icon": "$(debug)"
+                "icon": "$(debug-alt)"
             },
             {
                 "command": "language-julia.showInVSCode",
