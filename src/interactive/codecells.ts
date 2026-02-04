@@ -6,6 +6,8 @@ import * as repl from './repl'
 import * as results from './results'
 import fastq from 'fastq'
 
+import type { DebugConfigTreeProvider } from '../debugger/debugConfig'
+
 /** Combine multiple events into one event that fires when any of them fire */
 function anyEvent<T>(...events: vscode.Event<T>[]): vscode.Event<T> {
     return (listener: (e: T) => unknown, thisArgs?: unknown, disposables?: vscode.Disposable[]) => {
@@ -345,6 +347,10 @@ type KnownKeys<T> = {
 interface InlineDebugConfiguration extends KnownKeys<vscode.DebugConfiguration> {
     pipename?: string
     stopOnEntry: boolean
+    /** Names of modules or functions to precompile before running the code */
+    compiledModulesOrFunctions: string[]
+    /** Whether to run in compiled mode */
+    compiledMode: boolean
     /** Path of the Julia file to launch or attach to */
     program: string
     /** Newline-padded inline code to run instead of loading from the file on disk */
@@ -363,7 +369,10 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     private inlineResultsForCellEvaluation: boolean
     private inlineDebugSession: vscode.DebugSession | undefined
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(
+        context: vscode.ExtensionContext,
+        private compilerProvider: DebugConfigTreeProvider
+    ) {
         super(context)
         this.updateSaveOnEval()
         this.updateInlineResultsForCellEvaluation()
@@ -718,6 +727,8 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             request: isAttach ? 'attach' : 'launch',
             pipename: replDebugPipe,
             stopOnEntry: false,
+            compiledModulesOrFunctions: this.compilerProvider.getCompiledItems(),
+            compiledMode: this.compilerProvider.compiledMode,
             program: document.fileName,
             code: inlineCode,
             __juliaInlineDebug: true,
@@ -814,8 +825,8 @@ export class CodeCellFeature
         isWholeLine: true,
     })
 
-    constructor(context: vscode.ExtensionContext) {
-        super(context)
+    constructor(context: vscode.ExtensionContext, compilerProvider: DebugConfigTreeProvider) {
+        super(context, compilerProvider)
         this.updateUseCodeLens()
         this.updateUseCellHighlighting()
         this.context.subscriptions.push(

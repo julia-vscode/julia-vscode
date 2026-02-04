@@ -118,6 +118,7 @@ async function stopREPL(onDeactivate = false) {
         g_terminal.dispose()
         g_terminal = null
     }
+    g_replDebugPipename = undefined
 }
 
 async function restartREPL() {
