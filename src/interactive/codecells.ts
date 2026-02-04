@@ -719,13 +719,11 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri) ?? undefined
         // Prefer attaching to the running REPL so globals are shared
         await repl.startREPL(true, false)
-        const replDebugPipe = repl.g_replDebugPipename
-        const isAttach = replDebugPipe !== undefined
         const debugConfig: InlineDebugConfiguration = {
             type: 'julia',
-            name: isAttach ? 'Debug Julia Cell (REPL)' : 'Debug Julia Cell',
-            request: isAttach ? 'attach' : 'launch',
-            pipename: replDebugPipe,
+            name: 'Debug Julia Cell',
+            request: 'attach',
+            pipename: repl.g_replDebugPipename,
             stopOnEntry: false,
             compiledModulesOrFunctions: this.compilerProvider.getCompiledItems(),
             compiledMode: this.compilerProvider.compiledMode,
