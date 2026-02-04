@@ -701,7 +701,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         return await this._executeCells(editor, docCells.slice(0, endId))
     }
 
-    private async _ensureInlineDebugSession(document: vscode.TextDocument, inlineCode?: string): Promise<boolean> {
+    private async ensureInlineDebugSession(document: vscode.TextDocument, inlineCode?: string): Promise<boolean> {
         if (this.inlineDebugSession) {
             await vscode.debug.stopDebugging(this.inlineDebugSession)
             this.inlineDebugSession = undefined
@@ -767,7 +767,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         try {
             const document = editor.document
             const inlineCode = this._buildInlineCode(document, cells)
-            const success = await this._ensureInlineDebugSession(document, inlineCode)
+            const success = await this.ensureInlineDebugSession(document, inlineCode)
             if (!success) {
                 vscode.window.showWarningMessage(
                     'Could not start debug session for the selected Julia cell. Please try to start a Julia REPL first.'
