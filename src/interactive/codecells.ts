@@ -337,6 +337,7 @@ interface EvaluateRangeByLineTask {
     module: string
 }
 
+/** Extracts only explicitly declared string keys, omitting wildcard index signatures. */
 type KnownKeys<T> = {
     [K in keyof T as string extends K ? never : K]: T[K]
 }
