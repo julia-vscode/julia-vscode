@@ -16,6 +16,7 @@ import * as telemetry from '../telemetry'
 import {
     generatePipeName,
     inferJuliaNumThreads,
+    getVersionedParamsAtPosition,
     registerCommand,
     setContext,
     wrapCrashReporting,
@@ -895,12 +896,88 @@ export async function getBlockRange(params: VersionedTextDocumentPositionParams)
     }
 }
 
+async function selectJuliaBlock() {
+    telemetry.traceEvent('command-selectCodeBlock')
+
+    const editor = vscode.window.activeTextEditor
+    const position = editor.document.validatePosition(editor.selection.start)
+    const ret_val = await getBlockRange(getVersionedParamsAtPosition(editor.document, position))
+
+    const start_pos = new vscode.Position(ret_val[0].line, ret_val[0].character)
+    const end_pos = new vscode.Position(ret_val[1].line, ret_val[1].character)
+    validateMoveAndReveal(editor, start_pos, end_pos)
+}
+
 export function validateMoveAndReveal(editor: vscode.TextEditor, startpos: vscode.Position, endpos: vscode.Position) {
     const doc = editor.document
     startpos = doc.validatePosition(startpos)
     endpos = doc.validatePosition(endpos)
     editor.selection = new vscode.Selection(startpos, endpos)
     editor.revealRange(new vscode.Range(startpos, endpos))
+}
+
+async function evaluateBlockOrSelection(shouldMove: boolean = false) {
+    telemetry.traceEvent('command-executeCodeBlockOrSelection')
+
+    const editor = vscode.window.activeTextEditor
+    if (editor === undefined) {
+        return
+    }
+    if (vscode.workspace.getConfiguration('julia').get<boolean>('execution.saveOnEval') === true) {
+        await editor.document.save()
+    }
+    const selections = editor.selections.slice()
+
+    await startREPL(true, false)
+
+    for (const selection of selections) {
+        let range: vscode.Range = null
+        let nextBlock: vscode.Position = null
+        const cursorPos: vscode.Position = editor.document.validatePosition(
+            new vscode.Position(selection.start.line, selection.start.character)
+        )
+        const { module } = await modules.getModuleForEditor(editor.document, cursorPos)
+
+        if (selection.isEmpty) {
+            const [startPos, endPos, nextPos] = await getBlockRange(
+                getVersionedParamsAtPosition(editor.document, cursorPos)
+            )
+            const blockStartPos = editor.document.validatePosition(startPos)
+            const lineEndPos = editor.document.validatePosition(new vscode.Position(endPos.line, Infinity))
+            range = new vscode.Range(blockStartPos, lineEndPos)
+            nextBlock = editor.document.validatePosition(nextPos)
+        } else {
+            range = new vscode.Range(selection.start, selection.end)
+        }
+
+        const text = editor.document.getText(range)
+
+        if (
+            shouldMove &&
+            nextBlock &&
+            selection.isEmpty &&
+            editor.selections.length === 1 &&
+            editor.selection === selection
+        ) {
+            validateMoveAndReveal(editor, nextBlock, nextBlock)
+        }
+
+        if (range.isEmpty) {
+            return
+        }
+
+        const tempDecoration = vscode.window.createTextEditorDecorationType({
+            backgroundColor: new vscode.ThemeColor('editor.hoverHighlightBackground'),
+            isWholeLine: true,
+        })
+        editor.setDecorations(tempDecoration, [range])
+
+        setTimeout(() => {
+            editor.setDecorations(tempDecoration, [])
+        }, 200)
+
+        evaluate(editor, range, text, module)
+    }
 }
 
 // Returns false if the connection wasn't available
@@ -1356,6 +1433,9 @@ export function activate(
         registerCommand('language-julia.stopREPL', stopREPL),
         registerCommand('language-julia.restartREPL', restartREPL),
         registerCommand('language-julia.disconnectREPL', disconnectREPL),
+        registerCommand('language-julia.selectBlock', selectJuliaBlock),
+        registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
+        registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
         registerCommand('language-julia.executeActiveFile', () => executeFile()),
         registerCommand('language-julia.executeFile', (uri) => executeFile(uri)),
         registerCommand('language-julia.interrupt', interrupt),

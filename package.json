@@ -132,7 +132,7 @@
                 "title": "Julia: Disconnect external REPL"
             },
             {
-                "command": "language-julia.executeSelectionOrCell",
+                "command": "language-julia.executeCodeBlockOrSelection",
                 "title": "Julia: Execute Code in REPL"
             },
             {
@@ -140,8 +140,12 @@
                 "title": "Julia: Send Current Line or Selection to REPL"
             },
             {
-                "command": "language-julia.executeSelectionOrCellAndMove",
+                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
                 "title": "Julia: Execute Code in REPL and Move"
+            },
+            {
+                "command": "language-julia.selectBlock",
+                "title": "Julia: Select Code Block"
             },
             {
                 "command": "language-julia.executeFile",
@@ -689,7 +693,7 @@
             ],
             "editor/context": [
                 {
-                    "command": "language-julia.executeSelectionOrCell",
+                    "command": "language-julia.executeCodeBlockOrSelection",
                     "when": "activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds",
                     "group": "z_commands"
                 },
@@ -744,12 +748,12 @@
         },
         "keybindings": [
             {
-                "command": "language-julia.executeSelectionOrCellAndMove",
+                "command": "language-julia.executeCodeBlockOrSelectionAndMove",
                 "key": "Shift+Enter",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
             {
-                "command": "language-julia.executeSelectionOrCell",
+                "command": "language-julia.executeCodeBlockOrSelection",
                 "key": "Ctrl+Enter",
                 "when": "editorTextFocus && activeEditor != workbench.editor.notebook && editorLangId in julia.supportedLanguageIds"
             },
