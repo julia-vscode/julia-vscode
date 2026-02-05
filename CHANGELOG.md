@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- If a custom juliaup channel is set, VS Code will now also automatically set `JULIAUP_DEPOT_PATH` specific to that server ([#4012](https://github.com/julia-vscode/julia-vscode/pull/4012))
+
 ### Added
 - Added `CodeLens` and `FoldingRange` support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#3586](https://github.com/julia-vscode/julia-vscode/pull/3586))
 
