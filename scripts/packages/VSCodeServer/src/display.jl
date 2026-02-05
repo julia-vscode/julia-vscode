@@ -244,10 +244,11 @@ function extract_mime_id(m::MIME)
     mime = string(m)
 
     # Find first semicolon to separate mime type from parameters
-    semicolon_idx = findfirst(';', mime)
+    semicolon_idx = findfirst(";", mime)
     if semicolon_idx === nothing
         return mime, missing, missing
     end
+    semicolon_idx = first(semicolon_idx)
 
     mime_type = mime[1:(semicolon_idx-1)]
     params_str = mime[semicolon_idx:end]
