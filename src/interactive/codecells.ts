@@ -357,11 +357,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             registerCommand('language-julia.selectCell', this.selectCell.bind(this)),
             registerCommand('language-julia.executeCell', this.executeCell.bind(this)),
             registerCommand('language-julia.executeCellAndMove', this.executeCellAndMove.bind(this, 'down')),
-            registerCommand('language-julia.executeSelectionOrCell', this.executeSelectionOrCell.bind(this, false)),
-            registerCommand(
-                'language-julia.executeSelectionOrCellAndMove',
-                this.executeSelectionOrCell.bind(this, true)
-            ),
             registerCommand('language-julia.executeCurrentAndBelowCells', this.executeCurrentAndBelowCells.bind(this)),
             registerCommand('language-julia.executeAboveCells', this.executeAboveCells.bind(this))
         )
@@ -560,40 +555,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             cells = cellContext.current
         }
         return await this._executeCells(editor, cells)
-    }
-
-    /** For each selection (in selection order), execute the selection if non-empty, otherwise execute the entire cell containing the selection */
-    private async executeSelectionOrCell(
-        shouldMove: boolean = false,
-        docCells: readonly JuliaCell[] = this.getDocCells()
-    ) {
-        telemetry.traceEvent('command-executeSelectionOrCell')
-        const editor = vscode.window.activeTextEditor
-        if ((await this._commandCommonSave(editor)) === false) {
-            return
-        }
-        for (const selection of editor.selections.slice()) {
-            let cell: JuliaCell
-            if (selection.isEmpty) {
-                const cellContext = this.getSelectionsCellContext(docCells, [selection])
-                if (cellContext.current.length === 0) {
-                    continue
-                }
-                cell = cellContext.current[0]
-            } else {
-                const codeRange = new vscode.Range(selection.start, selection.end)
-                cell = {
-                    id: -1,
-                    cellRange: codeRange,
-                    codeRange: codeRange,
-                }
-            }
-            await this._executeCells(editor, [cell])
-        }
-        const cellContext = this.getSelectionsCellContext(docCells, editor.selections)
-        if (shouldMove) {
-            this._moveCell(editor, cellContext, 'down', docCells)
-        }
     }
 
     /** Execute the specified cell, or the cell or cells intersecting with the current selections, then move */

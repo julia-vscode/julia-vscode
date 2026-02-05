@@ -5,6 +5,10 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.179.0] - 2026-02-05
+### Fixed
+- Restore code block eval functionality ([#4014](https://github.com/julia-vscode/julia-vscode/pull/4014))
+
 ## [1.178.0] - 2026-02-05
 ### Fixed
 - If a custom juliaup channel is set, VS Code will now also automatically set `JULIAUP_DEPOT_PATH` specific to that server ([#4012](https://github.com/julia-vscode/julia-vscode/pull/4012))
