@@ -888,6 +888,12 @@
                     "description": "Juliaup mirror. Defaults to the official sources.",
                     "scope": "resource"
                 },
+                "julia.juliaup.customDepot": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "If enabled and a custom Juliaup server is set via `julia.juliaup.server`, Juliaup related configuration will be stored in a server-scoped directory. If the `JULIAUP_DEPOT_PATH` environment variable is set, this setting has no effect.",
+                    "scope": "language-overridable"
+                },
                 "julia.lint.run": {
                     "type": "boolean",
                     "default": true,
