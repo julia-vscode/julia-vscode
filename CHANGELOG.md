@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.179.0] - 2026-02-05
 ### Fixed
 - Restore code block eval functionality ([#4014](https://github.com/julia-vscode/julia-vscode/pull/4014))
+- Fixed an issue with appending to the history file when using inline eval with Julia 1.13 ([#4015](https://github.com/julia-vscode/julia-vscode/pull/4015))
 
 ## [1.178.0] - 2026-02-05
 ### Fixed
