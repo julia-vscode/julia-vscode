@@ -5,13 +5,14 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.178.0] - 2026-02-05
 ### Fixed
 - If a custom juliaup channel is set, VS Code will now also automatically set `JULIAUP_DEPOT_PATH` specific to that server ([#4012](https://github.com/julia-vscode/julia-vscode/pull/4012))
 
 ### Added
 - Added `CodeLens` and `FoldingRange` support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#3586](https://github.com/julia-vscode/julia-vscode/pull/3586))
 
-## [1.177.0] - 2026-01-18
+## [1.177.0] - 2026-01-30
 ### Added
 - The `application/vnd.julia-vscode.custompane+html` MIME type now supports an optional `;title=[^,]+` parameter to set a custom title for the pane, separate from the `id` parameter ([#4000](https://github.com/julia-vscode/julia-vscode/pull/4000))
 
