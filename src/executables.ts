@@ -90,9 +90,27 @@ export class JuliaupExecutable {
 
     public async run(args: string[], options?: JuliaupInteractiveExecutableSpawnOptions): Promise<string> {
         const server = vscode.workspace.getConfiguration('julia').get<string>('juliaup.server')
+        const useCustomDepot = vscode.workspace.getConfiguration('julia').get<boolean>('juliaup.customDepot')
+
         let env = process.env
         if (server) {
-            env = { ...env, JULIAUP_SERVER: server }
+            try {
+                const url = URL.parse(server)
+
+                let basePath = path.join(os.homedir(), '.julia')
+                if (process.env.JULIA_DEPOT_PATH) {
+                    basePath = process.env.JULIA_DEPOT_PATH
+                }
+
+                const depotPath = path.join(basePath, 'juliaup-depots', url.hostname)
+                console.debug(
+                    `using juliaup with ${useCustomDepot ? `JULIAUP_DEPOT_PATH:${depotPath} and` : ''} JULIAUP_SERVER:${server}`
+                )
+
+                env = { JULIAUP_DEPOT_PATH: useCustomDepot ? depotPath : undefined, ...env, JULIAUP_SERVER: server }
+            } catch {
+                vscode.window.showErrorMessage('Invalid juliaup server configured. Using default')
+            }
         }
         if (options?.show) {
             const exitCode = await this.taskRunner.run(this.command, args, {

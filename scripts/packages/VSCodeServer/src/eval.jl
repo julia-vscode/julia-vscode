@@ -62,37 +62,58 @@ function repl_interrupt_notification(conn, ::Nothing)
 end
 
 # https://github.com/JuliaLang/julia/blob/53a781d399bfb517b554fb1ae106e6dac99205f1/stdlib/REPL/src/REPL.jl#L547
-function add_code_to_repl_history(code)
-    code = strip(code)
-    isempty(code) && return
+@static if VERSION >= v"1.13-"
+    function add_code_to_repl_history(code)
+        str = strip(code)
 
-    try
-        mode = get_main_mode()
-        hist = mode.hist
-        !isempty(hist.history) &&
-            isequal(:julia, hist.modes[end]) && code == hist.history[end] && return
+        try
+            isempty(str) && return
+            jmode = get_main_mode()
+            hist = jmode.hist
+            mode = REPL.mode_idx(hist, jmode)
 
-        hist.last_mode = mode
-        hist.last_buffer = let
-            io = IOBuffer()
-            print(io, code)
-            io
+            !isempty(hist.history) && isequal(mode, hist.history[end].mode) &&
+                str == hist.history[end].content && return
+            entry = REPL.HistEntry(mode, now(UTC), str, 0)
+            push!(hist.history, entry)
+            nothing
+        catch err
+            @error "writing to history failed" exception = (err, catch_backtrace())
         end
-        push!(hist.modes, :julia)
-        push!(hist.history, code)
-        hist.history_file === nothing && return
-        entry = """
-        # time: $(Libc.strftime("%Y-%m-%d %H:%M:%S %Z", time()))
-        # mode: julia
-        $(replace(code, r"^"ms => "\t"))
-        """
-        seekend(hist.history_file)
-        print(hist.history_file, entry)
-        flush(hist.history_file)
+    end
+else
+    function add_code_to_repl_history(code)
+        code = strip(code)
+        isempty(code) && return
 
-        hist.cur_idx = length(hist.history) + 1
-    catch err
-        @error "writing to history failed" exception = (err, catch_backtrace())
+        try
+            mode = get_main_mode()
+            hist = mode.hist
+            !isempty(hist.history) &&
+                isequal(:julia, hist.modes[end]) && code == hist.history[end] && return
+
+            hist.last_mode = mode
+            hist.last_buffer = let
+                io = IOBuffer()
+                print(io, code)
+                io
+            end
+            push!(hist.modes, :julia)
+            push!(hist.history, code)
+            hist.history_file === nothing && return
+            entry = """
+            # time: $(Libc.strftime("%Y-%m-%d %H:%M:%S %Z", time()))
+            # mode: julia
+            $(replace(code, r"^"ms => "\t"))
+            """
+            seekend(hist.history_file)
+            print(hist.history_file, entry)
+            flush(hist.history_file)
+
+            hist.cur_idx = length(hist.history) + 1
+        catch err
+            @error "writing to history failed" exception = (err, catch_backtrace())
+        end
     end
 end
 

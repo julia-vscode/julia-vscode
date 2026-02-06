@@ -12,7 +12,14 @@ import InteractiveUtils
 
 include("../../JSON/src/JSON.jl")
 include("../../CancellationTokens/src/CancellationTokens.jl")
-include("../../CodeTracking/src/CodeTracking.jl")
+
+@static if VERSION >= v"1.10.0"
+    include("../../CodeTracking/src/CodeTracking.jl")
+elseif VERSION >= v"1.6.0"
+    include("../../../packages-old/v1.9/CodeTracking/src/CodeTracking.jl")
+else
+    include("../../../packages-old/v1.5/CodeTracking/src/CodeTracking.jl")
+end
 
 module IJuliaCore
 using ..JSON
