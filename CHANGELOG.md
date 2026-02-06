@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Added inline debugging support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#4011](https://github.com/julia-vscode/julia-vscode/pull/4011))
 
+## [1.180.0] - 2026-02-06
+### Fixed
+- Restore default folding range provider ([#4017](https://github.com/julia-vscode/julia-vscode/pull/4017))
+
 ## [1.179.0] - 2026-02-05
 ### Fixed
 - Restore code block eval functionality ([#4014](https://github.com/julia-vscode/julia-vscode/pull/4014))
