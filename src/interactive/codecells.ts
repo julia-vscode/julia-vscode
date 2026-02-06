@@ -631,10 +631,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     }
 }
 
-export class CodeCellFeature
-    extends CodeCellExecutionFeature
-    implements vscode.CodeLensProvider, vscode.FoldingRangeProvider
-{
+export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.CodeLensProvider {
     private readonly onDidChangeCodeLensConfiguration = new vscode.EventEmitter<void>()
     public readonly onDidChangeCodeLenses = anyEvent(
         this.onDidChangeCellDelimiters.event,
@@ -670,8 +667,6 @@ export class CodeCellFeature
             vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], this),
             vscode.window.onDidChangeTextEditorSelection(this.onDidChangeTextEditorSelection.bind(this))
         )
-        // FoldingRange
-        this.context.subscriptions.push(vscode.languages.registerFoldingRangeProvider(['julia', 'juliamarkdown'], this))
     }
 
     public override dispose() {
@@ -754,42 +749,6 @@ export class CodeCellFeature
             )
         }
         return codeLenses
-    }
-
-    public provideFoldingRanges(
-        document: vscode.TextDocument,
-        // prettier-ignore
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        context: vscode.FoldingContext,
-        // prettier-ignore
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        token: vscode.CancellationToken
-    ): vscode.ProviderResult<vscode.FoldingRange[]> {
-        const docCells = this.getDocCells(document)
-        const foldingRanges: vscode.FoldingRange[] = []
-        const cell = docCells[0]
-        if (cell.codeRange !== undefined) {
-            foldingRanges.push(
-                new vscode.FoldingRange(
-                    cell.cellRange.start.line,
-                    cell.cellRange.end.line,
-                    vscode.FoldingRangeKind.Imports
-                )
-            )
-        }
-        for (const cell of docCells.slice(1)) {
-            if (cell.codeRange === undefined) {
-                continue
-            }
-            foldingRanges.push(
-                new vscode.FoldingRange(
-                    cell.cellRange.start.line,
-                    cell.cellRange.end.line,
-                    vscode.FoldingRangeKind.Region
-                )
-            )
-        }
-        return foldingRanges
     }
 
     private onDidChangeTextEditorSelection(event: vscode.TextEditorSelectionChangeEvent) {
