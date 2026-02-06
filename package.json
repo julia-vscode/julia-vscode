@@ -1310,7 +1310,7 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Request runtime completions from the integrated REPL.",
-                    "scope": "application"
+                    "scope": "machine-overridable"
                 },
                 "julia.plots.path": {
                     "type": "string",

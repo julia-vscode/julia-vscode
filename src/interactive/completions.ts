@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 const requestTypeGetCompletionItems = new rpc.RequestType<
-    { line: string; mod: string }, // input type
+    { line: string, mod: string, lineNum: number, column: number }, // input type
     vscode.CompletionItem[], // return type
     void
 >('repl/getcompletions')
@@ -59,10 +59,9 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
                         return
                     }
 
-                    const items = await conn.sendRequest(requestTypeGetCompletionItems, { line, mod: module })
-                    if (token.isCancellationRequested) {
-                        return
-                    }
+                    const items = await conn.sendRequest(requestTypeGetCompletionItems,
+                        {line: line, mod: module, lineNum:  position.line, column: position.character })
+                    if(token.isCancellationRequested) { return }
 
                     return {
                         items: items,
@@ -88,7 +87,7 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
                             isIncomplete: true,
                         })
                     }
-                }, 500)
+                }, 5000)
             })
 
             return Promise.race([completionPromise, cancelPromise])
