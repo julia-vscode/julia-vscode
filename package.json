@@ -1020,6 +1020,11 @@
                     "default": true,
                     "markdownDescription": "Enable highlighting of the current cell delimited by `#julia.cellDelimiters#`."
                 },
+                "julia.outline.contents.enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDescription": "Enable a `Contents` outline provider based on Markdown-style headers in cell delimiters."
+                },
                 "julia.showRuntimeDiagnostics": {
                     "type": "boolean",
                     "default": true,

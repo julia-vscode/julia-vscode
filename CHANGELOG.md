@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Added a `Contents` outline provider based on Markdown-style headers in cell delimiters, configurable via `julia.outline.contents.enabled`.
+
 ## [1.180.0] - 2026-02-06
 ### Fixed
 - Restore default folding range provider ([#4017](https://github.com/julia-vscode/julia-vscode/pull/4017))
