@@ -20,6 +20,8 @@ function anyEvent<T>(...events: vscode.Event<T>[]): vscode.Event<T> {
 
 /** A cell in a Julia document */
 interface JuliaCell {
+    /** Optional Markdown-style header extracted from a cell delimiter line */
+    header?: JuliaCellHeader
     /** Cell ID, starting from 0 */
     id: number
     /**
@@ -36,6 +38,15 @@ interface JuliaCell {
      * Undefined if the cell has no code.
      */
     codeRange?: vscode.Range
+}
+
+interface JuliaCellHeader {
+    /** Document line where this header was found */
+    line: number
+    /** Header text without the leading `#` marks */
+    name: string
+    /** Header level inferred from number of `#` marks */
+    level: number
 }
 
 /** Cells in a Julia document */
@@ -162,6 +173,30 @@ class JuliaCellManager implements vscode.Disposable {
         this.documentCells.clear()
     }
 
+    private getCellHeader(lineText: string, line: number): JuliaCellHeader | undefined {
+        for (const regex of this.cellDelimiters) {
+            const delimiterMatch = lineText.match(regex)
+            if (delimiterMatch === null || delimiterMatch.index !== 0) {
+                continue
+            }
+            const remainder = lineText.slice(delimiterMatch[0].length)
+            const headerMatch = remainder.match(/^\s*(#+)\s+(.*)$/)
+            if (headerMatch === null) {
+                return undefined
+            }
+            const name = headerMatch[2].trim()
+            if (name.length === 0) {
+                return undefined
+            }
+            return {
+                line,
+                name,
+                level: headerMatch[1].length,
+            }
+        }
+        return undefined
+    }
+
     private buildDocCells(document: vscode.TextDocument): JuliaCell[] {
         if (this.isJmdDocument(document)) {
             return this.buildJmdDocCells(document)
@@ -198,10 +233,12 @@ class JuliaCellManager implements vscode.Disposable {
                     : codeRangeEnd.isBefore(codeRangeStart)
                       ? undefined
                       : new vscode.Range(codeRangeStart, codeRangeEnd)
+            const header = this.getCellHeader(document.lineAt(cellRangeStart.line).text, cellRangeStart.line)
             docCells.push({
                 id,
                 cellRange,
                 codeRange,
+                header,
             })
         }
         return docCells
@@ -222,10 +259,19 @@ class JuliaCellManager implements vscode.Disposable {
                 : document.positionAt(text.length)
             const codeRangeStart = cellRangeStart.translate(1, 0)
             const codeRangeEnd = endMatch ? document.positionAt(endMatch.index - 1) : cellRangeEnd
+            let header = this.getCellHeader(document.lineAt(cellRangeStart.line).text, cellRangeStart.line)
+            if (
+                header === undefined &&
+                codeRangeStart.line < document.lineCount &&
+                codeRangeStart.line <= cellRangeEnd.line
+            ) {
+                header = this.getCellHeader(document.lineAt(codeRangeStart.line).text, codeRangeStart.line)
+            }
             docCells.push({
                 id,
                 cellRange: new vscode.Range(cellRangeStart, cellRangeEnd),
                 codeRange: new vscode.Range(codeRangeStart, codeRangeEnd),
+                header,
             })
             if (!endMatch) {
                 break
@@ -631,7 +677,10 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     }
 }
 
-export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.CodeLensProvider {
+export class CodeCellFeature
+    extends CodeCellExecutionFeature
+    implements vscode.CodeLensProvider, vscode.DocumentSymbolProvider
+{
     private readonly onDidChangeCodeLensConfiguration = new vscode.EventEmitter<void>()
     public readonly onDidChangeCodeLenses = anyEvent(
         this.onDidChangeCellDelimiters.event,
@@ -641,6 +690,8 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
 
     private useCodeLens: boolean
     private useCellHighlighting: boolean
+    private useOutlineContents: boolean
+    private outlineSymbolProviderRegistration?: vscode.Disposable
 
     private readonly decoration = vscode.window.createTextEditorDecorationType({
         backgroundColor: new vscode.ThemeColor('editor.rangeHighlightBackground'),
@@ -663,14 +714,18 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
         super(context)
         this.updateUseCodeLens()
         this.updateUseCellHighlighting()
+        this.updateUseOutlineContents()
         this.context.subscriptions.push(
             vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], this),
             vscode.window.onDidChangeTextEditorSelection(this.onDidChangeTextEditorSelection.bind(this))
         )
+        this.updateOutlineSymbolProviderRegistration()
     }
 
     public override dispose() {
         super.dispose()
+        this.onDidChangeCodeLensConfiguration.dispose()
+        this.outlineSymbolProviderRegistration?.dispose()
         this.decoration.dispose()
         this.currentCellTop.dispose()
         this.currentCellBottom.dispose()
@@ -684,6 +739,68 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
         this.useCellHighlighting = vscode.workspace.getConfiguration('julia').get<boolean>('useCellHighlighting', true)
     }
 
+    private updateUseOutlineContents() {
+        this.useOutlineContents = vscode.workspace
+            .getConfiguration('julia')
+            .get<boolean>('outline.contents.enabled', false)
+    }
+
+    private updateOutlineSymbolProviderRegistration() {
+        if (this.useOutlineContents) {
+            if (this.outlineSymbolProviderRegistration === undefined) {
+                this.outlineSymbolProviderRegistration = vscode.languages.registerDocumentSymbolProvider(
+                    ['julia', 'juliamarkdown'],
+                    this,
+                    { label: 'Contents' }
+                )
+            }
+            return
+        }
+        this.outlineSymbolProviderRegistration?.dispose()
+        this.outlineSymbolProviderRegistration = undefined
+    }
+
+    private getJmdMarkdownHeaders(document: vscode.TextDocument): JuliaCellHeader[] {
+        const headers: JuliaCellHeader[] = []
+        let inFence = false
+        for (let line = 0; line < document.lineCount; line++) {
+            const lineText = document.lineAt(line).text
+            const trimmed = lineText.trim()
+
+            if (/^```/.test(trimmed)) {
+                if (inFence) {
+                    if (/^```(?!\w)/.test(trimmed)) {
+                        inFence = false
+                    }
+                } else {
+                    inFence = true
+                }
+                continue
+            }
+
+            if (inFence) {
+                continue
+            }
+
+            const match = lineText.match(/^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/)
+            if (match === null) {
+                continue
+            }
+
+            const name = match[2].trim()
+            if (name.length === 0) {
+                continue
+            }
+
+            headers.push({
+                line,
+                name,
+                level: match[1].length,
+            })
+        }
+        return headers
+    }
+
     protected override onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
         super.onDidChangeConfiguration(event)
         if (event.affectsConfiguration('julia.useCodeLens')) {
@@ -693,6 +810,10 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
         if (event.affectsConfiguration('julia.useCellHighlighting')) {
             this.updateUseCellHighlighting()
             this.onDidChangeCellDelimiters.fire()
+        }
+        if (event.affectsConfiguration('julia.outline.contents.enabled')) {
+            this.updateUseOutlineContents()
+            this.updateOutlineSymbolProviderRegistration()
         }
     }
 
@@ -749,6 +870,66 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
             )
         }
         return codeLenses
+    }
+
+    public provideDocumentSymbols(
+        document: vscode.TextDocument,
+        // prettier-ignore
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        token: vscode.CancellationToken
+    ): vscode.ProviderResult<vscode.DocumentSymbol[]> {
+        if (!this.useOutlineContents) {
+            return []
+        }
+        const headers: JuliaCellHeader[] = this.isJmdDocument(document)
+            ? this.getJmdMarkdownHeaders(document)
+            : this.getDocCells(document)
+                  .map((cell) => cell.header)
+                  .filter((header): header is JuliaCellHeader => header !== undefined)
+        if (headers.length === 0) {
+            return []
+        }
+
+        const rootSymbols: vscode.DocumentSymbol[] = []
+        const stack: Array<{ level: number; symbol: vscode.DocumentSymbol }> = []
+        const lastLine = document.lineCount - 1
+
+        for (let i = 0; i < headers.length; i++) {
+            const header = headers[i]
+            let endLine = lastLine
+            for (let j = i + 1; j < headers.length; j++) {
+                if (headers[j].level <= header.level) {
+                    endLine = Math.max(header.line, headers[j].line - 1)
+                    break
+                }
+            }
+
+            const headerLine = header.line
+            const endChar = document.lineAt(endLine).text.length
+            const range = new vscode.Range(headerLine, 0, endLine, endChar)
+            const selectionRange = new vscode.Range(headerLine, 0, headerLine, document.lineAt(headerLine).text.length)
+            const symbol = new vscode.DocumentSymbol(
+                header.name,
+                `Markdown H${header.level}`,
+                vscode.SymbolKind.Namespace,
+                range,
+                selectionRange
+            )
+
+            while (stack.length > 0 && header.level <= stack[stack.length - 1].level) {
+                stack.pop()
+            }
+
+            if (stack.length === 0) {
+                rootSymbols.push(symbol)
+            } else {
+                stack[stack.length - 1].symbol.children.push(symbol)
+            }
+
+            stack.push({ level: header.level, symbol })
+        }
+
+        return rootSymbols
     }
 
     private onDidChangeTextEditorSelection(event: vscode.TextEditorSelectionChangeEvent) {
