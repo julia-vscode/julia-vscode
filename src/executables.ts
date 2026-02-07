@@ -130,7 +130,7 @@ export class JuliaupExecutable {
             }
         } else {
             try {
-                const { stdout } = await execFile(this.command, args, { shell: true, env })
+                const { stdout } = await execFile(this.command, args, { env })
 
                 const out = stdout.toString().trim()
 
@@ -676,6 +676,7 @@ export class ExecutableFeature {
     }
 
     defaultJuliaupBinaryLocation() {
+        return 'H:\\New folder\\juliaup.exe'
         const root = this.installRoot()
         if (process.platform === 'win32') {
             return path.join(root, 'juliaup.exe')
