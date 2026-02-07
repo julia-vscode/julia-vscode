@@ -677,7 +677,10 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     }
 }
 
-export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.CodeLensProvider, vscode.DocumentSymbolProvider {
+export class CodeCellFeature
+    extends CodeCellExecutionFeature
+    implements vscode.CodeLensProvider, vscode.DocumentSymbolProvider
+{
     private readonly onDidChangeCodeLensConfiguration = new vscode.EventEmitter<void>()
     public readonly onDidChangeCodeLenses = anyEvent(
         this.onDidChangeCellDelimiters.event,
