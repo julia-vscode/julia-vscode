@@ -676,7 +676,6 @@ export class ExecutableFeature {
     }
 
     defaultJuliaupBinaryLocation() {
-        return 'H:\\New folder\\juliaup.exe'
         const root = this.installRoot()
         if (process.platform === 'win32') {
             return path.join(root, 'juliaup.exe')
