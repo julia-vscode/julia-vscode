@@ -130,7 +130,7 @@ export class JuliaupExecutable {
             }
         } else {
             try {
-                const { stdout } = await execFile(this.command, args, { shell: true, env })
+                const { stdout } = await execFile(this.command, args, { env })
 
                 const out = stdout.toString().trim()
 
