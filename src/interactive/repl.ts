@@ -532,11 +532,10 @@ function startREPLMsgServer(pipename: string, juliaExecutable?: JuliaExecutable)
             new rpc.StreamMessageWriter(socket)
         )
 
+        g_connection.onNotification(new rpc.NotificationType('connected'), () => connected.notify())
         g_connection.listen()
 
         g_onInit.fire({ connection: g_connection, juliaExecutable })
-
-        connected.notify()
     })
 
     server.listen(pipename)

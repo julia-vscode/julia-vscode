@@ -126,9 +126,9 @@ macro run(command)
 end
 
 function start_debug_backend(debug_pipename, error_handler)
-    @async try
-        server = Sockets.listen(debug_pipename)
+    server = Sockets.listen(debug_pipename)
 
+    @async try
         while true
             conn = Sockets.accept(server)
 
