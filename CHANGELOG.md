@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Added
 - Added inline debugging support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#4011](https://github.com/julia-vscode/julia-vscode/pull/4011))
+### Fixed
+- Addded missing `try`-`catch` in one of the juliaup flows ([#4023](https://github.com/julia-vscode/julia-vscode/pull/4023))
+- Handle `julia.exe +channel` in `executablePath` setting ([#4022](https://github.com/julia-vscode/julia-vscode/pull/4022))
+- Stop `#` being treated as a cell delimiter ([#4024](https://github.com/julia-vscode/julia-vscode/pull/4024))
 
 ## [1.181.0] - 2026-02-07
 ### Fixed

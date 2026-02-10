@@ -504,38 +504,42 @@ export class ExecutableFeature {
         if (!hasJuliaup) {
             this.outputChannel.appendLine(outputPrefix + `juliaup not installed, trying the non-LS path`)
 
-            const exe = await this.getExecutable(false)
-            if (exe) {
-                this.outputChannel.appendLine(outputPrefix + `using ${exe.command} as LS executable`)
+            try {
+                const exe = await this.getExecutable(false)
+                if (exe) {
+                    this.outputChannel.appendLine(outputPrefix + `using ${exe.command} as LS executable`)
 
-                if (
-                    !this.noJuliaupAlreadyNotified &&
-                    vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
-                ) {
-                    this.noJuliaupAlreadyNotified = true
+                    if (
+                        !this.noJuliaupAlreadyNotified &&
+                        vscode.workspace.getConfiguration('julia').get('juliaup.install.hint')
+                    ) {
+                        this.noJuliaupAlreadyNotified = true
 
-                    const install = 'Install'
-                    const doNotShowAgain = 'Do not show again'
-                    vscode.window
-                        .showWarningMessage(
-                            'Juliaup is the recommended version manager for Julia and used to ensure that the language server runs with a well known Julia version.',
-                            install,
-                            doNotShowAgain
-                        )
-                        .then((choice) => {
-                            if (choice === doNotShowAgain) {
-                                // never do this again
-                                vscode.workspace
-                                    .getConfiguration('julia')
-                                    .update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
-                            } else if (choice === install) {
-                                // trigger installation
-                                this.getJuliaupExecutable()
-                            }
-                        })
+                        const install = 'Install'
+                        const doNotShowAgain = 'Do not show again'
+                        vscode.window
+                            .showWarningMessage(
+                                'Juliaup is the recommended version manager for Julia and used to ensure that the language server runs with a well known Julia version.',
+                                install,
+                                doNotShowAgain
+                            )
+                            .then((choice) => {
+                                if (choice === doNotShowAgain) {
+                                    // never do this again
+                                    vscode.workspace
+                                        .getConfiguration('julia')
+                                        .update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
+                                } else if (choice === install) {
+                                    // trigger installation
+                                    this.getJuliaupExecutable()
+                                }
+                            })
+                    }
+
+                    return exe
                 }
-
-                return exe
+            } catch (err) {
+                this.outputChannel.appendLine(outputPrefix + `Non-LS executable not available (${err}), continuing...`)
             }
         }
 
@@ -810,7 +814,7 @@ function requiredChannels() {
 
 function juliaChannelFromPathConfig(config: string): string | undefined {
     let configuredJuliaupChannel: string
-    const prefixes = ['julia +', '+']
+    const prefixes = ['julia.exe +', 'julia +', '+']
 
     for (const prefix of prefixes) {
         if (config.startsWith(prefix)) {

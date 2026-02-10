@@ -1141,11 +1141,11 @@
                 "julia.cellDelimiters": {
                     "type": "array",
                     "default": [
-                        "^\\s?#\\s#+",
+                        "^[ \\t]?#[ \\t]#+",
                         "^##(?!#)",
-                        "^#(\\s?)%%",
-                        "^##(\\s?)-",
-                        "^##(\\s?)\\+"
+                        "^#([ \\t]?)%%",
+                        "^##([ \\t]?)-",
+                        "^##([ \\t]?)\\+"
                     ],
                     "description": "Cell delimiter regular expressions for Julia files."
                 },
