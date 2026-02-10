@@ -814,7 +814,7 @@ function requiredChannels() {
 
 function juliaChannelFromPathConfig(config: string): string | undefined {
     let configuredJuliaupChannel: string
-    const prefixes = ['julia +', '+']
+    const prefixes = ['julia.exe +', 'julia +', '+']
 
     for (const prefix of prefixes) {
         if (config.startsWith(prefix)) {
