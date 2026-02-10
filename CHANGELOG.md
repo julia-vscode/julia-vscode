@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [1.181.0] - 2026-02-07
 ### Fixed
 - Ensured that spaces in usernames don't cause issue when checking for `juliaup` ([#4018](https://github.com/julia-vscode/julia-vscode/pull/4018))
+- Fix REPL crash on debugger disconnect ([DebugAdapter.jl#113](https://github.com/julia-vscode/DebugAdapter.jl/pull/113))
 
 ## [1.180.0] - 2026-02-06
 ### Fixed
