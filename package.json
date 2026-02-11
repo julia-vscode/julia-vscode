@@ -749,6 +749,58 @@
                 {
                     "command": "language-julia.hideModules",
                     "when": "false"
+                },
+                {
+                    "command": "language-julia.runAndDebugCell",
+                    "when": "notebookType == jupyter-notebook && isWorkspaceTrusted && notebookCellType == code && notebookKernel =~ /julialang/"
+                },
+                {
+                    "command": "language-julia.executeCodeBlockOrSelection",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeJuliaCodeInREPL",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeCodeBlockOrSelectionAndMove",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.selectBlock",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.moveCellUp",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.moveCellDown",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.selectCell",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeCell",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeCellAndMove",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeCurrentAndBelowCells",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeAboveCells",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.debugCell",
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 }
             ],
             "file/newFile": [
