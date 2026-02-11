@@ -854,20 +854,18 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
                     command: 'language-julia.executeCell',
                     arguments: [cell, docCells],
                 }),
-                cell.id === 0
-                    ? // The first cell would be skipped since it is preceded by a delimiter
-                      new vscode.CodeLens(cell.cellRange, {
-                          title: '$(run-below) Below',
-                          tooltip: 'Execute this and the cells below in the Julia REPL',
-                          command: 'language-julia.executeCurrentAndBelowCells',
-                          arguments: [cell, docCells],
-                      })
-                    : new vscode.CodeLens(cell.cellRange, {
-                          title: '$(run-above) Above',
-                          tooltip: 'Execute all cells above in the Julia REPL',
-                          command: 'language-julia.executeAboveCells',
-                          arguments: [cell, docCells],
-                      }),
+                new vscode.CodeLens(cell.cellRange, {
+                    title: '$(run-above) Above',
+                    tooltip: 'Execute all cells above in the Julia REPL',
+                    command: 'language-julia.executeAboveCells',
+                    arguments: [cell, docCells],
+                }),
+                new vscode.CodeLens(cell.cellRange, {
+                    title: '$(run-below) Below',
+                    tooltip: 'Execute this and the cells below in the Julia REPL',
+                    command: 'language-julia.executeCurrentAndBelowCells',
+                    arguments: [cell, docCells],
+                }),
                 new vscode.CodeLens(cell.cellRange, {
                     title: '$(debug-alt) Debug',
                     tooltip: 'Debug the cell in the Julia REPL',
