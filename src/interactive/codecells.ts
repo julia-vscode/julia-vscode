@@ -916,6 +916,7 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
         }
         if (this.isJmdDocument(editor.document)) {
             this.highlightCells(editor, docCells)
+            return
         }
         if (selections !== undefined) {
             const cellContext = this.getSelectionsCellContext(docCells, selections)
