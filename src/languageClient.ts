@@ -10,6 +10,7 @@ import * as jlpkgenv from './jlpkgenv'
 import * as telemetry from './telemetry'
 import { ExecutableFeature, JuliaExecutable } from './executables'
 import { registerCommand } from './utils'
+import { ExtensionStatusManager, WorkerStatus } from './statusPane/extensionStatus'
 
 export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
 const supportedLanguages = ['julia', 'juliamarkdown', 'markdown']
@@ -34,7 +35,8 @@ export class LanguageClientFeature {
 
     constructor(
         private context: vscode.ExtensionContext,
-        private executable: ExecutableFeature
+        private executable: ExecutableFeature,
+        private statusManager?: ExtensionStatusManager
     ) {
         this.context.subscriptions.push(
             registerCommand('language-julia.refreshLanguageServer', () => this.refreshLanguageServer()),
@@ -103,6 +105,10 @@ export class LanguageClientFeature {
             this.statusBarItem.command = 'language-julia.restartLanguageServer'
             this.statusBarItem.show()
 
+            if (this.statusManager) {
+                this.statusManager.updateWorkerStatus('languageServer', WorkerStatus.Error, 'Julia not installed')
+            }
+
             return
         }
 
@@ -110,6 +116,10 @@ export class LanguageClientFeature {
         this.statusBarItem.backgroundColor = undefined
         this.statusBarItem.color = undefined
         this.statusBarItem.show()
+
+        if (this.statusManager) {
+            this.statusManager.updateWorkerStatus('languageServer', WorkerStatus.Starting, 'Starting language server...')
+        }
 
         let jlEnvPath = ''
         if (envPath) {
@@ -133,6 +143,9 @@ export class LanguageClientFeature {
                         }
                     })
                 this.statusBarItem.hide()
+                if (this.statusManager) {
+                    this.statusManager.updateWorkerStatus('languageServer', WorkerStatus.Error, 'Invalid environment path', e.toString())
+                }
                 return
             }
         }
@@ -237,6 +250,32 @@ export class LanguageClientFeature {
         // Create the language client and start the client.
         const languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
         languageClient.registerProposedFeatures()
+        
+        // Listen for progress notifications from language server
+        languageClient.onNotification('$/progress', (params: any) => {
+            if (this.statusManager && params.value) {
+                const value = params.value
+                if (value.kind === 'begin') {
+                    if (value.title?.includes('Indexing') || value.message?.includes('Indexing')) {
+                        this.statusManager.updateWorkerStatus('indexing', WorkerStatus.Indexing, value.title || value.message, undefined, 'languageServer')
+                    } else if (value.title?.includes('download') || value.message?.includes('download')) {
+                        this.statusManager.updateWorkerStatus('downloading', WorkerStatus.DownloadingCache, value.title || value.message, undefined, 'languageServer')
+                    } else if (value.title) {
+                        this.statusManager.updateWorkerStatus('lsProgress', WorkerStatus.Starting, value.title, undefined, 'languageServer')
+                    }
+                } else if (value.kind === 'end') {
+                    // Remove sub-tasks when complete
+                    if (value.title?.includes('Indexing')) {
+                        this.statusManager.removeWorker('indexing')
+                    } else if (value.title?.includes('download')) {
+                        this.statusManager.removeWorker('downloading')
+                    } else {
+                        this.statusManager.removeWorker('lsProgress')
+                    }
+                }
+            }
+        })
+        
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         languageClient.onTelemetry((data: any) => {
             if (data.command === 'trace_event') {
@@ -244,6 +283,9 @@ export class LanguageClientFeature {
             } else if (data.command === 'symserv_crash') {
                 telemetry.traceEvent('symservererror')
                 telemetry.handleNewCrashReport(data.name, data.message, data.stacktrace, 'Symbol Server')
+                if (this.statusManager) {
+                    this.statusManager.updateWorkerStatus('languageServer', WorkerStatus.Error, 'Symbol server crashed', data.message)
+                }
             } else if (data.command === 'symserv_pkgload_crash') {
                 telemetry.tracePackageLoadError(data.name, data.message)
             } else if (data.command === 'request_metric') {
@@ -278,7 +320,21 @@ export class LanguageClientFeature {
 
         try {
             this.statusBarItem.command = 'language-julia.showLanguageServerOutput'
+            if (this.statusManager) {
+                this.statusManager.updateWorkerStatus('languageServer', WorkerStatus.Precompiling, 'Precompiling language server...')
+            }
             await languageClient.start()
+            
+            // Language server is now started, set to indexing state initially
+            if (this.statusManager) {
+                this.statusManager.updateWorkerStatus('languageServer', WorkerStatus.Indexing, 'Initializing workspace...')
+                // Set ready after a short delay to allow initialization
+                setTimeout(() => {
+                    if (this.statusManager && languageClient === this.languageClient) {
+                        this.statusManager.updateWorkerStatus('languageServer', WorkerStatus.Ready, 'Language server ready')
+                    }
+                }, 2000)
+            }
             this.setLanguageClient(languageClient)
         } catch {
             vscode.window
@@ -292,6 +348,9 @@ export class LanguageClientFeature {
                     }
                 })
             this.setLanguageClient()
+            if (this.statusManager) {
+                this.statusManager.updateWorkerStatus('languageServer', WorkerStatus.Error, 'Failed to start language server')
+            }
         }
         this.statusBarItem.hide()
     }

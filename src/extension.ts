@@ -26,6 +26,8 @@ import * as weave from './weave'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { JuliaCommands } from './juliaCommands'
 import { installJuliaOrJuliaupTask } from './juliaupAutoInstall'
+import { ExtensionStatusManager } from './statusPane/extensionStatus'
+import { StatusPaneFeature } from './statusPane/statusPaneFeature'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -64,9 +66,16 @@ export async function activate(context: vscode.ExtensionContext) {
         const profilerFeature = new ProfilerFeature(context)
         context.subscriptions.push(profilerFeature)
 
+        // Extension status manager
+        const statusManager = new ExtensionStatusManager()
+        context.subscriptions.push(statusManager)
+
+        const statusPaneFeature = new StatusPaneFeature(context, statusManager)
+        context.subscriptions.push(statusPaneFeature)
+
         // Active features from other files
 
-        const languageClientFeature: LanguageClientFeature = new LanguageClientFeature(context, executableFeature)
+        const languageClientFeature: LanguageClientFeature = new LanguageClientFeature(context, executableFeature, statusManager)
         context.subscriptions.push(languageClientFeature)
 
         const compiledProvider = debugViewProvider.activate(context)
