@@ -277,31 +277,43 @@
             },
             {
                 "command": "language-julia.moveCellUp",
-                "title": "Julia: Move to Previous Cell"
+                "title": "Julia: Move to Previous Cell",
+                "icon": "$(arrow-up)"
             },
             {
                 "command": "language-julia.moveCellDown",
-                "title": "Julia: Move to Next Cell"
+                "title": "Julia: Move to Next Cell",
+                "icon": "$(arrow-down)"
             },
             {
                 "command": "language-julia.selectCell",
-                "title": "Julia: Select Code Cell"
+                "title": "Julia: Select Code Cell",
+                "icon": "$(selection)"
             },
             {
                 "command": "language-julia.executeCell",
-                "title": "Julia: Execute Code Cell in REPL"
+                "title": "Julia: Execute Code Cell in REPL",
+                "icon": "$(run)"
             },
             {
                 "command": "language-julia.executeCellAndMove",
-                "title": "Julia: Execute Code Cell in REPL and Move"
+                "title": "Julia: Execute Code Cell in REPL and Move",
+                "icon": "$(run)"
             },
             {
                 "command": "language-julia.executeCurrentAndBelowCells",
-                "title": "Julia: Execute Current and Below Code Cells in REPL"
+                "title": "Julia: Execute Current and Below Code Cells in REPL",
+                "icon": "$(run-below)"
             },
             {
                 "command": "language-julia.executeAboveCells",
-                "title": "Julia: Execute Above Code Cells in REPL"
+                "title": "Julia: Execute Above Code Cells in REPL",
+                "icon": "$(run-above)"
+            },
+            {
+                "command": "language-julia.debugCell",
+                "title": "Julia: Debug Code Cell",
+                "icon": "$(debug-alt)"
             },
             {
                 "command": "language-julia.showInVSCode",
@@ -737,6 +749,42 @@
                 {
                     "command": "language-julia.hideModules",
                     "when": "false"
+                },
+                {
+                    "command": "language-julia.runAndDebugCell",
+                    "when": "notebookType == jupyter-notebook && isWorkspaceTrusted && notebookCellType == code && notebookKernel =~ /julialang/"
+                },
+                {
+                    "command": "language-julia.moveCellUp",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.moveCellDown",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.selectCell",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeCell",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeCellAndMove",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeCurrentAndBelowCells",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.executeAboveCells",
+                    "when": "editorLangId in julia.supportedLanguageIds"
+                },
+                {
+                    "command": "language-julia.debugCell",
+                    "when": "editorLangId in julia.supportedLanguageIds"
                 }
             ],
             "file/newFile": [

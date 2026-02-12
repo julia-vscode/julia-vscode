@@ -142,6 +142,8 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
     run(conn_endpoint[])
     @debug "running"
 
+    JSONRPC.send_notification(conn_endpoint[], "connected", nothing)
+
     @async try
         msg_dispatcher = JSONRPC.MsgDispatcher()
 

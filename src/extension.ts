@@ -80,7 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
         openpackagedirectory.activate(context)
         jlpkgenv.activate(context, executableFeature, languageClientFeature)
 
-        context.subscriptions.push(new CodeCellFeature(context))
+        context.subscriptions.push(new CodeCellFeature(context, compiledProvider))
         const workspaceFeature = new WorkspaceFeature(context)
         context.subscriptions.push(workspaceFeature)
         const notebookFeature = new JuliaNotebookFeature(context, executableFeature, workspaceFeature, compiledProvider)
