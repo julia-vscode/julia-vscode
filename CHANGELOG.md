@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.184.0] - 2026-02-13
+### Fixed
+- Reverted an invalid parser fix ([CSTParser.jl#401](https://github.com/julia-vscode/CSTParser.jl/pull/401))
+
 ## [1.183.0] - 2026-02-13
 ### Added
 - Added inline debugging support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#4011](https://github.com/julia-vscode/julia-vscode/pull/4011))
