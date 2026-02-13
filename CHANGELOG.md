@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Added inline debugging support for cells (e.g. delimited by `##`) in Julia documents and Julia Markdown documents ([#4011](https://github.com/julia-vscode/julia-vscode/pull/4011))
 
+### Changed
+- Support version-specific Manifest files ([LanguageServer.jl#1376](https://github.com/julia-vscode/LanguageServer.jl/pull/1376), [SymbolServer.jl#303](https://github.com/julia-vscode/SymbolServer.jl/pull/303), [JuliaWorkspaces.jl#56](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/56))
+- Allow optional `code` argument in launch/attach args for inline debugging ([DebugAdapter.jl#114](https://github.com/julia-vscode/DebugAdapter.jl/pull/114))
+
+### Fixed
+- Fix organizing imports involving `import ... as` statements ([LanguageServer.jl#1375](https://github.com/julia-vscode/LanguageServer.jl/pull/1375))
+- Improved LSInvalidFile error printing ([LanguageServer.jl#1280](https://github.com/julia-vscode/LanguageServer.jl/pull/1280))
+- Fix anonymous long-form function definitions with one or fewer non-keyword arguments ([CSTParser.jl#393](https://github.com/julia-vscode/CSTParser.jl/pull/393))
+- Run loop iterator check on inferred type ([StaticLint.jl#406](https://github.com/julia-vscode/StaticLint.jl/pull/406))
+- Harden handling of terminate request ([DebugAdapter.jl#103](https://github.com/julia-vscode/DebugAdapter.jl/pull/103))
+- Better handling for non-file URIs ([JuliaWorkspaces.jl#63](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/63))
+
 ## [1.182.0] - 2026-02-10
 ### Fixed
 - Addded missing `try`-`catch` in one of the juliaup flows ([#4023](https://github.com/julia-vscode/julia-vscode/pull/4023))
