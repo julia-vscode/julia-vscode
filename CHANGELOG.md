@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.185.0] - 2026-02-15
+### Fixed
+- Fixed a language server crash caused by the the loop iterator check introduced in 1.183 ([StaticLint.jl#408](https://github.com/julia-vscode/StaticLint.jl/pull/408))
+
 ## [1.184.0] - 2026-02-13
 ### Fixed
 - Reverted an invalid parser fix ([CSTParser.jl#401](https://github.com/julia-vscode/CSTParser.jl/pull/401))
