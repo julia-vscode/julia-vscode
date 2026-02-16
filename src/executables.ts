@@ -260,7 +260,7 @@ export class JuliaupExecutable {
         try {
             await this.addChannels(channels, { show: true })
 
-            vscode.window.showInformationMessage('All required juliaup channels where successfully installed!')
+            vscode.window.showInformationMessage('All required juliaup channels were successfully installed!')
         } catch {
             vscode.window.showErrorMessage('Failed to install some of the required juliaup channels.')
         }
