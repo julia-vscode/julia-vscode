@@ -120,7 +120,7 @@ export async function installJuliaOrJuliaupTask(
     let exitCode: number | void = 1
 
     for (const command of commands) {
-        const isLast = command === commands[-1]
+        const isLast = command === commands[commands.length - 1]
 
         const args = [shellExecutionArg, command]
 
