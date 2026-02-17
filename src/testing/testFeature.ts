@@ -27,7 +27,7 @@ import {
 } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
-import { inferJuliaNumThreads, registerCommand } from '../utils'
+import { getCustomEnvironmentVariables, inferJuliaNumThreads, registerCommand } from '../utils'
 
 enum TestRunMode {
     Normal,
@@ -152,6 +152,7 @@ export class JuliaTestController {
             ],
             {
                 detached: false,
+                env: { ...process.env, ...getCustomEnvironmentVariables() },
             }
         )
 

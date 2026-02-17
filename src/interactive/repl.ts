@@ -15,6 +15,7 @@ import { JuliaExecutable, ExecutableFeature, JuliaupChannel } from '../executabl
 import * as telemetry from '../telemetry'
 import {
     generatePipeName,
+    getCustomEnvironmentVariables,
     inferJuliaNumThreads,
     getVersionedParamsAtPosition,
     registerCommand,
@@ -188,6 +189,7 @@ export async function startREPL(
     }
 
     const env: { [key: string]: string } = {
+        ...getCustomEnvironmentVariables(),
         JULIA_EDITOR: getEditor(),
         JULIA_VSCODE_REPL: isPersistentSession ? null : '1',
     }
@@ -1495,6 +1497,7 @@ function checkRevise(hasRevise: boolean, juliaExecutable: JuliaExecutable) {
                         const task = new TaskRunnerTerminal(`Install Revise`, shellPath, shellArgs, {
                             echoMessage: false,
                             env: {
+                                ...getCustomEnvironmentVariables(),
                                 JULIA_PKG_PRECOMPILE_AUTO: '0',
                             },
                             onExitMessage(exitCode) {

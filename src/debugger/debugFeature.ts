@@ -1,7 +1,13 @@
 import * as vscode from 'vscode'
 import * as jlpkgenv from '../jlpkgenv'
 import { ExecutableFeature } from '../executables'
-import { generatePipeName, inferJuliaNumThreads, parseVSCodeVariables, registerCommand } from '../utils'
+import {
+    generatePipeName,
+    getCustomEnvironmentVariables,
+    inferJuliaNumThreads,
+    parseVSCodeVariables,
+    registerCommand,
+} from '../utils'
 import { v4 as uuidv4 } from 'uuid'
 import { Subject } from 'await-notify'
 import * as net from 'net'
@@ -402,7 +408,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
                 getCrashReportingPipename(),
             ]
 
-            const env = {}
+            const env = { ...getCustomEnvironmentVariables() }
 
             if (nthreads === 'auto') {
                 jlargs.splice(1, 0, '--threads=auto')
