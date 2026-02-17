@@ -126,7 +126,7 @@ export async function installJuliaOrJuliaupTask(
 
         exitCode = await taskRunner.run(shell, args, {
             env: process.env,
-            echoMessage: `\n\r\x1b[30;47m * \x1b[0m ${commands}\n\n\r`,
+            echoMessage: `\n\r\x1b[30;47m * \x1b[0m ${command}\n\n\r`,
             onExitMessage(exitCode) {
                 if (exitCode === 0) {
                     return '\n\r\x1b[30;47m * \x1b[0m Successfully installed Juliaup/Julia. Press any key to close the terminal.\n\r\n\r'
@@ -134,7 +134,7 @@ export async function installJuliaOrJuliaupTask(
 
                 const onDoneMsg = isLast
                     ? `Failed to install Juliaup/Julia (exit code ${exitCode}). Press any key to close the terminal.`
-                    : `Command failed, proceeding to next option...`
+                    : `Installation failed, proceeding to next option...`
                 return `\n\r\x1b[30;47m * \x1b[0m ${onDoneMsg}\n\r\n\r`
             },
         })

@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- The juliaup auto installer now uses `wget` by default (on Linux, with a fallback to `curl`) and tries the app installer and winget stores on Windows if the Microsoft store installation fails ([#4030](https://github.com/julia-vscode/julia-vscode/pull/4030))
 
 ## [1.185.0] - 2026-02-15
 ### Fixed
