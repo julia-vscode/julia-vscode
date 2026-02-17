@@ -3,8 +3,15 @@ import { ExecutableFeature } from './executables'
 import { TaskRunner } from './taskRunnerTerminal'
 
 // Julia/Juliaup Install commands for different platforms
-const installJuliaupLinuxCommand: string = 'curl -fsSL https://install.julialang.org | sh -s -- -y'
-const installJuliaupWinCommand: string = 'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore'
+const linuxInstallComamnds: string[] = [
+    'wget -q -O - https://install.julialang.org | sh -s -- -y',
+    'curl -fsSL https://install.julialang.org | sh -s -- -y',
+]
+const windowsInstallComamnds: string[] = [
+    'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore',
+    'Add-AppxPackage -AppInstallerFile https://install.julialang.org/Julia.appinstaller',
+    'winget install --id Julialang.Julia -e -s winget',
+]
 
 export async function installJuliaOrJuliaup(
     executableFeature: ExecutableFeature,
@@ -59,7 +66,7 @@ export async function installJuliaOrJuliaup(
     let command = undefined
     if (choice === customCommand) {
         command = await vscode.window.showInputBox({
-            value: process.platform === 'win32' ? installJuliaupWinCommand : installJuliaupLinuxCommand,
+            value: process.platform === 'win32' ? windowsInstallComamnds[0] : linuxInstallComamnds[0],
             placeHolder: 'Enter command',
             validateInput: (value) => {
                 // return null if validates
@@ -91,37 +98,51 @@ export async function installJuliaOrJuliaupTask(
     taskRunner: TaskRunner,
     customCommand?: string
 ): Promise<number | void> {
-    let command = installJuliaupLinuxCommand
+    let commands = linuxInstallComamnds
     let shell = 'bash'
     let shellExecutionArg = '-c'
 
     if (process.platform === 'win32') {
-        command = installJuliaupWinCommand
+        commands = windowsInstallComamnds
         shell = 'powershell.exe'
         shellExecutionArg = '-Command'
     }
 
     if (customCommand) {
-        command = customCommand
+        commands = [customCommand]
     }
 
-    if (!command) {
+    if (!commands[0]) {
         // this looks unintentional, so we error out early
         return 1
     }
 
-    const args = [shellExecutionArg, command]
+    let exitCode: number | void = 1
 
-    const exitCode = await taskRunner.run(shell, args, {
-        env: process.env,
-        echoMessage: `\n\r\x1b[30;47m * \x1b[0m ${command}\n\n\r`,
-        onExitMessage(exitCode) {
-            if (exitCode === 0) {
-                return '\n\r\x1b[30;47m * \x1b[0m Successfully installed Juliaup/Julia. Press any key to close the terminal.\n\r\n\r'
-            }
-            return `\n\r\x1b[30;47m * \x1b[0m Failed to install Juliaup/Julia (exit code ${exitCode}). Press any key to close the terminal.\n\r\n\r`
-        },
-    })
+    for (const command of commands) {
+        const isLast = command === commands[-1]
+
+        const args = [shellExecutionArg, command]
+
+        exitCode = await taskRunner.run(shell, args, {
+            env: process.env,
+            echoMessage: `\n\r\x1b[30;47m * \x1b[0m ${commands}\n\n\r`,
+            onExitMessage(exitCode) {
+                if (exitCode === 0) {
+                    return '\n\r\x1b[30;47m * \x1b[0m Successfully installed Juliaup/Julia. Press any key to close the terminal.\n\r\n\r'
+                }
+
+                const onDoneMsg = isLast
+                    ? `Failed to install Juliaup/Julia (exit code ${exitCode}). Press any key to close the terminal.`
+                    : `Command failed, proceeding to next option...`
+                return `\n\r\x1b[30;47m * \x1b[0m ${onDoneMsg}\n\r\n\r`
+            },
+        })
+
+        if (exitCode === 0) {
+            return exitCode
+        }
+    }
 
     return exitCode
 }
