@@ -929,6 +929,15 @@
                     "markdownDescription": "Points to the Julia executable. This can either be an absolute path, an executable on your PATH, or a juliaup channel (valid formats `julia +$channel`, `+$channel`).",
                     "scope": "machine-overridable"
                 },
+                "julia.environmentVariables": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "default": {},
+                    "markdownDescription": "Environment variables that are added to the Julia executable's environment for every Julia process started by this extension. Variables defined here will be merged with (and usually override) the default process environment, but various environment variables will get overridden for some processes for stability reasons.",
+                    "scope": "machine"
+                },
                 "julia.juliaup.install.hint": {
                     "type": "boolean",
                     "default": true,

@@ -17,7 +17,7 @@ import {
 import { getAbsEnvPath } from '../jlpkgenv'
 import { JuliaExecutable } from '../executables'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
-import { generatePipeName, inferJuliaNumThreads } from '../utils'
+import { generatePipeName, getCustomEnvironmentVariables, inferJuliaNumThreads } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
@@ -331,6 +331,7 @@ export class JuliaKernel {
 
             const env = {
                 ...process.env,
+                ...getCustomEnvironmentVariables(),
             }
 
             if (nthreads === 'auto') {

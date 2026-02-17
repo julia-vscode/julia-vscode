@@ -4,7 +4,7 @@ import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
 import { ExecutableFeature } from './executables'
 import * as telemetry from './telemetry'
-import { inferJuliaNumThreads } from './utils'
+import { getCustomEnvironmentVariables, inferJuliaNumThreads } from './utils'
 
 class JuliaTaskProvider {
     constructor(
@@ -53,7 +53,7 @@ class JuliaTaskProvider {
                     `using Pkg; Pkg.test("${folder.name}")`,
                 ]
 
-                const env = {}
+                const env = { ...getCustomEnvironmentVariables() }
 
                 if (nthreads === 'auto') {
                     jlargs.splice(1, 0, '--threads=auto')
@@ -129,13 +129,17 @@ class JuliaTaskProvider {
                     folder,
                     `Run build`,
                     'Julia',
-                    new vscode.ProcessExecution(juliaExecutable.command, [
-                        ...juliaExecutable.args,
-                        '--color=yes',
-                        `--project=${pkgenvpath}`,
-                        '-e',
-                        `using Pkg; Pkg.build("${folder.name}")`,
-                    ]),
+                    new vscode.ProcessExecution(
+                        juliaExecutable.command,
+                        [
+                            ...juliaExecutable.args,
+                            '--color=yes',
+                            `--project=${pkgenvpath}`,
+                            '-e',
+                            `using Pkg; Pkg.build("${folder.name}")`,
+                        ],
+                        { env: { ...getCustomEnvironmentVariables() } }
+                    ),
                     ''
                 )
                 buildTask.group = vscode.TaskGroup.Build
@@ -157,14 +161,18 @@ class JuliaTaskProvider {
                     folder,
                     `Run benchmark`,
                     'Julia',
-                    new vscode.ProcessExecution(juliaExecutable.command, [
-                        ...juliaExecutable.args,
-                        '--color=yes',
-                        `--project=${pkgenvpath}`,
-                        '-e',
-                        'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], resultfile="benchmark/results.json")',
-                        folder.name,
-                    ]),
+                    new vscode.ProcessExecution(
+                        juliaExecutable.command,
+                        [
+                            ...juliaExecutable.args,
+                            '--color=yes',
+                            `--project=${pkgenvpath}`,
+                            '-e',
+                            'using PkgBenchmark; benchmarkpkg(Base.ARGS[1], resultfile="benchmark/results.json")',
+                            folder.name,
+                        ],
+                        { env: { ...getCustomEnvironmentVariables() } }
+                    ),
                     ''
                 )
                 benchmarkTask.presentationOptions = {
@@ -195,7 +203,7 @@ class JuliaTaskProvider {
                             path.join(rootPath, 'docs', 'make.jl'),
                             path.join(rootPath, 'docs', 'build', 'index.html'),
                         ],
-                        { cwd: rootPath }
+                        { cwd: rootPath, env: { ...getCustomEnvironmentVariables() } }
                     ),
                     ''
                 )

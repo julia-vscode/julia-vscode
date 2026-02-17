@@ -9,7 +9,7 @@ import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOpt
 import * as jlpkgenv from './jlpkgenv'
 import * as telemetry from './telemetry'
 import { ExecutableFeature, JuliaExecutable } from './executables'
-import { registerCommand } from './utils'
+import { getCustomEnvironmentVariables, registerCommand } from './utils'
 
 export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
 const supportedLanguages = ['julia', 'juliamarkdown', 'markdown']
@@ -181,6 +181,7 @@ export class LanguageClientFeature {
         const spawnOptions = {
             cwd: path.join(this.context.extensionPath, 'scripts', 'languageserver'),
             env: {
+                ...getCustomEnvironmentVariables(),
                 JULIA_DEPOT_PATH: languageServerDepotPath + path.delimiter,
                 JULIA_LOAD_PATH: path.delimiter,
                 HOME: process.env.HOME ? process.env.HOME : os.homedir(),

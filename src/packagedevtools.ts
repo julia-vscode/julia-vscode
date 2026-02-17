@@ -2,7 +2,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { ExecutableFeature } from './executables'
 import * as telemetry from './telemetry'
-import { registerCommand } from './utils'
+import { getCustomEnvironmentVariables, registerCommand } from './utils'
 
 export class JuliaPackageDevFeature {
     constructor(
@@ -47,6 +47,7 @@ export class JuliaPackageDevFeature {
                             resultVersion,
                         ],
                         cwd: vscode.workspace.workspaceFolders[0].uri.fsPath,
+                        env: getCustomEnvironmentVariables(),
                     })
 
                     newTerm.show(true)

@@ -5,7 +5,7 @@ import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
 import { ExecutableFeature } from './executables'
 import * as telemetry from './telemetry'
-import { registerCommand } from './utils'
+import { getCustomEnvironmentVariables, registerCommand } from './utils'
 import { mkdtemp } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -65,7 +65,9 @@ async function weave_core(column, selected_format: string = undefined) {
     console.log(args)
 
     if (g_weaveNextChildProcess === null) {
-        g_weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args])
+        g_weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args], {
+            env: { ...process.env, ...getCustomEnvironmentVariables() },
+        })
     }
     g_weaveChildProcess = g_weaveNextChildProcess
 
@@ -79,7 +81,9 @@ async function weave_core(column, selected_format: string = undefined) {
         g_weaveOutputChannel.append(String('Weaving ' + source_filename + ' to ' + output_filename + '\n'))
     }
 
-    g_weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args])
+    g_weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args], {
+        env: { ...process.env, ...getCustomEnvironmentVariables() },
+    })
 
     g_weaveChildProcess.stdout.on('data', function (data) {
         g_weaveOutputChannel.append(String(data))

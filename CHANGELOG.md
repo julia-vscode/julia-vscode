@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- The `julia.environmentVariables` setting can now be used to configure the environment all Julia process start with ([#4031](https://github.com/julia-vscode/julia-vscode/pull/4031))
 
 ## [1.185.0] - 2026-02-15
 ### Fixed

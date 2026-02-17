@@ -116,6 +116,10 @@ export function resolvePath(p: string, normalize: boolean = true) {
  *  function be replaced once this issue is resolved:
  *      https://github.com/microsoft/vscode/issues/46471
  */
+export function getCustomEnvironmentVariables(): { [key: string]: string } {
+    return vscode.workspace.getConfiguration('julia').get<{ [key: string]: string }>('environmentVariables') ?? {}
+}
+
 export function parseVSCodeVariables(p?: string) {
     if (!p) {
         return p
