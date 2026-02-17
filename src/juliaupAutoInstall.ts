@@ -4,8 +4,8 @@ import { TaskRunner } from './taskRunnerTerminal'
 
 // Julia/Juliaup Install commands for different platforms
 const linuxInstallComamnds: string[] = [
-    'wget -q -O - https://install.julialang.org | sh -s -- -y',
-    'curl -fsSL https://install.julialang.org | sh -s -- -y',
+    'set -o pipefail && wget -q -O - https://install.julialang.org | sh -s -- -y',
+    'set -o pipefail && curl -fsSL https://install.julialang.org | sh -s -- -y',
 ]
 const windowsInstallComamnds: string[] = [
     'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore',
