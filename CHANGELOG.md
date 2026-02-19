@@ -5,6 +5,11 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.187.0] - 2026-02-19
+### Fixed
+- Fixed another language server crash caused by the the loop iterator check introduced in 1.183 ([StaticLint.jl#409](https://github.com/julia-vscode/StaticLint.jl/pull/409))
+
 ## [1.186.0] - 2026-02-19
 ### Added
 - The `julia.environmentVariables` setting can now be used to configure the environment all Julia process start with ([#4031](https://github.com/julia-vscode/julia-vscode/pull/4031))
