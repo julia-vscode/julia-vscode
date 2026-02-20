@@ -10,7 +10,6 @@ const linuxInstallComamnds: string[] = [
 const windowsInstallComamnds: string[] = [
     'winget install --name Julia --id 9NJNWW8PVKMN -e -s msstore',
     'Add-AppxPackage -AppInstallerFile https://install.julialang.org/Julia.appinstaller',
-    'winget install --id Julialang.Juliaup -e -s winget',
 ]
 
 export async function installJuliaOrJuliaup(
