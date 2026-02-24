@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- Removed the docstring highlighting introduced in 1.154 based on community feedback ([#4034](https://github.com/julia-vscode/julia-vscode/pull/4034))
 
 ## [1.187.0] - 2026-02-19
 ### Fixed
