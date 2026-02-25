@@ -220,7 +220,7 @@ version = "1.11.0"
 deps = ["CodeTracking", "Compiler", "JuliaInterpreter"]
 path = "../../packages/LoweredCodeUtils"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "3.5.0"
+version = "3.5.1"
 
 [[deps.MacroTools]]
 path = "../../packages/MacroTools"
@@ -273,7 +273,7 @@ version = "1.2.1"
 deps = ["TOML"]
 path = "../../packages/Preferences"
 uuid = "21216c6a-2e73-6563-6e65-726566657250"
-version = "1.5.1"
+version = "1.5.2"
 
 [[deps.Printf]]
 deps = ["Unicode"]
