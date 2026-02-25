@@ -5,8 +5,14 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.188.0] - 2026-02-25
 ### Changed
 - Removed the docstring highlighting introduced in 1.154 based on community feedback ([#4034](https://github.com/julia-vscode/julia-vscode/pull/4034))
+
+### Fixed
+- Remove winget store fallback for juliaup installation, as it was identical to the manual appx installation ([#4033](https://github.com/julia-vscode/julia-vscode/pull/4033))
+- Prevent TOML files from being linted by the language server ([LanguageServer.jl#1378](https://github.com/julia-vscode/LanguageServer.jl/pull/1378))
+- Improved robustness of the missing reference getfield check ([StaticLint.jl#410](https://github.com/julia-vscode/StaticLint.jl/pull/410))
 
 ## [1.187.0] - 2026-02-19
 ### Fixed
