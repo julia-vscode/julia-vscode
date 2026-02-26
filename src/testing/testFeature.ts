@@ -131,7 +131,7 @@ export class JuliaTestController {
             const juliaup = await this.executableFeature.getJuliaupExecutable(false)
 
             try {
-                juliaExecutable = new JuliaExecutable(await juliaup.getChannel('release', true))
+                juliaExecutable = new JuliaExecutable(await juliaup.getChannel('release'))
             } catch {
                 vscode.window.showErrorMessage(
                     'You must have the "release" channel in Juliaup installed to use the test item functionality.'

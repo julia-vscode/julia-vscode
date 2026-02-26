@@ -5,7 +5,7 @@ import * as process from 'process'
 import { execFile } from 'promisify-child-process'
 import * as semver from 'semver'
 import * as vscode from 'vscode'
-import { resolvePath } from './utils'
+import { resolvePath, registerCommand } from './utils'
 import { installJuliaOrJuliaup } from './juliaupAutoInstall'
 import { Mutex } from 'async-mutex'
 import { TaskRunner } from './taskRunnerTerminal'
@@ -82,10 +82,13 @@ interface JuliaupApiGetinfoReturn {
 }
 
 export class JuliaupExecutable {
+    shouldAutoRequestInstall: boolean = true
+
     constructor(
         public command: string,
         public version: string,
-        private taskRunner: TaskRunner
+        private taskRunner: TaskRunner,
+        private statusBarItem: vscode.StatusBarItem
     ) {}
 
     public async run(args: string[], options?: JuliaupInteractiveExecutableSpawnOptions): Promise<string> {
@@ -189,32 +192,33 @@ export class JuliaupExecutable {
 
     // we only want to run one of these at a time
     private getChannelMutex: Mutex = new Mutex()
-    public async getChannel(channel: string, autoInstall = true): Promise<JuliaupChannel> {
+    public async getChannel(channelName: string, autoInstall = undefined): Promise<JuliaupChannel> {
         const channels = await this.installed()
 
-        const juChannel = channels.filter((c) => c.name === channel)
+        const channel = channels.filter((c) => c.name === channelName)
 
-        if (juChannel?.length > 0) {
-            return juChannel[0]
+        if (channel?.length > 0) {
+            return channel[0]
         }
 
-        if (autoInstall) {
+        if (autoInstall ?? this.shouldAutoRequestInstall) {
             await this.getChannelMutex.acquire()
             try {
                 try {
-                    return await this.getChannel(channel, false)
+                    return await this.getChannel(channelName, false)
                 } catch {
                     // this is fine, but we need to double check because the channel
                     // might have just been added
                 }
-
-                await this.installRequired(channel)
-                return await this.getChannel(channel, false)
+                if (autoInstall ?? this.shouldAutoRequestInstall) {
+                    await this.installRequired(channelName)
+                    return await this.getChannel(channelName, false)
+                }
             } finally {
                 this.getChannelMutex.release()
             }
         } else {
-            throw new Error(`Channel ${channel} not installed`)
+            throw new Error(`Channel ${channelName} not installed`)
         }
     }
 
@@ -245,23 +249,29 @@ export class JuliaupExecutable {
         const channels = requiredChannels()
         channels.add(channel)
 
+        const installed = await this.installed()
+        installed.forEach((c) => channels.delete(c.name))
+
         const choice = await vscode.window.showInformationMessage(
             'Install required Julia channels?',
             {
                 modal: true,
-                detail: `The extension is configured to use the following juliaup channels, but they are not installed: ${[...channels].join(', ')}. We can automatically add them for you.`,
+                detail: `The extension is configured to use the following juliaup channels, but they are not installed: ${[...channels].join(', ')}. \n\nWe can automatically add them for you.`,
             },
             'Add required channels'
         )
 
         if (!choice) {
+            this.shouldAutoRequestInstall = false
             throw new Error(`Channel ${channel} not installed`)
         }
         try {
             await this.addChannels(channels, { show: true })
+            hideStatusBarItem(this.statusBarItem)
 
             vscode.window.showInformationMessage('All required juliaup channels were successfully installed!')
         } catch {
+            this.shouldAutoRequestInstall = false
             vscode.window.showErrorMessage('Failed to install some of the required juliaup channels.')
         }
     }
@@ -367,8 +377,16 @@ export class ExecutableFeature {
                 ) {
                     // DO SOMETHING
                 }
+            }),
+            registerCommand('language-julia.retriggerInstallation', async () => {
+                ;(await this.getJuliaupExecutable(true)).shouldAutoRequestInstall = true
+                vscode.commands.executeCommand('language-julia.restartLanguageServer')
+            }),
+            registerCommand('language-julia.showExecutableOutput', () => {
+                this.outputChannel.show()
             })
         )
+
         this.taskRunner = new TaskRunner('Julia Installer', new vscode.ThemeIcon('tools'))
     }
 
@@ -451,22 +469,14 @@ export class ExecutableFeature {
             }
         }
 
-        try {
-            const channel = await juliaup.getDefaultChannel()
-            this.outputChannel.appendLine(outputPrefix + `using default juliaup channel ${channel.name}`)
-            this.setJuliaInstalled(true)
-
-            return new JuliaExecutable(channel)
-        } catch {
-            this.outputChannel.appendLine(outputPrefix + `default juliaup channel is not installed`)
-        }
+        setStatusJuliaRequired(this.statusBarItem)
 
         this.setJuliaInstalled(false)
         this.outputChannel.appendLine('!!! Julia was not found. Most extension features will be nonfunctional.')
         throw new Error('Julia not installed')
     }
 
-    public async getLsExecutable(): Promise<JuliaExecutable> {
+    public async getLsExecutable(autoInstallJulia?: boolean): Promise<JuliaExecutable> {
         // precedence: julia.languageServerExecutablePath > julia.languageServerJuliaupChannel > julia +release
         this.outputChannel.appendLine('Determining Julia executable for the language server...')
 
@@ -531,7 +541,7 @@ export class ExecutableFeature {
                                         .update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
                                 } else if (choice === install) {
                                     // trigger installation
-                                    this.getJuliaupExecutable()
+                                    this.getJuliaupExecutable(autoInstallJulia)
                                 }
                             })
                     }
@@ -565,7 +575,7 @@ export class ExecutableFeature {
 
         if (configuredChannel) {
             try {
-                const channel = await juliaup.getChannel(configuredChannel)
+                const channel = await juliaup.getChannel(configuredChannel, autoInstallJulia)
                 if (channel) {
                     const exe = new JuliaExecutable(channel)
                     this.outputChannel.appendLine(outputPrefix + `using ${exe.juliaupChannel.name} as LS channel`)
@@ -586,6 +596,8 @@ export class ExecutableFeature {
         } catch {
             this.outputChannel.appendLine(outputPrefix + `release juliaup channel is not installed`)
         }
+
+        setStatusJuliaRequired(this.statusBarItem)
 
         this.outputChannel.appendLine('!!! Julia was not found. Most extension features will be nonfunctional.')
         throw new Error('Julia not installed')
@@ -663,6 +675,9 @@ export class ExecutableFeature {
     }
 
     public setJuliaInstalled(isInstalled: boolean) {
+        if (isInstalled) {
+            hideStatusBarItem(this.statusBarItem)
+        }
         vscode.commands.executeCommand('setContext', 'julia.juliaInstalled', isInstalled)
     }
 
@@ -759,7 +774,7 @@ export class ExecutableFeature {
                 this.outputChannel.appendLine(`  ${cmd}: found 'juliaup' with version ${version}`)
                 this.setJuliaupInstalled(true)
 
-                return new JuliaupExecutable(cmd, version, this.taskRunner)
+                return new JuliaupExecutable(cmd, version, this.taskRunner, this.statusBarItem)
             } catch {
                 // TODO: maybe check the actual error here?
                 this.outputChannel.appendLine(`  ${cmd}: not a juliaup executable`)
@@ -787,6 +802,21 @@ export class ExecutableFeature {
             throw new Error('juliaup not available')
         }
     }
+}
+
+function setStatusJuliaRequired(statusBarItem: vscode.StatusBarItem) {
+    statusBarItem.text = 'Julia: Not Installed'
+    statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground')
+    statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground')
+    statusBarItem.command = {
+        title: 'Install Julia',
+        command: 'language-julia.retriggerInstallation',
+    }
+    statusBarItem.show()
+}
+
+function hideStatusBarItem(statusBarItem: vscode.StatusBarItem) {
+    statusBarItem.hide()
 }
 
 function requiredChannels() {

@@ -38,7 +38,9 @@ export class LanguageClientFeature {
     ) {
         this.context.subscriptions.push(
             registerCommand('language-julia.refreshLanguageServer', () => this.refreshLanguageServer()),
-            registerCommand('language-julia.restartLanguageServer', (env?: string) => this.restartLanguageServer(env)),
+            registerCommand('language-julia.restartLanguageServer', (env?: string) =>
+                this.restartLanguageServer(env, true)
+            ),
             registerCommand('language-julia.showLanguageServerOutput', () => {
                 this.outputChannel.show(true)
             }),
@@ -78,31 +80,25 @@ export class LanguageClientFeature {
         }
     }
 
-    public async startServer(envPath?: string) {
+    public async startServer(envPath?: string, autoInstall?: boolean) {
         if (this.serverStarting) {
             return
         }
 
         this.serverStarting = true
         try {
-            await this.startServerInner(envPath)
+            await this.startServerInner(envPath, autoInstall)
         } finally {
             this.serverStarting = false
         }
     }
 
-    public async startServerInner(envPath?: string) {
+    public async startServerInner(envPath?: string, autoInstall?: boolean) {
         let juliaExecutable: JuliaExecutable
 
         try {
-            juliaExecutable = await this.executable.getLsExecutable()
+            juliaExecutable = await this.executable.getLsExecutable(autoInstall)
         } catch {
-            this.statusBarItem.text = 'Julia: Not installed'
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground')
-            this.statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground')
-            this.statusBarItem.command = 'language-julia.restartLanguageServer'
-            this.statusBarItem.show()
-
             return
         }
 
@@ -118,20 +114,14 @@ export class LanguageClientFeature {
             try {
                 jlEnvPath = await jlpkgenv.getAbsEnvPath()
             } catch (e) {
-                this.outputChannel.appendLine(
-                    'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid.'
-                )
+                const msg = `Could not start the Julia language server because the current environment could not be determined. Check the \`julia.executablePath\` and \`julia.environmentPath\` settings for correctness.`
+                this.outputChannel.appendLine(msg)
                 this.outputChannel.appendLine(e)
-                vscode.window
-                    .showErrorMessage(
-                        'Could not start the Julia language server. Make sure the `julia.environmentPath` setting is valid. ',
-                        'Open Settings'
-                    )
-                    .then((val) => {
-                        if (val) {
-                            vscode.commands.executeCommand('workbench.action.openSettings', 'julia.environmentPath')
-                        }
-                    })
+                vscode.window.showErrorMessage(msg, 'Open Settings').then((val) => {
+                    if (val) {
+                        vscode.commands.executeCommand('workbench.action.openSettings', 'julia.path')
+                    }
+                })
                 this.statusBarItem.hide()
                 return
             }
@@ -310,7 +300,7 @@ export class LanguageClientFeature {
         }
     }
 
-    async restartLanguageServer(envPath?: string) {
+    async restartLanguageServer(envPath?: string, autoInstall?: boolean) {
         if (this.languageClient) {
             try {
                 await this.languageClient.stop()
@@ -320,7 +310,7 @@ export class LanguageClientFeature {
             this.setLanguageClient()
         }
 
-        await this.startServer(envPath)
+        await this.startServer(envPath, autoInstall)
     }
 
     public async dispose(): Promise<void> {
