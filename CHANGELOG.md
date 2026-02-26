@@ -5,6 +5,12 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- The debugger now has better defaults for the list of compiled items ([#4038](https://github.com/julia-vscode/julia-vscode/pull/4038))
+
+### Fixed
+- Stopped printing deprecation warnings when recursively setting modules as interpreted or compiled ([DebugAdapter.jl#115](https://github.com/julia-vscode/DebugAdapter.jl/pull/115))
+
 ## [1.188.0] - 2026-02-25
 ### Changed
 - Removed the docstring highlighting introduced in 1.154 based on community feedback ([#4034](https://github.com/julia-vscode/julia-vscode/pull/4034))
