@@ -278,7 +278,11 @@ export function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('language-julia.set-compiled-for-name', async () => {
             const name = await vscode.window.showInputBox({
-                prompt: 'Please enter a fully qualified module or function name you want the debugger to treat as compiled code (e.g. `Base.Math.sin` or `StaticArrays`). A trailing `.` will treat all submodules as compiled as well. A prefixed `-` will ensure that all methods of the specified function are always interpreted.',
+                prompt: `Please enter a fully qualified module or function name you want the debugger to treat as compiled code
+                        (e.g. \`Base.Math.sin\` or \`StaticArrays\`). A trailing \`.\` will treat all submodules as compiled as
+                        well. A prefixed \`-\` will ensure that all methods of the specified function are always interpreted.
+                        It's recommended to use \`ALL_MODULES_EXCEPT_MAIN\` as a starting point and then specify modules or
+                        functions to be interpreted.`,
             })
             if (name) {
                 provider.addNameToCompiled(name)
