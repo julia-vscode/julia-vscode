@@ -217,9 +217,8 @@ export class JuliaupExecutable {
             } finally {
                 this.getChannelMutex.release()
             }
-        } else {
-            throw new Error(`Channel ${channelName} not installed`)
         }
+        throw new Error(`Channel ${channelName} not installed`)
     }
 
     public async getDefaultChannel(): Promise<JuliaupChannel> {
