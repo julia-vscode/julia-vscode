@@ -266,7 +266,7 @@ export class JuliaupExecutable {
         }
         try {
             await this.addChannels(channels, { show: true })
-            hideStatusBarItem(this.statusBarItem)
+            this.statusBarItem.hide()
 
             vscode.window.showInformationMessage('All required juliaup channels were successfully installed!')
         } catch {
@@ -675,7 +675,7 @@ export class ExecutableFeature {
 
     public setJuliaInstalled(isInstalled: boolean) {
         if (isInstalled) {
-            hideStatusBarItem(this.statusBarItem)
+            this.statusBarItem.hide()
         }
         vscode.commands.executeCommand('setContext', 'julia.juliaInstalled', isInstalled)
     }
@@ -812,10 +812,6 @@ function setStatusJuliaRequired(statusBarItem: vscode.StatusBarItem) {
         command: 'language-julia.retriggerInstallation',
     }
     statusBarItem.show()
-}
-
-function hideStatusBarItem(statusBarItem: vscode.StatusBarItem) {
-    statusBarItem.hide()
 }
 
 function requiredChannels() {
