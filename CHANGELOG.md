@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.189.0] - 2026-03-02
 ### Changed
 - The debugger now has better defaults for the list of compiled items ([#4038](https://github.com/julia-vscode/julia-vscode/pull/4038))
 - Users will now only get one modal dialogue if installation of required juliaup channels or julia is cancelled ([#4039](https://github.com/julia-vscode/julia-vscode/pull/4039))
