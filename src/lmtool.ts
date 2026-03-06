@@ -6,21 +6,20 @@ export class LmToolFeature {
         context.subscriptions.push(vscode.lm.registerTool('run-julia-code', new RunJuliaCodeTool()))
         context.subscriptions.push(vscode.lm.registerTool('restart-julia-repl', new RestartJuliaReplTool()))
         context.subscriptions.push(vscode.lm.registerTool('stop-julia-repl', new StopJuliaReplTool()))
-        context.subscriptions.push(vscode.lm.registerTool('interrupt-julia-execution', new InterruptJuliaExecutionTool()))
+        context.subscriptions.push(
+            vscode.lm.registerTool('interrupt-julia-execution', new InterruptJuliaExecutionTool())
+        )
         context.subscriptions.push(vscode.lm.registerTool('change-julia-environment', new ChangeJuliaEnvironmentTool()))
     }
 
-    dispose() {
-
-    }
+    dispose() {}
 }
 
 interface IRunJuliaCodeToolParameters {
-    code: string;
+    code: string
 }
 
 export class StopJuliaReplTool implements vscode.LanguageModelTool<Record<string, never>> {
-
     async invoke(
         _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
         _token: vscode.CancellationToken
@@ -38,21 +37,24 @@ export class StopJuliaReplTool implements vscode.LanguageModelTool<Record<string
             invocationMessage: 'Stopping Julia REPL',
             confirmationMessages: {
                 title: 'Stop Julia REPL',
-                message: new vscode.MarkdownString('Stop the Julia REPL? This will terminate the current session and clear all state.'),
+                message: new vscode.MarkdownString(
+                    'Stop the Julia REPL? This will terminate the current session and clear all state.'
+                ),
             },
         }
     }
 }
 
 export class InterruptJuliaExecutionTool implements vscode.LanguageModelTool<Record<string, never>> {
-
     async invoke(
         _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
         _token: vscode.CancellationToken
     ) {
         await vscode.commands.executeCommand('language-julia.interrupt')
 
-        return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart('Julia execution has been interrupted.')])
+        return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart('Julia execution has been interrupted.'),
+        ])
     }
 
     async prepareInvocation(
@@ -66,18 +68,19 @@ export class InterruptJuliaExecutionTool implements vscode.LanguageModelTool<Rec
 }
 
 interface IChangeJuliaEnvironmentToolParameters {
-    envPath: string;
+    envPath: string
 }
 
 export class ChangeJuliaEnvironmentTool implements vscode.LanguageModelTool<IChangeJuliaEnvironmentToolParameters> {
-
     async invoke(
         options: vscode.LanguageModelToolInvocationOptions<IChangeJuliaEnvironmentToolParameters>,
         _token: vscode.CancellationToken
     ) {
-        await vscode.commands.executeCommand('language-julia.changeCurrentEnvironment', options.input.envPath)
+        await vscode.commands.executeCommand('language-julia.activateHere', vscode.Uri.parse(options.input.envPath))
 
-        return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(`Julia environment changed to: ${options.input.envPath}`)])
+        return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(`Julia environment changed to: ${options.input.envPath}`),
+        ])
     }
 
     async prepareInvocation(
@@ -95,7 +98,6 @@ export class ChangeJuliaEnvironmentTool implements vscode.LanguageModelTool<ICha
 }
 
 export class RestartJuliaReplTool implements vscode.LanguageModelTool<Record<string, never>> {
-
     async invoke(
         _options: vscode.LanguageModelToolInvocationOptions<Record<string, never>>,
         _token: vscode.CancellationToken
@@ -120,7 +122,6 @@ export class RestartJuliaReplTool implements vscode.LanguageModelTool<Record<str
 }
 
 export class RunJuliaCodeTool implements vscode.LanguageModelTool<IRunJuliaCodeToolParameters> {
-
     async invoke(
         options: vscode.LanguageModelToolInvocationOptions<IRunJuliaCodeToolParameters>,
         _token: vscode.CancellationToken
@@ -147,8 +148,7 @@ export class RunJuliaCodeTool implements vscode.LanguageModelTool<IRunJuliaCodeT
         const confirmationMessages = {
             title: 'Run Julia code in REPL',
             message: new vscode.MarkdownString(
-                `Run this Julia code in the REPL?` +
-                `\n\n\`\`\`julia\n${options.input.code}\n\`\`\`\n`
+                `Run this Julia code in the REPL?` + `\n\n\`\`\`julia\n${options.input.code}\n\`\`\`\n`
             ),
         }
 
