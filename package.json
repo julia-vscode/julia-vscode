@@ -1570,15 +1570,108 @@
         "languageModelTools": [
             {
                 "name": "run-julia-code",
-                "modelDescription": "Run Julia code in the active REPL",
+                "displayName": "Run Julia Code",
+                "toolReferenceName": "runJuliaCode",
+                "canBeReferencedInPrompt": true,
+                "icon": "$(play)",
+                "tags": [
+                    "julia",
+                    "repl",
+                    "code-execution"
+                ],
+                "modelDescription": "Run Julia code in the Julia REPL and return the output. Use this tool when the user asks to execute, run, or evaluate Julia code, perform calculations using Julia, interact with a Julia session, or when a task would benefit from running Julia code. The code is executed in the currently active Julia REPL session, which preserves state between invocations (variables, loaded packages, etc.). Returns the printed output or error message from the execution.",
+                "userDescription": "Execute Julia code in the active REPL and return the output.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "code": {
                             "type": "string",
-                            "description": "The code to run"
+                            "description": "The Julia code to execute in the REPL. Can be a single expression or multiple statements. The REPL session persists state between calls, so previously defined variables and loaded packages remain available."
                         }
-                    }
+                    },
+                    "required": [
+                        "code"
+                    ]
+                }
+            },
+            {
+                "name": "restart-julia-repl",
+                "displayName": "Restart Julia REPL",
+                "toolReferenceName": "restartJuliaRepl",
+                "canBeReferencedInPrompt": true,
+                "icon": "$(debug-restart)",
+                "tags": [
+                    "julia",
+                    "repl",
+                    "restart"
+                ],
+                "modelDescription": "Restart the Julia REPL. Use this tool when the user asks to restart, reset, or reinitialize their Julia session. This will stop the current REPL and start a fresh one, clearing all state including defined variables, loaded packages, and module definitions.",
+                "userDescription": "Restart the Julia REPL, clearing all session state.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "stop-julia-repl",
+                "displayName": "Stop Julia REPL",
+                "toolReferenceName": "stopJuliaRepl",
+                "canBeReferencedInPrompt": true,
+                "icon": "$(debug-stop)",
+                "tags": [
+                    "julia",
+                    "repl",
+                    "stop"
+                ],
+                "modelDescription": "Stop the Julia REPL. Use this tool when the user asks to stop, kill, terminate, or shut down the Julia REPL session. This terminates the process without starting a new one. All session state will be lost.",
+                "userDescription": "Stop the Julia REPL, terminating the current session.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "interrupt-julia-execution",
+                "displayName": "Interrupt Julia Execution",
+                "toolReferenceName": "interruptJulia",
+                "canBeReferencedInPrompt": true,
+                "icon": "$(debug-pause)",
+                "tags": [
+                    "julia",
+                    "repl",
+                    "interrupt"
+                ],
+                "modelDescription": "Interrupt the currently running Julia computation. Use this tool when a Julia execution is taking too long, appears to be stuck, or the user asks to cancel or abort a running computation. This sends an interrupt signal without killing the REPL, so session state is preserved.",
+                "userDescription": "Interrupt a running Julia computation without killing the REPL.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {}
+                }
+            },
+            {
+                "name": "change-julia-environment",
+                "displayName": "Change Julia Environment",
+                "toolReferenceName": "changeJuliaEnvironment",
+                "canBeReferencedInPrompt": true,
+                "icon": "$(folder)",
+                "tags": [
+                    "julia",
+                    "environment",
+                    "package"
+                ],
+                "modelDescription": "Change the active Julia package environment. Use this tool when the user asks to switch, activate, or change their Julia project environment. Provide the path to the directory containing the Project.toml file.",
+                "userDescription": "Switch the active Julia package environment.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "envPath": {
+                            "type": "string",
+                            "description": "The path to the directory containing the Project.toml file for the environment to activate."
+                        }
+                    },
+                    "required": [
+                        "envPath"
+                    ]
                 }
             }
         ]
