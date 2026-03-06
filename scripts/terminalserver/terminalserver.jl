@@ -1,6 +1,6 @@
 # this script loads VSCodeServer and handles ARGS
 let
-    args = [popfirst!(Base.ARGS) for _ in 1:8]
+    args = [popfirst!(Base.ARGS) for _ in 1:9]
     conn_pipename, debug_pipename, telemetry_pipename = args[1:3]
     has_revise = true
 
@@ -23,6 +23,15 @@ let
 
     if !Sys.iswindows() && "ENABLE_SHELL_INTEGRATION=true" in args
         VSCodeServer.ENABLE_SHELL_INTEGRATION[] = true
+    end
+
+    # set default plot mime before atreplinit
+    for arg in args
+        if startswith(arg, "PLOTS_DEFAULT_MIME=")
+            mime = split(arg, "=", limit=2)[2]
+            VSCodeServer.set_default_plot_mime_notification(nothing, (;mime=string(mime)))
+            break
+        end
     end
 
     atreplinit() do repl

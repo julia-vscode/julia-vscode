@@ -121,6 +121,7 @@ const repl_toggle_plot_pane_notification_type = JSONRPC.NotificationType("repl/t
 const repl_toggle_diagnostics_notification_type = JSONRPC.NotificationType("repl/toggleDiagnostics", NamedTuple{(:enable,),Tuple{Bool}})
 const repl_toggle_inlay_hints_notification_type = JSONRPC.NotificationType("repl/toggleInlayHints", NamedTuple{(:enable,),Tuple{Bool}})
 const repl_toggle_progress_notification_type = JSONRPC.NotificationType("repl/toggleProgress", NamedTuple{(:enable,),Tuple{Bool}})
+const repl_set_default_plot_mime_notification_type = JSONRPC.NotificationType("repl/setDefaultPlotMime", NamedTuple{(:mime,),Tuple{String}})
 const cd_notification_type = JSONRPC.NotificationType("repl/cd", NamedTuple{(:uri,),Tuple{String}})
 const activate_project_notification_type = JSONRPC.NotificationType("repl/activateProject", NamedTuple{(:uri,),Tuple{String}})
 const repl_getdebugitems_request_type = JSONRPC.RequestType("repl/getDebugItems", NamedTuple{(:juliaAccessor,),Tuple{String}}, Vector{DebugConfigTreeItem})

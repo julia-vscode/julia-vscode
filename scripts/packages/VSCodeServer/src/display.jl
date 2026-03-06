@@ -52,6 +52,17 @@ function toggle_progress_notification(_, params::NamedTuple{(:enable,),Tuple{Boo
     PROGRESS_ENABLED[] = params.enable
 end
 
+function set_default_plot_mime_notification(_, params::NamedTuple{(:mime,),Tuple{String}})
+    png_idx = findfirst(==("image/png"), DISPLAYABLE_MIMES)
+    svg_idx = findfirst(==("image/svg+xml"), DISPLAYABLE_MIMES)
+    if png_idx !== nothing && svg_idx !== nothing
+        first_mime = DISPLAYABLE_MIMES[min(png_idx, svg_idx)]
+        if first_mime != params.mime
+            DISPLAYABLE_MIMES[png_idx], DISPLAYABLE_MIMES[svg_idx] = DISPLAYABLE_MIMES[svg_idx], DISPLAYABLE_MIMES[png_idx]
+        end
+    end
+end
+
 function fix_displays(; is_repl=false)
     for d in reverse(Base.Multimedia.displays)
         if d isa InlineDisplay
