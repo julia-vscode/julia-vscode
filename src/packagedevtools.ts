@@ -29,32 +29,41 @@ export class JuliaPackageDevFeature {
             }
 
             if (resultVersion !== undefined) {
-                const bar = await vscode.authentication.getSession('github', ['repo'], { createIfNone: true })
-                const accessToken = bar.accessToken
-                const account = bar.account.label
+                const releaseNotes = await vscode.window.showInputBox({
+                    prompt: 'Please enter the release notes for this version.',
+                    value: 'See the changelog for details.'
+                })
 
-                const juliaExecutable = await this.ExecutableFeature.getExecutable()
+                if (releaseNotes !== undefined) {
 
-                if (juliaExecutable.getVersion().compare('1.6.0') >= 0) {
-                    const newTerm = vscode.window.createTerminal({
-                        name: 'Julia: Tag a new package version',
-                        shellPath: juliaExecutable.command,
-                        shellArgs: [
-                            ...juliaExecutable.args,
-                            path.join(this.context.extensionPath, 'scripts', 'packagedev', 'tagnewpackageversion.jl'),
-                            accessToken,
-                            account,
-                            resultVersion,
-                        ],
-                        cwd: vscode.workspace.workspaceFolders[0].uri.fsPath,
-                        env: getCustomEnvironmentVariables(),
-                    })
+                    const bar = await vscode.authentication.getSession('github', ['repo'], { createIfNone: true })
+                    const accessToken = bar.accessToken
+                    const account = bar.account.label
 
-                    newTerm.show(true)
-                } else {
-                    await vscode.window.showErrorMessage(
-                        'Tagging package versions is only supported on Julia 1.6 and newer.'
-                    )
+                    const juliaExecutable = await this.ExecutableFeature.getExecutable()
+
+                    if (juliaExecutable.getVersion().compare('1.6.0') >= 0) {
+                        const newTerm = vscode.window.createTerminal({
+                            name: 'Julia: Tag a new package version',
+                            shellPath: juliaExecutable.command,
+                            shellArgs: [
+                                ...juliaExecutable.args,
+                                path.join(this.context.extensionPath, 'scripts', 'packagedev', 'tagnewpackageversion.jl'),
+                                accessToken,
+                                account,
+                                resultVersion,
+                                releaseNotes,
+                            ],
+                            cwd: vscode.workspace.workspaceFolders[0].uri.fsPath,
+                            env: getCustomEnvironmentVariables(),
+                        })
+
+                        newTerm.show(true)
+                    } else {
+                        await vscode.window.showErrorMessage(
+                            'Tagging package versions is only supported on Julia 1.6 and newer.'
+                        )
+                    }
                 }
             }
         }
