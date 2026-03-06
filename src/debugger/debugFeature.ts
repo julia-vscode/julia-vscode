@@ -306,7 +306,7 @@ export class JuliaDebugConfigurationProvider implements vscode.DebugConfiguratio
         this.compiledProvider = compiledProvider
     }
     public resolveDebugConfiguration(
-        folder: vscode.WorkspaceFolder | undefined,
+        _folder: vscode.WorkspaceFolder | undefined,
         config: vscode.DebugConfiguration
     ): vscode.ProviderResult<vscode.DebugConfiguration> {
         if (!config.request) {

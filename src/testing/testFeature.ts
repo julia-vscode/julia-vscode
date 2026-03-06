@@ -520,7 +520,7 @@ export class TestFeature {
             true
         )
 
-        coverage_profile.loadDetailedCoverage = async (testRun, fileCoverage: OurFileCoverage) => {
+        coverage_profile.loadDetailedCoverage = async (_testRun, fileCoverage: OurFileCoverage) => {
             return fileCoverage.detailedCoverage
         }
 
