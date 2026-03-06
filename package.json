@@ -1566,6 +1566,21 @@
                     "highContrastLight": "#4063dd32"
                 }
             }
+        ],
+        "languageModelTools": [
+            {
+                "name": "run-julia-code",
+                "modelDescription": "Run Julia code in the active REPL",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "code": {
+                            "type": "string",
+                            "description": "The code to run"
+                        }
+                    }
+                }
+            }
         ]
     },
     "scripts": {

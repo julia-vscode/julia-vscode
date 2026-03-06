@@ -26,6 +26,7 @@ import * as weave from './weave'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { JuliaCommands } from './juliaCommands'
 import { installJuliaOrJuliaupTask } from './juliaupAutoInstall'
+import { LmToolFeature } from './lmtool'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -81,6 +82,9 @@ export async function activate(context: vscode.ExtensionContext) {
         jlpkgenv.activate(context, executableFeature, languageClientFeature)
 
         context.subscriptions.push(new CodeCellFeature(context, compiledProvider))
+        const lmToolFeature = new LmToolFeature(context)
+        context.subscriptions.push(lmToolFeature)
+
         const workspaceFeature = new WorkspaceFeature(context)
         context.subscriptions.push(workspaceFeature)
         const notebookFeature = new JuliaNotebookFeature(context, executableFeature, workspaceFeature, compiledProvider)
