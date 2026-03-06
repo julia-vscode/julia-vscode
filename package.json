@@ -1310,6 +1310,15 @@
                     "description": "Default directory for saving plots. Can either be relative to the current workspace or absolute.",
                     "scope": "window"
                 },
+                "julia.plots.defaultMimeType": {
+                    "type": "string",
+                    "default": "image/png",
+                    "enum": [
+                        "image/png",
+                        "image/svg+xml"
+                    ],
+                    "description": "Default MIME type for plots. Determines whether plots are rendered as PNG or SVG by default."
+                },
                 "julia.workspace.showModules": {
                     "type": "boolean",
                     "default": true,

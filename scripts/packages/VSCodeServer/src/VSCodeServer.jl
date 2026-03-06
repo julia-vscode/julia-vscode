@@ -160,6 +160,7 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         msg_dispatcher[repl_toggle_diagnostics_notification_type] = toggle_diagnostics_notification
         msg_dispatcher[repl_toggle_inlay_hints_notification_type] = toggle_inlay_hints_notification
         msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress_notification
+        msg_dispatcher[repl_set_default_plot_mime_notification_type] = set_default_plot_mime_notification
         msg_dispatcher[cd_notification_type] = cd_to_uri_notification
         msg_dispatcher[activate_project_notification_type] = activate_uri_notification
         msg_dispatcher[repl_getdebugitems_request_type] = debugger_getdebugitems_request

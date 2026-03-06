@@ -180,6 +180,7 @@ export async function startREPL(
         jlarg2.push(`USE_PROGRESS=${config.get('useProgressFrontend')}`)
         jlarg2.push(`ENABLE_SHELL_INTEGRATION=${terminalConfig.get('integrated.shellIntegration.enabled')}`)
         jlarg2.push(`DEBUG_MODE=${Boolean(process.env.DEBUG_MODE)}`)
+        jlarg2.push(`PLOTS_DEFAULT_MIME=${config.get('plots.defaultMimeType')}`)
 
         if (nthreads === 'auto') {
             jlarg2.splice(0, 0, '--threads=auto')
@@ -1396,6 +1397,14 @@ export function activate(
                 try {
                     await g_connection.sendNotification('repl/toggleDiagnostics', {
                         enable: vscode.workspace.getConfiguration('julia').get('showRuntimeDiagnostics'),
+                    })
+                } catch (err) {
+                    console.warn(err)
+                }
+            } else if (event.affectsConfiguration('julia.plots.defaultMimeType')) {
+                try {
+                    await g_connection.sendNotification('repl/setDefaultPlotMime', {
+                        mime: vscode.workspace.getConfiguration('julia').get('plots.defaultMimeType'),
                     })
                 } catch (err) {
                     console.warn(err)
