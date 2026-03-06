@@ -40,7 +40,7 @@ md.validateLink = (url) => {
     return BAD_PROTO_RE.test(str) ? (GOOD_DATA_RE.test(str) ? true : false) : true
 }
 
-md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
 
     if (aIndex >= 0 && tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
