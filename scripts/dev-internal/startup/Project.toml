@@ -1,0 +1,9 @@
+[deps]
+AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
+FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+FlameGraphs = "08572546-2f56-4bcf-ba4e-bab62c3a3f89"
+ProfileCanvas = "efd6af41-a80b-495e-886c-e51b0c7d77a3"
+ProfileView = "c46f51b8-102a-5cf2-8d2c-8597cb0e0da7"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+SnoopCompile = "aa65fe97-06da-5843-b5b1-d5d13cad87d2"
+SnoopCompileCore = "e2b509da-e806-4183-be48-004708413034"
