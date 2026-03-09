@@ -142,7 +142,7 @@ function set_error_global(errs)
     end
 end
 
-function repl_runcode_request(conn, params::ReplRunCodeRequestParams, token)::ReplRunCodeRequestReturn
+function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecialize(token))::ReplRunCodeRequestReturn
     run_with_backend() do
         fix_displays()
 

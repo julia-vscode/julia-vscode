@@ -155,26 +155,30 @@ else
 end
 
 const HAS_REPL_TRANSFORM = Ref{Bool}(false)
-function hook_repl(repl)
+function hook_repl(@nospecialize(repl))
     if HAS_REPL_TRANSFORM[]
         return
     end
-    @debug "installing REPL hook"
+    @debug "installing REPL hook"  time=round(Int, time()*10)
     if !isdefined(repl, :interface)
+        @debug "set up interface"  time=round(Int, time()*10)
         repl.interface = REPL.setup_interface(repl)
     end
     main_mode = get_main_mode(repl)
 
     if VERSION > v"1.5-"
-        for _ = 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
-            has_repl_backend() && continue
+        for i in 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
+            @debug "wait for backend: $i" time=round(Int, time()*10)
+            has_repl_backend() && break
             sleep(0.5)
         end
         if has_repl_backend()
+            @debug "backend found"  time=round(Int, time()*10)
             push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
             HAS_REPL_TRANSFORM[] = true
+            @debug "installing shell integration"  time=round(Int, time()*10)
             install_vscode_shell_integration(main_mode)
-            @debug "REPL AST transform installed"
+            @debug "REPL AST transform installed"  time=round(Int, time()*10)
             return
         end
     end
@@ -184,7 +188,7 @@ function hook_repl(repl)
             $(evalrepl)($(active_module)(), $line, $repl, $main_mode)
         end
     end
-    @debug "legacy REPL hook installed"
+    @debug "legacy REPL hook installed"  time=round(Int, time()*10)
     HAS_REPL_TRANSFORM[] = true
     return nothing
 end

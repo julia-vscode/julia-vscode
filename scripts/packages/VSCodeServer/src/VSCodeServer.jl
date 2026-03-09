@@ -126,23 +126,24 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
 end
 
 function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing)
-    if !HAS_REPL_TRANSFORM[] && isdefined(Base, :active_repl)
-        hook_repl(Base.active_repl)
-    end
-
-    @debug "connecting to pipe"
+    @debug "start serve" time=round(Int, time()*10)
     conn = connect(conn_pipename)
+
+    @debug "eval backend" time=round(Int, time()*10)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
-    @debug "connected"
     if EVAL_BACKEND_TASK[] === nothing
         start_eval_backend()
     end
+
+    run(conn_endpoint[])
+
+    @debug "debug backend" time=round(Int, time()*10)
     DEBUG_PIPENAME[] = debug_pipename
     start_debug_backend(debug_pipename, error_handler)
-    run(conn_endpoint[])
-    @debug "running"
 
+    @debug "send connected notif" time=round(Int, time()*10)
     JSONRPC.send_notification(conn_endpoint[], "connected", nothing)
+    @debug "connected notif sent" time=round(Int, time()*10)
 
     @async try
         msg_dispatcher = JSONRPC.MsgDispatcher()
@@ -167,10 +168,13 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         msg_dispatcher[repl_gettabledata_request_type] = get_table_data_request
         msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table_notification
 
+        @debug "send queued notifs" time=round(Int, time()*10)
         send_queued_notifications!()
 
+        @debug "entering message loop" time=round(Int, time()*10)
         @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
             msg = JSONRPC.get_next_message(conn_endpoint[])
+            @debug "message: $(msg.method)" time=round(Int, time()*10)
 
             if msg.method == repl_runcode_request_type.method
                 @async try
@@ -185,6 +189,8 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
             else
                 dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
             end
+            yield()
+            @debug "message: $(msg.method) done" time=round(Int, time()*10)
         end
     catch err
         if is_disconnected_exception(err)
@@ -199,6 +205,68 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
     finally
         @debug "JSONRPC dispatcher task finished"
     end
+    yield()
+    return
 end
+
+function _precompile_()
+    ccall(:jl_generating_output, Cint, ()) == 1 || return nothing
+
+    precompile(hook_repl, (REPL.LineEditREPL,))
+    precompile(serve, (String, String,))
+    precompile(send_queued_notifications!, ())
+    precompile(is_module_loaded, (String,))
+    precompile(start_debug_backend, (String,Nothing))
+
+    # run an actual workload
+    in_pipe = Pipe()
+    out_pipe = Pipe()
+    Base.link_pipe!(in_pipe)
+    Base.link_pipe!(out_pipe)
+    reader_task = @async while isopen(out_pipe.out)
+        readavailable(out_pipe.out)
+    end
+    e = JSONRPC.JSONRPCEndpoint(in_pipe.out, out_pipe.in)
+    run(e)
+    JSONRPC.send_notification(e, "connected", nothing)
+    JSONRPC.send_error_response(e, JSONRPC.Request("", nothing, 1, nothing), 99999, "", nothing)
+    md = JSONRPC.MsgDispatcher()
+    md[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
+    dispatch_msg(Ref(e), md, JSONRPC.Request("repl/isModuleLoaded", Dict{String,Any}("mod" => "Base"), 1, nothing), false)
+    close(e)
+    close(in_pipe.in)
+    close(out_pipe.out)
+    wait(reader_task)
+
+    is_module_loaded("Base")
+
+    # and then precompile all of the request handlers
+    E = typeof(e)
+    precompile(repl_runcode_request, (E, ReplRunCodeRequestParams, Nothing))
+    precompile(repl_getvariables_request, (E, NamedTuple{(:modules,),Tuple{Bool}}, Nothing))
+    precompile(repl_getlazy_request, (E, NamedTuple{(:id,),Tuple{Int}}, Nothing))
+    precompile(repl_loadedModules_request, (E, Nothing, Nothing))
+    precompile(repl_isModuleLoaded_request, (E, NamedTuple{(:mod,),Tuple{String}}, Nothing))
+    precompile(repl_getcompletions_request, (E, GetCompletionsRequestParams, Nothing))
+    precompile(repl_resolvecompletion_request, (E, Dict, Nothing))
+    precompile(debugger_getdebugitems_request, (E, NamedTuple{(:juliaAccessor,),Tuple{String}}, Nothing))
+    precompile(get_table_data_request, (E, GetTableDataRequest, Nothing))
+
+    precompile(repl_interrupt_notification, (E, Nothing))
+    precompile(repl_showingrid_notification, (E, NamedTuple{(:code,),Tuple{String}}))
+    precompile(toggle_plot_pane_notification, (E, NamedTuple{(:enable,),Tuple{Bool}}))
+    precompile(toggle_diagnostics_notification, (E, NamedTuple{(:enable,),Tuple{Bool}}))
+    precompile(toggle_inlay_hints_notification, (E, NamedTuple{(:enable,),Tuple{Bool}}))
+    precompile(toggle_progress_notification, (E, NamedTuple{(:enable,),Tuple{Bool}}))
+    precompile(set_default_plot_mime_notification, (E, NamedTuple{(:mime,),Tuple{String}}))
+    precompile(cd_to_uri_notification, (E, NamedTuple{(:uri,),Tuple{String}}))
+    precompile(activate_uri_notification, (E, NamedTuple{(:uri,),Tuple{String}}))
+    precompile(clear_lazy_table_notification, (E, NamedTuple{(:id,),Tuple{String}}))
+
+    precompile(JSONRPC.dispatch_msg, (E, JSONRPC.MsgDispatcher, JSONRPC.Request))
+    precompile(JSONRPC.get_next_message, (E,))
+end
+
+_precompile_()
 
 end  # module

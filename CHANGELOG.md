@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The extension now provides a few basic [language model tools](https://code.visualstudio.com/api/references/vscode-api#lm) for other extensions to interface with ([#4044](https://github.com/julia-vscode/julia-vscode/pull/4044))
 - The new `julia.plots.defaultMimeType` setting now allows toggling between `image/png` and `image/svg+xml` as the preferred MIME type for plots ([#4045](https://github.com/julia-vscode/julia-vscode/pull/4045))
 
+### Fixed
+- REPL startup should now be substantially faster ([#4049](https://github.com/julia-vscode/julia-vscode/pull/4049), [JSONRPC#94](https://github.com/julia-vscode/JSONRPC.jl/pull/94), [DebugAdapter#116](https://github.com/julia-vscode/DebugAdapter.jl/pull/116))
+
 ## [1.189.0] - 2026-03-02
 ### Changed
 - The debugger now has better defaults for the list of compiled items ([#4038](https://github.com/julia-vscode/julia-vscode/pull/4038))
