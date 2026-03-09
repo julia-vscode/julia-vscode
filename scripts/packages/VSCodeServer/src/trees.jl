@@ -273,7 +273,7 @@ end
 
 # workspace
 
-function repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}, token)
+function repl_getvariables_request(conn, params::NamedTuple{(:modules,),Tuple{Bool}}, @nospecialize(token))
     return Base.invokelatest(getvariables, params.modules)
 end
 
@@ -343,7 +343,7 @@ wsicon(::Undef) = "question"
 
 # handle lazy clicks
 
-function repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}, token)
+function repl_getlazy_request(conn, params::NamedTuple{(:id,),Tuple{Int}}, @nospecialize(token))
     return Base.invokelatest(get_lazy, params.id)
 end
 

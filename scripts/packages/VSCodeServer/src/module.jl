@@ -1,8 +1,8 @@
-function repl_loadedModules_request(conn, params::Nothing, token)
+function repl_loadedModules_request(conn, params::Nothing, @nospecialize(token))
     return string.(collect(Base.invokelatest(get_modules)))
 end
 
-function repl_isModuleLoaded_request(conn, params::NamedTuple{(:mod,),Tuple{String}}, token)
+function repl_isModuleLoaded_request(conn, params::NamedTuple{(:mod,),Tuple{String}}, @nospecialize(token))
     return Base.invokelatest(is_module_loaded, params.mod)
 end
 
@@ -33,7 +33,7 @@ function module_from_string(mod)
     return out
 end
 
-is_module_loaded(mod) = mod == "Main" || module_from_string(mod) !== Main
+is_module_loaded(mod::String) = mod == "Main" || module_from_string(mod) !== Main
 
 function get_modules(toplevel = nothing, mods = Set(Module[]))
     top_mods = toplevel === nothing ? Base.loaded_modules_array() : [toplevel]

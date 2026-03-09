@@ -257,7 +257,7 @@ function showtable(table::T, title = "") where {T}
     end
 end
 
-function get_table_data_request(conn, params::GetTableDataRequest, token)
+function get_table_data_request(conn, params::GetTableDataRequest, @nospecialize(token))
     try
         _get_table_data_request(conn, params::GetTableDataRequest, token)
     catch err
@@ -265,7 +265,7 @@ function get_table_data_request(conn, params::GetTableDataRequest, token)
     end
 end
 
-function _get_table_data_request(conn, params::GetTableDataRequest, token)
+function _get_table_data_request(conn, params::GetTableDataRequest, @nospecialize(token))
     id = UUID(params.id)
     if !haskey(TABLES, id)
         return JSONRPC.JSONRPCError(-32600, "Table not found.", nothing)
