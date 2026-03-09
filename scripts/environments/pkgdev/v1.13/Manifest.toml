@@ -325,10 +325,10 @@ version = "1.14.0"
 
 [[deps.PkgDev]]
 deps = ["Base64", "DocumentFormat", "FilePathsBase", "GitHub", "JSON", "LibGit2", "Pkg", "PkgButlerEngine", "RegistryTools", "TOML", "URIs", "UUIDs"]
-git-tree-sha1 = "38195ac29990d0444610229b06fcf3e0b5e1ce9a"
+git-tree-sha1 = "4f01e0872fc1141111185b29f88d8b684e7fdd76"
 registries = "General"
 uuid = "149e707d-584d-56d3-88ec-740c18e106ff"
-version = "1.7.2"
+version = "1.7.3"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
