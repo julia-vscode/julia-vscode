@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import { JuliaPTY, JuliaPTYOptions } from './utils/pty'
 import { JuliaProcess } from './utils/process'
+import { randomUUID } from 'crypto'
 
 export interface TaskRunnerTerminalOptions extends JuliaPTYOptions {
     cwd?: string | vscode.Uri
@@ -108,11 +109,18 @@ export class TaskRunner {
     private terminal: TaskRunnerTerminal
     private queue: TaskQueueItem[] = []
     private isRunning: boolean = false
+    private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
+    private disposables: vscode.Disposable[] = []
+
+    private showCommand: string = `language-julia.${randomUUID()}`
 
     constructor(
         private name: string,
         private iconPath: vscode.IconPath
-    ) {}
+    ) {
+        this.statusBarItem.name = name
+        this.disposables.push(vscode.commands.registerCommand(this.showCommand, () => this.terminal.show()))
+    }
 
     public run(shellPath: string, shellArgs: string[], opts: TaskOptions = {}): Promise<number | void> {
         const emitter = new vscode.EventEmitter<number | void>()
@@ -149,6 +157,16 @@ export class TaskRunner {
         }
 
         this.isRunning = true
+
+        this.statusBarItem.text = `$(loading~spin) ${this.name}`
+        this.statusBarItem.tooltip = new vscode.MarkdownString(
+            `${this.name} is now running\n\`\`\`\n${item.shellPath} ${item.shellArgs.map((s) => `"${s}"`).join(' ')}\n\`\`\`\n`
+        )
+        this.statusBarItem.command = {
+            command: this.showCommand,
+            title: 'Show terminal',
+        }
+        this.statusBarItem.show()
         if (this.terminal) {
             this.terminal.attach(item.shellPath, item.shellArgs, item.opts)
         } else {
@@ -159,6 +177,7 @@ export class TaskRunner {
             this.terminal.onDidClose(() => {
                 this.terminal = undefined
             })
+            this.disposables.push(this.terminal)
         }
 
         if (item.show) {
@@ -166,11 +185,17 @@ export class TaskRunner {
         }
 
         this.terminal.onDidExitProcess((ev) => {
+            this.statusBarItem.hide()
             this.isRunning = false
             item.emitter.fire(ev)
             item.emitter.dispose()
 
             this.runQueueItem()
         })
+    }
+
+    public dispose() {
+        this.queue = []
+        this.disposables.forEach((e) => e.dispose())
     }
 }

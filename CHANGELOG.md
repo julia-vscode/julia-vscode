@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- We're now showing a status bar notification during slow operations like installing packages via `Julia: Run Package Command` or when installing Julia/JuliaUp ([#4051](https://github.com/julia-vscode/julia-vscode/pull/4051))
+
 ## [1.190.0] - 2026-03-10
 ### Added
 - The extension now provides a few basic [language model tools](https://code.visualstudio.com/api/references/vscode-api#lm) for other extensions to interface with ([#4044](https://github.com/julia-vscode/julia-vscode/pull/4044))
