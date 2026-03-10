@@ -54,10 +54,6 @@ export const requestTypeCreateTestRun = new rpc.RequestType<
     void
 >('createTestRun')
 
-export const notoficationTypeCancelTestRun = new rpc.NotificationType<{
-    testRunId: string
-}>('cancelTestRun')
-
 export const requestTypeTerminateTestProcess = new rpc.RequestType<{ testProcessId: string }, void, void>(
     'terminateTestProcess'
 )
