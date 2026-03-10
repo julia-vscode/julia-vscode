@@ -5,6 +5,7 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.190.0] - 2026-03-10
 ### Added
 - The extension now provides a few basic [language model tools](https://code.visualstudio.com/api/references/vscode-api#lm) for other extensions to interface with ([#4044](https://github.com/julia-vscode/julia-vscode/pull/4044))
 - The new `julia.plots.defaultMimeType` setting now allows toggling between `image/png` and `image/svg+xml` as the preferred MIME type for plots ([#4045](https://github.com/julia-vscode/julia-vscode/pull/4045))
