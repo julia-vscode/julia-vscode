@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import { ExecutableFeature } from './executables'
 import { TaskRunner } from './taskRunnerTerminal'
+import { ProcessExit } from './utils/process'
 
 // Julia/Juliaup Install commands for different platforms
 const linuxInstallComamnds: string[] = [
@@ -78,10 +79,10 @@ export async function installJuliaOrJuliaup(
             return 1
         }
     }
-    const exitCode = await installJuliaOrJuliaupTask(executableFeature.taskRunner, command)
+    const procExit = await installJuliaOrJuliaupTask(executableFeature.taskRunner, command)
 
-    if (exitCode !== 0) {
-        return exitCode
+    if (procExit.exitCode !== 0) {
+        return procExit.exitCode
     }
 
     const juliaup = await executableFeature?.getJuliaupExecutableNoCache(false)
@@ -93,10 +94,7 @@ export async function installJuliaOrJuliaup(
     }
 }
 
-export async function installJuliaOrJuliaupTask(
-    taskRunner: TaskRunner,
-    customCommand?: string
-): Promise<number | void> {
+export async function installJuliaOrJuliaupTask(taskRunner: TaskRunner, customCommand?: string): Promise<ProcessExit> {
     let commands = linuxInstallComamnds
     let shell = 'bash'
     let shellExecutionArg = '-c'
@@ -111,19 +109,21 @@ export async function installJuliaOrJuliaupTask(
         commands = [customCommand]
     }
 
-    if (!commands[0]) {
-        // this looks unintentional, so we error out early
-        return 1
+    let procExit: ProcessExit = {
+        exitCode: 1,
     }
 
-    let exitCode: number | void = 1
+    if (!commands[0]) {
+        // this looks unintentional, so we error out early
+        return procExit
+    }
 
     for (const command of commands) {
         const isLast = command === commands[commands.length - 1]
 
         const args = [shellExecutionArg, command]
 
-        exitCode = await taskRunner.run(shell, args, {
+        procExit = await taskRunner.run(shell, args, {
             env: process.env,
             echoMessage: `\n\r\x1b[30;47m * \x1b[0m ${command}\n\n\r`,
             onExitMessage(exitCode) {
@@ -138,10 +138,10 @@ export async function installJuliaOrJuliaupTask(
             },
         })
 
-        if (exitCode === 0) {
-            return exitCode
+        if (procExit.exitCode === 0) {
+            return procExit
         }
     }
 
-    return exitCode
+    return procExit
 }

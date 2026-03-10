@@ -61,15 +61,15 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
                 this.dispose()
             }),
             this.proc.onDidClose((ev) => {
-                const msg = this.options?.onExitMessage?.(ev)
+                const msg = this.options?.onExitMessage?.(ev.exitCode)
 
                 if (msg) {
                     this.isClosed = true
-                    this.exitCode = ev
+                    this.exitCode = ev.exitCode
                     this.write(msg)
                 } else {
                     // we probably want to hide the vscode-native error pop-up by default
-                    this.closeEmitter.fire(this.options?.showDefaultErrorMessage ? ev : undefined)
+                    this.closeEmitter.fire(this.options?.showDefaultErrorMessage ? ev.exitCode : undefined)
                     this.dispose()
                 }
             })
@@ -110,15 +110,15 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
                 this.dispose()
             }),
             this.proc.onDidClose((ev) => {
-                const msg = this.options?.onExitMessage?.(ev)
+                const msg = this.options?.onExitMessage?.(ev.exitCode)
 
                 if (msg) {
                     this.isClosed = true
-                    this.exitCode = ev
+                    this.exitCode = ev.exitCode
                     this.write(msg)
                 } else {
                     // we probably want to hide the vscode-native error pop-up by default
-                    this.closeEmitter.fire(this.options?.showDefaultErrorMessage ? ev : undefined)
+                    this.closeEmitter.fire(this.options?.showDefaultErrorMessage ? ev.exitCode : undefined)
                     this.dispose()
                 }
             })

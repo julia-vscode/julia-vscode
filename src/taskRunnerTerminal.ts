@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import { JuliaPTY, JuliaPTYOptions } from './utils/pty'
-import { JuliaProcess } from './utils/process'
+import { JuliaProcess, ProcessExit } from './utils/process'
 
 export interface TaskRunnerTerminalOptions extends JuliaPTYOptions {
     cwd?: string | vscode.Uri
@@ -20,14 +20,14 @@ interface TaskQueueItem {
     shellPath: string
     shellArgs: string[]
     opts: TaskOptions
-    emitter: vscode.EventEmitter<number | void>
+    emitter: vscode.EventEmitter<ProcessExit | void>
     show: boolean
 }
 
 export class TaskRunnerTerminal {
     public terminal: vscode.Terminal
-    private onDidExitProcessEmitter = new vscode.EventEmitter<number | void>()
-    public onDidExitProcess: vscode.Event<number | void> = this.onDidExitProcessEmitter.event
+    private onDidExitProcessEmitter = new vscode.EventEmitter<ProcessExit | void>()
+    public onDidExitProcess: vscode.Event<ProcessExit | void> = this.onDidExitProcessEmitter.event
     private onDidCloseEmitter = new vscode.EventEmitter<void>()
     public onDidClose: vscode.Event<void> = this.onDidCloseEmitter.event
 
@@ -114,9 +114,9 @@ export class TaskRunner {
         private iconPath: vscode.IconPath
     ) {}
 
-    public run(shellPath: string, shellArgs: string[], opts: TaskOptions = {}): Promise<number | void> {
-        const emitter = new vscode.EventEmitter<number | void>()
-        const p = new Promise<number | void>((resolve) => {
+    public run(shellPath: string, shellArgs: string[], opts: TaskOptions = {}): Promise<ProcessExit> {
+        const emitter = new vscode.EventEmitter<ProcessExit>()
+        const p = new Promise<ProcessExit>((resolve) => {
             emitter.event((ev) => {
                 resolve(ev)
             })

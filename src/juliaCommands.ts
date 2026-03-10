@@ -82,7 +82,7 @@ export class JuliaCommands {
 
         args.push(`--project=${juliaEnv}`, '-e', cmd)
 
-        const exitCode = await this.taskRunner.run(juliaExecutable.command, args, {
+        const procExit = await this.taskRunner.run(juliaExecutable.command, args, {
             env: {
                 ...process.env,
                 ...processEnv,
@@ -97,11 +97,11 @@ export class JuliaCommands {
             show: false,
         })
 
-        if (exitCode !== 0) {
+        if (procExit?.exitCode !== 0) {
             this.taskRunner.show()
         }
 
-        return exitCode === 0
+        return procExit.exitCode === 0
     }
 
     public dispose() {}

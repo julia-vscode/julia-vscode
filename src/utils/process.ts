@@ -21,15 +21,25 @@ import type * as nodePty from 'node-pty'
 
 const { spawn } = requireNativeModule<typeof nodePty>('node-pty')
 
+export interface ProcessExit {
+    exitCode: number | void
+    output?: string
+}
+
+interface ExecutionOptions extends vscode.ProcessExecutionOptions {
+    collectOutput?: boolean
+}
+
 class CloseHandler implements vscode.Disposable {
-    private readonly closeEmitter: vscode.EventEmitter<number | void> = new vscode.EventEmitter<number | void>()
-    private exitCode: number | void | undefined
+    private readonly closeEmitter: vscode.EventEmitter<ProcessExit | void> =
+        new vscode.EventEmitter<ProcessExit | void>()
+    private processExit: ProcessExit
     private closeTimeout: NodeJS.Timeout | undefined
 
     event = this.closeEmitter.event
 
-    handle(exitCode: number | void) {
-        this.exitCode = exitCode
+    handle(ex: ProcessExit) {
+        this.processExit = ex
         this.queueClose()
     }
 
@@ -46,7 +56,7 @@ class CloseHandler implements vscode.Disposable {
 
     private queueClose() {
         this.closeTimeout = setTimeout(() => {
-            this.closeEmitter.fire(this.exitCode)
+            this.closeEmitter.fire(this.processExit)
         }, 250)
     }
 }
@@ -58,14 +68,20 @@ export class JuliaProcess implements vscode.Disposable {
     private readonly closeHandler: CloseHandler = new CloseHandler()
     private disposables: vscode.Disposable[] = []
 
+    private output: string
+    private collectOutput = false
+
     private pty?: nodePty.IPty
 
     constructor(
         public readonly command: string,
         public readonly args: string[],
-        private options: vscode.ProcessExecutionOptions = {}
+        private options: ExecutionOptions = {}
     ) {
         this.disposables.push(this.spawnEmitter, this.writeEmitter, this.errorEmitter, this.closeHandler)
+        if (options.collectOutput) {
+            this.collectOutput = true
+        }
     }
 
     spawn(): void {
@@ -87,17 +103,33 @@ export class JuliaProcess implements vscode.Disposable {
                 cols: isWindows ? 4096 : undefined,
             })
             this.spawnEmitter.fire()
+
+            if (this.collectOutput) {
+                this.output = ''
+            }
             this.pty.onData((data) => {
                 this.writeEmitter.fire(data)
+                if (this.collectOutput) {
+                    this.output += data
+                }
                 this.closeHandler.reset()
             })
             this.pty.onExit((event) => {
                 if (event.signal) {
-                    this.closeHandler.handle(event.signal)
+                    this.closeHandler.handle({
+                        exitCode: event.signal,
+                        output: this.output,
+                    })
                 } else if (typeof event.exitCode === 'number') {
-                    this.closeHandler.handle(event.exitCode)
+                    this.closeHandler.handle({
+                        exitCode: event.exitCode,
+                        output: this.output,
+                    })
                 } else {
-                    this.closeHandler.handle()
+                    this.closeHandler.handle({
+                        exitCode: null,
+                        output: this.output,
+                    })
                 }
             })
             this.disposables.push(
@@ -107,7 +139,10 @@ export class JuliaProcess implements vscode.Disposable {
             )
         } catch (error) {
             this.errorEmitter.fire(new Error(`${error}`))
-            this.closeHandler.handle()
+            this.closeHandler.handle({
+                exitCode: null,
+                output: this.output,
+            })
         }
     }
 
@@ -141,5 +176,5 @@ export class JuliaProcess implements vscode.Disposable {
 
     onDidThrowError: vscode.Event<Error> = this.errorEmitter.event
 
-    onDidClose: vscode.Event<number | void> = this.closeHandler.event
+    onDidClose: vscode.Event<ProcessExit> = this.closeHandler.event
 }
