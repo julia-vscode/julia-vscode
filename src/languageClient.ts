@@ -47,7 +47,6 @@ export class LanguageClientFeature {
             vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
                 this.onDidChangeConfigEmitter.fire(event)
                 if (
-                    event.affectsConfiguration('julia.executablePath') ||
                     event.affectsConfiguration('julia.languageServerJuliaupChannel') ||
                     event.affectsConfiguration('julia.languageServerExecutablePath')
                 ) {
