@@ -21,7 +21,6 @@ import {
     notificationTypeTestProcessOutput,
     notificationTypeTestProcessStatusChanged,
     notificationTypeTestProcessTerminated,
-    notoficationTypeCancelTestRun,
     requestTypeCreateTestRun,
     requestTypeTerminateTestProcess,
 } from './testControllerProtocol'
