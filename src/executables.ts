@@ -369,19 +369,12 @@ export class ExecutableFeature {
 
     constructor(private context: vscode.ExtensionContext) {
         this.context.subscriptions.push(
-            vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
-                if (
-                    event.affectsConfiguration('julia.executablePath') ||
-                    event.affectsConfiguration('julia.languageServerExecutablePath')
-                ) {
-                    // DO SOMETHING
-                }
-            }),
             registerCommand('language-julia.retriggerInstallation', async () => {
                 const juliaup = await this.getJuliaupExecutable(true)
                 juliaup.shouldAutoRequestInstall = true
-                await this.getExecutable(true)
-                await this.getLsExecutable(true)
+                this.getExecutable(true)
+                this.getLsExecutable(true)
+                vscode.commands.executeCommand('language-julia.restartLanguageServer')
             }),
             registerCommand('language-julia.showExecutableOutput', () => {
                 this.outputChannel.show()
