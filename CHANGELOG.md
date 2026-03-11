@@ -5,11 +5,16 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.193.0] - 2026-03-11
 ### Changed
 - We're now showing a status bar notification during slow operations like installing packages via `Julia: Run Package Command` or when installing Julia/JuliaUp ([#4051](https://github.com/julia-vscode/julia-vscode/pull/4051))
-- 
+
 ### Fixed
 - Improved fallback behaviour when Julia is not on PATH but juliaup is found ([#4054](https://github.com/julia-vscode/julia-vscode/pull/4054))
+
+## [1.191.0] - 2026-03-10
+### Fixed
+- Improved test item cancellation behaviour ([#4050](https://github.com/julia-vscode/julia-vscode/pull/4050))
 
 ## [1.190.0] - 2026-03-10
 ### Added
