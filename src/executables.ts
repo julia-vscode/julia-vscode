@@ -378,8 +378,10 @@ export class ExecutableFeature {
                 }
             }),
             registerCommand('language-julia.retriggerInstallation', async () => {
-                ;(await this.getJuliaupExecutable(true)).shouldAutoRequestInstall = true
-                vscode.commands.executeCommand('language-julia.restartLanguageServer')
+                const juliaup = await this.getJuliaupExecutable(true)
+                juliaup.shouldAutoRequestInstall = true
+                await this.getExecutable(true)
+                await this.getLsExecutable(true)
             }),
             registerCommand('language-julia.showExecutableOutput', () => {
                 this.outputChannel.show()
@@ -468,10 +470,20 @@ export class ExecutableFeature {
             }
         }
 
+        try {
+            const channel = await juliaup.getDefaultChannel()
+            this.outputChannel.appendLine(outputPrefix + `using default juliaup channel ${channel.name}`)
+            this.setJuliaInstalled(true)
+
+            return new JuliaExecutable(channel)
+        } catch {
+            this.outputChannel.appendLine(outputPrefix + `default juliaup channel is not installed`)
+        }
+
         setStatusJuliaRequired(this.statusBarItem)
 
         this.setJuliaInstalled(false)
-        this.outputChannel.appendLine('!!! Julia was not found. Most extension features will be nonfunctional.')
+        this.outputChannel.appendLine('[EXE] !!! Julia was not found. Most extension features will be nonfunctional.')
         throw new Error('Julia not installed')
     }
 
@@ -598,7 +610,7 @@ export class ExecutableFeature {
 
         setStatusJuliaRequired(this.statusBarItem)
 
-        this.outputChannel.appendLine('!!! Julia was not found. Most extension features will be nonfunctional.')
+        this.outputChannel.appendLine('[LS] !!! Julia was not found. Most extension features will be nonfunctional.')
         throw new Error('Julia not installed')
     }
 

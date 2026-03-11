@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- Improved fallback behaviour when Julia is not on PATH but juliaup is found ([#4054](https://github.com/julia-vscode/julia-vscode/pull/4054))
+
 ## [1.190.0] - 2026-03-10
 ### Added
 - The extension now provides a few basic [language model tools](https://code.visualstudio.com/api/references/vscode-api#lm) for other extensions to interface with ([#4044](https://github.com/julia-vscode/julia-vscode/pull/4044))
