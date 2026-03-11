@@ -21,7 +21,6 @@ import {
     notificationTypeTestProcessOutput,
     notificationTypeTestProcessStatusChanged,
     notificationTypeTestProcessTerminated,
-    notoficationTypeCancelTestRun,
     requestTypeCreateTestRun,
     requestTypeTerminateTestProcess,
 } from './testControllerProtocol'
@@ -367,11 +366,7 @@ export class JuliaTestController {
             testSetups: testSetups,
         }
 
-        testRun.token.onCancellationRequested(async () => {
-            await this.connection.sendNotification(notoficationTypeCancelTestRun, { testRunId: params.testRunId })
-        })
-
-        const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params)
+        const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params, testRun.token)
 
         if (testrunResult.coverage) {
             for (const file of testrunResult.coverage) {
