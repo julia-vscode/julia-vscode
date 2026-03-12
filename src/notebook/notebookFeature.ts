@@ -6,8 +6,10 @@ import { registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
 import isEqual from 'lodash.isequal'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
+import { completionItemProvider, completionTriggerCharacters } from '../interactive/completions'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
+const notebookCellCompletionSelector = [{ language: 'julia', scheme: 'vscode-notebook-cell' }]
 type JupyterNotebookMetadata = Partial<{
     metadata: {
         kernelspec: {
@@ -100,10 +102,59 @@ export class JuliaNotebookFeature {
                 kernel.activeDebugSession = null
             }
         })
+
+        this.disposables.push(
+            vscode.languages.registerCompletionItemProvider(
+                notebookCellCompletionSelector,
+                {
+                    provideCompletionItems: (document, position, token, context) => {
+                        const kernel = this.getKernelForNotebookCellDocument(document)
+                        const conn = kernel?.messageConnection
+                        if (!conn) {
+                            return
+                        }
+
+                        return completionItemProvider(conn).provideCompletionItems(document, position, token, context)
+                    },
+                },
+                ...completionTriggerCharacters
+            )
+        )
     }
 
     getKernelByDebugPipename(pipename: string) {
         return this.debugPipenameToKernel.get(pipename)
+    }
+
+    private getKernelForNotebook(notebook: vscode.NotebookDocument): JuliaKernel | undefined {
+        const kernel = this.kernels.get(notebook)
+        if (kernel) {
+            return kernel
+        }
+
+        for (const [knownNotebook, knownKernel] of this.kernels) {
+            if (knownNotebook.uri.toString() === notebook.uri.toString()) {
+                return knownKernel
+            }
+        }
+
+        return undefined
+    }
+
+    private getKernelForNotebookCellDocument(document: vscode.TextDocument): JuliaKernel | undefined {
+        if (document.uri.scheme !== 'vscode-notebook-cell') {
+            return undefined
+        }
+
+        const notebookEditor = vscode.window.visibleNotebookEditors.find((editor) =>
+            editor.notebook.getCells().some((cell) => cell.document.uri.toString() === document.uri.toString())
+        )
+
+        if (!notebookEditor) {
+            return undefined
+        }
+
+        return this.getKernelForNotebook(notebookEditor.notebook)
     }
 
     private async init() {

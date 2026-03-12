@@ -64,6 +64,10 @@ export class JuliaKernel {
     public activeDebugSession: vscode.DebugSession | null
     public stopDebugSessionAfterExecution: boolean
 
+    public get messageConnection(): MessageConnection | undefined {
+        return this._msgConnection
+    }
+
     constructor(
         private extensionPath: string,
         public controller: vscode.NotebookController,
