@@ -141,6 +141,12 @@ export class JuliaTestController {
 
         const jlArgs = ['--startup-file=no', '--history-file=no', '--depwarn=no']
 
+        const debugEnvVar = process.env.DEBUG_MODE
+            ? {
+                  JULIA_DEBUG: 'TestItemControllers',
+              }
+            : {}
+
         this.process = spawn(
             juliaExecutable.command,
             [
@@ -151,7 +157,7 @@ export class JuliaTestController {
             ],
             {
                 detached: false,
-                env: { ...process.env, ...getCustomEnvironmentVariables() },
+                env: { ...process.env, ...getCustomEnvironmentVariables(), ...debugEnvVar },
             }
         )
 
