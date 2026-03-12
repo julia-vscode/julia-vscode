@@ -38,7 +38,7 @@ export const requestTypeCreateTestRun = new rpc.RequestType<
             codeColumn: number
         }[]
         testSetups: {
-            packageUri?: string
+            packageUri: string
             name: string
             kind: string
             uri: string
