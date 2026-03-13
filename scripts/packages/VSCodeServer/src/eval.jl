@@ -143,7 +143,7 @@ function set_error_global(errs)
 end
 
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecialize(token))::ReplRunCodeRequestReturn
-    run_with_backend() do
+    result = run_with_backend() do
         fix_displays()
 
         source_filename = params.filename
@@ -283,6 +283,13 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecial
 
         return PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
     end
+    # If the eval backend caught an unhandled exception in the closure (e.g. from
+    # hideprompt on Julia >=1.12 ScopedStreams), it returns an EvalError/EvalErrorStack
+    # instead of ReplRunCodeRequestReturn. Render it gracefully to satisfy the return type.
+    if result isa EvalError || result isa EvalErrorStack
+        return safe_render(result)
+    end
+    return result
 end
 
 # don't inline this so we can find it in the stacktrace
