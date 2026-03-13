@@ -181,24 +181,39 @@ export class LanguageClientFeature {
             },
         }
 
-        const serverOptions: ServerOptions = process.env.DETACHED_LS
-            ? async () => {
-                  // TODO Add some loop here that retries in case the LSP is not yet ready
-                  const conn = net.connect(7777)
-                  return { reader: conn, writer: conn, detached: true }
-              }
-            : {
-                  run: {
-                      command: juliaExecutable.command,
-                      args: [...juliaExecutable.args, ...serverArgsRun],
-                      options: spawnOptions,
-                  },
-                  debug: {
-                      command: juliaExecutable.command,
-                      args: [...juliaExecutable.args, ...serverArgsDebug],
-                      options: spawnOptions,
-                  },
-              }
+        let serverOptions: ServerOptions
+        if (process.env.DETACHED_LS) {
+            serverOptions = async () => {
+                // eslint-disable-next-line no-async-promise-executor
+                const p = new Promise<{ reader; writer; detached }>(async (resolve) => {
+                    let isConnected = false
+                    while (!isConnected) {
+                        const conn = net.connect({ port: 7777 }, () => {
+                            resolve({ reader: conn, writer: conn, detached: true })
+                            isConnected = true
+                        })
+                        if (isConnected) {
+                            return
+                        }
+                        await new Promise((resolve) => setTimeout(() => resolve(null), 1000))
+                    }
+                })
+                return await p
+            }
+        } else {
+            serverOptions = {
+                run: {
+                    command: juliaExecutable.command,
+                    args: [...juliaExecutable.args, ...serverArgsRun],
+                    options: spawnOptions,
+                },
+                debug: {
+                    command: juliaExecutable.command,
+                    args: [...juliaExecutable.args, ...serverArgsDebug],
+                    options: spawnOptions,
+                },
+            }
+        }
 
         const selector = []
         for (const scheme of supportedSchemes) {
