@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- Code evaluation is now more robust against unexpected errors ([#4056](https://github.com/julia-vscode/julia-vscode/pull/4056))
+
 ## [1.193.0] - 2026-03-11
 ### Changed
 - We're now showing a status bar notification during slow operations like installing packages via `Julia: Run Package Command` or when installing Julia/JuliaUp ([#4051](https://github.com/julia-vscode/julia-vscode/pull/4051))
