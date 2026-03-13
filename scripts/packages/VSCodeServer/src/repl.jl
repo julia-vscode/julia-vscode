@@ -226,19 +226,19 @@ function evalrepl(m, line, repl, main_mode)
         REPL_PROMPT_STATE[] = REPLPromptStates.Error
         if r isa EvalError
             display_repl_error(stderr, r.err, r.bt)
-            nothing
+            return nothing
         elseif r isa EvalErrorStack
             set_error_global(r)
             display_repl_error(stderr, r)
-            nothing
+            return nothing
         else
             REPL_PROMPT_STATE[] = REPLPromptStates.Success
-            r
+            return r
         end
     catch err
         # This is for internal errors only.
         Base.display_error(stderr, err, catch_backtrace())
-        nothing
+        return nothing
     finally
         if did_notify
             try
