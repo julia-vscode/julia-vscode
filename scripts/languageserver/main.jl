@@ -139,9 +139,12 @@ try
     end
 
     if detached_mode
-        serv = listen(7777)
+        port = 7777
+        @info "listening on $port"
+        serv = listen(port)
         global conn_in = accept(serv)
         global conn_out = conn_in
+        @info "connection accepted"
     else
         global conn_in = stdin
         global conn_out = stdout
