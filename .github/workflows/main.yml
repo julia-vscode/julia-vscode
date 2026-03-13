@@ -288,3 +288,18 @@ jobs:
           OVSXKEY: ${{secrets.OVSXKEY}}
         run: |
           npx ovsx publish $PACKAGE_FILENAME -p $OVSXKEY
+
+  tagPackages:
+    name: Tag Julia packages
+    needs: [deployRelease]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: julia-actions/setup-julia@v1
+      - name: Configure git
+        run: |
+          git config --global github.user XXX
+      - name: Install PkgDev
+        run: julia -e 'using Pkg; Pkg.add("PkgDev")'
+      - name: Tag CSTParser
+        run: julia -e 'using Pkg; Pkg.activate(temp=true); Pkg.develop("CSTParser"); using PkgDev; PkgDev.tag("CSTParser")'
