@@ -130,6 +130,7 @@ function serve_notebook(pipename, debugger_pipename, outputchannel_logger; error
 
         msg_dispatcher = JSONRPC.MsgDispatcher()
         msg_dispatcher[notebook_runcell_request_type] = notebook_runcell_request
+        msg_dispatcher[repl_getcompletions_request_type] = repl_getcompletions_request
         msg_dispatcher[repl_getvariables_request_type] = repl_getvariables_request
         msg_dispatcher[repl_getlazy_request_type] = repl_getlazy_request
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification

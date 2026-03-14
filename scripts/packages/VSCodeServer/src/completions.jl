@@ -17,7 +17,9 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams, @no
         # might error when e.g. type inference fails
         Completion[]
     end
-    filter!(is_target_completion, cs)
+    if rstrip(line) .|> endswith.(['.', '[']) |> any
+        filter!(is_target_completion, cs)
+    end
 
     return completion.(cs)
 end
