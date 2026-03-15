@@ -32,7 +32,9 @@ try
         new_version = Base.VersionNumber(version_arg)
     end
 
-    PkgDev.tag(PkgDev.FilePathsBase.cwd(), new_version, credentials=ARGS[1], github_username=ARGS[2])
+    release_notes = ARGS[4]
+
+    PkgDev.tag(PkgDev.FilePathsBase.cwd(), new_version, credentials=ARGS[1], github_username=ARGS[2], release_notes=release_notes)
 
 catch err
     Base.display_error(err, catch_backtrace())
