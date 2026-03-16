@@ -1717,11 +1717,9 @@
         "promisify-child-process": "^4.1.2",
         "semver": "^7.3.5",
         "source-map-support": "^0.5.21",
-        "string-argv": "^0.3.1",
         "uuid": "^13.0.0",
         "vscode-jsonrpc": "^8.2.1",
-        "vscode-languageclient": "^9.0.0",
-        "which": "^6"
+        "vscode-languageclient": "^9.0.0"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
@@ -1736,12 +1734,12 @@
         "@typescript-eslint/parser": "^8.7.0",
         "@vscode/test-cli": "^0.0.10",
         "@vscode/test-electron": "^2.3.6",
-        "@vscode/vsce": "3",
+        "@vscode/vsce": "^3",
         "esbuild": "^0.27.0",
         "eslint": "^10.0.3",
         "eslint-config-prettier": "^10.1.8",
         "globals": "^17.4.0",
-        "mocha": "11",
+        "mocha": "^11",
         "prettier": "^3.6.2",
         "ts-loader": "^9.2.8",
         "typescript": "^5.9.3",
