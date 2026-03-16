@@ -833,14 +833,14 @@ async function executeFile(uri?: vscode.Uri | string) {
     await startREPL(true, false)
 
     let module = 'Main'
-    let path = ''
-    let code = ''
+    let path: string
+    let code: string
 
     if (uri && !(uri instanceof vscode.Uri)) {
         uri = vscode.Uri.parse(uri)
     }
 
-    let isJmd = false
+    let isJmd: boolean
 
     if (uri && uri instanceof vscode.Uri) {
         path = uri.fsPath
@@ -937,7 +937,7 @@ async function evaluateBlockOrSelection(shouldMove: boolean = false) {
     await startREPL(true, false)
 
     for (const selection of selections) {
-        let range: vscode.Range = null
+        let range: vscode.Range
         let nextBlock: vscode.Position = null
         const cursorPos: vscode.Position = editor.document.validatePosition(
             new vscode.Position(selection.start.line, selection.start.character)

@@ -106,7 +106,7 @@ export class LanguageClientFeature {
         this.statusBarItem.color = undefined
         this.statusBarItem.show()
 
-        let jlEnvPath = ''
+        let jlEnvPath: string
         if (envPath) {
             jlEnvPath = envPath
         } else {

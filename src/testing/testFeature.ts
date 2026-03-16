@@ -115,7 +115,7 @@ export class JuliaTestController {
     public async start() {
         this.workspaceFeature.addTestController(this)
 
-        let juliaExecutable: JuliaExecutable | null = null
+        let juliaExecutable: JuliaExecutable | null
 
         if (process.env.DEBUG_MODE) {
             juliaExecutable = await this.executableFeature.getExecutable()

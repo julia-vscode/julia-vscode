@@ -64,7 +64,7 @@ export function init(context: vscode.ExtensionContext) {
     const parsedExtensionVersion = parse(extversion)
 
     // The Application Insights Key
-    let key = ''
+    let key: string
     if (parsedExtensionVersion.patch === 2) {
         // Use the production environment
         key =

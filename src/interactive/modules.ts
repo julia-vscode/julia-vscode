@@ -190,7 +190,7 @@ async function isModuleLoaded(mod: string) {
 }
 
 async function chooseModule() {
-    let possibleModules: string[] = []
+    let possibleModules: string[]
     try {
         possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     } catch (err) {
