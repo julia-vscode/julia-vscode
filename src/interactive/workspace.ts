@@ -377,7 +377,12 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
 
             treeItem.description = node.testProcess.packageName
             treeItem.tooltip = new vscode.MarkdownString(
-                `This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.packageUri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.projectUri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.\n\nThe env is ${node.testProcess.env}.`
+                `This is a test process for the ${node.testProcess.packageName} package.\n\n` +
+                `**Julia channel:** ${node.testProcess.juliaChannelName ?? 'N/A (no Juliaup)'}\n\n` +
+                `The full package path is ${vscode.Uri.parse(node.testProcess.packageUri).fsPath}\n\n` +
+                `The project path is ${vscode.Uri.parse(node.testProcess.projectUri).fsPath}\n\n` +
+                `The process does ${node.testProcess.coverage ? '' : 'not '}collect coverage information.\n\n` +
+                `The env is ${node.testProcess.env}.`
             )
             treeItem.contextValue = 'juliatestprocess'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None

@@ -151,6 +151,7 @@ export async function activate(context: vscode.ExtensionContext) {
             compiledProvider,
             languageClientFeature
         )
+        await testFeature.init()
         context.subscriptions.push(testFeature)
         console.debug(`[julia activation] TestFeature: ${(performance.now() - t).toFixed(1)}ms`)
 

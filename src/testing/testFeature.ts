@@ -1,4 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
+import * as semver from 'semver'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
@@ -63,6 +64,7 @@ export class JuliaTestProcess {
         public projectUri: string | undefined,
         public coverage: boolean | undefined,
         public env: { [key: string]: string },
+        public juliaChannelName: string | undefined,
         private controller: JuliaTestController
     ) {
         this.status = 'Created'
@@ -94,6 +96,7 @@ export class JuliaTestController {
     private process: ChildProcessWithoutNullStreams
     private testRuns = new Map<string, { testRun: vscode.TestRun; testItems: Map<string, vscode.TestItem> }>()
     private testProcesses = new Map<string, JuliaTestProcess>()
+    private currentRunExecutable: JuliaExecutable | undefined
 
     constructor(
         private testFeature: TestFeature,
@@ -230,7 +233,8 @@ export class JuliaTestController {
             testRun.testRun.appendOutput(i.output, undefined, testItem)
         })
         this.connection.onNotification(notificationTypeTestProcessCreated, (i) => {
-            const tp = new JuliaTestProcess(i.id, i.packageName, i.packageUri, i.projectUri, i.coverage, i.env, this)
+            const channelName = this.currentRunExecutable?.juliaupChannel?.name
+            const tp = new JuliaTestProcess(i.id, i.packageName, i.packageUri, i.projectUri, i.coverage, i.env, channelName, this)
             this.testProcesses.set(i.id, tp)
             this.workspaceFeature.addTestProcess(tp)
         })
@@ -312,6 +316,7 @@ export class JuliaTestController {
         testRun: vscode.TestRun,
         mode: TestRunMode,
         maxProcessCount: number,
+        juliaExec: JuliaExecutable,
         all_the_tests: {
             testItem: vscode.TestItem
             details: tlsp.TestItemDetail
@@ -329,7 +334,7 @@ export class JuliaTestController {
     ) {
         const nthreads = inferJuliaNumThreads()
 
-        const juliaExec = await this.executableFeature.getExecutable()
+        this.currentRunExecutable = juliaExec
 
         const testRunId = uuidv4()
         this.testRuns.set(testRunId, {
@@ -466,6 +471,7 @@ export class TestFeature {
     private juliaTestitemControllerOutputChannel: vscode.OutputChannel | undefined = undefined
     public juliaTestProcessOutputChannels: Map<string, vscode.OutputChannel> = new Map()
     private juliaTestController: JuliaTestController = undefined
+    private profileMap: Map<vscode.TestRunProfile, { executable: JuliaExecutable; mode: TestRunMode }> = new Map()
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -478,52 +484,6 @@ export class TestFeature {
         this.juliaTestitemControllerOutputChannel = vscode.window.createOutputChannel('Julia Test Item Controller')
 
         this.controller = vscode.tests.createTestController('juliaTests', 'Julia Tests')
-
-        this.controller.createRunProfile(
-            'Run',
-            vscode.TestRunProfileKind.Run,
-            async (request, token) => {
-                try {
-                    await this.runHandler(request, TestRunMode.Normal, token)
-                } catch (err) {
-                    handleNewCrashReportFromException(err, 'Extension')
-                    throw err
-                }
-            },
-            true
-        )
-
-        this.controller.createRunProfile(
-            'Debug',
-            vscode.TestRunProfileKind.Debug,
-            async (request, token) => {
-                try {
-                    await this.runHandler(request, TestRunMode.Debug, token)
-                } catch (err) {
-                    handleNewCrashReportFromException(err, 'Extension')
-                    throw err
-                }
-            },
-            false
-        )
-
-        const coverage_profile = this.controller.createRunProfile(
-            'Run with coverage',
-            vscode.TestRunProfileKind.Coverage,
-            async (request, token) => {
-                try {
-                    await this.runHandler(request, TestRunMode.Coverage, token)
-                } catch (err) {
-                    handleNewCrashReportFromException(err, 'Extension')
-                    throw err
-                }
-            },
-            true
-        )
-
-        coverage_profile.loadDetailedCoverage = async (_testRun, fileCoverage: OurFileCoverage) => {
-            return fileCoverage.detailedCoverage
-        }
 
         context.subscriptions.push(
             registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) => node.stop()),
@@ -692,6 +652,60 @@ export class TestFeature {
         }
     }
 
+    public async init() {
+        const executables = await this.executableFeature.getExecutables()
+        const hasJuliaup = executables.some((e) => e.juliaupChannel)
+
+        const makeHandler = (executable: JuliaExecutable, mode: TestRunMode) => {
+            return async (request: vscode.TestRunRequest, token: vscode.CancellationToken) => {
+                try {
+                    await this.runHandler(request, mode, executable, token)
+                } catch (err) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                    throw err
+                }
+            }
+        }
+
+        for (const executable of executables) {
+            const isDefault = hasJuliaup ? (executable.juliaupChannel?.isDefault ?? false) : true
+            const channelLabel = hasJuliaup
+                ? (executable.juliaupChannel?.name ?? `Julia ${executable.getVersion()}`)
+                : undefined
+            const suffix = channelLabel ? ` (${channelLabel} channel)` : ''
+
+            const runProfile = this.controller.createRunProfile(
+                `Run${suffix}`,
+                vscode.TestRunProfileKind.Run,
+                makeHandler(executable, TestRunMode.Normal),
+                isDefault
+            )
+            this.profileMap.set(runProfile, { executable, mode: TestRunMode.Normal })
+
+            const debugProfile = this.controller.createRunProfile(
+                `Debug${suffix}`,
+                vscode.TestRunProfileKind.Debug,
+                makeHandler(executable, TestRunMode.Debug),
+                false
+            )
+            this.profileMap.set(debugProfile, { executable, mode: TestRunMode.Debug })
+
+            const supportsCoverage = executable.getVersion() && semver.gte(executable.getVersion(), '1.11.0-rc2')
+            if (supportsCoverage) {
+                const coverageProfile = this.controller.createRunProfile(
+                    `Run with coverage${suffix}`,
+                    vscode.TestRunProfileKind.Coverage,
+                    makeHandler(executable, TestRunMode.Coverage),
+                    isDefault
+                )
+                coverageProfile.loadDetailedCoverage = async (_testRun, fileCoverage: OurFileCoverage) => {
+                    return fileCoverage.detailedCoverage
+                }
+                this.profileMap.set(coverageProfile, { executable, mode: TestRunMode.Coverage })
+            }
+        }
+    }
+
     async ensureJuliaTestController() {
         if (!this.juliaTestController || !this.juliaTestController.ready()) {
             this.juliaTestController = new JuliaTestController(
@@ -716,19 +730,11 @@ export class TestFeature {
         }
     }
 
-    async runHandler(request: vscode.TestRunRequest, mode: TestRunMode, token: vscode.CancellationToken) {
+    async runHandler(request: vscode.TestRunRequest, mode: TestRunMode, executable: JuliaExecutable, token: vscode.CancellationToken) {
         const failBecauseNoController = await this.ensureJuliaTestController()
 
         if (failBecauseNoController) {
             return
-        }
-
-        if (mode === TestRunMode.Coverage) {
-            const ex = await this.executableFeature.getExecutable()
-            if (ex.getVersion().compare('1.11.0-rc2') === -1) {
-                vscode.window.showErrorMessage('Running tests with coverage requires Julia 1.11 or newer.')
-                return
-            }
         }
 
         if (token.isCancellationRequested) {
@@ -812,7 +818,7 @@ export class TestFeature {
             return
         }
 
-        await this.juliaTestController.createTestRun(testRun, mode, maxNumProcesses, all_the_tests, all_the_testsetups)
+        await this.juliaTestController.createTestRun(testRun, mode, maxNumProcesses, executable, all_the_tests, all_the_testsetups)
     }
 
     public dispose() {}
