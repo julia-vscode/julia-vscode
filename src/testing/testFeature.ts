@@ -234,7 +234,16 @@ export class JuliaTestController {
         })
         this.connection.onNotification(notificationTypeTestProcessCreated, (i) => {
             const channelName = this.currentRunExecutable?.juliaupChannel?.name
-            const tp = new JuliaTestProcess(i.id, i.packageName, i.packageUri, i.projectUri, i.coverage, i.env, channelName, this)
+            const tp = new JuliaTestProcess(
+                i.id,
+                i.packageName,
+                i.packageUri,
+                i.projectUri,
+                i.coverage,
+                i.env,
+                channelName,
+                this
+            )
             this.testProcesses.set(i.id, tp)
             this.workspaceFeature.addTestProcess(tp)
         })
@@ -730,7 +739,12 @@ export class TestFeature {
         }
     }
 
-    async runHandler(request: vscode.TestRunRequest, mode: TestRunMode, executable: JuliaExecutable, token: vscode.CancellationToken) {
+    async runHandler(
+        request: vscode.TestRunRequest,
+        mode: TestRunMode,
+        executable: JuliaExecutable,
+        token: vscode.CancellationToken
+    ) {
         const failBecauseNoController = await this.ensureJuliaTestController()
 
         if (failBecauseNoController) {
@@ -818,7 +832,14 @@ export class TestFeature {
             return
         }
 
-        await this.juliaTestController.createTestRun(testRun, mode, maxNumProcesses, executable, all_the_tests, all_the_testsetups)
+        await this.juliaTestController.createTestRun(
+            testRun,
+            mode,
+            maxNumProcesses,
+            executable,
+            all_the_tests,
+            all_the_testsetups
+        )
     }
 
     public dispose() {}
