@@ -74,6 +74,12 @@ export const notficiationTypeTestItemErrored = new rpc.NotificationType<{
         uri?: string
         line?: number
         column?: number
+        stackTrace?: {
+            label: string
+            uri?: string
+            line?: number
+            column?: number
+        }[]
     }[]
     duration?: number
 }>('testItemErrored')
@@ -88,6 +94,12 @@ export const notficiationTypeTestItemFailed = new rpc.NotificationType<{
         uri?: string
         line?: number
         column?: number
+        stackTrace?: {
+            label: string
+            uri?: string
+            line?: number
+            column?: number
+        }[]
     }[]
     duration?: number
 }>('testItemFailed')
