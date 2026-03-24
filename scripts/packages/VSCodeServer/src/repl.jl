@@ -160,8 +160,18 @@ function hook_repl(@nospecialize(repl))
         return
     end
     @debug "installing REPL hook"  time=round(Int, time()*10)
+    # Wait for the REPL interface to be set up by `run_frontend` rather than
+    # calling `setup_interface` ourselves. Doing it early would ignore user
+    # options (e.g. `auto_insert_closing_bracket`) set in other `atreplinit`
+    # hooks or startup.jl. Since `hook_repl` is already called inside `@async`,
+    # we can simply poll here.
+    for i in 1:100  # wait up to 10s
+        @debug "wait for REPL interface: $i" time=round(Int, time()*10)
+        isdefined(repl, :interface) && break
+        sleep(0.1)
+    end
     if !isdefined(repl, :interface)
-        @debug "set up interface"  time=round(Int, time()*10)
+        @warn "VSCodeServer: REPL interface not available after waiting, setting up manually"
         repl.interface = REPL.setup_interface(repl)
     end
     main_mode = get_main_mode(repl)
