@@ -165,7 +165,8 @@ function hook_repl(@nospecialize(repl))
     # options (e.g. `auto_insert_closing_bracket`) set in other `atreplinit`
     # hooks or startup.jl. Since `hook_repl` is already called inside `@async`,
     # we can simply poll here.
-    for _ in 1:100  # wait up to 10s
+    for i in 1:100  # wait up to 10s
+        @debug "wait for REPL interface: $i" time=round(Int, time()*10)
         isdefined(repl, :interface) && break
         sleep(0.1)
     end
