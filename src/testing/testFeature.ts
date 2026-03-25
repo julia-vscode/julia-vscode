@@ -187,7 +187,11 @@ export class JuliaTestController {
                     }
                     if (i.stackTrace) {
                         msg.stackTrace = i.stackTrace.map((s) => {
-                            return new vscode.TestMessageStackFrame(s.label, s.uri ? vscode.Uri.parse(s.uri) : undefined, s.line && s.column ? new vscode.Position(s.line - 1, s.column - 1) : undefined)
+                            return new vscode.TestMessageStackFrame(
+                                s.label,
+                                s.uri ? vscode.Uri.parse(s.uri) : undefined,
+                                s.line && s.column ? new vscode.Position(s.line - 1, s.column - 1) : undefined
+                            )
                         })
                     }
 
@@ -217,7 +221,11 @@ export class JuliaTestController {
 
                 if (j.stackTrace) {
                     msg.stackTrace = j.stackTrace.map((s) => {
-                        return new vscode.TestMessageStackFrame(s.label, s.uri ? vscode.Uri.parse(s.uri) : undefined, s.line && s.column ? new vscode.Position(s.line - 1, s.column - 1) : undefined)
+                        return new vscode.TestMessageStackFrame(
+                            s.label,
+                            s.uri ? vscode.Uri.parse(s.uri) : undefined,
+                            s.line && s.column ? new vscode.Position(s.line - 1, s.column - 1) : undefined
+                        )
                     })
                 }
                 return msg
