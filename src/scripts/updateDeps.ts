@@ -118,6 +118,7 @@ async function main() {
         // 'PrecompileTools',
         'TestEnv',
         // 'Compiler', Ignore for now as it doesn't have tags
+        'LoggingExtras',
     ]) {
         const opts = { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) }
         await cp.exec('git fetch', opts)
@@ -146,6 +147,7 @@ async function main() {
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
+    await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/testitemcontroller'), { recursive: true })
     for (const v of [
         '1.0',
         '1.1',
@@ -180,6 +182,15 @@ async function main() {
                     { cwd: env_path_ls }
                 )
 
+                const env_path_pkgdev = path.join(process.cwd(), 'scripts/environments/pkgdev', `v${v}`)
+                await fs.mkdir(env_path_pkgdev, { recursive: true })
+                await cp.exec(
+                    `julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`,
+                    { cwd: env_path_pkgdev }
+                )
+            }
+
+            if (semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.12.0'))) {
                 const env_path_testitemcontroller = path.join(
                     process.cwd(),
                     'scripts/environments/testitemcontroller',
@@ -189,13 +200,6 @@ async function main() {
                 await cp.exec(
                     `julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testitemcontroller_project.jl')}`,
                     { cwd: env_path_testitemcontroller }
-                )
-
-                const env_path_pkgdev = path.join(process.cwd(), 'scripts/environments/pkgdev', `v${v}`)
-                await fs.mkdir(env_path_pkgdev, { recursive: true })
-                await cp.exec(
-                    `julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`,
-                    { cwd: env_path_pkgdev }
                 )
             }
 
