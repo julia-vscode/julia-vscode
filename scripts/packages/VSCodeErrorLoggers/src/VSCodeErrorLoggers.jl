@@ -1,0 +1,105 @@
+module VSCodeErrorLoggers
+
+export VSCodeErrorLogger
+
+import Logging, Sockets, InteractiveUtils
+
+function global_err_handler(e, bt, vscode_pipe_name, cloudRole; should_exit = true)
+    try
+        st = stacktrace(bt)
+        pipe_to_vscode = Sockets.connect(vscode_pipe_name)
+        try
+            # Send cloudRole as one line
+            println(pipe_to_vscode, cloudRole)
+            # Send error type as one line
+            println(pipe_to_vscode, typeof(e))
+
+            # Send error message
+            temp_io = IOBuffer()
+            showerror(temp_io, e)
+            println(temp_io)
+            println(temp_io)
+            InteractiveUtils.versioninfo(temp_io, verbose=false)
+            error_message_str = chomp(String(take!(temp_io)))
+            n = count(i -> i == '\n', error_message_str) + 1
+            println(pipe_to_vscode, n)
+            println(pipe_to_vscode, error_message_str)
+
+            # Send stack trace, one frame per line
+            # Note that stack frames need to be formatted in Node.js style
+            for s in st
+                print(pipe_to_vscode, " at ")
+                Base.StackTraces.show_spec_linfo(pipe_to_vscode, s)
+
+                filename = string(s.file)
+
+                # Now we need to sanitize the filename so that we don't transmit
+                # things like a username in the path name
+                filename = normpath(filename)
+                if isabspath(filename)
+                    root_path_of_extension = normpath(joinpath(@__DIR__, "..", ".."))
+                    if startswith(filename, root_path_of_extension)
+                        filename = joinpath(".", filename[lastindex(root_path_of_extension) + 1:end])
+                    else
+                        filename = basename(filename)
+                    end
+                else
+                    filename = basename(filename)
+                end
+
+                # Use a line number of "0" as a proxy for unknown line number
+                print(pipe_to_vscode, " (", filename, ":", s.line >= 0 ? s.line : "0", ":1)")
+
+                # TODO Unclear how we can fit this into the Node.js format
+                # if s.inlined
+                #     print(pipe_to_vscode, " [inlined]")
+                # end
+
+                println(pipe_to_vscode)
+            end
+        finally
+            close(pipe_to_vscode)
+        end
+    finally
+        if should_exit
+            exit(1)
+        end
+    end
+end
+
+struct VSCodeErrorLogger <: Logging.AbstractLogger
+    vscode_pipe_name::String
+    cloud_role::String
+    should_exit::Bool
+end
+
+Logging.min_enabled_level(::VSCodeErrorLogger) = Logging.Error
+Logging.shouldlog(::VSCodeErrorLogger, level, _module, group, id) = level >= Logging.Error
+Logging.catch_exceptions(::VSCodeErrorLogger) = true
+
+function Logging.handle_message(logger::VSCodeErrorLogger, level, message, _module, group, id, filepath, line; kwargs...)
+    if level < Logging.Error
+        return
+    end
+
+    try
+        e = if haskey(kwargs, :exception)
+            exc = kwargs[:exception]
+            exc isa Tuple ? first(exc) : exc
+        else
+            ErrorException(string(message))
+        end
+
+        bt = if haskey(kwargs, :exception) && kwargs[:exception] isa Tuple
+            last(kwargs[:exception])
+        else
+            backtrace()
+        end
+
+        global_err_handler(e, bt, logger.vscode_pipe_name, logger.cloud_role; should_exit=logger.should_exit)
+    catch err
+        @debug "VSCodeErrorLogger failed to handle message" exception = (err, catch_backtrace())
+    end
+end
+
+end

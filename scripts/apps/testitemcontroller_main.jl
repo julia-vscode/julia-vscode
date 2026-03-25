@@ -1,5 +1,5 @@
-if VERSION < v"1.10.0"
-    error("VS Code test item controller only works with Julia 1.10.0 or newer")
+if VERSION < v"1.12.0"
+    error("VS Code test item controller only works with Julia 1.12.0 or newer")
 end
 
 @info "Starting test item controller on Julia $VERSION"
@@ -12,19 +12,20 @@ else
     Pkg.activate(joinpath(@__DIR__, "..", "environments", "testitemcontroller", "fallback"))
 end
 
-using Logging
-global_logger(ConsoleLogger(stderr))
+using Logging, LoggingExtras, VSCodeErrorLoggers
 
-using InteractiveUtils, Sockets
+if length(Base.ARGS) != 1
+    error("Invalid number of arguments passed to Julia test item controller.")
+end
 
-include("../error_handler.jl")
+global const crash_reporting_pipename = Base.ARGS[1]
+
+global_logger(TeeLogger(
+    ConsoleLogger(stderr),
+    VSCodeErrorLogger(crash_reporting_pipename, "Test Item Controller", true)
+))
 
 try
-    if length(Base.ARGS) != 1
-        error("Invalid number of arguments passed to Julia test item controller.")
-    end
-
-
     global conn_in = stdin
     global conn_out = stdout
     redirect_stdout(stderr)
@@ -35,14 +36,11 @@ try
     controller = JSONRPCTestItemController(
         conn_in,
         conn_out,
-        (err, bt) -> global_err_handler(err, bt, Base.ARGS[1], "Test Item Controller"),
         error_handler_file = normpath(joinpath(@__DIR__, "../error_handler.jl")),
-        crash_reporting_pipename = Base.ARGS[1]
+        crash_reporting_pipename = crash_reporting_pipename
     )
-
-    # ENV["JULIA_DEBUG"] = "Main,TestItemControllers"
 
     run(controller)
 catch err
-    global_err_handler(err, catch_backtrace(), Base.ARGS[1], "Test Item Controller")
+    @error("Test item controller error", exception = (err, catch_backtrace()))
 end
