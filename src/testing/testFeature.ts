@@ -369,40 +369,68 @@ export class JuliaTestController {
             testRun: testRun,
             testItems: new Map(all_the_tests.map((i) => [i.testItem.id, i.testItem])),
         })
+
+        // Group items by package identity and create one TestEnvironment per unique group
+        const envsByKey = new Map<string, { id: string; packageName: string; packageUri: string; projectUri?: string; envContentHash?: string }>()
+        const itemEnvId = new Map<string, string>()
+
+        for (const t of all_the_tests) {
+            const key = `${t.testEnv.packageName ?? ''}|${t.testEnv.packageUri ?? ''}|${t.testEnv.projectUri ?? ''}|${t.testEnv.envContentHash ?? ''}`
+            if (!envsByKey.has(key)) {
+                envsByKey.set(key, {
+                    id: uuidv4(),
+                    packageName: t.testEnv.packageName ?? '',
+                    packageUri: t.testEnv.packageUri ?? '',
+                    projectUri: t.testEnv.projectUri,
+                    envContentHash: t.testEnv.envContentHash,
+                })
+            }
+            itemEnvId.set(t.testItem.id, envsByKey.get(key).id)
+        }
+
+        const testEnvironments = [...envsByKey.values()].map((env) => ({
+            id: env.id,
+            juliaCmd: juliaExec.command,
+            juliaArgs: juliaExec.args,
+            juliaNumThreads: nthreads,
+            juliaEnv: {},
+            mode: modeAsString(mode),
+            packageName: env.packageName,
+            packageUri: env.packageUri,
+            projectUri: env.projectUri,
+            envContentHash: env.envContentHash,
+        }))
+
+        const workUnits = all_the_tests.map((i) => ({
+            testitemId: i.testItem.id,
+            testEnvId: itemEnvId.get(i.testItem.id),
+            logLevel: 'Info',
+        }))
+
         const params = {
             testRunId: testRunId,
-            testProfiles: [
-                {
-                    id: 'id1',
-                    label: 'default',
-                    juliaCmd: juliaExec.command,
-                    juliaArgs: juliaExec.args,
-                    juliaNumThreads: nthreads,
-                    juliaEnv: {},
-                    maxProcessCount: maxProcessCount,
-                    mode: modeAsString(mode),
-                    coverageRootUris:
-                        mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders
-                            ? undefined
-                            : vscode.workspace.workspaceFolders.map((i) => i.uri.toString()),
-                },
-            ],
-            testItems: all_the_tests.map((i) => {
-                return {
-                    id: i.testItem.id,
-                    uri: i.testItem.uri.toString(),
-                    label: i.testItem.label,
-                    ...i.testEnv,
-                    useDefaultUsings: i.details.optionDefaultImports,
-                    testSetups: i.details.optionSetup,
-                    line: i.details.range.start.line + 1,
-                    column: i.details.range.start.character + 1,
-                    code: i.details.code,
-                    codeLine: i.details.codeRange.start.line + 1,
-                    codeColumn: i.details.codeRange.start.character + 1,
-                }
-            }),
+            testEnvironments: testEnvironments,
+            testItems: all_the_tests.map((i) => ({
+                id: i.testItem.id,
+                uri: i.testItem.uri.toString(),
+                label: i.testItem.label,
+                packageName: i.testEnv.packageName ?? '',
+                packageUri: i.testEnv.packageUri ?? '',
+                useDefaultUsings: i.details.optionDefaultImports,
+                testSetups: i.details.optionSetup,
+                line: i.details.range.start.line + 1,
+                column: i.details.range.start.character + 1,
+                code: i.details.code,
+                codeLine: i.details.codeRange.start.line + 1,
+                codeColumn: i.details.codeRange.start.character + 1,
+            })),
+            workUnits: workUnits,
             testSetups: testSetups,
+            maxProcessCount: maxProcessCount,
+            coverageRootUris:
+                mode !== TestRunMode.Coverage || !vscode.workspace.workspaceFolders
+                    ? undefined
+                    : vscode.workspace.workspaceFolders.map((i) => i.uri.toString()),
         }
 
         const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params, testRun.token)
