@@ -100,7 +100,9 @@ export function wrapCrashReporting(f) {
  */
 export function onEvent<T>(
     event: vscode.Event<T>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     listener: (e: T) => any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     thisArgs?: any,
     disposables?: vscode.Disposable[]
 ): vscode.Disposable {
