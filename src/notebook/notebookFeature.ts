@@ -2,7 +2,7 @@ import * as semver from 'semver'
 import * as vscode from 'vscode'
 import { NotebookNode, WorkspaceFeature } from '../interactive/workspace'
 import { JuliaExecutable, ExecutableFeature } from '../executables'
-import { registerCommand } from '../utils'
+import { onEvent, registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
 import isEqual from 'lodash.isequal'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
@@ -49,9 +49,9 @@ export class JuliaNotebookFeature {
         private workspaceFeature: WorkspaceFeature,
         private compiledProvider: DebugConfigTreeProvider
     ) {
-        vscode.workspace.onDidOpenNotebookDocument(this.onDidOpenNotebookDocument, this, this.disposables)
-        vscode.window.onDidChangeActiveNotebookEditor(this.init, this, this.disposables)
-        vscode.window.onDidChangeVisibleNotebookEditors(this.init, this, this.disposables)
+        onEvent(vscode.workspace.onDidOpenNotebookDocument, this.onDidOpenNotebookDocument.bind(this), this, this.disposables)
+        onEvent(vscode.window.onDidChangeActiveNotebookEditor, this.init.bind(this), this, this.disposables)
+        onEvent(vscode.window.onDidChangeVisibleNotebookEditors, this.init.bind(this), this, this.disposables)
 
         context.subscriptions.push(
             registerCommand('language-julia.stopKernel', (node) => this.stopKernel(node)),
@@ -87,14 +87,14 @@ export class JuliaNotebookFeature {
             )
         )
 
-        vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
+        onEvent(vscode.debug.onDidStartDebugSession, (session: vscode.DebugSession) => {
             if (session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
                 const kernel = this.getKernelByDebugPipename(session.configuration.pipename)
                 kernel.activeDebugSession = session
             }
         })
 
-        vscode.debug.onDidTerminateDebugSession((session: vscode.DebugSession) => {
+        onEvent(vscode.debug.onDidTerminateDebugSession, (session: vscode.DebugSession) => {
             if (session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
                 const kernel = this.debugPipenameToKernel.get(session.configuration.pipename)
                 kernel.activeDebugSession = null
@@ -131,7 +131,7 @@ export class JuliaNotebookFeature {
             controller.supportsExecutionOrder = true
             controller.description = 'Julia VS Code extension'
             controller.detail = juliaVersion.command
-            controller.onDidChangeSelectedNotebooks((e) => {
+            onEvent(controller.onDidChangeSelectedNotebooks, (e) => {
                 if (e.selected && e.notebook) {
                     e.notebook
                         .getCells()
@@ -141,7 +141,8 @@ export class JuliaNotebookFeature {
             })
             controller.executeHandler = this.executeCells.bind(this)
             controller.interruptHandler = this.interrupt.bind(this)
-            controller.onDidChangeSelectedNotebooks(
+            onEvent(
+                controller.onDidChangeSelectedNotebooks,
                 ({ notebook, selected }) => {
                     // If we select our controller, then update the notebook metadata with the kernel information.
                     if (!selected) {

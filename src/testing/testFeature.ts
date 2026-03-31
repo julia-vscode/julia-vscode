@@ -27,7 +27,7 @@ import {
 } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
-import { getCustomEnvironmentVariables, inferJuliaNumThreads, registerCommand } from '../utils'
+import { getCustomEnvironmentVariables, inferJuliaNumThreads, onEvent, registerCommand } from '../utils'
 
 enum TestRunMode {
     Normal,
@@ -566,7 +566,7 @@ export class TestFeature {
         this.cpuLength = cpus().length
 
         context.subscriptions.push(
-            languageClientFeature.onDidSetLanguageClient((languageClient) => {
+            onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
                 this.languageClient = languageClient
 
                 if (!this.languageClient) {
@@ -581,7 +581,7 @@ export class TestFeature {
                         throw err
                     }
                 })
-            })
+            }),
         )
     }
 

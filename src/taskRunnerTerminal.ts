@@ -1,6 +1,7 @@
 import * as vscode from 'vscode'
 import { JuliaPTY, JuliaPTYOptions } from './utils/pty'
 import { JuliaProcess } from './utils/process'
+import { onEvent } from './utils'
 import { randomUUID } from 'crypto'
 
 export interface TaskRunnerTerminalOptions extends JuliaPTYOptions {
@@ -49,7 +50,7 @@ export class TaskRunnerTerminal {
         }
 
         this.disposables.push(
-            vscode.window.onDidCloseTerminal((terminal) => {
+            onEvent(vscode.window.onDidCloseTerminal, (terminal) => {
                 if (terminal === this.terminal) {
                     this.onDidCloseEmitter.fire()
                     this.dispose()
@@ -71,7 +72,7 @@ export class TaskRunnerTerminal {
                 ...opts.env,
             },
         })
-        this.proc.onDidClose((ev) => {
+        onEvent(this.proc.onDidClose, (ev) => {
             this.onDidExitProcessEmitter.fire(ev)
         })
         if (this.pty) {
@@ -174,7 +175,7 @@ export class TaskRunner {
                 iconPath: this.iconPath,
                 ...item.opts,
             })
-            this.terminal.onDidClose(() => {
+            onEvent(this.terminal.onDidClose, () => {
                 this.terminal = undefined
             })
             this.disposables.push(this.terminal)
@@ -184,7 +185,7 @@ export class TaskRunner {
             this.terminal.show()
         }
 
-        this.terminal.onDidExitProcess((ev) => {
+        onEvent(this.terminal.onDidExitProcess, (ev) => {
             this.statusBarItem.hide()
             this.isRunning = false
             item.emitter.fire(ev)
