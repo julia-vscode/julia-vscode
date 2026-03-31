@@ -1,5 +1,4 @@
 import * as vscode from 'vscode'
-import * as telemetry from '../telemetry'
 import { getVersionedParamsAtPosition, registerCommand } from '../utils'
 import * as modules from './modules'
 import * as repl from './repl'
@@ -481,7 +480,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         cell?: JuliaCell,
         docCells: readonly JuliaCell[] = this.getDocCells()
     ): boolean {
-        telemetry.traceEvent('command-moveCell')
         const editor = vscode.window.activeTextEditor
         if (editor === undefined) {
             return false
@@ -499,7 +497,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
 
     /** Select the specified cell, or the cell intersecting with the current active selection */
     private selectCell(cell?: JuliaCell, docCells: readonly JuliaCell[] = this.getDocCells()) {
-        telemetry.traceEvent('command-selectCell')
         const editor = vscode.window.activeTextEditor
         if (editor === undefined) {
             return
@@ -584,7 +581,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
 
     /** Execute the specified cell, or the cell or cells intersecting with the current selections in document order */
     private async executeCell(cell?: JuliaCell): Promise<boolean> {
-        telemetry.traceEvent('command-executeCell')
         const editor = vscode.window.activeTextEditor
         if ((await this._commandCommonSave(editor)) === false) {
             return false
@@ -605,7 +601,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         cell?: JuliaCell,
         docCells: readonly JuliaCell[] = this.getDocCells()
     ): Promise<boolean> {
-        telemetry.traceEvent('command-executeCellAndMove')
         const editor = vscode.window.activeTextEditor
         if ((await this._commandCommonSave(editor)) === false) {
             return false
@@ -629,7 +624,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         cell?: JuliaCell,
         docCells: readonly JuliaCell[] = this.getDocCells()
     ): Promise<boolean> {
-        telemetry.traceEvent('command-executeCurrentAndBelowCells')
         const editor = vscode.window.activeTextEditor
         if ((await this._commandCommonSave(editor)) === false) {
             return false
@@ -653,7 +647,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         cell?: JuliaCell,
         docCells: readonly JuliaCell[] = this.getDocCells()
     ): Promise<boolean> {
-        telemetry.traceEvent('command-executeAboveCells')
         const editor = vscode.window.activeTextEditor
         if ((await this._commandCommonSave(editor)) === false) {
             return false
@@ -718,7 +711,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
 
     /** Ensure a debug session is running for the current file */
     private async debugCell(cell?: JuliaCell, docCells: readonly JuliaCell[] = this.getDocCells()): Promise<boolean> {
-        telemetry.traceEvent('command-debugCell')
         const editor = vscode.window.activeTextEditor
         // Debugging always saves the file
         if (editor === undefined) {
