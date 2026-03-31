@@ -581,7 +581,7 @@ export class TestFeature {
                         throw err
                     }
                 })
-            }),
+            })
         )
     }
 

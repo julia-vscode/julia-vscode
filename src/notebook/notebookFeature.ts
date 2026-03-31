@@ -49,7 +49,12 @@ export class JuliaNotebookFeature {
         private workspaceFeature: WorkspaceFeature,
         private compiledProvider: DebugConfigTreeProvider
     ) {
-        onEvent(vscode.workspace.onDidOpenNotebookDocument, this.onDidOpenNotebookDocument.bind(this), this, this.disposables)
+        onEvent(
+            vscode.workspace.onDidOpenNotebookDocument,
+            this.onDidOpenNotebookDocument.bind(this),
+            this,
+            this.disposables
+        )
         onEvent(vscode.window.onDidChangeActiveNotebookEditor, this.init.bind(this), this, this.disposables)
         onEvent(vscode.window.onDidChangeVisibleNotebookEditors, this.init.bind(this), this, this.disposables)
 

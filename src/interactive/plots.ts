@@ -279,12 +279,17 @@ export function showPlotPane(lazy = false) {
             }
         })
         // Reset when the current panel is closed
-        onEvent(g_plotPanel.onDidDispose, () => {
-            configListener.dispose()
-            viewStateListener.dispose()
-            g_plotPanel = undefined
-            setContext(c_juliaPlotPanelActiveContextKey, false)
-        }, null, g_context.subscriptions)
+        onEvent(
+            g_plotPanel.onDidDispose,
+            () => {
+                configListener.dispose()
+                viewStateListener.dispose()
+                g_plotPanel = undefined
+                setContext(c_juliaPlotPanelActiveContextKey, false)
+            },
+            null,
+            g_context.subscriptions
+        )
 
         onEvent(g_plotPanel.webview.onDidReceiveMessage, plotPanelOnMessage)
         if (!g_plotPanel.visible) {
@@ -910,9 +915,14 @@ function displayCustom(payload, id, title?: string) {
 
     panel.webview.html = payload
     // Reset when the current panel is closed
-    onEvent(panel.onDidDispose, () => {
-        CUSTOM_PANELS.delete(id)
-    }, null, g_context.subscriptions)
+    onEvent(
+        panel.onDidDispose,
+        () => {
+            CUSTOM_PANELS.delete(id)
+        },
+        null,
+        g_context.subscriptions
+    )
 
     if (!panel.visible) {
         panel.reveal(panel.viewColumn, true)
