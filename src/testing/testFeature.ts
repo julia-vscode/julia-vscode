@@ -371,7 +371,10 @@ export class JuliaTestController {
         })
 
         // Group items by package identity and create one TestEnvironment per unique group
-        const envsByKey = new Map<string, { id: string; packageName: string; packageUri: string; projectUri?: string; envContentHash?: string }>()
+        const envsByKey = new Map<
+            string,
+            { id: string; packageName: string; packageUri: string; projectUri?: string; envContentHash?: string }
+        >()
         const itemEnvId = new Map<string, string>()
 
         for (const t of all_the_tests) {

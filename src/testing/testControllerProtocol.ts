@@ -185,9 +185,7 @@ export interface TestProcessOutputParams {
     output: string
 }
 
-export const notificationTypeTestProcessOutput = new rpc.NotificationType<TestProcessOutputParams>(
-    'testProcessOutput'
-)
+export const notificationTypeTestProcessOutput = new rpc.NotificationType<TestProcessOutputParams>('testProcessOutput')
 
 export interface LaunchDebuggerParams {
     debugPipeName: string
