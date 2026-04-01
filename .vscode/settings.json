@@ -18,5 +18,8 @@
   "files.insertFinalNewline": true,
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "julia.environmentPath": "./scripts/environments/development"
+  "julia.environmentPath": "./scripts/environments/development",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
