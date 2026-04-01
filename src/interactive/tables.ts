@@ -3,6 +3,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { g_connection } from './repl'
+import { onEvent } from '../utils'
 
 const requestTypeGetTableData = new rpc.RequestType<
     {
@@ -107,7 +108,7 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
     if (isLazy) {
         const objectId = parsedPayload.id
 
-        panel.onDidDispose(async () => {
+        onEvent(panel.onDidDispose, async () => {
             try {
                 await g_connection.sendNotification(clearLazyTable, {
                     id: objectId,
@@ -117,7 +118,7 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
             }
         })
 
-        panel.webview.onDidReceiveMessage(async (message) => {
+        onEvent(panel.webview.onDidReceiveMessage, async (message) => {
             if (message.type === 'getRows') {
                 let response
                 const conn = kernel?._msgConnection || g_connection

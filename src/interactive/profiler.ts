@@ -1,7 +1,7 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { readFile, writeFile } from 'fs/promises'
-import { registerCommand, setContext } from '../utils'
+import { onEvent, registerCommand, setContext } from '../utils'
 import { openFile } from './results'
 
 interface ProfilerFrame {
@@ -83,7 +83,7 @@ export class ProfilerFeature {
             registerCommand('language-julia.saveProfileToFile', () => {
                 this.saveToFile()
             }),
-            vscode.window.onDidChangeVisibleTextEditors((editors) => this.refreshInlineTrace(editors))
+            onEvent(vscode.window.onDidChangeVisibleTextEditors, (editors) => this.refreshInlineTrace(editors))
         )
     }
 
@@ -216,7 +216,8 @@ export class ProfilerFeature {
             isProfilerPaneReady = resolve
         })
 
-        const messageHandler = this.panel.webview.onDidReceiveMessage(
+        const messageHandler = onEvent(
+            this.panel.webview.onDidReceiveMessage,
             (message: { type: string; node?: ProfilerFrame; selection?: string }) => {
                 if (message.type === 'open') {
                     openFile(
@@ -241,12 +242,12 @@ export class ProfilerFeature {
 
         await loadedPromise
 
-        const viewStateListener = this.panel.onDidChangeViewState(({ webviewPanel }) => {
+        const viewStateListener = onEvent(this.panel.onDidChangeViewState, ({ webviewPanel }) => {
             this.context.globalState.update('juliaProfilerViewColumn', webviewPanel.viewColumn)
             setContext(profilerContextKey, webviewPanel.active)
         })
 
-        this.panel.onDidDispose(() => {
+        onEvent(this.panel.onDidDispose, () => {
             viewStateListener.dispose()
             messageHandler.dispose()
             setContext(profilerContextKey, false)

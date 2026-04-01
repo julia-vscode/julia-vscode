@@ -3,7 +3,7 @@ import * as net from 'net'
 import { parse } from 'semver'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
-import { generatePipeName } from './utils'
+import { generatePipeName, onEvent } from './utils'
 
 let enableCrashReporter: boolean = false
 let enableTelemetry: boolean = false
@@ -55,7 +55,7 @@ function loadConfig() {
 export function init(context: vscode.ExtensionContext) {
     loadConfig()
     context.subscriptions.push(
-        vscode.workspace.onDidChangeConfiguration(() => {
+        onEvent(vscode.workspace.onDidChangeConfiguration, () => {
             loadConfig()
         })
     )

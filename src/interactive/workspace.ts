@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { JuliaTestController, JuliaTestProcess } from '../testing/testFeature'
-import { registerCommand, wrapCrashReporting } from '../utils'
+import { onEvent, registerCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
 import { notifyTypeDisplay, notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
 import { openFile } from './results'
@@ -44,7 +44,7 @@ abstract class SessionNode extends AbstractWorkspaceNode {
         super()
 
         this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
-        vscode.workspace.onDidChangeConfiguration((config) => {
+        onEvent(vscode.workspace.onDidChangeConfiguration, (config) => {
             if (config.affectsConfiguration('julia.workspace.showModules')) {
                 this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
                 this.updateReplVariables()

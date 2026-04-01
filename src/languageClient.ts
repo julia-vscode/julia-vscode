@@ -9,7 +9,7 @@ import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOpt
 import * as jlpkgenv from './jlpkgenv'
 import * as telemetry from './telemetry'
 import { ExecutableFeature, JuliaExecutable } from './executables'
-import { getCustomEnvironmentVariables, registerCommand } from './utils'
+import { getCustomEnvironmentVariables, onEvent, registerCommand } from './utils'
 
 export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
 const supportedLanguages = ['julia', 'juliamarkdown', 'markdown']
@@ -44,7 +44,7 @@ export class LanguageClientFeature {
             registerCommand('language-julia.showLanguageServerOutput', () => {
                 this.outputChannel.show(true)
             }),
-            vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
+            onEvent(vscode.workspace.onDidChangeConfiguration, (event: vscode.ConfigurationChangeEvent) => {
                 this.onDidChangeConfigEmitter.fire(event)
                 if (
                     event.affectsConfiguration('julia.languageServerJuliaupChannel') ||
