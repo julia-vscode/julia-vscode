@@ -7,7 +7,7 @@ import * as vslc from 'vscode-languageclient/node'
 import { ExecutableFeature } from './executables'
 import * as packagepath from './packagepath'
 import * as telemetry from './telemetry'
-import { parseVSCodeVariables, registerCommand, resolvePath } from './utils'
+import { onEvent, parseVSCodeVariables, registerCommand, resolvePath } from './utils'
 import { LanguageClientFeature } from './languageClient'
 
 let g_languageClient: vslc.LanguageClient = null
@@ -290,7 +290,7 @@ export async function activate(
 ) {
     g_ExecutableFeature = ExecutableFeature
     context.subscriptions.push(
-        languageClientFeature.onDidSetLanguageClient((languageClient) => {
+        onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
             g_languageClient = languageClient
         })
     )

@@ -5,6 +5,7 @@ import {
     generatePipeName,
     getCustomEnvironmentVariables,
     inferJuliaNumThreads,
+    onEvent,
     parseVSCodeVariables,
     registerCommand,
 } from '../utils'
@@ -152,20 +153,20 @@ export class JuliaDebugFeature {
         const provider = new JuliaDebugConfigurationProvider(compiledProvider)
         const factory = new InlineDebugAdapterFactory(this.context, this, ExecutableFeature)
 
-        compiledProvider.onDidChangeTreeData(() => {
+        onEvent(compiledProvider.onDidChangeTreeData, () => {
             if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
                 vscode.debug.activeDebugSession.customRequest('setCompiledItems', {
                     compiledModulesOrFunctions: compiledProvider.getCompiledItems(),
                 })
             }
         })
-        compiledProvider.onDidChangeCompiledMode((mode) => {
+        onEvent(compiledProvider.onDidChangeCompiledMode, (mode) => {
             if (vscode.debug.activeDebugSession && vscode.debug.activeDebugSession.type === 'julia') {
                 vscode.debug.activeDebugSession.customRequest('setCompiledMode', { compiledMode: mode })
             }
         })
 
-        vscode.tasks.onDidStartTaskProcess((e) => {
+        onEvent(vscode.tasks.onDidStartTaskProcess, (e) => {
             if (this.taskExecutionsForLaunchedDebugSessions.has(e.execution)) {
                 this.debugSessionsThatNeedTermination.set(
                     this.taskExecutionsForLaunchedDebugSessions.get(e.execution),

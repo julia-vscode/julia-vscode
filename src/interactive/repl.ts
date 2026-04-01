@@ -18,6 +18,7 @@ import {
     getCustomEnvironmentVariables,
     inferJuliaNumThreads,
     getVersionedParamsAtPosition,
+    onEvent,
     registerCommand,
     setContext,
     wrapCrashReporting,
@@ -1324,7 +1325,7 @@ export function activate(
 
     context.subscriptions.push(
         // listeners
-        languageClientFeature.onDidSetLanguageClient((languageClient) => {
+        onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
             g_languageClient = languageClient
         }),
         onInit(
@@ -1376,7 +1377,7 @@ export function activate(
             clearProgress()
             setContext('julia.isEvaluating', false)
         }),
-        vscode.workspace.onDidChangeConfiguration(async (event) => {
+        onEvent(vscode.workspace.onDidChangeConfiguration, async (event) => {
             if (event.affectsConfiguration('julia.usePlotPane')) {
                 try {
                     await g_connection.sendNotification('repl/togglePlotPane', {
@@ -1423,14 +1424,14 @@ export function activate(
                 }
             }
         }),
-        vscode.window.onDidChangeActiveTerminal((terminal) => {
+        onEvent(vscode.window.onDidChangeActiveTerminal, (terminal) => {
             if (terminal === g_terminal) {
                 setContext('julia.isActiveREPL', true)
             } else {
                 setContext('julia.isActiveREPL', false)
             }
         }),
-        vscode.window.onDidCloseTerminal((terminal) => {
+        onEvent(vscode.window.onDidCloseTerminal, (terminal) => {
             if (terminal === g_terminal) {
                 g_terminal = null
             }
@@ -1518,7 +1519,7 @@ function checkRevise(hasRevise: boolean, juliaExecutable: JuliaExecutable) {
                             },
                         })
 
-                        task.onDidExitProcess(async (exitCode) => {
+                        onEvent(task.onDidExitProcess, async (exitCode) => {
                             if (exitCode === 0) {
                                 await executeInREPL('using Revise')
                             }

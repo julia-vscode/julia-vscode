@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import * as telemetry from '../telemetry'
-import { getVersionedParamsAtPosition, registerCommand } from '../utils'
+import { getVersionedParamsAtPosition, onEvent, registerCommand } from '../utils'
 import * as modules from './modules'
 import * as repl from './repl'
 import * as results from './results'
@@ -74,9 +74,9 @@ class JuliaCellManager implements vscode.Disposable {
     constructor(protected context: vscode.ExtensionContext) {
         this.updateCellDelimiters()
         this.context.subscriptions.push(
-            vscode.workspace.onDidChangeTextDocument(this.onDidChangeTextDocument.bind(this)),
-            vscode.workspace.onDidCloseTextDocument(this.onDidCloseTextDocument.bind(this)),
-            vscode.workspace.onDidChangeConfiguration(this.onDidChangeConfiguration.bind(this))
+            onEvent(vscode.workspace.onDidChangeTextDocument, this.onDidChangeTextDocument.bind(this)),
+            onEvent(vscode.workspace.onDidCloseTextDocument, this.onDidCloseTextDocument.bind(this)),
+            onEvent(vscode.workspace.onDidChangeConfiguration, this.onDidChangeConfiguration.bind(this))
         )
     }
 
@@ -388,7 +388,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         )
 
         this.context.subscriptions.push(
-            vscode.debug.onDidStartDebugSession((session) => {
+            onEvent(vscode.debug.onDidStartDebugSession, (session) => {
                 if (
                     session.type === 'julia' &&
                     (session.configuration as InlineDebugConfiguration).__juliaInlineDebug === true
@@ -396,7 +396,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
                     this.inlineDebugSession = session
                 }
             }),
-            vscode.debug.onDidTerminateDebugSession((session) => {
+            onEvent(vscode.debug.onDidTerminateDebugSession, (session) => {
                 if (this.inlineDebugSession && session.id === this.inlineDebugSession.id) {
                     this.inlineDebugSession = undefined
                 }
@@ -787,7 +787,7 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
         this.updateUseCellHighlighting()
         this.context.subscriptions.push(
             vscode.languages.registerCodeLensProvider(['julia', 'juliamarkdown'], this),
-            vscode.window.onDidChangeTextEditorSelection(this.onDidChangeTextEditorSelection.bind(this))
+            onEvent(vscode.window.onDidChangeTextEditorSelection, this.onDidChangeTextEditorSelection.bind(this))
         )
     }
 

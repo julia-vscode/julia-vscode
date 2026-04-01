@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { constructCommandString, registerCommand, setContext } from '../utils'
+import { constructCommandString, onEvent, registerCommand, setContext } from '../utils'
 
 const LINE_INF = 9999
 
@@ -185,9 +185,9 @@ const supportedLanguageIds = ['julia', 'juliamarkdown', 'markdown']
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         // subscriptions
-        vscode.workspace.onDidChangeTextDocument((e) => validateResults(e)),
-        vscode.window.onDidChangeVisibleTextEditors((editors) => refreshResults(editors)),
-        vscode.window.onDidChangeTextEditorSelection((changeEvent) =>
+        onEvent(vscode.workspace.onDidChangeTextDocument, (e) => validateResults(e)),
+        onEvent(vscode.window.onDidChangeVisibleTextEditors, (editors) => refreshResults(editors)),
+        onEvent(vscode.window.onDidChangeTextEditorSelection, (changeEvent) =>
             updateContextKeyForSelections(changeEvent.textEditor, changeEvent.selections)
         ),
 

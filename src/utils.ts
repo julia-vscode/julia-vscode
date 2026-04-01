@@ -66,21 +66,20 @@ export function inferJuliaNumThreads(): string | undefined {
  * Currently sends any uncaught errors in the command to crash reporting.
  */
 export function registerCommand(cmd: string, f) {
-    const fWrapped = (...args) => {
-        try {
-            return f(...args)
-        } catch (err) {
-            handleNewCrashReportFromException(err, 'Extension')
-            throw err
-        }
-    }
-    return vscode.commands.registerCommand(cmd, fWrapped)
+    return vscode.commands.registerCommand(cmd, wrapCrashReporting(f))
 }
 
 export function wrapCrashReporting(f) {
     const fWrapped = (...args) => {
         try {
-            return f(...args)
+            const result = f(...args)
+            if (result && typeof result.then === 'function') {
+                return result.then(undefined, (err) => {
+                    handleNewCrashReportFromException(err, 'Extension')
+                    throw err
+                })
+            }
+            return result
         } catch (err) {
             handleNewCrashReportFromException(err, 'Extension')
             throw err
@@ -88,6 +87,39 @@ export function wrapCrashReporting(f) {
     }
 
     return fWrapped
+}
+
+/**
+ * Subscribe to a VS Code event with automatic crash reporting.
+ * Same signature as calling the event directly, but wraps the listener
+ * so that any errors (sync or async) are reported to telemetry with
+ * proper stack traces. Errors are swallowed after reporting so that
+ * VS Code's generic `_asExtensionEvent` handler never sees them,
+ * eliminating the useless "FAILED to handle event" / "ExtensionError"
+ * telemetry entries that lack stack traces.
+ */
+export function onEvent<T>(
+    event: vscode.Event<T>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    listener: (e: T) => any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    thisArgs?: any,
+    disposables?: vscode.Disposable[]
+): vscode.Disposable {
+    const wrapped = (...args: [T]) => {
+        try {
+            const result = listener.apply(thisArgs, args)
+            if (result && typeof result.then === 'function') {
+                result.then(undefined, (err) => {
+                    handleNewCrashReportFromException(err, 'Extension')
+                })
+            }
+            return result
+        } catch (err) {
+            handleNewCrashReportFromException(err, 'Extension')
+        }
+    }
+    return event(wrapped, undefined, disposables)
 }
 
 export function resolvePath(p: string, normalize: boolean = true) {

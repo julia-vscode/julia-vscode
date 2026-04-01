@@ -1,6 +1,7 @@
 import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
 import { ExecutableFeature } from './executables'
+import { onEvent } from './utils'
 
 let juliaPackagePath: string = null
 
@@ -59,7 +60,7 @@ export async function getPkgDepotPath() {
 export function activate(context: vscode.ExtensionContext, ExecutableFeature: ExecutableFeature) {
     g_ExecutableFeature = ExecutableFeature
     context.subscriptions.push(
-        vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
+        onEvent(vscode.workspace.onDidChangeConfiguration, (event: vscode.ConfigurationChangeEvent) => {
             if (event.affectsConfiguration('julia.executablePath')) {
                 juliaPackagePath = null
             }
