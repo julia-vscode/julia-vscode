@@ -3,7 +3,6 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
 import { ExecutableFeature } from './executables'
-import * as telemetry from './telemetry'
 import { getCustomEnvironmentVariables, inferJuliaNumThreads } from './utils'
 
 class JuliaTaskProvider {
@@ -29,7 +28,6 @@ class JuliaTaskProvider {
     }
 
     async provideJuliaTasksForFolder(folder: vscode.WorkspaceFolder) {
-        telemetry.traceEvent('task-provide')
         const emptyTasks: vscode.Task[] = []
 
         if (folder.uri.scheme !== 'file') {

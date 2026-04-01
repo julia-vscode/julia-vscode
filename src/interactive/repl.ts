@@ -49,14 +49,10 @@ let g_terminal_is_persistent: boolean = false
 let g_ExecutableFeature: ExecutableFeature
 
 function startREPLCommand() {
-    telemetry.traceEvent('command-startrepl')
-
     startREPL(false, true)
 }
 
 function startREPLWithVersionCommand(versionName?: string) {
-    telemetry.traceEvent('command-startreplwithversion')
-
     startREPLWithVersion(versionName)
 }
 
@@ -827,8 +823,6 @@ function stripMarkdown(code: string) {
 }
 
 async function executeFile(uri?: vscode.Uri | string) {
-    telemetry.traceEvent('command-executeFile')
-
     const editor = vscode.window.activeTextEditor
 
     await startREPL(true, false)
@@ -904,8 +898,6 @@ export async function getBlockRange(params: VersionedTextDocumentPositionParams)
 }
 
 async function selectJuliaBlock() {
-    telemetry.traceEvent('command-selectCodeBlock')
-
     const editor = vscode.window.activeTextEditor
     const position = editor.document.validatePosition(editor.selection.start)
     const ret_val = await getBlockRange(getVersionedParamsAtPosition(editor.document, position))
@@ -924,8 +916,6 @@ export function validateMoveAndReveal(editor: vscode.TextEditor, startpos: vscod
 }
 
 async function evaluateBlockOrSelection(shouldMove: boolean = false) {
-    telemetry.traceEvent('command-executeCodeBlockOrSelection')
-
     const editor = vscode.window.activeTextEditor
     if (editor === undefined) {
         return
@@ -994,8 +984,6 @@ export async function evaluate(
     text: string,
     module: string
 ): Promise<boolean> {
-    telemetry.traceEvent('command-evaluate')
-
     const section = vscode.workspace.getConfiguration('julia')
     const resultType: string = section.get('execution.resultType')
     const codeInREPL: boolean = section.get('execution.codeInREPL')
@@ -1072,8 +1060,6 @@ async function executeCodeCopyPaste(text: string, individualLine: boolean) {
 }
 
 function executeSelectionCopyPaste() {
-    telemetry.traceEvent('command-executeSelectionCopyPaste')
-
     const editor = vscode.window.activeTextEditor
     if (!editor) {
         return
@@ -1129,8 +1115,6 @@ export async function executeInREPL(
 const interrupts = []
 let last_interrupt_index = -1
 async function interrupt() {
-    telemetry.traceEvent('command-interrupt')
-
     g_evalQueue.killAndDrain()
 
     // always send out internal interrupt
@@ -1153,7 +1137,6 @@ async function softInterrupt() {
 }
 
 function signalInterrupt() {
-    telemetry.traceEvent('command-signal-interrupt')
     try {
         if (process.platform !== 'win32') {
             g_terminal.processId.then((pid) => process.kill(pid, 'SIGINT'))
@@ -1168,8 +1151,6 @@ function signalInterrupt() {
 // code execution end
 
 async function cdToHere(uri: vscode.Uri) {
-    telemetry.traceEvent('command-cdHere')
-
     const uriPath = await getDirUriFsPath(uri)
     await startREPL(true, false)
     if (uriPath) {
@@ -1182,8 +1163,6 @@ async function cdToHere(uri: vscode.Uri) {
 }
 
 async function activateHere(uri: vscode.Uri) {
-    telemetry.traceEvent('command-activateThisEnvironment')
-
     const uriPath = await getDirUriFsPath(uri)
     activatePath(uriPath)
 }

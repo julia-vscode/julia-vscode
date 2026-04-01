@@ -2,13 +2,10 @@ import * as fs from 'async-file'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as packagepath from './packagepath'
-import * as telemetry from './telemetry'
 import { registerCommand } from './utils'
 
 // This method implements the language-julia.openPackageDirectory command
 async function openPackageDirectoryCommand() {
-    telemetry.traceEvent('command-openpackagedirectory')
-
     const optionsPackage: vscode.QuickPickOptions = {
         placeHolder: 'Select package',
     }

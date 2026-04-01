@@ -6,7 +6,6 @@ import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient/node'
 import { ExecutableFeature } from './executables'
 import * as packagepath from './packagepath'
-import * as telemetry from './telemetry'
 import { onEvent, parseVSCodeVariables, registerCommand, resolvePath } from './utils'
 import { LanguageClientFeature } from './languageClient'
 
@@ -126,8 +125,6 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
 }
 
 async function changeJuliaEnvironment(envPath?: string) {
-    telemetry.traceEvent('changeCurrentEnvironment')
-
     if (envPath && envPath !== '') {
         switchEnvToPath(envPath, true)
         return

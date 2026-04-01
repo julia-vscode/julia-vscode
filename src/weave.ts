@@ -4,7 +4,6 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
 import { ExecutableFeature } from './executables'
-import * as telemetry from './telemetry'
 import { getCustomEnvironmentVariables, registerCommand } from './utils'
 import { mkdtemp } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -114,8 +113,6 @@ async function weave_core(column, selected_format: string = undefined) {
 }
 
 async function open_preview() {
-    telemetry.traceEvent('command-weaveopenpreview')
-
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
     } else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
@@ -126,8 +123,6 @@ async function open_preview() {
 }
 
 async function open_preview_side() {
-    telemetry.traceEvent('command-weaveopenpreviewside')
-
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
     } else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
@@ -138,8 +133,6 @@ async function open_preview_side() {
 }
 
 async function save() {
-    telemetry.traceEvent('command-weavesave')
-
     if (vscode.window.activeTextEditor === undefined) {
         vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
     } else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
