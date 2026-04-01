@@ -4,7 +4,7 @@ import { ResponseError } from 'vscode-jsonrpc'
 import * as vslc from 'vscode-languageclient/node'
 import { LanguageClientFeature, supportedSchemes } from '../languageClient'
 import * as telemetry from '../telemetry'
-import { registerCommand, wrapCrashReporting } from '../utils'
+import { onEvent, registerCommand, wrapCrashReporting } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import { onExit, onInit } from './repl'
 
@@ -22,14 +22,14 @@ const automaticallyChooseOption = 'Choose Automatically'
 
 export function activate(context: vscode.ExtensionContext, languageClientFeature: LanguageClientFeature) {
     context.subscriptions.push(
-        vscode.window.onDidChangeActiveTextEditor((ed) => {
+        onEvent(vscode.window.onDidChangeActiveTextEditor, (ed) => {
             cancelCurrentGetModuleRequest()
             g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
             updateStatusBarItem(ed, g_currentGetModuleRequestCancelTokenSource.token)
         })
     )
     context.subscriptions.push(
-        vscode.window.onDidChangeTextEditorSelection((changeEvent) => {
+        onEvent(vscode.window.onDidChangeTextEditorSelection, (changeEvent) => {
             cancelCurrentGetModuleRequest()
             g_currentGetModuleRequestCancelTokenSource = new vscode.CancellationTokenSource()
             updateModuleForSelectionEvent(changeEvent, g_currentGetModuleRequestCancelTokenSource.token)
@@ -38,7 +38,7 @@ export function activate(context: vscode.ExtensionContext, languageClientFeature
     context.subscriptions.push(registerCommand('language-julia.chooseModule', chooseModule))
 
     context.subscriptions.push(
-        languageClientFeature.onDidSetLanguageClient((languageClient) => {
+        onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
             g_languageClient = languageClient
         })
     )
@@ -190,7 +190,7 @@ async function isModuleLoaded(mod: string) {
 }
 
 async function chooseModule() {
-    let possibleModules: string[] = []
+    let possibleModules: string[]
     try {
         possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     } catch (err) {
@@ -236,7 +236,7 @@ async function chooseModule() {
         }),
     ]
 
-    qp.onDidTriggerItemButton((ev) => {
+    onEvent(qp.onDidTriggerItemButton, (ev) => {
         if (ev.item.label === automaticallyChooseOption) {
             vscode.workspace.getConfiguration('julia.execution').update('module', undefined, true)
         } else {
@@ -245,7 +245,7 @@ async function chooseModule() {
         qp.dispose()
     })
 
-    qp.onDidAccept(() => {
+    onEvent(qp.onDidAccept, () => {
         const selected = qp.selectedItems[0]
 
         if (!selected) {
@@ -267,7 +267,7 @@ async function chooseModule() {
         qp.dispose()
     })
 
-    qp.onDidHide(() => {
+    onEvent(qp.onDidHide, () => {
         qp.dispose()
     })
 

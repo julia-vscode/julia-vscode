@@ -1,0 +1,9 @@
+name = "VSCodeErrorLoggers"
+uuid = "8a9f2a3c-f25e-4c5b-a4d7-571b8c6af959"
+version = "0.1.0"
+authors = ["David Anthoff <anthoff@berkeley.edu>"]
+
+[deps]
+InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"

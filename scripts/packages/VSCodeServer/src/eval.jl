@@ -142,8 +142,8 @@ function set_error_global(errs)
     end
 end
 
-function repl_runcode_request(conn, params::ReplRunCodeRequestParams, token)::ReplRunCodeRequestReturn
-    run_with_backend() do
+function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecialize(token))::ReplRunCodeRequestReturn
+    result = run_with_backend() do
         fix_displays()
 
         source_filename = params.filename
@@ -283,6 +283,10 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams, token)::Re
 
         return PROGRESS_ENABLED[] ? Logging.with_logger(f, VSCodeLogger()) : f()
     end
+
+    # run_with_backend wraps uncaught errors in an EvalError(Stack), so we call
+    # `render` again (which is a no-op if result is already of the right type)
+    return safe_render(result)
 end
 
 # don't inline this so we can find it in the stacktrace
@@ -310,6 +314,7 @@ function safe_render(x)::ReplRunCodeRequestReturn
         )
     end
 end
+safe_render(x::ReplRunCodeRequestReturn) = x
 
 """
     render(x)

@@ -6,7 +6,7 @@ using REPL.REPLCompletions: Completion, KeywordCompletion, PathCompletion, Modul
     PackageCompletion, PropertyCompletion, FieldCompletion, MethodCompletion, BslashCompletion,
     ShellCompletion, DictCompletion
 
-function repl_getcompletions_request(_, params::GetCompletionsRequestParams, token)
+function repl_getcompletions_request(_, params::GetCompletionsRequestParams, @nospecialize(token))
     mod, line = params.mod, params.line
     mod = module_from_string(mod)
 
@@ -22,7 +22,7 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams, tok
     return completion.(cs)
 end
 
-function repl_resolvecompletion_request(conn, completion_item, token)
+function repl_resolvecompletion_request(conn, completion_item, @nospecialize(token))
     return completion_item # not used currently, return as is
 end
 

@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { JuliaTestController, JuliaTestProcess } from '../testing/testFeature'
-import { registerCommand, wrapCrashReporting } from '../utils'
+import { onEvent, registerCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
 import { notifyTypeDisplay, notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
 import { openFile } from './results'
@@ -44,7 +44,7 @@ abstract class SessionNode extends AbstractWorkspaceNode {
         super()
 
         this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
-        vscode.workspace.onDidChangeConfiguration((config) => {
+        onEvent(vscode.workspace.onDidChangeConfiguration, (config) => {
             if (config.affectsConfiguration('julia.workspace.showModules')) {
                 this._showModules = vscode.workspace.getConfiguration('julia').get('workspace.showModules')
                 this.updateReplVariables()
@@ -377,7 +377,12 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
 
             treeItem.description = node.testProcess.packageName
             treeItem.tooltip = new vscode.MarkdownString(
-                `This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.packageUri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.projectUri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.\n\nThe env is ${node.testProcess.env}.`
+                `This is a test process for the ${node.testProcess.packageName} package.\n\n` +
+                    `**Julia channel:** ${node.testProcess.juliaChannelName ?? 'N/A (no Juliaup)'}\n\n` +
+                    `The full package path is ${vscode.Uri.parse(node.testProcess.packageUri).fsPath}\n\n` +
+                    `The project path is ${vscode.Uri.parse(node.testProcess.projectUri).fsPath}\n\n` +
+                    `The process does ${node.testProcess.coverage ? '' : 'not '}collect coverage information.\n\n` +
+                    `The env is ${node.testProcess.env}.`
             )
             treeItem.contextValue = 'juliatestprocess'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None

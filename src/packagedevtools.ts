@@ -1,7 +1,6 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { ExecutableFeature } from './executables'
-import * as telemetry from './telemetry'
 import { getCustomEnvironmentVariables, registerCommand } from './utils'
 
 export class JuliaPackageDevFeature {
@@ -15,8 +14,6 @@ export class JuliaPackageDevFeature {
     }
 
     private async tagNewPackageVersion() {
-        telemetry.traceEvent('command-tagnewpackageversion')
-
         if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
             let resultVersion = await vscode.window.showQuickPick(['Next', 'Major', 'Minor', 'Patch', 'Custom'], {
                 placeHolder: 'Please select the version to be tagged.',

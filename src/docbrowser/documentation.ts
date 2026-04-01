@@ -1,7 +1,7 @@
 import markdownit from 'markdown-it'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { constructCommandString, getVersionedParamsAtPosition, registerCommand } from '../utils'
+import { constructCommandString, getVersionedParamsAtPosition, onEvent, registerCommand } from '../utils'
 import { LanguageClientFeature } from '../languageClient'
 
 function openArgs(href: string) {
@@ -96,7 +96,7 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
             'Use the `language-julia.show-documentation` command in an editor or search for documentation above.'
         )
 
-        view.webview.onDidReceiveMessage((msg) => {
+        onEvent(view.webview.onDidReceiveMessage, (msg) => {
             if (msg.type === 'search') {
                 this.showDocumentationFromWord(msg.query)
             } else {

@@ -58,26 +58,16 @@ export class JuliaCommands {
             pkg"${cmd}"`,
             cmd,
             env,
-            `Julia: ${cmd}`,
             { JULIA_PKG_PRECOMPILE_AUTO: '0' }
         )
     }
 
-    private async runCommand(
-        cmd: string,
-        pkgCmd?: string,
-        juliaEnv?: string,
-        name?: string,
-        processEnv?: { [key: string]: string }
-    ) {
+    private async runCommand(cmd: string, pkgCmd?: string, juliaEnv?: string, processEnv?: { [key: string]: string }) {
         const juliaExecutable = await this.juliaExecutableFeature.getExecutable()
         const args = [...juliaExecutable.args]
 
         if (!juliaEnv) {
             juliaEnv = await jlpkgenv.getAbsEnvPath()
-        }
-        if (!name) {
-            name = 'Run Command'
         }
 
         args.push(`--project=${juliaEnv}`, '-e', cmd)

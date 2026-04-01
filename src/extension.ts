@@ -35,20 +35,28 @@ export const increaseIndentPattern: RegExp =
 export const decreaseIndentPattern: RegExp = /^\s*(end|else|elseif|catch|finally)\b.*$/
 
 export async function activate(context: vscode.ExtensionContext) {
-    await telemetry.init(context)
+    console.debug('[julia activation] start language-julia extension')
+    const activateStart = performance.now()
+
+    telemetry.init(context)
+    console.debug(`[julia activation] telemetry.init: ${(performance.now() - activateStart).toFixed(1)}ms`)
+
     try {
         setContext('julia.isActive', true)
-
+        let t = performance.now()
         telemetry.traceEvent('activate')
 
         telemetry.startLsCrashServer()
+        console.debug(`[julia activation] initial telemetry: ${(performance.now() - t).toFixed(1)}ms`)
 
+        t = performance.now()
         const globalDiagnosticOutputFeature = new JuliaGlobalDiagnosticOutputFeature()
         context.subscriptions.push(globalDiagnosticOutputFeature)
+        console.debug(`[julia activation] JuliaGlobalDiagnosticOutputFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
-        console.debug('Activating extension language-julia')
-
+        t = performance.now()
         const executableFeature = new ExecutableFeature(context)
+        console.debug(`[julia activation] ExecutableFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
         if (executableFeature.hasJulia()) {
             executableFeature.setJuliaInstalled(true)
@@ -62,35 +70,80 @@ export async function activate(context: vscode.ExtensionContext) {
             },
         })
 
+        t = performance.now()
         const profilerFeature = new ProfilerFeature(context)
         context.subscriptions.push(profilerFeature)
+        console.debug(`[julia activation] ProfilerFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
         // Active features from other files
 
+        t = performance.now()
         const languageClientFeature: LanguageClientFeature = new LanguageClientFeature(context, executableFeature)
         context.subscriptions.push(languageClientFeature)
+        console.debug(`[julia activation] LanguageClientFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
+        t = performance.now()
         const compiledProvider = debugViewProvider.activate(context)
-        context.subscriptions.push(executableFeature)
-        repl.activate(context, compiledProvider, executableFeature, profilerFeature, languageClientFeature)
-        weave.activate(context, executableFeature)
-        documentation.activate(context, languageClientFeature)
-        tasks.activate(context, executableFeature)
-        smallcommands.activate(context)
-        packagepath.activate(context, executableFeature)
-        openpackagedirectory.activate(context)
-        jlpkgenv.activate(context, executableFeature, languageClientFeature)
+        console.debug(`[julia activation] debugViewProvider.activate: ${(performance.now() - t).toFixed(1)}ms`)
 
+        context.subscriptions.push(executableFeature)
+
+        t = performance.now()
+        repl.activate(context, compiledProvider, executableFeature, profilerFeature, languageClientFeature)
+        console.debug(`[julia activation] repl.activate: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
+        weave.activate(context, executableFeature)
+        console.debug(`[julia activation] weave.activate: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
+        documentation.activate(context, languageClientFeature)
+        console.debug(`[julia activation] documentation.activate: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
+        tasks.activate(context, executableFeature)
+        console.debug(`[julia activation] tasks.activate: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
+        smallcommands.activate(context)
+        console.debug(`[julia activation] smallcommands.activate: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
+        packagepath.activate(context, executableFeature)
+        console.debug(`[julia activation] packagepath.activate: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
+        openpackagedirectory.activate(context)
+        console.debug(`[julia activation] openpackagedirectory.activate: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
+        jlpkgenv.activate(context, executableFeature, languageClientFeature)
+        console.debug(`[julia activation] jlpkgenv.activate: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
         context.subscriptions.push(new CodeCellFeature(context, compiledProvider))
+        console.debug(`[julia activation] CodeCellFeature: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
         const lmToolFeature = new LmToolFeature(context)
         context.subscriptions.push(lmToolFeature)
+        console.debug(`[julia activation] LmToolFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
+        t = performance.now()
         const workspaceFeature = new WorkspaceFeature(context)
         context.subscriptions.push(workspaceFeature)
+        console.debug(`[julia activation] WorkspaceFeature: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
         const notebookFeature = new JuliaNotebookFeature(context, executableFeature, workspaceFeature, compiledProvider)
         context.subscriptions.push(notebookFeature)
-        context.subscriptions.push(new JuliaPackageDevFeature(context, executableFeature))
+        console.debug(`[julia activation] JuliaNotebookFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
+        t = performance.now()
+        context.subscriptions.push(new JuliaPackageDevFeature(context, executableFeature))
+        console.debug(`[julia activation] JuliaPackageDevFeature: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
         const testFeature = new TestFeature(
             context,
             executableFeature,
@@ -98,11 +151,17 @@ export async function activate(context: vscode.ExtensionContext) {
             compiledProvider,
             languageClientFeature
         )
+        await testFeature.init()
         context.subscriptions.push(testFeature)
+        console.debug(`[julia activation] TestFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
+        t = performance.now()
         context.subscriptions.push(new JuliaDebugFeature(context, compiledProvider, executableFeature, notebookFeature))
+        console.debug(`[julia activation] JuliaDebugFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
+        t = performance.now()
         context.subscriptions.push(new JuliaCommands(context, executableFeature))
+        console.debug(`[julia activation] JuliaCommands: ${(performance.now() - t).toFixed(1)}ms`)
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('symbolCacheDownload') === null) {
             vscode.window
@@ -120,7 +179,9 @@ export async function activate(context: vscode.ExtensionContext) {
                 .update('symbolCacheDownload', true, vscode.ConfigurationTarget.Global)
         }
 
+        t = performance.now()
         languageClientFeature.startServer()
+        console.debug(`[julia activation] languageClientFeature.startServer: ${(performance.now() - t).toFixed(1)}ms`)
 
         if (vscode.workspace.getConfiguration('julia').get<boolean>('enableTelemetry') === null) {
             const agree = 'Yes'
@@ -167,6 +228,8 @@ export async function activate(context: vscode.ExtensionContext) {
             },
             executeInREPL: repl.executeInREPL,
         }
+
+        console.debug(`[julia activation] total: ${(performance.now() - activateStart).toFixed(1)}ms`)
 
         return api
     } catch (err) {

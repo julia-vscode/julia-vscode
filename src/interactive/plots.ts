@@ -2,8 +2,7 @@ import * as fs from 'fs/promises'
 import { homedir } from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import * as telemetry from '../telemetry'
-import { registerCommand, setContext } from '../utils'
+import { onEvent, registerCommand, setContext } from '../utils'
 import { displayTable } from './tables'
 import { JuliaKernel } from '../notebook/notebookKernel'
 
@@ -60,7 +59,7 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
             enableCommandUris: true,
         }
 
-        view.webview.onDidReceiveMessage((msg) => {
+        onEvent(view.webview.onDidReceiveMessage, (msg) => {
             // msg.type could be used to determine messages
             switch (msg.type) {
                 case 'toPlot': // switch current plot to plot at index (msg.value)
@@ -245,7 +244,6 @@ function plotPanelOnMessage(msg) {
 }
 
 export function showPlotPane(lazy = false) {
-    telemetry.traceEvent('command-showplotpane')
     const plotTitle = makeTitle()
 
     if (!g_plotPanel) {
@@ -265,7 +263,7 @@ export function showPlotPane(lazy = false) {
             }
         )
 
-        const viewStateListener = g_plotPanel.onDidChangeViewState(({ webviewPanel }) => {
+        const viewStateListener = onEvent(g_plotPanel.onDidChangeViewState, ({ webviewPanel }) => {
             g_context.globalState.update('juliaPlotPanelViewColumn', webviewPanel.viewColumn)
             setContext(c_juliaPlotPanelActiveContextKey, webviewPanel.active)
         })
@@ -273,13 +271,14 @@ export function showPlotPane(lazy = false) {
         g_plotPanel.webview.html = getPlotPaneContent(g_plotPanel.webview)
         setContext(c_juliaPlotPanelActiveContextKey, true)
 
-        const configListener = vscode.workspace.onDidChangeConfiguration((config) => {
+        const configListener = onEvent(vscode.workspace.onDidChangeConfiguration, (config) => {
             if (config.affectsConfiguration('julia') && g_plotPanel) {
                 g_plotPanel.title = makeTitle()
             }
         })
         // Reset when the current panel is closed
-        g_plotPanel.onDidDispose(
+        onEvent(
+            g_plotPanel.onDidDispose,
             () => {
                 configListener.dispose()
                 viewStateListener.dispose()
@@ -290,7 +289,7 @@ export function showPlotPane(lazy = false) {
             g_context.subscriptions
         )
 
-        g_plotPanel.webview.onDidReceiveMessage(plotPanelOnMessage)
+        onEvent(g_plotPanel.webview.onDidReceiveMessage, plotPanelOnMessage)
         if (!g_plotPanel.visible) {
             g_plotPanel.reveal(g_plotPanel.viewColumn, true)
         }
@@ -328,8 +327,6 @@ function updatePlotPane(lazy = false) {
 }
 
 export function plotPanePrev() {
-    telemetry.traceEvent('command-plotpaneprevious')
-
     if (g_currentPlotIndex > 0) {
         g_currentPlotIndex = g_currentPlotIndex - 1
         updatePlotPane()
@@ -337,8 +334,6 @@ export function plotPanePrev() {
 }
 
 export function plotPaneNext() {
-    telemetry.traceEvent('command-plotpanenext')
-
     if (g_currentPlotIndex < g_plots.length - 1) {
         g_currentPlotIndex = g_currentPlotIndex + 1
         updatePlotPane()
@@ -346,8 +341,6 @@ export function plotPaneNext() {
 }
 
 export function plotPaneFirst() {
-    telemetry.traceEvent('command-plotpanefirst')
-
     if (g_plots.length > 0) {
         g_currentPlotIndex = 0
         updatePlotPane()
@@ -355,7 +348,6 @@ export function plotPaneFirst() {
 }
 
 export function plotPaneLast() {
-    telemetry.traceEvent('command-plotpanelast')
     if (g_plots.length > 0) {
         g_currentPlotIndex = g_plots.length - 1
         updatePlotPane()
@@ -363,7 +355,6 @@ export function plotPaneLast() {
 }
 
 export function plotPaneDel() {
-    telemetry.traceEvent('command-plotpanedelete')
     if (g_plots.length > 0) {
         g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
             plotsInfo.splice(g_currentPlotIndex, 1)
@@ -384,7 +375,6 @@ export function plotPaneDel() {
 }
 
 export function plotPaneDelAll() {
-    telemetry.traceEvent('command-plotpanedeleteall')
     g_plotNavigatorProvider?.setPlotsInfo(() => [])
     g_plot_id_map.clear()
     if (g_plots.length > 0) {
@@ -914,7 +904,8 @@ function displayCustom(payload, id, title?: string) {
 
     panel.webview.html = payload
     // Reset when the current panel is closed
-    panel.onDidDispose(
+    onEvent(
+        panel.onDidDispose,
         () => {
             CUSTOM_PANELS.delete(id)
         },

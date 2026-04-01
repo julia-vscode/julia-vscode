@@ -1,11 +1,9 @@
 import * as appInsights from 'applicationinsights'
-import * as fs from 'async-file'
 import * as net from 'net'
-import * as path from 'path'
 import { parse } from 'semver'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
-import { generatePipeName } from './utils'
+import { generatePipeName, onEvent } from './utils'
 
 let enableCrashReporter: boolean = false
 let enableTelemetry: boolean = false
@@ -54,22 +52,19 @@ function loadConfig() {
     enableTelemetry = section.get<boolean>('enableTelemetry', false)
 }
 
-export async function init(context: vscode.ExtensionContext) {
+export function init(context: vscode.ExtensionContext) {
     loadConfig()
-
     context.subscriptions.push(
-        vscode.workspace.onDidChangeConfiguration(() => {
+        onEvent(vscode.workspace.onDidChangeConfiguration, () => {
             loadConfig()
         })
     )
 
-    const packageJSONContent = JSON.parse(await fs.readTextFile(path.join(context.extensionPath, 'package.json')))
-
-    const extversion = packageJSONContent.version
+    const extversion: string = context.extension.packageJSON.version
     const parsedExtensionVersion = parse(extversion)
 
     // The Application Insights Key
-    let key = ''
+    let key: string
     if (parsedExtensionVersion.patch === 2) {
         // Use the production environment
         key =
@@ -120,7 +115,6 @@ export async function init(context: vscode.ExtensionContext) {
             handleNewCrashReportFromException(error, 'Extension')
         },
     })
-
     context.subscriptions.push(logger)
 }
 

@@ -5,9 +5,34 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- Fixed a race condition where user REPL configuration (e.g. `auto_insert_closing_bracket`) set in `startup.jl` via `atreplinit` could be overwritten ([#4063](https://github.com/julia-vscode/julia-vscode/pull/4063))
+
+## [1.196.0] - 2026-03-16
+### Fixed
+- Code evaluation is now more robust against unexpected errors ([#4056](https://github.com/julia-vscode/julia-vscode/pull/4056))
+
+### Changed
+- Extension activation is now slightly faster ([#4060](https://github.com/julia-vscode/julia-vscode/pull/4060))
+
+## [1.193.0] - 2026-03-11
+### Changed
+- We're now showing a status bar notification during slow operations like installing packages via `Julia: Run Package Command` or when installing Julia/JuliaUp ([#4051](https://github.com/julia-vscode/julia-vscode/pull/4051))
+
+### Fixed
+- Improved fallback behaviour when Julia is not on PATH but juliaup is found ([#4054](https://github.com/julia-vscode/julia-vscode/pull/4054))
+
+## [1.191.0] - 2026-03-10
+### Fixed
+- Improved test item cancellation behaviour ([#4050](https://github.com/julia-vscode/julia-vscode/pull/4050))
+
+## [1.190.0] - 2026-03-10
 ### Added
 - The extension now provides a few basic [language model tools](https://code.visualstudio.com/api/references/vscode-api#lm) for other extensions to interface with ([#4044](https://github.com/julia-vscode/julia-vscode/pull/4044))
 - The new `julia.plots.defaultMimeType` setting now allows toggling between `image/png` and `image/svg+xml` as the preferred MIME type for plots ([#4045](https://github.com/julia-vscode/julia-vscode/pull/4045))
+
+### Fixed
+- REPL startup should now be substantially faster ([#4049](https://github.com/julia-vscode/julia-vscode/pull/4049), [JSONRPC#94](https://github.com/julia-vscode/JSONRPC.jl/pull/94), [DebugAdapter#116](https://github.com/julia-vscode/DebugAdapter.jl/pull/116))
 
 ## [1.189.0] - 2026-03-02
 ### Changed

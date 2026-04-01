@@ -155,26 +155,40 @@ else
 end
 
 const HAS_REPL_TRANSFORM = Ref{Bool}(false)
-function hook_repl(repl)
+function hook_repl(@nospecialize(repl))
     if HAS_REPL_TRANSFORM[]
         return
     end
-    @debug "installing REPL hook"
+    @debug "installing REPL hook"  time=round(Int, time()*10)
+    # Wait for the REPL interface to be set up by `run_frontend` rather than
+    # calling `setup_interface` ourselves. Doing it early would ignore user
+    # options (e.g. `auto_insert_closing_bracket`) set in other `atreplinit`
+    # hooks or startup.jl. Since `hook_repl` is already called inside `@async`,
+    # we can simply poll here.
+    for i in 1:100  # wait up to 10s
+        @debug "wait for REPL interface: $i" time=round(Int, time()*10)
+        isdefined(repl, :interface) && break
+        sleep(0.1)
+    end
     if !isdefined(repl, :interface)
+        @warn "VSCodeServer: REPL interface not available after waiting, setting up manually"
         repl.interface = REPL.setup_interface(repl)
     end
     main_mode = get_main_mode(repl)
 
     if VERSION > v"1.5-"
-        for _ = 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
-            has_repl_backend() && continue
+        for i in 1:20 # repl backend should be set up after 10s -- fall back to the pre-ast-transform approach otherwise
+            @debug "wait for backend: $i" time=round(Int, time()*10)
+            has_repl_backend() && break
             sleep(0.5)
         end
         if has_repl_backend()
+            @debug "backend found"  time=round(Int, time()*10)
             push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
             HAS_REPL_TRANSFORM[] = true
+            @debug "installing shell integration"  time=round(Int, time()*10)
             install_vscode_shell_integration(main_mode)
-            @debug "REPL AST transform installed"
+            @debug "REPL AST transform installed"  time=round(Int, time()*10)
             return
         end
     end
@@ -184,7 +198,7 @@ function hook_repl(repl)
             $(evalrepl)($(active_module)(), $line, $repl, $main_mode)
         end
     end
-    @debug "legacy REPL hook installed"
+    @debug "legacy REPL hook installed"  time=round(Int, time()*10)
     HAS_REPL_TRANSFORM[] = true
     return nothing
 end
@@ -222,19 +236,19 @@ function evalrepl(m, line, repl, main_mode)
         REPL_PROMPT_STATE[] = REPLPromptStates.Error
         if r isa EvalError
             display_repl_error(stderr, r.err, r.bt)
-            nothing
+            return nothing
         elseif r isa EvalErrorStack
             set_error_global(r)
             display_repl_error(stderr, r)
-            nothing
+            return nothing
         else
             REPL_PROMPT_STATE[] = REPLPromptStates.Success
-            r
+            return r
         end
     catch err
         # This is for internal errors only.
         Base.display_error(stderr, err, catch_backtrace())
-        nothing
+        return nothing
     finally
         if did_notify
             try

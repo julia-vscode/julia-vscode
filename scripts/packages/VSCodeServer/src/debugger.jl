@@ -8,7 +8,7 @@ function remove_lln!(ex::Expr)
     end
 end
 
-function debugger_getdebugitems_request(conn, params, token)
+function debugger_getdebugitems_request(conn, params, @nospecialize(token))
     accessor = params.juliaAccessor
     out = DebugConfigTreeItem[]
     loaded_modules = Base.loaded_modules_array()
@@ -125,10 +125,10 @@ macro run(command)
     end
 end
 
-function start_debug_backend(debug_pipename, error_handler)
-    server = Sockets.listen(debug_pipename)
-
+function start_debug_backend(debug_pipename, @nospecialize(error_handler))
     @async try
+        server = Sockets.listen(debug_pipename)
+
         while true
             conn = Sockets.accept(server)
 

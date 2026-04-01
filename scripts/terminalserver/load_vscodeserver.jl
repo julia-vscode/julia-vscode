@@ -23,6 +23,7 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
 
     try
         activate_env()
+        @debug "using VSCodeServer start" time=round(Int, time()*10)
         if haskey(Base.loaded_modules, distributed) && (Distributed = Base.loaded_modules[distributed]).nprocs() > 1
             Distributed.remotecall_eval(Main, 1:Distributed.nprocs(), :($(activate_env)()))
             try
@@ -33,6 +34,7 @@ let distributed = Base.PkgId(Base.UUID("8ba89e20-285c-5b6f-9357-94700520ee1b"), 
         else
             using VSCodeServer
         end
+        @debug "using VSCodeServer end" time=round(Int, time()*10)
     finally
         deactivate_env()
     end
