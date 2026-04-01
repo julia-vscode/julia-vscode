@@ -28,11 +28,10 @@ export class JuliaPackageDevFeature {
             if (resultVersion !== undefined) {
                 const releaseNotes = await vscode.window.showInputBox({
                     prompt: 'Please enter the release notes for this version.',
-                    value: 'See the changelog for details.'
+                    value: 'See the changelog for details.',
                 })
 
                 if (releaseNotes !== undefined) {
-
                     const bar = await vscode.authentication.getSession('github', ['repo'], { createIfNone: true })
                     const accessToken = bar.accessToken
                     const account = bar.account.label
@@ -45,7 +44,12 @@ export class JuliaPackageDevFeature {
                             shellPath: juliaExecutable.command,
                             shellArgs: [
                                 ...juliaExecutable.args,
-                                path.join(this.context.extensionPath, 'scripts', 'packagedev', 'tagnewpackageversion.jl'),
+                                path.join(
+                                    this.context.extensionPath,
+                                    'scripts',
+                                    'packagedev',
+                                    'tagnewpackageversion.jl'
+                                ),
                                 accessToken,
                                 account,
                                 resultVersion,
