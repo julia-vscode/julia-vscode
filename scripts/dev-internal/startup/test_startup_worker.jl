@@ -3,7 +3,7 @@
 # then writes results to files that the parent process reads.
 #
 # Arguments (passed via ARGS):
-#   conn_pipename debug_pipename results_dir [--profile] [--snoop] [--verbose]
+#   conn_pipename debug_pipename results_dir [--profile] [--snoop] [--snoop-invalidations] [--verbose]
 
 const conn_pipename = ARGS[1]
 const debug_pipename = ARGS[2]
@@ -11,11 +11,12 @@ const results_dir = ARGS[3]
 const remaining_args = ARGS[4:end]
 const DO_PROFILE = "--profile" in remaining_args
 const DO_SNOOP = "--snoop" in remaining_args
+const DO_SNOOP_INVALIDATIONS = "--snoop-invalidations" in remaining_args
 const VERBOSE = "--verbose" in remaining_args
 
 using Profile
 
-if DO_SNOOP
+if DO_SNOOP || DO_SNOOP_INVALIDATIONS
     using SnoopCompileCore
 end
 
@@ -55,8 +56,16 @@ end
     end
 end
 
-@timed_phase "using_VSCodeServer" begin
-    using VSCodeServer
+if DO_SNOOP_INVALIDATIONS
+    invs = @snoop_invalidations begin
+        @timed_phase "using_VSCodeServer" begin
+            using VSCodeServer
+        end
+    end
+else
+    @timed_phase "using_VSCodeServer" begin
+        using VSCodeServer
+    end
 end
 
 @timed_phase "deactivate_env" begin
@@ -132,6 +141,22 @@ if DO_SNOOP
 
     fg = flamegraph(tinf)
     FlameGraphs.save(File(format"JLPROF", joinpath(results_dir, "snoop_flamegraph.jlprof")), fg)
+end
+
+# Write SnoopCompile invalidations report
+if DO_SNOOP_INVALIDATIONS
+    using SnoopCompile, AbstractTrees
+
+    trees = invalidation_trees(invs)
+
+    open(joinpath(results_dir, "invalidations_report.txt"), "w") do io
+        println(io, "=== SnoopCompile Invalidations Report ===")
+        println(io)
+
+        for tree in trees
+            println(io, tree, "\n")
+        end
+    end
 end
 
 # Render flame graph HTML
