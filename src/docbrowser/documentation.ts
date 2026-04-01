@@ -114,7 +114,7 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
             // this forces the webview to be resolved, but changes focus:
             await vscode.commands.executeCommand('julia-documentation.focus')
         }
-        this.view.show(true)
+        this.view?.show(true)
     }
 
     async showDocumentationFromWord(word: string) {

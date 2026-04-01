@@ -67,6 +67,9 @@ async function weave_core(column, selected_format: string = undefined) {
         g_weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args], {
             env: { ...process.env, ...getCustomEnvironmentVariables() },
         })
+        g_weaveNextChildProcess.on('error', (err) => {
+            g_weaveOutputChannel.append(String('Failed to start weave process: ' + err + '\n'))
+        })
     }
     g_weaveChildProcess = g_weaveNextChildProcess
 
@@ -82,6 +85,9 @@ async function weave_core(column, selected_format: string = undefined) {
 
     g_weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args], {
         env: { ...process.env, ...getCustomEnvironmentVariables() },
+    })
+    g_weaveNextChildProcess.on('error', (err) => {
+        g_weaveOutputChannel.append(String('Failed to start weave process: ' + err + '\n'))
     })
 
     g_weaveChildProcess.stdout.on('data', function (data) {
