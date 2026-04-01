@@ -179,6 +179,14 @@ export class JuliaNotebookFeature {
         const perfectMatchVersions = Array.from(this._controllers.entries())
             .filter(([, juliaExec]) => juliaExec.getVersion().toString() === semver.parse(version).toString())
             .sort(([, a], [, b]) => {
+                if (!a.juliaupChannel && !b.juliaupChannel) {
+                    return 0
+                } else if (!a.juliaupChannel) {
+                    return 1
+                } else if (!b.juliaupChannel) {
+                    return -1
+                }
+
                 if (a.juliaupChannel.arch !== b.juliaupChannel.arch) {
                     // we give preference to x64 builds
                     if (a.juliaupChannel.arch === 'x64') {
@@ -221,6 +229,12 @@ export class JuliaNotebookFeature {
                     const bVer = b.getVersion()
                     if (aVer.patch !== bVer.patch) {
                         return b.getVersion().patch - a.getVersion().patch
+                    } else if (!a.juliaupChannel && !b.juliaupChannel) {
+                        return 0
+                    } else if (!a.juliaupChannel) {
+                        return 1
+                    } else if (!b.juliaupChannel) {
+                        return -1
                     } else if (a.juliaupChannel.arch !== b.juliaupChannel.arch) {
                         //  we give preference to x64 builds
                         if (a.juliaupChannel.arch === 'x64') {
