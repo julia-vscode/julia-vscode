@@ -76,12 +76,20 @@ export class NotebookNode extends SessionNode {
     }
 
     async updateReplVariables() {
-        const variables = await this.kernel._msgConnection.sendRequest(requestTypeGetVariables, {
-            modules: this._showModules,
-        })
-        this.variablesNodes = variables.map((i) => new VariableNode(this, i))
+        const conn = this.getConnection()
+        if (!conn) {
+            return
+        }
+        try {
+            const variables = await conn.sendRequest(requestTypeGetVariables, {
+                modules: this._showModules,
+            })
+            this.variablesNodes = variables.map((i) => new VariableNode(this, i))
 
-        this.treeProvider.refresh()
+            this.treeProvider.refresh()
+        } catch {
+            // Connection may have been disposed
+        }
     }
 
     public async getChildren() {
@@ -170,12 +178,20 @@ class REPLNode extends SessionNode {
     }
 
     async updateReplVariables() {
-        const variables: WorkspaceVariable[] = await this.getConnection().sendRequest(requestTypeGetVariables, {
-            modules: this._showModules,
-        })
-        this.variablesNodes = variables.map((v) => new VariableNode(this, v))
+        const conn = this.getConnection()
+        if (!conn) {
+            return
+        }
+        try {
+            const variables: WorkspaceVariable[] = await conn.sendRequest(requestTypeGetVariables, {
+                modules: this._showModules,
+            })
+            this.variablesNodes = variables.map((v) => new VariableNode(this, v))
 
-        this.treeProvider.refresh()
+            this.treeProvider.refresh()
+        } catch {
+            // Connection may have been disposed
+        }
     }
 
     public async getChildren() {
@@ -192,15 +208,27 @@ class VariableNode extends AbstractWorkspaceNode {
     }
 
     public async getChildren() {
-        const children: WorkspaceVariable[] = await this.parentREPL
-            .getConnection()
-            .sendRequest(requestTypeGetLazy, { id: this.workspaceVariable.id })
+        const conn = this.parentREPL.getConnection()
+        if (!conn) {
+            return []
+        }
+        try {
+            const children: WorkspaceVariable[] = await conn.sendRequest(requestTypeGetLazy, {
+                id: this.workspaceVariable.id,
+            })
 
-        return children.map((i) => new VariableNode(this.parentREPL, i))
+            return children.map((i) => new VariableNode(this.parentREPL, i))
+        } catch {
+            return []
+        }
     }
 
     public async showInVSCode() {
-        await this.parentREPL.getConnection().sendNotification(notifyTypeReplShowInGrid, {
+        const conn = this.parentREPL.getConnection()
+        if (!conn) {
+            return
+        }
+        await conn.sendNotification(notifyTypeReplShowInGrid, {
             code: this.workspaceVariable.head,
         })
     }
@@ -235,7 +263,7 @@ export class WorkspaceFeature {
     }
 
     private closeREPL() {
-        this._REPLNode.dispose()
+        this._REPLNode?.dispose()
         this._REPLNode = null
         this._REPLTreeDataProvider.refresh()
     }
