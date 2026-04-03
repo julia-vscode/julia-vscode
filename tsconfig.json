@@ -6,6 +6,7 @@
         "lib": ["ES6", "dom"],
         "sourceMap": true,
         "rootDir": "src",
+        "strict": false,
         "noUnusedLocals": true,
         "esModuleInterop": true
     },
