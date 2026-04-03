@@ -1,7 +1,7 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.13.0-beta3"
-manifest_format = "2.1"
+julia_version = "1.12.5"
+manifest_format = "2.0"
 project_hash = "3bc57b5cbf0bf9e5a7a10c5477bca42bc4f6b514"
 
 [[deps.Base64]]
@@ -54,7 +54,7 @@ version = "1.11.0"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
-version = "1.0.0"
+version = "0.7.0"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"

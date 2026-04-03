@@ -4,9 +4,10 @@
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[CancellationTokens]]
+deps = ["Sockets"]
 path = "../../../packages/CancellationTokens"
 uuid = "2e8d271d-f2e2-407b-a864-17eb2156783e"
-version = "1.0.0"
+version = "2.0.2"
 
 [[CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
@@ -39,10 +40,10 @@ uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.1"
 
 [[JSONRPC]]
-deps = ["CancellationTokens", "JSON", "UUIDs"]
+deps = ["CancellationTokens", "JSON", "Sockets", "TestItemRunner", "UUIDs"]
 path = "../../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "2.0.2-DEV"
+version = "3.0.0-DEV"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
@@ -91,9 +92,26 @@ uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 [[Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 
+[[TOML]]
+deps = ["Dates"]
+git-tree-sha1 = "44aaac2d2aec4a850302f9aa69127c74f0c3787e"
+uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+version = "1.0.3"
+
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[TestItemRunner]]
+deps = ["Pkg", "TOML", "Test", "TestItems", "UUIDs"]
+git-tree-sha1 = "0a4cba9133b1a19fcf6175d0affde1418fc46fa2"
+uuid = "f8b46487-2199-4994-9208-9a1283c18c0a"
+version = "1.1.5"
+
+[[TestItems]]
+git-tree-sha1 = "42fd9023fef18b9b78c8343a4e2f3813ffbcefcb"
+uuid = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
+version = "1.0.0"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]

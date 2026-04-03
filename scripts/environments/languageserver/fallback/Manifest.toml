@@ -16,7 +16,7 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 version = "1.11.0"
 
     [deps.Artifacts.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.AutoHashEquals]]
 path = "../../../packages/AutoHashEquals"
@@ -31,7 +31,7 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 version = "1.11.0"
 
     [deps.Base64.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.CSTParser]]
 deps = ["Tokenize"]
@@ -43,9 +43,10 @@ version = "3.4.3"
     julia_version = "1.0.0"
 
 [[deps.CancellationTokens]]
+deps = ["Sockets"]
 path = "../../../packages/CancellationTokens"
 uuid = "2e8d271d-f2e2-407b-a864-17eb2156783e"
-version = "1.0.0"
+version = "2.0.2"
 
     [deps.CancellationTokens.syntax]
     julia_version = "1.0.0"
@@ -106,7 +107,7 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
     [deps.Dates.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.DelimitedFiles]]
 deps = ["Mmap"]
@@ -153,7 +154,7 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 version = "1.11.0"
 
     [deps.FileWatching.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Glob]]
 path = "../../../packages/Glob"
@@ -169,7 +170,7 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 version = "1.11.0"
 
     [deps.InteractiveUtils.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.JSON]]
 deps = ["Dates", "Mmap", "Unicode"]
@@ -181,10 +182,10 @@ version = "0.20.1"
     julia_version = "0.7.0"
 
 [[deps.JSONRPC]]
-deps = ["CancellationTokens", "JSON", "UUIDs"]
+deps = ["CancellationTokens", "JSON", "Sockets", "TestItemRunner", "UUIDs"]
 path = "../../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "2.0.2-DEV"
+version = "3.0.0-DEV"
 
     [deps.JSONRPC.syntax]
     julia_version = "1.0.0"
@@ -227,7 +228,7 @@ version = "7.0.1-DEV"
 deps = ["CSTParser", "Dates", "JSON", "JSONRPC", "JuliaFormatter", "JuliaWorkspaces", "Logging", "Markdown", "Pkg", "PrecompileTools", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIs", "UUIDs"]
 path = "../../../packages/LanguageServer"
 uuid = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
-version = "5.0.0-DEV"
+version = "5.0.0"
 
     [deps.LanguageServer.syntax]
     julia_version = "1.10.0"
@@ -243,7 +244,7 @@ version = "1.0.0"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "Zlib_jll", "Zstd_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.18.0+0"
+version = "8.19.0+0"
 
     [deps.LibCURL_jll.syntax]
     julia_version = "1.11.0"
@@ -254,7 +255,7 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 version = "1.11.0"
 
     [deps.LibGit2.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.LibGit2_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "PCRE2_jll", "Zlib_jll"]
@@ -277,14 +278,14 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 version = "1.11.0"
 
     [deps.Libdl.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 version = "1.11.0"
 
     [deps.Logging.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.MacroTools]]
 path = "../../../packages/MacroTools"
@@ -300,21 +301,21 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 version = "1.11.0"
 
     [deps.Markdown.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 version = "1.11.0"
 
     [deps.Mmap.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2025.12.2"
+version = "2026.3.19"
 
     [deps.MozillaCACerts_jll.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
@@ -383,15 +384,15 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 version = "1.11.0"
 
     [deps.Printf.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.REPL]]
-deps = ["Dates", "FileWatching", "InteractiveUtils", "JuliaSyntaxHighlighting", "Markdown", "Sockets", "StyledStrings", "Unicode"]
+deps = ["Base64", "Dates", "FileWatching", "InteractiveUtils", "JuliaSyntaxHighlighting", "Markdown", "Sockets", "StyledStrings", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 version = "1.11.0"
 
     [deps.REPL.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Random]]
 deps = ["SHA"]
@@ -399,7 +400,7 @@ uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 version = "1.11.0"
 
     [deps.Random.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -422,20 +423,20 @@ uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 version = "1.11.0"
 
     [deps.Serialization.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 version = "1.11.0"
 
     [deps.Sockets.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.StaticLint]]
 deps = ["CSTParser", "Serialization", "SymbolServer"]
 path = "../../../packages/StaticLint"
 uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
-version = "8.2.3-DEV"
+version = "9.0.0"
 
     [deps.StaticLint.syntax]
     julia_version = "1.10.0"
@@ -451,7 +452,7 @@ version = "1.13.0"
 deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
 path = "../../../packages/SymbolServer"
 uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
-version = "8.0.1-DEV"
+version = "8.0.1"
 
     [deps.SymbolServer.syntax]
     julia_version = "1.0.0"
@@ -478,7 +479,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 version = "1.11.0"
 
     [deps.Test.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.TestItemDetection]]
 deps = ["JuliaSyntax"]
@@ -487,6 +488,25 @@ uuid = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
 version = "1.1.1-DEV"
 
     [deps.TestItemDetection.syntax]
+    julia_version = "1.0.0"
+
+[[deps.TestItemRunner]]
+deps = ["Pkg", "TOML", "Test", "TestItems", "UUIDs"]
+git-tree-sha1 = "0a4cba9133b1a19fcf6175d0affde1418fc46fa2"
+registries = "General"
+uuid = "f8b46487-2199-4994-9208-9a1283c18c0a"
+version = "1.1.5"
+
+    [deps.TestItemRunner.syntax]
+    julia_version = "1.0.0"
+
+[[deps.TestItems]]
+git-tree-sha1 = "42fd9023fef18b9b78c8343a4e2f3813ffbcefcb"
+registries = "General"
+uuid = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
+version = "1.0.0"
+
+    [deps.TestItems.syntax]
     julia_version = "1.0.0"
 
 [[deps.Tokenize]]
@@ -520,19 +540,19 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 version = "1.11.0"
 
     [deps.UUIDs.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 version = "1.11.0"
 
     [deps.Unicode.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
-version = "1.3.1+2"
+version = "1.3.2+0"
 
     [deps.Zlib_jll.syntax]
     julia_version = "1.6.0"
@@ -548,7 +568,7 @@ version = "1.5.7+1"
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.68.0+1"
+version = "1.68.1+0"
 
     [deps.nghttp2_jll.syntax]
     julia_version = "1.11.0"
@@ -556,7 +576,11 @@ version = "1.68.0+1"
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
-version = "17.7.0+0"
+version = "17.8.0+0"
 
     [deps.p7zip_jll.syntax]
     julia_version = "1.6.0"
+
+[registries.General]
+url = "https://github.com/JuliaRegistries/General.git"
+uuid = "23338594-aafe-5451-b93e-139f81909106"

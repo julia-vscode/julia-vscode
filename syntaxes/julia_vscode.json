@@ -299,7 +299,7 @@
     "keyword": {
       "patterns": [
         {
-          "match": "\\b(?<![:_\\.])(?:function|mutable\\s+struct|struct|macro|quote|abstract\\s+type|primitive\\s+type|module|baremodule|where)\\b",
+          "match": "\\b(?<![:_\\.])(?:function|mutable\\s+struct|struct|macro|quote|abstract\\s+type|primitive\\s+type|typegroup|module|baremodule|where)\\b",
           "name": "keyword.other.julia"
         },
         {

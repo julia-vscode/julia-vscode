@@ -1,0 +1,4 @@
+[deps]
+LoggingExtras = "e6f89c97-d47a-5376-807f-9c37f3926c36"
+TestItemControllers = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
+VSCodeErrorLoggers = "8a9f2a3c-f25e-4c5b-a4d7-571b8c6af959"

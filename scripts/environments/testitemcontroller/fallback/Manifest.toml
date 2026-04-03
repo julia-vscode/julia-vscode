@@ -2,7 +2,14 @@
 
 julia_version = "1.14.0-DEV"
 manifest_format = "2.1"
-project_hash = "911854c39adc17d225569ffdf37dbad74056a056"
+project_hash = "3bc57b5cbf0bf9e5a7a10c5477bca42bc4f6b514"
+
+[[deps.Base64]]
+uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+version = "1.11.0"
+
+    [deps.Base64.syntax]
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -10,14 +17,54 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
     [deps.Dates.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
+
+[[deps.InteractiveUtils]]
+deps = ["Markdown"]
+uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+version = "1.11.0"
+
+    [deps.InteractiveUtils.syntax]
+    julia_version = "1.14.0-DEV.1975"
+
+[[deps.JuliaSyntaxHighlighting]]
+deps = ["StyledStrings"]
+uuid = "ac6e5ff7-fb65-4e79-a425-ec3bc9c03011"
+version = "1.13.0"
+
+    [deps.JuliaSyntaxHighlighting.syntax]
+    julia_version = "1.12.0"
+
+[[deps.Logging]]
+uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+version = "1.11.0"
+
+    [deps.Logging.syntax]
+    julia_version = "1.14.0-DEV.1975"
+
+[[deps.LoggingExtras]]
+deps = ["Dates", "Logging"]
+path = "../../../packages/LoggingExtras"
+uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
+version = "1.2.0"
+
+    [deps.LoggingExtras.syntax]
+    julia_version = "0.7.0"
+
+[[deps.Markdown]]
+deps = ["Base64", "JuliaSyntaxHighlighting", "StyledStrings"]
+uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
+version = "1.11.0"
+
+    [deps.Markdown.syntax]
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 version = "1.11.0"
 
     [deps.Mmap.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Printf]]
 deps = ["Unicode"]
@@ -25,7 +72,7 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 version = "1.11.0"
 
     [deps.Printf.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Random]]
 deps = ["SHA"]
@@ -33,7 +80,7 @@ uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 version = "1.11.0"
 
     [deps.Random.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -47,7 +94,14 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 version = "1.11.0"
 
     [deps.Sockets.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
+
+[[deps.StyledStrings]]
+uuid = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
+version = "1.13.0"
+
+    [deps.StyledStrings.syntax]
+    julia_version = "1.11.0"
 
 [[deps.TestItemControllers]]
 deps = ["Dates", "Mmap", "Sockets", "UUIDs", "Unicode"]
@@ -56,7 +110,7 @@ uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
 version = "1.0.1-DEV"
 
     [deps.TestItemControllers.syntax]
-    julia_version = "1.0.0"
+    julia_version = "1.12.0"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
@@ -64,11 +118,20 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 version = "1.11.0"
 
     [deps.UUIDs.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 version = "1.11.0"
 
     [deps.Unicode.syntax]
-    julia_version = "1.14.0-DEV.1763"
+    julia_version = "1.14.0-DEV.1975"
+
+[[deps.VSCodeErrorLoggers]]
+deps = ["InteractiveUtils", "Logging", "Sockets"]
+path = "../../../packages/VSCodeErrorLoggers"
+uuid = "8a9f2a3c-f25e-4c5b-a4d7-571b8c6af959"
+version = "0.1.0"
+
+    [deps.VSCodeErrorLoggers.syntax]
+    julia_version = "1.14.0-DEV.1975"
