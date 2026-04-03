@@ -58,7 +58,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const executableFeature = new ExecutableFeature(context)
         console.debug(`[julia activation] ExecutableFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
-        if (executableFeature.hasJulia()) {
+        if (await executableFeature.hasJulia()) {
             executableFeature.setJuliaInstalled(true)
         }
 
