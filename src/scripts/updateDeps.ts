@@ -201,6 +201,17 @@ async function main() {
                     `julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_testitemcontroller_project.jl')}`,
                     { cwd: env_path_testitemcontroller }
                 )
+
+                const env_path_test_testitemcontroller = path.join(
+                    process.cwd(),
+                    'scripts/testenvironments/testitemcontroller',
+                    `v${v}`
+                )
+                await fs.mkdir(env_path_test_testitemcontroller, { recursive: true })
+                await cp.exec(
+                    `julia "+${v}" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_test_testitemcontroller_project.jl')}`,
+                    { cwd: env_path_test_testitemcontroller }
+                )
             }
 
             const env_path_terminalserver = path.join(process.cwd(), 'scripts/environments/terminalserver', `v${v}`)
