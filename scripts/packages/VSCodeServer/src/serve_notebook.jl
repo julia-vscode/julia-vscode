@@ -96,7 +96,7 @@ function serve_notebook(pipename, debugger_pipename, outputchannel_logger; error
 
     start_debug_backend(debugger_pipename, error_handler)
 
-    start(conn_endpoint[])
+    JSONRPC.start(conn_endpoint[])
 
     Base.with_logger(outputchannel_logger) do
         @info "JSONRPC endpoint started"
