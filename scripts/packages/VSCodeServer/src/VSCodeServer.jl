@@ -135,7 +135,7 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         start_eval_backend()
     end
 
-    run(conn_endpoint[])
+    start(conn_endpoint[])
 
     @debug "debug backend" time=round(Int, time()*10)
     DEBUG_PIPENAME[] = debug_pipename
@@ -227,7 +227,7 @@ function _precompile_()
         readavailable(out_pipe.out)
     end
     e = JSONRPC.JSONRPCEndpoint(in_pipe.out, out_pipe.in)
-    run(e)
+    start(e)
     JSONRPC.send_notification(e, "connected", nothing)
     JSONRPC.send_error_response(e, JSONRPC.Request("", nothing, 1, nothing), 99999, "", nothing)
     md = JSONRPC.MsgDispatcher()
