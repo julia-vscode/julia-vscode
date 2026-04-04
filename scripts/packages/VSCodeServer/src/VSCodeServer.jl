@@ -32,7 +32,7 @@ end
 module JSONRPC
 import ..CancellationTokens
 import ..JSON
-import UUIDs
+import UUIDs, Sockets
 
 include("../../JSONRPC/src/packagedef.jl")
 end
