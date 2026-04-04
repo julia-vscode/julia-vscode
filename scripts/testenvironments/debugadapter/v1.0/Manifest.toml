@@ -23,10 +23,6 @@ path = "../../../packages/DebugAdapter"
 uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
 version = "3.1.1-DEV"
 
-[[Distributed]]
-deps = ["LinearAlgebra", "Random", "Serialization", "Sockets"]
-uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
-
 [[InteractiveUtils]]
 deps = ["LinearAlgebra", "Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
@@ -38,10 +34,10 @@ uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.1"
 
 [[JSONRPC]]
-deps = ["CancellationTokens", "JSON", "Sockets", "TestItemRunner", "UUIDs"]
+deps = ["CancellationTokens", "JSON", "Sockets", "UUIDs"]
 path = "../../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "3.0.0-DEV"
+version = "3.0.1-DEV"
 
 [[JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
@@ -58,9 +54,6 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 [[LinearAlgebra]]
 deps = ["Libdl"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-
-[[Logging]]
-uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[Markdown]]
 deps = ["Base64"]
@@ -93,27 +86,6 @@ uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 
 [[Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
-
-[[TOML]]
-deps = ["Dates"]
-git-tree-sha1 = "44aaac2d2aec4a850302f9aa69127c74f0c3787e"
-uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
-version = "1.0.3"
-
-[[Test]]
-deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
-uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[[TestItemRunner]]
-deps = ["Pkg", "TOML", "Test", "TestItems", "UUIDs"]
-git-tree-sha1 = "0a4cba9133b1a19fcf6175d0affde1418fc46fa2"
-uuid = "f8b46487-2199-4994-9208-9a1283c18c0a"
-version = "1.1.5"
-
-[[TestItems]]
-git-tree-sha1 = "42fd9023fef18b9b78c8343a4e2f3813ffbcefcb"
-uuid = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
-version = "1.0.0"
 
 [[UUIDs]]
 deps = ["Random"]

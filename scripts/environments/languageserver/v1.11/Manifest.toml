@@ -117,10 +117,10 @@ uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.1"
 
 [[deps.JSONRPC]]
-deps = ["CancellationTokens", "JSON", "Sockets", "TestItemRunner", "UUIDs"]
+deps = ["CancellationTokens", "JSON", "Sockets", "UUIDs"]
 path = "../../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "3.0.0-DEV"
+version = "3.0.1-DEV"
 
 [[deps.JuliaFormatter]]
 deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "PrecompileTools", "TOML", "Tokenize"]
@@ -300,17 +300,6 @@ deps = ["JuliaSyntax"]
 path = "../../../packages/TestItemDetection"
 uuid = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
 version = "1.1.1-DEV"
-
-[[deps.TestItemRunner]]
-deps = ["Pkg", "TOML", "Test", "TestItems", "UUIDs"]
-git-tree-sha1 = "0a4cba9133b1a19fcf6175d0affde1418fc46fa2"
-uuid = "f8b46487-2199-4994-9208-9a1283c18c0a"
-version = "1.1.5"
-
-[[deps.TestItems]]
-git-tree-sha1 = "42fd9023fef18b9b78c8343a4e2f3813ffbcefcb"
-uuid = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
-version = "1.0.0"
 
 [[deps.Tokenize]]
 path = "../../../packages/Tokenize"
