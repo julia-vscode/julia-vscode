@@ -114,7 +114,7 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
 end
 
 try
-    if length(Base.ARGS) != 10
+    if length(Base.ARGS) != 9
         error("Invalid number of arguments passed to julia language server.")
     end
 
@@ -126,16 +126,16 @@ try
         error("Invalid argument passed.")
     end
 
-    detached_mode = if Base.ARGS[8] == "--detached=yes"
+    detached_mode = if Base.ARGS[7] == "--detached=yes"
         true
-    elseif Base.ARGS[8] == "--detached=no"
+    elseif Base.ARGS[7] == "--detached=no"
         false
     else
         error("Invalid argument passed.")
     end
 
     if debug_mode
-        ENV["JULIA_DEBUG"] = "Main,CancellationTokens,CSTParser,JuliaFormatter,JSONRPC,JuliaSyntax,JuliaWorkspaces,LanguageServer,StaticLint,SymbolServer,Salsa,TestItemDetection"
+        ENV["JULIA_DEBUG"] = "Main,CancellationTokens,CSTParser,JuliaFormatter,JSONRPC,JuliaSyntax,JuliaWorkspaces,LanguageServer,Salsa,TestItemDetection"
     end
 
     if detached_mode
@@ -153,7 +153,7 @@ try
 
 
     try
-        using LanguageServer, SymbolServer
+        using LanguageServer
     catch err
         if err isa ErrorException && startswith(err.msg, "Failed to precompile")
             println(stderr, """\n
@@ -169,7 +169,7 @@ try
 
     @debug "LanguageServer.jl loaded at $(round(Int, time()))"
 
-    symserver_store_path = joinpath(ARGS[5], "symbolstorev5")
+    symserver_store_path = joinpath(ARGS[4], "symbolstorev5")
 
     if !ispath(symserver_store_path)
         mkpath(symserver_store_path)
@@ -181,12 +181,11 @@ try
         conn_in,
         conn_out,
         Base.ARGS[1],
-        Base.ARGS[4],
         (err, bt) -> global_err_handler(err, bt, Base.ARGS[3], "Language Server"),
         symserver_store_path,
-        ARGS[6] == "download",
-        Base.ARGS[7],
-        (path=Base.ARGS[9], version=VersionNumber(ARGS[10]))
+        ARGS[5] == "download",
+        Base.ARGS[6],
+        (path=Base.ARGS[8], version=VersionNumber(ARGS[9]))
     )
     @info "Starting LS at $(round(Int, time()))"
     run(server)
