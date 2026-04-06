@@ -145,3 +145,6 @@
 [submodule "scripts/packages/LoggingExtras"]
 	path = scripts/packages/LoggingExtras
 	url = https://github.com/JuliaLogging/LoggingExtras.jl
+[submodule "scripts/packages/Scratch"]
+	path = scripts/packages/Scratch
+	url = https://github.com/JuliaPackaging/Scratch.jl

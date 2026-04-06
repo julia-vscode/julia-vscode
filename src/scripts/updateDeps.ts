@@ -119,6 +119,7 @@ async function main() {
         'TestEnv',
         // 'Compiler', Ignore for now as it doesn't have tags
         'LoggingExtras',
+        'Scratch',
     ]) {
         const opts = { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) }
         await cp.exec('git fetch', opts)
