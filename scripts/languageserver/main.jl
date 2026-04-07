@@ -14,7 +14,7 @@ end
 
 @debug "Julia started at $(round(Int, time()))"
 
-using Logging
+using Logging, LoggingExtras
 global_logger(ConsoleLogger(stderr))
 
 @info "Starting the Julia Language Server"
@@ -135,7 +135,9 @@ try
     end
 
     if debug_mode
-        ENV["JULIA_DEBUG"] = "Main,CancellationTokens,CSTParser,JuliaFormatter,JSONRPC,JuliaSyntax,JuliaWorkspaces,LanguageServer,Salsa,TestItemDetection"
+        global_logger(EarlyFilteredLogger(ConsoleLogger(stderr, Logging.Debug)) do log
+            nameof(log._module) in (:Main,:CancellationTokens,:CSTParser,:JuliaFormatter,:JSONRPC,:JuliaSyntax,:JuliaWorkspaces,:LanguageServer,:Salsa,:TestItemDetection)
+        end)
     end
 
     if detached_mode

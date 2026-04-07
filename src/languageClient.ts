@@ -132,9 +132,6 @@ export class LanguageClientFeature {
             : 'local'
         const symserverUpstream = vscode.workspace.getConfiguration('julia').get<string>('symbolserverUpstream')
 
-        const languageServerDepotPath = path.join(storagePath, 'lsdepot', 'v1')
-        await fs.createDirectory(languageServerDepotPath)
-        const oldDepotPath = process.env.JULIA_DEPOT_PATH ? process.env.JULIA_DEPOT_PATH : ''
         const serverArgsRun: string[] = [
             '--startup-file=no',
             '--history-file=no',
@@ -143,7 +140,6 @@ export class LanguageClientFeature {
             jlEnvPath,
             '--debug=no',
             telemetry.getCrashReportingPipename(),
-            oldDepotPath,
             storagePath,
             useSymserverDownloads,
             symserverUpstream,
@@ -159,7 +155,6 @@ export class LanguageClientFeature {
             jlEnvPath,
             '--debug=yes',
             telemetry.getCrashReportingPipename(),
-            oldDepotPath,
             storagePath,
             useSymserverDownloads,
             symserverUpstream,
@@ -171,8 +166,6 @@ export class LanguageClientFeature {
             cwd: path.join(this.context.extensionPath, 'scripts', 'languageserver'),
             env: {
                 ...getCustomEnvironmentVariables(),
-                JULIA_DEPOT_PATH: languageServerDepotPath + path.delimiter,
-                JULIA_LOAD_PATH: path.delimiter,
                 HOME: process.env.HOME ? process.env.HOME : os.homedir(),
                 JULIA_LANGUAGESERVER: '1',
                 JULIA_VSCODE_LANGUAGESERVER: '1',
