@@ -40,7 +40,7 @@ uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
 version = "3.4.3"
 
     [deps.CSTParser.syntax]
-    julia_version = "1.0.0"
+    julia_version = "1.10.0"
 
 [[deps.CancellationTokens]]
 deps = ["Sockets"]
