@@ -642,11 +642,11 @@ interface InlayHintConfig {
 
 type DisplayTypeUnion = { source: string; items: DiagnosticData[] } | { [key: string]: InlayHintConfig } | string
 
-function isDiagnostic(kind: string, data: DisplayTypeUnion): data is { source: string; items: DiagnosticData[] } {
+function isDiagnostic(kind: string, _data: DisplayTypeUnion): _data is { source: string; items: DiagnosticData[] } {
     return kind === 'application/vnd.julia-vscode.diagnostics'
 }
 
-function isInlayHint(kind: string, data: DisplayTypeUnion): data is { [key: string]: InlayHintConfig } {
+function isInlayHint(kind: string, _data: DisplayTypeUnion): _data is { [key: string]: InlayHintConfig } {
     return kind === 'application/vnd.julia-vscode.inlayHints'
 }
 
