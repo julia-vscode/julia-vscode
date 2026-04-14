@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
+- Plots (PNG, GIF, SVG) are now responsive and scale to fill the available plot pane space instead of rendering at a fixed size ([#4081](https://github.com/julia-vscode/julia-vscode/pull/4081))
 - Fixed a race condition where user REPL configuration (e.g. `auto_insert_closing_bracket`) set in `startup.jl` via `atreplinit` could be overwritten ([#4063](https://github.com/julia-vscode/julia-vscode/pull/4063))
 
 ### Changed
