@@ -449,7 +449,7 @@ function wrapImagelike(srcString: string) {
     return wrapHtml(
         isSvg
             ? svgTag
-            : `<img id= "plot-element" style = "max-height: 100vh; max-width: 100vw; display:block;" src = "${srcString}" >`
+            : `<img id= "plot-element" style = "width: 100vw; height: 100vh; object-fit: contain; display:block;" src = "${srcString}" >`
     )
 }
 
