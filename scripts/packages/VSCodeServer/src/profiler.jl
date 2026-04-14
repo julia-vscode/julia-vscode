@@ -11,7 +11,7 @@ const ProfileFrameFlag = (
 
 const all_threads_name = "all"
 
-function view_profile(data = Profile.fetch(); C=false, kwargs...)
+function view_profile(data = Profile.fetch(), lidict = Profile.getdict(unique(data)); C=false, kwargs...)
     d = Dict{String,ProfileFrame}()
 
     if VERSION >= v"1.8.0-DEV.460"
@@ -26,7 +26,6 @@ function view_profile(data = Profile.fetch(); C=false, kwargs...)
         return
     end
 
-    lidict = Profile.getdict(unique(data))
     data_u64 = convert(Vector{UInt64}, data)
     for thread in threads
         graph = stackframetree(data_u64, lidict; thread=thread, kwargs...)
