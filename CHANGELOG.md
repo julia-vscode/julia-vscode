@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Fixed
 - Fixed a race condition where user REPL configuration (e.g. `auto_insert_closing_bracket`) set in `startup.jl` via `atreplinit` could be overwritten ([#4063](https://github.com/julia-vscode/julia-vscode/pull/4063))
+- Fixed an issue where the extension would not activate if Julia is not installed, breaking the auto-installation flow ([#4082](https://github.com/julia-vscode/julia-vscode/pull/4082))
 
 ## [1.196.0] - 2026-03-16
 ### Fixed
