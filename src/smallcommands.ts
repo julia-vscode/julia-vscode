@@ -8,23 +8,6 @@ function toggleLinter() {
     vscode.workspace.getConfiguration('julia').update('lint.run', !cval, vscode.ConfigurationTarget.Global)
 }
 
-function applyTextEdit(we) {
-    const wse = new vscode.WorkspaceEdit()
-    for (const edit of we.documentChanges[0].edits) {
-        wse.replace(
-            we.documentChanges[0].textDocument.uri,
-            new vscode.Range(
-                edit.range.start.line,
-                edit.range.start.character,
-                edit.range.end.line,
-                edit.range.end.character
-            ),
-            edit.newText
-        )
-    }
-    vscode.workspace.applyEdit(wse)
-}
-
 // function lintPackage() {
 //     telemetry.traceEvent('command-lintpackage');
 
@@ -92,7 +75,6 @@ async function newJuliaFile(uri?: vscode.Uri) {
 
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
-        registerCommand('language-julia.applytextedit', applyTextEdit),
         registerCommand('language-julia.toggleLinter', toggleLinter),
         registerCommand('language-julia.newJuliaFile', newJuliaFile)
     )
