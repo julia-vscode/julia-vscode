@@ -2,7 +2,6 @@ import { exists } from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
 import * as process from 'process'
-import { execFile } from 'promisify-child-process'
 import * as semver from 'semver'
 import * as vscode from 'vscode'
 import { resolvePath, registerCommand } from './utils'
@@ -10,6 +9,9 @@ import { installJuliaOrJuliaup } from './juliaupAutoInstall'
 import { Mutex } from 'async-mutex'
 import { TaskRunner } from './taskRunnerTerminal'
 import { ExecFileOptions } from 'child_process'
+import { promisify } from 'node:util'
+import child_process from 'node:child_process'
+const execFile = promisify(child_process.execFile)
 
 const juliaVersionPrefix = 'julia version '
 

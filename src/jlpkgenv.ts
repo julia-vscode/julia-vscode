@@ -1,13 +1,15 @@
 import * as fs from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
-import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
 import * as vslc from 'vscode-languageclient/node'
 import { ExecutableFeature } from './executables'
 import * as packagepath from './packagepath'
 import { onEvent, parseVSCodeVariables, registerCommand, resolvePath } from './utils'
 import { LanguageClientFeature } from './languageClient'
+import { promisify } from 'node:util'
+import child_process from 'node:child_process'
+const execFile = promisify(child_process.execFile)
 
 let g_languageClient: vslc.LanguageClient = null
 
