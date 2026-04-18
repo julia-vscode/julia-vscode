@@ -3,7 +3,7 @@
         "module": "node20",
         "target": "es2022",
         "outDir": "out",
-        "lib": ["es2024", "ESNext.Array", "ESNext.Collection", "ESNext.Iterator"],
+        "lib": ["es2024"],
         "sourceMap": true,
         "rootDir": "src",
         "strict": false,
