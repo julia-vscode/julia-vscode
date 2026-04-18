@@ -11,7 +11,6 @@
     "libs": true
   },
   // we want to use the TS server from our node_modules folder to control its version
-  "typescript.tsdk": "./node_modules/typescript/lib",
   "git.detectSubmodulesLimit": 50,
   "files.trimTrailingWhitespace": true,
   "files.trimFinalNewlines": true,
@@ -24,5 +23,7 @@
   },
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "js/ts.tsserver.experimental.enableProjectDiagnostics": true,
+  "js/ts.tsdk.path": "./node_modules/typescript/lib"
 }
