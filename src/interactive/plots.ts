@@ -443,13 +443,13 @@ function wrapImagelike(srcString: string) {
     let svgTag = ''
     if (isSvg) {
         svgTag = decodeURIComponent(srcString).replace(/^data.*<\?xml version="1\.0" encoding="utf-8"\?>\n/i, '')
-        svgTag = `<div id="plot-element">${svgTag}</div>`
+        svgTag = `<div id="plot-element" style="width: 100vw; height: 100vh;">${svgTag}</div>`
     }
 
     return wrapHtml(
         isSvg
             ? svgTag
-            : `<img id= "plot-element" style = "max-height: 100vh; max-width: 100vw; display:block;" src = "${srcString}" >`
+            : `<img id= "plot-element" style = "width: 100vw; height: 100vh; object-fit: contain; display:block;" src = "${srcString}" >`
     )
 }
 
@@ -516,9 +516,7 @@ export function displayPlot(params: { kind: string; data: string; id?: string; t
             // which could break the HTML
             plotPaneContent = wrapImagelike(`data:image/svg+xml,${encodeURIComponent(payload)}`)
         } else {
-            // otherwise we just show the svg directly as it's not straightforward to scale it
-            // correctly if it's not in an img tag
-            plotPaneContent = payload
+            plotPaneContent = wrapHtml(`<div id="plot-element" style="width: 100vw; height: 100vh;">${payload}</div>`)
         }
 
         addOrUpdatePlot(plotPaneContent, id)
