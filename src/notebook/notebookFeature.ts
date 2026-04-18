@@ -4,7 +4,7 @@ import { NotebookNode, WorkspaceFeature } from '../interactive/workspace'
 import { JuliaExecutable, ExecutableFeature } from '../executables'
 import { onEvent, registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
-import isEqual from 'lodash.isequal'
+import { isDeepStrictEqual } from 'node:util'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
@@ -321,7 +321,7 @@ export class JuliaNotebookFeature {
             },
         }
 
-        if (!isEqual(getNotebookMetadata(notebook), metadata)) {
+        if (!isDeepStrictEqual(getNotebookMetadata(notebook), metadata)) {
             const edit = new vscode.WorkspaceEdit()
             edit.set(notebook.uri, [
                 vscode.NotebookEdit.updateNotebookMetadata({

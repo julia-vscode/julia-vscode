@@ -6,6 +6,7 @@
         "dbaeumer.vscode-eslint",
         "julialang.language-julia",
         "ms-vscode.extension-test-runner",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "connor4312.esbuild-problem-matchers"
     ]
 }

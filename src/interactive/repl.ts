@@ -3,7 +3,6 @@ import { Subject } from 'await-notify'
 import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
-import { exec } from 'promisify-child-process'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
@@ -33,6 +32,9 @@ import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
 import { promise as fastq } from 'fastq'
 import { randomUUID } from 'crypto'
+import { promisify } from 'node:util'
+import child_process from 'node:child_process'
+const exec = promisify(child_process.exec)
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
