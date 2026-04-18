@@ -1,14 +1,15 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "es6",
+        "module": "node20",
+        "target": "es2022",
         "outDir": "out",
-        "lib": ["ES6", "dom"],
+        "lib": ["es2024", "ESNext.Array", "ESNext.Collection", "ESNext.Iterator"],
         "sourceMap": true,
         "rootDir": "src",
         "strict": false,
         "noUnusedLocals": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "types": ["node", "mocha"]
     },
     "exclude": ["node_modules", ".vscode-test", "libs"]
 }
