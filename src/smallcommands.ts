@@ -3,11 +3,6 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { registerCommand } from './utils'
 
-function toggleLinter() {
-    const cval = vscode.workspace.getConfiguration('julia').get('lint.run', false)
-    vscode.workspace.getConfiguration('julia').update('lint.run', !cval, vscode.ConfigurationTarget.Global)
-}
-
 function applyTextEdit(we) {
     const wse = new vscode.WorkspaceEdit()
     for (const edit of we.documentChanges[0].edits) {
@@ -93,7 +88,6 @@ async function newJuliaFile(uri?: vscode.Uri) {
 export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         registerCommand('language-julia.applytextedit', applyTextEdit),
-        registerCommand('language-julia.toggleLinter', toggleLinter),
         registerCommand('language-julia.newJuliaFile', newJuliaFile)
     )
 }
