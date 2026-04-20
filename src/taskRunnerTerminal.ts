@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto'
 
 export interface TaskRunnerTerminalOptions extends JuliaPTYOptions {
     cwd?: string | vscode.Uri
-    env?: { [key: string]: string }
+    env?: { [key: string]: string | undefined }
     iconPath?: vscode.IconPath
     shellIntegrationNonce?: string
     hideFromUser?: boolean // currently not functional
@@ -14,7 +14,7 @@ export interface TaskRunnerTerminalOptions extends JuliaPTYOptions {
 
 export interface TaskOptions extends JuliaPTYOptions {
     cwd?: string | vscode.Uri
-    env?: { [key: string]: string }
+    env?: { [key: string]: string | undefined }
     show?: boolean
 }
 
@@ -27,14 +27,14 @@ interface TaskQueueItem {
 }
 
 export class TaskRunnerTerminal {
-    public terminal: vscode.Terminal
+    public terminal!: vscode.Terminal
     private onDidExitProcessEmitter = new vscode.EventEmitter<number | void>()
     public onDidExitProcess: vscode.Event<number | void> = this.onDidExitProcessEmitter.event
     private onDidCloseEmitter = new vscode.EventEmitter<void>()
     public onDidClose: vscode.Event<void> = this.onDidCloseEmitter.event
 
-    private pty: JuliaPTY
-    private proc: JuliaProcess
+    private pty!: JuliaPTY
+    private proc!: JuliaProcess
     private disposables: vscode.Disposable[] = []
 
     constructor(name: string, shellPath: string, shellArgs: string[], opts: TaskRunnerTerminalOptions = {}) {
@@ -107,7 +107,7 @@ export class TaskRunnerTerminal {
 }
 
 export class TaskRunner {
-    private terminal: TaskRunnerTerminal
+    private terminal: TaskRunnerTerminal | undefined
     private queue: TaskQueueItem[] = []
     private isRunning: boolean = false
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
@@ -120,7 +120,7 @@ export class TaskRunner {
         private iconPath: vscode.IconPath
     ) {
         this.statusBarItem.name = name
-        this.disposables.push(vscode.commands.registerCommand(this.showCommand, () => this.terminal.show()))
+        this.disposables.push(vscode.commands.registerCommand(this.showCommand, () => this.terminal?.show()))
     }
 
     public run(shellPath: string, shellArgs: string[], opts: TaskOptions = {}): Promise<number | void> {

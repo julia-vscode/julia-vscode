@@ -3,13 +3,22 @@
         "module": "node20",
         "target": "es2022",
         "outDir": "out",
-        "lib": ["es2024"],
+        "lib": [
+            "es2024"
+        ],
         "sourceMap": true,
         "rootDir": "src",
-        "strict": false,
+        "strict": true,
         "noUnusedLocals": true,
         "esModuleInterop": true,
-        "types": ["node", "mocha"]
+        "types": [
+            "node",
+            "mocha"
+        ]
     },
-    "exclude": ["node_modules", ".vscode-test", "libs"]
+    "exclude": [
+        "node_modules",
+        ".vscode-test",
+        "libs"
+    ]
 }

@@ -6,12 +6,12 @@ import { LanguageClientFeature } from '../languageClient'
 
 function openArgs(href: string) {
     const matches = href.match(/^((\w+:\/\/)?.+?)(?:[:#](\d+))?$/)
-    let uri
-    let line
-    if (matches[1] && matches[3] && matches[2] === undefined) {
+    let uri: string | vscode.Uri | undefined
+    let line: number | undefined
+    if (matches && matches[1] && matches[3] && matches[2] === undefined) {
         uri = matches[1]
         line = parseInt(matches[3])
-    } else {
+    } else if (matches) {
         uri = vscode.Uri.parse(matches[1])
     }
     return { uri, line }
@@ -42,26 +42,29 @@ md.validateLink = (url) => {
 
 md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
     const aIndex = tokens[idx].attrIndex('href')
+    const attrs = tokens[idx].attrs
 
-    if (aIndex >= 0 && tokens[idx].attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
+    if (aIndex >= 0 && attrs && attrs[aIndex][1] === '@ref' && tokens.length > idx + 1) {
         const commandUri = constructCommandString('language-julia.search-word', { searchTerm: tokens[idx + 1].content })
-        tokens[idx].attrs[aIndex][1] = vscode.Uri.parse(commandUri).toString()
-    } else if (aIndex >= 0 && tokens.length > idx + 1) {
+        attrs[aIndex][1] = vscode.Uri.parse(commandUri).toString()
+    } else if (aIndex >= 0 && attrs && tokens.length > idx + 1) {
         const href = tokens[idx + 1].content
         const { uri, line } = openArgs(href)
         let commandUri
-        if (line === undefined) {
-            commandUri = constructCommandString('vscode.open', uri)
-        } else {
-            commandUri = constructCommandString('language-julia.openFile', { path: uri, line })
+        if (uri !== undefined && line === undefined) {
+            commandUri = constructCommandString('vscode.open', { uri: uri.toString() })
+        } else if (uri !== undefined) {
+            commandUri = constructCommandString('language-julia.openFile', { path: uri.toString(), line })
         }
-        tokens[idx].attrs[aIndex][1] = commandUri
+        if (commandUri !== undefined) {
+            attrs[aIndex][1] = commandUri
+        }
     }
 
     return self.renderToken(tokens, idx, options)
 }
 
-export function activate(context: vscode.ExtensionContext, languageClientFeature) {
+export function activate(context: vscode.ExtensionContext, languageClientFeature: LanguageClientFeature) {
     const provider = new DocumentationViewProvider(context, languageClientFeature)
 
     context.subscriptions.push(
@@ -69,7 +72,7 @@ export function activate(context: vscode.ExtensionContext, languageClientFeature
         registerCommand('language-julia.show-documentation', () => provider.showDocumentation()),
         registerCommand('language-julia.browse-back-documentation', () => provider.browseBack()),
         registerCommand('language-julia.browse-forward-documentation', () => provider.browseForward()),
-        registerCommand('language-julia.search-word', (params) => provider.findHelp(params)),
+        registerCommand('language-julia.search-word', (params: { searchTerm: string }) => provider.findHelp(params)),
         vscode.window.registerWebviewViewProvider('julia-documentation', provider)
     )
 }
@@ -177,29 +180,31 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         const docAsHTML = md.render(docAsMD)
 
         const extensionPath = this.context.extensionPath
+        if (!this.view) {
+            return ''
+        }
+        const webview = this.view.webview
 
-        const googleFontscss = this.view.webview.asWebviewUri(
+        const googleFontscss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css'))
         )
-        const fontawesomecss = this.view.webview.asWebviewUri(
+        const fontawesomecss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css'))
         )
-        const solidcss = this.view.webview.asWebviewUri(
+        const solidcss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css'))
         )
-        const brandscss = this.view.webview.asWebviewUri(
+        const brandscss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css'))
         )
-        const documenterStylesheetcss = this.view.webview.asWebviewUri(
+        const documenterStylesheetcss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', 'documenter-vscode.css'))
         )
-        const katexcss = this.view.webview.asWebviewUri(
+        const katexcss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css'))
         )
 
-        const webfontjs = this.view.webview.asWebviewUri(
-            vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js'))
-        )
+        const webfontjs = webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js')))
 
         return `
     <html lang="en" class='theme--documenter-vscode'>
@@ -336,9 +341,14 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         }
 
         const current = this.backStack.pop()
-        this.forwardStack.push(current)
+        if (current !== undefined) {
+            this.forwardStack.push(current)
+        }
 
-        this.setHTML(this.backStack.pop())
+        const next = this.backStack.pop()
+        if (next !== undefined) {
+            this.setHTML(next)
+        }
     }
 
     browseForward() {
@@ -346,6 +356,9 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
             return
         }
 
-        this.setHTML(this.forwardStack.pop())
+        const next = this.forwardStack.pop()
+        if (next !== undefined) {
+            this.setHTML(next)
+        }
     }
 }

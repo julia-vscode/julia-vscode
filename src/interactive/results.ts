@@ -28,8 +28,8 @@ export class Result {
     document: vscode.TextDocument
     text: string
     range: vscode.Range
-    content: ResultContent
-    decoration: vscode.TextEditorDecorationType
+    content!: ResultContent
+    decoration!: vscode.TextEditorDecorationType
     destroyed: boolean
     removeEmitter: vscode.EventEmitter<undefined>
     onDidRemove: vscode.Event<undefined>
@@ -64,7 +64,7 @@ export class Result {
         const decoration = this.createDecoration()
 
         if (content.isIcon) {
-            decoration.before.contentIconPath = content.content
+            decoration.before!.contentIconPath = content.content
         } else if (decoration.before) {
             decoration.before.contentText = content.content
         }
@@ -434,13 +434,12 @@ export async function openFile(
     const end = new vscode.Position(newLine - 1, 0)
     const range = new vscode.Range(start, end)
 
-    let uri: vscode.Uri
     if (path.indexOf('Untitled') === 0) {
         // can't open an untitled file like this:
         // uri = vscode.Uri.parse('untitled:' + path)
-    } else {
-        uri = vscode.Uri.file(path)
+        return
     }
+    const uri = vscode.Uri.file(path)
     return vscode.window.showTextDocument(uri, {
         preserveFocus: preserveFocus,
         preview: true,

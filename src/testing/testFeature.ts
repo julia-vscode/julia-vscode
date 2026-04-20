@@ -24,6 +24,7 @@ import {
     notificationTypeTestProcessTerminated,
     requestTypeCreateTestRun,
     requestTypeTerminateTestProcess,
+    CreateTestRunParams,
 } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
@@ -89,11 +90,11 @@ export class JuliaTestController {
     public onKilled = this._onKilled.event
 
     kill() {
-        this.process.kill()
+        this.process?.kill()
     }
 
-    private connection: rpc.MessageConnection
-    private process: ChildProcessWithoutNullStreams
+    private connection: rpc.MessageConnection | null = null
+    private process: ChildProcessWithoutNullStreams | undefined
     private testRuns = new Map<string, { testRun: vscode.TestRun; testItems: Map<string, vscode.TestItem> }>()
     private testProcesses = new Map<string, JuliaTestProcess>()
     private currentRunExecutable: JuliaExecutable | undefined
@@ -112,7 +113,7 @@ export class JuliaTestController {
     }
 
     killTestProcess(id: string) {
-        this.connection.sendRequest(requestTypeTerminateTestProcess, { testProcessId: id })
+        this.connection?.sendRequest(requestTypeTerminateTestProcess, { testProcessId: id })
     }
 
     public async start() {
@@ -156,7 +157,7 @@ export class JuliaTestController {
                 ...juliaExecutable.args,
                 ...jlArgs,
                 path.join(this.context.extensionPath, 'scripts', 'apps', 'testitemcontroller_main.jl'),
-                getCrashReportingPipename(),
+                getCrashReportingPipename() ?? '',
             ],
             {
                 detached: false,
@@ -167,13 +168,18 @@ export class JuliaTestController {
         this.connection = rpc.createMessageConnection(this.process.stdout, this.process.stdin)
         this.connection.onNotification(notficiationTypeTestItemStarted, (i) => {
             const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
-
+            const testItem = testRun?.testItems.get(i.testItemId)
+            if (!testRun || !testItem) {
+                return
+            }
             testRun.testRun.started(testItem)
         })
         this.connection.onNotification(notficiationTypeTestItemErrored, (i) => {
             const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
+            const testItem = testRun?.testItems.get(i.testItemId)
+            if (!testRun || !testItem) {
+                return
+            }
 
             testRun.testRun.errored(
                 testItem,
@@ -202,7 +208,10 @@ export class JuliaTestController {
         })
         this.connection.onNotification(notficiationTypeTestItemFailed, (i) => {
             const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
+            const testItem = testRun?.testItems.get(i.testItemId)
+            if (!testRun || !testItem) {
+                return
+            }
 
             const messages = i.messages.map((j) => {
                 const msg = new vscode.TestMessage(j.message)
@@ -212,7 +221,7 @@ export class JuliaTestController {
                     msg.expectedOutput = j.expectedOutput
                 }
 
-                if (j.uri !== null && j.line !== null && j.column !== null) {
+                if (j.uri && j.line !== undefined && j.column !== undefined) {
                     msg.location = new vscode.Location(
                         vscode.Uri.parse(j.uri),
                         new vscode.Position(j.line - 1, j.column - 1)
@@ -235,20 +244,26 @@ export class JuliaTestController {
         })
         this.connection.onNotification(notficiationTypeTestItemPassed, (i) => {
             const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
-
+            const testItem = testRun?.testItems.get(i.testItemId)
+            if (!testRun || !testItem) {
+                return
+            }
             testRun.testRun.passed(testItem, i.duration)
         })
         this.connection.onNotification(notficiationTypeTestItemSkipped, (i) => {
             const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
-
+            const testItem = testRun?.testItems.get(i.testItemId)
+            if (!testRun || !testItem) {
+                return
+            }
             testRun.testRun.skipped(testItem)
         })
         this.connection.onNotification(notificationTypeAppendOutput, (i) => {
             const testRun = this.testRuns.get(i.testRunId)
+            if (!testRun) {
+                return
+            }
             const testItem = i.testItemId ? testRun.testItems.get(i.testItemId) : undefined
-
             testRun.testRun.appendOutput(i.output, undefined, testItem)
         })
         this.connection.onNotification(notificationTypeTestProcessCreated, (i) => {
@@ -268,7 +283,7 @@ export class JuliaTestController {
         })
         this.connection.onNotification(notificationTypeTestProcessStatusChanged, (i) => {
             const tp = this.testProcesses.get(i.id)
-            tp.setStatus(i.status)
+            tp?.setStatus(i.status)
         })
         this.connection.onNotification(notificationTypeTestProcessOutput, (i) => {
             if (!this.testFeature.juliaTestProcessOutputChannels.has(i.id)) {
@@ -277,21 +292,26 @@ export class JuliaTestController {
             }
 
             const outputChannel = this.testFeature.juliaTestProcessOutputChannels.get(i.id)
-            outputChannel.append(i.output)
+            outputChannel?.append(i.output)
         })
         this.connection.onNotification(notificationTypeTestProcessTerminated, (i) => {
             const tp = this.testProcesses.get(i.id)
-            this.workspaceFeature.removeTestProcess(tp)
+            if (tp) {
+                this.workspaceFeature.removeTestProcess(tp)
+            }
             this.testProcesses.delete(i.id)
 
             if (this.testFeature.juliaTestProcessOutputChannels.has(i.id)) {
                 const outputChanenl = this.testFeature.juliaTestProcessOutputChannels.get(i.id)
-                outputChanenl.dispose()
+                outputChanenl?.dispose()
                 this.testFeature.juliaTestProcessOutputChannels.delete(i.id)
             }
         })
         this.connection.onNotification(notificationTypeLaunchDebugger, async (i) => {
             const testRun = this.testRuns.get(i.testRunId)
+            if (!testRun) {
+                return
+            }
             await vscode.debug.startDebugging(
                 undefined,
                 {
@@ -388,7 +408,7 @@ export class JuliaTestController {
                     envContentHash: t.testEnv.envContentHash,
                 })
             }
-            itemEnvId.set(t.testItem.id, envsByKey.get(key).id)
+            itemEnvId.set(t.testItem.id, envsByKey.get(key)!.id)
         }
 
         const testEnvironments = [...envsByKey.values()].map((env) => ({
@@ -406,16 +426,16 @@ export class JuliaTestController {
 
         const workUnits = all_the_tests.map((i) => ({
             testitemId: i.testItem.id,
-            testEnvId: itemEnvId.get(i.testItem.id),
+            testEnvId: itemEnvId.get(i.testItem.id) ?? '',
             logLevel: 'Info',
         }))
 
-        const params = {
+        const params: CreateTestRunParams = {
             testRunId: testRunId,
             testEnvironments: testEnvironments,
             testItems: all_the_tests.map((i) => ({
                 id: i.testItem.id,
-                uri: i.testItem.uri.toString(),
+                uri: i.testItem.uri?.toString() ?? '',
                 label: i.testItem.label,
                 packageName: i.testEnv.packageName ?? '',
                 packageUri: i.testEnv.packageUri ?? '',
@@ -436,13 +456,23 @@ export class JuliaTestController {
                     : vscode.workspace.workspaceFolders.map((i) => i.uri.toString()),
         }
 
-        const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params, testRun.token)
+        if (!this.connection) {
+            return
+        }
+        const testrunResult = await this.connection.sendRequest(
+            requestTypeCreateTestRun,
+            params,
+            testRun.token as unknown as rpc.CancellationToken
+        )
 
         if (testrunResult.coverage) {
             for (const file of testrunResult.coverage) {
                 const uri = vscode.Uri.parse(file.uri)
 
-                if (vscode.workspace.workspaceFolders.filter((j) => file.uri.startsWith(j.uri.toString())).length > 0) {
+                if (
+                    (vscode.workspace.workspaceFolders ?? []).filter((j) => file.uri.startsWith(j.uri.toString()))
+                        .length > 0
+                ) {
                     const statementCoverage = file.coverage
                         .map((value, index) => {
                             if (value !== null) {
@@ -525,11 +555,11 @@ export class TestFeature {
     // private outputChannel: vscode.OutputChannel
     // private someTestItemFinished = new Subject()
     private cpuLength: number | null = null
-    private languageClient: vslc.LanguageClient = null
+    private languageClient: vslc.LanguageClient | null = null
 
     private juliaTestitemControllerOutputChannel: vscode.OutputChannel | undefined = undefined
     public juliaTestProcessOutputChannels: Map<string, vscode.OutputChannel> = new Map()
-    private juliaTestController: JuliaTestController = undefined
+    private juliaTestController: JuliaTestController | undefined = undefined
     private profileMap: Map<vscode.TestRunProfile, { executable: JuliaExecutable; mode: TestRunMode }> = new Map()
 
     private initialized: boolean = false
@@ -612,7 +642,7 @@ export class TestFeature {
 
             for (const part of filenameParts) {
                 currentUri = currentUri.with({ path: `${currentUri.path}/${part}` })
-                let newChild = currentFolder.children.get(part)
+                let newChild: vscode.TestItem | undefined = currentFolder.children.get(part)
                 if (!newChild) {
                     newChild = this.controller.createTestItem(part, part, currentUri)
                     currentFolder.children.add(newChild)
@@ -661,7 +691,7 @@ export class TestFeature {
             if (currentFolder) {
                 let foundParentFolder = true
                 for (const part of filenameParts) {
-                    const child = currentFolder.children.get(part)
+                    const child: vscode.TestItem | undefined = currentFolder.children.get(part)
                     if (!child) {
                         foundParentFolder = false
                         break
@@ -677,16 +707,17 @@ export class TestFeature {
                     }
                 }
 
-                while (currentFolder) {
-                    const parentFolder = currentFolder.parent
-                    if (currentFolder.children.size === 0) {
+                let walker: vscode.TestItem | undefined = currentFolder
+                while (walker) {
+                    const parentFolder: vscode.TestItem | undefined = walker.parent
+                    if (walker.children.size === 0) {
                         if (parentFolder) {
-                            parentFolder.children.delete(currentFolder.id)
+                            parentFolder.children.delete(walker.id)
                         } else {
-                            this.controller.items.delete(currentFolder.id)
+                            this.controller.items.delete(walker.id)
                         }
                     }
-                    currentFolder = parentFolder
+                    walker = parentFolder
                 }
             }
         }
@@ -702,7 +733,7 @@ export class TestFeature {
         }
     }
 
-    isParentOf(x: vscode.TestItem, y: vscode.TestItem) {
+    isParentOf(x: vscode.TestItem, y: vscode.TestItem): boolean {
         if (y.parent) {
             if (y.parent === x) {
                 return true
@@ -776,8 +807,8 @@ export class TestFeature {
                     makeHandler(executable, TestRunMode.Coverage),
                     isDefault
                 )
-                coverageProfile.loadDetailedCoverage = async (_testRun, fileCoverage: OurFileCoverage) => {
-                    return fileCoverage.detailedCoverage
+                coverageProfile.loadDetailedCoverage = async (_testRun, fileCoverage) => {
+                    return (fileCoverage as OurFileCoverage).detailedCoverage
                 }
                 this.profileMap.set(coverageProfile, { executable, mode: TestRunMode.Coverage })
             }
@@ -786,6 +817,10 @@ export class TestFeature {
 
     async ensureJuliaTestController() {
         if (!this.juliaTestController || !this.juliaTestController.ready()) {
+            if (!this.juliaTestitemControllerOutputChannel) {
+                this.juliaTestitemControllerOutputChannel =
+                    vscode.window.createOutputChannel('Julia Test Item Controller')
+            }
             this.juliaTestController = new JuliaTestController(
                 this,
                 this.executableFeature,
@@ -834,10 +869,9 @@ export class TestFeature {
             request.include.forEach((i) => this.walkTestTree(i, itemsToRun))
         }
 
-        if (request.exclude) {
-            itemsToRun = itemsToRun.filter(
-                (i) => !request.exclude.includes(i) && request.exclude.every((j) => !this.isParentOf(j, i))
-            )
+        const exclude = request.exclude
+        if (exclude) {
+            itemsToRun = itemsToRun.filter((i) => !exclude.includes(i) && exclude.every((j) => !this.isParentOf(j, i)))
         }
 
         for (const i of itemsToRun) {
@@ -848,7 +882,12 @@ export class TestFeature {
             }
         }
 
-        const uniqueFiles = new Set(itemsToRun.map((i) => i.uri).concat([...this.testsetups.keys()]))
+        const uniqueFiles = new Set<vscode.Uri>(
+            itemsToRun
+                .map((i) => i.uri)
+                .filter((u): u is vscode.Uri => u !== undefined)
+                .concat([...this.testsetups.keys()])
+        )
 
         const testEnvPerFile = new Map<vscode.Uri, tlsp.GetTestEnvRequestParamsReturn>()
 
@@ -856,16 +895,20 @@ export class TestFeature {
             const testEnv = await this.languageClient?.sendRequest(tlsp.requestTypJuliaGetTestEnv, {
                 uri: uri.toString(),
             })
-            testEnvPerFile.set(uri, testEnv)
+            if (testEnv) {
+                testEnvPerFile.set(uri, testEnv)
+            }
         }
 
-        const all_the_tests = itemsToRun.map((i) => {
-            return {
-                testItem: i,
-                details: this.testitems.get(i),
-                testEnv: testEnvPerFile.get(i.uri),
-            }
-        })
+        const all_the_tests = itemsToRun
+            .filter((i) => i.uri !== undefined)
+            .map((i) => {
+                return {
+                    testItem: i,
+                    details: this.testitems.get(i)!,
+                    testEnv: testEnvPerFile.get(i.uri!)!,
+                }
+            })
 
         const all_the_testsetups: {
             packageUri: string
@@ -879,7 +922,7 @@ export class TestFeature {
         this.testsetups.forEach((setups, uri) => {
             setups.forEach((j) => {
                 all_the_testsetups.push({
-                    packageUri: testEnvPerFile.get(uri).packageUri,
+                    packageUri: testEnvPerFile.get(uri)?.packageUri ?? '',
                     name: j.name,
                     kind: j.kind,
                     uri: uri.toString(),
@@ -893,7 +936,7 @@ export class TestFeature {
         let maxNumProcesses = vscode.workspace.getConfiguration('julia').get<number>('numTestProcesses')
 
         if (maxNumProcesses === 0) {
-            maxNumProcesses = this.cpuLength
+            maxNumProcesses = this.cpuLength ?? undefined
         }
 
         if (token.isCancellationRequested) {
@@ -901,10 +944,10 @@ export class TestFeature {
             return
         }
 
-        await this.juliaTestController.createTestRun(
+        await this.juliaTestController!.createTestRun(
             testRun,
             mode,
-            maxNumProcesses,
+            maxNumProcesses ?? 1,
             executable,
             all_the_tests,
             all_the_testsetups

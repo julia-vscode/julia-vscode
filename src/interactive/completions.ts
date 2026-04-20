@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
     let completionSubscription: undefined | Disposable = undefined
     context.subscriptions.push(
         onInit(
-            wrapCrashReporting(({ connection: conn }) => {
+            wrapCrashReporting(({ connection: conn }: { connection: MessageConnection }) => {
                 completionSubscription = vscode.languages.registerCompletionItemProvider(
                     selector,
                     completionItemProvider(conn),

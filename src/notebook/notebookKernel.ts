@@ -1,5 +1,4 @@
 import { exists } from 'async-file'
-import { Subject } from 'await-notify'
 import { ChildProcess, spawn } from 'child_process'
 import * as net from 'net'
 import * as path from 'path'
@@ -17,7 +16,7 @@ import {
 import { getAbsEnvPath } from '../jlpkgenv'
 import { JuliaExecutable } from '../executables'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
-import { generatePipeName, getCustomEnvironmentVariables, inferJuliaNumThreads } from '../utils'
+import { generatePipeName, getCustomEnvironmentVariables, inferJuliaNumThreads, waitForEvent } from '../utils'
 import { JuliaNotebookFeature } from './notebookFeature'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
@@ -42,11 +41,11 @@ export class JuliaKernel {
     private _localDisposables: vscode.Disposable[] = []
 
     private _scheduledExecutionRequests: vscode.NotebookCellExecution[] = []
-    private _currentExecutionRequest: vscode.NotebookCellExecution = null
-    private _processExecutionRequests = new Subject()
+    private _currentExecutionRequest: vscode.NotebookCellExecution | null = null
+    private _onExecutionRequestScheduled = new vscode.EventEmitter<void>()
 
-    private _kernelProcess: ChildProcess
-    public _msgConnection: MessageConnection
+    private _kernelProcess: ChildProcess | undefined
+    public _msgConnection!: MessageConnection
     private _current_request_id: number = 0
 
     private _onCellRunFinished = new vscode.EventEmitter<void>()
@@ -60,9 +59,9 @@ export class JuliaKernel {
 
     private _tokenSource = new vscode.CancellationTokenSource()
 
-    private debuggerPipename: string | null
-    public activeDebugSession: vscode.DebugSession | null
-    public stopDebugSessionAfterExecution: boolean
+    private debuggerPipename: string | null = null
+    public activeDebugSession: vscode.DebugSession | null = null
+    public stopDebugSessionAfterExecution: boolean = false
 
     constructor(
         private extensionPath: string,
@@ -78,6 +77,10 @@ export class JuliaKernel {
 
     public dispose() {
         this.stop()
+        this._onExecutionRequestScheduled.dispose()
+        this._onCellRunFinished.dispose()
+        this._onConnected.dispose()
+        this._onStopped.dispose()
         this._localDisposables.forEach((d) => d.dispose())
     }
 
@@ -92,7 +95,9 @@ export class JuliaKernel {
             `jl_notebook_cell_df34fa98e69747e1a8f8a730347b8e2f_${cellUri.fragment}.jl`
         )
 
-        this.notebookFeature.pathToCell.set(cellPath, cell)
+        if (cell) {
+            this.notebookFeature.pathToCell.set(cellPath, cell)
+        }
 
         return cellPath
     }
@@ -112,7 +117,7 @@ export class JuliaKernel {
         })
         this._scheduledExecutionRequests.push(execution)
 
-        this._processExecutionRequests.notify()
+        this._onExecutionRequestScheduled.fire()
     }
 
     private async messageLoop(token: CancellationToken) {
@@ -122,24 +127,25 @@ export class JuliaKernel {
             }
 
             while (this._scheduledExecutionRequests.length > 0) {
-                this._currentExecutionRequest = this._scheduledExecutionRequests.shift()
+                const execution = this._scheduledExecutionRequests.shift()!
+                this._currentExecutionRequest = execution
 
-                if (this._currentExecutionRequest.token.isCancellationRequested) {
+                if (execution.token.isCancellationRequested) {
                     console.log('this is cancelled')
                 } else {
                     const executionOrder = ++this._current_request_id
-                    this._currentExecutionRequest.executionOrder = executionOrder
+                    execution.executionOrder = executionOrder
 
-                    const cellPath = this.mapCellToPath(this._currentExecutionRequest.cell.document.uri.toString())
+                    const cellPath = this.mapCellToPath(execution.cell.document.uri.toString())
 
                     const runStartTime = Date.now()
-                    this._currentExecutionRequest.start(runStartTime)
+                    execution.start(runStartTime)
 
                     const result = await this._msgConnection.sendRequest(requestTypeRunCell, {
                         filename: cellPath,
                         line: 0,
                         column: 0,
-                        code: this._currentExecutionRequest.cell.document.getText(),
+                        code: execution.cell.document.getText(),
                     })
 
                     if (this.stopDebugSessionAfterExecution && this.activeDebugSession) {
@@ -147,13 +153,13 @@ export class JuliaKernel {
                     }
 
                     if (!result.success) {
-                        this._currentExecutionRequest.appendOutput(
+                        execution.appendOutput(
                             new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(result.error)])
                         )
                     }
 
                     const runEndTime = Date.now()
-                    this._currentExecutionRequest.end(result.success, runEndTime)
+                    execution.end(result.success, runEndTime)
                 }
                 this._currentExecutionRequest = null
 
@@ -164,7 +170,7 @@ export class JuliaKernel {
                 }
             }
 
-            await this._processExecutionRequests.wait()
+            await waitForEvent(this._onExecutionRequestScheduled.event)
         }
     }
 
@@ -241,8 +247,8 @@ export class JuliaKernel {
 
     private async run(token: CancellationToken) {
         try {
-            const connectedPromise = new Subject()
-            const serverListeningPromise = new Subject()
+            const onConnected = new vscode.EventEmitter<void>()
+            const onServerListening = new vscode.EventEmitter<void>()
 
             const pn = generatePipeName(uuidv4(), 'vscjl-nbk')
 
@@ -286,8 +292,8 @@ export class JuliaKernel {
                     if (name === 'stdout' || name === 'stderr') {
                         // Ensure \r is in a seprate line.
                         data.split(/(\r)/).forEach((line) => {
-                            const previousOutput = outputsPerExecution.get(this._currentExecutionRequest)
-                            if (previousOutput?.name === name) {
+                            const previousOutput = outputsPerExecution.get(execution)
+                            if (previousOutput?.name === name && previousOutput.output) {
                                 execution.appendOutputItems(
                                     [vscode.NotebookCellOutputItem[name](line)],
                                     previousOutput.output
@@ -297,7 +303,7 @@ export class JuliaKernel {
                                     vscode.NotebookCellOutputItem[name](line),
                                 ])
                                 execution.appendOutput([output])
-                                outputsPerExecution.set(this._currentExecutionRequest, { output, name })
+                                outputsPerExecution.set(execution, { output, name })
                             }
                         })
                     } else {
@@ -307,18 +313,18 @@ export class JuliaKernel {
 
                 this._msgConnection.listen()
 
-                this._onConnected.fire(null)
+                this._onConnected.fire()
 
-                connectedPromise.notify()
+                onConnected.fire()
             })
 
             server.listen(pn, () => {
-                serverListeningPromise.notify()
+                onServerListening.fire()
             })
 
-            this.outputChannel.appendLine(`Pre 'await serverListeningPromise.wait()'`)
-            await serverListeningPromise.wait()
-            this.outputChannel.appendLine(`Post 'await serverListeningPromise.wait()'`)
+            this.outputChannel.appendLine(`Pre 'await onServerListening'`)
+            await waitForEvent(onServerListening.event)
+            this.outputChannel.appendLine(`Post 'await onServerListening'`)
 
             const pkgenvpath = await this.getAbsEnvPathForNotebook()
             this.outputChannel.appendLine(`Post 'const pkgenvpath = await this.getAbsEnvPathForNotebook()'`)
@@ -356,7 +362,7 @@ export class JuliaKernel {
                     path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
                     pn,
                     this.debuggerPipename,
-                    getCrashReportingPipename(),
+                    getCrashReportingPipename() ?? '',
                 ],
                 {
                     env,
@@ -368,18 +374,19 @@ export class JuliaKernel {
 
             const outputChannel = this.outputChannel
 
-            this._kernelProcess.stdout.on('data', function (data) {
+            const kernelProcess = this._kernelProcess
+            kernelProcess.stdout?.on('data', function (data) {
                 outputChannel.append(String(data))
             })
-            this._kernelProcess.stderr.on('data', function (data) {
+            kernelProcess.stderr?.on('data', function (data) {
                 outputChannel.append(String(data))
             })
             const tokenSource = this._tokenSource
-            const processExecutionRequests = this._processExecutionRequests
+            const onExecutionRequestScheduled = this._onExecutionRequestScheduled
 
-            this._kernelProcess.on('close', async (code) => {
+            kernelProcess.on('close', async (code) => {
                 tokenSource.cancel()
-                processExecutionRequests.notify()
+                onExecutionRequestScheduled.fire()
 
                 this._onCellRunFinished.fire()
                 this._onStopped.fire(undefined)
@@ -389,9 +396,12 @@ export class JuliaKernel {
                 this.dispose()
             })
 
-            this.outputChannel.appendLine(`Pre 'await connectedPromise.wait()'`)
-            await connectedPromise.wait()
-            this.outputChannel.appendLine(`Post 'await connectedPromise.wait()'`)
+            this.outputChannel.appendLine(`Pre 'await onConnected'`)
+            await waitForEvent(onConnected.event)
+            this.outputChannel.appendLine(`Post 'await onConnected'`)
+
+            onConnected.dispose()
+            onServerListening.dispose()
 
             await this.messageLoop(token)
 

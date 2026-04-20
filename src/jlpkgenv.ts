@@ -11,15 +11,15 @@ import { promisify } from 'node:util'
 import child_process from 'node:child_process'
 const execFile = promisify(child_process.execFile)
 
-let g_languageClient: vslc.LanguageClient = null
+let g_languageClient: vslc.LanguageClient | null = null
 
-let g_current_environment: vscode.StatusBarItem = null
+let g_current_environment: vscode.StatusBarItem | null = null
 
-let g_path_of_current_environment: string = null
-let g_path_of_default_environment: string = null
-let g_resolved_path_of_environment: string = null
+let g_path_of_current_environment: string | null = null
+let g_path_of_default_environment: string | null = null
+let g_resolved_path_of_environment: string | null = null
 
-let g_ExecutableFeature: ExecutableFeature = null
+let g_ExecutableFeature: ExecutableFeature | null = null
 
 function getEnvironmentPathConfig() {
     const section = vscode.workspace.getConfiguration('julia')
@@ -56,7 +56,9 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
         }
     }
 
-    g_current_environment.text = 'Julia env: ' + (await getEnvName())
+    if (g_current_environment) {
+        g_current_environment.text = 'Julia env: ' + (await getEnvName())
+    }
 
     if (
         vscode.workspace.workspaceFolders !== undefined &&
@@ -71,7 +73,7 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                   vscode.workspace.workspaceFolders[0].uri.fsPath.slice(1)
                 : vscode.workspace.workspaceFolders[0].uri.fsPath
 
-        const juliaExecutable = await g_ExecutableFeature.getExecutable()
+        const juliaExecutable = await g_ExecutableFeature!.getExecutable()
         const res = await execFile(
             juliaExecutable.command,
             [
@@ -223,7 +225,7 @@ async function getDefaultEnvPath() {
             }
         }
 
-        const juliaExecutable = await g_ExecutableFeature.getExecutable()
+        const juliaExecutable = await g_ExecutableFeature!.getExecutable()
         const res = await execFile(
             juliaExecutable.command,
             [
@@ -245,11 +247,11 @@ async function getDefaultEnvPath() {
     return g_path_of_default_environment
 }
 
-async function getEnvPath() {
+async function getEnvPath(): Promise<string> {
     if (g_path_of_current_environment === null) {
         const envPathConfig = getEnvironmentPathConfig()
-        const absEnvPathConfig = absEnvPath(resolvePath(envPathConfig))
         if (envPathConfig) {
+            const absEnvPathConfig = absEnvPath(resolvePath(envPathConfig))
             if (await fs.exists(absEnvPathConfig)) {
                 g_path_of_current_environment = envPathConfig
                 return g_path_of_current_environment
@@ -260,7 +262,7 @@ async function getEnvPath() {
     return g_path_of_current_environment
 }
 
-function absEnvPath(p: string | null) {
+function absEnvPath(p: string) {
     if (path.isAbsolute(p)) {
         return p
     } else {

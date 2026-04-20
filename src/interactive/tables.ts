@@ -20,7 +20,7 @@ const clearLazyTable = new rpc.NotificationType<{
     id: string
 }>('repl/clearLazyTable')
 
-export function displayTable(payload, context, isLazy = false, kernel?: JuliaKernel) {
+export function displayTable(payload: string, context: vscode.ExtensionContext, isLazy = false, kernel?: JuliaKernel) {
     const parsedPayload = JSON.parse(payload)
     const title = parsedPayload.name
 
@@ -110,7 +110,7 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
 
         onEvent(panel.onDidDispose, async () => {
             try {
-                await g_connection.sendNotification(clearLazyTable, {
+                await g_connection?.sendNotification(clearLazyTable, {
                     id: objectId,
                 })
             } catch (err) {
@@ -122,6 +122,9 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
             if (message.type === 'getRows') {
                 let response
                 const conn = kernel?._msgConnection || g_connection
+                if (!conn) {
+                    return
+                }
                 try {
                     const data = await conn.sendRequest(requestTypeGetTableData, {
                         id: objectId,

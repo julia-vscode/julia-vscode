@@ -133,7 +133,7 @@ async function main() {
             .map((i) => {
                 return { original: i, parsed: semver.valid(i) }
             })
-            .filter((i) => i.parsed !== null)
+            .filter((i): i is { original: string; parsed: string } => i.parsed !== null)
             .sort((a, b) => semver.compare(b.parsed, a.parsed))
         const newestTag = tagsSorted[0]
 

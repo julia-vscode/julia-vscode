@@ -1714,7 +1714,6 @@
         "applicationinsights": "^2",
         "async-file": "^v2.0.2",
         "async-mutex": "^0.5.0",
-        "await-notify": "^1.0.1",
         "fastq": "^1.19.1",
         "markdown-it": "^14.1.0",
         "markdown-it-footnote": "^4.0.0",

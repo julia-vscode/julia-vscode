@@ -10,24 +10,29 @@ let enableTelemetry: boolean = false
 
 let g_currentJuliaVersion: string = ''
 
-let extensionClient: appInsights.TelemetryClient = undefined
+let extensionClient: appInsights.TelemetryClient | undefined = undefined
 
 let crashReporterUIVisible: boolean = false
-let crashReporterQueue = []
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let crashReporterQueue: any[] = []
 
-let g_jlcrashreportingpipename: string = null
+let g_jlcrashreportingpipename: string | null = null
 
 let g_prereleaseExtension: boolean = false
 
-function filterTelemetry(envelope) {
+function filterTelemetry(envelope: appInsights.Contracts.EnvelopeTelemetry) {
     if (envelope.data.baseType === 'ExceptionData') {
         if (enableCrashReporter) {
-            for (const i_ex in envelope.data.baseData.exceptions) {
-                for (const i_sf in envelope.data.baseData.exceptions[i_ex].parsedStack) {
-                    const sf = envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf]
-                    envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].assembly = ''
+            const baseData = envelope.data.baseData
+            if (!baseData) {
+                return true
+            }
+            for (const i_ex in baseData.exceptions) {
+                for (const i_sf in baseData.exceptions[i_ex].parsedStack) {
+                    const sf = baseData.exceptions[i_ex].parsedStack[i_sf]
+                    baseData.exceptions[i_ex].parsedStack[i_sf].assembly = ''
 
-                    envelope.data.baseData.exceptions[i_ex].parsedStack[i_sf].sizeInBytes =
+                    baseData.exceptions[i_ex].parsedStack[i_sf].sizeInBytes =
                         sf.method.length +
                         sf.fileName.length +
                         sf.assembly.length +
@@ -62,6 +67,9 @@ export function init(context: vscode.ExtensionContext) {
 
     const extversion: string = context.extension.packageJSON.version
     const parsedExtensionVersion = parse(extversion)
+    if (!parsedExtensionVersion) {
+        throw new Error(`Could not parse extension version: ${extversion}`)
+    }
 
     // The Application Insights Key
     let key: string
@@ -143,9 +151,11 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
             message: message,
             stack: stacktrace,
         },
-        tagOverrides: {
-            [extensionClient.context.keys.cloudRole]: cloudRole,
-        },
+        tagOverrides: extensionClient
+            ? {
+                  [extensionClient.context.keys.cloudRole]: cloudRole,
+              }
+            : undefined,
     })
 
     if (enableCrashReporter) {
@@ -159,9 +169,11 @@ export function handleNewCrashReportFromException(exception: unknown, cloudRole:
     const error = exception instanceof Error ? exception : new Error(String(exception))
     crashReporterQueue.push({
         exception: error,
-        tagOverrides: {
-            [extensionClient.context.keys.cloudRole]: cloudRole,
-        },
+        tagOverrides: extensionClient
+            ? {
+                  [extensionClient.context.keys.cloudRole]: cloudRole,
+              }
+            : undefined,
     })
 
     if (enableCrashReporter) {
@@ -200,12 +212,19 @@ export function getCrashReportingPipename() {
     return g_jlcrashreportingpipename
 }
 
-export function traceEvent(message) {
-    extensionClient.trackEvent({ name: message })
+export function traceEvent(message: string) {
+    extensionClient?.trackEvent({ name: message })
 }
 
-export function traceRequest(operationId, operationParentId, name, time, duration, cloudRole) {
-    if (g_prereleaseExtension) {
+export function traceRequest(
+    operationId: string,
+    operationParentId: string | undefined,
+    name: string,
+    time: Date,
+    duration: number,
+    cloudRole: string
+) {
+    if (g_prereleaseExtension && extensionClient) {
         extensionClient.trackRequest({
             name: name,
             url: name,
@@ -223,15 +242,18 @@ export function traceRequest(operationId, operationParentId, name, time, duratio
     }
 }
 
-export function tracePackageLoadError(packagename, message) {
-    extensionClient.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
+export function tracePackageLoadError(packagename: string, message: string) {
+    extensionClient?.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
 }
 
 export function traceTrace(msg: appInsights.Contracts.TraceTelemetry) {
-    extensionClient.trackTrace(msg)
+    extensionClient?.trackTrace(msg)
 }
 
 function sendCrashReportQueue() {
+    if (!extensionClient) {
+        return
+    }
     const own_copy = crashReporterQueue
     crashReporterQueue = []
     for (const i of own_copy) {
@@ -286,5 +308,5 @@ export function setCurrentJuliaVersion(version: string) {
 }
 
 export function flush() {
-    extensionClient.flush()
+    extensionClient?.flush()
 }

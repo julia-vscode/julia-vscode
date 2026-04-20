@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'fs/promises'
 import { onEvent, registerCommand, setContext } from '../utils'
 import { openFile } from './results'
 
-interface ProfilerFrame {
+export interface ProfilerFrame {
     func: string
     file: string
     path: string
@@ -52,11 +52,11 @@ function flagString(flags: number) {
 const profilerContextKey = 'julia.profilerFocus'
 export class ProfilerFeature {
     context: vscode.ExtensionContext
-    panel: vscode.WebviewPanel
+    panel: vscode.WebviewPanel | undefined
 
     profiles: ProfileRoot[] = []
     inlineTrace: InlineTraceElement[] = []
-    decoration: vscode.TextEditorDecorationType
+    decoration: vscode.TextEditorDecorationType | undefined
     inlineMaxWidth: number = 100
     currentProfileIndex: number = 0
     selection: string = 'all'
@@ -136,7 +136,15 @@ export class ProfilerFeature {
     }
 
     collateTrace(editors: readonly vscode.TextEditor[]) {
-        const edHighlights = {}
+        interface HighlightEntry {
+            count: number
+            fraction: number
+            flags: number
+            range: vscode.Range
+            hoverMessage: string
+            renderOptions: vscode.DecorationInstanceRenderOptions
+        }
+        const edHighlights: Record<string, Record<number, HighlightEntry>> = {}
         for (const highlight of this.inlineTrace) {
             for (const editor of editors) {
                 const uri = editor.document.uri.toString()
@@ -180,15 +188,13 @@ export class ProfilerFeature {
         }
         const edHighlights = this.collateTrace(editors)
 
+        if (!this.decoration) {
+            return
+        }
         for (const editor of editors) {
             const uri = editor.document.uri.toString()
             if (edHighlights[uri]) {
-                const highlights: {
-                    range: vscode.Range
-                    hoverMessage: string
-                    renderOptions
-                }[] = Object.values(edHighlights[uri])
-                editor.setDecorations(this.decoration, highlights)
+                editor.setDecorations(this.decoration, Object.values(edHighlights[uri]))
             }
         }
     }
@@ -210,24 +216,25 @@ export class ProfilerFeature {
             }
         )
 
-        let isProfilerPaneReady
+        let isProfilerPaneReady: (() => void) | undefined
 
-        const loadedPromise = new Promise((resolve) => {
+        const loadedPromise = new Promise<void>((resolve) => {
             isProfilerPaneReady = resolve
         })
 
+        const panel = this.panel
         const messageHandler = onEvent(
-            this.panel.webview.onDidReceiveMessage,
+            panel.webview.onDidReceiveMessage,
             (message: { type: string; node?: ProfilerFrame; selection?: string }) => {
-                if (message.type === 'open') {
+                if (message.type === 'open' && message.node) {
                     openFile(
                         message.node.path,
                         message.node.line,
-                        this.panel.viewColumn === vscode.ViewColumn.Two
+                        panel.viewColumn === vscode.ViewColumn.Two
                             ? vscode.ViewColumn.One
                             : vscode.ViewColumn.Beside
                     )
-                } else if (message.type === 'selectionChange') {
+                } else if (message.type === 'selectionChange' && message.selection !== undefined) {
                     this.selection = message.selection
                     this.setInlineTrace(this.profiles[this.currentProfileIndex].data)
                 } else if (message.type === 'profilerLoaded') {
@@ -259,6 +266,9 @@ export class ProfilerFeature {
     async show() {
         this.selection = 'all'
         await this.createPanel()
+        if (!this.panel) {
+            return
+        }
         this.panel.title = this.makeTitle()
 
         if (this.profileCount > 0) {
@@ -285,7 +295,7 @@ export class ProfilerFeature {
     }
 
     getContent() {
-        const profilerURL = this.panel.webview.asWebviewUri(vscode.Uri.file(this.profileViewerJSPath()))
+        const profilerURL = this.panel!.webview.asWebviewUri(vscode.Uri.file(this.profileViewerJSPath()))
 
         return `
         <!DOCTYPE html>

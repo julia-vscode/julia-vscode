@@ -24,7 +24,7 @@ export async function installJuliaOrJuliaup(
     const options: string[] = [download, customCommand]
 
     let channelSuffix = ''
-    if (requiredChannels?.size > 0) {
+    if (requiredChannels && requiredChannels.size > 0) {
         channelSuffix = ` We will also install the following channels as per your configuration: ${[...requiredChannels].join(', ')}`
     }
     // Options for Julia
@@ -85,6 +85,9 @@ export async function installJuliaOrJuliaup(
     }
 
     const juliaup = await executableFeature?.getJuliaupExecutableNoCache(false)
+    if (!juliaup || !requiredChannels) {
+        return 1
+    }
     try {
         await juliaup.addChannels(requiredChannels, { show: true })
         return 0

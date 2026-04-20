@@ -26,11 +26,11 @@ export class LanguageClientFeature {
 
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
 
-    private watchedEnvironment: string
+    private watchedEnvironment: string | undefined
 
     private serverStarting: boolean = false
 
-    languageClient: LanguageClient
+    languageClient: LanguageClient | null = null
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -56,8 +56,10 @@ export class LanguageClientFeature {
         )
     }
 
-    public setLanguageClient(languageClient: LanguageClient = null) {
-        this.onDidSetLanguageClientEmitter.fire(languageClient)
+    public setLanguageClient(languageClient: LanguageClient | null = null) {
+        if (languageClient) {
+            this.onDidSetLanguageClientEmitter.fire(languageClient)
+        }
         this.languageClient = languageClient
     }
 
@@ -72,8 +74,9 @@ export class LanguageClientFeature {
         try {
             return await callback(this.languageClient)
         } catch (err) {
-            if (err.message === 'Language client is not ready yet') {
-                return callbackOnHandledErr(err)
+            const error = err instanceof Error ? err : new Error(String(err))
+            if (error.message === 'Language client is not ready yet') {
+                return callbackOnHandledErr(error)
             }
             throw err
         }
@@ -115,7 +118,7 @@ export class LanguageClientFeature {
             } catch (e) {
                 const msg = `Could not start the Julia language server because the current environment could not be determined. Check the \`julia.executablePath\` and \`julia.environmentPath\` settings for correctness.`
                 this.outputChannel.appendLine(msg)
-                this.outputChannel.appendLine(e)
+                this.outputChannel.appendLine(String(e))
                 vscode.window.showErrorMessage(msg, 'Open Settings').then((val) => {
                     if (val) {
                         vscode.commands.executeCommand('workbench.action.openSettings', 'julia.path')
@@ -130,7 +133,7 @@ export class LanguageClientFeature {
         const useSymserverDownloads = vscode.workspace.getConfiguration('julia').get('symbolCacheDownload')
             ? 'download'
             : 'local'
-        const symserverUpstream = vscode.workspace.getConfiguration('julia').get<string>('symbolserverUpstream')
+        const symserverUpstream = vscode.workspace.getConfiguration('julia').get<string>('symbolserverUpstream') ?? ''
 
         const languageServerDepotPath = path.join(storagePath, 'lsdepot', 'v1')
         await fs.createDirectory(languageServerDepotPath)
@@ -142,7 +145,7 @@ export class LanguageClientFeature {
             'main.jl',
             jlEnvPath,
             '--debug=no',
-            telemetry.getCrashReportingPipename(),
+            telemetry.getCrashReportingPipename() ?? '',
             oldDepotPath,
             storagePath,
             useSymserverDownloads,
@@ -158,7 +161,7 @@ export class LanguageClientFeature {
             'main.jl',
             jlEnvPath,
             '--debug=yes',
-            telemetry.getCrashReportingPipename(),
+            telemetry.getCrashReportingPipename() ?? '',
             oldDepotPath,
             storagePath,
             useSymserverDownloads,
@@ -185,7 +188,7 @@ export class LanguageClientFeature {
         if (process.env.DETACHED_LS) {
             serverOptions = async () => {
                 // eslint-disable-next-line no-async-promise-executor
-                const p = new Promise<{ reader; writer; detached }>(async (resolve) => {
+                const p = new Promise<{ reader: net.Socket; writer: net.Socket; detached: boolean }>(async (resolve) => {
                     let isConnected = false
                     while (!isConnected) {
                         const conn = net.connect({ port: 7777 }, () => {
@@ -309,7 +312,7 @@ export class LanguageClientFeature {
             await this.languageClient.sendNotification('julia/refreshLanguageServer')
         } catch (err) {
             vscode.window.showErrorMessage('Failed to refresh the language server cache.', {
-                detail: err,
+                detail: err instanceof Error ? err.message : String(err),
             })
         }
     }
