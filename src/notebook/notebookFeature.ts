@@ -34,7 +34,7 @@ export class JuliaNotebookFeature {
         vscode.NotebookDocument,
         JuliaKernel
     >()
-    private _outputChannel: vscode.OutputChannel
+    private _outputChannel!: vscode.OutputChannel
     private readonly disposables: vscode.Disposable[] = []
 
     public pathToCell: Map<string, vscode.NotebookCell> = new Map()

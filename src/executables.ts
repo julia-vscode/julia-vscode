@@ -151,7 +151,7 @@ export class JuliaupExecutable {
         return await this.run(['add', channel], options)
     }
 
-    private installedPromise: Promise<JuliaupChannel[]>
+    private installedPromise: Promise<JuliaupChannel[]> | undefined
     public async installed(): Promise<JuliaupChannel[]> {
         if (this.installedPromise) {
             return await this.installedPromise
@@ -284,7 +284,7 @@ export class JuliaExecutable {
     public args: string[]
     public juliaupChannel?: JuliaupChannel
 
-    private _rootFolder: string
+    private _rootFolder: string | undefined
 
     constructor(commandOrChannel: string | JuliaupChannel, version?: string) {
         if (typeof commandOrChannel === 'string') {
@@ -364,7 +364,7 @@ export class ExecutableFeature {
     private outputChannel: vscode.OutputChannel = vscode.window.createOutputChannel('Julia Executables')
 
     public taskRunner: TaskRunner
-    private juliaupExecutableCache: Promise<JuliaupExecutable | undefined>
+    private juliaupExecutableCache: Promise<JuliaupExecutable | undefined> | undefined
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
 
     private onDidFindJuliaEmitter = new vscode.EventEmitter<boolean>()

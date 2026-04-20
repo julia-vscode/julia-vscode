@@ -34,7 +34,7 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
     private disposables: vscode.Disposable[] = []
 
     private isClosed: boolean = false
-    private exitCode: number | void
+    private exitCode: number | void = undefined
 
     constructor(
         private proc: JuliaProcess,

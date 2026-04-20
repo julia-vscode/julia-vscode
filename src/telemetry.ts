@@ -13,13 +13,14 @@ let g_currentJuliaVersion: string = ''
 let extensionClient: appInsights.TelemetryClient = undefined
 
 let crashReporterUIVisible: boolean = false
-let crashReporterQueue = []
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let crashReporterQueue: any[] = []
 
 let g_jlcrashreportingpipename: string = null
 
 let g_prereleaseExtension: boolean = false
 
-function filterTelemetry(envelope) {
+function filterTelemetry(envelope: appInsights.Contracts.EnvelopeTelemetry) {
     if (envelope.data.baseType === 'ExceptionData') {
         if (enableCrashReporter) {
             for (const i_ex in envelope.data.baseData.exceptions) {
@@ -200,11 +201,18 @@ export function getCrashReportingPipename() {
     return g_jlcrashreportingpipename
 }
 
-export function traceEvent(message) {
+export function traceEvent(message: string) {
     extensionClient.trackEvent({ name: message })
 }
 
-export function traceRequest(operationId, operationParentId, name, time, duration, cloudRole) {
+export function traceRequest(
+    operationId: string,
+    operationParentId: string | undefined,
+    name: string,
+    time: Date,
+    duration: number,
+    cloudRole: string
+) {
     if (g_prereleaseExtension) {
         extensionClient.trackRequest({
             name: name,
@@ -223,7 +231,7 @@ export function traceRequest(operationId, operationParentId, name, time, duratio
     }
 }
 
-export function tracePackageLoadError(packagename, message) {
+export function tracePackageLoadError(packagename: string, message: string) {
     extensionClient.trackTrace({ message: `Package ${packagename} crashed.\n\n${message}` })
 }
 

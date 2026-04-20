@@ -15,21 +15,20 @@ const requestTypeGetDebugItems = new rpc.RequestType<{ juliaAccessor: string }, 
 )
 
 export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugConfigTreeItem> {
-    private _onDidChangeTreeData: vscode.EventEmitter<DebugConfigTreeItem | undefined> = new vscode.EventEmitter<
-        DebugConfigTreeItem | undefined
-    >()
-    readonly onDidChangeTreeData: vscode.Event<DebugConfigTreeItem | undefined> = this._onDidChangeTreeData.event
+    private _onDidChangeTreeData: vscode.EventEmitter<DebugConfigTreeItem | void> =
+        new vscode.EventEmitter<DebugConfigTreeItem | void>()
+    readonly onDidChangeTreeData: vscode.Event<DebugConfigTreeItem | void> = this._onDidChangeTreeData.event
     private _onDidChangeCompiledMode: vscode.EventEmitter<boolean> = new vscode.EventEmitter<boolean>()
     readonly onDidChangeCompiledMode: vscode.Event<boolean> = this._onDidChangeCompiledMode.event
     private _compiledItems: Set<string> = new Set()
     public compiledMode = false
-    private _connection = null
+    private _connection: rpc.MessageConnection | null = null
 
-    refresh(el = null): void {
-        this._onDidChangeTreeData.fire(el)
+    refresh(el: DebugConfigTreeItem | null = null): void {
+        this._onDidChangeTreeData.fire(el ?? undefined)
     }
 
-    setConnection(conn) {
+    setConnection(conn: rpc.MessageConnection | null) {
         this._connection = conn
     }
 
@@ -40,7 +39,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
                     const accessor = node.juliaAccessor
                     return Promise.race([
                         this._connection.sendRequest(requestTypeGetDebugItems, { juliaAccessor: accessor }),
-                        new Promise((resolve) => {
+                        new Promise<DebugConfigTreeItem[]>((resolve) => {
                             setTimeout(() => resolve([]), 10000)
                         }),
                     ])
@@ -300,7 +299,7 @@ export function activate(context: vscode.ExtensionContext) {
             setContext('julia.debuggerCompiledMode', false)
         }),
         onInit(
-            wrapCrashReporting(({ connection }) => {
+            wrapCrashReporting(({ connection }: { connection: rpc.MessageConnection }) => {
                 provider.setConnection(connection)
                 provider.refresh()
             })

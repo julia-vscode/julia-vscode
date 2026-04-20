@@ -1,5 +1,4 @@
 import * as fs from 'async-file'
-import { Subject } from 'await-notify'
 import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
@@ -10,6 +9,8 @@ import * as vslc from 'vscode-languageclient/node'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import { LanguageClientFeature } from '../languageClient'
+import { DebugConfigTreeProvider } from '../debugger/debugConfig'
+import { ProfilerFeature, ProfilerFrame } from './profiler'
 import { JuliaExecutable, ExecutableFeature, JuliaupChannel } from '../executables'
 import * as telemetry from '../telemetry'
 import {
@@ -38,7 +39,7 @@ const exec = promisify(child_process.exec)
 
 let g_context: vscode.ExtensionContext = null
 let g_languageClient: vslc.LanguageClient = null
-let g_compiledProvider = null
+let g_compiledProvider: DebugConfigTreeProvider | null = null
 export const g_evalQueue = fastq(sendEvalRequest, 1)
 
 let g_terminal: vscode.Terminal = null
@@ -318,7 +319,7 @@ export async function startREPL(
     }
 
     g_terminal.show(preserveFocus)
-    await juliaIsConnectedPromise.wait()
+    await juliaIsConnectedPromise
 }
 
 function makeTerminalName(juliaExecutable: JuliaExecutable) {
@@ -423,9 +424,9 @@ async function connectREPL() {
     }
 }
 
-async function _connectREPL(juliaIsConnectedPromise) {
+async function _connectREPL(juliaIsConnectedPromise: Promise<void>) {
     try {
-        await juliaIsConnectedPromise.wait()
+        await juliaIsConnectedPromise
         vscode.window.showInformationMessage('Successfully connected to external Julia REPL.')
     } catch {
         vscode.window.showErrorMessage('Failed to connect to external Julia REPL.')
@@ -487,7 +488,9 @@ const notifyTypeReplAttachDebgger = new rpc.NotificationType<{ pipename: string 
 const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
 export const notifyTypeReplShowInGrid = new rpc.NotificationType<{ code: string }>('repl/showingrid')
-const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: unknown; typ: string }>('repl/showprofileresult')
+const notifyTypeShowProfilerResult = new rpc.NotificationType<{ trace: Record<string, ProfilerFrame>; typ: string }>(
+    'repl/showprofileresult'
+)
 const notifyTypeOpenFile = new rpc.NotificationType<{ path: string; line: number; preserveFocus: boolean }>(
     'repl/openFile'
 )
@@ -512,40 +515,45 @@ export const onFinishEval = g_onFinishEval.event
 
 // code execution start
 
-function startREPLMsgServer(pipename: string, juliaExecutable?: JuliaExecutable): Subject {
-    const connected = new Subject()
-
+function startREPLMsgServer(pipename: string, juliaExecutable?: JuliaExecutable): Promise<void> {
     if (g_connection) {
         g_connection?.dispose()
         g_connection = undefined
     }
 
-    const server = net.createServer((socket: net.Socket) => {
-        socket.on('close', (hadError) => {
-            g_connection?.dispose()
-            g_connection = undefined
+    return new Promise<void>((resolve) => {
+        const server = net.createServer((socket: net.Socket) => {
+            socket.on('close', (hadError) => {
+                g_connection?.dispose()
+                g_connection = undefined
 
-            g_onExit.fire(hadError)
-            server.close()
+                g_onExit.fire(hadError)
+                server.close()
+            })
+
+            g_connection = rpc.createMessageConnection(
+                new rpc.StreamMessageReader(socket),
+                new rpc.StreamMessageWriter(socket)
+            )
+
+            g_connection.onNotification(new rpc.NotificationType('connected'), () => resolve())
+            g_connection.listen()
+
+            g_onInit.fire({ connection: g_connection, juliaExecutable })
         })
 
-        g_connection = rpc.createMessageConnection(
-            new rpc.StreamMessageReader(socket),
-            new rpc.StreamMessageWriter(socket)
-        )
-
-        g_connection.onNotification(new rpc.NotificationType('connected'), () => connected.notify())
-        g_connection.listen()
-
-        g_onInit.fire({ connection: g_connection, juliaExecutable })
+        server.listen(pipename)
     })
-
-    server.listen(pipename)
-
-    return connected
 }
 
-const g_progress_dict = {}
+interface ProgressEntry {
+    progress: vscode.Progress<{ increment?: number; message?: string }>
+    last_fraction: number
+    started: Date
+    resolve: (value: void) => void
+}
+
+const g_progress_dict: Record<string, ProgressEntry> = {}
 
 async function updateProgress(progress: Progress) {
     if (g_progress_dict[progress.id.value]) {
@@ -570,7 +578,7 @@ async function updateProgress(progress: Progress) {
                 cancellable: true,
             },
             (prog, token) => {
-                return new Promise((resolve) => {
+                return new Promise<void>((resolve) => {
                     g_progress_dict[progress.id.value] = {
                         progress: prog,
                         last_fraction: progress.fraction,
@@ -589,7 +597,7 @@ async function updateProgress(progress: Progress) {
     }
 }
 
-function progressMessage(prog: Progress, started = null) {
+function progressMessage(prog: Progress, started: Date | null = null) {
     let message = prog.name
     const parenthezise = message.trim().length > 0
     if (isFinite(prog.fraction) && 0 <= prog.fraction && prog.fraction <= 1) {
@@ -598,7 +606,7 @@ function progressMessage(prog: Progress, started = null) {
         }
         message += `${(prog.fraction * 100).toFixed(1)}%`
         if (started !== null) {
-            const elapsed = (new Date().valueOf() - started) / 1000
+            const elapsed = (new Date().valueOf() - started.valueOf()) / 1000
             const remaining = (1 / prog.fraction - 1) * elapsed
             if (isFinite(remaining)) {
                 message += ` - ${formattedTimePeriod(remaining)} remaining`
@@ -611,7 +619,7 @@ function progressMessage(prog: Progress, started = null) {
     return message
 }
 
-function formattedTimePeriod(t) {
+function formattedTimePeriod(t: number) {
     const seconds = Math.floor(t % 60)
     const minutes = Math.floor((t / 60) % 60)
     const hours = Math.floor(t / 60 / 60)
@@ -642,17 +650,17 @@ interface InlayHintConfig {
     paddingRight?: boolean
 }
 
-type DisplayTypeUnion = { source: string; items: DiagnosticData[] } | { [key: string]: InlayHintConfig } | string
+type DisplayTypeUnion = { source: string; items: DiagnosticData[] } | { [key: string]: InlayHintConfig[] } | string
 
 function isDiagnostic(kind: string, _data: DisplayTypeUnion): _data is { source: string; items: DiagnosticData[] } {
     return kind === 'application/vnd.julia-vscode.diagnostics'
 }
 
-function isInlayHint(kind: string, _data: DisplayTypeUnion): _data is { [key: string]: InlayHintConfig } {
+function isInlayHint(kind: string, _data: DisplayTypeUnion): _data is { [key: string]: InlayHintConfig[] } {
     return kind === 'application/vnd.julia-vscode.inlayHints'
 }
 
-let g_inlayHintsProvider = null
+let g_inlayHintsProvider: vscode.Disposable | null = null
 function display(params: { kind: string; data: DisplayTypeUnion }) {
     if (isDiagnostic(params.kind, params.data)) {
         displayDiagnostics(params.data)
@@ -675,9 +683,10 @@ function display(params: { kind: string; data: DisplayTypeUnion }) {
                 })
         }
 
-        const parsedInlayHints = {}
-        Object.keys(params.data).forEach((key) => {
-            parsedInlayHints[vscode.Uri.file(key).fsPath] = params.data[key].map((hint: InlayHintConfig) => {
+        const parsedInlayHints: Record<string, vscode.InlayHint[]> = {}
+        const inlayData = params.data as { [key: string]: InlayHintConfig[] }
+        Object.keys(inlayData).forEach((key) => {
+            parsedInlayHints[vscode.Uri.file(key).fsPath] = inlayData[key].map((hint: InlayHintConfig) => {
                 const tmpInlayHint = new vscode.InlayHint(
                     new vscode.Position(hint.position[0], hint.position[1]),
                     hint.label,
@@ -1114,7 +1123,7 @@ export async function executeInREPL(
     })
 }
 
-const interrupts = []
+const interrupts: Date[] = []
 let last_interrupt_index = -1
 async function interrupt() {
     g_evalQueue.killAndDrain()
@@ -1294,9 +1303,9 @@ async function sendEvalRequest(req: RunCodeOptions) {
 
 export function activate(
     context: vscode.ExtensionContext,
-    compiledProvider,
+    compiledProvider: DebugConfigTreeProvider,
     ExecutableFeature: ExecutableFeature,
-    profilerFeature,
+    profilerFeature: ProfilerFeature,
     languageClientFeature: LanguageClientFeature
 ) {
     g_context = context
@@ -1310,27 +1319,35 @@ export function activate(
             g_languageClient = languageClient
         }),
         onInit(
-            wrapCrashReporting(({ connection, juliaExecutable }) => {
-                connection.onNotification(notifyTypeDisplay, display)
-                connection.onNotification(notifyTypeReplAttachDebgger, debuggerAttach)
-                connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
-                connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
-                connection.onNotification(notifyTypeCheckRevise, (hasRevise: boolean) =>
-                    checkRevise(hasRevise, juliaExecutable)
-                )
-                connection.onNotification(notifyTypeShowProfilerResult, (data) =>
-                    profilerFeature.showTrace({
-                        data: data.trace,
-                        type: data.typ,
-                    })
-                )
-                connection.onNotification(notifyTypeOpenFile, ({ path, line, preserveFocus }) =>
-                    openFile(path, line, undefined, preserveFocus)
-                )
-                connection.onNotification(notifyTypeProgress, updateProgress)
-                setContext('julia.isEvaluating', false)
-                setContext('julia.hasREPL', true)
-            })
+            wrapCrashReporting(
+                ({
+                    connection,
+                    juliaExecutable,
+                }: {
+                    connection: rpc.MessageConnection
+                    juliaExecutable?: JuliaExecutable
+                }) => {
+                    connection.onNotification(notifyTypeDisplay, display)
+                    connection.onNotification(notifyTypeReplAttachDebgger, debuggerAttach)
+                    connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
+                    connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
+                    connection.onNotification(notifyTypeCheckRevise, (hasRevise: boolean) =>
+                        checkRevise(hasRevise, juliaExecutable)
+                    )
+                    connection.onNotification(notifyTypeShowProfilerResult, (data) =>
+                        profilerFeature.showTrace({
+                            data: data.trace,
+                            type: data.typ,
+                        })
+                    )
+                    connection.onNotification(notifyTypeOpenFile, ({ path, line, preserveFocus }) =>
+                        openFile(path, line, undefined, preserveFocus)
+                    )
+                    connection.onNotification(notifyTypeProgress, updateProgress)
+                    setContext('julia.isEvaluating', false)
+                    setContext('julia.hasREPL', true)
+                }
+            )
         ),
         onExit(() => {
             g_evalQueue.killAndDrain()

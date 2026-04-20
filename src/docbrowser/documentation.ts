@@ -61,7 +61,7 @@ md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
     return self.renderToken(tokens, idx, options)
 }
 
-export function activate(context: vscode.ExtensionContext, languageClientFeature) {
+export function activate(context: vscode.ExtensionContext, languageClientFeature: LanguageClientFeature) {
     const provider = new DocumentationViewProvider(context, languageClientFeature)
 
     context.subscriptions.push(
@@ -69,7 +69,7 @@ export function activate(context: vscode.ExtensionContext, languageClientFeature
         registerCommand('language-julia.show-documentation', () => provider.showDocumentation()),
         registerCommand('language-julia.browse-back-documentation', () => provider.browseBack()),
         registerCommand('language-julia.browse-forward-documentation', () => provider.browseForward()),
-        registerCommand('language-julia.search-word', (params) => provider.findHelp(params)),
+        registerCommand('language-julia.search-word', (params: { searchTerm: string }) => provider.findHelp(params)),
         vscode.window.registerWebviewViewProvider('julia-documentation', provider)
     )
 }

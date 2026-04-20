@@ -28,8 +28,8 @@ export class Result {
     document: vscode.TextDocument
     text: string
     range: vscode.Range
-    content: ResultContent
-    decoration: vscode.TextEditorDecorationType
+    content!: ResultContent
+    decoration!: vscode.TextEditorDecorationType
     destroyed: boolean
     removeEmitter: vscode.EventEmitter<undefined>
     onDidRemove: vscode.Event<undefined>

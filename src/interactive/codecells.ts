@@ -364,8 +364,8 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         1
     )
     private readonly PENDING_SIGN = ' ⟳ '
-    private shouldSaveOnEval: boolean
-    private inlineResultsForCellEvaluation: boolean
+    private shouldSaveOnEval!: boolean
+    private inlineResultsForCellEvaluation!: boolean
     private inlineDebugSession: vscode.DebugSession | undefined
 
     constructor(
@@ -753,8 +753,8 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
     )
     public readonly onDidChangeFoldingRanges = this.onDidChangeCellDelimiters.event
 
-    private useCodeLens: boolean
-    private useCellHighlighting: boolean
+    private useCodeLens!: boolean
+    private useCellHighlighting!: boolean
 
     private readonly decoration = vscode.window.createTextEditorDecorationType({
         backgroundColor: new vscode.ThemeColor('editor.rangeHighlightBackground'),

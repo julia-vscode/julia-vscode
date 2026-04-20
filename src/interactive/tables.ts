@@ -20,7 +20,7 @@ const clearLazyTable = new rpc.NotificationType<{
     id: string
 }>('repl/clearLazyTable')
 
-export function displayTable(payload, context, isLazy = false, kernel?: JuliaKernel) {
+export function displayTable(payload: string, context: vscode.ExtensionContext, isLazy = false, kernel?: JuliaKernel) {
     const parsedPayload = JSON.parse(payload)
     const title = parsedPayload.name
 

@@ -92,8 +92,8 @@ export class JuliaTestController {
         this.process.kill()
     }
 
-    private connection: rpc.MessageConnection
-    private process: ChildProcessWithoutNullStreams
+    private connection!: rpc.MessageConnection
+    private process!: ChildProcessWithoutNullStreams
     private testRuns = new Map<string, { testRun: vscode.TestRun; testItems: Map<string, vscode.TestItem> }>()
     private testProcesses = new Map<string, JuliaTestProcess>()
     private currentRunExecutable: JuliaExecutable | undefined
@@ -612,7 +612,7 @@ export class TestFeature {
 
             for (const part of filenameParts) {
                 currentUri = currentUri.with({ path: `${currentUri.path}/${part}` })
-                let newChild = currentFolder.children.get(part)
+                let newChild: vscode.TestItem | undefined = currentFolder.children.get(part)
                 if (!newChild) {
                     newChild = this.controller.createTestItem(part, part, currentUri)
                     currentFolder.children.add(newChild)
@@ -661,7 +661,7 @@ export class TestFeature {
             if (currentFolder) {
                 let foundParentFolder = true
                 for (const part of filenameParts) {
-                    const child = currentFolder.children.get(part)
+                    const child: vscode.TestItem | undefined = currentFolder.children.get(part)
                     if (!child) {
                         foundParentFolder = false
                         break
@@ -677,16 +677,17 @@ export class TestFeature {
                     }
                 }
 
-                while (currentFolder) {
-                    const parentFolder = currentFolder.parent
-                    if (currentFolder.children.size === 0) {
+                let walker: vscode.TestItem | undefined = currentFolder
+                while (walker) {
+                    const parentFolder: vscode.TestItem | undefined = walker.parent
+                    if (walker.children.size === 0) {
                         if (parentFolder) {
-                            parentFolder.children.delete(currentFolder.id)
+                            parentFolder.children.delete(walker.id)
                         } else {
-                            this.controller.items.delete(currentFolder.id)
+                            this.controller.items.delete(walker.id)
                         }
                     }
-                    currentFolder = parentFolder
+                    walker = parentFolder
                 }
             }
         }
@@ -702,7 +703,7 @@ export class TestFeature {
         }
     }
 
-    isParentOf(x: vscode.TestItem, y: vscode.TestItem) {
+    isParentOf(x: vscode.TestItem, y: vscode.TestItem): boolean {
         if (y.parent) {
             if (y.parent === x) {
                 return true

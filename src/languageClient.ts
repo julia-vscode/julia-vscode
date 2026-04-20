@@ -26,11 +26,11 @@ export class LanguageClientFeature {
 
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
 
-    private watchedEnvironment: string
+    private watchedEnvironment: string | undefined
 
     private serverStarting: boolean = false
 
-    languageClient: LanguageClient
+    languageClient: LanguageClient | null = null
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -185,7 +185,7 @@ export class LanguageClientFeature {
         if (process.env.DETACHED_LS) {
             serverOptions = async () => {
                 // eslint-disable-next-line no-async-promise-executor
-                const p = new Promise<{ reader; writer; detached }>(async (resolve) => {
+                const p = new Promise<{ reader: net.Socket; writer: net.Socket; detached: boolean }>(async (resolve) => {
                     let isConnected = false
                     while (!isConnected) {
                         const conn = net.connect({ port: 7777 }, () => {

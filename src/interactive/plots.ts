@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 interface Plot {
     thumbnail_type: string
-    thumbnail_data: string
+    thumbnail_data: string | null
     time: Date
 }
 
@@ -108,7 +108,7 @@ class PlotNavigatorProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    setPlotsInfo(set_func) {
+    setPlotsInfo(set_func: (plotsInfo: Plot[]) => Plot[]) {
         this.plotsInfo = set_func(this.plotsInfo)
         this.reloadPlotPane()
     }
@@ -213,12 +213,12 @@ function getPlotPaneContent(webview: vscode.Webview) {
     }
 }
 
-function plotPanelOnMessage(msg) {
+function plotPanelOnMessage(msg: { type: string; value: string }) {
     switch (msg.type) {
         case 'thumbnail':
             {
                 const thumbnailData = msg.value
-                g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
+                g_plotNavigatorProvider?.setPlotsInfo((plotsInfo: Plot[]) => {
                     plotsInfo[g_currentPlotIndex] = {
                         thumbnail_type: 'image',
                         thumbnail_data: thumbnailData,
@@ -356,7 +356,7 @@ export function plotPaneLast() {
 
 export function plotPaneDel() {
     if (g_plots.length > 0) {
-        g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
+        g_plotNavigatorProvider?.setPlotsInfo((plotsInfo: Plot[]) => {
             plotsInfo.splice(g_currentPlotIndex, 1)
             return plotsInfo
         })
@@ -474,7 +474,7 @@ function addOrUpdatePlot(plotPaneContent: string, id?: string) {
         const ind = g_plot_id_map.get(id)
         g_plots[ind] = plotPaneContent
         g_currentPlotIndex = ind
-        g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
+        g_plotNavigatorProvider?.setPlotsInfo((plotsInfo: Plot[]) => {
             plotsInfo[ind] = {
                 thumbnail_type: 'text',
                 thumbnail_data: null,
@@ -488,7 +488,7 @@ function addOrUpdatePlot(plotPaneContent: string, id?: string) {
 
     g_currentPlotIndex = g_plots.push(plotPaneContent) - 1
 
-    g_plotNavigatorProvider?.setPlotsInfo((plotsInfo) => {
+    g_plotNavigatorProvider?.setPlotsInfo((plotsInfo: Plot[]) => {
         plotsInfo.push({
             thumbnail_type: 'text',
             thumbnail_data: null,
@@ -881,7 +881,7 @@ export function displayPlot(params: { kind: string; data: string; id?: string; t
 }
 
 const CUSTOM_PANELS = new Map<string, vscode.WebviewPanel>()
-function displayCustom(payload, id, title?: string) {
+function displayCustom(payload: string, id: string, title?: string) {
     const panelTitle = title || id
     let panel: vscode.WebviewPanel
     if (CUSTOM_PANELS.has(id)) {

@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'fs/promises'
 import { onEvent, registerCommand, setContext } from '../utils'
 import { openFile } from './results'
 
-interface ProfilerFrame {
+export interface ProfilerFrame {
     func: string
     file: string
     path: string
@@ -52,11 +52,11 @@ function flagString(flags: number) {
 const profilerContextKey = 'julia.profilerFocus'
 export class ProfilerFeature {
     context: vscode.ExtensionContext
-    panel: vscode.WebviewPanel
+    panel: vscode.WebviewPanel | undefined
 
     profiles: ProfileRoot[] = []
     inlineTrace: InlineTraceElement[] = []
-    decoration: vscode.TextEditorDecorationType
+    decoration!: vscode.TextEditorDecorationType
     inlineMaxWidth: number = 100
     currentProfileIndex: number = 0
     selection: string = 'all'
@@ -136,7 +136,15 @@ export class ProfilerFeature {
     }
 
     collateTrace(editors: readonly vscode.TextEditor[]) {
-        const edHighlights = {}
+        interface HighlightEntry {
+            count: number
+            fraction: number
+            flags: number
+            range: vscode.Range
+            hoverMessage: string
+            renderOptions: vscode.DecorationInstanceRenderOptions
+        }
+        const edHighlights: Record<string, Record<number, HighlightEntry>> = {}
         for (const highlight of this.inlineTrace) {
             for (const editor of editors) {
                 const uri = editor.document.uri.toString()
@@ -183,12 +191,7 @@ export class ProfilerFeature {
         for (const editor of editors) {
             const uri = editor.document.uri.toString()
             if (edHighlights[uri]) {
-                const highlights: {
-                    range: vscode.Range
-                    hoverMessage: string
-                    renderOptions
-                }[] = Object.values(edHighlights[uri])
-                editor.setDecorations(this.decoration, highlights)
+                editor.setDecorations(this.decoration, Object.values(edHighlights[uri]))
             }
         }
     }
@@ -210,9 +213,9 @@ export class ProfilerFeature {
             }
         )
 
-        let isProfilerPaneReady
+        let isProfilerPaneReady: (() => void) | undefined
 
-        const loadedPromise = new Promise((resolve) => {
+        const loadedPromise = new Promise<void>((resolve) => {
             isProfilerPaneReady = resolve
         })
 

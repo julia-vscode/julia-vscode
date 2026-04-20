@@ -32,6 +32,15 @@ export function generatePipeName(pid: string, name: string) {
     }
 }
 
+export function waitForEvent<T>(event: vscode.Event<T>): Promise<T> {
+    return new Promise<T>((resolve) => {
+        const sub = event((e) => {
+            sub.dispose()
+            resolve(e)
+        })
+    })
+}
+
 /**
  * Provides a value for setting the `JULIA_NUM_THREADS` environment variable,
  * given the `julia.NumThreads` configuration, and the `JULIA_NUM_THREADS` env var.
@@ -65,16 +74,19 @@ export function inferJuliaNumThreads(): string | undefined {
  * Same as `vscode.commands.registerCommand`, but with added middleware.
  * Currently sends any uncaught errors in the command to crash reporting.
  */
-export function registerCommand(cmd: string, f) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function registerCommand(cmd: string, f: (...args: any[]) => any) {
     return vscode.commands.registerCommand(cmd, wrapCrashReporting(f))
 }
 
-export function wrapCrashReporting(f) {
-    const fWrapped = (...args) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function wrapCrashReporting<F extends (...args: any[]) => any>(f: F): F {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fWrapped = (...args: any[]) => {
         try {
             const result = f(...args)
             if (result && typeof result.then === 'function') {
-                return result.then(undefined, (err) => {
+                return result.then(undefined, (err: unknown) => {
                     handleNewCrashReportFromException(err, 'Extension')
                     throw err
                 })
@@ -86,7 +98,7 @@ export function wrapCrashReporting(f) {
         }
     }
 
-    return fWrapped
+    return fWrapped as F
 }
 
 /**
@@ -110,7 +122,7 @@ export function onEvent<T>(
         try {
             const result = listener.apply(thisArgs, args)
             if (result && typeof result.then === 'function') {
-                result.then(undefined, (err) => {
+                result.then(undefined, (err: unknown) => {
                     handleNewCrashReportFromException(err, 'Extension')
                 })
             }

@@ -8,9 +8,9 @@ import {
     onEvent,
     parseVSCodeVariables,
     registerCommand,
+    waitForEvent,
 } from '../utils'
 import { v4 as uuidv4 } from 'uuid'
-import { Subject } from 'await-notify'
 import * as net from 'net'
 import path, { basename, join } from 'path'
 import { getCrashReportingPipename } from '../telemetry'
@@ -146,7 +146,7 @@ export class JuliaDebugFeature {
 
     constructor(
         private context: vscode.ExtensionContext,
-        compiledProvider,
+        compiledProvider: DebugConfigTreeProvider,
         ExecutableFeature: ExecutableFeature,
         notebookFeature: JuliaNotebookFeature
     ) {
@@ -303,7 +303,7 @@ function getActiveUri(
 export class JuliaDebugConfigurationProvider implements vscode.DebugConfigurationProvider {
     compiledProvider: DebugConfigTreeProvider
 
-    constructor(compiledProvider) {
+    constructor(compiledProvider: DebugConfigTreeProvider) {
         this.compiledProvider = compiledProvider
     }
     public resolveDebugConfiguration(
@@ -378,23 +378,23 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
             const dap_pn = generatePipeName(uuidv4(), 'vsc-jl-dbg')
             const ready_pn = generatePipeName(uuidv4(), 'vsc-jl-dbg')
 
-            const connectedPromise = new Subject()
-            const serverListeningPromise = new Subject()
+            const onConnected = new vscode.EventEmitter<void>()
+            const onServerListening = new vscode.EventEmitter<void>()
 
             const readyServer = net.createServer(() => {
-                connectedPromise.notify()
+                onConnected.fire()
             })
 
             readyServer.listen(ready_pn, () => {
-                serverListeningPromise.notify()
+                onServerListening.fire()
             })
 
-            await serverListeningPromise.wait()
+            await waitForEvent(onServerListening.event)
 
             const juliaExecutable = await this.ExecutableFeature.getExecutable()
 
             const nthreads = inferJuliaNumThreads()
-            const juliaAdditionalArgs = (session.configuration.juliaAdditionalArgs || []).map((arg) =>
+            const juliaAdditionalArgs = (session.configuration.juliaAdditionalArgs || []).map((arg: string) =>
                 parseVSCodeVariables(arg)
             )
             const jlargs = [
@@ -437,7 +437,10 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
             this.juliaDebugFeature.debugSessionsThatNeedTermination.set(session, null)
             this.juliaDebugFeature.taskExecutionsForLaunchedDebugSessions.set(task2, session)
 
-            await connectedPromise.wait()
+            await waitForEvent(onConnected.event)
+
+            onConnected.dispose()
+            onServerListening.dispose()
 
             return new vscode.DebugAdapterNamedPipeServer(dap_pn)
         } else if (session.configuration.request === 'attach') {

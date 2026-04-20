@@ -13,7 +13,7 @@ let g_connection: rpc.MessageConnection = null
 let g_languageClient: vslc.LanguageClient = null
 let g_currentGetModuleRequestCancelTokenSource: vscode.CancellationTokenSource = null
 
-const manuallySetDocuments = []
+const manuallySetDocuments: Record<string, string> = {}
 
 const requestTypeGetModules = new rpc.RequestType<void, string[], void>('repl/loadedModules')
 const requestTypeIsModuleLoaded = new rpc.RequestType<{ mod: string }, boolean, void>('repl/isModuleLoaded')
@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext, languageClientFeature
     statusBarItem.tooltip = 'Choose Current Module'
 
     onInit(
-        wrapCrashReporting(({ connection: conn }) => {
+        wrapCrashReporting(({ connection: conn }: { connection: rpc.MessageConnection }) => {
             g_connection = conn
             updateStatusBarItem()
         })
