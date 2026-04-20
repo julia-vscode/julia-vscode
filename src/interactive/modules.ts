@@ -124,7 +124,7 @@ export async function getModuleForEditor(
                 throw err
             }
         },
-        (err) => {
+        (_err) => {
             return { module: 'Main' }
         }
     )
