@@ -84,7 +84,7 @@ interface JuliaupApiGetinfoReturn {
 }
 
 export class JuliaupExecutable {
-    shouldAutoRequestInstall: boolean = true
+    public shouldAutoRequestInstall: boolean = true
 
     constructor(
         public command: string,
@@ -363,9 +363,12 @@ export class JuliaExecutable {
 export class ExecutableFeature {
     private outputChannel: vscode.OutputChannel = vscode.window.createOutputChannel('Julia Executables')
 
-    taskRunner: TaskRunner
+    public taskRunner: TaskRunner
     private juliaupExecutableCache: Promise<JuliaupExecutable | undefined>
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
+
+    private onDidFindJuliaEmitter = new vscode.EventEmitter<boolean>()
+    public onDidFindJulia = this.onDidFindJuliaEmitter.event
 
     private noJuliaupAlreadyNotified: boolean = false
 
@@ -373,10 +376,12 @@ export class ExecutableFeature {
         this.context.subscriptions.push(
             registerCommand('language-julia.retriggerInstallation', async () => {
                 const juliaup = await this.getJuliaupExecutable(true)
-                juliaup.shouldAutoRequestInstall = true
-                this.getExecutable(true)
-                this.getLsExecutable(true)
-                vscode.commands.executeCommand('language-julia.restartLanguageServer')
+                if (juliaup) {
+                    juliaup.shouldAutoRequestInstall = true
+                    this.getExecutable(true)
+                    this.getLsExecutable(true)
+                    vscode.commands.executeCommand('language-julia.restartLanguageServer')
+                }
             }),
             registerCommand('language-julia.showExecutableOutput', () => {
                 this.outputChannel.show()
@@ -683,6 +688,7 @@ export class ExecutableFeature {
     public setJuliaInstalled(isInstalled: boolean) {
         if (isInstalled) {
             this.statusBarItem.hide()
+            this.onDidFindJuliaEmitter.fire(true)
         }
         vscode.commands.executeCommand('setContext', 'julia.juliaInstalled', isInstalled)
     }
