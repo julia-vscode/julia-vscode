@@ -8,10 +8,10 @@ import { onEvent, registerCommand, wrapCrashReporting } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import { onExit, onInit } from './repl'
 
-let statusBarItem: vscode.StatusBarItem = null
-let g_connection: rpc.MessageConnection = null
-let g_languageClient: vslc.LanguageClient = null
-let g_currentGetModuleRequestCancelTokenSource: vscode.CancellationTokenSource = null
+let statusBarItem: vscode.StatusBarItem
+let g_connection: rpc.MessageConnection | null = null
+let g_languageClient: vslc.LanguageClient | null = null
+let g_currentGetModuleRequestCancelTokenSource: vscode.CancellationTokenSource | undefined = undefined
 
 const manuallySetDocuments: Record<string, string> = {}
 
@@ -92,7 +92,7 @@ export async function getModuleForEditor(
         }
     }
 
-    const globalModule: string = vscode.workspace.getConfiguration('julia.execution').get('module')
+    const globalModule = vscode.workspace.getConfiguration('julia.execution').get<string>('module') ?? ''
 
     if (globalModule) {
         return {
@@ -123,9 +123,10 @@ export async function getModuleForEditor(
         try {
             return { module: await languageClient.sendRequest<string>('julia/getModuleAt', params) }
         } catch (err) {
-            if ((err as ResponseError).code && err.code === rpc.ErrorCodes.ConnectionInactive) {
+            const responseErr = err as ResponseError
+            if (responseErr.code && responseErr.code === rpc.ErrorCodes.ConnectionInactive) {
                 return { module: 'Main' }
-            } else if ((err as ResponseError).code && err.code === -33101) {
+            } else if (responseErr.code && responseErr.code === -33101) {
                 // This is a version out of sync situation
                 return { module: 'Main' }
             } else {
@@ -137,15 +138,15 @@ export async function getModuleForEditor(
     }
 }
 
-function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {
-    return editor && editor.document.languageId === 'julia'
+function isJuliaEditor(editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor) {
+    return editor !== undefined && editor.document.languageId === 'julia'
 }
 
 async function updateStatusBarItem(
-    editor: vscode.TextEditor = vscode.window.activeTextEditor,
+    editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor,
     token?: vscode.CancellationToken
 ) {
-    if (isJuliaEditor(editor)) {
+    if (editor !== undefined && isJuliaEditor(editor)) {
         statusBarItem.show()
         await updateModuleForEditor(editor, token)
     } else {
@@ -190,15 +191,15 @@ async function isModuleLoaded(mod: string) {
 }
 
 async function chooseModule() {
+    if (!g_connection) {
+        vscode.window.showInformationMessage('Setting a module requires an active REPL.')
+        return
+    }
     let possibleModules: string[]
     try {
         possibleModules = await g_connection.sendRequest(requestTypeGetModules, null)
     } catch (err) {
-        if (g_connection) {
-            telemetry.handleNewCrashReportFromException(err, 'Extension')
-        } else {
-            vscode.window.showInformationMessage('Setting a module requires an active REPL.')
-        }
+        telemetry.handleNewCrashReportFromException(err, 'Extension')
         return
     }
 
@@ -253,6 +254,9 @@ async function chooseModule() {
         }
 
         const ed = vscode.window.activeTextEditor
+        if (ed === undefined) {
+            return
+        }
 
         if (selected.label === automaticallyChooseOption) {
             delete manuallySetDocuments[ed.document.fileName]

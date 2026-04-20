@@ -56,7 +56,7 @@ export class ProfilerFeature {
 
     profiles: ProfileRoot[] = []
     inlineTrace: InlineTraceElement[] = []
-    decoration!: vscode.TextEditorDecorationType
+    decoration: vscode.TextEditorDecorationType | undefined
     inlineMaxWidth: number = 100
     currentProfileIndex: number = 0
     selection: string = 'all'
@@ -188,6 +188,9 @@ export class ProfilerFeature {
         }
         const edHighlights = this.collateTrace(editors)
 
+        if (!this.decoration) {
+            return
+        }
         for (const editor of editors) {
             const uri = editor.document.uri.toString()
             if (edHighlights[uri]) {
@@ -219,18 +222,19 @@ export class ProfilerFeature {
             isProfilerPaneReady = resolve
         })
 
+        const panel = this.panel
         const messageHandler = onEvent(
-            this.panel.webview.onDidReceiveMessage,
+            panel.webview.onDidReceiveMessage,
             (message: { type: string; node?: ProfilerFrame; selection?: string }) => {
-                if (message.type === 'open') {
+                if (message.type === 'open' && message.node) {
                     openFile(
                         message.node.path,
                         message.node.line,
-                        this.panel.viewColumn === vscode.ViewColumn.Two
+                        panel.viewColumn === vscode.ViewColumn.Two
                             ? vscode.ViewColumn.One
                             : vscode.ViewColumn.Beside
                     )
-                } else if (message.type === 'selectionChange') {
+                } else if (message.type === 'selectionChange' && message.selection !== undefined) {
                     this.selection = message.selection
                     this.setInlineTrace(this.profiles[this.currentProfileIndex].data)
                 } else if (message.type === 'profilerLoaded') {
@@ -262,6 +266,9 @@ export class ProfilerFeature {
     async show() {
         this.selection = 'all'
         await this.createPanel()
+        if (!this.panel) {
+            return
+        }
         this.panel.title = this.makeTitle()
 
         if (this.profileCount > 0) {
@@ -288,7 +295,7 @@ export class ProfilerFeature {
     }
 
     getContent() {
-        const profilerURL = this.panel.webview.asWebviewUri(vscode.Uri.file(this.profileViewerJSPath()))
+        const profilerURL = this.panel!.webview.asWebviewUri(vscode.Uri.file(this.profileViewerJSPath()))
 
         return `
         <!DOCTYPE html>

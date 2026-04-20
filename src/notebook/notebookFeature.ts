@@ -78,7 +78,7 @@ export class JuliaNotebookFeature {
                 async (cell: vscode.NotebookCell | undefined) => {
                     if (cell) {
                         const kernel = this.kernels.get(cell.notebook)
-                        if (!kernel.activeDebugSession) {
+                        if (kernel && !kernel.activeDebugSession) {
                             await kernel.toggleDebugging()
                             kernel.stopDebugSessionAfterExecution = true
                         }
@@ -95,14 +95,18 @@ export class JuliaNotebookFeature {
         onEvent(vscode.debug.onDidStartDebugSession, (session: vscode.DebugSession) => {
             if (session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
                 const kernel = this.getKernelByDebugPipename(session.configuration.pipename)
-                kernel.activeDebugSession = session
+                if (kernel) {
+                    kernel.activeDebugSession = session
+                }
             }
         })
 
         onEvent(vscode.debug.onDidTerminateDebugSession, (session: vscode.DebugSession) => {
             if (session.configuration.pipename && this.debugPipenameToKernel.has(session.configuration.pipename)) {
                 const kernel = this.debugPipenameToKernel.get(session.configuration.pipename)
-                kernel.activeDebugSession = null
+                if (kernel) {
+                    kernel.activeDebugSession = null
+                }
             }
         })
     }
@@ -176,8 +180,9 @@ export class JuliaNotebookFeature {
         // Find all controllers where the Julia version matches the Julia version in the
         // notebook exactly. If there are multiple controllers, put official release first,
         // and prefer x64 builds
+        const parsedVersion = semver.parse(version)
         const perfectMatchVersions = Array.from(this._controllers.entries())
-            .filter(([, juliaExec]) => juliaExec.getVersion().toString() === semver.parse(version).toString())
+            .filter(([, juliaExec]) => parsedVersion !== null && juliaExec.getVersion().toString() === parsedVersion.toString())
             .sort(([, a], [, b]) => {
                 if (!a.juliaupChannel && !b.juliaupChannel) {
                     return 0
@@ -222,7 +227,7 @@ export class JuliaNotebookFeature {
                 .filter(([, juliaExec]) => {
                     const v1 = juliaExec.getVersion()
                     const v2 = semver.parse(version)
-                    return v1.major === v2.major && v1.minor === v2.minor
+                    return v2 !== null && v1.major === v2.major && v1.minor === v2.minor
                 })
                 .sort(([, a], [, b]) => {
                     const aVer = a.getVersion()
@@ -285,6 +290,9 @@ export class JuliaNotebookFeature {
         }
 
         const currentKernel = this.kernels.get(notebook)
+        if (!currentKernel) {
+            return
+        }
 
         for (const cell of cells) {
             await currentKernel.queueCell(cell)
@@ -345,11 +353,15 @@ export class JuliaNotebookFeature {
     }
 
     async startKernel(notebook: vscode.NotebookDocument, controller: vscode.NotebookController) {
+        const juliaExecutable = this._controllers.get(controller)
+        if (!juliaExecutable) {
+            throw new Error('No Julia executable registered for controller ' + controller.id)
+        }
         const kernel = new JuliaKernel(
             this.context.extensionPath,
             controller,
             notebook,
-            this._controllers.get(controller),
+            juliaExecutable,
             this._outputChannel,
             this,
             this.compiledProvider

@@ -110,7 +110,7 @@ export function displayTable(payload: string, context: vscode.ExtensionContext, 
 
         onEvent(panel.onDidDispose, async () => {
             try {
-                await g_connection.sendNotification(clearLazyTable, {
+                await g_connection?.sendNotification(clearLazyTable, {
                     id: objectId,
                 })
             } catch (err) {
@@ -122,6 +122,9 @@ export function displayTable(payload: string, context: vscode.ExtensionContext, 
             if (message.type === 'getRows') {
                 let response
                 const conn = kernel?._msgConnection || g_connection
+                if (!conn) {
+                    return
+                }
                 try {
                     const data = await conn.sendRequest(requestTypeGetTableData, {
                         id: objectId,

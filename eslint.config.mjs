@@ -5,7 +5,7 @@ import eslintConfigPrettier from 'eslint-config-prettier/flat'
 
 export default defineConfig(
     {
-        ignores: ['out/', 'libs/', 'dist/', '.vscode-test/', 'scripts/', 'esbuild.mjs'],
+        ignores: ['out/', 'libs/', 'dist/', '.vscode-test/', 'scripts/', 'esbuild.mjs', '.claude/'],
     },
     eslint.configs.recommended,
     tseslint.configs.recommended,

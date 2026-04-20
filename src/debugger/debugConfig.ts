@@ -73,21 +73,20 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
 
     getCompiledTreeChildrenForNode(node: DebugConfigTreeItem) {
         const out: DebugConfigTreeItem[] = []
+        const accessor = node.juliaAccessor ?? ''
         for (let item of [...this._compiledItems]) {
-            const isRoot = node.juliaAccessor.startsWith('#root')
+            const isRoot = accessor.startsWith('#root')
             const isNegative = item.startsWith('-') && item.length > 1
             if (isNegative) {
                 item = item.slice(1, item.length)
             }
-            if (item.startsWith(node.juliaAccessor) || isRoot) {
-                const rest = item.slice(node.juliaAccessor.length)
+            if (item.startsWith(accessor) || isRoot) {
+                const rest = item.slice(accessor.length)
                 const parts = (isRoot ? item : rest).split('.').filter((x) => x.length > 0)
                 if (parts.length > 0) {
                     const juliaAccessor = isRoot
                         ? parts[0]
-                        : item.slice(0, node.juliaAccessor.length - (node.juliaAccessor.endsWith('.') ? 1 : 0)) +
-                          '.' +
-                          parts[0]
+                        : item.slice(0, accessor.length - (accessor.endsWith('.') ? 1 : 0)) + '.' + parts[0]
                     const index = out.map((x) => x.juliaAccessor).indexOf(juliaAccessor)
                     if (index === -1) {
                         out.push({
@@ -112,7 +111,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
         let anyAncestorCompiledAll = false
 
         // this is bad and I feel bad
-        let p = node
+        let p: DebugConfigTreeItem | undefined = node
         while (true) {
             p = <DebugConfigTreeItem | undefined>this.getParent(p)
             if (p === undefined || !p.juliaAccessor) {
@@ -205,7 +204,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     }
 
     getNodeId(node: DebugConfigTreeItem): string {
-        return node.juliaAccessor
+        return node.juliaAccessor ?? ''
     }
 
     getCompiledItems() {
@@ -215,7 +214,7 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     applyDefaults() {
         this.reset()
 
-        const defaults: string[] = vscode.workspace.getConfiguration('julia').get('debuggerDefaultCompiled')
+        const defaults = vscode.workspace.getConfiguration('julia').get<string[]>('debuggerDefaultCompiled') ?? []
         defaults.forEach((el) => this._compiledItems.add(el))
         this.refresh()
     }

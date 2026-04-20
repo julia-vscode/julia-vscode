@@ -5,9 +5,9 @@ import { promisify } from 'node:util'
 import child_process from 'node:child_process'
 const execFile = promisify(child_process.execFile)
 
-let juliaPackagePath: string = null
+let juliaPackagePath: string | null = null
 
-let juliaDepotPath: string[] = null
+let juliaDepotPath: string[] | null = null
 
 let g_ExecutableFeature: ExecutableFeature
 

@@ -41,7 +41,7 @@ export class JuliaKernel {
     private _localDisposables: vscode.Disposable[] = []
 
     private _scheduledExecutionRequests: vscode.NotebookCellExecution[] = []
-    private _currentExecutionRequest: vscode.NotebookCellExecution = null
+    private _currentExecutionRequest: vscode.NotebookCellExecution | null = null
     private _onExecutionRequestScheduled = new vscode.EventEmitter<void>()
 
     private _kernelProcess: ChildProcess | undefined
@@ -95,7 +95,9 @@ export class JuliaKernel {
             `jl_notebook_cell_df34fa98e69747e1a8f8a730347b8e2f_${cellUri.fragment}.jl`
         )
 
-        this.notebookFeature.pathToCell.set(cellPath, cell)
+        if (cell) {
+            this.notebookFeature.pathToCell.set(cellPath, cell)
+        }
 
         return cellPath
     }
@@ -125,24 +127,25 @@ export class JuliaKernel {
             }
 
             while (this._scheduledExecutionRequests.length > 0) {
-                this._currentExecutionRequest = this._scheduledExecutionRequests.shift()
+                const execution = this._scheduledExecutionRequests.shift()!
+                this._currentExecutionRequest = execution
 
-                if (this._currentExecutionRequest.token.isCancellationRequested) {
+                if (execution.token.isCancellationRequested) {
                     console.log('this is cancelled')
                 } else {
                     const executionOrder = ++this._current_request_id
-                    this._currentExecutionRequest.executionOrder = executionOrder
+                    execution.executionOrder = executionOrder
 
-                    const cellPath = this.mapCellToPath(this._currentExecutionRequest.cell.document.uri.toString())
+                    const cellPath = this.mapCellToPath(execution.cell.document.uri.toString())
 
                     const runStartTime = Date.now()
-                    this._currentExecutionRequest.start(runStartTime)
+                    execution.start(runStartTime)
 
                     const result = await this._msgConnection.sendRequest(requestTypeRunCell, {
                         filename: cellPath,
                         line: 0,
                         column: 0,
-                        code: this._currentExecutionRequest.cell.document.getText(),
+                        code: execution.cell.document.getText(),
                     })
 
                     if (this.stopDebugSessionAfterExecution && this.activeDebugSession) {
@@ -150,13 +153,13 @@ export class JuliaKernel {
                     }
 
                     if (!result.success) {
-                        this._currentExecutionRequest.appendOutput(
+                        execution.appendOutput(
                             new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(result.error)])
                         )
                     }
 
                     const runEndTime = Date.now()
-                    this._currentExecutionRequest.end(result.success, runEndTime)
+                    execution.end(result.success, runEndTime)
                 }
                 this._currentExecutionRequest = null
 
@@ -289,8 +292,8 @@ export class JuliaKernel {
                     if (name === 'stdout' || name === 'stderr') {
                         // Ensure \r is in a seprate line.
                         data.split(/(\r)/).forEach((line) => {
-                            const previousOutput = outputsPerExecution.get(this._currentExecutionRequest)
-                            if (previousOutput?.name === name) {
+                            const previousOutput = outputsPerExecution.get(execution)
+                            if (previousOutput?.name === name && previousOutput.output) {
                                 execution.appendOutputItems(
                                     [vscode.NotebookCellOutputItem[name](line)],
                                     previousOutput.output
@@ -300,7 +303,7 @@ export class JuliaKernel {
                                     vscode.NotebookCellOutputItem[name](line),
                                 ])
                                 execution.appendOutput([output])
-                                outputsPerExecution.set(this._currentExecutionRequest, { output, name })
+                                outputsPerExecution.set(execution, { output, name })
                             }
                         })
                     } else {
@@ -310,7 +313,7 @@ export class JuliaKernel {
 
                 this._msgConnection.listen()
 
-                this._onConnected.fire(null)
+                this._onConnected.fire()
 
                 onConnected.fire()
             })
@@ -359,7 +362,7 @@ export class JuliaKernel {
                     path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
                     pn,
                     this.debuggerPipename,
-                    getCrashReportingPipename(),
+                    getCrashReportingPipename() ?? '',
                 ],
                 {
                     env,
@@ -371,16 +374,17 @@ export class JuliaKernel {
 
             const outputChannel = this.outputChannel
 
-            this._kernelProcess.stdout.on('data', function (data) {
+            const kernelProcess = this._kernelProcess
+            kernelProcess.stdout?.on('data', function (data) {
                 outputChannel.append(String(data))
             })
-            this._kernelProcess.stderr.on('data', function (data) {
+            kernelProcess.stderr?.on('data', function (data) {
                 outputChannel.append(String(data))
             })
             const tokenSource = this._tokenSource
             const onExecutionRequestScheduled = this._onExecutionRequestScheduled
 
-            this._kernelProcess.on('close', async (code) => {
+            kernelProcess.on('close', async (code) => {
                 tokenSource.cancel()
                 onExecutionRequestScheduled.fire()
 

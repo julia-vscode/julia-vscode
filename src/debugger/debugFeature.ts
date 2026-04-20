@@ -167,11 +167,9 @@ export class JuliaDebugFeature {
         })
 
         onEvent(vscode.tasks.onDidStartTaskProcess, (e) => {
-            if (this.taskExecutionsForLaunchedDebugSessions.has(e.execution)) {
-                this.debugSessionsThatNeedTermination.set(
-                    this.taskExecutionsForLaunchedDebugSessions.get(e.execution),
-                    e.processId
-                )
+            const session = this.taskExecutionsForLaunchedDebugSessions.get(e.execution)
+            if (session) {
+                this.debugSessionsThatNeedTermination.set(session, e.processId)
             }
         })
 
@@ -231,7 +229,7 @@ export class JuliaDebugFeature {
             }),
             vscode.debug.registerDebugAdapterTrackerFactory('julia', {
                 createDebugAdapterTracker(session: vscode.DebugSession) {
-                    let kernel: JuliaKernel = null
+                    let kernel: JuliaKernel | undefined
 
                     if (
                         session.configuration.pipename &&

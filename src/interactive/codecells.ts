@@ -353,7 +353,7 @@ interface InlineDebugConfiguration extends KnownKeys<vscode.DebugConfiguration> 
     /** Path of the Julia file to launch or attach to */
     program: string
     /** Newline-padded inline code to run instead of loading from the file on disk */
-    code: string
+    code?: string
     /** Internal flag marking this configuration as an inline debug session */
     __juliaInlineDebug: boolean
 }
@@ -449,7 +449,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         if (cellContext.sup === undefined || docCells.length === 0) {
             return undefined
         }
-        const isClosedInterval = cellContext.current.at(-1).id === cellContext.sup.id
+        const isClosedInterval = cellContext.current.at(-1)?.id === cellContext.sup.id
         const startIdx = isClosedInterval ? cellContext.sup.id + 1 : cellContext.sup.id
         for (let i = startIdx; i < docCells.length; i++) {
             const cell = docCells[i]
@@ -470,6 +470,9 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             direction === 'down'
                 ? this._getNextCell(cellContext, docCells)
                 : this._getPreviousCell(cellContext, docCells)
+        if (nextCell === undefined) {
+            return
+        }
         const newPosition = nextCell.codeRange?.start ?? nextCell.cellRange.start
         repl.validateMoveAndReveal(editor, newPosition, newPosition)
     }
@@ -509,9 +512,6 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     }
 
     private async _commandCommonSave(editor: vscode.TextEditor): Promise<boolean> {
-        if (editor === undefined) {
-            return false
-        }
         if (this.shouldSaveOnEval) {
             await editor.document.save()
         }
@@ -520,15 +520,20 @@ class CodeCellExecutionFeature extends JuliaCellManager {
 
     private async _executeCells(editor: vscode.TextEditor, cells: readonly JuliaCell[]): Promise<boolean> {
         const document = editor.document
-        const codeRanges: vscode.Range[] = cells.map((cell) => cell.codeRange).filter((cr) => cr !== undefined)
+        const codeRanges: vscode.Range[] = cells
+            .map((cell) => cell.codeRange)
+            .filter((cr): cr is vscode.Range => cr !== undefined)
         const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
             results.addResult(editor, codeRange, this.PENDING_SIGN, '')
         )
         const isInline = this.inlineResultsForCellEvaluation
+        if (codeRanges.length === 0) {
+            return true
+        }
         const { module } = await modules.getModuleForEditor(document, codeRanges[0].start)
         await repl.startREPL(true, false)
         for (const codeRange of codeRanges) {
-            cellPendings.shift().remove(true)
+            cellPendings.shift()?.remove(true)
             if (isInline) {
                 const r = Promise.race([
                     this.evaluationByLineQueue.push({
@@ -582,7 +587,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     /** Execute the specified cell, or the cell or cells intersecting with the current selections in document order */
     private async executeCell(cell?: JuliaCell): Promise<boolean> {
         const editor = vscode.window.activeTextEditor
-        if ((await this._commandCommonSave(editor)) === false) {
+        if (editor === undefined || (await this._commandCommonSave(editor)) === false) {
             return false
         }
         let cells: JuliaCell[]
@@ -602,7 +607,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         docCells: readonly JuliaCell[] = this.getDocCells()
     ): Promise<boolean> {
         const editor = vscode.window.activeTextEditor
-        if ((await this._commandCommonSave(editor)) === false) {
+        if (editor === undefined || (await this._commandCommonSave(editor)) === false) {
             return false
         }
         const cellContext = cell
@@ -625,7 +630,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         docCells: readonly JuliaCell[] = this.getDocCells()
     ): Promise<boolean> {
         const editor = vscode.window.activeTextEditor
-        if ((await this._commandCommonSave(editor)) === false) {
+        if (editor === undefined || (await this._commandCommonSave(editor)) === false) {
             return false
         }
         let beginId: number
@@ -648,7 +653,7 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         docCells: readonly JuliaCell[] = this.getDocCells()
     ): Promise<boolean> {
         const editor = vscode.window.activeTextEditor
-        if ((await this._commandCommonSave(editor)) === false) {
+        if (editor === undefined || (await this._commandCommonSave(editor)) === false) {
             return false
         }
         let endId: number

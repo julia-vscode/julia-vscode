@@ -51,6 +51,11 @@ class CloseHandler implements vscode.Disposable {
     }
 }
 
+export interface JuliaProcessOptions {
+    cwd?: string
+    env?: { [key: string]: string | undefined }
+}
+
 export class JuliaProcess implements vscode.Disposable {
     private readonly spawnEmitter: vscode.EventEmitter<void> = new vscode.EventEmitter<void>()
     private readonly writeEmitter: vscode.EventEmitter<string> = new vscode.EventEmitter<string>()
@@ -63,7 +68,7 @@ export class JuliaProcess implements vscode.Disposable {
     constructor(
         public readonly command: string,
         public readonly args: string[],
-        private options: vscode.ProcessExecutionOptions = {}
+        private options: JuliaProcessOptions = {}
     ) {
         this.disposables.push(this.spawnEmitter, this.writeEmitter, this.errorEmitter, this.closeHandler)
     }

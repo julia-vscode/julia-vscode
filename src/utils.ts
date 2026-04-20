@@ -164,7 +164,10 @@ export function getCustomEnvironmentVariables(): { [key: string]: string } {
     return vscode.workspace.getConfiguration('julia').get<{ [key: string]: string }>('environmentVariables') ?? {}
 }
 
-export function parseVSCodeVariables(p?: string) {
+export function parseVSCodeVariables(p: string): string
+export function parseVSCodeVariables(p: undefined): undefined
+export function parseVSCodeVariables(p?: string): string | undefined
+export function parseVSCodeVariables(p?: string): string | undefined {
     if (!p) {
         return p
     }
@@ -198,6 +201,9 @@ export function parseVSCodeVariables(p?: string) {
     p = p.replace(/\${config:(.*?)}/g, (_, variable: string) => {
         const parts = variable.split('.')
         const leaf = parts.pop()
+        if (leaf === undefined) {
+            return ''
+        }
         const section = parts.length > 0 ? parts.join('.') : undefined
         return vscode.workspace.getConfiguration(section).get(leaf) || ''
     })

@@ -93,14 +93,17 @@ export class JuliaupExecutable {
         private statusBarItem: vscode.StatusBarItem
     ) {}
 
-    public async run(args: string[], options?: JuliaupInteractiveExecutableSpawnOptions): Promise<string> {
+    public async run(args: string[], options?: JuliaupInteractiveExecutableSpawnOptions): Promise<string | undefined> {
         const server = vscode.workspace.getConfiguration('julia').get<string>('juliaup.server')
         const useCustomDepot = vscode.workspace.getConfiguration('julia').get<boolean>('juliaup.customDepot')
 
-        let env = process.env
+        let env: NodeJS.ProcessEnv = process.env
         if (server) {
             try {
                 const url = URL.parse(server)
+                if (!url) {
+                    throw new Error('Invalid juliaup.server URL')
+                }
 
                 let basePath = path.join(os.homedir(), '.julia')
                 if (process.env.JULIA_DEPOT_PATH) {
@@ -133,6 +136,7 @@ export class JuliaupExecutable {
             if (exitCode !== 0) {
                 throw new Error('Failed to run juliaup command')
             }
+            return undefined
         } else {
             try {
                 const { stdout } = await execFile(this.command, args, { env })
@@ -161,6 +165,9 @@ export class JuliaupExecutable {
         this.installedPromise = new Promise(async (resolve, reject) => {
             try {
                 const stdout = await this.run(['api', 'getconfig1'])
+                if (!stdout) {
+                    throw new Error('juliaup api getconfig1 returned empty output')
+                }
 
                 const installedVersions: JuliaupApiGetinfoReturn = JSON.parse(stdout)
                 const defaultVersion = installedVersions.DefaultChannel
@@ -194,7 +201,7 @@ export class JuliaupExecutable {
 
     // we only want to run one of these at a time
     private getChannelMutex: Mutex = new Mutex()
-    public async getChannel(channelName: string, autoInstall = undefined): Promise<JuliaupChannel> {
+    public async getChannel(channelName: string, autoInstall?: boolean): Promise<JuliaupChannel> {
         const channels = await this.installed()
 
         const channel = channels.filter((c) => c.name === channelName)
@@ -289,7 +296,7 @@ export class JuliaExecutable {
     constructor(commandOrChannel: string | JuliaupChannel, version?: string) {
         if (typeof commandOrChannel === 'string') {
             this.command = commandOrChannel
-            this.version = version
+            this.version = version ?? ''
             this.args = []
         } else {
             this.juliaupChannel = commandOrChannel
@@ -321,7 +328,11 @@ export class JuliaExecutable {
     }
 
     public getVersion(): semver.SemVer {
-        return semver.parse(this.version)
+        const parsed = semver.parse(this.version)
+        if (!parsed) {
+            throw new Error(`Could not parse Julia version: ${this.version}`)
+        }
+        return parsed
     }
 
     /**
@@ -402,13 +413,13 @@ export class ExecutableFeature {
             outputPrefix + '`julia.executablePath` is ' + (config ? `set to '${config}'` : 'not set')
         )
 
-        const options = [config]
+        const options: (string | undefined)[] = [config]
         if (os.platform() === 'win32') {
             options.push('julia.exe', 'julia.cmd')
         }
         options.push('julia')
 
-        let configuredJuliaupChannel: string
+        let configuredJuliaupChannel: string | undefined
         for (const option of options) {
             if (!option) {
                 continue
@@ -427,11 +438,13 @@ export class ExecutableFeature {
             const version = await this.tryGetJuliaVersion(option, [], outputPrefix)
 
             if (version) {
-                const exe = new JuliaExecutable(option, version)
-                this.outputChannel.appendLine(outputPrefix + `using '${exe.command}' (v${exe.version}) as executable`)
+                const newExe = new JuliaExecutable(option, version)
+                this.outputChannel.appendLine(
+                    outputPrefix + `using '${newExe.command}' (v${newExe.version}) as executable`
+                )
                 this.setJuliaInstalled(true)
 
-                return exe
+                return newExe
             } else {
                 this.outputChannel.appendLine(outputPrefix + `'${option}' can not be started`)
             }
@@ -589,7 +602,7 @@ export class ExecutableFeature {
                 const channel = await juliaup.getChannel(configuredChannel, autoInstallJulia)
                 if (channel) {
                     const exe = new JuliaExecutable(channel)
-                    this.outputChannel.appendLine(outputPrefix + `using ${exe.juliaupChannel.name} as LS channel`)
+                    this.outputChannel.appendLine(outputPrefix + `using ${exe.juliaupChannel?.name} as LS channel`)
 
                     return exe
                 }
@@ -655,7 +668,11 @@ export class ExecutableFeature {
         this.juliaupExecutableCache = this.getJuliaupExecutableNoCache(tryInstall)
 
         try {
-            return await this.juliaupExecutableCache
+            const exe = await this.juliaupExecutableCache
+            if (!exe) {
+                throw new Error('Juliaup is not installed')
+            }
+            return exe
         } catch (err) {
             this.juliaupExecutableCache = undefined
             throw err
@@ -700,7 +717,7 @@ export class ExecutableFeature {
     // Impl
     installRoot() {
         if (process.platform === 'win32') {
-            return path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WindowsApps')
+            return path.join(process.env.LOCALAPPDATA ?? '', 'Microsoft', 'WindowsApps')
         } else {
             return path.join(os.homedir(), '.juliaup')
         }
@@ -756,7 +773,7 @@ export class ExecutableFeature {
         }
     }
 
-    async juliaExecutableFromPathConfig(config: string, outputPrefix = '') {
+    async juliaExecutableFromPathConfig(config: string, outputPrefix = ''): Promise<JuliaExecutable | undefined> {
         const pathOptions = [config, resolvePath(config, false)]
 
         for (const pathOption of pathOptions) {
@@ -768,6 +785,7 @@ export class ExecutableFeature {
                 }
             }
         }
+        return undefined
     }
 
     async getJuliaupExecutableNoCache(tryInstall = true): Promise<JuliaupExecutable> {
@@ -808,6 +826,8 @@ export class ExecutableFeature {
 
                 throw new Error('juliaup not available')
             }
+            this.setJuliaupInstalled(false)
+            throw new Error('juliaup not available')
         } else {
             this.setJuliaupInstalled(false)
 
@@ -842,7 +862,8 @@ function requiredChannels() {
         channels.add(lsChannel)
     }
 
-    const interactiveChannel = juliaChannelFromPathConfig(config.get<string>('executablePath'))
+    const execPath = config.get<string>('executablePath')
+    const interactiveChannel = execPath ? juliaChannelFromPathConfig(execPath) : undefined
     if (interactiveChannel) {
         channels.add(interactiveChannel)
     }
@@ -851,7 +872,7 @@ function requiredChannels() {
 }
 
 function juliaChannelFromPathConfig(config: string): string | undefined {
-    let configuredJuliaupChannel: string
+    let configuredJuliaupChannel: string | undefined
     const prefixes = ['julia.exe +', 'julia +', '+']
 
     for (const prefix of prefixes) {
