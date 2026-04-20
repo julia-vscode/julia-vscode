@@ -532,6 +532,9 @@ export class TestFeature {
     private juliaTestController: JuliaTestController = undefined
     private profileMap: Map<vscode.TestRunProfile, { executable: JuliaExecutable; mode: TestRunMode }> = new Map()
 
+    private initialized: boolean = false
+    private initDisposable: vscode.Disposable | undefined = undefined
+
     constructor(
         private context: vscode.ExtensionContext,
         private executableFeature: ExecutableFeature,
@@ -712,6 +715,22 @@ export class TestFeature {
     }
 
     public async init() {
+        if (this.initialized) {
+            return
+        }
+
+        if (!(await this.executableFeature.hasJulia())) {
+            if (!this.initDisposable) {
+                this.initDisposable = onEvent(this.executableFeature.onDidFindJulia, () => this.init())
+                this.context.subscriptions.push(this.initDisposable)
+            }
+            return
+        }
+
+        this.initialized = true
+        this.initDisposable?.dispose()
+        this.initDisposable = undefined
+
         const executables = await this.executableFeature.getExecutables()
         const hasJuliaup = executables.some((e) => e.juliaupChannel)
 
