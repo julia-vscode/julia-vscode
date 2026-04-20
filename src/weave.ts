@@ -11,128 +11,128 @@ import { tmpdir } from 'node:os'
 import { assert } from 'node:console'
 
 export class WeaveFeature {
-    private g_lastWeaveContent?: string = undefined
-    private g_weaveOutputChannel?: vscode.OutputChannel = undefined
-    private g_weaveChildProcess?: ChildProcess = undefined
-    private g_weaveNextChildProcess?: ChildProcess = undefined
+    private lastWeaveContent?: string = undefined
+    private weaveOutputChannel?: vscode.OutputChannel = undefined
+    private weaveChildProcess?: ChildProcess = undefined
+    private weaveNextChildProcess?: ChildProcess = undefined
 
     constructor(
         private context: vscode.ExtensionContext,
         private executableFeature: ExecutableFeature
     ) {
-        context.subscriptions.push(registerCommand('language-julia.weave-open-preview', this.open_preview.bind(this)))
+        context.subscriptions.push(registerCommand('language-julia.weave-open-preview', this.openPreview.bind(this)))
         context.subscriptions.push(
-            registerCommand('language-julia.weave-open-preview-side', this.open_preview_side.bind(this))
+            registerCommand('language-julia.weave-open-preview-side', this.openPreviewSide.bind(this))
         )
         context.subscriptions.push(registerCommand('language-julia.weave-save', this.save.bind(this)))
     }
 
-    private async weave_core(column: number, activeTextEditor: vscode.TextEditor, selected_format?: string) {
+    private async runWeave(column: number, activeTextEditor: vscode.TextEditor, selectedFormat?: string) {
         assert(vscode.window.activeTextEditor !== undefined)
 
-        let source_filename: string
-        let output_filename: string
-        if (selected_format === undefined) {
-            const temporary_dirname = await mkdtemp(join(tmpdir(), 'julia-vscode-weave-'))
+        let sourceFilename: string
+        let outputFilename: string
+        if (selectedFormat === undefined) {
+            const temporaryDirname = await mkdtemp(join(tmpdir(), 'julia-vscode-weave-'))
 
-            source_filename = path.join(temporary_dirname, 'source-file.jmd')
+            sourceFilename = path.join(temporaryDirname, 'source-file.jmd')
 
-            const source_text = activeTextEditor.document.getText()
+            const sourceText = activeTextEditor.document.getText()
 
-            await fs.writeTextFile(source_filename, source_text, 'utf8')
+            await fs.writeTextFile(sourceFilename, sourceText, 'utf8')
 
             // note that there is a bug in Weave.jl right now that does not support the option
             // out_path properly. The output file will therefore always have the format [input-file].html
-            output_filename = path.join(temporary_dirname, 'source-file.html')
+            outputFilename = path.join(temporaryDirname, 'source-file.html')
         } else {
-            source_filename = activeTextEditor.document.fileName
-            output_filename = ''
+            sourceFilename = activeTextEditor.document.fileName
+            outputFilename = ''
         }
 
-        if (this.g_weaveOutputChannel === undefined) {
-            this.g_weaveOutputChannel = vscode.window.createOutputChannel('Julia Weave')
+        if (this.weaveOutputChannel === undefined) {
+            this.weaveOutputChannel = vscode.window.createOutputChannel('Julia Weave')
         }
-        this.g_weaveOutputChannel.clear()
-        this.g_weaveOutputChannel.show(true)
+        this.weaveOutputChannel.clear()
+        this.weaveOutputChannel.show(true)
 
-        const outputChannel = this.g_weaveOutputChannel
+        const outputChannel = this.weaveOutputChannel
 
-        if (this.g_weaveChildProcess !== undefined) {
+        if (this.weaveChildProcess !== undefined) {
             try {
-                this.g_weaveChildProcess.kill()
+                this.weaveChildProcess.kill()
             } catch (e) {
                 console.log(e)
             }
         }
 
         const juliaExecutable = await this.executableFeature.getExecutable()
-        const pkgenvpath = await jlpkgenv.getAbsEnvPath()
+        const pkgEnvPath = await jlpkgenv.getAbsEnvPath()
 
         const args = [path.join(this.context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]
 
-        if (pkgenvpath) {
-            args.unshift(`--project=${pkgenvpath}`)
+        if (pkgEnvPath) {
+            args.unshift(`--project=${pkgEnvPath}`)
         }
 
         console.log(args)
 
-        if (this.g_weaveNextChildProcess === undefined) {
-            this.g_weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args], {
+        if (this.weaveNextChildProcess === undefined) {
+            this.weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args], {
                 env: { ...process.env, ...getCustomEnvironmentVariables() },
             })
 
-            this.g_weaveNextChildProcess.on('error', (err) => {
+            this.weaveNextChildProcess.on('error', (err) => {
                 outputChannel.append(String('Failed to start weave process: ' + err + '\n'))
             })
         }
-        this.g_weaveChildProcess = this.g_weaveNextChildProcess
+        this.weaveChildProcess = this.weaveNextChildProcess
 
         if (
-            this.g_weaveChildProcess.stdin === null ||
-            this.g_weaveChildProcess.stdout === null ||
-            this.g_weaveChildProcess.stderr === null
+            this.weaveChildProcess.stdin === null ||
+            this.weaveChildProcess.stdout === null ||
+            this.weaveChildProcess.stderr === null
         ) {
             throw new Error('Weave process stdin, stdout, or stderr is null')
         }
 
-        this.g_weaveChildProcess.stdin.write(source_filename + '\n')
-        this.g_weaveChildProcess.stdin.write(output_filename + '\n')
-        if (selected_format === undefined) {
-            this.g_weaveChildProcess.stdin.write('PREVIEW\n')
-            this.g_weaveOutputChannel.append(String('Weaving preview of ' + source_filename + '\n'))
+        this.weaveChildProcess.stdin.write(sourceFilename + '\n')
+        this.weaveChildProcess.stdin.write(outputFilename + '\n')
+        if (selectedFormat === undefined) {
+            this.weaveChildProcess.stdin.write('PREVIEW\n')
+            this.weaveOutputChannel.append(String('Weaving preview of ' + sourceFilename + '\n'))
         } else {
-            this.g_weaveChildProcess.stdin.write(selected_format + '\n')
-            this.g_weaveOutputChannel.append(String('Weaving ' + source_filename + ' to ' + output_filename + '\n'))
+            this.weaveChildProcess.stdin.write(selectedFormat + '\n')
+            this.weaveOutputChannel.append(String('Weaving ' + sourceFilename + ' to ' + outputFilename + '\n'))
         }
 
-        this.g_weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args], {
+        this.weaveNextChildProcess = spawn(juliaExecutable.command, [...juliaExecutable.args, ...args], {
             env: { ...process.env, ...getCustomEnvironmentVariables() },
         })
-        this.g_weaveNextChildProcess.on('error', (err) => {
+        this.weaveNextChildProcess.on('error', (err) => {
             outputChannel.append(String('Failed to start weave process: ' + err + '\n'))
         })
 
-        this.g_weaveChildProcess.stdout.on('data', (data) => {
+        this.weaveChildProcess.stdout.on('data', (data) => {
             outputChannel.append(String(data))
         })
-        this.g_weaveChildProcess.stderr.on('data', (data) => {
+        this.weaveChildProcess.stderr.on('data', (data) => {
             outputChannel.append(String(data))
         })
-        this.g_weaveChildProcess.on('close', async (code) => {
-            this.g_weaveChildProcess = undefined
+        this.weaveChildProcess.on('close', async (code) => {
+            this.weaveChildProcess = undefined
 
             if (code === 0) {
                 outputChannel.hide()
 
-                if (selected_format === undefined) {
-                    this.g_lastWeaveContent = await fs.readFile(output_filename, 'utf8')
+                if (selectedFormat === undefined) {
+                    this.lastWeaveContent = await fs.readFile(outputFilename, 'utf8')
 
                     const weaveWebViewPanel = vscode.window.createWebviewPanel('jlweavepane', 'Julia Weave Preview', {
                         preserveFocus: true,
                         viewColumn: column,
                     })
 
-                    weaveWebViewPanel.webview.html = this.g_lastWeaveContent ?? ''
+                    weaveWebViewPanel.webview.html = this.lastWeaveContent ?? ''
                 }
             } else {
                 vscode.window.showErrorMessage('Error during weaving.')
@@ -140,23 +140,23 @@ export class WeaveFeature {
         })
     }
 
-    private async open_preview() {
+    private async openPreview() {
         if (vscode.window.activeTextEditor === undefined) {
             vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
         } else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
             vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
         } else {
-            await this.weave_core(vscode.ViewColumn.Active, vscode.window.activeTextEditor)
+            await this.runWeave(vscode.ViewColumn.Active, vscode.window.activeTextEditor)
         }
     }
 
-    private async open_preview_side() {
+    private async openPreviewSide() {
         if (vscode.window.activeTextEditor === undefined) {
             vscode.window.showErrorMessage('Please open a document before you execute the weave command.')
         } else if (vscode.window.activeTextEditor.document.languageId !== 'juliamarkdown') {
             vscode.window.showErrorMessage('Only julia Markdown (.jmd) files can be weaved.')
         } else {
-            this.weave_core(vscode.ViewColumn.Two, vscode.window.activeTextEditor)
+            this.runWeave(vscode.ViewColumn.Two, vscode.window.activeTextEditor)
         }
     }
 
@@ -185,11 +185,11 @@ export class WeaveFeature {
                 'md2pdf: Julia markdown to latex',
                 'asciidoc: AsciiDoc',
             ]
-            const result_format = await vscode.window.showQuickPick(formats, { placeHolder: 'Select output format' })
-            if (result_format !== undefined) {
-                const index = result_format.indexOf(':')
-                const selected_format = result_format.substring(0, index)
-                this.weave_core(vscode.ViewColumn.One, vscode.window.activeTextEditor, selected_format)
+            const resultFormat = await vscode.window.showQuickPick(formats, { placeHolder: 'Select output format' })
+            if (resultFormat !== undefined) {
+                const index = resultFormat.indexOf(':')
+                const selectedFormat = resultFormat.substring(0, index)
+                this.runWeave(vscode.ViewColumn.One, vscode.window.activeTextEditor, selectedFormat)
             }
         }
     }
