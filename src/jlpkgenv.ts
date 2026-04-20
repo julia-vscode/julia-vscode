@@ -3,13 +3,9 @@ import * as os from 'os'
 import * as path from 'path'
 import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
-import * as vslc from 'vscode-languageclient/node'
 import { ExecutableFeature } from './executables'
 import * as packagepath from './packagepath'
 import { onEvent, parseVSCodeVariables, registerCommand, resolvePath } from './utils'
-import { LanguageClientFeature } from './languageClient'
-
-let g_languageClient: vslc.LanguageClient = null
 
 let g_current_environment: vscode.StatusBarItem = null
 
@@ -52,6 +48,10 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
         if (currentConfigValue !== g_path_of_current_environment) {
             section.update('environmentPath', g_path_of_current_environment, vscode.ConfigurationTarget.Workspace)
         }
+    } else if (currentConfigValue !== '' && currentConfigValue !== null) {
+        // Switching to default env: clear the setting so the LS picks up the change
+        // via workspace/didChangeConfiguration
+        section.update('environmentPath', undefined, vscode.ConfigurationTarget.Workspace)
     }
 
     g_current_environment.text = 'Julia env: ' + (await getEnvName())
@@ -114,13 +114,6 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                     })
             }
         }
-    }
-
-    if (notifyLS) {
-        if (!g_languageClient) {
-            return
-        }
-        await g_languageClient.sendNotification('julia/activateenvironment', { envPath: envpath })
     }
 }
 
@@ -280,17 +273,8 @@ export async function getEnvName() {
     return path.basename(envpath)
 }
 
-export async function activate(
-    context: vscode.ExtensionContext,
-    ExecutableFeature: ExecutableFeature,
-    languageClientFeature: LanguageClientFeature
-) {
+export async function activate(context: vscode.ExtensionContext, ExecutableFeature: ExecutableFeature) {
     g_ExecutableFeature = ExecutableFeature
-    context.subscriptions.push(
-        onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
-            g_languageClient = languageClient
-        })
-    )
 
     context.subscriptions.push(registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
     // Environment status bar

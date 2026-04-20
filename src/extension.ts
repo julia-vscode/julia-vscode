@@ -117,7 +117,7 @@ export async function activate(context: vscode.ExtensionContext) {
         console.debug(`[julia activation] openpackagedirectory.activate: ${(performance.now() - t).toFixed(1)}ms`)
 
         t = performance.now()
-        jlpkgenv.activate(context, executableFeature, languageClientFeature)
+        jlpkgenv.activate(context, executableFeature)
         console.debug(`[julia activation] jlpkgenv.activate: ${(performance.now() - t).toFixed(1)}ms`)
 
         t = performance.now()

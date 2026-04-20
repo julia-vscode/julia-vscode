@@ -1,5 +1,3 @@
-import * as fs from 'async-file'
-import { unwatchFile, watchFile } from 'async-file'
 import * as net from 'net'
 import * as os from 'os'
 import * as path from 'path'
@@ -26,8 +24,6 @@ export class LanguageClientFeature {
 
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
 
-    private watchedEnvironment: string
-
     private serverStarting: boolean = false
 
     languageClient: LanguageClient
@@ -37,7 +33,6 @@ export class LanguageClientFeature {
         private executable: ExecutableFeature
     ) {
         this.context.subscriptions.push(
-            registerCommand('language-julia.refreshLanguageServer', () => this.refreshLanguageServer()),
             registerCommand('language-julia.restartLanguageServer', (env?: string) =>
                 this.restartLanguageServer(env, true)
             ),
@@ -256,24 +251,6 @@ export class LanguageClientFeature {
             }
         })
 
-        if (this.watchedEnvironment) {
-            unwatchFile(this.watchedEnvironment)
-        }
-
-        // automatic environement refreshing
-        this.watchedEnvironment = (await jlpkgenv.getProjectFilePaths(jlEnvPath)).manifest_toml_path
-        // polling watch for robustness
-        if (this.watchedEnvironment) {
-            watchFile(this.watchedEnvironment, { interval: 10000 }, async (curr, prev) => {
-                if (curr.mtime > prev.mtime) {
-                    if (!languageClient.needsStop()) {
-                        return
-                    } // this client already gets stopped
-                    await this.refreshLanguageServer()
-                }
-            })
-        }
-
         try {
             this.statusBarItem.command = 'language-julia.showLanguageServerOutput'
             await languageClient.start()
@@ -292,19 +269,6 @@ export class LanguageClientFeature {
             this.setLanguageClient()
         }
         this.statusBarItem.hide()
-    }
-
-    async refreshLanguageServer() {
-        if (!this.languageClient) {
-            return
-        }
-        try {
-            await this.languageClient.sendNotification('julia/refreshLanguageServer')
-        } catch (err) {
-            vscode.window.showErrorMessage('Failed to refresh the language server cache.', {
-                detail: err,
-            })
-        }
     }
 
     async restartLanguageServer(envPath?: string, autoInstall?: boolean) {
