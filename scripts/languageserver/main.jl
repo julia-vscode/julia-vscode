@@ -114,7 +114,7 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
 end
 
 try
-    if length(Base.ARGS) != 9
+    if length(Base.ARGS) != 7
         error("Invalid number of arguments passed to julia language server.")
     end
 
@@ -126,9 +126,9 @@ try
         error("Invalid argument passed.")
     end
 
-    detached_mode = if Base.ARGS[7] == "--detached=yes"
+    detached_mode = if Base.ARGS[5] == "--detached=yes"
         true
-    elseif Base.ARGS[7] == "--detached=no"
+    elseif Base.ARGS[5] == "--detached=no"
         false
     else
         error("Invalid argument passed.")
@@ -185,9 +185,7 @@ try
         Base.ARGS[1],
         (err, bt) -> global_err_handler(err, bt, Base.ARGS[3], "Language Server"),
         symserver_store_path,
-        ARGS[5] == "download",
-        Base.ARGS[6],
-        (path=Base.ARGS[8], version=VersionNumber(ARGS[9]))
+        (path=Base.ARGS[6], version=VersionNumber(ARGS[7]))
     )
     @info "Starting LS at $(round(Int, time()))"
     run(server)

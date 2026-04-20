@@ -1058,6 +1058,12 @@
                     "description": "Symbol server cache download URL.",
                     "scope": "application"
                 },
+                "julia.enableDynamicIndexing": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to use dynamic package indexing. Disable for reduced functionality with lower resource usage.",
+                    "scope": "window"
+                },
                 "julia.NumThreads": {
                     "type": [
                         "integer",

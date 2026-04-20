@@ -122,10 +122,6 @@ export class LanguageClientFeature {
         }
 
         const storagePath = this.context.globalStorageUri.fsPath
-        const useSymserverDownloads = vscode.workspace.getConfiguration('julia').get('symbolCacheDownload')
-            ? 'download'
-            : 'local'
-        const symserverUpstream = vscode.workspace.getConfiguration('julia').get<string>('symbolserverUpstream')
 
         const serverArgsRun: string[] = [
             '--startup-file=no',
@@ -136,8 +132,6 @@ export class LanguageClientFeature {
             '--debug=no',
             telemetry.getCrashReportingPipename(),
             storagePath,
-            useSymserverDownloads,
-            symserverUpstream,
             '--detached=no',
             juliaExecutable.command,
             juliaExecutable.version,
@@ -151,8 +145,6 @@ export class LanguageClientFeature {
             '--debug=yes',
             telemetry.getCrashReportingPipename(),
             storagePath,
-            useSymserverDownloads,
-            symserverUpstream,
             '--detached=no',
             juliaExecutable.command,
             juliaExecutable.version,
