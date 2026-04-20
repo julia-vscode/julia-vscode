@@ -95,6 +95,19 @@ export class LanguageClientFeature {
         }
     }
 
+    private async stopLanguageServer() {
+        this._intentionalStop = true
+        if (this.languageClient) {
+            try {
+                await this.languageClient.stop()
+            } catch (err) {
+                console.debug(`Stopping the language server failed: ${err}`)
+            }
+            this.setLanguageClient()
+        }
+        this.setState('stopped')
+    }
+
     constructor(
         private context: vscode.ExtensionContext,
         private executable: ExecutableFeature
@@ -157,6 +170,8 @@ export class LanguageClientFeature {
     }
 
     public async startServerInner(envPath?: string, autoInstall?: boolean) {
+        this._intentionalStop = false
+
         let juliaExecutable: JuliaExecutable
 
         try {
@@ -168,6 +183,7 @@ export class LanguageClientFeature {
         this.statusBarItem.text = 'Julia: Starting Language Server…'
         this.statusBarItem.backgroundColor = undefined
         this.statusBarItem.color = undefined
+        this.statusBarItem.tooltip = undefined
         this.statusBarItem.show()
 
         let jlEnvPath: string
@@ -307,7 +323,6 @@ export class LanguageClientFeature {
         const languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
         languageClient.registerProposedFeatures()
 
-        this._intentionalStop = false
         languageClient.onDidChangeState((event: StateChangeEvent) => {
             switch (event.newState) {
                 case State.Starting:
@@ -402,25 +417,12 @@ export class LanguageClientFeature {
     }
 
     async restartLanguageServer(envPath?: string, autoInstall?: boolean) {
-        this._intentionalStop = true
-        if (this.languageClient) {
-            try {
-                await this.languageClient.stop()
-            } catch (err) {
-                console.debug(`Stopping the language server failed: ${err}`)
-            }
-            this.setLanguageClient()
-        }
-        this.setState('stopped')
-
+        await this.stopLanguageServer()
         await this.startServer(envPath, autoInstall)
     }
 
     public async dispose(): Promise<void> {
-        this._intentionalStop = true
-        if (this.languageClient) {
-            await this.languageClient.stop()
-        }
+        await this.stopLanguageServer()
 
         this.statusBarItem.dispose()
         this.outputChannel.dispose()
