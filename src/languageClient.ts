@@ -4,7 +4,15 @@ import * as net from 'net'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions } from 'vscode-languageclient/node'
+import {
+    LanguageClient,
+    LanguageClientOptions,
+    RevealOutputChannelOn,
+    ServerOptions,
+    State,
+    StateChangeEvent,
+} from 'vscode-languageclient/node'
+import { ErrorCodes, LSPErrorCodes, ResponseError } from 'vscode-languageserver-protocol'
 
 import * as jlpkgenv from './jlpkgenv'
 import * as telemetry from './telemetry'
@@ -14,12 +22,42 @@ import { getCustomEnvironmentVariables, onEvent, registerCommand } from './utils
 export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
 const supportedLanguages = ['julia', 'juliamarkdown', 'markdown']
 
+export type LanguageServerState = 'stopped' | 'starting' | 'running' | 'crashed'
+
+/**
+ * Returns true if the error is a result of the language server connection
+ * being unavailable (crashed, stopped, not ready). These errors should be
+ * handled gracefully without sending extension crash telemetry, since the
+ * LS crash itself is already reported separately.
+ */
+export function isLanguageServerError(err: unknown): boolean {
+    if (err instanceof ResponseError) {
+        switch (err.code) {
+            case ErrorCodes.PendingResponseRejected:
+            case ErrorCodes.ConnectionInactive:
+            case LSPErrorCodes.RequestCancelled:
+            case LSPErrorCodes.ServerCancelled:
+            case LSPErrorCodes.ContentModified:
+                return true
+        }
+    }
+    if (err instanceof Error) {
+        if (err.message === 'Language client is not ready yet' || err.message === 'Client is not running') {
+            return true
+        }
+    }
+    return false
+}
+
 export class LanguageClientFeature {
     private onDidSetLanguageClientEmitter = new vscode.EventEmitter<LanguageClient>()
     public onDidSetLanguageClient = this.onDidSetLanguageClientEmitter.event
 
     private onDidChangeConfigEmitter = new vscode.EventEmitter<vscode.ConfigurationChangeEvent>()
     public onDidChangeConfig = this.onDidChangeConfigEmitter.event
+
+    private _onDidChangeStateEmitter = new vscode.EventEmitter<LanguageServerState>()
+    public onDidChangeLsState = this._onDidChangeStateEmitter.event
 
     private outputChannel: vscode.OutputChannel = vscode.window.createOutputChannel('Julia Language Server')
     private traceOutputChannel: vscode.OutputChannel = vscode.window.createOutputChannel('Julia Language Server Trace')
@@ -30,7 +68,32 @@ export class LanguageClientFeature {
 
     private serverStarting: boolean = false
 
+    private _state: LanguageServerState = 'stopped'
+    private _intentionalStop: boolean = false
+
     languageClient: LanguageClient
+
+    public get state(): LanguageServerState {
+        return this._state
+    }
+
+    private setState(state: LanguageServerState) {
+        if (this._state !== state) {
+            this._state = state
+            this._onDidChangeStateEmitter.fire(state)
+            this.updateStatusBarForState()
+        }
+    }
+
+    private updateStatusBarForState() {
+        if (this._state === 'crashed') {
+            this.statusBarItem.text = '$(warning) Julia Language Server Crashed'
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground')
+            this.statusBarItem.command = 'language-julia.restartLanguageServer'
+            this.statusBarItem.tooltip = 'The Julia Language Server has crashed. Click to restart.'
+            this.statusBarItem.show()
+        }
+    }
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -63,17 +126,18 @@ export class LanguageClientFeature {
 
     public async withLanguageClient<T, E>(
         callback: (languageClient: LanguageClient) => T,
-        callbackOnHandledErr: (err: Error) => E
-    ) {
-        if (this.languageClient === null) {
-            return callbackOnHandledErr(new Error('Language client is not active'))
+        callbackOnHandledErr?: (err: Error) => E
+    ): Promise<T | E | undefined> {
+        if (this._state !== 'running' || this.languageClient === null) {
+            const err = new Error('Language client is not active')
+            return callbackOnHandledErr ? callbackOnHandledErr(err) : undefined
         }
 
         try {
             return await callback(this.languageClient)
         } catch (err) {
-            if (err.message === 'Language client is not ready yet') {
-                return callbackOnHandledErr(err)
+            if (isLanguageServerError(err)) {
+                return callbackOnHandledErr ? callbackOnHandledErr(err) : undefined
             }
             throw err
         }
@@ -242,6 +306,27 @@ export class LanguageClientFeature {
         // Create the language client and start the client.
         const languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
         languageClient.registerProposedFeatures()
+
+        this._intentionalStop = false
+        languageClient.onDidChangeState((event: StateChangeEvent) => {
+            switch (event.newState) {
+                case State.Starting:
+                    this.setState('starting')
+                    break
+                case State.Running:
+                    this.setState('running')
+                    break
+                case State.Stopped:
+                    if (!this._intentionalStop) {
+                        // The library auto-restarts up to 4 times in 3 minutes.
+                        // If it transitions to Stopped without us requesting it,
+                        // the library has given up.
+                        this.setState('crashed')
+                        this.setLanguageClient()
+                    }
+                    break
+            }
+        })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         languageClient.onTelemetry((data: any) => {
             if (data.command === 'trace_event') {
@@ -302,19 +387,22 @@ export class LanguageClientFeature {
     }
 
     async refreshLanguageServer() {
-        if (!this.languageClient) {
+        if (this._state !== 'running' || !this.languageClient) {
             return
         }
         try {
             await this.languageClient.sendNotification('julia/refreshLanguageServer')
         } catch (err) {
-            vscode.window.showErrorMessage('Failed to refresh the language server cache.', {
-                detail: err,
-            })
+            if (!isLanguageServerError(err)) {
+                vscode.window.showErrorMessage('Failed to refresh the language server cache.', {
+                    detail: err,
+                })
+            }
         }
     }
 
     async restartLanguageServer(envPath?: string, autoInstall?: boolean) {
+        this._intentionalStop = true
         if (this.languageClient) {
             try {
                 await this.languageClient.stop()
@@ -323,11 +411,13 @@ export class LanguageClientFeature {
             }
             this.setLanguageClient()
         }
+        this.setState('stopped')
 
         await this.startServer(envPath, autoInstall)
     }
 
     public async dispose(): Promise<void> {
+        this._intentionalStop = true
         if (this.languageClient) {
             await this.languageClient.stop()
         }

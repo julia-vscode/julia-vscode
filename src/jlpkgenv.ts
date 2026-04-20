@@ -2,16 +2,15 @@ import * as fs from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
-import * as vslc from 'vscode-languageclient/node'
 import { ExecutableFeature } from './executables'
 import * as packagepath from './packagepath'
-import { onEvent, parseVSCodeVariables, registerCommand, resolvePath } from './utils'
+import { parseVSCodeVariables, registerCommand, resolvePath } from './utils'
 import { LanguageClientFeature } from './languageClient'
 import { promisify } from 'node:util'
 import child_process from 'node:child_process'
 const execFile = promisify(child_process.execFile)
 
-let g_languageClient: vslc.LanguageClient = null
+let g_languageClientFeature: LanguageClientFeature = null
 
 let g_current_environment: vscode.StatusBarItem = null
 
@@ -119,10 +118,9 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
     }
 
     if (notifyLS) {
-        if (!g_languageClient) {
-            return
-        }
-        await g_languageClient.sendNotification('julia/activateenvironment', { envPath: envpath })
+        await g_languageClientFeature.withLanguageClient((languageClient) =>
+            languageClient.sendNotification('julia/activateenvironment', { envPath: envpath })
+        )
     }
 }
 
@@ -288,11 +286,7 @@ export async function activate(
     languageClientFeature: LanguageClientFeature
 ) {
     g_ExecutableFeature = ExecutableFeature
-    context.subscriptions.push(
-        onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
-            g_languageClient = languageClient
-        })
-    )
+    g_languageClientFeature = languageClientFeature
 
     context.subscriptions.push(registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
     // Environment status bar
