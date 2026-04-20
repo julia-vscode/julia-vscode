@@ -5,12 +5,32 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.210.0] - 2026-04-20
 ### Fixed
-- Fixed a race condition where user REPL configuration (e.g. `auto_insert_closing_bracket`) set in `startup.jl` via `atreplinit` could be overwritten ([#4063](https://github.com/julia-vscode/julia-vscode/pull/4063))
 - Fixed an issue where the extension would not activate if Julia is not installed, breaking the auto-installation flow ([#4082](https://github.com/julia-vscode/julia-vscode/pull/4082))
 
 ### Changed
 - `view_profile` now accepts a second optional argument for `lidict`, which should allow plotting profiles retrieved from other sessions or machines ([#4080](https://github.com/julia-vscode/julia-vscode/pull/4080))
+
+## [1.209.0] - 2026-04-10
+### Fixed
+- Fixed a bug where the Julia installation check during activation was not awaited, occasionally skipping the `julia installed` state ([#4074](https://github.com/julia-vscode/julia-vscode/pull/4074))
+
+## [1.208.0] - 2026-04-01
+### Fixed
+- Fixed an error in the notebook feature related to juliaup channel comparisons ([#4070](https://github.com/julia-vscode/julia-vscode/pull/4070))
+
+## [1.203.0] - 2026-03-26
+### Fixed
+- Revamped crash handling for the test item controller so failures surface more reliably ([#4065](https://github.com/julia-vscode/julia-vscode/pull/4065))
+
+## [1.201.0] - 2026-03-24
+### Fixed
+- Fixed a race condition where user REPL configuration (e.g. `auto_insert_closing_bracket`) set in `startup.jl` via `atreplinit` could be overwritten ([#4063](https://github.com/julia-vscode/julia-vscode/pull/4063))
+
+## [1.199.0] - 2026-03-19
+### Added
+- A separate test profile is now created for each installed Juliaup channel ([#4061](https://github.com/julia-vscode/julia-vscode/pull/4061))
 
 ## [1.196.0] - 2026-03-16
 ### Fixed
