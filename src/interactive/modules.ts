@@ -1,7 +1,6 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
-import { ResponseError } from 'vscode-jsonrpc'
-import * as vslc from 'vscode-languageclient/node'
+import { TextDocumentIdentifier } from 'vscode-languageclient/node'
 import { LanguageClientFeature, supportedSchemes } from '../languageClient'
 import * as telemetry from '../telemetry'
 import { onEvent, registerCommand, wrapCrashReporting } from '../utils'
@@ -10,7 +9,7 @@ import { onExit, onInit } from './repl'
 
 let statusBarItem: vscode.StatusBarItem = null
 let g_connection: rpc.MessageConnection = null
-let g_languageClient: vslc.LanguageClient = null
+let g_languageClientFeature: LanguageClientFeature = null
 let g_currentGetModuleRequestCancelTokenSource: vscode.CancellationTokenSource = null
 
 const manuallySetDocuments = []
@@ -37,11 +36,7 @@ export function activate(context: vscode.ExtensionContext, languageClientFeature
     )
     context.subscriptions.push(registerCommand('language-julia.chooseModule', chooseModule))
 
-    context.subscriptions.push(
-        onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
-            g_languageClient = languageClient
-        })
-    )
+    g_languageClientFeature = languageClientFeature
 
     // NOTE:
     // set module status bar item just right of language mode selector
@@ -107,34 +102,32 @@ export async function getModuleForEditor(
         }
     }
 
-    const languageClient = g_languageClient
-
-    if (!languageClient || !languageClient.isRunning()) {
-        return { module: 'Main' }
-    }
-
     const params: VersionedTextDocumentPositionParams = {
-        textDocument: vslc.TextDocumentIdentifier.create(document.uri.toString()),
+        textDocument: TextDocumentIdentifier.create(document.uri.toString()),
         version: document.version,
         position: position,
     }
 
-    if (token === undefined || !token.isCancellationRequested) {
-        try {
-            return { module: await languageClient.sendRequest<string>('julia/getModuleAt', params) }
-        } catch (err) {
-            if ((err as ResponseError).code && err.code === rpc.ErrorCodes.ConnectionInactive) {
-                return { module: 'Main' }
-            } else if ((err as ResponseError).code && err.code === -33101) {
-                // This is a version out of sync situation
-                return { module: 'Main' }
-            } else {
-                throw err
-            }
-        }
-    } else {
+    if (token !== undefined && token.isCancellationRequested) {
         return { module: 'Main' }
     }
+
+    return await g_languageClientFeature.withLanguageClient(
+        async (languageClient) => {
+            try {
+                return { module: await languageClient.sendRequest<string>('julia/getModuleAt', params) }
+            } catch (err) {
+                if (err instanceof rpc.ResponseError && err.code === -33101) {
+                    // Version out of sync, benign
+                    return { module: 'Main' }
+                }
+                throw err
+            }
+        },
+        (_err) => {
+            return { module: 'Main' }
+        }
+    )
 }
 
 function isJuliaEditor(editor: vscode.TextEditor = vscode.window.activeTextEditor) {

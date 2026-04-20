@@ -6,7 +6,6 @@ import * as path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
-import * as vslc from 'vscode-languageclient/node'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import { LanguageClientFeature } from '../languageClient'
@@ -37,7 +36,7 @@ import child_process from 'node:child_process'
 const exec = promisify(child_process.exec)
 
 let g_context: vscode.ExtensionContext = null
-let g_languageClient: vslc.LanguageClient = null
+let g_languageClientFeature: LanguageClientFeature = null
 let g_compiledProvider = null
 export const g_evalQueue = fastq(sendEvalRequest, 1)
 
@@ -882,21 +881,24 @@ export async function getBlockRange(params: VersionedTextDocumentPositionParams)
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
-    try {
-        return (await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(
-            (pos) => new vscode.Position(pos.line, pos.character)
-        )
-    } catch (err) {
-        if (err.message === 'Language client is not ready yet') {
-            vscode.window.showErrorMessage(err.message)
-        } else {
-            console.error(err)
-            vscode.window.showErrorMessage(
-                'Error while communicating with the LS. Check Output > Julia Language Server for additional information.'
+    return await g_languageClientFeature.withLanguageClient(
+        async (languageClient) => {
+            return (await languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(
+                (pos) => new vscode.Position(pos.line, pos.character)
             )
+        },
+        (err) => {
+            if (err.message === 'Language client is not ready yet') {
+                vscode.window.showErrorMessage(err.message)
+            } else {
+                console.error(err)
+                vscode.window.showErrorMessage(
+                    'Error while communicating with the LS. Check Output > Julia Language Server for additional information.'
+                )
+            }
+            return zeroReturn
         }
-        return zeroReturn
-    }
+    )
 }
 
 async function selectJuliaBlock() {
@@ -1301,14 +1303,12 @@ export function activate(
 ) {
     g_context = context
     g_ExecutableFeature = ExecutableFeature
+    g_languageClientFeature = languageClientFeature
 
     g_compiledProvider = compiledProvider
 
     context.subscriptions.push(
         // listeners
-        onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
-            g_languageClient = languageClient
-        }),
         onInit(
             wrapCrashReporting(({ connection, juliaExecutable }) => {
                 connection.onNotification(notifyTypeDisplay, display)
