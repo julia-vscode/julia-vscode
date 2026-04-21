@@ -521,7 +521,11 @@ function startREPLMsgServer(pipename: string, juliaExecutable?: JuliaExecutable)
 
     const server = net.createServer((socket: net.Socket) => {
         socket.on('close', (hadError) => {
-            g_connection?.dispose()
+            try {
+                g_connection?.dispose()
+            } catch {
+                // ignore errors during dispose, as we're closing the connection anyway
+            }
             g_connection = undefined
 
             g_onExit.fire(hadError)
