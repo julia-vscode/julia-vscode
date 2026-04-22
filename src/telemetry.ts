@@ -155,8 +155,7 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
     }
 }
 
-export function handleNewCrashReportFromException(exception: unknown, cloudRole: string) {
-    const error = exception instanceof Error ? exception : new Error(String(exception))
+export function handleNewCrashReportFromException(error: Error, cloudRole: string) {
     crashReporterQueue.push({
         exception: error,
         tagOverrides: {
