@@ -113,11 +113,12 @@ export class LanguageClientFeature {
         private executable: ExecutableFeature
     ) {
         this.context.subscriptions.push(
-            registerCommand('language-julia.refreshLanguageServer', () => this.refreshLanguageServer()),
-            registerCommand('language-julia.restartLanguageServer', (env?: string) =>
-                this.restartLanguageServer(env, true)
+            registerCommand('language-julia.refreshLanguageServer', async () => await this.refreshLanguageServer()),
+            registerCommand(
+                'language-julia.restartLanguageServer',
+                async (env?: string) => await this.restartLanguageServer(env, true)
             ),
-            registerCommand('language-julia.showLanguageServerOutput', () => {
+            registerCommand('language-julia.showLanguageServerOutput', async () => {
                 this.outputChannel.show(true)
             }),
             onEvent(vscode.workspace.onDidChangeConfiguration, (event: vscode.ConfigurationChangeEvent) => {

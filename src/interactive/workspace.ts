@@ -251,10 +251,19 @@ export class WorkspaceFeature {
             onInit(wrapCrashReporting(({ connection: conn }) => this.openREPL(conn))),
             onExit(() => this.closeREPL()),
             // commands
-            registerCommand('language-julia.showInVSCode', (node: VariableNode) => this.showInVSCode(node)),
-            registerCommand('language-julia.workspaceGoToFile', (node: VariableNode) => this.openLocation(node)),
-            registerCommand('language-julia.showModules', () => this._REPLTreeDataProvider.toggleModules(true)),
-            registerCommand('language-julia.hideModules', () => this._REPLTreeDataProvider.toggleModules(false))
+            registerCommand('language-julia.showInVSCode', async (node: VariableNode) => await this.showInVSCode(node)),
+            registerCommand(
+                'language-julia.workspaceGoToFile',
+                async (node: VariableNode) => await this.openLocation(node)
+            ),
+            registerCommand(
+                'language-julia.showModules',
+                async () => await this._REPLTreeDataProvider.toggleModules(true)
+            ),
+            registerCommand(
+                'language-julia.hideModules',
+                async () => await this._REPLTreeDataProvider.toggleModules(false)
+            )
         )
     }
 
@@ -426,14 +435,14 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
         }
     }
 
-    toggleModules(show: boolean) {
+    async toggleModules(show: boolean) {
         this.workspaceFeature._REPLNode.toggleModules(show)
-        this.workspaceFeature._REPLNode.updateReplVariables()
-        this.workspaceFeature._NotebookNodes.forEach((node) => {
+        await this.workspaceFeature._REPLNode.updateReplVariables()
+        for (const node of this.workspaceFeature._NotebookNodes) {
             node.toggleModules(show)
-            node.updateReplVariables()
-        })
-        vscode.workspace
+            await node.updateReplVariables()
+        }
+        await vscode.workspace
             .getConfiguration('julia')
             .update('workspace.showModules', show, vscode.ConfigurationTarget.Global)
     }

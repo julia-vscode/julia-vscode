@@ -3,9 +3,9 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { registerCommand } from './utils'
 
-function toggleLinter() {
+async function toggleLinter() {
     const cval = vscode.workspace.getConfiguration('julia').get('lint.run', false)
-    vscode.workspace.getConfiguration('julia').update('lint.run', !cval, vscode.ConfigurationTarget.Global)
+    await vscode.workspace.getConfiguration('julia').update('lint.run', !cval, vscode.ConfigurationTarget.Global)
 }
 
 // function lintPackage() {

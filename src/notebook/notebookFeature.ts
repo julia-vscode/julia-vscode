@@ -59,8 +59,16 @@ export class JuliaNotebookFeature {
         onEvent(vscode.window.onDidChangeVisibleNotebookEditors, this.init.bind(this), this, this.disposables)
 
         context.subscriptions.push(
-            registerCommand('language-julia.stopKernel', (node) => this.stopKernel(node)),
-            registerCommand('language-julia.restartKernel', (node) => this.restartKernel(node)),
+            registerCommand(
+                'language-julia.stopKernel',
+                async (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
+                    await this.stopKernel(node)
+            ),
+            registerCommand(
+                'language-julia.restartKernel',
+                async (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
+                    await this.restartKernel(node)
+            ),
             // vscode.commands.registerCommand('language-julia.toggleDebugging', () => {
             //     if (vscode.window.activeNotebookEditor) {
             //         const { notebook: notebookDocument } = vscode.window.activeNotebookEditor;

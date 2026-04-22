@@ -9,7 +9,7 @@ export class JuliaPackageDevFeature {
         private ExecutableFeature: ExecutableFeature
     ) {
         this.context.subscriptions.push(
-            registerCommand('language-julia.tagNewPackageVersion', () => this.tagNewPackageVersion())
+            registerCommand('language-julia.tagNewPackageVersion', async () => await this.tagNewPackageVersion())
         )
     }
 
