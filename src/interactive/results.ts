@@ -192,29 +192,29 @@ export function activate(context: vscode.ExtensionContext) {
         ),
 
         // public commands
-        registerCommand('language-julia.clearAllInlineResults', removeAll),
-        registerCommand('language-julia.clearAllInlineResultsInEditor', () =>
+        registerCommand('language-julia.clearAllInlineResults', async () => removeAll()),
+        registerCommand('language-julia.clearAllInlineResultsInEditor', async () =>
             removeAll(vscode.window.activeTextEditor)
         ),
-        registerCommand('language-julia.clearCurrentInlineResult', () => {
+        registerCommand('language-julia.clearCurrentInlineResult', async () => {
             if (vscode.window.activeTextEditor) {
                 removeCurrent(vscode.window.activeTextEditor)
             }
         }),
 
         // internal commands
-        registerCommand('language-julia.openFile', (locationArg: { path: string; line: number }) => {
-            openFile(locationArg.path, locationArg.line)
+        registerCommand('language-julia.openFile', async (locationArg: { path: string; line: number }) => {
+            await openFile(locationArg.path, locationArg.line)
         }),
         registerCommand('language-julia.gotoFirstFrame', gotoFirstFrame),
-        registerCommand('language-julia.gotoPreviousFrame', (frameArg: { frame: Frame }) => {
-            gotoPreviousFrame(frameArg.frame)
+        registerCommand('language-julia.gotoPreviousFrame', async (frameArg: { frame: Frame }) => {
+            await gotoPreviousFrame(frameArg.frame)
         }),
-        registerCommand('language-julia.gotoNextFrame', (frameArg: { frame: Frame }) => {
-            gotoNextFrame(frameArg.frame)
+        registerCommand('language-julia.gotoNextFrame', async (frameArg: { frame: Frame }) => {
+            await gotoNextFrame(frameArg.frame)
         }),
         registerCommand('language-julia.gotoLastFrame', gotoLastFrame),
-        registerCommand('language-julia.clearStackTrace', clearStackTrace)
+        registerCommand('language-julia.clearStackTrace', async () => clearStackTrace())
     )
     setContext('julia.supportedLanguageIds', supportedLanguageIds)
 }

@@ -3,7 +3,7 @@ import * as rpc from 'vscode-jsonrpc'
 import { TextDocumentIdentifier } from 'vscode-languageclient/node'
 import { LanguageClientFeature, supportedSchemes } from '../languageClient'
 import * as telemetry from '../telemetry'
-import { onEvent, registerCommand, wrapCrashReporting } from '../utils'
+import { onEvent, registerCommand, wrapCrashReportingAsync } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
 import { onExit, onInit } from './repl'
 
@@ -47,9 +47,9 @@ export function activate(context: vscode.ExtensionContext, languageClientFeature
     statusBarItem.tooltip = 'Choose Current Module'
 
     onInit(
-        wrapCrashReporting(({ connection: conn }) => {
+        wrapCrashReportingAsync(async ({ connection: conn }) => {
             g_connection = conn
-            updateStatusBarItem()
+            await updateStatusBarItem()
         })
     )
     onExit(() => {

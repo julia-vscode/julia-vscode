@@ -19,8 +19,8 @@ import {
     onEvent,
     registerCommand,
     setContext,
-    wrapCrashReporting,
     parseVSCodeVariables,
+    wrapCrashReporting,
 } from '../utils'
 import * as completions from './completions'
 import { VersionedTextDocumentPositionParams } from './misc'
@@ -33,6 +33,7 @@ import { promise as fastq } from 'fastq'
 import { randomUUID } from 'crypto'
 import { promisify } from 'node:util'
 import child_process from 'node:child_process'
+import { Uri } from 'vscode'
 const exec = promisify(child_process.exec)
 
 let g_context: vscode.ExtensionContext = null
@@ -49,12 +50,12 @@ let g_terminal_is_persistent: boolean = false
 
 let g_ExecutableFeature: ExecutableFeature
 
-function startREPLCommand() {
-    startREPL(false, true)
+async function startREPLCommand() {
+    await startREPL(false, true)
 }
 
-function startREPLWithVersionCommand(versionName?: string) {
-    startREPLWithVersion(versionName)
+async function startREPLWithVersionCommand(versionName?: string) {
+    await startREPLWithVersion(versionName)
 }
 
 async function confirmKill() {
@@ -431,9 +432,9 @@ async function _connectREPL(juliaIsConnectedPromise) {
     }
 }
 
-function disconnectREPL() {
+async function disconnectREPL() {
     if (g_terminal) {
-        vscode.window.showWarningMessage('Cannot disconnect from integrated REPL.')
+        await vscode.window.showWarningMessage('Cannot disconnect from integrated REPL.')
     } else {
         if (isConnected()) {
             g_connection.end()
@@ -521,7 +522,11 @@ function startREPLMsgServer(pipename: string, juliaExecutable?: JuliaExecutable)
 
     const server = net.createServer((socket: net.Socket) => {
         socket.on('close', (hadError) => {
-            g_connection?.dispose()
+            try {
+                g_connection?.dispose()
+            } catch {
+                // ignore errors during dispose, as we're closing the connection anyway
+            }
             g_connection = undefined
 
             g_onExit.fire(hadError)
@@ -779,18 +784,16 @@ function clearDiagnostics() {
     g_trace_diagnostics.forEach((_, source) => _clearDiagnostic(source))
 }
 
-function clearDiagnosticsByProvider() {
+async function clearDiagnosticsByProvider() {
     const sources = Array(...g_trace_diagnostics.keys())
-    vscode.window
-        .showQuickPick(sources, {
-            // canPickMany: true, // not work nicely with keyboard shortcuts
-            title: 'Select sources of diagnostics to filter them out.',
-        })
-        .then((source) => {
-            if (source) {
-                _clearDiagnostic(source)
-            }
-        })
+    const source = await vscode.window.showQuickPick(sources, {
+        // canPickMany: true, // not work nicely with keyboard shortcuts
+        title: 'Select sources of diagnostics to filter them out.',
+    })
+
+    if (source) {
+        _clearDiagnostic(source)
+    }
 }
 
 function _clearDiagnostic(source: string) {
@@ -1063,7 +1066,7 @@ async function executeCodeCopyPaste(text: string, individualLine: boolean) {
     }
 }
 
-function executeSelectionCopyPaste() {
+async function executeSelectionCopyPaste() {
     const editor = vscode.window.activeTextEditor
     if (!editor) {
         return
@@ -1086,7 +1089,7 @@ function executeSelectionCopyPaste() {
             }
         }
     }
-    executeCodeCopyPaste(text, selection.isEmpty)
+    await executeCodeCopyPaste(text, selection.isEmpty)
 }
 
 export async function executeInREPL(
@@ -1431,17 +1434,20 @@ export function activate(
         registerCommand('language-julia.disconnectREPL', disconnectREPL),
         registerCommand('language-julia.selectBlock', selectJuliaBlock),
         registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
-        registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
+        registerCommand(
+            'language-julia.executeCodeBlockOrSelectionAndMove',
+            async () => await evaluateBlockOrSelection(true)
+        ),
         registerCommand('language-julia.executeActiveFile', () => executeFile()),
-        registerCommand('language-julia.executeFile', (uri) => executeFile(uri)),
+        registerCommand('language-julia.executeFile', async (uri: string | Uri) => await executeFile(uri)),
         registerCommand('language-julia.interrupt', interrupt),
         registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
         registerCommand('language-julia.cdHere', cdToHere),
         registerCommand('language-julia.activateHere', activateHere),
         registerCommand('language-julia.activateFromDir', activateFromDir),
-        registerCommand('language-julia.clearRuntimeDiagnostics', clearDiagnostics),
+        registerCommand('language-julia.clearRuntimeDiagnostics', async () => clearDiagnostics()),
         registerCommand('language-julia.clearRuntimeDiagnosticsByProvider', clearDiagnosticsByProvider),
-        registerCommand('language-julia.clearInlayHints', clearInlayHints)
+        registerCommand('language-julia.clearInlayHints', async () => clearInlayHints())
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')

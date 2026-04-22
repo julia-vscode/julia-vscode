@@ -20,11 +20,13 @@ export class WeaveFeature {
         private context: vscode.ExtensionContext,
         private executableFeature: ExecutableFeature
     ) {
-        context.subscriptions.push(registerCommand('language-julia.weave-open-preview', this.openPreview.bind(this)))
         context.subscriptions.push(
-            registerCommand('language-julia.weave-open-preview-side', this.openPreviewSide.bind(this))
+            registerCommand('language-julia.weave-open-preview', async () => await this.openPreview())
         )
-        context.subscriptions.push(registerCommand('language-julia.weave-save', this.save.bind(this)))
+        context.subscriptions.push(
+            registerCommand('language-julia.weave-open-preview-side', async () => await this.openPreviewSide())
+        )
+        context.subscriptions.push(registerCommand('language-julia.weave-save', async () => await this.save()))
     }
 
     private async runWeave(column: number, activeTextEditor: vscode.TextEditor, selectedFormat?: string) {

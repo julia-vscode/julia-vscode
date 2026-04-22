@@ -548,8 +548,8 @@ export class TestFeature {
         this.controller = vscode.tests.createTestController('juliaTests', 'Julia Tests')
 
         context.subscriptions.push(
-            registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) => node.stop()),
-            registerCommand('language-julia.stopTestController', (node: TestControllerNode) => node.stop())
+            registerCommand('language-julia.stopTestProcess', async (node: TestProcessNode) => await node.stop()),
+            registerCommand('language-julia.stopTestController', async (node: TestControllerNode) => await node.stop())
         )
 
         // vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {

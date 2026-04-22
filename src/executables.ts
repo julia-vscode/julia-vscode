@@ -383,7 +383,7 @@ export class ExecutableFeature {
                     vscode.commands.executeCommand('language-julia.restartLanguageServer')
                 }
             }),
-            registerCommand('language-julia.showExecutableOutput', () => {
+            registerCommand('language-julia.showExecutableOutput', async () => {
                 this.outputChannel.show()
             })
         )
