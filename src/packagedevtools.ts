@@ -1,6 +1,6 @@
 import * as path from 'path'
 import * as vscode from 'vscode'
-import { ExecutableFeature } from './executables'
+import { ExecutableFeature, JuliaNotFoundError } from './executables'
 import { getCustomEnvironmentVariables, registerCommand } from './utils'
 
 export class JuliaPackageDevFeature {
@@ -36,7 +36,15 @@ export class JuliaPackageDevFeature {
                     const accessToken = bar.accessToken
                     const account = bar.account.label
 
-                    const juliaExecutable = await this.ExecutableFeature.getExecutable()
+                    let juliaExecutable
+                    try {
+                        juliaExecutable = await this.ExecutableFeature.getExecutable()
+                    } catch (err) {
+                        if (err instanceof JuliaNotFoundError) {
+                            return
+                        }
+                        throw err
+                    }
 
                     if (juliaExecutable.getVersion().compare('1.6.0') >= 0) {
                         const newTerm = vscode.window.createTerminal({

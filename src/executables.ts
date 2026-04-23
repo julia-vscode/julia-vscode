@@ -15,6 +15,23 @@ const execFile = promisify(child_process.execFile)
 
 const juliaVersionPrefix = 'julia version '
 
+/**
+ * Marker error for *expected* environment / configuration failures originating in this
+ * file (Julia or juliaup not installed, missing channel, juliaup invocation failure, ...).
+ *
+ * These are not extension bugs and must never reach the telemetry crash-reporting path.
+ * Every external caller of `ExecutableFeature` / `JuliaupExecutable` is responsible for
+ * catching this error type before it can bubble into `registerCommand`,
+ * `wrapCrashReportingAsync`, `onEvent`, or any other code that forwards to
+ * `handleNewCrashReportFromException`.
+ */
+export class JuliaNotFoundError extends Error {
+    constructor(message: string) {
+        super(message)
+        this.name = 'JuliaNotFoundError'
+    }
+}
+
 interface JuliaupInteractiveExecutableSpawnOptions {
     show?: boolean
 }
@@ -131,7 +148,7 @@ export class JuliaupExecutable {
             })
 
             if (exitCode !== 0) {
-                throw new Error('Failed to run juliaup command')
+                throw new JuliaNotFoundError('Failed to run juliaup command')
             }
         } else {
             try {
@@ -142,7 +159,7 @@ export class JuliaupExecutable {
                 return out
             } catch (err) {
                 console.error('Failed to run juliaup command: ', err)
-                throw err
+                throw new JuliaNotFoundError(`Failed to run juliaup command: ${err}`)
             }
         }
     }
@@ -183,7 +200,7 @@ export class JuliaupExecutable {
                 vscode.window.showErrorMessage(
                     'The juliaup config API failed to return a valid response. Please check whether `juliaup api getconfig1` returns well-formatted JSON when run in a terminal.'
                 )
-                reject()
+                reject(new JuliaNotFoundError('juliaup config API failed to return a valid response'))
             } finally {
                 this.installedPromise = undefined
             }
@@ -220,7 +237,7 @@ export class JuliaupExecutable {
                 this.getChannelMutex.release()
             }
         }
-        throw new Error(`Channel ${channelName} not installed`)
+        throw new JuliaNotFoundError(`Channel ${channelName} not installed`)
     }
 
     public async getDefaultChannel(): Promise<JuliaupChannel> {
@@ -232,12 +249,7 @@ export class JuliaupExecutable {
             return juChannel[0]
         }
 
-        throw new Error(`No default channel installed`)
-    }
-
-    public async list() {
-        // const stdout = await this.run(['list'])
-        throw new Error('not implemented')
+        throw new JuliaNotFoundError(`No default channel installed`)
     }
 
     public async addChannels(channels: Set<string>, options?: JuliaupInteractiveExecutableSpawnOptions) {
@@ -264,7 +276,7 @@ export class JuliaupExecutable {
 
         if (!choice) {
             this.shouldAutoRequestInstall = false
-            throw new Error(`Channel ${channel} not installed`)
+            throw new JuliaNotFoundError(`Channel ${channel} not installed`)
         }
         try {
             await this.addChannels(channels, { show: true })
@@ -375,12 +387,20 @@ export class ExecutableFeature {
     constructor(private context: vscode.ExtensionContext) {
         this.context.subscriptions.push(
             registerCommand('language-julia.retriggerInstallation', async () => {
-                const juliaup = await this.getJuliaupExecutable(true)
-                if (juliaup) {
-                    juliaup.shouldAutoRequestInstall = true
-                    this.getExecutable(true)
-                    this.getLsExecutable(true)
-                    vscode.commands.executeCommand('language-julia.restartLanguageServer')
+                try {
+                    const juliaup = await this.getJuliaupExecutable(true)
+                    if (juliaup) {
+                        juliaup.shouldAutoRequestInstall = true
+                        this.getExecutable(true)
+                        this.getLsExecutable(true)
+                        vscode.commands.executeCommand('language-julia.restartLanguageServer')
+                    }
+                } catch (err) {
+                    if (err instanceof JuliaNotFoundError) {
+                        // Already surfaced to the user; nothing more to do here.
+                        return
+                    }
+                    throw err
                 }
             }),
             registerCommand('language-julia.showExecutableOutput', async () => {
@@ -484,7 +504,7 @@ export class ExecutableFeature {
 
         this.setJuliaInstalled(false)
         this.outputChannel.appendLine('[EXE] !!! Julia was not found. Most extension features will be nonfunctional.')
-        throw new Error('Julia not installed')
+        throw new JuliaNotFoundError('Julia not installed')
     }
 
     public async getLsExecutable(autoInstallJulia?: boolean): Promise<JuliaExecutable> {
@@ -611,7 +631,7 @@ export class ExecutableFeature {
         setStatusJuliaRequired(this.statusBarItem)
 
         this.outputChannel.appendLine('[LS] !!! Julia was not found. Most extension features will be nonfunctional.')
-        throw new Error('Julia not installed')
+        throw new JuliaNotFoundError('Julia not installed')
     }
 
     public async getExecutables(): Promise<JuliaExecutable[]> {
@@ -806,12 +826,12 @@ export class ExecutableFeature {
                 vscode.window.showErrorMessage('Failed to install Julia and the required juliaup channels!')
                 this.setJuliaupInstalled(false)
 
-                throw new Error('juliaup not available')
+                throw new JuliaNotFoundError('juliaup not available')
             }
         } else {
             this.setJuliaupInstalled(false)
 
-            throw new Error('juliaup not available')
+            throw new JuliaNotFoundError('juliaup not available')
         }
     }
 }

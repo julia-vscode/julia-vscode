@@ -1,6 +1,6 @@
 import * as vscode from 'vscode'
 import * as jlpkgenv from '../jlpkgenv'
-import { ExecutableFeature } from '../executables'
+import { ExecutableFeature, JuliaNotFoundError } from '../executables'
 import {
     generatePipeName,
     getCustomEnvironmentVariables,
@@ -391,7 +391,16 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
 
             await serverListeningPromise.wait()
 
-            const juliaExecutable = await this.ExecutableFeature.getExecutable()
+            let juliaExecutable
+            try {
+                juliaExecutable = await this.ExecutableFeature.getExecutable()
+            } catch (err) {
+                if (err instanceof JuliaNotFoundError) {
+                    vscode.window.showErrorMessage('Cannot start the debugger: Julia is not installed.')
+                    return undefined
+                }
+                throw err
+            }
 
             const nthreads = inferJuliaNumThreads()
             const juliaAdditionalArgs = (session.configuration.juliaAdditionalArgs || []).map((arg) =>
