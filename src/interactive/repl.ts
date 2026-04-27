@@ -9,7 +9,7 @@ import * as rpc from 'vscode-jsonrpc/node'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import { LanguageClientFeature } from '../languageClient'
-import { JuliaExecutable, ExecutableFeature, JuliaupChannel } from '../executables'
+import { JuliaExecutable, ExecutableFeature, JuliaupChannel, JuliaNotFoundError } from '../executables'
 import * as telemetry from '../telemetry'
 import {
     generatePipeName,
@@ -205,7 +205,15 @@ export async function startREPL(
 
     let shellPath: string, shellArgs: string[]
     if (!juliaExecutable) {
-        juliaExecutable = await g_ExecutableFeature.getExecutable(true)
+        try {
+            juliaExecutable = await g_ExecutableFeature.getExecutable(true)
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                vscode.window.showErrorMessage('Cannot start the Julia REPL: Julia is not installed.')
+                return
+            }
+            throw err
+        }
     }
 
     const terminalName = makeTerminalName(juliaExecutable)
@@ -337,7 +345,16 @@ function makeTerminalName(juliaExecutable: JuliaExecutable) {
 
 async function startREPLWithVersion(channelName?: string) {
     const isInteractive = channelName === undefined
-    const juliaup = await g_ExecutableFeature.getJuliaupExecutable()
+    let juliaup
+    try {
+        juliaup = await g_ExecutableFeature.getJuliaupExecutable()
+    } catch (err) {
+        if (err instanceof JuliaNotFoundError) {
+            vscode.window.showErrorMessage('Please install juliaup to manage multiple versions!')
+            return
+        }
+        throw err
+    }
 
     if (!juliaup) {
         if (isInteractive) {
@@ -348,7 +365,17 @@ async function startREPLWithVersion(channelName?: string) {
         }
     }
 
-    const versions = (await juliaup.installed()).map((c) => {
+    let installedChannels: JuliaupChannel[]
+    try {
+        installedChannels = await juliaup.installed()
+    } catch (err) {
+        if (err instanceof JuliaNotFoundError) {
+            // `installed()` already showed an error message to the user.
+            return
+        }
+        throw err
+    }
+    const versions: (JuliaupChannel & vscode.QuickPickItem)[] = installedChannels.map((c) => {
         return {
             ...c,
             label: c.name,
@@ -1249,8 +1276,16 @@ async function linkHandler(link: JuliaTerminalLink) {
         file = path.join(homedir(), file.slice(1))
     } else if (!path.isAbsolute(file)) {
         // Base file
-        const exe = await g_ExecutableFeature.getExecutable()
-        file = path.join(await exe.rootFolder(), file)
+        try {
+            const exe = await g_ExecutableFeature.getExecutable()
+            file = path.join(await exe.rootFolder(), file)
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                // Can't resolve a base-file link without Julia; just stop.
+                return
+            }
+            throw err
+        }
     }
     try {
         await openFile(file, line)

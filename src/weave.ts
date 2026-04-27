@@ -3,7 +3,7 @@ import { ChildProcess, spawn } from 'child_process'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
-import { ExecutableFeature } from './executables'
+import { ExecutableFeature, JuliaNotFoundError } from './executables'
 import { getCustomEnvironmentVariables, registerCommand } from './utils'
 import { mkdtemp } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -67,7 +67,16 @@ export class WeaveFeature {
             }
         }
 
-        const juliaExecutable = await this.executableFeature.getExecutable()
+        let juliaExecutable
+        try {
+            juliaExecutable = await this.executableFeature.getExecutable()
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                outputChannel.append('Cannot run Weave: Julia is not installed.\n')
+                return
+            }
+            throw err
+        }
         const pkgEnvPath = await jlpkgenv.getAbsEnvPath()
 
         const args = [path.join(this.context.extensionPath, 'scripts', 'weave', 'run_weave.jl')]

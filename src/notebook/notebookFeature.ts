@@ -1,7 +1,7 @@
 import * as semver from 'semver'
 import * as vscode from 'vscode'
 import { NotebookNode, WorkspaceFeature } from '../interactive/workspace'
-import { JuliaExecutable, ExecutableFeature } from '../executables'
+import { JuliaExecutable, ExecutableFeature, JuliaNotFoundError } from '../executables'
 import { onEvent, registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
 import { isDeepStrictEqual } from 'node:util'
@@ -128,7 +128,18 @@ export class JuliaNotebookFeature {
         console.log('initalizing notebook feature')
         this._outputChannel = vscode.window.createOutputChannel('Julia Notebook Kernels')
 
-        const juliaVersions = await this.juliaExecutableFeature.getExecutables()
+        let juliaVersions
+        try {
+            juliaVersions = await this.juliaExecutableFeature.getExecutables()
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                // No Julia available; skip controller registration. The user has already been
+                // informed by `ExecutableFeature`. We will retry on the next init trigger.
+                this.initialized = false
+                return
+            }
+            throw err
+        }
 
         for (const juliaVersion of juliaVersions) {
             const ver = juliaVersion.getVersion()
