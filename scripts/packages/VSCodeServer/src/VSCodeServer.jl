@@ -64,6 +64,13 @@ const DEBUG_PIPENAME = Ref{String}()
 function __init__()
     FALLBACK_CONSOLE_LOGGER_REF[] = Logging.ConsoleLogger()
     DEBUG_SESSION[] = Channel{DebugAdapter.DebugSession}(1)
+    atreplinit() do repl
+        @async try
+            hook_repl(repl)
+        catch err
+            Base.display_error(err, catch_backtrace())
+        end
+    end
 
     push!(Base.package_callbacks, on_pkg_load)
 
@@ -121,13 +128,6 @@ end
 function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing)
     @debug "start serve" time=round(Int, time()*10)
     conn = connect(conn_pipename)
-
-    @debug "hook repl" time=round(Int, time()*10)
-    @async try
-        hook_repl(Base.active_repl)
-    catch err
-        Base.display_error(err, catch_backtrace())
-    end
 
     @debug "eval backend" time=round(Int, time()*10)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
