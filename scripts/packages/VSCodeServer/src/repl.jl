@@ -203,6 +203,14 @@ function hook_repl(@nospecialize(repl))
     return nothing
 end
 
+function try_hook_repl(@nospecialize(repl))
+    @async try
+        hook_repl(repl)
+    catch err
+        @error "Failed to install rich REPL integration" ex=(err, catch_backtrace())
+    end
+end
+
 has_repl_backend() = isdefined(Base, :active_repl_backend) && !isnothing(Base.active_repl_backend)
 
 function transform_backend(ast, repl, main_mode)
