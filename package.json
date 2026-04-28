@@ -1720,7 +1720,7 @@
         "markdown-it-footnote": "^4.0.0",
         "semver": "^7.3.5",
         "source-map-support": "^0.5.21",
-        "uuid": "^13.0.0",
+        "uuid": "^14.0.0",
         "vscode-jsonrpc": "^8.2.1",
         "vscode-languageclient": "^9.0.0"
     },
