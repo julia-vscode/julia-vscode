@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.215.0] - 2026-04-28
+### Fixed
+- Fixed an issue where REPL hooks were not properly installed for external REPLs, causing e.g. the integrated plot viewer to silently fail ([#4097](https://github.com/julia-vscode/julia-vscode/pull/4097))
+
 ## [1.210.0] - 2026-04-20
 ### Fixed
 - Fixed an issue where the extension would not activate if Julia is not installed, breaking the auto-installation flow ([#4082](https://github.com/julia-vscode/julia-vscode/pull/4082))
