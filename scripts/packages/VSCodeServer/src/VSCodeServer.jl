@@ -274,31 +274,4 @@ end
 
 _precompile_()
 
-function __init__()
-    # patch at runtime to avoid precompilation issues
-    @static if v"1.8.0-DEV.460" <= VERSION < v"1.9"
-        # Compat: @profview calls threadpooltids and threadpool, but they are not defined in Julia v1.8
-        if !isdefined(Threads, :threadpooltids)
-            Core.eval(Base.Threads, :(function threadpooltids(x)
-                # Get the thread IDs in the current thread pool
-                if x === :default
-                    return Threads.nthreads() == 1 ? [1] : collect(1:Threads.nthreads())
-                else
-                    return Int[]
-                end
-            end))
-        end
-        if !isdefined(Threads, :threadpool)
-            Core.eval(Base.Threads, :(function threadpool(tid)
-                # Get the thread pool for a given thread ID
-                if tid <= Threads.nthreads()
-                    return :default
-                else
-                    error("invalid tid")
-                end
-            end))
-        end
-    end
-end
-
 end  # module
