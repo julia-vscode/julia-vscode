@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
+- Fix `@profview` error in Julia v1.8.5: `threadpooltids` and `threadpool` are undefined but called. Numeric order of thread dropdown menu in profiler view panel. ([#4100](https://github.com/julia-vscode/julia-vscode/pull/4100))
 - The REPL is now more robust against crashes when communication with the IDE is disrupted ([#4098](https://github.com/julia-vscode/julia-vscode/pull/4098))
 
 ## [1.215.0] - 2026-04-28
