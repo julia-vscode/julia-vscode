@@ -11,13 +11,17 @@ let
         @info "Processing command line arguments..."
     end
 
-    args = [popfirst!(Base.ARGS) for _ in 1:3]
+    args = [popfirst!(Base.ARGS) for _ in 1:min(length(Base.ARGS), 4)]
 
     conn_pipename, debugger_pipename, telemetry_pipename = args[1:3]
+
+    use_progress = "USE_PROGRESS=true" in args
 
     Base.with_logger(outputchannel_logger) do
         @info "Command line arguments processed"
     end
+
+    VSCodeServer.toggle_progress_notification(nothing, (;enable=use_progress))
 
     ccall(:jl_exit_on_sigint, Nothing, (Cint,), false)
 

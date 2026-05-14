@@ -16,13 +16,17 @@ function notebook_runcell_request(conn, params::NotebookRunCellArguments, token)
         args = VERSION >= v"1.5" ? (REPL.softscope, Main, code, params.filename) : (Main, code, params.filename)
 
         result = try
-            if isready(DEBUG_SESSION[])
-                debug_session = fetch(DEBUG_SESSION[])
+            run_cell = function ()
+                if isready(DEBUG_SESSION[])
+                    debug_session = fetch(DEBUG_SESSION[])
 
-                DebugAdapter.debug_code(debug_session, Main, code, params.filename)
-            else
-                Base.invokelatest(include_string, args...)
+                    DebugAdapter.debug_code(debug_session, Main, code, params.filename)
+                else
+                    Base.invokelatest(include_string, args...)
+                end
             end
+
+            PROGRESS_ENABLED[] ? Logging.with_logger(run_cell, VSCodeLogger()) : run_cell()
         catch err
             bt = crop_backtrace(catch_backtrace())
 
@@ -135,6 +139,7 @@ function serve_notebook(pipename, debugger_pipename, outputchannel_logger; error
         msg_dispatcher[repl_showingrid_notification_type] = repl_showingrid_notification
         msg_dispatcher[repl_gettabledata_request_type] = get_table_data_request
         msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table_notification
+        msg_dispatcher[repl_toggle_progress_notification_type] = toggle_progress_notification
 
         Base.with_logger(outputchannel_logger) do
             @info "Julia Kernel started"
