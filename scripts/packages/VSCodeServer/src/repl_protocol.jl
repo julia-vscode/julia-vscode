@@ -43,12 +43,14 @@ JSONRPC.@dict_readable mutable struct ReplWorkspaceItem <: JSONRPC.Outbound
     value::String
     canshow::Bool
     type::String
-    location::Union{Nothing, Location}
+    location::Union{Nothing,Location}
 end
 
 JSONRPC.@dict_readable struct GetCompletionsRequestParams <: JSONRPC.Outbound
     line::String
     mod::String
+    lineNum::Int
+    column::Int
 end
 
 struct ParameterInformation
