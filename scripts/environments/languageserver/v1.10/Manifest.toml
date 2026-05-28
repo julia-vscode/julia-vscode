@@ -29,13 +29,21 @@ version = "3.4.3"
 deps = ["Sockets"]
 path = "../../../packages/CancellationTokens"
 uuid = "2e8d271d-f2e2-407b-a864-17eb2156783e"
-version = "2.0.2"
+version = "2.2.0"
 
 [[deps.CommonMark]]
-deps = ["Crayons", "PrecompileTools"]
+deps = ["PrecompileTools"]
 path = "../../../packages/CommonMark"
 uuid = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
-version = "0.8.15"
+version = "1.0.1"
+
+    [deps.CommonMark.extensions]
+    CommonMarkMarkdownASTExt = "MarkdownAST"
+    CommonMarkMarkdownExt = "Markdown"
+
+    [deps.CommonMark.weakdeps]
+    Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
+    MarkdownAST = "d0879d2d-cac2-40c8-9cee-1863dc0c7391"
 
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
@@ -56,10 +64,10 @@ uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 version = "4.1.1"
 
 [[deps.DataStructures]]
-deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
+deps = ["OrderedCollections"]
 path = "../../../packages/DataStructures"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.22"
+version = "0.19.4"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -99,7 +107,7 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 [[deps.Glob]]
 path = "../../../packages/Glob"
 uuid = "c27321d9-0574-5035-807b-f59d2c89b15c"
-version = "1.4.0"
+version = "1.5.0"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -118,10 +126,10 @@ uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
 version = "3.0.2-DEV"
 
 [[deps.JuliaFormatter]]
-deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "PrecompileTools", "TOML", "Tokenize"]
+deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "1.0.62"
+version = "2.5.0"
 
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
@@ -237,7 +245,7 @@ version = "0.7.0"
 deps = ["ExceptionUnwrapping", "MacroTools"]
 path = "../../../packages/Salsa"
 uuid = "1fbf2c77-44e2-4d5d-8131-0fa618a5c278"
-version = "2.3.2-DEV"
+version = "2.4.1-DEV"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
