@@ -106,12 +106,11 @@ async function main() {
         'OrderedCollections',
         'Tokenize',
         'URIParser',
-        // need 0.8 for JuliaFormatter compat
-        // 'CommonMark',
+        'CommonMark',
         'Compat',
         'Crayons',
-        // 'DataStructures', Needs to be on 0.18 for JuliaFormatter compat
-        // 'JuliaFormatter', Need more time to do the v2 transition
+        'DataStructures',
+        'JuliaFormatter',
         // 'URIs', Not compatible with earlier than Julia 1.6 versions
         'Revise',
         'DelimitedFiles',
