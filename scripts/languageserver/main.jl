@@ -169,7 +169,7 @@ try
 
     @debug "LanguageServer.jl loaded at $(round(Int, time()))"
 
-    symserver_store_path = joinpath(ARGS[5], "symbolstorev5")
+    symserver_store_path = joinpath(ARGS[5], "symbolstorev6")
 
     if !ispath(symserver_store_path)
         mkpath(symserver_store_path)
