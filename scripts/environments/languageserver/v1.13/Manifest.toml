@@ -31,7 +31,7 @@ version = "3.4.3"
 deps = ["Sockets"]
 path = "../../../packages/CancellationTokens"
 uuid = "2e8d271d-f2e2-407b-a864-17eb2156783e"
-version = "2.2.0"
+version = "2.3.0"
 
 [[deps.CommonMark]]
 deps = ["PrecompileTools"]
@@ -139,7 +139,7 @@ version = "3.0.2-DEV"
 deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "2.5.0"
+version = "2.5.1"
 
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
