@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Correctly mark right-hand-side bindings of `@enum` declarations ([StaticLint.jl#442](https://github.com/julia-vscode/StaticLint.jl/pull/442))
 - Infer types correctly for tuple destructuring assignments ([StaticLint.jl#443](https://github.com/julia-vscode/StaticLint.jl/pull/443))
 - Only check for missing references inside `@macro` calls when a new scope is introduced ([StaticLint.jl#444](https://github.com/julia-vscode/StaticLint.jl/pull/444))
+- The LS now tolerates some client requests against unopened documents ([LanguageServer#1393](https://github.com/julia-vscode/LanguageServer.jl/pull/1393))
 
 ## [1.215.0] - 2026-04-28
 ### Fixed
