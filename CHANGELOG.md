@@ -5,34 +5,106 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- The SymbolServer cache has been upgraded to v6, with a new on-disk format, magic-byte versioning, faster cache reads, recursion-depth caps, and hardened deserialization against corrupted caches ([#4101](https://github.com/julia-vscode/julia-vscode/pull/4101), [SymbolServer.jl#309](https://github.com/julia-vscode/SymbolServer.jl/pull/309), [SymbolServer.jl#310](https://github.com/julia-vscode/SymbolServer.jl/pull/310), [SymbolServer.jl#312](https://github.com/julia-vscode/SymbolServer.jl/pull/312))
+- SymbolServer now records method overloads when indexing packages and caches type parameters ([SymbolServer.jl#308](https://github.com/julia-vscode/SymbolServer.jl/pull/308), [SymbolServer.jl#313](https://github.com/julia-vscode/SymbolServer.jl/pull/313))
+- Upgraded to JuliaFormatter v2 ([LanguageServer.jl#1392](https://github.com/julia-vscode/LanguageServer.jl/pull/1392))
+- Enhanced hover documentation support for the `@doc` macro ([LanguageServer.jl#1377](https://github.com/julia-vscode/LanguageServer.jl/pull/1377))
+- The linter now handles bindings hoisted to the beginning of a local scope ([StaticLint.jl#440](https://github.com/julia-vscode/StaticLint.jl/pull/440))
+
+### Added
+- New duplicate `include` diagnostic in the linter ([StaticLint.jl#420](https://github.com/julia-vscode/StaticLint.jl/pull/420))
+- `@testset` and `@testitem` now introduce new scopes for linting purposes ([StaticLint.jl#425](https://github.com/julia-vscode/StaticLint.jl/pull/425))
+
 ### Fixed
-- Fix `@profview` error in Julia v1.8.5: `threadpooltids` and `threadpool` are undefined but called. Numeric order of thread dropdown menu in profiler view panel. ([#4100](https://github.com/julia-vscode/julia-vscode/pull/4100))
+- Fix `@profview` error in Julia v1.8.5: `threadpooltids` and `threadpool` are undefined but called ([#4100](https://github.com/julia-vscode/julia-vscode/pull/4100))
 - The REPL is now more robust against crashes when communication with the IDE is disrupted ([#4098](https://github.com/julia-vscode/julia-vscode/pull/4098))
+- Only crash on document sync mismatch if the document is actually open and at version > 0, avoiding spurious language server restarts ([LanguageServer.jl#1390](https://github.com/julia-vscode/LanguageServer.jl/pull/1390))
+- SymbolServer now correctly handles bounded `Vararg` signatures ([SymbolServer.jl#315](https://github.com/julia-vscode/SymbolServer.jl/pull/315))
+- Improved bounded `Vararg` matching in the linter ([StaticLint.jl#422](https://github.com/julia-vscode/StaticLint.jl/pull/422))
+- Avoid stack overflow when resolving circular bindings during import resolution ([StaticLint.jl#423](https://github.com/julia-vscode/StaticLint.jl/pull/423))
+- Correctly handle destructuring assignment of type aliases ([StaticLint.jl#426](https://github.com/julia-vscode/StaticLint.jl/pull/426))
+- Reassign bindings in nested local scopes instead of shadowing them ([StaticLint.jl#427](https://github.com/julia-vscode/StaticLint.jl/pull/427))
+- Accept `@nospecialize` without any arguments ([StaticLint.jl#428](https://github.com/julia-vscode/StaticLint.jl/pull/428))
+- Early-return in `add_binding` when the binding name is `nothing` ([StaticLint.jl#429](https://github.com/julia-vscode/StaticLint.jl/pull/429))
+- Correctly handle parametrized aliases for method definitions ([StaticLint.jl#430](https://github.com/julia-vscode/StaticLint.jl/pull/430))
+- Tolerate argument-count mismatch for macro-wrapped function definitions ([StaticLint.jl#432](https://github.com/julia-vscode/StaticLint.jl/pull/432))
+- Correctly resolve `using Base: foo` inside a `baremodule` ([StaticLint.jl#433](https://github.com/julia-vscode/StaticLint.jl/pull/433))
+- Stop emitting `const` declaration warnings for imported bindings ([StaticLint.jl#434](https://github.com/julia-vscode/StaticLint.jl/pull/434))
+- Don't show redeclaration warnings for bare `local` bindings ([StaticLint.jl#435](https://github.com/julia-vscode/StaticLint.jl/pull/435))
+- Handle multiple `where` clauses in function definitions ([StaticLint.jl#436](https://github.com/julia-vscode/StaticLint.jl/pull/436))
+- Show unused-funcarg warnings after underscore-prefixed args instead of suppressing all later ones ([StaticLint.jl#437](https://github.com/julia-vscode/StaticLint.jl/pull/437))
+- Unwrap `where` clauses for type aliases ([StaticLint.jl#438](https://github.com/julia-vscode/StaticLint.jl/pull/438))
+- Correctly mark `global` bindings declared in local scopes ([StaticLint.jl#439](https://github.com/julia-vscode/StaticLint.jl/pull/439))
+- Resolve `joinpath` calls with string-literal arguments ([StaticLint.jl#441](https://github.com/julia-vscode/StaticLint.jl/pull/441))
+- Correctly mark right-hand-side bindings of `@enum` declarations ([StaticLint.jl#442](https://github.com/julia-vscode/StaticLint.jl/pull/442))
+- Infer types correctly for tuple destructuring assignments ([StaticLint.jl#443](https://github.com/julia-vscode/StaticLint.jl/pull/443))
+- Only check for missing references inside `@macro` calls when a new scope is introduced ([StaticLint.jl#444](https://github.com/julia-vscode/StaticLint.jl/pull/444))
 
 ## [1.215.0] - 2026-04-28
 ### Fixed
 - Fixed an issue where REPL hooks were not properly installed for external REPLs, causing e.g. the integrated plot viewer to silently fail ([#4097](https://github.com/julia-vscode/julia-vscode/pull/4097))
 
-## [1.210.0] - 2026-04-20
+## [1.214.0] - 2026-04-27
 ### Fixed
-- Fixed an issue where the extension would not activate if Julia is not installed, breaking the auto-installation flow ([#4082](https://github.com/julia-vscode/julia-vscode/pull/4082))
+- Reverted the REPL hook installation change from 1.213.0 because it broke external REPL setups ([#4096](https://github.com/julia-vscode/julia-vscode/pull/4096))
+
+## [1.213.0] - 2026-04-27
+### Fixed
+- Improved handling of "Julia not found" situations across the debugger, REPL, package tools, notebooks, tests, and weave so users get a clear error rather than a low-level exception ([#4091](https://github.com/julia-vscode/julia-vscode/pull/4091))
+- Run REPL hook installation in `serve()` so hooks attach reliably (later reverted in 1.214.0) ([#4093](https://github.com/julia-vscode/julia-vscode/pull/4093))
+
+## [1.212.0] - 2026-04-23
+### Fixed
+- Hardened the telemetry plumbing: properly `await` async command handlers, guard against errors during REPL connection disposal, and fix a regression in the telemetry handler itself ([#4089](https://github.com/julia-vscode/julia-vscode/pull/4089))
+
+## [1.211.0] - 2026-04-20
+### Changed
+- Substantially improved language server error handling ([#4088](https://github.com/julia-vscode/julia-vscode/pull/4088))
 
 ### Changed
 - `view_profile` now accepts a second optional argument for `lidict`, which should allow plotting profiles retrieved from other sessions or machines ([#4080](https://github.com/julia-vscode/julia-vscode/pull/4080))
+- Removed the unused `applyTextEdit` command ([#4086](https://github.com/julia-vscode/julia-vscode/pull/4086))
+
+### Fixed
+- Fixed an issue where the extension would not activate if Julia is not installed, breaking the auto-installation flow ([#4082](https://github.com/julia-vscode/julia-vscode/pull/4082))
 
 ## [1.209.0] - 2026-04-10
 ### Fixed
 - Fixed a bug where the Julia installation check during activation was not awaited, occasionally skipping the `julia installed` state ([#4074](https://github.com/julia-vscode/julia-vscode/pull/4074))
+- Widened the telemetry error handler so additional crash report types are captured ([#4075](https://github.com/julia-vscode/julia-vscode/pull/4075))
+- Fix off-by-one when inferring binding types by use ([StaticLint.jl#412](https://github.com/julia-vscode/StaticLint.jl/pull/412))
+- Correctly update the document version in the `didChange` handler ([LanguageServer.jl#1380](https://github.com/julia-vscode/LanguageServer.jl/pull/1380))
+- Properly initializie editor PID polling so the language server reliably shuts down with the IDE ([LanguageServer.jl#1379](https://github.com/julia-vscode/LanguageServer.jl/pull/1379))
+- Fix `Base.hash` overload to use only the two-argument method ([LanguageServer.jl#1381](https://github.com/julia-vscode/LanguageServer.jl/pull/1381))
 
 ## [1.208.0] - 2026-04-01
 ### Fixed
 - Fixed an error in the notebook feature related to juliaup channel comparisons ([#4070](https://github.com/julia-vscode/julia-vscode/pull/4070))
+- Fixed a number of crash report errors in the documentation browser, workspace view, and weave feature ([#4071](https://github.com/julia-vscode/julia-vscode/pull/4071))
+
+## [1.206.0] - 2026-03-31
+### Added
+- Package version tagging now supports release notes ([#4048](https://github.com/julia-vscode/julia-vscode/pull/4048))
+
+### Changed
+- Reduced the amount of telemetry data the extension sends ([#4069](https://github.com/julia-vscode/julia-vscode/pull/4069))
+
+### Fixed
+- Errors thrown from event handlers now produce correct telemetry ([#4068](https://github.com/julia-vscode/julia-vscode/pull/4068))
+
+## [1.204.0] - 2026-03-31
+### Changed
+- Updated to the new test item controller protocol ([#4066](https://github.com/julia-vscode/julia-vscode/pull/4066))
 
 ## [1.203.0] - 2026-03-26
 ### Fixed
 - Revamped crash handling for the test item controller so failures surface more reliably ([#4065](https://github.com/julia-vscode/julia-vscode/pull/4065))
 
 ## [1.201.0] - 2026-03-24
+### Added
+- Stack traces are now attached to test failure messages ([ca5e181b](https://github.com/julia-vscode/julia-vscode/commit/ca5e181b4d662db2da57dd2bdfd1cc27303dc8c8))
+
 ### Fixed
 - Fixed a race condition where user REPL configuration (e.g. `auto_insert_closing_bracket`) set in `startup.jl` via `atreplinit` could be overwritten ([#4063](https://github.com/julia-vscode/julia-vscode/pull/4063))
 
