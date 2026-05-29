@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.217.0] - 2026-05-29
+### Fixed
+- Emit a warning when trying to call a function with no methods ([StaticLint.jl#445](https://github.com/julia-vscode/StaticLint.jl/pull/445))
+- Correctly handle primitive type supertype computation in the linter ([StaticLint.jl#446](https://github.com/julia-vscode/StaticLint.jl/pull/446))
+
 ## [1.216.0] - 2026-05-29
 ### Changed
 - The SymbolServer cache has been upgraded to v6, with a new on-disk format, magic-byte versioning, faster cache reads, recursion-depth caps, and hardened deserialization against corrupted caches ([#4101](https://github.com/julia-vscode/julia-vscode/pull/4101), [SymbolServer.jl#309](https://github.com/julia-vscode/SymbolServer.jl/pull/309), [SymbolServer.jl#310](https://github.com/julia-vscode/SymbolServer.jl/pull/310), [SymbolServer.jl#312](https://github.com/julia-vscode/SymbolServer.jl/pull/312))
