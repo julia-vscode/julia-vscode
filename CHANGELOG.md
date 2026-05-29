@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.218.0] - 2026-05-29
+### Fixed
+- Fix an issue with constructors in the linter's method argument-count check ([StaticLint.jl#447](https://github.com/julia-vscode/StaticLint.jl/pull/447))
+- Handle `@nospecialize` with no arguments during method matching ([StaticLint.jl#448](https://github.com/julia-vscode/StaticLint.jl/pull/448))
+
 ## [1.217.0] - 2026-05-29
 ### Fixed
 - Emit a warning when trying to call a function with no methods ([StaticLint.jl#445](https://github.com/julia-vscode/StaticLint.jl/pull/445))
