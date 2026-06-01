@@ -1705,7 +1705,8 @@
         "vsce-package": "vsce package",
         "updatedeps": "npm run compile-tests && node ./out/scripts/updateDeps.js",
         "tagminor": "npm version minor && git push --tags && git push",
-        "tagmajor": "npm version major && git push --tags && git push"
+        "tagmajor": "npm version major && git push --tags && git push",
+        "install-extension-locally": "vsce package --pre-release -o language-julia-dev-version.vsix && code --install-extension language-julia-dev-version.vsix"
     },
     "dependencies": {
         "@traptitech/markdown-it-katex": "^3.6.0",
