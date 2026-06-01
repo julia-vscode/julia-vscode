@@ -42,7 +42,13 @@ let
 
     @debug "settings done" time=round(Int, time()*10)
 
-    VSCodeServer.serve(conn_pipename, debug_pipename; is_dev="DEBUG_MODE=true" in args, error_handler = (err, bt) -> VSCodeServer.global_err_handler(err, bt, telemetry_pipename, "REPL"))
+    VSCodeServer.serve(
+        conn_pipename,
+        debug_pipename;
+        is_dev="DEBUG_MODE=true" in args,
+        error_handler = (err, bt; should_exit=true) -> VSCodeServer.global_err_handler(err, bt, telemetry_pipename, "REPL"; should_exit = should_exit)
+    )
+
     @debug "serve done" time=round(Int, time()*10)
     if !has_revise
         VSCodeServer.JSONRPC.send_notification(VSCodeServer.conn_endpoint[], "norevise", has_revise)

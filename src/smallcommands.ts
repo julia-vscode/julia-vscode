@@ -3,23 +3,6 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { registerCommand } from './utils'
 
-function applyTextEdit(we) {
-    const wse = new vscode.WorkspaceEdit()
-    for (const edit of we.documentChanges[0].edits) {
-        wse.replace(
-            we.documentChanges[0].textDocument.uri,
-            new vscode.Range(
-                edit.range.start.line,
-                edit.range.start.character,
-                edit.range.end.line,
-                edit.range.end.character
-            ),
-            edit.newText
-        )
-    }
-    vscode.workspace.applyEdit(wse)
-}
-
 // function lintPackage() {
 //     telemetry.traceEvent('command-lintpackage');
 
@@ -86,8 +69,5 @@ async function newJuliaFile(uri?: vscode.Uri) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(
-        registerCommand('language-julia.applytextedit', applyTextEdit),
-        registerCommand('language-julia.newJuliaFile', newJuliaFile)
-    )
+    context.subscriptions.push(registerCommand('language-julia.newJuliaFile', newJuliaFile))
 }

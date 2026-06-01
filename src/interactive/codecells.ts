@@ -376,14 +376,17 @@ class CodeCellExecutionFeature extends JuliaCellManager {
         this.updateSaveOnEval()
         this.updateInlineResultsForCellEvaluation()
         this.context.subscriptions.push(
-            registerCommand('language-julia.moveCellUp', this.moveCell.bind(this, 'up')),
-            registerCommand('language-julia.moveCellDown', this.moveCell.bind(this, 'down')),
-            registerCommand('language-julia.selectCell', this.selectCell.bind(this)),
-            registerCommand('language-julia.executeCell', this.executeCell.bind(this)),
-            registerCommand('language-julia.executeCellAndMove', this.executeCellAndMove.bind(this, 'down')),
-            registerCommand('language-julia.executeCurrentAndBelowCells', this.executeCurrentAndBelowCells.bind(this)),
-            registerCommand('language-julia.executeAboveCells', this.executeAboveCells.bind(this)),
-            registerCommand('language-julia.debugCell', this.debugCell.bind(this))
+            registerCommand('language-julia.moveCellUp', async () => this.moveCell('up')),
+            registerCommand('language-julia.moveCellDown', async () => this.moveCell('down')),
+            registerCommand('language-julia.selectCell', async () => this.selectCell()),
+            registerCommand('language-julia.executeCell', async () => await this.executeCell()),
+            registerCommand('language-julia.executeCellAndMove', async () => await this.executeCellAndMove('down')),
+            registerCommand(
+                'language-julia.executeCurrentAndBelowCells',
+                async () => await this.executeCurrentAndBelowCells()
+            ),
+            registerCommand('language-julia.executeAboveCells', async () => await this.executeAboveCells()),
+            registerCommand('language-julia.debugCell', async () => await this.debugCell())
         )
 
         this.context.subscriptions.push(

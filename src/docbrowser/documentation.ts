@@ -65,11 +65,13 @@ export function activate(context: vscode.ExtensionContext, languageClientFeature
     const provider = new DocumentationViewProvider(context, languageClientFeature)
 
     context.subscriptions.push(
-        registerCommand('language-julia.show-documentation-pane', () => provider.showDocumentationPane()),
-        registerCommand('language-julia.show-documentation', () => provider.showDocumentation()),
-        registerCommand('language-julia.browse-back-documentation', () => provider.browseBack()),
-        registerCommand('language-julia.browse-forward-documentation', () => provider.browseForward()),
-        registerCommand('language-julia.search-word', (params) => provider.findHelp(params)),
+        registerCommand('language-julia.show-documentation-pane', async () => await provider.showDocumentationPane()),
+        registerCommand('language-julia.show-documentation', async () => await provider.showDocumentation()),
+        registerCommand('language-julia.browse-back-documentation', async () => provider.browseBack()),
+        registerCommand('language-julia.browse-forward-documentation', async () => provider.browseForward()),
+        registerCommand('language-julia.search-word', async (params: { searchTerm: string }) =>
+            provider.findHelp(params)
+        ),
         vscode.window.registerWebviewViewProvider('julia-documentation', provider)
     )
 }

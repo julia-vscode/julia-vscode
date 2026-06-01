@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.5"
+julia_version = "1.12.6"
 manifest_format = "2.0"
 project_hash = "4fd73e3be5deb65cccec59a0feca3cd03bd23231"
 
@@ -20,7 +20,7 @@ version = "1.11.0"
 deps = ["Sockets"]
 path = "../../../packages/CancellationTokens"
 uuid = "2e8d271d-f2e2-407b-a864-17eb2156783e"
-version = "2.0.2"
+version = "2.3.0"
 
 [[deps.CodeTracking]]
 deps = ["InteractiveUtils", "REPL", "UUIDs"]

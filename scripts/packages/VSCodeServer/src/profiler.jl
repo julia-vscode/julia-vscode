@@ -11,14 +11,20 @@ const ProfileFrameFlag = (
 
 const all_threads_name = "all"
 
-function view_profile(data = Profile.fetch(); C=false, kwargs...)
+function view_profile(data = Profile.fetch(), lidict = Profile.getdict(unique(data)); C=false, kwargs...)
     d = Dict{String,ProfileFrame}()
 
     if VERSION >= v"1.8.0-DEV.460"
-        all_tids = sort([Threads.threadpooltids(:interactive)..., Threads.threadpooltids(:default)...])
+        all_tids = if isdefined(Threads, :threadpooltids)
+            sort([Threads.threadpooltids(:interactive)..., Threads.threadpooltids(:default)...])
+        else
+            Int[1:Threads.nthreads()...]
+        end
         threads = [nothing, all_tids...]
+        max_thread_chars = length(string(all_tids[end]))  # thread name padding
     else
         threads = [nothing]
+        max_thread_chars = 0
     end
 
     if isempty(data)
@@ -26,14 +32,18 @@ function view_profile(data = Profile.fetch(); C=false, kwargs...)
         return
     end
 
-    lidict = Profile.getdict(unique(data))
     data_u64 = convert(Vector{UInt64}, data)
+
     for thread in threads
         graph = stackframetree(data_u64, lidict; thread=thread, kwargs...)
         threadname = if thread === nothing
             all_threads_name
+        elseif isdefined(Threads, :threadpool)
+            n_spaces = max_thread_chars - length(string(thread))  # n_spaces for numeric ordering
+            "$(" "^n_spaces)$(thread) ($(Threads.threadpool(thread)))"
         else
-            "$(thread) ($(Threads.threadpool(thread)))"
+            n_spaces = max_thread_chars - length(string(thread))  # n_spaces for numeric ordering
+            "$(" "^n_spaces)$(thread)"
         end
         d[threadname] = make_tree(
             ProfileFrame(

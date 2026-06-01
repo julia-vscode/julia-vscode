@@ -21,16 +21,19 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         registerCommand('language-julia.save-plot', requestExportPlot),
-        registerCommand('language-julia.show-plotpane', showPlotPane),
+        registerCommand('language-julia.show-plotpane', async () => showPlotPane()),
         registerCommand('language-julia.plotpane-enable', enablePlotPane),
         registerCommand('language-julia.plotpane-disable', disablePlotPane),
-        registerCommand('language-julia.plotpane-previous', plotPanePrev),
-        registerCommand('language-julia.plotpane-next', plotPaneNext),
-        registerCommand('language-julia.plotpane-first', plotPaneFirst),
-        registerCommand('language-julia.plotpane-last', plotPaneLast),
-        registerCommand('language-julia.plotpane-delete', plotPaneDel),
-        registerCommand('language-julia.plotpane-delete-all', plotPaneDelAll),
-        registerCommand('language-julia.show-plot-navigator', () => g_plotNavigatorProvider.showPlotNavigator()),
+        registerCommand('language-julia.plotpane-previous', async () => plotPanePrev()),
+        registerCommand('language-julia.plotpane-next', async () => plotPaneNext()),
+        registerCommand('language-julia.plotpane-first', async () => plotPaneFirst()),
+        registerCommand('language-julia.plotpane-last', async () => plotPaneLast()),
+        registerCommand('language-julia.plotpane-delete', async () => plotPaneDel()),
+        registerCommand('language-julia.plotpane-delete-all', async () => plotPaneDelAll()),
+        registerCommand(
+            'language-julia.show-plot-navigator',
+            async () => await g_plotNavigatorProvider.showPlotNavigator()
+        ),
         vscode.window.registerWebviewViewProvider('julia-plot-navigator', g_plotNavigatorProvider)
     )
 }
@@ -312,14 +315,14 @@ function makeTitle() {
     return plotTitle
 }
 
-function enablePlotPane() {
+async function enablePlotPane() {
     const conf = vscode.workspace.getConfiguration('julia')
-    conf.update('usePlotPane', true, vscode.ConfigurationTarget.Global)
+    await conf.update('usePlotPane', true, vscode.ConfigurationTarget.Global)
 }
 
-function disablePlotPane() {
+async function disablePlotPane() {
     const conf = vscode.workspace.getConfiguration('julia')
-    conf.update('usePlotPane', false, vscode.ConfigurationTarget.Global)
+    await conf.update('usePlotPane', false, vscode.ConfigurationTarget.Global)
 }
 
 function updatePlotPane(lazy = false) {
@@ -921,8 +924,8 @@ function displayCustom(payload, id, title?: string) {
 /**
  * Send export request(message) to the plot pane.
  */
-function requestExportPlot() {
-    g_plotPanel.webview.postMessage({
+async function requestExportPlot() {
+    await g_plotPanel.webview.postMessage({
         type: 'requestSavePlot',
         body: { index: g_currentPlotIndex },
     })

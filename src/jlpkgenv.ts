@@ -1,11 +1,13 @@
 import * as fs from 'async-file'
 import * as os from 'os'
 import * as path from 'path'
-import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
-import { ExecutableFeature } from './executables'
+import { ExecutableFeature, JuliaNotFoundError } from './executables'
 import * as packagepath from './packagepath'
-import { onEvent, parseVSCodeVariables, registerCommand, resolvePath } from './utils'
+import { parseVSCodeVariables, registerCommand, resolvePath } from './utils'
+import { promisify } from 'node:util'
+import child_process from 'node:child_process'
+const execFile = promisify(child_process.execFile)
 
 let g_current_environment: vscode.StatusBarItem = null
 
@@ -69,7 +71,17 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
                   vscode.workspace.workspaceFolders[0].uri.fsPath.slice(1)
                 : vscode.workspace.workspaceFolders[0].uri.fsPath
 
-        const juliaExecutable = await g_ExecutableFeature.getExecutable()
+        let juliaExecutable
+        try {
+            juliaExecutable = await g_ExecutableFeature.getExecutable()
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                // Without Julia we can't validate whether the workspace is part of the
+                // environment; the user has already been notified by `getExecutable`.
+                return
+            }
+            throw err
+        }
         const res = await execFile(
             juliaExecutable.command,
             [
@@ -118,6 +130,19 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
 }
 
 async function changeJuliaEnvironment(envPath?: string) {
+    try {
+        await changeJuliaEnvironmentImpl(envPath)
+    } catch (err) {
+        if (err instanceof JuliaNotFoundError) {
+            // The user was already informed by `ExecutableFeature` that Julia could not be
+            // located; nothing else to do for the env switcher.
+            return
+        }
+        throw err
+    }
+}
+
+async function changeJuliaEnvironmentImpl(envPath?: string) {
     if (envPath && envPath !== '') {
         switchEnvToPath(envPath, true)
         return

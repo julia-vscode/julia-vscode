@@ -64,13 +64,6 @@ const DEBUG_PIPENAME = Ref{String}()
 function __init__()
     FALLBACK_CONSOLE_LOGGER_REF[] = Logging.ConsoleLogger()
     DEBUG_SESSION[] = Channel{DebugAdapter.DebugSession}(1)
-    atreplinit() do repl
-        @async try
-            hook_repl(repl)
-        catch err
-            Base.display_error(err, catch_backtrace())
-        end
-    end
 
     push!(Base.package_callbacks, on_pkg_load)
 
@@ -109,9 +102,11 @@ is_disconnected_exception(err) = false
 is_disconnected_exception(err::InvalidStateException) = err.state === :closed
 is_disconnected_exception(err::Base.IOError) = true
 # thrown by JSONRPC when the endpoint is not open anymore.
-# FIXME: adjust this once JSONRPC throws its own error type
 is_disconnected_exception(err::ErrorException) = startswith(err.msg, "Endpoint is not running, the current state is")
 is_disconnected_exception(err::CompositeException) = all(is_disconnected_exception, err.exceptions)
+is_disconnected_exception(err::JSONRPC.TransportError) = true
+is_disconnected_exception(err::JSONRPC.JSONRPCError) = true
+is_disconnected_exception(err::JSONRPC.CancellationTokens.OperationCanceledException) = true
 
 function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     if is_dev
@@ -127,6 +122,16 @@ end
 
 function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing)
     @debug "start serve" time=round(Int, time()*10)
+
+    if isdefined(Base, :active_repl)
+        try_hook_repl(Base.active_repl)
+    else
+        atreplinit() do repl
+            try_hook_repl(repl)
+        end
+    end
+
+    @debug "connect to pipe" time=round(Int, time()*10)
     conn = connect(conn_pipename)
 
     @debug "eval backend" time=round(Int, time()*10)
@@ -197,7 +202,7 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
             println(stderr, "\n\n\x1b[30;41m * \x1b[0m Lost connection to the editor. You can use the 'Julia: Connect External REPL' command to reconnect. \x1b[30;41m * \x1b[0m\n\n")
         else
             try
-                error_handler(err, catch_backtrace())
+                error_handler(err, catch_backtrace(); should_exit = false)
             catch err
                 @error "Error handler threw an error." exception = (err, catch_backtrace())
             end

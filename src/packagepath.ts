@@ -1,7 +1,9 @@
-import { execFile } from 'promisify-child-process'
 import * as vscode from 'vscode'
 import { ExecutableFeature } from './executables'
 import { onEvent } from './utils'
+import { promisify } from 'node:util'
+import child_process from 'node:child_process'
+const execFile = promisify(child_process.execFile)
 
 let juliaPackagePath: string = null
 

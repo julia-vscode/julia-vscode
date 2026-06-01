@@ -3,15 +3,13 @@ import { Subject } from 'await-notify'
 import * as net from 'net'
 import { homedir } from 'os'
 import * as path from 'path'
-import { exec } from 'promisify-child-process'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
-import * as vslc from 'vscode-languageclient/node'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import { LanguageClientFeature } from '../languageClient'
-import { JuliaExecutable, ExecutableFeature, JuliaupChannel } from '../executables'
+import { JuliaExecutable, ExecutableFeature, JuliaupChannel, JuliaNotFoundError } from '../executables'
 import * as telemetry from '../telemetry'
 import {
     generatePipeName,
@@ -21,8 +19,8 @@ import {
     onEvent,
     registerCommand,
     setContext,
-    wrapCrashReporting,
     parseVSCodeVariables,
+    wrapCrashReporting,
 } from '../utils'
 import * as completions from './completions'
 import { VersionedTextDocumentPositionParams } from './misc'
@@ -33,9 +31,13 @@ import { Frame, openFile } from './results'
 import { TaskRunnerTerminal } from '../taskRunnerTerminal'
 import { promise as fastq } from 'fastq'
 import { randomUUID } from 'crypto'
+import { promisify } from 'node:util'
+import child_process from 'node:child_process'
+import { Uri } from 'vscode'
+const exec = promisify(child_process.exec)
 
 let g_context: vscode.ExtensionContext = null
-let g_languageClient: vslc.LanguageClient = null
+let g_languageClientFeature: LanguageClientFeature = null
 let g_compiledProvider = null
 export const g_evalQueue = fastq(sendEvalRequest, 1)
 
@@ -48,12 +50,12 @@ let g_terminal_is_persistent: boolean = false
 
 let g_ExecutableFeature: ExecutableFeature
 
-function startREPLCommand() {
-    startREPL(false, true)
+async function startREPLCommand() {
+    await startREPL(false, true)
 }
 
-function startREPLWithVersionCommand(versionName?: string) {
-    startREPLWithVersion(versionName)
+async function startREPLWithVersionCommand(versionName?: string) {
+    await startREPLWithVersion(versionName)
 }
 
 async function confirmKill() {
@@ -203,7 +205,15 @@ export async function startREPL(
 
     let shellPath: string, shellArgs: string[]
     if (!juliaExecutable) {
-        juliaExecutable = await g_ExecutableFeature.getExecutable(true)
+        try {
+            juliaExecutable = await g_ExecutableFeature.getExecutable(true)
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                vscode.window.showErrorMessage('Cannot start the Julia REPL: Julia is not installed.')
+                return
+            }
+            throw err
+        }
     }
 
     const terminalName = makeTerminalName(juliaExecutable)
@@ -335,7 +345,16 @@ function makeTerminalName(juliaExecutable: JuliaExecutable) {
 
 async function startREPLWithVersion(channelName?: string) {
     const isInteractive = channelName === undefined
-    const juliaup = await g_ExecutableFeature.getJuliaupExecutable()
+    let juliaup
+    try {
+        juliaup = await g_ExecutableFeature.getJuliaupExecutable()
+    } catch (err) {
+        if (err instanceof JuliaNotFoundError) {
+            vscode.window.showErrorMessage('Please install juliaup to manage multiple versions!')
+            return
+        }
+        throw err
+    }
 
     if (!juliaup) {
         if (isInteractive) {
@@ -346,7 +365,17 @@ async function startREPLWithVersion(channelName?: string) {
         }
     }
 
-    const versions = (await juliaup.installed()).map((c) => {
+    let installedChannels: JuliaupChannel[]
+    try {
+        installedChannels = await juliaup.installed()
+    } catch (err) {
+        if (err instanceof JuliaNotFoundError) {
+            // `installed()` already showed an error message to the user.
+            return
+        }
+        throw err
+    }
+    const versions: (JuliaupChannel & vscode.QuickPickItem)[] = installedChannels.map((c) => {
         return {
             ...c,
             label: c.name,
@@ -430,9 +459,9 @@ async function _connectREPL(juliaIsConnectedPromise) {
     }
 }
 
-function disconnectREPL() {
+async function disconnectREPL() {
     if (g_terminal) {
-        vscode.window.showWarningMessage('Cannot disconnect from integrated REPL.')
+        await vscode.window.showWarningMessage('Cannot disconnect from integrated REPL.')
     } else {
         if (isConnected()) {
             g_connection.end()
@@ -520,7 +549,11 @@ function startREPLMsgServer(pipename: string, juliaExecutable?: JuliaExecutable)
 
     const server = net.createServer((socket: net.Socket) => {
         socket.on('close', (hadError) => {
-            g_connection?.dispose()
+            try {
+                g_connection?.dispose()
+            } catch {
+                // ignore errors during dispose, as we're closing the connection anyway
+            }
             g_connection = undefined
 
             g_onExit.fire(hadError)
@@ -642,11 +675,11 @@ interface InlayHintConfig {
 
 type DisplayTypeUnion = { source: string; items: DiagnosticData[] } | { [key: string]: InlayHintConfig } | string
 
-function isDiagnostic(kind: string, data: DisplayTypeUnion): data is { source: string; items: DiagnosticData[] } {
+function isDiagnostic(kind: string, _data: DisplayTypeUnion): _data is { source: string; items: DiagnosticData[] } {
     return kind === 'application/vnd.julia-vscode.diagnostics'
 }
 
-function isInlayHint(kind: string, data: DisplayTypeUnion): data is { [key: string]: InlayHintConfig } {
+function isInlayHint(kind: string, _data: DisplayTypeUnion): _data is { [key: string]: InlayHintConfig } {
     return kind === 'application/vnd.julia-vscode.inlayHints'
 }
 
@@ -778,18 +811,16 @@ function clearDiagnostics() {
     g_trace_diagnostics.forEach((_, source) => _clearDiagnostic(source))
 }
 
-function clearDiagnosticsByProvider() {
+async function clearDiagnosticsByProvider() {
     const sources = Array(...g_trace_diagnostics.keys())
-    vscode.window
-        .showQuickPick(sources, {
-            // canPickMany: true, // not work nicely with keyboard shortcuts
-            title: 'Select sources of diagnostics to filter them out.',
-        })
-        .then((source) => {
-            if (source) {
-                _clearDiagnostic(source)
-            }
-        })
+    const source = await vscode.window.showQuickPick(sources, {
+        // canPickMany: true, // not work nicely with keyboard shortcuts
+        title: 'Select sources of diagnostics to filter them out.',
+    })
+
+    if (source) {
+        _clearDiagnostic(source)
+    }
 }
 
 function _clearDiagnostic(source: string) {
@@ -880,21 +911,24 @@ export async function getBlockRange(params: VersionedTextDocumentPositionParams)
     const zeroPos = new vscode.Position(0, 0)
     const zeroReturn = [zeroPos, zeroPos, params.position]
 
-    try {
-        return (await g_languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(
-            (pos) => new vscode.Position(pos.line, pos.character)
-        )
-    } catch (err) {
-        if (err.message === 'Language client is not ready yet') {
-            vscode.window.showErrorMessage(err.message)
-        } else {
-            console.error(err)
-            vscode.window.showErrorMessage(
-                'Error while communicating with the LS. Check Output > Julia Language Server for additional information.'
+    return await g_languageClientFeature.withLanguageClient(
+        async (languageClient) => {
+            return (await languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(
+                (pos) => new vscode.Position(pos.line, pos.character)
             )
+        },
+        (err) => {
+            if (err.message === 'Language client is not ready yet') {
+                vscode.window.showErrorMessage(err.message)
+            } else {
+                console.error(err)
+                vscode.window.showErrorMessage(
+                    'Error while communicating with the LS. Check Output > Julia Language Server for additional information.'
+                )
+            }
+            return zeroReturn
         }
-        return zeroReturn
-    }
+    )
 }
 
 async function selectJuliaBlock() {
@@ -1059,7 +1093,7 @@ async function executeCodeCopyPaste(text: string, individualLine: boolean) {
     }
 }
 
-function executeSelectionCopyPaste() {
+async function executeSelectionCopyPaste() {
     const editor = vscode.window.activeTextEditor
     if (!editor) {
         return
@@ -1082,7 +1116,7 @@ function executeSelectionCopyPaste() {
             }
         }
     }
-    executeCodeCopyPaste(text, selection.isEmpty)
+    await executeCodeCopyPaste(text, selection.isEmpty)
 }
 
 export async function executeInREPL(
@@ -1242,8 +1276,16 @@ async function linkHandler(link: JuliaTerminalLink) {
         file = path.join(homedir(), file.slice(1))
     } else if (!path.isAbsolute(file)) {
         // Base file
-        const exe = await g_ExecutableFeature.getExecutable()
-        file = path.join(await exe.rootFolder(), file)
+        try {
+            const exe = await g_ExecutableFeature.getExecutable()
+            file = path.join(await exe.rootFolder(), file)
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                // Can't resolve a base-file link without Julia; just stop.
+                return
+            }
+            throw err
+        }
     }
     try {
         await openFile(file, line)
@@ -1299,14 +1341,12 @@ export function activate(
 ) {
     g_context = context
     g_ExecutableFeature = ExecutableFeature
+    g_languageClientFeature = languageClientFeature
 
     g_compiledProvider = compiledProvider
 
     context.subscriptions.push(
         // listeners
-        onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
-            g_languageClient = languageClient
-        }),
         onInit(
             wrapCrashReporting(({ connection, juliaExecutable }) => {
                 connection.onNotification(notifyTypeDisplay, display)
@@ -1429,17 +1469,20 @@ export function activate(
         registerCommand('language-julia.disconnectREPL', disconnectREPL),
         registerCommand('language-julia.selectBlock', selectJuliaBlock),
         registerCommand('language-julia.executeCodeBlockOrSelection', evaluateBlockOrSelection),
-        registerCommand('language-julia.executeCodeBlockOrSelectionAndMove', () => evaluateBlockOrSelection(true)),
+        registerCommand(
+            'language-julia.executeCodeBlockOrSelectionAndMove',
+            async () => await evaluateBlockOrSelection(true)
+        ),
         registerCommand('language-julia.executeActiveFile', () => executeFile()),
-        registerCommand('language-julia.executeFile', (uri) => executeFile(uri)),
+        registerCommand('language-julia.executeFile', async (uri: string | Uri) => await executeFile(uri)),
         registerCommand('language-julia.interrupt', interrupt),
         registerCommand('language-julia.executeJuliaCodeInREPL', executeSelectionCopyPaste), // copy-paste selection into REPL. doesn't require LS to be started
         registerCommand('language-julia.cdHere', cdToHere),
         registerCommand('language-julia.activateHere', activateHere),
         registerCommand('language-julia.activateFromDir', activateFromDir),
-        registerCommand('language-julia.clearRuntimeDiagnostics', clearDiagnostics),
+        registerCommand('language-julia.clearRuntimeDiagnostics', async () => clearDiagnostics()),
         registerCommand('language-julia.clearRuntimeDiagnosticsByProvider', clearDiagnosticsByProvider),
-        registerCommand('language-julia.clearInlayHints', clearInlayHints)
+        registerCommand('language-julia.clearInlayHints', async () => clearInlayHints())
     )
 
     const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated')

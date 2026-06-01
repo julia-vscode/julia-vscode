@@ -1,10 +1,10 @@
 import * as semver from 'semver'
 import * as vscode from 'vscode'
 import { NotebookNode, WorkspaceFeature } from '../interactive/workspace'
-import { JuliaExecutable, ExecutableFeature } from '../executables'
+import { JuliaExecutable, ExecutableFeature, JuliaNotFoundError } from '../executables'
 import { onEvent, registerCommand } from '../utils'
 import { JuliaKernel } from './notebookKernel'
-import isEqual from 'lodash.isequal'
+import { isDeepStrictEqual } from 'node:util'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 
 const JupyterNotebookViewType = 'jupyter-notebook'
@@ -59,8 +59,16 @@ export class JuliaNotebookFeature {
         onEvent(vscode.window.onDidChangeVisibleNotebookEditors, this.init.bind(this), this, this.disposables)
 
         context.subscriptions.push(
-            registerCommand('language-julia.stopKernel', (node) => this.stopKernel(node)),
-            registerCommand('language-julia.restartKernel', (node) => this.restartKernel(node)),
+            registerCommand(
+                'language-julia.stopKernel',
+                async (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
+                    await this.stopKernel(node)
+            ),
+            registerCommand(
+                'language-julia.restartKernel',
+                async (node: NotebookNode | { notebookEditor: { notebookUri: vscode.Uri } }) =>
+                    await this.restartKernel(node)
+            ),
             // vscode.commands.registerCommand('language-julia.toggleDebugging', () => {
             //     if (vscode.window.activeNotebookEditor) {
             //         const { notebook: notebookDocument } = vscode.window.activeNotebookEditor;
@@ -120,7 +128,18 @@ export class JuliaNotebookFeature {
         console.log('initalizing notebook feature')
         this._outputChannel = vscode.window.createOutputChannel('Julia Notebook Kernels')
 
-        const juliaVersions = await this.juliaExecutableFeature.getExecutables()
+        let juliaVersions
+        try {
+            juliaVersions = await this.juliaExecutableFeature.getExecutables()
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                // No Julia available; skip controller registration. The user has already been
+                // informed by `ExecutableFeature`. We will retry on the next init trigger.
+                this.initialized = false
+                return
+            }
+            throw err
+        }
 
         for (const juliaVersion of juliaVersions) {
             const ver = juliaVersion.getVersion()
@@ -321,7 +340,7 @@ export class JuliaNotebookFeature {
             },
         }
 
-        if (!isEqual(getNotebookMetadata(notebook), metadata)) {
+        if (!isDeepStrictEqual(getNotebookMetadata(notebook), metadata)) {
             const edit = new vscode.WorkspaceEdit()
             edit.set(notebook.uri, [
                 vscode.NotebookEdit.updateNotebookMetadata({

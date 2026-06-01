@@ -3,7 +3,7 @@ import * as semver from 'semver'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
-import { JuliaExecutable, ExecutableFeature } from '../executables'
+import { JuliaExecutable, ExecutableFeature, JuliaNotFoundError } from '../executables'
 import * as path from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
 import { TestControllerNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
@@ -121,7 +121,14 @@ export class JuliaTestController {
         let juliaExecutable: JuliaExecutable | null
 
         if (process.env.DEBUG_MODE) {
-            juliaExecutable = await this.executableFeature.getExecutable()
+            try {
+                juliaExecutable = await this.executableFeature.getExecutable()
+            } catch (err) {
+                if (err instanceof JuliaNotFoundError) {
+                    return true
+                }
+                throw err
+            }
         } else {
             if (!(await this.executableFeature.hasJuliaup())) {
                 vscode.window.showErrorMessage(
@@ -130,7 +137,15 @@ export class JuliaTestController {
                 return true
             }
 
-            const juliaup = await this.executableFeature.getJuliaupExecutable(false)
+            let juliaup
+            try {
+                juliaup = await this.executableFeature.getJuliaupExecutable(false)
+            } catch (err) {
+                if (err instanceof JuliaNotFoundError) {
+                    return true
+                }
+                throw err
+            }
 
             try {
                 juliaExecutable = new JuliaExecutable(await juliaup.getChannel('release'))
@@ -532,6 +547,9 @@ export class TestFeature {
     private juliaTestController: JuliaTestController = undefined
     private profileMap: Map<vscode.TestRunProfile, { executable: JuliaExecutable; mode: TestRunMode }> = new Map()
 
+    private initialized: boolean = false
+    private initDisposable: vscode.Disposable | undefined = undefined
+
     constructor(
         private context: vscode.ExtensionContext,
         private executableFeature: ExecutableFeature,
@@ -545,8 +563,8 @@ export class TestFeature {
         this.controller = vscode.tests.createTestController('juliaTests', 'Julia Tests')
 
         context.subscriptions.push(
-            registerCommand('language-julia.stopTestProcess', (node: TestProcessNode) => node.stop()),
-            registerCommand('language-julia.stopTestController', (node: TestControllerNode) => node.stop())
+            registerCommand('language-julia.stopTestProcess', async (node: TestProcessNode) => await node.stop()),
+            registerCommand('language-julia.stopTestController', async (node: TestControllerNode) => await node.stop())
         )
 
         // vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
@@ -712,7 +730,33 @@ export class TestFeature {
     }
 
     public async init() {
-        const executables = await this.executableFeature.getExecutables()
+        if (this.initialized) {
+            return
+        }
+
+        if (!(await this.executableFeature.hasJulia())) {
+            if (!this.initDisposable) {
+                this.initDisposable = onEvent(this.executableFeature.onDidFindJulia, () => this.init())
+                this.context.subscriptions.push(this.initDisposable)
+            }
+            return
+        }
+
+        this.initialized = true
+        this.initDisposable?.dispose()
+        this.initDisposable = undefined
+
+        let executables
+        try {
+            executables = await this.executableFeature.getExecutables()
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                // No Julia available; revert initialization so we retry on next trigger.
+                this.initialized = false
+                return
+            }
+            throw err
+        }
         const hasJuliaup = executables.some((e) => e.juliaupChannel)
 
         const makeHandler = (executable: JuliaExecutable, mode: TestRunMode) => {

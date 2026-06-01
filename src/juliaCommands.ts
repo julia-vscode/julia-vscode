@@ -2,7 +2,7 @@ import * as vscode from 'vscode'
 
 import { registerCommand } from './utils'
 import * as jlpkgenv from './jlpkgenv'
-import { ExecutableFeature } from './executables'
+import { ExecutableFeature, JuliaNotFoundError } from './executables'
 import { TaskRunner } from './taskRunnerTerminal'
 
 export class JuliaCommands {
@@ -63,7 +63,16 @@ export class JuliaCommands {
     }
 
     private async runCommand(cmd: string, pkgCmd?: string, juliaEnv?: string, processEnv?: { [key: string]: string }) {
-        const juliaExecutable = await this.juliaExecutableFeature.getExecutable()
+        let juliaExecutable
+        try {
+            juliaExecutable = await this.juliaExecutableFeature.getExecutable()
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                // Already surfaced by `ExecutableFeature`; report failure to the caller.
+                return false
+            }
+            throw err
+        }
         const args = [...juliaExecutable.args]
 
         if (!juliaEnv) {

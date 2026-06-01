@@ -22,11 +22,11 @@ import * as tasks from './tasks'
 import * as telemetry from './telemetry'
 import { TestFeature } from './testing/testFeature'
 import { setContext } from './utils'
-import * as weave from './weave'
 import { JuliaGlobalDiagnosticOutputFeature } from './globalDiagnosticOutput'
 import { JuliaCommands } from './juliaCommands'
 import { installJuliaOrJuliaupTask } from './juliaupAutoInstall'
 import { LmToolFeature } from './lmtool'
+import { WeaveFeature } from './weave'
 
 sourcemapsupport.install({ handleUncaughtExceptions: false })
 
@@ -93,8 +93,9 @@ export async function activate(context: vscode.ExtensionContext) {
         console.debug(`[julia activation] repl.activate: ${(performance.now() - t).toFixed(1)}ms`)
 
         t = performance.now()
-        weave.activate(context, executableFeature)
-        console.debug(`[julia activation] weave.activate: ${(performance.now() - t).toFixed(1)}ms`)
+        const weaveFeature = new WeaveFeature(context, executableFeature)
+        context.subscriptions.push(weaveFeature)
+        console.debug(`[julia activation] WeaveFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
         t = performance.now()
         documentation.activate(context, languageClientFeature)
