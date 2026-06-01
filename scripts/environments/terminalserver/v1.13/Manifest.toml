@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.13.0-beta3"
+julia_version = "1.13.0-rc1"
 manifest_format = "2.1"
 project_hash = "5a9e77b8599717c9f58007f3061dde7d9b176224"
 
@@ -53,7 +53,7 @@ version = "1.0.0"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "Zlib_jll", "Zstd_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.16.0+0"
+version = "8.18.0+1"
 
 [[deps.LibGit2]]
 deps = ["LibGit2_jll", "NetworkOptions", "Printf", "SHA"]

@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.13.0-beta3"
+julia_version = "1.13.0-rc1"
 manifest_format = "2.1"
 project_hash = "9f2d77c10070afb00650a0938318945cbc78491c"
 
@@ -25,7 +25,7 @@ version = "1.11.0"
 deps = ["Tokenize"]
 path = "../../../packages/CSTParser"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.4.3"
+version = "3.5.1-DEV"
 
 [[deps.CancellationTokens]]
 deps = ["Sockets"]
@@ -37,7 +37,7 @@ version = "2.3.0"
 deps = ["PrecompileTools"]
 path = "../../../packages/CommonMark"
 uuid = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
-version = "1.0.1"
+version = "1.0.2"
 
     [deps.CommonMark.extensions]
     CommonMarkMarkdownASTExt = "MarkdownAST"
@@ -74,7 +74,7 @@ version = "4.1.1"
 deps = ["OrderedCollections"]
 path = "../../../packages/DataStructures"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.19.4"
+version = "0.19.5"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -139,7 +139,7 @@ version = "3.0.2-DEV"
 deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "2.5.1"
+version = "2.5.4"
 
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
@@ -171,7 +171,7 @@ version = "1.0.0"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "Zlib_jll", "Zstd_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.16.0+0"
+version = "8.18.0+1"
 
 [[deps.LibGit2]]
 deps = ["LibGit2_jll", "NetworkOptions", "Printf", "SHA"]
@@ -226,7 +226,7 @@ version = "3.5.5+0"
 [[deps.OrderedCollections]]
 path = "../../../packages/OrderedCollections"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.8.1"
+version = "1.8.2"
 
 [[deps.PCRE2_jll]]
 deps = ["Artifacts", "Libdl"]

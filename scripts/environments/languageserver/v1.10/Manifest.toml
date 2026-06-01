@@ -23,7 +23,7 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 deps = ["Tokenize"]
 path = "../../../packages/CSTParser"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.4.3"
+version = "3.5.1-DEV"
 
 [[deps.CancellationTokens]]
 deps = ["Sockets"]
@@ -35,7 +35,7 @@ version = "2.3.0"
 deps = ["PrecompileTools"]
 path = "../../../packages/CommonMark"
 uuid = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
-version = "1.0.1"
+version = "1.0.2"
 
     [deps.CommonMark.extensions]
     CommonMarkMarkdownASTExt = "MarkdownAST"
@@ -67,7 +67,7 @@ version = "4.1.1"
 deps = ["OrderedCollections"]
 path = "../../../packages/DataStructures"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.19.4"
+version = "0.19.5"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -129,7 +129,7 @@ version = "3.0.2-DEV"
 deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "2.5.1"
+version = "2.5.4"
 
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
@@ -206,7 +206,7 @@ version = "1.2.0"
 [[deps.OrderedCollections]]
 path = "../../../packages/OrderedCollections"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.8.1"
+version = "1.8.2"
 
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
