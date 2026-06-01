@@ -40,18 +40,10 @@ uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 version = "3.0.2"
 
 [[deps.CommonMark]]
-deps = ["PrecompileTools"]
+deps = ["Crayons", "PrecompileTools"]
 path = "../../packages/CommonMark"
 uuid = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
-version = "1.0.2"
-
-    [deps.CommonMark.extensions]
-    CommonMarkMarkdownASTExt = "MarkdownAST"
-    CommonMarkMarkdownExt = "Markdown"
-
-    [deps.CommonMark.weakdeps]
-    Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
-    MarkdownAST = "d0879d2d-cac2-40c8-9cee-1863dc0c7391"
+version = "0.8.16"
 
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
@@ -88,10 +80,10 @@ uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 version = "4.1.1"
 
 [[deps.DataStructures]]
-deps = ["OrderedCollections"]
+deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
 path = "../../packages/DataStructures"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.19.5"
+version = "0.18.22"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -159,10 +151,10 @@ uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
 version = "3.0.2-DEV"
 
 [[deps.JuliaFormatter]]
-deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML"]
+deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "PrecompileTools", "TOML", "Tokenize"]
 path = "../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "2.5.4"
+version = "1.0.62"
 
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
@@ -187,7 +179,7 @@ uuid = "e554591c-7f10-434f-9f27-2097f62a04fd"
 version = "7.0.1-DEV"
 
 [[deps.LanguageServer]]
-deps = ["Dates", "JSON", "JSONRPC", "JuliaFormatter", "JuliaWorkspaces", "Logging", "LoggingExtras", "Markdown", "PrecompileTools", "URIs", "UUIDs"]
+deps = ["Dates", "JSON", "JSONRPC", "JuliaFormatter", "JuliaWorkspaces", "Logging", "LoggingExtras", "Markdown", "PrecompileTools", "Salsa", "URIs", "UUIDs"]
 path = "../../packages/LanguageServer"
 uuid = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
 version = "5.0.0-DEV"

@@ -2,7 +2,7 @@
 
 julia_version = "1.14.0-DEV"
 manifest_format = "2.1"
-project_hash = "9f2d77c10070afb00650a0938318945cbc78491c"
+project_hash = "6f8cd67a6721363f303abf3f7eaaa7946f2d64eb"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -52,21 +52,13 @@ version = "2.3.0"
     julia_version = "1.0.0"
 
 [[deps.CommonMark]]
-deps = ["PrecompileTools"]
+deps = ["Crayons", "PrecompileTools"]
 path = "../../../packages/CommonMark"
 uuid = "a80b9123-70ca-4bc0-993e-6e3bcb318db6"
-version = "1.0.2"
-
-    [deps.CommonMark.extensions]
-    CommonMarkMarkdownASTExt = "MarkdownAST"
-    CommonMarkMarkdownExt = "Markdown"
+version = "0.8.16"
 
     [deps.CommonMark.syntax]
     julia_version = "1.3.0"
-
-    [deps.CommonMark.weakdeps]
-    Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
-    MarkdownAST = "d0879d2d-cac2-40c8-9cee-1863dc0c7391"
 
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
@@ -101,13 +93,13 @@ version = "4.1.1"
     julia_version = "1.6.0"
 
 [[deps.DataStructures]]
-deps = ["OrderedCollections"]
+deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
 path = "../../../packages/DataStructures"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.19.5"
+version = "0.18.22"
 
     [deps.DataStructures.syntax]
-    julia_version = "1.6.0"
+    julia_version = "1.0.0"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -199,13 +191,13 @@ version = "3.0.2-DEV"
     julia_version = "1.0.0"
 
 [[deps.JuliaFormatter]]
-deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML"]
+deps = ["CSTParser", "CommonMark", "DataStructures", "Glob", "PrecompileTools", "TOML", "Tokenize"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "2.5.4"
+version = "1.0.62"
 
     [deps.JuliaFormatter.syntax]
-    julia_version = "1.10.0"
+    julia_version = "1.0.0"
 
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
@@ -224,19 +216,19 @@ version = "1.13.0"
     julia_version = "1.12.0"
 
 [[deps.JuliaWorkspaces]]
-deps = ["AutoHashEquals", "CancellationTokens", "JuliaSyntax", "Pkg", "Salsa", "TestItemDetection", "UUIDs"]
+deps = ["AutoHashEquals", "CSTParser", "CancellationTokens", "InteractiveUtils", "JSONRPC", "JuliaSyntax", "LibGit2", "Logging", "Pkg", "REPL", "SHA", "Salsa", "Scratch", "Sockets", "TestItemDetection", "UUIDs"]
 path = "../../../packages/JuliaWorkspaces"
 uuid = "e554591c-7f10-434f-9f27-2097f62a04fd"
-version = "7.0.2-DEV"
+version = "7.0.1-DEV"
 
     [deps.JuliaWorkspaces.syntax]
     julia_version = "1.10.0"
 
 [[deps.LanguageServer]]
-deps = ["CSTParser", "Dates", "JSON", "JSONRPC", "JuliaFormatter", "JuliaWorkspaces", "Logging", "Markdown", "Pkg", "PrecompileTools", "REPL", "StaticLint", "SymbolServer", "Tokenize", "URIs", "UUIDs"]
+deps = ["Dates", "JSON", "JSONRPC", "JuliaFormatter", "JuliaWorkspaces", "Logging", "LoggingExtras", "Markdown", "PrecompileTools", "Salsa", "URIs", "UUIDs"]
 path = "../../../packages/LanguageServer"
 uuid = "2b0e0bc5-e4fd-59b4-8912-456d1b03d8d7"
-version = "5.0.0"
+version = "5.0.0-DEV"
 
     [deps.LanguageServer.syntax]
     julia_version = "1.10.0"
@@ -294,6 +286,15 @@ version = "1.11.0"
 
     [deps.Logging.syntax]
     julia_version = "1.14.0-DEV"
+
+[[deps.LoggingExtras]]
+deps = ["Dates", "Logging"]
+path = "../../../packages/LoggingExtras"
+uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
+version = "1.2.0"
+
+    [deps.LoggingExtras.syntax]
+    julia_version = "0.7.0"
 
 [[deps.MacroTools]]
 path = "../../../packages/MacroTools"
@@ -425,6 +426,15 @@ version = "2.4.1-DEV"
 
     [deps.Salsa.syntax]
     julia_version = "1.10.0"
+
+[[deps.Scratch]]
+deps = ["Dates"]
+path = "../../../packages/Scratch"
+uuid = "6c6a2e73-6563-6170-7368-637461726353"
+version = "1.3.0"
+
+    [deps.Scratch.syntax]
+    julia_version = "1.9.0"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
