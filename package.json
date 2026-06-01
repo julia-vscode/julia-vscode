@@ -1703,7 +1703,9 @@
         "initialsetup": "npm i && git submodule init && git submodule update",
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run bundle",
         "vsce-package": "vsce package",
-        "updatedeps": "npm run compile-tests && node ./out/scripts/updateDeps.js",
+        "update-all-deps": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateDeps()).catch(console.error)\"",
+        "update-julia-environments": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateEnvs()).catch(console.error)\"",
+        "update-julia-packages": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateJuliaPackages()).catch(console.error)\"",
         "tagminor": "npm version minor && git push --tags && git push",
         "tagmajor": "npm version major && git push --tags && git push",
         "install-extension-locally": "vsce package --pre-release -o language-julia-dev-version.vsix && code --install-extension language-julia-dev-version.vsix"
@@ -1746,6 +1748,7 @@
         "mocha": "^11",
         "npm-run-all": "^4.1.5",
         "prettier": "^3.8.3",
+        "tsx": "^4.22.4",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.46.4"
     }
