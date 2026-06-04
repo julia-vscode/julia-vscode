@@ -4,6 +4,23 @@ import { parse } from 'semver'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import { generatePipeName, onEvent } from './utils'
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-base'
+import { LoggerProvider, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs'
+import { SeverityNumber } from '@opentelemetry/api-logs'
+import {
+    context,
+    trace,
+    TraceFlags,
+    HrTime,
+    SpanContext,
+    SpanKind,
+    SpanStatusCode,
+    Attributes,
+} from '@opentelemetry/api'
+import { resourceFromAttributes } from '@opentelemetry/resources'
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
 
 let enableCrashReporter: boolean = false
 let enableTelemetry: boolean = false
@@ -18,6 +35,33 @@ let crashReporterQueue = []
 let g_jlcrashreportingpipename: string = null
 
 let g_prereleaseExtension: boolean = false
+
+const otlpExporter: OTLPTraceExporter = new OTLPTraceExporter({
+    url: 'http://localhost:4318/v1/traces', // url is optional and can be omitted - default is http://localhost:4318/v1/traces
+    concurrencyLimit: 10, // an optional limit on pending requests
+})
+
+// Resource describing the language server as the source of the spans we forward. Shared by the
+// spans built in `traceRequest` and the logs emitted in `traceLog`.
+const lsResource = resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: 'LS',
+    [ATTR_SERVICE_VERSION]: '1.218',
+})
+
+const otlpLogExporter: OTLPLogExporter = new OTLPLogExporter({
+    url: 'http://localhost:4318/v1/logs', // default is http://localhost:4318/v1/logs
+    concurrencyLimit: 10,
+})
+
+const loggerProvider = new LoggerProvider({
+    processors: [new SimpleLogRecordProcessor(otlpLogExporter)],
+    resource: resourceFromAttributes({
+        [ATTR_SERVICE_NAME]: 'LS',
+        [ATTR_SERVICE_VERSION]: '1.218',
+    }),
+})
+
+const otLogger = loggerProvider.getLogger('julia-vscode-extension')
 
 function filterTelemetry(envelope) {
     if (envelope.data.baseType === 'ExceptionData') {
@@ -203,22 +247,152 @@ export function traceEvent(message) {
     extensionClient.trackEvent({ name: message })
 }
 
-export function traceRequest(operationId, operationParentId, name, time, duration, cloudRole) {
+// Convert an OpenTelemetry `HrTime` pair `[seconds, nanoseconds]` into a `Date`. This is lossy
+// (millisecond resolution) and is only used for the legacy Application Insights APIs that
+// require a `Date`; the OpenTelemetry SDK is always given the full-resolution `HrTime`.
+function hrTimeToDate(time: HrTime): Date {
+    return new Date(time[0] * 1000 + time[1] / 1e6)
+}
+
+// Add a nanosecond duration to an `HrTime`, returning a new normalized `HrTime` pair. Keeps
+// full nanosecond resolution by doing the arithmetic on the nanosecond component in integers.
+function hrTimeAddNanos(time: HrTime, durationNanos: number): HrTime {
+    const totalNanos = time[1] + durationNanos
+    return [time[0] + Math.floor(totalNanos / 1e9), totalNanos % 1e9]
+}
+
+export function traceRequest(
+    spanId,
+    parentId,
+    traceId,
+    name,
+    time: HrTime,
+    durationNanos,
+    attributes: Attributes,
+    cloudRole
+) {
     if (g_prereleaseExtension) {
         extensionClient.trackRequest({
             name: name,
             url: name,
-            time: time,
-            duration: duration,
+            time: hrTimeToDate(time),
+            duration: durationNanos / 1e6,
             resultCode: 0,
             success: true,
             tagOverrides: {
                 [extensionClient.context.keys.cloudRole]: cloudRole,
                 [extensionClient.context.keys.operationName]: name,
-                [extensionClient.context.keys.operationId]: operationId,
+                [extensionClient.context.keys.operationId]: spanId,
+                ...(parentId ? { [extensionClient.context.keys.operationParentId]: parentId } : {}),
+            },
+        })
+    }
+
+    // Build the span explicitly from the ids and timing the language server already assigned and
+    // hand it straight to the OTLP exporter. This avoids the SDK's tracer/context machinery, which
+    // would mint its own random ids, letting us set the trace id, span id and parent span id
+    // verbatim so child spans reference the correct parent.
+    const spanContext: SpanContext = {
+        traceId: traceId,
+        spanId: spanId,
+        traceFlags: TraceFlags.SAMPLED,
+    }
+
+    const span: ReadableSpan = {
+        name: name,
+        kind: SpanKind.SERVER,
+        spanContext: () => spanContext,
+        parentSpanContext: parentId
+            ? { traceId: traceId, spanId: parentId, traceFlags: TraceFlags.SAMPLED }
+            : undefined,
+        startTime: time,
+        endTime: hrTimeAddNanos(time, durationNanos),
+        status: { code: SpanStatusCode.OK },
+        attributes: attributes ?? {},
+        links: [],
+        events: [],
+        duration: hrTimeAddNanos([0, 0], durationNanos),
+        ended: true,
+        resource: lsResource,
+        instrumentationScope: { name: 'julia-vscode-extension' },
+        droppedAttributesCount: 0,
+        droppedEventsCount: 0,
+        droppedLinksCount: 0,
+    }
+
+    otlpExporter.export([span], () => {})
+}
+
+export function traceLog(
+    operationId,
+    operationParentId,
+    operationRootId,
+    message,
+    severity,
+    time: HrTime,
+    cloudRole,
+    attributes?: Attributes
+) {
+    if (g_prereleaseExtension) {
+        extensionClient.trackTrace({
+            message: message,
+            time: hrTimeToDate(time),
+            properties: attributes as Record<string, string> | undefined,
+            tagOverrides: {
+                [extensionClient.context.keys.cloudRole]: cloudRole,
+                // App Insights uses the operation id as the trace id that groups a whole
+                // operation tree, so use the root id here and the immediate parent as the
+                // parent operation id, keeping logs correlated with the request spans.
+                [extensionClient.context.keys.operationId]: operationRootId ?? operationId,
                 ...(operationParentId ? { [extensionClient.context.keys.operationParentId]: operationParentId } : {}),
             },
         })
+
+        // Emit the log via the OpenTelemetry logs provider as well, recording it as a proper
+        // log record correlated to the operation tree it belongs to. As in `traceRequest`,
+        // the trace id is derived from the stable root operation id (shared by every span in
+        // the tree) and the parent span id from the immediate parent operation id, so the log
+        // is associated with the right request/derived-function span.
+        const traceId = (operationRootId ?? operationId).replace(/-/g, '')
+        const spanId = (operationParentId ?? operationRootId ?? operationId).replace(/-/g, '').slice(0, 16)
+        const logContext = trace.setSpanContext(context.active(), {
+            traceId: traceId,
+            spanId: spanId,
+            traceFlags: TraceFlags.SAMPLED,
+            isRemote: true,
+        })
+
+        otLogger.emit({
+            body: message,
+            timestamp: time,
+            severityText: severity,
+            severityNumber: mapSeverity(severity),
+            attributes: {
+                'service.cloud_role': cloudRole,
+                ...attributes,
+            },
+            context: logContext,
+        })
+    }
+}
+
+function mapSeverity(severity: string): SeverityNumber {
+    switch ((severity ?? '').toLowerCase()) {
+        case 'trace':
+            return SeverityNumber.TRACE
+        case 'debug':
+            return SeverityNumber.DEBUG
+        case 'info':
+            return SeverityNumber.INFO
+        case 'warn':
+        case 'warning':
+            return SeverityNumber.WARN
+        case 'error':
+            return SeverityNumber.ERROR
+        case 'fatal':
+            return SeverityNumber.FATAL
+        default:
+            return SeverityNumber.UNSPECIFIED
     }
 }
 

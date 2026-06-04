@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "6f8cd67a6721363f303abf3f7eaaa7946f2d64eb"
+project_hash = "38b753ed3bc220a3d394164a967da2804f733acf"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -281,7 +281,7 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
 [[deps.Salsa]]
-deps = ["ExceptionUnwrapping", "MacroTools"]
+deps = ["ExceptionUnwrapping", "MacroTools", "TraceLogging", "UUIDs"]
 path = "../../../packages/Salsa"
 uuid = "1fbf2c77-44e2-4d5d-8131-0fa618a5c278"
 version = "2.4.1-DEV"
@@ -341,6 +341,12 @@ version = "1.1.1-DEV"
 path = "../../../packages/Tokenize"
 uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
 version = "0.5.29"
+
+[[deps.TraceLogging]]
+deps = ["Dates", "Logging", "UUIDs"]
+path = "../../../packages/TraceLogging"
+uuid = "59fbf51e-df65-4e44-8e78-ffc45bd67159"
+version = "0.1.0"
 
 [[deps.URIParser]]
 deps = ["Unicode"]
