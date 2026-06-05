@@ -148,3 +148,6 @@
 [submodule "scripts/packages/Scratch"]
 	path = scripts/packages/Scratch
 	url = https://github.com/JuliaPackaging/Scratch.jl
+[submodule "scripts/packages/Runic"]
+	path = scripts/packages/Runic
+	url = https://github.com/fredrikekre/Runic.jl
