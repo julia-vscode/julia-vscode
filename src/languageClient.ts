@@ -333,9 +333,9 @@ export class LanguageClientFeature {
                 telemetry.tracePackageLoadError(data.name, data.message)
             } else if (data.command === 'request_metric') {
                 telemetry.traceRequest(
-                    data.operationId.replace(/-/g, '').slice(0, 16),
-                    data.operationParentId ? data.operationParentId.replace(/-/g, '').slice(0, 16) : undefined,
-                    data.operationRootId.replace(/-/g, ''),
+                    data.operationId,
+                    data.operationParentId ?? undefined,
+                    data.operationRootId,
                     data.name,
                     data.time,
                     data.duration,
@@ -344,9 +344,9 @@ export class LanguageClientFeature {
                 )
             } else if (data.command === 'trace_log') {
                 telemetry.traceLog(
-                    data.operationId.replace(/-/g, '').slice(0, 16),
-                    data.operationParentId ? data.operationParentId.replace(/-/g, '').slice(0, 16) : undefined,
-                    data.operationRootId.replace(/-/g, ''),
+                    data.operationId,
+                    data.operationParentId ?? undefined,
+                    data.operationRootId,
                     data.message,
                     data.severity,
                     data.time,

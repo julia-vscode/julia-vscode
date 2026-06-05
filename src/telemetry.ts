@@ -353,8 +353,8 @@ export function traceLog(
         // the trace id is derived from the stable root operation id (shared by every span in
         // the tree) and the parent span id from the immediate parent operation id, so the log
         // is associated with the right request/derived-function span.
-        const traceId = (operationRootId ?? operationId).replace(/-/g, '')
-        const spanId = (operationParentId ?? operationRootId ?? operationId).replace(/-/g, '').slice(0, 16)
+        const traceId = operationRootId ?? operationId
+        const spanId = operationParentId ?? operationRootId ?? operationId
         const logContext = trace.setSpanContext(context.active(), {
             traceId: traceId,
             spanId: spanId,
