@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "6f8cd67a6721363f303abf3f7eaaa7946f2d64eb"
+project_hash = "648f28e96500789f6021554eac92125ec00948da"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -272,7 +272,7 @@ version = "1.11.0"
 
 [[deps.Runic]]
 deps = ["JuliaSyntax", "Preferences"]
-git-tree-sha1 = "e9e8a83c48259f4364b5d3f9092a96afde20fb42"
+path = "../../../packages/Runic"
 uuid = "62bfec6d-59d7-401d-8490-b29ee721c001"
 version = "1.7.0"
 
