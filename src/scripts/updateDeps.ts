@@ -289,6 +289,7 @@ export async function updateJuliaPackages() {
         // 'Compiler', Ignore for now as it doesn't have tags
         'LoggingExtras',
         'Scratch',
+        'Runic',
     ]) {
         const opts = { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) }
         await exec('git fetch', opts)
