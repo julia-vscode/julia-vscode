@@ -31,6 +31,7 @@ packages_to_dev = [
     PackageSpec(path="../../../packages/TestItemDetection"),
     PackageSpec(path="../../../packages/LoggingExtras"),
     PackageSpec(path="../../../packages/Scratch"),
+    PackageSpec(path="../../../packages/Runic"),
 ]
 
 Pkg.develop(packages_to_dev)
