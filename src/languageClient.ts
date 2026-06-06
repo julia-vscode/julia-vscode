@@ -333,12 +333,25 @@ export class LanguageClientFeature {
                 telemetry.tracePackageLoadError(data.name, data.message)
             } else if (data.command === 'request_metric') {
                 telemetry.traceRequest(
-                    data.operationId,
-                    data.operationParentId,
+                    data.spanId,
+                    data.parentSpanId ?? undefined,
+                    data.traceId,
                     data.name,
-                    new Date(data.time),
+                    data.time,
                     data.duration,
+                    data.attributes,
                     'Language Server'
+                )
+            } else if (data.command === 'trace_log') {
+                telemetry.traceLog(
+                    data.spanId,
+                    data.parentSpanId ?? undefined,
+                    data.traceId,
+                    data.message,
+                    data.severity,
+                    data.time,
+                    'Language Server',
+                    data.attributes
                 )
             }
         })

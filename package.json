@@ -1636,6 +1636,14 @@
         "install-extension-locally": "vsce package --pre-release -o language-julia-dev-version.vsix && code --install-extension language-julia-dev-version.vsix"
     },
     "dependencies": {
+        "@opentelemetry/api": "^1.9.1",
+        "@opentelemetry/api-logs": "^0.218.0",
+        "@opentelemetry/exporter-logs-otlp-http": "^0.218.0",
+        "@opentelemetry/exporter-trace-otlp-http": "^0.218.0",
+        "@opentelemetry/resources": "^2.7.1",
+        "@opentelemetry/sdk-logs": "^0.218.0",
+        "@opentelemetry/sdk-trace-base": "^2.7.1",
+        "@opentelemetry/semantic-conventions": "^1.41.1",
         "@traptitech/markdown-it-katex": "^3.6.0",
         "@vscode/debugadapter": "^1.55.1",
         "@vscode/debugprotocol": "^1.55.1",
