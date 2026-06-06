@@ -324,9 +324,9 @@ export function traceRequest(
 }
 
 export function traceLog(
-    operationId,
-    operationParentId,
-    operationRootId,
+    spanId,
+    parentSpanId,
+    traceId,
     message,
     severity,
     time: HrTime,
@@ -341,23 +341,23 @@ export function traceLog(
             tagOverrides: {
                 [extensionClient.context.keys.cloudRole]: cloudRole,
                 // App Insights uses the operation id as the trace id that groups a whole
-                // operation tree, so use the root id here and the immediate parent as the
+                // operation tree, so use the trace id here and the immediate parent as the
                 // parent operation id, keeping logs correlated with the request spans.
-                [extensionClient.context.keys.operationId]: operationRootId ?? operationId,
-                ...(operationParentId ? { [extensionClient.context.keys.operationParentId]: operationParentId } : {}),
+                [extensionClient.context.keys.operationId]: traceId ?? spanId,
+                ...(parentSpanId ? { [extensionClient.context.keys.operationParentId]: parentSpanId } : {}),
             },
         })
 
         // Emit the log via the OpenTelemetry logs provider as well, recording it as a proper
-        // log record correlated to the operation tree it belongs to. As in `traceRequest`,
-        // the trace id is derived from the stable root operation id (shared by every span in
-        // the tree) and the parent span id from the immediate parent operation id, so the log
-        // is associated with the right request/derived-function span.
-        const traceId = operationRootId ?? operationId
-        const spanId = operationParentId ?? operationRootId ?? operationId
+        // log record correlated to the trace it belongs to. As in `traceRequest`, the trace id
+        // is the stable trace id (shared by every span in the tree) and the parent span id is
+        // the immediate parent span, so the log is associated with the right
+        // request/derived-function span.
+        const otTraceId = traceId ?? spanId
+        const otSpanId = parentSpanId ?? traceId ?? spanId
         const logContext = trace.setSpanContext(context.active(), {
-            traceId: traceId,
-            spanId: spanId,
+            traceId: otTraceId,
+            spanId: otSpanId,
             traceFlags: TraceFlags.SAMPLED,
             isRemote: true,
         })
