@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "38b753ed3bc220a3d394164a967da2804f733acf"
+project_hash = "648f28e96500789f6021554eac92125ec00948da"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -281,7 +281,7 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
 [[deps.Salsa]]
-deps = ["ExceptionUnwrapping", "Logging", "MacroTools", "UUIDs"]
+deps = ["ExceptionUnwrapping", "Logging", "MacroTools"]
 path = "../../../packages/Salsa"
 uuid = "1fbf2c77-44e2-4d5d-8131-0fa618a5c278"
 version = "2.4.1-DEV"
