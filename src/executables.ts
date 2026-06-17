@@ -16,6 +16,16 @@ const execFile = promisify(child_process.execFile)
 const juliaVersionPrefix = 'julia version '
 
 /**
+ * Upper bound (ms) for the short-lived `julia --version` / juliaup availability probes
+ * in this file. These probes run during activation; without a bound a child process that
+ * blocks indefinitely (e.g. a juliaup call waiting on a configuration lock held by another
+ * process) would hang extension activation forever. On timeout `execFile` kills the child
+ * and rejects with an ETIMEDOUT-style error, which the existing `catch` blocks already
+ * translate into the graceful "executable not available / failed to run" path.
+ */
+const JULIA_PROBE_TIMEOUT_MS = 30_000
+
+/**
  * Marker error for *expected* environment / configuration failures originating in this
  * file (Julia or juliaup not installed, missing channel, juliaup invocation failure, ...).
  *
@@ -152,7 +162,11 @@ export class JuliaupExecutable {
             }
         } else {
             try {
-                const { stdout } = await execFile(this.command, args, { env })
+                const { stdout } = await execFile(this.command, args, {
+                    env,
+                    timeout: JULIA_PROBE_TIMEOUT_MS,
+                    killSignal: 'SIGKILL',
+                })
 
                 const out = stdout?.toString().trim()
 
@@ -321,6 +335,8 @@ export class JuliaExecutable {
                         ...process.env,
                         JULIA_VSCODE_INTERNAL: '1',
                     },
+                    timeout: JULIA_PROBE_TIMEOUT_MS,
+                    killSignal: 'SIGKILL',
                 }
             )
 
@@ -750,6 +766,8 @@ export class ExecutableFeature {
         try {
             const options: ExecFileOptions = {
                 env: { ...process.env, JULIA_VSCODE_INTERNAL: '1' },
+                timeout: JULIA_PROBE_TIMEOUT_MS,
+                killSignal: 'SIGKILL',
             }
             const workspace = vscode.workspace.workspaceFolders?.[0]
 
@@ -800,7 +818,10 @@ export class ExecutableFeature {
         for (const cmd of spawnables) {
             this.outputChannel.appendLine(outputPrefix + `  Checking ${cmd}...`)
             try {
-                const { stdout } = await execFile(cmd, ['--version'])
+                const { stdout } = await execFile(cmd, ['--version'], {
+                    timeout: JULIA_PROBE_TIMEOUT_MS,
+                    killSignal: 'SIGKILL',
+                })
                 const version = stdout.toString().trim()
 
                 this.outputChannel.appendLine(`  ${cmd}: found 'juliaup' with version ${version}`)
