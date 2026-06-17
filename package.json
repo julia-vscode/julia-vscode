@@ -40,6 +40,28 @@
     ],
     "main": "./dist/extension",
     "contributes": {
+        "languages": [
+            {
+                "id": "julia",
+                "aliases": [
+                    "Julia",
+                    "julia"
+                ],
+                "extensions": [
+                    ".jl"
+                ]
+            },
+            {
+                "id": "juliamarkdown",
+                "aliases": [
+                    "Julia Markdown",
+                    "juliamarkdown"
+                ],
+                "extensions": [
+                    ".jmd"
+                ]
+            }
+        ],
         "grammars": [
             {
                 "language": "julia",
