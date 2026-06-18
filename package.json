@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.218.0",
+    "version": "1.219.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -40,6 +40,28 @@
     ],
     "main": "./dist/extension",
     "contributes": {
+        "languages": [
+            {
+                "id": "julia",
+                "aliases": [
+                    "Julia",
+                    "julia"
+                ],
+                "extensions": [
+                    ".jl"
+                ]
+            },
+            {
+                "id": "juliamarkdown",
+                "aliases": [
+                    "Julia Markdown",
+                    "juliamarkdown"
+                ],
+                "extensions": [
+                    ".jmd"
+                ]
+            }
+        ],
         "grammars": [
             {
                 "language": "julia",
@@ -1674,7 +1696,7 @@
         "@vscode/test-cli": "^0.0.12",
         "@vscode/test-electron": "^2.3.6",
         "@vscode/vsce": "^3.9.0",
-        "esbuild": "^0.28.0",
+        "esbuild": "^0.28.1",
         "eslint": "^10.0.3",
         "eslint-config-prettier": "^10.1.8",
         "globals": "^17.5.0",
