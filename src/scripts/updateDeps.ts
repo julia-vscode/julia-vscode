@@ -268,7 +268,7 @@ export async function updateJuliaPackages() {
         'JuliaSyntax',
         'Glob',
         'LoweredCodeUtils',
-        'OrderedCollections',
+        // 'OrderedCollections',
         'Tokenize',
         'URIParser',
         'CommonMark',
