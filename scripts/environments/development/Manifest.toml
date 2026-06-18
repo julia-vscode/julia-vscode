@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "e80d23df4c52e60cdfe44062f86f3a584568886a"
+project_hash = "d29a69ce1dfe706acef7758ebc344fb81c1b2cbc"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -340,21 +340,9 @@ version = "1.11.0"
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 version = "1.11.0"
 
-[[deps.StaticLint]]
-deps = ["CSTParser", "Serialization", "SymbolServer"]
-path = "../../packages/StaticLint"
-uuid = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
-version = "9.0.0"
-
 [[deps.StyledStrings]]
 uuid = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
 version = "1.11.0"
-
-[[deps.SymbolServer]]
-deps = ["InteractiveUtils", "LibGit2", "Markdown", "Pkg", "REPL", "SHA", "Serialization", "Sockets", "UUIDs"]
-path = "../../packages/SymbolServer"
-uuid = "cf896787-08d5-524d-9de7-132aaa0cb996"
-version = "8.0.1"
 
 [[deps.TOML]]
 deps = ["Dates"]
