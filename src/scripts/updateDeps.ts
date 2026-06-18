@@ -240,12 +240,6 @@ export async function updateEnvs() {
 }
 
 export async function updateJuliaPackages() {
-    for (const pkg of ['StaticLint', 'SymbolServer']) {
-        console.log(`Updating ${pkg} to latest master`)
-        await exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
-        await exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
-    }
-
     for (const pkg of [
         'LanguageServer',
         'CSTParser',
