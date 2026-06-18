@@ -24,8 +24,6 @@ Preferences = "21216c6a-2e73-6563-6e65-726566657250"
 Runic = "62bfec6d-59d7-401d-8490-b29ee721c001"
 Salsa = "1fbf2c77-44e2-4d5d-8131-0fa618a5c278"
 Scratch = "6c6a2e73-6563-6170-7368-637461726353"
-StaticLint = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
-SymbolServer = "cf896787-08d5-524d-9de7-132aaa0cb996"
 TestItemDetection = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
 Tokenize = "0796e94c-ce3b-5d07-9a54-7f471281c624"
 URIParser = "30578b45-9adc-5946-b283-645ec420af67"
@@ -57,8 +55,6 @@ Preferences = {path = "../../../packages/Preferences"}
 Runic = {path = "../../../packages/Runic"}
 Salsa = {path = "../../../packages/Salsa"}
 Scratch = {path = "../../../packages/Scratch"}
-StaticLint = {path = "../../../packages/StaticLint"}
-SymbolServer = {path = "../../../packages/SymbolServer"}
 TestItemDetection = {path = "../../../packages/TestItemDetection"}
 Tokenize = {path = "../../../packages/Tokenize"}
 URIParser = {path = "../../../packages/URIParser"}
