@@ -82,6 +82,9 @@ export async function updateEnvs() {
         console.error(err)
     }
 
+    console.log('Updating registry...')
+    await exec(`julia +release -e "using Pkg; Pkg.Registry.update()"`)
+
     await fs.rm(path.join(process.cwd(), 'scripts/environments/languageserver'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/environments/pkgdev'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/environments/terminalserver'), { recursive: true })
@@ -289,6 +292,7 @@ export async function updateJuliaPackages() {
         // 'Compiler', Ignore for now as it doesn't have tags
         'LoggingExtras',
         'Scratch',
+        'Runic',
     ]) {
         const opts = { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) }
         await exec('git fetch', opts)
