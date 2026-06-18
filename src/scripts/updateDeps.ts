@@ -274,7 +274,7 @@ export async function updateJuliaPackages() {
         'CommonMark',
         'Compat',
         'Crayons',
-        'DataStructures',
+        // 'DataStructures',
         'JuliaFormatter',
         // 'URIs', Not compatible with earlier than Julia 1.6 versions
         'Revise',
