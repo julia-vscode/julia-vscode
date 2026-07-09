@@ -40,6 +40,20 @@
                 "group": "watch",
                 "reveal": "never"
             }
+        },
+        {
+            "type": "npm",
+            "script": "bundle",
+            "group": "build",
+            "problemMatcher": "$esbuild",
+            "label": "npm: bundle"
+        },
+        {
+            "type": "npm",
+            "script": "compile-tests",
+            "group": "build",
+            "problemMatcher": "$tsc",
+            "label": "npm: compile-tests"
         }
     ]
 }
