@@ -12,7 +12,7 @@ const selector = [
     { language: 'julia', scheme: 'untitled' },
     { language: 'julia', scheme: 'file' },
 ]
-const completionTriggerCharacters = [
+export const completionTriggerCharacters = [
     '.', // property/field completion
     '[', // dict completion
 ]
@@ -42,7 +42,7 @@ const requestTypeGetCompletionItems = new rpc.RequestType<
     void
 >('repl/getcompletions')
 
-function completionItemProvider(conn: MessageConnection): vscode.CompletionItemProvider {
+export function completionItemProvider(conn: MessageConnection): vscode.CompletionItemProvider {
     return {
         provideCompletionItems: async (document, position, token) => {
             if (!vscode.workspace.getConfiguration('julia').get('runtimeCompletions')) {
