@@ -37,7 +37,7 @@ export async function getProjectFilePaths(envpath: string) {
     }
 }
 
-export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
+export async function switchEnvToPath(envpath: string) {
     g_path_of_current_environment = envpath
     g_resolved_path_of_environment = resolvePath(envpath)
 
@@ -144,7 +144,7 @@ async function changeJuliaEnvironment(envPath?: string) {
 
 async function changeJuliaEnvironmentImpl(envPath?: string) {
     if (envPath && envPath !== '') {
-        switchEnvToPath(envPath, true)
+        switchEnvToPath(envPath)
         return
     }
 
@@ -209,13 +209,13 @@ async function changeJuliaEnvironmentImpl(envPath?: string) {
                 const envPath = vscode.Uri.parse(envPathUri).fsPath
                 const isThisAEnv = await fs.exists(path.join(envPath, 'Project.toml'))
                 if (isThisAEnv) {
-                    switchEnvToPath(envPath, true)
+                    switchEnvToPath(envPath)
                 } else {
                     vscode.window.showErrorMessage('The selected path is not a julia environment.')
                 }
             }
         } else {
-            switchEnvToPath(resultPackage.description, true)
+            switchEnvToPath(resultPackage.description)
         }
     }
 }
@@ -308,7 +308,7 @@ export async function activate(context: vscode.ExtensionContext, ExecutableFeatu
     g_current_environment.text = 'Julia env: [loading]'
     g_current_environment.command = 'language-julia.changeCurrentEnvironment'
     context.subscriptions.push(g_current_environment)
-    await switchEnvToPath(await getEnvPath(), false) // We don't need to notify the LS here because it will start with that env already
+    await switchEnvToPath(await getEnvPath()) // We don't need to notify the LS here because it will start with that env already
 
     g_current_environment.show()
 }
