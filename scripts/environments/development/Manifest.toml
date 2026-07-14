@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "d29a69ce1dfe706acef7758ebc344fb81c1b2cbc"
+project_hash = "99e2495c10cb8fbb8177dcefbefd629cefb03c56"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -364,6 +364,17 @@ deps = ["JuliaSyntax"]
 path = "../../packages/TestItemDetection"
 uuid = "76b0de8b-5c4b-48ef-a724-914b33ca988d"
 version = "1.1.1-DEV"
+
+[[deps.TestItemRunner]]
+deps = ["Pkg", "TOML", "Test", "TestItems", "UUIDs"]
+git-tree-sha1 = "0a4cba9133b1a19fcf6175d0affde1418fc46fa2"
+uuid = "f8b46487-2199-4994-9208-9a1283c18c0a"
+version = "1.1.5"
+
+[[deps.TestItems]]
+git-tree-sha1 = "42fd9023fef18b9b78c8343a4e2f3813ffbcefcb"
+uuid = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
+version = "1.0.0"
 
 [[deps.Tokenize]]
 path = "../../packages/Tokenize"

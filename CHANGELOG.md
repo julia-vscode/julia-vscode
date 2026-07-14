@@ -5,6 +5,34 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Prebuilt symbol caches for the public General registry are now generated and served via a new cloud indexer (`jwcloudindex`), which indexes each package in isolated, sandboxed worker subprocesses; the language server can download these caches instead of indexing common dependencies locally ([JuliaWorkspaces.jl#105](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/105), [JuliaWorkspaces.jl#106](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/106))
+- Code formatting is now configurable per project through a `juliaformat.toml` file, with selectable styles (`default`, `yas`, `blue`, `sciml`, `minimal`, and a new `runic` backend); the `minimal` style is used when no config file is present ([JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
+- Linting and diagnostics are now provided for indirectly included files — files pulled in via `include` but never opened in the editor ([LanguageServer.jl#1370](https://github.com/julia-vscode/LanguageServer.jl/pull/1370))
+- New `julia.enableDynamicIndexing` setting to toggle dynamic package indexing; disable it for lower resource usage at the cost of reduced functionality ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079))
+- Support for Julia 1.13 ([JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
+
+### Changed
+- Overhauled the language-server backend: the standalone StaticLint.jl (linting) and SymbolServer.jl (package symbol indexing) packages, together with the completion, hover, signature-help, go-to-definition, and find-references implementations, are now built directly into JuliaWorkspaces ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079), [LanguageServer.jl#1370](https://github.com/julia-vscode/LanguageServer.jl/pull/1370), [JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
+- Diagnostics are now delivered via LSP pull diagnostics instead of being pushed by the server ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079), [LanguageServer.jl#1370](https://github.com/julia-vscode/LanguageServer.jl/pull/1370))
+- Symbol-cache downloads now use a privacy-preserving request model: packages that are not part of the public General registry are excluded before any network request, and the client fetches the server's availability index once and filters the download set against it locally, so the names and versions of private or internal packages are never sent to the cache server. If General-registry membership cannot be determined, no caches are downloaded and packages are indexed locally instead ([JuliaWorkspaces.jl#106](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/106))
+- Linter configuration has moved out of the VS Code settings: the individual `julia.lint.*` settings have been removed in favor of a project-local `julialint.toml` file ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079), [JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
+- Improved method matching for the linter's call check, including vararg handling and overload resolution ([JuliaWorkspaces.jl#121](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/121), [JuliaWorkspaces.jl#123](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/123))
+- Files inside `packages` directories are no longer linted ([JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
+- Removed the "Julia: Toggle Linter" and "Julia: Re-Index Language Server Cache" commands; the latter is obsolete now that indexing happens dynamically ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079))
+
+### Fixed
+- Large workspaces load noticeably faster and no longer block the server: file additions are batched and processed in linear time, folder walking yields cooperatively, and package caches load incrementally ([LanguageServer.jl#1399](https://github.com/julia-vscode/LanguageServer.jl/pull/1399), [JuliaWorkspaces.jl#119](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/119))
+- Dot-completion now offers only the members of the relevant workspace struct ([JuliaWorkspaces.jl#124](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/124))
+- Dot-completion now anchors its left-hand-side lookup on the `.` token ([JuliaWorkspaces.jl#124](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/124))
+- Shadowing parameters are no longer incorrectly hoisted into enclosing scopes ([JuliaWorkspaces.jl#124](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/124))
+- Go-to-definition on a reassigned local variable now resolves to its declaration ([JuliaWorkspaces.jl#126](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/126))
+- `@safetestset` bodies are now isolated in their own scope ([JuliaWorkspaces.jl#126](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/126))
+- `@parameters`, `@variables`, and `@constants` are now recognized as defining variables ([JuliaWorkspaces.jl#126](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/126))
+- Unused arguments in short-form function definitions are now flagged ([JuliaWorkspaces.jl#126](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/126))
+- Identifiers are now Unicode-normalized to match Julia's own handling ([JuliaWorkspaces.jl#126](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/126))
+- Dynamic package analysis now launches its subprocess correctly when running inside an editor-hosted language server ([JuliaWorkspaces.jl#119](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/119))
+
 ## [1.219.0] - 2026-06-17
 ### Added
 - Declare the `julia` and `juliamarkdown` languages explicitly via `contributes.languages` so the extension works on VS Code API-compatible hosts (e.g. Eclipse Theia) that do not implicitly register languages from grammar contributions ([#4121](https://github.com/julia-vscode/julia-vscode/pull/4121))
