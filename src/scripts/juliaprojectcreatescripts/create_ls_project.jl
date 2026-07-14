@@ -20,8 +20,6 @@ packages_to_dev = [
     PackageSpec(path="../../../packages/OrderedCollections"),
     PackageSpec(path="../../../packages/PrecompileTools"),
     PackageSpec(path="../../../packages/Preferences"),
-    PackageSpec(path="../../../packages/StaticLint"),
-    PackageSpec(path="../../../packages/SymbolServer"),
     PackageSpec(path="../../../packages/Tokenize"),
     PackageSpec(path="../../../packages/URIParser"),
     PackageSpec(path="../../../packages/URIs"),
@@ -29,6 +27,9 @@ packages_to_dev = [
     PackageSpec(path="../../../packages/MacroTools"),
     PackageSpec(path="../../../packages/Salsa"),
     PackageSpec(path="../../../packages/TestItemDetection"),
+    PackageSpec(path="../../../packages/LoggingExtras"),
+    PackageSpec(path="../../../packages/Scratch"),
+    PackageSpec(path="../../../packages/Runic"),
 ]
 
 Pkg.develop(packages_to_dev)

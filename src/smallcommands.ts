@@ -3,11 +3,6 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { registerCommand } from './utils'
 
-async function toggleLinter() {
-    const cval = vscode.workspace.getConfiguration('julia').get('lint.run', false)
-    await vscode.workspace.getConfiguration('julia').update('lint.run', !cval, vscode.ConfigurationTarget.Global)
-}
-
 // function lintPackage() {
 //     telemetry.traceEvent('command-lintpackage');
 
@@ -74,8 +69,5 @@ async function newJuliaFile(uri?: vscode.Uri) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(
-        registerCommand('language-julia.toggleLinter', toggleLinter),
-        registerCommand('language-julia.newJuliaFile', newJuliaFile)
-    )
+    context.subscriptions.push(registerCommand('language-julia.newJuliaFile', newJuliaFile))
 }

@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.10', '1.11', '1.12']
+        julia-version: ['1.11', '1.12']
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
@@ -125,8 +125,6 @@ jobs:
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("CSTParser", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("JSONRPC", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("LanguageServer", coverage=true)'
-          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("StaticLint", coverage=true)'
-          julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("SymbolServer", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("TestItemDetection", coverage=true)'
           julia --project=./scripts/environments/languageserver/v${{matrix.julia-version}} -e 'using Pkg; Pkg.test("JuliaWorkspaces", coverage=true)'
 

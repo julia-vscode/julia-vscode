@@ -82,6 +82,9 @@ export async function updateEnvs() {
         console.error(err)
     }
 
+    console.log('Updating registry...')
+    await exec(`julia +release -e "using Pkg; Pkg.Registry.update()"`)
+
     await fs.rm(path.join(process.cwd(), 'scripts/environments/languageserver'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/environments/pkgdev'), { recursive: true })
     await fs.rm(path.join(process.cwd(), 'scripts/environments/terminalserver'), { recursive: true })
@@ -237,12 +240,6 @@ export async function updateEnvs() {
 }
 
 export async function updateJuliaPackages() {
-    for (const pkg of ['StaticLint', 'SymbolServer']) {
-        console.log(`Updating ${pkg} to latest master`)
-        await exec('git checkout master', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
-        await exec('git pull', { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) })
-    }
-
     for (const pkg of [
         'LanguageServer',
         'CSTParser',
@@ -271,7 +268,7 @@ export async function updateJuliaPackages() {
         'JuliaSyntax',
         'Glob',
         'LoweredCodeUtils',
-        'OrderedCollections',
+        // 'OrderedCollections',
         'Tokenize',
         'URIParser',
         'CommonMark',
@@ -289,6 +286,7 @@ export async function updateJuliaPackages() {
         // 'Compiler', Ignore for now as it doesn't have tags
         'LoggingExtras',
         'Scratch',
+        'Runic',
     ]) {
         const opts = { cwd: path.join(process.cwd(), `scripts/packages/${pkg}`) }
         await exec('git fetch', opts)

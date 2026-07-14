@@ -1206,7 +1206,7 @@ async function activatePath(path: string) {
     if (path) {
         try {
             await g_connection.sendNotification('repl/activateProject', { uri: path })
-            switchEnvToPath(path, true)
+            switchEnvToPath(path)
         } catch (err) {
             console.log(err)
         }

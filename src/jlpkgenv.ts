@@ -5,12 +5,9 @@ import * as vscode from 'vscode'
 import { ExecutableFeature, JuliaNotFoundError } from './executables'
 import * as packagepath from './packagepath'
 import { parseVSCodeVariables, registerCommand, resolvePath } from './utils'
-import { LanguageClientFeature } from './languageClient'
 import { promisify } from 'node:util'
 import child_process from 'node:child_process'
 const execFile = promisify(child_process.execFile)
-
-let g_languageClientFeature: LanguageClientFeature = null
 
 let g_current_environment: vscode.StatusBarItem = null
 
@@ -40,7 +37,7 @@ export async function getProjectFilePaths(envpath: string) {
     }
 }
 
-export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
+export async function switchEnvToPath(envpath: string) {
     g_path_of_current_environment = envpath
     g_resolved_path_of_environment = resolvePath(envpath)
 
@@ -53,6 +50,10 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
         if (currentConfigValue !== g_path_of_current_environment) {
             section.update('environmentPath', g_path_of_current_environment, vscode.ConfigurationTarget.Workspace)
         }
+    } else if (currentConfigValue !== '' && currentConfigValue !== null) {
+        // Switching to default env: clear the setting so the LS picks up the change
+        // via workspace/didChangeConfiguration
+        section.update('environmentPath', undefined, vscode.ConfigurationTarget.Workspace)
     }
 
     g_current_environment.text = 'Julia env: ' + (await getEnvName())
@@ -126,12 +127,6 @@ export async function switchEnvToPath(envpath: string, notifyLS: boolean) {
             }
         }
     }
-
-    if (notifyLS) {
-        await g_languageClientFeature.withLanguageClient((languageClient) =>
-            languageClient.sendNotification('julia/activateenvironment', { envPath: envpath })
-        )
-    }
 }
 
 async function changeJuliaEnvironment(envPath?: string) {
@@ -149,7 +144,7 @@ async function changeJuliaEnvironment(envPath?: string) {
 
 async function changeJuliaEnvironmentImpl(envPath?: string) {
     if (envPath && envPath !== '') {
-        switchEnvToPath(envPath, true)
+        switchEnvToPath(envPath)
         return
     }
 
@@ -214,13 +209,13 @@ async function changeJuliaEnvironmentImpl(envPath?: string) {
                 const envPath = vscode.Uri.parse(envPathUri).fsPath
                 const isThisAEnv = await fs.exists(path.join(envPath, 'Project.toml'))
                 if (isThisAEnv) {
-                    switchEnvToPath(envPath, true)
+                    switchEnvToPath(envPath)
                 } else {
                     vscode.window.showErrorMessage('The selected path is not a julia environment.')
                 }
             }
         } else {
-            switchEnvToPath(resultPackage.description, true)
+            switchEnvToPath(resultPackage.description)
         }
     }
 }
@@ -303,13 +298,8 @@ export async function getEnvName() {
     return path.basename(envpath)
 }
 
-export async function activate(
-    context: vscode.ExtensionContext,
-    ExecutableFeature: ExecutableFeature,
-    languageClientFeature: LanguageClientFeature
-) {
+export async function activate(context: vscode.ExtensionContext, ExecutableFeature: ExecutableFeature) {
     g_ExecutableFeature = ExecutableFeature
-    g_languageClientFeature = languageClientFeature
 
     context.subscriptions.push(registerCommand('language-julia.changeCurrentEnvironment', changeJuliaEnvironment))
     // Environment status bar
@@ -318,7 +308,7 @@ export async function activate(
     g_current_environment.text = 'Julia env: [loading]'
     g_current_environment.command = 'language-julia.changeCurrentEnvironment'
     context.subscriptions.push(g_current_environment)
-    await switchEnvToPath(await getEnvPath(), false) // We don't need to notify the LS here because it will start with that env already
+    await switchEnvToPath(await getEnvPath()) // We don't need to notify the LS here because it will start with that env already
 
     g_current_environment.show()
 }

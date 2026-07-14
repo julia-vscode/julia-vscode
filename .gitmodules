@@ -13,12 +13,6 @@
 [submodule "scripts/packages/Tokenize"]
 	path = scripts/packages/Tokenize
 	url = https://github.com/JuliaLang/Tokenize.jl.git
-[submodule "scripts/packages/StaticLint"]
-	path = scripts/packages/StaticLint
-	url = https://github.com/julia-vscode/StaticLint.jl
-[submodule "scripts/packages/SymbolServer"]
-	path = scripts/packages/SymbolServer
-	url = https://github.com/julia-vscode/SymbolServer.jl.git
 [submodule "scripts/packages/FilePathsBase"]
 	path = scripts/packages/FilePathsBase
 	url = https://github.com/rofinn/FilePathsBase.jl.git
@@ -148,3 +142,6 @@
 [submodule "scripts/packages/Scratch"]
 	path = scripts/packages/Scratch
 	url = https://github.com/JuliaPackaging/Scratch.jl
+[submodule "scripts/packages/Runic"]
+	path = scripts/packages/Runic
+	url = https://github.com/fredrikekre/Runic.jl
