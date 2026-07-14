@@ -103,6 +103,39 @@ using VSCodeServer
         end
     end
 
+    @testset "repl_getcompletions_request" begin
+        # https://github.com/julia-vscode/julia-vscode/issues/3867
+        Core.eval(Main, :(completion_test_nt = NamedTuple{(Symbol("hello world"), :normal)}((1, 2))))
+
+        line = "completion_test_nt.var\"he"
+        params = VSCodeServer.GetCompletionsRequestParams(line, "Main")
+        items = VSCodeServer.repl_getcompletions_request(nothing, params, nothing)
+
+        # the plumbing must reflect the running Julia's own REPLCompletions
+        cs, replace_range, _ = VSCodeServer.REPLCompletions.completions(line, lastindex(line), Main)
+        filter!(VSCodeServer.is_target_completion, cs)
+        @test length(items) == length(cs)
+        # ASCII text, so UTF-16 units == characters
+        expected_prefix_length = length(line[replace_range])
+        for item in items
+            @test item.prefixLength == expected_prefix_length
+        end
+
+        if VERSION >= v"1.10"
+            # modern REPLCompletions treats `var"he` as a single identifier
+            # prefix and returns quoted completion texts
+            @test any(item -> item.label == "var\"hello world\"", items)
+            @test expected_prefix_length == sizeof("var\"he")
+        end
+
+        # non-ASCII before the completion site must not skew the prefix length
+        Core.eval(Main, :(αβγ_completion_test = (normal = 1,)))
+        line2 = "αβγ_completion_test.nor"
+        params2 = VSCodeServer.GetCompletionsRequestParams(line2, "Main")
+        items2 = VSCodeServer.repl_getcompletions_request(nothing, params2, nothing)
+        @test any(item -> item.label == "normal" && item.prefixLength == 3, items2)
+    end
+
     @testset "extract_mime_id" begin
         # No parameters
         @testset "No parameters" begin

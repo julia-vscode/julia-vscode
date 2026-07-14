@@ -10,17 +10,26 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams, @no
     mod, line = params.mod, params.line
     mod = module_from_string(mod)
 
-    cs = try
-        first(Base.invokelatest(completions, line, lastindex(line), mod))
+    cs, replace_range = try
+        ret = Base.invokelatest(completions, line, lastindex(line), mod)
+        ret[1], ret[2]
     catch err
         @debug "completion error" exception=(err, catch_backtrace())
         # might error when e.g. type inference fails
-        Completion[]
+        Completion[], 1:0
     end
     filter!(is_target_completion, cs)
 
-    return completion.(cs)
+    # UTF-16 length of the typed text the completions replace (it always ends at
+    # the cursor); lets the client build an exact replacement range instead of
+    # relying on the editor's word-based guess, which breaks for e.g. `x.var"he`
+    # (julia-vscode#3867)
+    prefix_length = isempty(replace_range) ? 0 : utf16_length(line[replace_range])
+
+    return completion.(cs, prefix_length)
 end
+
+utf16_length(s::AbstractString) = isempty(s) ? 0 : sum(c -> UInt32(c) > 0xFFFF ? 2 : 1, s)
 
 function repl_resolvecompletion_request(conn, completion_item, @nospecialize(token))
     return completion_item # not used currently, return as is
@@ -32,10 +41,11 @@ function is_target_completion(c)
         c isa DictCompletion
 end
 
-completion(c) = (
+completion(c, prefix_length) = (
     label = completion_label(c),
     detail = string("REPL completion. ", completion_detail(c)),
-    kind = completion_kind(c)
+    kind = completion_kind(c),
+    prefixLength = prefix_length
 )
 
 completion_label(c) = completion_text(c)
