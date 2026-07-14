@@ -16,6 +16,32 @@ const execFile = promisify(child_process.execFile)
 const juliaVersionPrefix = 'julia version '
 
 /**
+ * Upper bounds (ms) for the short-lived availability probes in this file. These probes run
+ * during activation; without a bound a child process that blocks indefinitely (e.g. a
+ * juliaup call waiting on a configuration lock held by another process) would hang
+ * extension activation forever. The bound is only a backstop — a healthy probe returns in
+ * well under a second — so its job is to turn "hang forever" into "recover eventually".
+ *
+ * Two bounds, because the probes are not equally heavy:
+ *
+ * - {@link FAST_PROBE_TIMEOUT_MS} for print-and-exit checks that never start the Julia
+ *   runtime: `julia --version`, `juliaup --version`, `juliaup api getconfig1`. These are
+ *   near-instant (a version string or a local config read), so a few seconds is ample.
+ * - {@link STARTUP_PROBE_TIMEOUT_MS} for the one probe that boots the full Julia runtime
+ *   (`julia -e 'println(Sys.BINDIR)'`). A cold start on Windows with AV scanning the image,
+ *   or on a network/slow disk, can legitimately take several seconds, so it gets more head
+ *   room to avoid falsely reporting a healthy install as unavailable.
+ *
+ * On timeout `execFile` terminates the child with `killSignal` and rejects. Node does not
+ * set `code: 'ETIMEDOUT'` for `execFile` (that is `execSync`); instead the rejected error
+ * has `killed === true` and `signal === <killSignal>`. Use {@link isExecTimeout} to detect
+ * it, so a timed-out probe reports a distinct "timed out" reason instead of being
+ * indistinguishable from a genuinely missing executable.
+ */
+const FAST_PROBE_TIMEOUT_MS = 5_000
+const STARTUP_PROBE_TIMEOUT_MS = 15_000
+
+/**
  * Marker error for *expected* environment / configuration failures originating in this
  * file (Julia or juliaup not installed, missing channel, juliaup invocation failure, ...).
  *
@@ -30,6 +56,39 @@ export class JuliaNotFoundError extends Error {
         super(message)
         this.name = 'JuliaNotFoundError'
     }
+}
+
+/**
+ * A probe exceeded its timeout (see {@link FAST_PROBE_TIMEOUT_MS} /
+ * {@link STARTUP_PROBE_TIMEOUT_MS}) and was terminated.
+ *
+ * Extends {@link JuliaNotFoundError} so every existing `instanceof JuliaNotFoundError`
+ * handler still treats it as a graceful "no usable Julia" outcome, but the distinct type
+ * and message let callers report it as a hang rather than a missing install.
+ */
+export class JuliaProbeTimeoutError extends JuliaNotFoundError {
+    constructor(command: string, timeoutMs: number) {
+        super(
+            `'${command}' did not respond within ${timeoutMs}ms and was terminated. ` +
+                'It may be blocked — for example a juliaup call waiting on a configuration lock held by another process.'
+        )
+        this.name = 'JuliaProbeTimeoutError'
+    }
+}
+
+/**
+ * Whether `err` is an `execFile` rejection caused by one of the probe timeouts firing, as
+ * opposed to the child exiting on its own with an error (missing executable, non-zero
+ * exit, ...).
+ *
+ * The probes in this file never kill their child by any other means, so `killed === true`
+ * uniquely identifies the timeout. We key off that rather than `signal === 'SIGKILL'`
+ * because on Windows the kill signal is not preserved on the error (TerminateProcess has no
+ * signal), which would make a signal check miss the timeout there.
+ */
+function isExecTimeout(err: unknown): boolean {
+    const e = err as { killed?: boolean } | undefined
+    return Boolean(e) && e.killed === true
 }
 
 interface JuliaupInteractiveExecutableSpawnOptions {
@@ -152,12 +211,20 @@ export class JuliaupExecutable {
             }
         } else {
             try {
-                const { stdout } = await execFile(this.command, args, { env })
+                const { stdout } = await execFile(this.command, args, {
+                    env,
+                    timeout: FAST_PROBE_TIMEOUT_MS,
+                    killSignal: 'SIGKILL',
+                })
 
                 const out = stdout?.toString().trim()
 
                 return out
             } catch (err) {
+                if (isExecTimeout(err)) {
+                    console.error(`juliaup command '${args.join(' ')}' timed out: `, err)
+                    throw new JuliaProbeTimeoutError(this.command, FAST_PROBE_TIMEOUT_MS)
+                }
                 console.error('Failed to run juliaup command: ', err)
                 throw new JuliaNotFoundError(`Failed to run juliaup command: ${err}`)
             }
@@ -313,16 +380,26 @@ export class JuliaExecutable {
 
     public async rootFolder(): Promise<string> {
         if (!this._rootFolder) {
-            const result = await execFile(
-                this.command,
-                [...this.args, '--startup-file=no', '--history-file=no', '-e', 'println(Sys.BINDIR)'],
-                {
-                    env: {
-                        ...process.env,
-                        JULIA_VSCODE_INTERNAL: '1',
-                    },
+            let result
+            try {
+                result = await execFile(
+                    this.command,
+                    [...this.args, '--startup-file=no', '--history-file=no', '-e', 'println(Sys.BINDIR)'],
+                    {
+                        env: {
+                            ...process.env,
+                            JULIA_VSCODE_INTERNAL: '1',
+                        },
+                        timeout: STARTUP_PROBE_TIMEOUT_MS,
+                        killSignal: 'SIGKILL',
+                    }
+                )
+            } catch (err) {
+                if (isExecTimeout(err)) {
+                    throw new JuliaProbeTimeoutError(this.command, STARTUP_PROBE_TIMEOUT_MS)
                 }
-            )
+                throw err
+            }
 
             this._rootFolder = path.normalize(
                 path.join(result.stdout.toString().trim(), '..', 'share', 'julia', 'base')
@@ -750,6 +827,8 @@ export class ExecutableFeature {
         try {
             const options: ExecFileOptions = {
                 env: { ...process.env, JULIA_VSCODE_INTERNAL: '1' },
+                timeout: FAST_PROBE_TIMEOUT_MS,
+                killSignal: 'SIGKILL',
             }
             const workspace = vscode.workspace.workspaceFolders?.[0]
 
@@ -771,8 +850,15 @@ export class ExecutableFeature {
 
             this.outputChannel.appendLine(outputPrefix + `'${command}' runs and resolves to ${version}`)
             return version
-        } catch {
-            this.outputChannel.appendLine(outputPrefix + `'${command}' failed to run`)
+        } catch (err) {
+            if (isExecTimeout(err)) {
+                this.outputChannel.appendLine(
+                    outputPrefix +
+                        `'${command}' did not respond within ${FAST_PROBE_TIMEOUT_MS}ms and was terminated (it may be blocked, e.g. waiting on a juliaup configuration lock)`
+                )
+            } else {
+                this.outputChannel.appendLine(outputPrefix + `'${command}' failed to run`)
+            }
         }
     }
 
@@ -797,21 +883,53 @@ export class ExecutableFeature {
 
         const spawnables = [this.defaultJuliaupBinaryLocation(), 'juliaup']
 
+        let anyProbeTimedOut = false
         for (const cmd of spawnables) {
             this.outputChannel.appendLine(outputPrefix + `  Checking ${cmd}...`)
             try {
-                const { stdout } = await execFile(cmd, ['--version'])
+                const { stdout } = await execFile(cmd, ['--version'], {
+                    timeout: FAST_PROBE_TIMEOUT_MS,
+                    killSignal: 'SIGKILL',
+                })
                 const version = stdout.toString().trim()
 
                 this.outputChannel.appendLine(`  ${cmd}: found 'juliaup' with version ${version}`)
                 this.setJuliaupInstalled(true)
 
                 return new JuliaupExecutable(cmd, version, this.taskRunner, this.statusBarItem)
-            } catch {
-                // TODO: maybe check the actual error here?
-                this.outputChannel.appendLine(`  ${cmd}: not a juliaup executable`)
+            } catch (err) {
+                if (isExecTimeout(err)) {
+                    anyProbeTimedOut = true
+                    this.outputChannel.appendLine(
+                        `  ${cmd}: did not respond within ${FAST_PROBE_TIMEOUT_MS}ms and was terminated (it may be blocked, e.g. waiting on a juliaup configuration lock)`
+                    )
+                } else {
+                    // TODO: maybe check the actual error here?
+                    this.outputChannel.appendLine(`  ${cmd}: not a juliaup executable`)
+                }
             }
         }
+
+        // A timed-out probe most likely means juliaup *is* installed but is currently
+        // blocked, which is a different situation from it not being installed at all;
+        // tell the user so instead of silently falling into the install flow.
+        if (anyProbeTimedOut) {
+            this.outputChannel.appendLine(
+                outputPrefix + '! juliaup did not respond in time; it may be blocked by another process.'
+            )
+            vscode.window
+                .showWarningMessage(
+                    'Checking for juliaup timed out — it may be blocked by another process (for example another juliaup command holding a configuration lock). Julia features may be unavailable until it responds.',
+                    'Show Output'
+                )
+                .then((choice) => {
+                    if (choice === 'Show Output') {
+                        this.outputChannel.show()
+                    }
+                })
+            throw new JuliaProbeTimeoutError('juliaup', FAST_PROBE_TIMEOUT_MS)
+        }
+
         this.outputChannel.appendLine(outputPrefix + '! juliaup is not installed.')
 
         if (tryInstall) {

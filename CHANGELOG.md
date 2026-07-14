@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Unused arguments in short-form function definitions are now flagged ([JuliaWorkspaces.jl#126](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/126))
 - Identifiers are now Unicode-normalized to match Julia's own handling ([JuliaWorkspaces.jl#126](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/126))
 - Dynamic package analysis now launches its subprocess correctly when running inside an editor-hosted language server ([JuliaWorkspaces.jl#119](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/119))
+- Julia/juliaup availability checks during activation now time out instead of hanging indefinitely (e.g. when a juliaup call is blocked on a configuration lock), and a timed-out check is reported distinctly from a missing installation ([#4123](https://github.com/julia-vscode/julia-vscode/pull/4123))
 
 ## [1.219.0] - 2026-06-17
 ### Added
