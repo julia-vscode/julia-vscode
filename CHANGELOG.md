@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- Julia/juliaup availability checks during activation now time out instead of hanging indefinitely (e.g. when a juliaup call is blocked on a configuration lock), and a timed-out check is reported distinctly from a missing installation ([#4123](https://github.com/julia-vscode/julia-vscode/pull/4123))
+
 ## [1.219.0] - 2026-06-17
 ### Added
 - Declare the `julia` and `juliamarkdown` languages explicitly via `contributes.languages` so the extension works on VS Code API-compatible hosts (e.g. Eclipse Theia) that do not implicitly register languages from grammar contributions ([#4121](https://github.com/julia-vscode/julia-vscode/pull/4121))
