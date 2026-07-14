@@ -38,9 +38,45 @@ export function activate(context: vscode.ExtensionContext) {
 
 const requestTypeGetCompletionItems = new rpc.RequestType<
     { line: string; mod: string }, // input type
-    vscode.CompletionItem[], // return type
+    (vscode.CompletionItem & { prefixLength?: number })[], // return type
     void
 >('repl/getcompletions')
+
+/**
+ * Set an explicit replacement range on a completion item. `prefixLength` is the
+ * length (in UTF-16 code units) of the typed text before the cursor that the
+ * completion replaces, as reported by REPLCompletions. Without this, VS Code
+ * guesses a word range, which breaks e.g. `x.var"he` → `x.var"var"hello world"`
+ * (julia-vscode#3867).
+ */
+function setCompletionItemRange(
+    item: vscode.CompletionItem & { prefixLength?: number },
+    document: vscode.TextDocument,
+    position: vscode.Position
+) {
+    const prefixLength = item.prefixLength
+    if (typeof prefixLength !== 'number' || prefixLength < 0 || prefixLength > position.character) {
+        return item
+    }
+    const start = position.translate(0, -prefixLength)
+    let end = position
+    // If the completion closes a string the user is still typing (e.g. the
+    // replaced `var"he` has an unterminated quote) and the editor auto-closed
+    // it, the quote right after the cursor would end up duplicated — include
+    // it in the replaced range.
+    const label = typeof item.label === 'string' ? item.label : item.label.label
+    const replaced = document.getText(new vscode.Range(start, position))
+    const quoteCount = (replaced.match(/"/g) ?? []).length
+    if (
+        quoteCount % 2 === 1 &&
+        label.endsWith('"') &&
+        document.getText(new vscode.Range(position, position.translate(0, 1))) === '"'
+    ) {
+        end = position.translate(0, 1)
+    }
+    item.range = new vscode.Range(start, end)
+    return item
+}
 
 function completionItemProvider(conn: MessageConnection): vscode.CompletionItemProvider {
     return {
@@ -65,7 +101,7 @@ function completionItemProvider(conn: MessageConnection): vscode.CompletionItemP
                     }
 
                     return {
-                        items: items,
+                        items: items.map((item) => setCompletionItemRange(item, document, position)),
                         isIncomplete: true,
                     }
                 } catch (err) {
