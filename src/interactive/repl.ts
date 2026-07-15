@@ -141,12 +141,32 @@ function parseSessionArgs(name: string) {
     return sanitize(parseVSCodeVariables(name))
 }
 
-// FIXME: refactor this!
+let g_startREPLPromise: Promise<void> = null
+
 export async function startREPL(
     preserveFocus: boolean,
     showTerminal: boolean = true,
     juliaExecutable?: JuliaExecutable
 ) {
+    if (g_startREPLPromise) {
+        // a REPL startup is already in flight; piggyback on it instead of spawning a second REPL
+        await g_startREPLPromise
+        if (showTerminal && g_terminal) {
+            g_terminal.show(preserveFocus)
+        }
+        return
+    }
+
+    g_startREPLPromise = _startREPL(preserveFocus, showTerminal, juliaExecutable)
+    try {
+        await g_startREPLPromise
+    } finally {
+        g_startREPLPromise = null
+    }
+}
+
+// FIXME: refactor this!
+async function _startREPL(preserveFocus: boolean, showTerminal: boolean = true, juliaExecutable?: JuliaExecutable) {
     const config = vscode.workspace.getConfiguration('julia')
     const isPersistentSession = Boolean(config.get('persistentSession.enabled'))
 
@@ -325,8 +345,24 @@ export async function startREPL(
         }
     }
 
-    g_terminal.show(preserveFocus)
-    await juliaIsConnectedPromise.wait()
+    const terminal = g_terminal
+    terminal.show(preserveFocus)
+
+    // stop waiting if the terminal is closed before Julia connects (e.g. because the Julia
+    // process failed to start), so that another REPL can be started later
+    let closeListener: vscode.Disposable
+    const terminalClosed = new Promise<void>((resolve) => {
+        closeListener = vscode.window.onDidCloseTerminal((t) => {
+            if (t === terminal) {
+                resolve()
+            }
+        })
+    })
+    try {
+        await Promise.race([juliaIsConnectedPromise.wait(), terminalClosed])
+    } finally {
+        closeListener.dispose()
+    }
 }
 
 function makeTerminalName(juliaExecutable: JuliaExecutable) {
