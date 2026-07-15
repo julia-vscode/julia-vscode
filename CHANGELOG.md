@@ -52,6 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Signature-help parameter labels are emitted as UTF-16 offset ranges, so unnamed method arguments no longer show an internal `#unused#` placeholder ([JuliaWorkspaces.jl#142](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/142))
 - Signature help is now offered for keyword-only methods (e.g. `bar(; x)`) at the first argument position, where positional-arity filtering previously discarded them ([JuliaWorkspaces.jl#144](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/144))
 - Fixed a server crash when an `inlayHint` request specified a range past the end of the document ([LanguageServer.jl#1400](https://github.com/julia-vscode/LanguageServer.jl/pull/1400))
+- The "Julia Language Server Crashed" status bar item no longer appears for transient crashes that the client recovers from by restarting the server automatically; it is now only shown once the server enters a crash loop and will not be restarted. Language features also keep working after such an automatic restart instead of requiring a manual server restart ([#4137](https://github.com/julia-vscode/julia-vscode/pull/4137))
 
 ## [1.219.0] - 2026-06-17
 ### Added
