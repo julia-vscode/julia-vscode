@@ -48,7 +48,7 @@
                 "", // Old depot path,
                 "${workspaceFolder}/globalstorage", // Storage path
                 "download", // useSymserverDownloads
-                "https://www.julia-vscode.org/symbolcache", // symbolcache_upstream
+                "https://julia-symbolcache.org", // symbolcache_upstream
                 "--detached=yes",
                 "julia",
                 "1.12.5"
