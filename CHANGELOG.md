@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Linting and diagnostics are now provided for indirectly included files — files pulled in via `include` but never opened in the editor ([LanguageServer.jl#1370](https://github.com/julia-vscode/LanguageServer.jl/pull/1370))
 - New `julia.enableDynamicIndexing` setting to toggle dynamic package indexing; disable it for lower resource usage at the cost of reduced functionality ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079))
 - Support for Julia 1.13 ([JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
+- Completions are now ranked and sorted server-side by relevance (match quality, then scope proximity, then length), so a case-matching prefix and bindings in nearer lexical scopes surface first even in editors that do not re-sort completions client-side ([JuliaWorkspaces.jl#143](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/143))
+- Field completion now narrows through a local type assertion: an assignment whose right-hand side is a `::` type assertion (`y = x::T`) gives the assigned binding the asserted type ([JuliaWorkspaces.jl#145](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/145))
+- New `UnresolvedImport` diagnostic marks the first unresolvable component of a `using`/`import` path; the names such an import would bind now get synthetic bindings, so references to them are no longer flagged as missing ([JuliaWorkspaces.jl#133](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/133))
 
 ### Changed
 - Overhauled the language-server backend: the standalone StaticLint.jl (linting) and SymbolServer.jl (package symbol indexing) packages, together with the completion, hover, signature-help, go-to-definition, and find-references implementations, are now built directly into JuliaWorkspaces ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079), [LanguageServer.jl#1370](https://github.com/julia-vscode/LanguageServer.jl/pull/1370), [JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
@@ -20,6 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Improved method matching for the linter's call check, including vararg handling and overload resolution ([JuliaWorkspaces.jl#121](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/121), [JuliaWorkspaces.jl#123](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/123))
 - Files inside `packages` directories are no longer linted ([JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
 - Removed the "Julia: Toggle Linter" and "Julia: Re-Index Language Server Cache" commands; the latter is obsolete now that indexing happens dynamically ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079))
+- The default missing-reference lint level is now `all` (previously `symbols`), and a scope containing an unresolved wildcard `using` suppresses bare missing-reference hints ([JuliaWorkspaces.jl#133](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/133))
+- An unresolvable name that the project declares as a dependency now reports that the dependency's symbols could not be indexed, distinct from the generic "failed to resolve" used for names not in the environment at all ([JuliaWorkspaces.jl#135](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/135))
+- Signature help renders shorter type annotations: the module qualifier is dropped for exported `Core`/`Base` names and `::Any` annotations are omitted ([JuliaWorkspaces.jl#141](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/141))
 
 ### Fixed
 - Large workspaces load noticeably faster and no longer block the server: file additions are batched and processed in linear time, folder walking yields cooperatively, and package caches load incrementally ([LanguageServer.jl#1399](https://github.com/julia-vscode/LanguageServer.jl/pull/1399), [JuliaWorkspaces.jl#119](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/119))
@@ -33,6 +39,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Identifiers are now Unicode-normalized to match Julia's own handling ([JuliaWorkspaces.jl#126](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/126))
 - Dynamic package analysis now launches its subprocess correctly when running inside an editor-hosted language server ([JuliaWorkspaces.jl#119](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/119))
 - Julia/juliaup availability checks during activation now time out instead of hanging indefinitely (e.g. when a juliaup call is blocked on a configuration lock), and a timed-out check is reported distinctly from a missing installation ([#4123](https://github.com/julia-vscode/julia-vscode/pull/4123))
+- Non-standard `var"..."` identifiers are now handled across completions, hover, and reference resolution instead of crashing or being silently ignored ([JuliaWorkspaces.jl#131](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/131))
+- `@label` targets are no longer flagged as unused bindings ([JuliaWorkspaces.jl#132](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/132))
+- The body of `@test_throws` is no longer linted, avoiding false-positive diagnostics on deliberately invalid code ([JuliaWorkspaces.jl#134](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/134))
+- Arguments of anonymous functions written as `(a; b)` are now bound, so references to them resolve instead of reporting "no definition found" ([JuliaWorkspaces.jl#136](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/136))
+- Renaming a macro now produces consistent edits for the definition and its `@`-prefixed invocations, without duplicate edits ([JuliaWorkspaces.jl#137](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/137))
+- Self-references inside an assigned anonymous function now resolve to the function ([JuliaWorkspaces.jl#138](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/138))
+- References to names brought in via `using` and then re-`export`ed now resolve through `using` chains instead of being flagged as missing ([JuliaWorkspaces.jl#139](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/139))
+- Hovering a keyword argument (e.g. `y` in `g(x; y)`) now resolves to the correct node instead of a neighboring one ([JuliaWorkspaces.jl#140](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/140))
+- Signature-help parameter labels are emitted as UTF-16 offset ranges, so unnamed method arguments no longer show an internal `#unused#` placeholder ([JuliaWorkspaces.jl#142](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/142))
+- Signature help is now offered for keyword-only methods (e.g. `bar(; x)`) at the first argument position, where positional-arity filtering previously discarded them ([JuliaWorkspaces.jl#144](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/144))
+- Fixed a server crash when an `inlayHint` request specified a range past the end of the document ([LanguageServer.jl#1400](https://github.com/julia-vscode/LanguageServer.jl/pull/1400))
 
 ## [1.219.0] - 2026-06-17
 ### Added
