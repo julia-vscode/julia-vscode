@@ -3,8 +3,13 @@ import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import {
+    CloseAction,
+    CloseHandlerResult,
+    ErrorHandler,
+    ErrorHandlerResult,
     LanguageClient,
     LanguageClientOptions,
+    Message,
     RevealOutputChannelOn,
     ServerOptions,
     State,
@@ -45,6 +50,50 @@ export function isLanguageServerError(err: unknown): boolean {
         }
     }
     return false
+}
+
+/**
+ * Wraps the client's default error handler and remembers whether the last
+ * connection close resulted in an auto-restart. The client fires a public
+ * `Stopped` state change on every unexpected connection close, even when it
+ * is about to restart the server itself, so the state change alone cannot
+ * distinguish a transient crash from a crash loop the client has given up on.
+ * The `closed()` decision is made before the state change fires, which lets
+ * the state change handler consult `consumeRestartPending()`.
+ */
+export class RestartTrackingErrorHandler implements ErrorHandler {
+    private delegate: ErrorHandler
+    private restartPending: boolean = false
+
+    constructor(private createDelegate: () => ErrorHandler) {}
+
+    error(
+        error: Error,
+        message: Message | undefined,
+        count: number | undefined
+    ): ErrorHandlerResult | Promise<ErrorHandlerResult> {
+        this.delegate ??= this.createDelegate()
+        return this.delegate.error(error, message, count)
+    }
+
+    async closed(): Promise<CloseHandlerResult> {
+        this.delegate ??= this.createDelegate()
+        const result = await this.delegate.closed()
+        if (result.action === CloseAction.Restart) {
+            this.restartPending = true
+        }
+        return result
+    }
+
+    /**
+     * Returns whether the last connection close is followed by an
+     * auto-restart, and resets the flag.
+     */
+    consumeRestartPending(): boolean {
+        const pending = this.restartPending
+        this.restartPending = false
+        return pending
+    }
 }
 
 export class LanguageClientFeature {
@@ -291,12 +340,19 @@ export class LanguageClientFeature {
             selector.push({ language: 'toml', scheme: scheme, pattern: '**/.JuliaLint.toml' })
         }
 
+        // The default error handler restarts the server on a crash, unless it
+        // crashed 5 times within the last 3 minutes. The wrapper records that
+        // decision so the state change handler below can tell a transient
+        // crash apart from a crash loop.
+        const errorHandler = new RestartTrackingErrorHandler(() => languageClient.createDefaultErrorHandler())
+
         const clientOptions: LanguageClientOptions = {
             documentSelector: selector,
             revealOutputChannelOn: RevealOutputChannelOn.Never,
             traceOutputChannel: this.traceOutputChannel,
             outputChannel: this.outputChannel,
             initializationOptions: { julialangTestItemIdentification: true },
+            errorHandler,
         }
 
         // Create the language client and start the client.
@@ -312,10 +368,17 @@ export class LanguageClientFeature {
                     this.setState('running')
                     break
                 case State.Stopped:
-                    if (!this._intentionalStop) {
-                        // The library auto-restarts up to 4 times in 3 minutes.
-                        // If it transitions to Stopped without us requesting it,
-                        // the library has given up.
+                    if (this._intentionalStop) {
+                        break
+                    }
+                    if (errorHandler.consumeRestartPending()) {
+                        // The client restarts the server itself after a
+                        // transient crash and reuses this client instance,
+                        // so keep it around and wait for the Starting event.
+                        this.setState('starting')
+                    } else {
+                        // The client has given up: the server entered a crash
+                        // loop or shut down after repeated connection errors.
                         this.setState('crashed')
                         this.setLanguageClient()
                     }
