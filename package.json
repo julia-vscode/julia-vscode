@@ -1086,6 +1086,19 @@
                     "description": "Whether to use dynamic package indexing. Disable for reduced functionality with lower resource usage.",
                     "scope": "window"
                 },
+                "julia.maxConcurrentIndexingProcesses": {
+                    "type": "integer",
+                    "default": 4,
+                    "minimum": 0,
+                    "description": "Maximum number of concurrently running environment-indexing child processes. Set to 0 for no limit.",
+                    "scope": "window"
+                },
+                "julia.enableWorkspaceEnvironmentResolution": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to resolve dedicated environments for workspace packages without a manifest and for test files. Disable to only use environments that already exist on disc.",
+                    "scope": "window"
+                },
                 "julia.NumThreads": {
                     "type": [
                         "integer",
