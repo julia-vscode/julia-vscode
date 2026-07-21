@@ -5,19 +5,19 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.220.0] - 2026-07-21
 ### Added
-- Prebuilt symbol caches for the public General registry are now generated and served via a new cloud indexer (`jwcloudindex`), which indexes each package in isolated, sandboxed worker subprocesses; the language server can download these caches instead of indexing common dependencies locally ([JuliaWorkspaces.jl#105](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/105), [JuliaWorkspaces.jl#106](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/106))
 - Code formatting is now configurable per project through a `juliaformat.toml` file, with selectable styles (`default`, `yas`, `blue`, `sciml`, `minimal`, and a new `runic` backend); the `minimal` style is used when no config file is present ([JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
 - Linting and diagnostics are now provided for indirectly included files — files pulled in via `include` but never opened in the editor ([LanguageServer.jl#1370](https://github.com/julia-vscode/LanguageServer.jl/pull/1370))
-- New `julia.enableDynamicIndexing` setting to toggle dynamic package indexing; disable it for lower resource usage at the cost of reduced functionality ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079))
 - Support for Julia 1.13 ([JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
 - Completions are now ranked and sorted server-side by relevance (match quality, then scope proximity, then length), so a case-matching prefix and bindings in nearer lexical scopes surface first even in editors that do not re-sort completions client-side ([JuliaWorkspaces.jl#143](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/143))
-- Field completion now narrows through a local type assertion: an assignment whose right-hand side is a `::` type assertion (`y = x::T`) gives the assigned binding the asserted type ([JuliaWorkspaces.jl#145](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/145))
+- Type inference now takes RHS type assertions into account ([JuliaWorkspaces.jl#145](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/145))
 - New `UnresolvedImport` diagnostic marks the first unresolvable component of a `using`/`import` path; the names such an import would bind now get synthetic bindings, so references to them are no longer flagged as missing ([JuliaWorkspaces.jl#133](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/133))
 - Hover and completions now indicate a name's API status — whether it is exported, marked `public`, or internal — with the detail shown inline on completion items and in a footer on hover ([JuliaWorkspaces.jl#148](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/148))
-- The call-signature linter now checks argument counts against project functions defined in other files, not just those in the same file ([JuliaWorkspaces.jl#148](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/148))
+- New `julia.enableDynamicIndexing` setting to toggle dynamic package indexing; disable it for lower resource usage at the cost of potentially reduced functionality ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079))
 - New `julia.maxConcurrentIndexingProcesses` setting caps how many environment-indexing child processes run at once (default 4; set to 0 for no limit) ([LanguageServer.jl#1402](https://github.com/julia-vscode/LanguageServer.jl/pull/1402))
-- New `julia.enableWorkspaceEnvironmentResolution` setting toggles resolving dedicated environments for workspace packages without a manifest and for test files; disable it to only use environments that already exist on disk ([LanguageServer.jl#1402](https://github.com/julia-vscode/LanguageServer.jl/pull/1402))
+- New `julia.enableWorkspaceEnvironmentResolution` setting toggles resolving environments without a manifest and for test files; disable it to only use environments that already exist on disk ([LanguageServer.jl#1402](https://github.com/julia-vscode/LanguageServer.jl/pull/1402))
 
 ### Changed
 - Method-call-error diagnostics now name the specific mismatch instead of reporting a generic call error ([JuliaWorkspaces.jl#148](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/148))
@@ -37,9 +37,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Signature help renders shorter type annotations: the module qualifier is dropped for exported `Core`/`Base` names and `::Any` annotations are omitted ([JuliaWorkspaces.jl#141](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/141))
 
 ### Fixed
-- Starting the Julia REPL while another REPL startup is still in flight (e.g. by running `Julia: Start REPL` and then immediately executing code) no longer spawns a second Julia process; concurrent startup requests now wait for the first one to finish. A REPL startup that dies before connecting (e.g. because the Julia process failed to launch) no longer leaves the extension waiting forever once its terminal is closed ([#4138](https://github.com/julia-vscode/julia-vscode/pull/4138))
+- Fixed a race condition in REPL startup ([#4138](https://github.com/julia-vscode/julia-vscode/pull/4138))
 - Completing non-standard `var"..."` identifiers no longer duplicates the `var"` prefix; such names are now offered and inserted with proper quoting by both the static and the REPL-backed completion providers ([#3867](https://github.com/julia-vscode/julia-vscode/issues/3867), [JuliaWorkspaces.jl#131](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/131))
-- Non-standard `var"..."` identifiers no longer crash or confuse other language features: an unresolvable `x.var"..."` field access no longer crashes the linting pass, signature help works for structs and functions with `var"..."` fields/arguments, workspace symbols include such bindings, two distinct nested `var"..."` module names are no longer flagged as invalid, duplicated `var"..."` argument names are diagnosed, and `var"..."` module names no longer crash import completions ([JuliaWorkspaces.jl#131](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/131))
+- Non-standard `var"..."` identifiers no longer crash or confuse the LS ([JuliaWorkspaces.jl#131](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/131))
 - Large workspaces load noticeably faster and no longer block the server: file additions are batched and processed in linear time, folder walking yields cooperatively, and package caches load incrementally ([LanguageServer.jl#1399](https://github.com/julia-vscode/LanguageServer.jl/pull/1399), [JuliaWorkspaces.jl#119](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/119))
 - Dot-completion now offers only the members of the relevant workspace struct ([JuliaWorkspaces.jl#124](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/124))
 - Dot-completion now anchors its left-hand-side lookup on the `.` token ([JuliaWorkspaces.jl#124](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/124))
@@ -51,7 +51,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Identifiers are now Unicode-normalized to match Julia's own handling ([JuliaWorkspaces.jl#126](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/126))
 - Dynamic package analysis now launches its subprocess correctly when running inside an editor-hosted language server ([JuliaWorkspaces.jl#119](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/119))
 - Julia/juliaup availability checks during activation now time out instead of hanging indefinitely (e.g. when a juliaup call is blocked on a configuration lock), and a timed-out check is reported distinctly from a missing installation ([#4123](https://github.com/julia-vscode/julia-vscode/pull/4123))
-- Non-standard `var"..."` identifiers are now handled across completions, hover, and reference resolution instead of crashing or being silently ignored ([JuliaWorkspaces.jl#131](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/131))
 - `@label` targets are no longer flagged as unused bindings ([JuliaWorkspaces.jl#132](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/132))
 - The body of `@test_throws` is no longer linted, avoiding false-positive diagnostics on deliberately invalid code ([JuliaWorkspaces.jl#134](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/134))
 - Arguments of anonymous functions written as `(a; b)` are now bound, so references to them resolve instead of reporting "no definition found" ([JuliaWorkspaces.jl#136](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/136))
@@ -67,10 +66,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Diagnostics are no longer published for files outside the open workspace ([LanguageServer.jl#1405](https://github.com/julia-vscode/LanguageServer.jl/pull/1405))
 - Go-to-definition on a package or imported external module name now resolves to that module's source ([JuliaWorkspaces.jl#148](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/148))
 - Names brought in via a whole-module `using` and then re-exported now resolve instead of being flagged as missing ([JuliaWorkspaces.jl#148](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/148))
-- Interpolated docstrings are now rendered in hover and completion documentation, and cross-file completion items carry their documentation ([JuliaWorkspaces.jl#148](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/148))
 - Type inference for cross-file and qualified constructors, curly type aliases, and destructuring assignments is more accurate, so field completion and hover resolve in more cases ([JuliaWorkspaces.jl#148](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/148))
 - Hover method lists, signature help, go-to-definition, and the call linter now share one computation of which modules are in scope, so overloads from a module brought in by any import form (`using Foo`, `using Foo: bar`, `import Foo`) are recognized rather than only those from a whole-module `using` ([JuliaWorkspaces.jl#149](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/149))
 - The call-signature linter now resolves `const` type aliases and respects locally shadowed names, so calls involving them are no longer wrongly flagged ([JuliaWorkspaces.jl#150](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/150))
+- Removed broken inference-by-use heuristics ([JuliaWorkspaces.jl#149](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/149))
 
 ## [1.219.0] - 2026-06-17
 ### Added

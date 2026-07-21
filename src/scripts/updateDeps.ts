@@ -97,7 +97,7 @@ export async function updateEnvs() {
         console.log(`Updating environments for Julia ${v}...`)
 
         try {
-            if (semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.10.0'))) {
+            if (semver.gte(new semver.SemVer(`${v}.0`), new semver.SemVer('1.11.0'))) {
                 const env_path_ls = path.join(process.cwd(), 'scripts/environments/languageserver', `v${v}`)
                 await fs.mkdir(env_path_ls, { recursive: true })
                 await exec(
