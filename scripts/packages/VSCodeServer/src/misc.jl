@@ -1,6 +1,12 @@
 import UUIDs: uuid1
 import InteractiveUtils: @which
 
+@static if isdefined(Base, :hasproperty)
+    _hasproperty = Base.hasproperty
+else
+    _hasproperty(obj, prop) = prop in propertynames(typeof(obj))
+end
+
 # error handling
 # --------------
 function crop_backtrace(bt)
@@ -34,7 +40,7 @@ function find_first_trace_entry(bt::Vector{<:Union{Base.InterpreterIP,Ptr{Cvoid}
         st = Base.StackTraces.lookup(ip)
         ind = findfirst(st) do frame
             linfo = frame.linfo
-            if linfo isa Core.CodeInfo && hasproperty(linfo, :linetable)
+            if linfo isa Core.CodeInfo && _hasproperty(linfo, :linetable)
                 linetable = linfo.linetable
                 if isa(linetable, Vector) && length(linetable) ≥ 1
                     lin = first(linetable)
