@@ -126,6 +126,8 @@ try
         error("Invalid argument passed.")
     end
 
+    debug_mode = false
+
     detached_mode = if Base.ARGS[5] == "--detached=yes"
         true
     elseif Base.ARGS[5] == "--detached=no"
@@ -171,7 +173,12 @@ try
 
     @debug "LanguageServer.jl loaded at $(round(Int, time()))"
 
-    symserver_store_path = joinpath(ARGS[4], "symbolstorev5")
+    store_version = isdefined(LanguageServer, :JuliaWorkspaces) &&
+        isdefined(LanguageServer.JuliaWorkspaces, :SymbolServer) &&
+        isdefined(LanguageServer.JuliaWorkspaces.SymbolServer, :CACHE_STORE_VERSION) ?
+            LanguageServer.JuliaWorkspaces.SymbolServer.CACHE_STORE_VERSION :
+            "v0"
+    symserver_store_path = joinpath(ARGS[4], "symbolstore", store_version)
 
     if !ispath(symserver_store_path)
         mkpath(symserver_store_path)
