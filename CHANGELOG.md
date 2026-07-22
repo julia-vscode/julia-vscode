@@ -5,6 +5,19 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.223.0] - 2026-07-22
+### Changed
+- The REPL integration's internal `@debug` logging is now emitted only when the language server runs in developer mode, so it no longer adds noise for users who set `JULIA_DEBUG` ([#4148](https://github.com/julia-vscode/julia-vscode/pull/4148))
+
+### Fixed
+- The active environment path is now pushed to the language server via a `julia/setEnvironmentPath` notification instead of a plain setting; the client resolves the path (expanding `${env:...}`/`${config:...}` and clearing stale state first), so environment switches — including manual `settings.json` edits — are picked up reliably. Relative environment paths are now accepted ([#4147](https://github.com/julia-vscode/julia-vscode/pull/4147), [LanguageServer.jl#1407](https://github.com/julia-vscode/LanguageServer.jl/pull/1407))
+- Fixed a language-server crash when resolving element types of tree references in `settype!` ([JuliaWorkspaces.jl#154](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/154))
+- Types with an overloaded constructor are now kept as a `DataType` rather than being reclassified as a `Function`, so completions, hover, and linting handle them correctly ([JuliaWorkspaces.jl#155](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/155))
+- The `CannotDeclareConst` diagnostic now highlights only the name instead of the whole declaration ([JuliaWorkspaces.jl#156](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/156))
+
+## [1.221.0] - 2026-07-22
+### Fixed
+- Runtime (REPL-backed) property completions no longer error on Julia versions without `Base.hasproperty`, falling back to `propertynames`
 
 ## [1.220.0] - 2026-07-21
 ### Added
@@ -24,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Completions again match on typos: the fuzzy-completion cutoff was raised so approximate prefixes surface results ([JuliaWorkspaces.jl#148](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/148))
 - Multi-environment workspaces use less memory and load faster — the standard-library symbol store is shared across environments instead of being deep-copied, and each package symbol cache is loaded at most once ([JuliaWorkspaces.jl#148](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/148))
 - Server cold start is faster: hot request paths are precompiled, each workspace folder is walked only once at init, and the initial diagnostic sweep runs off the dispatch loop with coalesced refreshes ([LanguageServer.jl#1403](https://github.com/julia-vscode/LanguageServer.jl/pull/1403))
+- Progress notifications from the language server are now aggregated into fewer updates ([LanguageServer.jl#1406](https://github.com/julia-vscode/LanguageServer.jl/pull/1406))
 - The default symbol-cache download URL now points at the new `https://julia-symbolcache.org` service (previously `https://www.julia-vscode.org/symbolcache`) ([#4139](https://github.com/julia-vscode/julia-vscode/pull/4139), [JuliaWorkspaces.jl#147](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/147))
 - Overhauled the language-server backend: the standalone StaticLint.jl (linting) and SymbolServer.jl (package symbol indexing) packages, together with the completion, hover, signature-help, go-to-definition, and find-references implementations, are now built directly into JuliaWorkspaces ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079), [LanguageServer.jl#1370](https://github.com/julia-vscode/LanguageServer.jl/pull/1370), [JuliaWorkspaces.jl#61](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/61))
 - Diagnostics are now delivered via LSP pull diagnostics instead of being pushed by the server ([#4079](https://github.com/julia-vscode/julia-vscode/pull/4079), [LanguageServer.jl#1370](https://github.com/julia-vscode/LanguageServer.jl/pull/1370))
@@ -70,6 +84,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Hover method lists, signature help, go-to-definition, and the call linter now share one computation of which modules are in scope, so overloads from a module brought in by any import form (`using Foo`, `using Foo: bar`, `import Foo`) are recognized rather than only those from a whole-module `using` ([JuliaWorkspaces.jl#149](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/149))
 - The call-signature linter now resolves `const` type aliases and respects locally shadowed names, so calls involving them are no longer wrongly flagged ([JuliaWorkspaces.jl#150](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/150))
 - Removed broken inference-by-use heuristics ([JuliaWorkspaces.jl#149](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/149))
+- Language-server progress notifications are now cleaned up properly instead of lingering ([JuliaWorkspaces.jl#151](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/151))
+- Colon imports of a re-exported module (e.g. `using Foo: Bar` where `Bar` is re-exported by `Foo`) are no longer flagged by the linter ([JuliaWorkspaces.jl#152](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/152))
+- Macro definitions no longer emit spurious diagnostics ([JuliaWorkspaces.jl#153](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/153))
 
 ## [1.219.0] - 2026-06-17
 ### Added
