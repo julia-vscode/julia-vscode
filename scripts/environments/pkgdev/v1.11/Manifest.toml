@@ -294,9 +294,9 @@ version = "1.9.1"
 
 [[deps.Reseau]]
 deps = ["NetworkOptions", "OpenSSL_jll", "PrecompileTools", "Random", "SHA"]
-git-tree-sha1 = "0eab6d95ed40c2ef3992255c1c71e4f9748932b5"
+git-tree-sha1 = "5ccb99ea21f18b328e5da04a36fd10b56cb8850a"
 uuid = "802f3686-a58f-41ce-bb0c-3c43c75bba36"
-version = "1.3.1"
+version = "1.3.2"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
