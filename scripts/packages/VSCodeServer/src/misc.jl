@@ -218,7 +218,7 @@ function send_queued_notifications!()
         try
             JSONRPC.send_notification(conn_endpoint[], type, content)
         catch err
-            @debug "Could not send enqueued notification" exception=(err, catch_backtrace())
+            @_debug "Could not send enqueued notification" exception=(err, catch_backtrace())
         end
     end
     JSONRPC.flush(conn_endpoint[])

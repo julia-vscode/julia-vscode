@@ -14,7 +14,7 @@ function repl_getcompletions_request(_, params::GetCompletionsRequestParams, @no
         ret = Base.invokelatest(completions, line, lastindex(line), mod)
         ret[1], ret[2]
     catch err
-        @debug "completion error" exception=(err, catch_backtrace())
+        @_debug "completion error" exception=(err, catch_backtrace())
         # might error when e.g. type inference fails
         Completion[], 1:0
     end
