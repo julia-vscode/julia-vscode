@@ -293,6 +293,16 @@ export async function getAbsEnvPath() {
     return absEnvPath(resolvePath(envPath))
 }
 
+// Fully resolved absolute environment path to hand to the language server. The
+// server never resolves `julia.environmentPath` itself (it can't expand
+// `${env:...}` / `${config:...}`), so all resolution happens here. The cached
+// current environment is cleared first so config changes (including manual
+// settings.json edits) are picked up rather than read from stale state.
+export async function getResolvedEnvPathForLS() {
+    g_path_of_current_environment = null
+    return await getAbsEnvPath()
+}
+
 export async function getEnvName() {
     const envpath = resolvePath(await getEnvPath())
     return path.basename(envpath)

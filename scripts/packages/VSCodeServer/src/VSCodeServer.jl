@@ -82,6 +82,19 @@ end
 
 const conn_endpoint = Ref{Union{Nothing,JSONRPC.JSONRPCEndpoint}}(nothing)
 
+# Set to `true` when the server is started in development mode; gates `@_debug`.
+const IS_DEV = Ref(false)
+
+# Like `@debug`, but only emits when the server runs in development mode.
+macro _debug(exs...)
+    logcall = Expr(:macrocall, GlobalRef(Base, Symbol("@debug")), __source__, exs...)
+    quote
+        if IS_DEV[]
+            $(esc(logcall))
+        end
+    end
+end
+
 include("../../../error_handler.jl")
 include("repl_protocol.jl")
 include("misc.jl")
@@ -138,7 +151,8 @@ function handle_serve_error(err, bt, error_handler)
 end
 
 function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing)
-    @debug "start serve" time=round(Int, time()*10)
+    IS_DEV[] = is_dev
+    @_debug "start serve" time=round(Int, time()*10)
 
     if isdefined(Base, :active_repl)
         try_hook_repl(Base.active_repl)
@@ -148,10 +162,10 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         end
     end
 
-    @debug "connect to pipe" time=round(Int, time()*10)
+    @_debug "connect to pipe" time=round(Int, time()*10)
     conn = connect(conn_pipename)
 
-    @debug "eval backend" time=round(Int, time()*10)
+    @_debug "eval backend" time=round(Int, time()*10)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
     if EVAL_BACKEND_TASK[] === nothing
         start_eval_backend()
@@ -159,13 +173,13 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
 
     JSONRPC.start(conn_endpoint[])
 
-    @debug "debug backend" time=round(Int, time()*10)
+    @_debug "debug backend" time=round(Int, time()*10)
     DEBUG_PIPENAME[] = debug_pipename
     start_debug_backend(debug_pipename, error_handler)
 
-    @debug "send connected notif" time=round(Int, time()*10)
+    @_debug "send connected notif" time=round(Int, time()*10)
     JSONRPC.send_notification(conn_endpoint[], "connected", nothing)
-    @debug "connected notif sent" time=round(Int, time()*10)
+    @_debug "connected notif sent" time=round(Int, time()*10)
 
     @async try
         msg_dispatcher = JSONRPC.MsgDispatcher()
@@ -190,13 +204,13 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         msg_dispatcher[repl_gettabledata_request_type] = get_table_data_request
         msg_dispatcher[repl_clearlazytable_notification_type] = clear_lazy_table_notification
 
-        @debug "send queued notifs" time=round(Int, time()*10)
+        @_debug "send queued notifs" time=round(Int, time()*10)
         send_queued_notifications!()
 
-        @debug "entering message loop" time=round(Int, time()*10)
+        @_debug "entering message loop" time=round(Int, time()*10)
         @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
             msg = JSONRPC.get_next_message(conn_endpoint[])
-            @debug "message: $(msg.method)" time=round(Int, time()*10)
+            @_debug "message: $(msg.method)" time=round(Int, time()*10)
 
             if msg.method == repl_runcode_request_type.method
                 @async try
@@ -208,12 +222,12 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
                 dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
             end
             yield()
-            @debug "message: $(msg.method) done" time=round(Int, time()*10)
+            @_debug "message: $(msg.method) done" time=round(Int, time()*10)
         end
     catch err
         handle_serve_error(err, catch_backtrace(), error_handler)
     finally
-        @debug "JSONRPC dispatcher task finished"
+        @_debug "JSONRPC dispatcher task finished"
     end
     yield()
     return

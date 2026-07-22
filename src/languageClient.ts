@@ -19,7 +19,7 @@ import { ErrorCodes, LSPErrorCodes, ResponseError } from 'vscode-languageserver-
 
 import * as jlpkgenv from './jlpkgenv'
 import * as telemetry from './telemetry'
-import { ExecutableFeature, JuliaExecutable } from './executables'
+import { ExecutableFeature, JuliaExecutable, JuliaNotFoundError } from './executables'
 import { getCustomEnvironmentVariables, onEvent, registerCommand } from './utils'
 
 export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
@@ -172,6 +172,9 @@ export class LanguageClientFeature {
                 ) {
                     this.restartLanguageServer()
                 }
+                if (event.affectsConfiguration('julia.environmentPath')) {
+                    this.notifyServerEnvironmentPath()
+                }
             })
         )
     }
@@ -197,6 +200,26 @@ export class LanguageClientFeature {
                 return callbackOnHandledErr ? callbackOnHandledErr(err) : undefined
             }
             throw err
+        }
+    }
+
+    // Push the resolved environment path to the running server. The client owns
+    // all path resolution; the server just applies the absolute path it receives.
+    private async notifyServerEnvironmentPath() {
+        try {
+            let envPath: string
+            try {
+                envPath = await jlpkgenv.getResolvedEnvPathForLS()
+            } catch (err) {
+                if (err instanceof JuliaNotFoundError) {
+                    return
+                }
+                throw err
+            }
+
+            await this.withLanguageClient((client) => client.sendNotification('julia/setEnvironmentPath', { envPath }))
+        } catch (err) {
+            this.outputChannel.appendLine(`Could not notify the language server of the environment change: ${err}`)
         }
     }
 
