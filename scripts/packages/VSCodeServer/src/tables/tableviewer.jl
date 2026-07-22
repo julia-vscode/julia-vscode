@@ -152,7 +152,7 @@ function on_pkg_load(pkg)
         global _get_label = (x, col) -> try
             return DataAPI.colmetadata(x, col, "label"; style = false)
         catch err
-            @debug "Could not get column label for $col" exception=(err, catch_backtrace())
+            @_debug "Could not get column label for $col" exception=(err, catch_backtrace())
             return nothing
         end
     elseif pkg.uuid == observables_uuid

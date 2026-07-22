@@ -165,7 +165,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecial
         try
             JSONRPC.send_notification(conn_endpoint[], "repl/starteval", nothing)
         catch err
-            @debug "Could not send repl/starteval notification."
+            @_debug "Could not send repl/starteval notification."
         end
 
         f = () -> hideprompt() do
@@ -183,7 +183,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecial
                     LineEdit.write_prompt(stdout, mode)
                 catch err
                     print(stdout, prefix, prompt, suffix)
-                    @debug "getting prompt info failed" exception = (err, catch_backtrace())
+                    @_debug "getting prompt info failed" exception = (err, catch_backtrace())
                 end
 
                 for (i, line) in enumerate(eachline(IOBuffer(source_code)))
@@ -236,7 +236,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecial
                     try
                         JSONRPC.send_notification(conn_endpoint[], "repl/finisheval", nothing)
                     catch err
-                        @debug "Could not send repl/finisheval notification."
+                        @_debug "Could not send repl/finisheval notification."
                     end
                 end
 

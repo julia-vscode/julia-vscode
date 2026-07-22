@@ -310,7 +310,7 @@ function getvariables(show_modules)
             #
             # printstyled("Internal Error: ", bold=true, color=Base.error_color())
             # Base.display_error(err, catch_backtrace())
-            @debug "failed to render tree item '$s'" exception=(err, catch_backtrace())
+            @_debug "failed to render tree item '$s'" exception=(err, catch_backtrace())
         end
     end
 
