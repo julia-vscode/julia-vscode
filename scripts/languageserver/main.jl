@@ -1,5 +1,5 @@
-if VERSION < v"1.6.0"
-    error("VS Code julia language server only works with julia 1.6.0 or newer")
+if VERSION < v"1.11.0"
+    error("The Julia language server only works with Julia 1.11.0 or newer")
 end
 
 @info "Starting LS with Julia $VERSION"

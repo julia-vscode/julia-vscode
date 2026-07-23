@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- The language server startup script now correctly fails when running with a Julia version older than 1.11.0 ([#4150](https://github.com/julia-vscode/julia-vscode/pull/4150))
+
 ## [1.223.0] - 2026-07-22
 ### Changed
 - The REPL integration's internal `@debug` logging is now emitted only when the language server runs in developer mode, so it no longer adds noise for users who set `JULIA_DEBUG` ([#4148](https://github.com/julia-vscode/julia-vscode/pull/4148))
