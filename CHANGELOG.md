@@ -5,6 +5,10 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.226.0] - 2026-07-25
+## Fixed
+- Non-type type parameters now work in varag contexts ([JuliaWorkspaces.jl#165](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/165))
+
 ## [1.225.0] - 2026-07-25
 ### Added
 - Untitled (unsaved) Julia buffers now get linting and diagnostics ([JuliaWorkspaces.jl#158](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/158))
