@@ -5,8 +5,27 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.225.0] - 2026-07-25
+### Added
+- Untitled (unsaved) Julia buffers now get linting and diagnostics ([JuliaWorkspaces.jl#158](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/158))
+
+### Changed
+- Analysis after an edit is roughly 2-3x faster in large workspaces ([JuliaWorkspaces.jl#164](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/164))
+- Initial analysis of large workspaces is faster and needs substantially less memory ([JuliaWorkspaces.jl#162](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/162))
+- Packages that cannot be indexed are now remembered for a week, so environments containing them no longer start a fresh indexing process in every session ([JuliaWorkspaces.jl#161](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/161))
+- Made the language server's indexing logs less verbose and more precise ([JuliaWorkspaces.jl#161](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/161))
+
 ### Fixed
 - The language server startup script now correctly fails when running with a Julia version older than 1.11.0 ([#4150](https://github.com/julia-vscode/julia-vscode/pull/4150))
+- Fixed a language server crash when opening an untitled file in a workspace that contains packages or projects ([JuliaWorkspaces.jl#157](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/157))
+- Missing-reference and method-call diagnostics are no longer reported for files whose environment is still being indexed, removing a common source of false positives during startup ([JuliaWorkspaces.jl#163](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/163))
+- Test files now wait for their test environment to be indexed instead of being analyzed against the wrong environment ([JuliaWorkspaces.jl#163](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/163))
+- Indexing no longer stalls partway through in workspaces with many environments ([JuliaWorkspaces.jl#160](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/160))
+- Environments that are no longer needed no longer flood the indexing queue and starve the ones that are ([JuliaWorkspaces.jl#160](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/160))
+- Indexing an environment no longer fails wholesale when a package uses value type parameters in tuple types (e.g. StaticArrays' `Size`) ([JuliaWorkspaces.jl#159](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/159))
+- Indexing failures now report the package and project they happened in, as well as the symbol cache server URL ([JuliaWorkspaces.jl#159](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/159))
+- Environments with a stdlib pinned in the manifest are no longer re-indexed on every start ([JuliaWorkspaces.jl#161](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/161))
+- The indexing progress bar no longer runs ahead of the completed count shown next to it ([LanguageServer.jl#1410](https://github.com/julia-vscode/LanguageServer.jl/pull/1410))
 
 ## [1.223.0] - 2026-07-22
 ### Changed
