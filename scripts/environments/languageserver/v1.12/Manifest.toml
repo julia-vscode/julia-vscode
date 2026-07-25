@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.5"
+julia_version = "1.12.6"
 manifest_format = "2.0"
 project_hash = "23e17107dc683fd4edebb1ba9c609b31faea3614"
 
@@ -139,7 +139,7 @@ version = "3.0.2-DEV"
 deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML", "Test"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "2.11.0"
+version = "2.11.4"
 
 [[deps.JuliaSyntax]]
 path = "../../../packages/JuliaSyntax"
