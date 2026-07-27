@@ -5,8 +5,12 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+## [1.227.0] - 2026-07-27
+### Changed
+- Significantly reduce memory usage in large workspaces ([JuliaWorkspaces.jl#169](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/169))
+
 ## [1.226.0] - 2026-07-25
-## Fixed
+### Fixed
 - Non-type type parameters now work in varag contexts ([JuliaWorkspaces.jl#165](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/165))
 
 ## [1.225.0] - 2026-07-25
