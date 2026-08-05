@@ -1006,6 +1006,26 @@
                     "default": true,
                     "markdownDescription": "Enable CodeLens for showing run actions above cells delimited by `#julia.cellDelimiters#`."
                 },
+                "julia.cellCodeLens.run": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show the `Run` CodeLens action for cells delimited by `#julia.cellDelimiters#`."
+                },
+                "julia.cellCodeLens.above": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show the `Above` CodeLens action for cells delimited by `#julia.cellDelimiters#`."
+                },
+                "julia.cellCodeLens.below": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show the `Below` CodeLens action for cells delimited by `#julia.cellDelimiters#`."
+                },
+                "julia.cellCodeLens.debug": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show the `Debug` CodeLens action for cells delimited by `#julia.cellDelimiters#`."
+                },
                 "julia.useCellHighlighting": {
                     "type": "boolean",
                     "default": true,

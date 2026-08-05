@@ -757,6 +757,10 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
     public readonly onDidChangeFoldingRanges = this.onDidChangeCellDelimiters.event
 
     private useCodeLens: boolean
+    private useCodeLensRun: boolean
+    private useCodeLensAbove: boolean
+    private useCodeLensBelow: boolean
+    private useCodeLensDebug: boolean
     private useCellHighlighting: boolean
 
     private readonly decoration = vscode.window.createTextEditorDecorationType({
@@ -795,6 +799,10 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
 
     private updateUseCodeLens() {
         this.useCodeLens = vscode.workspace.getConfiguration('julia').get<boolean>('useCodeLens', true)
+        this.useCodeLensRun = vscode.workspace.getConfiguration('julia').get<boolean>('cellCodeLens.run', true)
+        this.useCodeLensAbove = vscode.workspace.getConfiguration('julia').get<boolean>('cellCodeLens.above', true)
+        this.useCodeLensBelow = vscode.workspace.getConfiguration('julia').get<boolean>('cellCodeLens.below', true)
+        this.useCodeLensDebug = vscode.workspace.getConfiguration('julia').get<boolean>('cellCodeLens.debug', true)
     }
 
     private updateUseCellHighlighting() {
@@ -803,7 +811,13 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
 
     protected override onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent) {
         super.onDidChangeConfiguration(event)
-        if (event.affectsConfiguration('julia.useCodeLens')) {
+        if (
+            event.affectsConfiguration('julia.useCodeLens') ||
+            event.affectsConfiguration('julia.cellCodeLens.run') ||
+            event.affectsConfiguration('julia.cellCodeLens.above') ||
+            event.affectsConfiguration('julia.cellCodeLens.below') ||
+            event.affectsConfiguration('julia.cellCodeLens.debug')
+        ) {
             this.updateUseCodeLens()
             this.onDidChangeCellDelimiters.fire()
         }
@@ -842,32 +856,46 @@ export class CodeCellFeature extends CodeCellExecutionFeature implements vscode.
             if (cell.codeRange === undefined) {
                 continue
             }
-            codeLenses.push(
-                new vscode.CodeLens(cell.cellRange, {
-                    title: '$(run) Run',
-                    tooltip: 'Execute the cell in the Julia REPL',
-                    command: 'language-julia.executeCell',
-                    arguments: [cell, docCells],
-                }),
-                new vscode.CodeLens(cell.cellRange, {
-                    title: '$(run-above) Above',
-                    tooltip: 'Execute all cells above in the Julia REPL',
-                    command: 'language-julia.executeAboveCells',
-                    arguments: [cell, docCells],
-                }),
-                new vscode.CodeLens(cell.cellRange, {
-                    title: '$(run-below) Below',
-                    tooltip: 'Execute this and the cells below in the Julia REPL',
-                    command: 'language-julia.executeCurrentAndBelowCells',
-                    arguments: [cell, docCells],
-                }),
-                new vscode.CodeLens(cell.cellRange, {
-                    title: '$(debug-alt) Debug',
-                    tooltip: 'Debug the cell in the Julia REPL',
-                    command: 'language-julia.debugCell',
-                    arguments: [cell, docCells],
-                })
-            )
+            if (this.useCodeLensRun) {
+                codeLenses.push(
+                    new vscode.CodeLens(cell.cellRange, {
+                        title: '$(run) Run',
+                        tooltip: 'Execute the cell in the Julia REPL',
+                        command: 'language-julia.executeCell',
+                        arguments: [cell, docCells],
+                    })
+                )
+            }
+            if (this.useCodeLensAbove) {
+                codeLenses.push(
+                    new vscode.CodeLens(cell.cellRange, {
+                        title: '$(run-above) Above',
+                        tooltip: 'Execute all cells above in the Julia REPL',
+                        command: 'language-julia.executeAboveCells',
+                        arguments: [cell, docCells],
+                    })
+                )
+            }
+            if (this.useCodeLensBelow) {
+                codeLenses.push(
+                    new vscode.CodeLens(cell.cellRange, {
+                        title: '$(run-below) Below',
+                        tooltip: 'Execute this and the cells below in the Julia REPL',
+                        command: 'language-julia.executeCurrentAndBelowCells',
+                        arguments: [cell, docCells],
+                    })
+                )
+            }
+            if (this.useCodeLensDebug) {
+                codeLenses.push(
+                    new vscode.CodeLens(cell.cellRange, {
+                        title: '$(debug-alt) Debug',
+                        tooltip: 'Debug the cell in the Julia REPL',
+                        command: 'language-julia.debugCell',
+                        arguments: [cell, docCells],
+                    })
+                )
+            }
         }
         return codeLenses
     }
