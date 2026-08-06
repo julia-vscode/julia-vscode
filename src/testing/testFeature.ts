@@ -120,41 +120,13 @@ export class JuliaTestController {
 
         let juliaExecutable: JuliaExecutable | null
 
-        if (process.env.DEBUG_MODE) {
-            try {
-                juliaExecutable = await this.executableFeature.getExecutable()
-            } catch (err) {
-                if (err instanceof JuliaNotFoundError) {
-                    return true
-                }
-                throw err
-            }
-        } else {
-            if (!(await this.executableFeature.hasJuliaup())) {
-                vscode.window.showErrorMessage(
-                    'You must install Julia using Juliaup to use the test item functionality.'
-                )
+        try {
+            juliaExecutable = await this.executableFeature.getExecutable()
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
                 return true
             }
-
-            let juliaup
-            try {
-                juliaup = await this.executableFeature.getJuliaupExecutable(false)
-            } catch (err) {
-                if (err instanceof JuliaNotFoundError) {
-                    return true
-                }
-                throw err
-            }
-
-            try {
-                juliaExecutable = new JuliaExecutable(await juliaup.getChannel('release'))
-            } catch {
-                vscode.window.showErrorMessage(
-                    'You must have the "release" channel in Juliaup installed to use the test item functionality.'
-                )
-                return true
-            }
+            throw err
         }
 
         const jlArgs = ['--startup-file=no', '--history-file=no', '--depwarn=no']
