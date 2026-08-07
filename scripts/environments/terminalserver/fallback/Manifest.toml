@@ -28,7 +28,7 @@ version = "1.11.0"
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.5.5+2"
+version = "1.5.7+0"
 
     [deps.CompilerSupportLibraries_jll.syntax]
     julia_version = "1.6.0"
@@ -99,7 +99,7 @@ version = "1.11.0"
 [[deps.LibGit2_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "PCRE2_jll", "Zlib_jll"]
 uuid = "e37daf67-58a4-590a-8e99-b0245dd2ffc5"
-version = "1.9.4+0"
+version = "1.9.6+0"
 
     [deps.LibGit2_jll.syntax]
     julia_version = "1.9.0"
@@ -135,6 +135,7 @@ version = "1.11.0"
     julia_version = "1.14.0-DEV"
 
 [[deps.Mmap]]
+deps = ["Serialization"]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 version = "1.11.0"
 
@@ -143,7 +144,7 @@ version = "1.11.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2026.5.14"
+version = "2026.7.16"
 
     [deps.MozillaCACerts_jll.syntax]
     julia_version = "1.14.0-DEV"
@@ -221,6 +222,13 @@ version = "1.13.0"
 
     [deps.SHA.syntax]
     julia_version = "1.0.0"
+
+[[deps.Serialization]]
+uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+version = "1.11.0"
+
+    [deps.Serialization.syntax]
+    julia_version = "1.14.0-DEV"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
