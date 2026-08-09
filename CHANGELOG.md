@@ -5,7 +5,38 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [1.231.0] - 2026-08-08
+### Added
 - CodeLens buttons for cells (run/above/below/debug) can now be configured individually ([#4158](https://github.com/julia-vscode/julia-vscode/pull/4158))
+- Lint rules can now be configured one by one, with a severity between `off` and `error` per rule, `include`/`exclude` globs, and path-scoped `[[override]]` blocks; the `minimal`, `default`, and `strict` presets set the baseline ([JuliaWorkspaces.jl#198](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/198))
+- New `JuliaTestItems.toml` config file controls which files are searched for test items ([JuliaWorkspaces.jl#198](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/198))
+- Support for version-specific manifests like `Manifest-v1.12.toml` (only for the currently running Julia version) ([JuliaWorkspaces.jl#178](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/178))
+
+### Changed
+- The lint and formatter config files are now called `JuliaLint.toml` and `JuliaFormat.toml` (matched case-insensitively, but a leading dot is no longer recognized). The nearest config file governs a file as a whole instead of being merged with the ones above it. Keys from the old schema are ignored and reported as a diagnostic that names their replacement, so projects that relied on them need to migrate ([JuliaWorkspaces.jl#198](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/198), [LanguageServer.jl#1414](https://github.com/julia-vscode/LanguageServer.jl/pull/1414))
+- Diagnostics are pushed by the server again instead of being pulled by the client ([LanguageServer.jl#1416](https://github.com/julia-vscode/LanguageServer.jl/pull/1416))
+- The workspace scan no longer descends into `.git`, `.svn`, `.hg`, and `node_modules` ([JuliaWorkspaces.jl#201](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/201))
+- Neither indexing nor test runs write into your folders anymore: both copy the environment to a temporary directory before instantiating it, so no `Manifest.toml` is resolved into a package or project folder ([JuliaWorkspaces.jl#193](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/193), [TestItemControllers.jl#29](https://github.com/julia-testitems/TestItemControllers.jl/pull/29))
+- Updated to JuliaFormatter v2.12
+
+### Fixed
+- Signature help lists every positional parameter again, so the highlighted parameter no longer shifts when a definition has unnamed, `@nospecialize`d, or defaulted arguments, and such signatures are no longer dropped from the popup entirely ([#4153](https://github.com/julia-vscode/julia-vscode/issues/4153), [JuliaWorkspaces.jl#172](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/172))
+- `@testitem` bodies now see the current package as well as the `@testmodule` and `@testsnippet` setups they depend on, so references in test items resolve instead of being flagged ([JuliaWorkspaces.jl#200](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/200))
+- Constructs inside a call to most macros no longer report missing references ([JuliaWorkspaces.jl#202](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/202))
+- Added limited support for specific macros that declare bindings ([JuliaWorkspaces.jl#189](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/189))
+- Members that are only implicitly in scope through `Base`/`Core` now resolve, including on qualified access and in colon imports ([JuliaWorkspaces.jl#190](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/190))
+- A call is no longer flagged when the linter cannot look up a supertype, instead of treating the unknown answer as a mismatch ([JuliaWorkspaces.jl#191](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/191))
+- All `Vararg` spellings (`::Vararg{Int}`, `::Base.Vararg`) are now recognized as variadic, so calls are no longer flagged with a wrong argument count ([JuliaWorkspaces.jl#185](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/185))
+- A `where`-bounded type parameter now resolves to its upper bound, so `f(x::T) where T<:Real` rules out mismatching arguments again ([JuliaWorkspaces.jl#187](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/187))
+- An inner `where` in a type annotation (`x::Vector{T} where T`) no longer discards the annotation ([JuliaWorkspaces.jl#188](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/188))
+- A local that is assigned more than once now settles on a type covering all of its assignments, instead of whichever assignment happened to win ([JuliaWorkspaces.jl#186](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/186))
+- Assorted linter and symbol cache fixes: field names of parametric types are kept, every inner constructor counts towards a struct's arity, and a docstring no longer reads as a field ([JuliaWorkspaces.jl#175](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/175))
+- Diagnostic ranges reported by JuliaSyntax are now converted correctly ([JuliaWorkspaces.jl#170](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/170))
+- Internal item ids are now built as `Int64`, so the language server also works on 32-bit platforms ([JuliaWorkspaces.jl#171](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/171))
+- Dynamic indexing and symbol cache loading are more robust, and the indexing process no longer inherits environment variables that Julia app shims modify ([JuliaWorkspaces.jl#182](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/182), [JuliaWorkspaces.jl#183](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/183), [JuliaWorkspaces.jl#192](https://github.com/julia-vscode/JuliaWorkspaces.jl/pull/192))
+- Preferences from `LocalPreferences.toml` or a `[preferences]` section are now honoured in the test process, including while it precompiles ([TestItemControllers.jl#29](https://github.com/julia-testitems/TestItemControllers.jl/pull/29))
+- A test run no longer reports itself complete while one of its test items is still shown as running, which mostly happened on large runs with several worker processes ([TestItemControllers.jl#31](https://github.com/julia-testitems/TestItemControllers.jl/pull/31))
 
 ## [1.227.0] - 2026-07-27
 ### Changed
