@@ -1096,7 +1096,7 @@
                 },
                 "julia.symbolserverUpstream": {
                     "type": "string",
-                    "default": "https://julia-symbolcache.org",
+                    "default": "https://symbolcache.julialang.net",
                     "description": "Symbol server cache download URL.",
                     "scope": "application"
                 },
