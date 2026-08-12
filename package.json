@@ -1688,7 +1688,7 @@
         "update-julia-packages": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateJuliaPackages()).catch(console.error)\"",
         "tagminor": "npm version minor && git push --tags && git push",
         "tagmajor": "npm version major && git push --tags && git push",
-        "install-extension-locally": "vsce package --pre-release -o language-julia-dev-version.vsix && code --install-extension language-julia-dev-version.vsix"
+        "install-extension-locally": "vsce package --pre-release -o language-julia-dev-version.vsix && code --force --install-extension language-julia-dev-version.vsix"
     },
     "dependencies": {
         "@opentelemetry/api": "^1.9.1",
