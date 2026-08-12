@@ -67,6 +67,26 @@ version = "1.11.0"
     [deps.Mmap.syntax]
     julia_version = "1.14.0-DEV"
 
+[[deps.PrecompileTools]]
+deps = ["Preferences"]
+git-tree-sha1 = "edbeefc7a4889f528644251bdb5fc9ab5348bc2c"
+registries = "General"
+uuid = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
+version = "1.3.4"
+
+    [deps.PrecompileTools.syntax]
+    julia_version = "1.12.0"
+
+[[deps.Preferences]]
+deps = ["TOML"]
+git-tree-sha1 = "8b770b60760d4451834fe79dd483e318eee709c4"
+registries = "General"
+uuid = "21216c6a-2e73-6563-6e65-726566657250"
+version = "1.5.2"
+
+    [deps.Preferences.syntax]
+    julia_version = "1.0.0"
+
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
@@ -111,11 +131,19 @@ version = "1.13.0"
     [deps.StyledStrings.syntax]
     julia_version = "1.11.0"
 
+[[deps.TOML]]
+deps = ["Dates"]
+uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+version = "1.0.3"
+
+    [deps.TOML.syntax]
+    julia_version = "1.6.0"
+
 [[deps.TestItemControllers]]
-deps = ["Dates", "Mmap", "Sockets", "UUIDs", "Unicode"]
+deps = ["Dates", "Mmap", "PrecompileTools", "Sockets", "UUIDs", "Unicode"]
 path = "../../../packages/TestItemControllers"
 uuid = "340407ab-12a4-4a78-8da2-3de3b3fd1448"
-version = "1.1.0-DEV"
+version = "1.2.1-DEV"
 
     [deps.TestItemControllers.syntax]
     julia_version = "1.12.0"
@@ -143,3 +171,7 @@ version = "0.1.0"
 
     [deps.VSCodeErrorLoggers.syntax]
     julia_version = "1.14.0-DEV"
+
+[registries.General]
+url = "https://github.com/JuliaRegistries/General.git"
+uuid = "23338594-aafe-5451-b93e-139f81909106"

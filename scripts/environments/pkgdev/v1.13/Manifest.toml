@@ -144,10 +144,10 @@ version = "1.5.0"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "Dates", "EnumX", "PrecompileTools", "Random", "Reseau", "SHA", "URIs", "UUIDs", "Zlib_jll"]
-git-tree-sha1 = "83acb929b05428f00c2a0990ffdfad1b496f10df"
+git-tree-sha1 = "0a58fbbdee93d132a2fb1159b7f5e1b5c2465e71"
 registries = "General"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "2.6.3"
+version = "2.6.4"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -399,10 +399,10 @@ uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.11.3"
 
 [[deps.URIs]]
-git-tree-sha1 = "3b0738bd7c5645641845da25cbd99800b8718689"
+git-tree-sha1 = "5253f44481f18cd938d4559d5e44fa82198408a6"
 registries = "General"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
-version = "1.6.2"
+version = "1.6.3"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
