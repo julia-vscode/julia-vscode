@@ -1115,8 +1115,8 @@
                 },
                 "julia.enableWorkspaceEnvironmentResolution": {
                     "type": "boolean",
-                    "default": false,
-                    "description": "Whether to auto-resolve environments in the workspace. If false, only environments with a Manifest.toml are considered.",
+                    "default": true,
+                    "description": "Whether to auto-resolve environments in the workspace, for example a `docs/Project.toml` that has no Manifest.toml. Resolution runs Pkg in a background child process and may access the network. If false, only environments with a Manifest.toml are considered. Changing this requires a restart of the language server.",
                     "scope": "window"
                 },
                 "julia.NumThreads": {
