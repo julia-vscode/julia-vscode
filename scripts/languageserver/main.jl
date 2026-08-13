@@ -126,8 +126,6 @@ try
         error("Invalid argument passed.")
     end
 
-    debug_mode = false
-
     detached_mode = if Base.ARGS[5] == "--detached=yes"
         true
     elseif Base.ARGS[5] == "--detached=no"
