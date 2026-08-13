@@ -5,6 +5,12 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- `julia.enableWorkspaceEnvironmentResolution` now defaults to `true`, so environments without a `Manifest.toml` (such as a `docs/Project.toml`) are resolved in a background process and their dependencies resolve instead of being flagged as unresolved imports. Set it to `false` to opt out; either way the language server has to restart for a change to take effect.
+
+### Fixed
+- The language server logs its startup and dynamic analysis process lifecycle to the output channel again, and failures of those processes are now reported as warnings. The `--debug=yes` switch works again, having been disabled unconditionally.
+- `include` calls inside `@testitem`, `@testmodule`, and `@testsnippet` bodies are no longer reported as duplicate includes when several test items include the same file, since each test item runs in its own module.
 
 ## [1.231.0] - 2026-08-08
 ### Added
