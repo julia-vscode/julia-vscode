@@ -171,7 +171,7 @@ try
         end
     end
 
-    @debug "LanguageServer.jl loaded at $(round(Int, time()))"
+    @info "LanguageServer.jl loaded at $(round(Int, time()))"
 
     store_version = isdefined(LanguageServer, :JuliaWorkspaces) &&
         isdefined(LanguageServer.JuliaWorkspaces, :SymbolServer) &&
