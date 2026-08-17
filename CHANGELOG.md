@@ -5,10 +5,20 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- The `skip` keyword argument of `@testitem` is now honoured. `skip=true` marks the test item as skipped instead of running it, and `skip=<expression>` is evaluated in the test process immediately before the item would run, so it sees that process's Julia version and platform. The expression that caused a skip is written to the test run output.
+- Test items report the performance statistics measured by the test process — elapsed time, allocated memory, allocation count, GC time and compilation time — as a summary line in the test run output.
+- A test item name used more than once in the same file is now reported as an error, and each occurrence gets its own entry in the test explorer rather than the duplicates silently displacing one another.
+
 ### Changed
+- Test item ids are now `<Package>@<uuid prefix>/<path within the package>::<name>`, rather than being based on the item's position in its file. Inserting a test item above another one no longer renumbers it, and the id is the same in a dev checkout as on a CI runner.
 - `julia.enableWorkspaceEnvironmentResolution` now defaults to `true`, so environments without a `Manifest.toml` (such as a `docs/Project.toml`) are resolved in a background process and their dependencies resolve instead of being flagged as unresolved imports. Set it to `false` to opt out; either way the language server has to restart for a change to take effect.
 
 ### Fixed
+- A test run no longer fails outright when one of the workspace's `@testsetup` files does not belong to a package. The setup was sent without a package, which the test item controller rejected, taking every test item in the run down with it.
+- Editing a `@testsetup` no longer leaves the previous version of it in play: every version a file had ever had was being sent to the test process, and which one took effect was arbitrary.
+- With the same package checked out into two folders of one workspace, test results are no longer reported against the wrong copy, and such a run no longer hangs without ever finishing. Test item ids are scoped to their package, so both copies produce the same id, and the id alone was being used to match a result to the test item that produced it.
+- A test run that fails to start, or that is cancelled, now stops showing as running in the Test Explorer instead of spinning indefinitely.
 - The language server logs its startup and dynamic analysis process lifecycle to the output channel again, and failures of those processes are now reported as warnings. The `--debug=yes` switch works again, having been disabled unconditionally.
 - `include` calls inside `@testitem`, `@testmodule`, and `@testsnippet` bodies are no longer reported as duplicate includes when several test items include the same file, since each test item runs in its own module.
 

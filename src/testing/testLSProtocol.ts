@@ -9,6 +9,9 @@ export interface TestItemDetail {
     optionDefaultImports: boolean
     optionTags: string[]
     optionSetup: string[]
+    /** The `skip` kwarg: a literal `true`/`false`, or the source text of an expression that
+     *  the test process evaluates just before the test item would run. */
+    optionSkip: boolean | string
 }
 
 export interface TestSetupDetail {
@@ -28,7 +31,8 @@ export interface TestErrorDetail {
 
 export interface PublishTestsParams {
     uri: lsp.URI
-    version: number
+    /** Absent for a file the client never opened, and always absent for a deleted file. */
+    version?: number
     testItemDetails: TestItemDetail[]
     testSetupDetails: TestSetupDetail[]
     testErrorDetails: TestErrorDetail[]

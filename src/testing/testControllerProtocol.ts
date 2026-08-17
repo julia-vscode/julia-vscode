@@ -37,6 +37,8 @@ export interface TestEnvironment {
     packageUri: string
     projectUri?: string
     envContentHash?: string
+    /** Value for the `--check-bounds` flag. */
+    checkBounds?: string
 }
 
 export interface TestRunItem {
@@ -59,6 +61,9 @@ export interface TestItemDetail {
     code: string
     codeLine: number
     codeColumn: number
+    /** The `skip` kwarg: `true`/`false` for a literal, or the source text of an expression the
+     *  test process evaluates just before the test item would run. */
+    optionSkip: boolean | string
 }
 
 export interface TestSetupDetail {
@@ -101,19 +106,39 @@ export const requestTypeTerminateTestProcess = new rpc.RequestType<TerminateTest
 )
 
 // Notification types from the controller to the extension
+//
+// Every test item notification carries `testEnvId` alongside `testItemId`, and an item must be
+// identified by the pair. A test item id is scoped to its package, so the same package checked
+// out into two folders — two worktrees, or a vendored copy beside a dev checkout — mints the
+// same id from both. Keying on the id alone collapses the two: one item's results arrive twice
+// while the other never resolves.
 
 export interface TestItemStartedParams {
     testRunId: string
     testItemId: string
+    testEnvId: string
 }
 
 export const notficiationTypeTestItemStarted = new rpc.NotificationType<TestItemStartedParams>('testItemStarted')
 
+/** Execution statistics for one test item. Every field is optional: the compile timings in
+ *  particular rely on Julia internals that not every version the test process supports has. */
+export interface PerfStats {
+    elapsed?: number // milliseconds
+    bytes?: number
+    allocs?: number
+    gctime?: number // milliseconds
+    compileTime?: number // milliseconds
+    recompileTime?: number // milliseconds
+}
+
 export interface TestItemErroredParams {
     testRunId: string
     testItemId: string
+    testEnvId: string
     messages: TestMessage[]
     duration?: number
+    perf?: PerfStats
 }
 
 export const notficiationTypeTestItemErrored = new rpc.NotificationType<TestItemErroredParams>('testItemErrored')
@@ -121,8 +146,10 @@ export const notficiationTypeTestItemErrored = new rpc.NotificationType<TestItem
 export interface TestItemFailedParams {
     testRunId: string
     testItemId: string
+    testEnvId: string
     messages: TestMessage[]
     duration?: number
+    perf?: PerfStats
 }
 
 export const notficiationTypeTestItemFailed = new rpc.NotificationType<TestItemFailedParams>('testItemFailed')
@@ -130,7 +157,9 @@ export const notficiationTypeTestItemFailed = new rpc.NotificationType<TestItemF
 export interface TestItemPassedParams {
     testRunId: string
     testItemId: string
-    duration: number
+    testEnvId: string
+    duration?: number
+    perf?: PerfStats
 }
 
 export const notficiationTypeTestItemPassed = new rpc.NotificationType<TestItemPassedParams>('testItemPassed')
@@ -138,6 +167,9 @@ export const notficiationTypeTestItemPassed = new rpc.NotificationType<TestItemP
 export interface TestItemSkippedParams {
     testRunId: string
     testItemId: string
+    testEnvId: string
+    /** Source text of the `skip` expression that evaluated to `true`, when there was one. */
+    reason?: string
 }
 
 export const notficiationTypeTestItemSkipped = new rpc.NotificationType<TestItemSkippedParams>('testItemSkipped')
@@ -145,6 +177,8 @@ export const notficiationTypeTestItemSkipped = new rpc.NotificationType<TestItem
 export interface AppendOutputParams {
     testRunId: string
     testItemId?: string
+    /** Always present, including for the process-level output that has no `testItemId`. */
+    testEnvId: string
     output: string
 }
 
@@ -156,7 +190,7 @@ export interface TestProcessCreatedParams {
     packageUri?: string
     projectUri?: string
     coverage: boolean
-    env: { [key: string]: string }
+    env: { [key: string]: string | null }
 }
 
 export const notificationTypeTestProcessCreated = new rpc.NotificationType<TestProcessCreatedParams>(
