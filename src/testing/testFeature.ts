@@ -22,6 +22,7 @@ import {
     notificationTypeTestProcessOutput,
     notificationTypeTestProcessStatusChanged,
     notificationTypeTestProcessTerminated,
+    PerfStats,
     requestTypeCreateTestRun,
     requestTypeTerminateTestProcess,
 } from './testControllerProtocol'
@@ -51,6 +52,69 @@ interface OurFileCoverage extends vscode.FileCoverage {
     detailedCoverage: vscode.StatementCoverage[]
 }
 
+export function formatBytes(bytes: number) {
+    const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
+    let value = bytes
+    let unit = 0
+    while (value >= 1024 && unit < units.length - 1) {
+        value = value / 1024
+        unit += 1
+    }
+    return unit === 0 ? `${value} B` : `${value.toFixed(1)} ${units[unit]}`
+}
+
+export function formatMillis(millis: number) {
+    if (millis < 1) {
+        return `${Math.round(millis * 1000)} µs`
+    } else if (millis < 1000) {
+        return `${millis.toFixed(millis < 10 ? 1 : 0)} ms`
+    } else {
+        return `${(millis / 1000).toFixed(2)} s`
+    }
+}
+
+/**
+ * A one line summary of the performance statistics a test process measured for one test item,
+ * or `undefined` when it reported none of them. Every field is optional on the wire: the
+ * compile timings in particular are unavailable on some of the Julia versions a test process
+ * can run on.
+ */
+export function formatPerfStats(perf: PerfStats) {
+    const parts: string[] = []
+
+    if (perf.elapsed !== undefined && perf.elapsed !== null) {
+        parts.push(formatMillis(perf.elapsed))
+    }
+    if (perf.bytes !== undefined && perf.bytes !== null) {
+        parts.push(formatBytes(perf.bytes))
+    }
+    if (perf.allocs !== undefined && perf.allocs !== null) {
+        parts.push(`${perf.allocs.toLocaleString('en-US')} allocs`)
+    }
+    if (perf.gctime !== undefined && perf.gctime !== null) {
+        parts.push(`gc ${formatMillis(perf.gctime)}`)
+    }
+    if (perf.compileTime !== undefined && perf.compileTime !== null) {
+        parts.push(`compile ${formatMillis(perf.compileTime)}`)
+    }
+    if (perf.recompileTime !== undefined && perf.recompileTime !== null) {
+        parts.push(`recompile ${formatMillis(perf.recompileTime)}`)
+    }
+
+    return parts.length > 0 ? `⏱ ${parts.join(' · ')}` : undefined
+}
+
+/**
+ * The key a test item is tracked under for the duration of a run.
+ *
+ * A test item id is unique within its package, so two checkouts of the same package — two
+ * worktrees, or a vendored copy beside a dev checkout — mint the same id. The environment id
+ * is what separates them, and it is how the controller keys its own per-run state.
+ */
+export function testItemKey(testEnvId: string, testItemId: string) {
+    return `${testEnvId} ${testItemId}`
+}
+
 export class JuliaTestProcess {
     private status: string
 
@@ -63,7 +127,7 @@ export class JuliaTestProcess {
         public packageUri: string | undefined,
         public projectUri: string | undefined,
         public coverage: boolean | undefined,
-        public env: { [key: string]: string },
+        public env: { [key: string]: string | null },
         public juliaChannelName: string | undefined,
         private controller: JuliaTestController
     ) {
@@ -113,6 +177,54 @@ export class JuliaTestController {
 
     killTestProcess(id: string) {
         this.connection.sendRequest(requestTypeTerminateTestProcess, { testProcessId: id })
+    }
+
+    /**
+     * The run and test item a notification refers to, or `undefined` if either has gone away.
+     *
+     * Both lookups can miss: a notification can arrive after the run ended, and an id the
+     * extension never sent resolves to no item. Passing `undefined` on to `vscode.TestRun`
+     * throws inside the JSON-RPC handler, which takes the connection down with it, so every
+     * handler goes through here and returns early instead.
+     */
+    private resolve(i: { testRunId: string; testItemId?: string; testEnvId: string }) {
+        const testRun = this.testRuns.get(i.testRunId)
+
+        if (!testRun) {
+            return undefined
+        }
+
+        const testItem =
+            i.testItemId === undefined || i.testItemId === null
+                ? undefined
+                : testRun.testItems.get(testItemKey(i.testEnvId, i.testItemId))
+
+        // A named item that does not resolve means the run and the controller disagree about
+        // the (environment, item) pairs in flight. The visible symptom is an item stuck at
+        // "enqueued" with nothing else to go on, so say so here rather than dropping silently.
+        if (i.testItemId && !testItem) {
+            this.outputChannel.appendLine(
+                `No test item for id '${i.testItemId}' in environment '${i.testEnvId}' of test run '${i.testRunId}'.`
+            )
+        }
+
+        return { testRun: testRun.testRun, testItem }
+    }
+
+    /**
+     * The VS Code test API has nowhere to put performance statistics, so they go into the
+     * test run output of the item they belong to.
+     */
+    private appendPerf(testRun: vscode.TestRun, testItem: vscode.TestItem, perf: PerfStats | undefined) {
+        if (!perf) {
+            return
+        }
+
+        const summary = formatPerfStats(perf)
+
+        if (summary) {
+            testRun.appendOutput(`${summary}\r\n`, undefined, testItem)
+        }
     }
 
     public async start() {
@@ -181,16 +293,22 @@ export class JuliaTestController {
 
         this.connection = rpc.createMessageConnection(this.process.stdout, this.process.stdin)
         this.connection.onNotification(notficiationTypeTestItemStarted, (i) => {
-            const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
+            const resolved = this.resolve(i)
+            if (!resolved?.testItem) {
+                return
+            }
+            const { testRun, testItem } = resolved
 
-            testRun.testRun.started(testItem)
+            testRun.started(testItem)
         })
         this.connection.onNotification(notficiationTypeTestItemErrored, (i) => {
-            const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
+            const resolved = this.resolve(i)
+            if (!resolved?.testItem) {
+                return
+            }
+            const { testRun, testItem } = resolved
 
-            testRun.testRun.errored(
+            testRun.errored(
                 testItem,
                 i.messages.map((i) => {
                     const msg = new vscode.TestMessage(i.message)
@@ -214,10 +332,15 @@ export class JuliaTestController {
                 }),
                 i.duration
             )
+
+            this.appendPerf(testRun, testItem, i.perf)
         })
         this.connection.onNotification(notficiationTypeTestItemFailed, (i) => {
-            const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
+            const resolved = this.resolve(i)
+            if (!resolved?.testItem) {
+                return
+            }
+            const { testRun, testItem } = resolved
 
             const messages = i.messages.map((j) => {
                 const msg = new vscode.TestMessage(j.message)
@@ -246,25 +369,46 @@ export class JuliaTestController {
                 return msg
             })
 
-            testRun.testRun.failed(testItem, messages, i.duration)
+            testRun.failed(testItem, messages, i.duration)
+
+            this.appendPerf(testRun, testItem, i.perf)
         })
         this.connection.onNotification(notficiationTypeTestItemPassed, (i) => {
-            const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
+            const resolved = this.resolve(i)
+            if (!resolved?.testItem) {
+                return
+            }
+            const { testRun, testItem } = resolved
 
-            testRun.testRun.passed(testItem, i.duration)
+            testRun.passed(testItem, i.duration)
+
+            this.appendPerf(testRun, testItem, i.perf)
         })
         this.connection.onNotification(notficiationTypeTestItemSkipped, (i) => {
-            const testRun = this.testRuns.get(i.testRunId)
-            const testItem = testRun.testItems.get(i.testItemId)
+            const resolved = this.resolve(i)
+            if (!resolved?.testItem) {
+                return
+            }
+            const { testRun, testItem } = resolved
 
-            testRun.testRun.skipped(testItem)
+            testRun.skipped(testItem)
+
+            // `skipped` takes no message, so the `skip` expression that caused this only has
+            // the test run output to show up in. A literal `skip=true` arrives as the source
+            // text `true`, which says nothing the skipped status does not already say.
+            if (i.reason && i.reason !== 'true') {
+                testRun.appendOutput(`Skipped: ${i.reason}\r\n`, undefined, testItem)
+            }
         })
         this.connection.onNotification(notificationTypeAppendOutput, (i) => {
-            const testRun = this.testRuns.get(i.testRunId)
-            const testItem = i.testItemId ? testRun.testItems.get(i.testItemId) : undefined
+            // Unlike the result notifications, output with no test item is expected: it is the
+            // process-level output, and it belongs on the run itself.
+            const resolved = this.resolve(i)
+            if (!resolved) {
+                return
+            }
 
-            testRun.testRun.appendOutput(i.output, undefined, testItem)
+            resolved.testRun.appendOutput(i.output, undefined, resolved.testItem)
         })
         this.connection.onNotification(notificationTypeTestProcessCreated, (i) => {
             const channelName = this.currentRunExecutable?.juliaupChannel?.name
@@ -283,6 +427,10 @@ export class JuliaTestController {
         })
         this.connection.onNotification(notificationTypeTestProcessStatusChanged, (i) => {
             const tp = this.testProcesses.get(i.id)
+            if (!tp) {
+                return
+            }
+
             tp.setStatus(i.status)
         })
         this.connection.onNotification(notificationTypeTestProcessOutput, (i) => {
@@ -295,9 +443,13 @@ export class JuliaTestController {
             outputChannel.append(i.output)
         })
         this.connection.onNotification(notificationTypeTestProcessTerminated, (i) => {
+            // The output channel is disposed either way — the process is gone regardless of
+            // whether we still had it tracked.
             const tp = this.testProcesses.get(i.id)
-            this.workspaceFeature.removeTestProcess(tp)
-            this.testProcesses.delete(i.id)
+            if (tp) {
+                this.workspaceFeature.removeTestProcess(tp)
+                this.testProcesses.delete(i.id)
+            }
 
             if (this.testFeature.juliaTestProcessOutputChannels.has(i.id)) {
                 const outputChanenl = this.testFeature.juliaTestProcessOutputChannels.get(i.id)
@@ -307,6 +459,10 @@ export class JuliaTestController {
         })
         this.connection.onNotification(notificationTypeLaunchDebugger, async (i) => {
             const testRun = this.testRuns.get(i.testRunId)
+            if (!testRun) {
+                return
+            }
+
             await vscode.debug.startDebugging(
                 undefined,
                 {
@@ -380,17 +536,16 @@ export class JuliaTestController {
         this.currentRunExecutable = juliaExec
 
         const testRunId = uuidv4()
-        this.testRuns.set(testRunId, {
-            testRun: testRun,
-            testItems: new Map(all_the_tests.map((i) => [i.testItem.id, i.testItem])),
-        })
 
-        // Group items by package identity and create one TestEnvironment per unique group
+        // Group items by package identity and create one TestEnvironment per unique group.
+        // `envIdByTest` is keyed by the `vscode.TestItem` itself rather than by its id: ids are
+        // unique only within a package, so two checkouts of the same package share one, and
+        // keying on the id would give the second item's environment to both.
         const envsByKey = new Map<
             string,
             { id: string; packageName: string; packageUri: string; projectUri?: string; envContentHash?: string }
         >()
-        const itemEnvId = new Map<string, string>()
+        const envIdByTest = new Map<vscode.TestItem, string>()
 
         for (const t of all_the_tests) {
             const key = `${t.testEnv.packageName ?? ''}|${t.testEnv.packageUri ?? ''}|${t.testEnv.projectUri ?? ''}|${t.testEnv.envContentHash ?? ''}`
@@ -403,8 +558,16 @@ export class JuliaTestController {
                     envContentHash: t.testEnv.envContentHash,
                 })
             }
-            itemEnvId.set(t.testItem.id, envsByKey.get(key).id)
+            envIdByTest.set(t.testItem, envsByKey.get(key).id)
         }
+
+        // Must come after the grouping above, since the key needs each item's environment.
+        this.testRuns.set(testRunId, {
+            testRun: testRun,
+            testItems: new Map(
+                all_the_tests.map((i) => [testItemKey(envIdByTest.get(i.testItem), i.testItem.id), i.testItem])
+            ),
+        })
 
         const testEnvironments = [...envsByKey.values()].map((env) => ({
             id: env.id,
@@ -421,7 +584,7 @@ export class JuliaTestController {
 
         const workUnits = all_the_tests.map((i) => ({
             testitemId: i.testItem.id,
-            testEnvId: itemEnvId.get(i.testItem.id),
+            testEnvId: envIdByTest.get(i.testItem),
             logLevel: 'Info',
         }))
 
@@ -441,6 +604,7 @@ export class JuliaTestController {
                 code: i.details.code,
                 codeLine: i.details.codeRange.start.line + 1,
                 codeColumn: i.details.codeRange.start.character + 1,
+                optionSkip: i.details.optionSkip,
             })),
             workUnits: workUnits,
             testSetups: testSetups,
@@ -451,30 +615,38 @@ export class JuliaTestController {
                     : vscode.workspace.workspaceFolders.map((i) => i.uri.toString()),
         }
 
-        const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params, testRun.token)
+        // The request rejects on cancellation as well as on failure, and either way the run has
+        // to be ended and its bookkeeping dropped — otherwise it spins in the Test Explorer
+        // forever and the `testRuns` entry leaks.
+        try {
+            const testrunResult = await this.connection.sendRequest(requestTypeCreateTestRun, params, testRun.token)
 
-        if (testrunResult.coverage) {
-            for (const file of testrunResult.coverage) {
-                const uri = vscode.Uri.parse(file.uri)
+            if (testrunResult.coverage) {
+                for (const file of testrunResult.coverage) {
+                    const uri = vscode.Uri.parse(file.uri)
 
-                if (vscode.workspace.workspaceFolders.filter((j) => file.uri.startsWith(j.uri.toString())).length > 0) {
-                    const statementCoverage = file.coverage
-                        .map((value, index) => {
-                            if (value !== null) {
-                                return new vscode.StatementCoverage(value, new vscode.Position(index, 0))
-                            } else {
-                                return null
-                            }
-                        })
-                        .filter((i) => i !== null)
+                    if (
+                        vscode.workspace.workspaceFolders.filter((j) => file.uri.startsWith(j.uri.toString())).length >
+                        0
+                    ) {
+                        const statementCoverage = file.coverage
+                            .map((value, index) => {
+                                if (value !== null) {
+                                    return new vscode.StatementCoverage(value, new vscode.Position(index, 0))
+                                } else {
+                                    return null
+                                }
+                            })
+                            .filter((i) => i !== null)
 
-                    testRun.addCoverage(vscode.FileCoverage.fromDetails(uri, statementCoverage))
+                        testRun.addCoverage(vscode.FileCoverage.fromDetails(uri, statementCoverage))
+                    }
                 }
             }
+        } finally {
+            testRun.end()
+            this.testRuns.delete(testRunId)
         }
-
-        testRun.end()
-        this.testRuns.delete(testRunId)
     }
 }
 
@@ -535,7 +707,11 @@ export class TestFeature {
         vscode.TestItem,
         tlsp.TestItemDetail
     >()
-    private testsetups: Map<vscode.Uri, tlsp.TestSetupDetail[]> = new Map<vscode.Uri, tlsp.TestSetupDetail[]>()
+    // Keyed by the URI string, not by `vscode.Uri`: a `Map` compares keys by identity and
+    // `vscode.Uri.parse` returns a fresh object per call, so a `Uri` key would make every
+    // publish add an entry instead of replacing one — leaving every historical version of a
+    // file's setups in the map, all of which would then be sent on the next run.
+    private testsetups: Map<string, tlsp.TestSetupDetail[]> = new Map<string, tlsp.TestSetupDetail[]>()
     // public debugPipename2TestProcess: Map<string, TestProcess> = new Map<string, TestProcess>()
     // private outputChannel: vscode.OutputChannel
     // private someTestItemFinished = new Subject()
@@ -706,7 +882,15 @@ export class TestFeature {
             }
         }
 
-        this.testsetups.set(uri, params.testSetupDetails)
+        // Drop the entry rather than storing an empty list. Every key here becomes a
+        // `getTestEnv` round-trip on every subsequent test run, and the language server
+        // publishes for files with no setups at all — including ones that have just been
+        // deleted — so keeping them would grow that cost for the life of the session.
+        if (params.testSetupDetails.length > 0) {
+            this.testsetups.set(uri.toString(), params.testSetupDetails)
+        } else {
+            this.testsetups.delete(uri.toString())
+        }
     }
 
     walkTestTree(item: vscode.TestItem, itemsToRun: vscode.TestItem[]) {
@@ -865,6 +1049,14 @@ export class TestFeature {
             )
         }
 
+        // Defensive: nothing in the `TestRunRequest` contract says `include` cannot name both an
+        // ancestor and a descendant, and the walk above would then reach that descendant once
+        // per entry. The controller rejects a run naming one test item twice outright, so a
+        // duplicate here would fail the whole run rather than merely running an item twice.
+        // VS Code's own tree-selection path does normalise this away today, so this is insurance
+        // against a request built some other way, not a fix for an observed failure.
+        itemsToRun = [...new Set(itemsToRun)]
+
         for (const i of itemsToRun) {
             if (i.error) {
                 testRun.errored(i, new vscode.TestMessage(i.error))
@@ -873,13 +1065,15 @@ export class TestFeature {
             }
         }
 
-        const uniqueFiles = new Set(itemsToRun.map((i) => i.uri).concat([...this.testsetups.keys()]))
+        // Keyed by the URI string throughout: `vscode.Uri` values compare by object identity,
+        // and the same file yields a different object every time it is parsed.
+        const uniqueFiles = new Set(itemsToRun.map((i) => i.uri.toString()).concat([...this.testsetups.keys()]))
 
-        const testEnvPerFile = new Map<vscode.Uri, tlsp.GetTestEnvRequestParamsReturn>()
+        const testEnvPerFile = new Map<string, tlsp.GetTestEnvRequestParamsReturn>()
 
         for (const uri of uniqueFiles) {
             const testEnv = await this.languageClient?.sendRequest(tlsp.requestTypJuliaGetTestEnv, {
-                uri: uri.toString(),
+                uri: uri,
             })
             testEnvPerFile.set(uri, testEnv)
         }
@@ -888,7 +1082,11 @@ export class TestFeature {
             return {
                 testItem: i,
                 details: this.testitems.get(i),
-                testEnv: testEnvPerFile.get(i.uri),
+                // `??  {}` because the lookup really can miss: `getTestEnv` is sent through
+                // `this.languageClient?`, which yields `undefined` whenever the client is null
+                // — the language server still starting, or restarting after a crash. Every
+                // consumer already treats each field as optional.
+                testEnv: testEnvPerFile.get(i.uri.toString()) ?? {},
             }
         })
 
@@ -904,10 +1102,18 @@ export class TestFeature {
         this.testsetups.forEach((setups, uri) => {
             setups.forEach((j) => {
                 all_the_testsetups.push({
-                    packageUri: testEnvPerFile.get(uri).packageUri,
+                    // `packageUri` is a required field on the wire and the Julia side reads it
+                    // without a `haskey` guard, so an absent key is a `KeyError` that fails the
+                    // whole `createTestRun`. `getTestEnv` legitimately reports no package for a
+                    // file outside one, so fall back the same way the test item path does.
+                    // The fallback does put every package-less file in one `''` namespace, and
+                    // the controller keys setups by (package uri, name) — so two such files
+                    // declaring a setup of the same name shadow each other instead of failing
+                    // the run, which is the better of the two outcomes.
+                    packageUri: testEnvPerFile.get(uri)?.packageUri ?? '',
                     name: j.name,
                     kind: j.kind,
-                    uri: uri.toString(),
+                    uri: uri,
                     line: j.codeRange.start.line + 1,
                     column: j.codeRange.start.character + 1,
                     code: j.code,
