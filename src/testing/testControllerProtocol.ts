@@ -111,6 +111,9 @@ export const requestTypeTerminateTestProcess = new rpc.RequestType<TerminateTest
     'terminateTestProcess'
 )
 
+// Asks the controller to shut down gracefully (killing its child test processes). No params.
+export const notificationTypeShutdown = new rpc.NotificationType<void>('shutdown')
+
 // Notification types from the controller to the extension
 //
 // Every test item notification carries `testEnvId` alongside `testItemId`, and an item must be

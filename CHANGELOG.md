@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - A test run that fails to start, or that is cancelled, now stops showing as running in the Test Explorer instead of spinning indefinitely.
 - The language server logs its startup and dynamic analysis process lifecycle to the output channel again, and failures of those processes are now reported as warnings. The `--debug=yes` switch works again, having been disabled unconditionally.
 - `include` calls inside `@testitem`, `@testmodule`, and `@testsnippet` bodies are no longer reported as duplicate includes when several test items include the same file, since each test item runs in its own module.
+- Test processes no longer outlive VS Code. The test item controller was killed outright when the extension shut down, which on Windows terminates it without giving it a chance to stop the test processes it had spawned. It is now asked to shut down and only killed if it has not exited within five seconds.
+- The "Run tests with coverage" task now reports coverage for package extensions: only the `src` folder was processed, so nothing under `ext` appeared in `lcov.info`.
 
 ## [1.231.0] - 2026-08-08
 ### Added

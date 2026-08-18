@@ -13,7 +13,12 @@ push!(Base.LOAD_PATH, "@stdlib")
 
 import CoverageTools
 
-coverage = CoverageTools.process_folder()
+coverage = CoverageTools.process_folder("src")
+
+# Also include package extensions (see julia-vscode/julia-vscode#3696)
+if isdir("ext")
+    append!(coverage, CoverageTools.process_folder("ext"))
+end
 
 CoverageTools.LCOV.writefile("lcov.info", coverage)
 
