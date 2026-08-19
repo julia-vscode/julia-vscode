@@ -121,6 +121,9 @@ export class TestControllerNode extends AbstractWorkspaceNode {
     }
 
     removeTestProcessNode(id: string) {
+        for (const i of this.testProcessNodes.filter((i) => i.testProcess.id === id)) {
+            i.dispose()
+        }
         this.testProcessNodes = this.testProcessNodes.filter((i) => i.testProcess.id !== id)
     }
 
@@ -134,15 +137,21 @@ export class TestControllerNode extends AbstractWorkspaceNode {
 }
 
 export class TestProcessNode extends AbstractWorkspaceNode {
+    private statusSubscription: vscode.Disposable
+
     constructor(
         public testProcess: JuliaTestProcess,
         private treeProvider: REPLTreeDataProvider
     ) {
         super()
 
-        testProcess.onStatusChanged(() => {
+        this.statusSubscription = onEvent(testProcess.onStatusChanged, () => {
             this.treeProvider.refresh()
         })
+    }
+
+    dispose() {
+        this.statusSubscription.dispose()
     }
 
     public async getChildren() {
@@ -317,20 +326,34 @@ export class WorkspaceFeature {
     public async addTestController(testController: JuliaTestController) {
         const node = new TestControllerNode(testController)
         this._TestController = node
-        testController.onKilled(() => {
+
+        const subscription = onEvent(testController.onKilled, () => {
             this._TestController = null
             this._REPLTreeDataProvider.refresh()
+            subscription.dispose()
         })
+
         this._REPLTreeDataProvider.refresh()
     }
 
+    // A test process notification can arrive after the controller that owns it is gone —
+    // `onKilled` nulls the node, and the controller's last few notifications are still in
+    // flight. Dereferencing it here used to be an unhandled rejection in a JSON-RPC handler.
     public async addTestProcess(testProcess: JuliaTestProcess) {
+        if (!this._TestController) {
+            return
+        }
+
         const node = new TestProcessNode(testProcess, this._REPLTreeDataProvider)
         this._TestController.addTestProcessNode(node)
         this._REPLTreeDataProvider.refresh()
     }
 
     public async removeTestProcess(testProcess: JuliaTestProcess) {
+        if (!this._TestController) {
+            return
+        }
+
         this._TestController.removeTestProcessNode(testProcess.id)
         this._REPLTreeDataProvider.refresh()
     }
