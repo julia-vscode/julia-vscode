@@ -34,7 +34,7 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
     private disposables: vscode.Disposable[] = []
 
     private isClosed: boolean = false
-    private exitCode: number | void
+    private exitCode?: number
 
     constructor(
         private proc: JuliaProcess,
@@ -65,7 +65,7 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
 
                 if (msg) {
                     this.isClosed = true
-                    this.exitCode = ev
+                    this.exitCode = ev ?? undefined
                     this.write(msg)
                 } else {
                     // we probably want to hide the vscode-native error pop-up by default
@@ -114,7 +114,7 @@ export class JuliaPTY implements vscode.Pseudoterminal, vscode.Disposable {
 
                 if (msg) {
                     this.isClosed = true
-                    this.exitCode = ev
+                    this.exitCode = ev ?? undefined
                     this.write(msg)
                 } else {
                     // we probably want to hide the vscode-native error pop-up by default
