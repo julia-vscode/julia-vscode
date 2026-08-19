@@ -48,6 +48,33 @@ function modeAsString(mode: TestRunMode) {
     }
 }
 
+// The controller answers a cancelled request with the LSP code (`REQUEST_CANCELLED` in
+// JSONRPC.jl's `core.jl`); vscode-jsonrpc does not define it.
+const REQUEST_CANCELLED = -32800
+
+/**
+ * Whether a rejection out of a test run is an expected end rather than a fault.
+ *
+ * `createTestRun` is a single request that stays open for the whole run, so it rejects on
+ * every ordinary way a run can stop: the user cancelling it, and the connection being
+ * disposed because the controller went away. Neither is a bug, and reporting them buries
+ * the real crashes — the controller's own death is already reported from the Julia side
+ * with the right cloud role, and from the `'exit'` handler when it never got that far.
+ *
+ * This is the same kind of opt-out as `JuliaNotFoundError` in `executables.ts`.
+ */
+function isExpectedTestRunRejection(err: unknown) {
+    if (!(err instanceof rpc.ResponseError)) {
+        return false
+    }
+
+    return (
+        err.code === REQUEST_CANCELLED ||
+        err.code === rpc.ErrorCodes.ConnectionInactive ||
+        err.code === rpc.ErrorCodes.PendingResponseRejected
+    )
+}
+
 interface OurFileCoverage extends vscode.FileCoverage {
     detailedCoverage: vscode.StatementCoverage[]
 }
@@ -143,8 +170,8 @@ export class JuliaTestProcess {
         return this.status
     }
 
-    kill() {
-        this.controller.killTestProcess(this.id)
+    async kill() {
+        await this.controller.killTestProcess(this.id)
     }
 }
 
@@ -153,7 +180,9 @@ export class JuliaTestController {
     public onKilled = this._onKilled.event
 
     kill() {
-        this.process.kill()
+        // `'exit'` clears `process`, and the tree node this is reached from outlives it, so a
+        // second click would otherwise throw a `TypeError` and file it as a crash report.
+        this.process?.kill()
     }
 
     private connection: rpc.MessageConnection
@@ -161,6 +190,7 @@ export class JuliaTestController {
     private testRuns = new Map<string, { testRun: vscode.TestRun; testItems: Map<string, vscode.TestItem> }>()
     private testProcesses = new Map<string, JuliaTestProcess>()
     private currentRunExecutable: JuliaExecutable | undefined
+    private alive = false
 
     constructor(
         private testFeature: TestFeature,
@@ -171,12 +201,44 @@ export class JuliaTestController {
         private compiledProvider: DebugConfigTreeProvider
     ) {}
 
+    /**
+     * Whether the controller can still be used. A spawn failure (ENOENT, EACCES) emits
+     * `'error'` and `'close'` but not necessarily `'exit'`, so a truthy `process` alone would
+     * let a controller that never started pass for a live one — and the next `createTestRun`
+     * would write into a closed stdin and never resolve.
+     */
     public ready() {
-        return this.process
+        return this.process !== undefined && this.alive
     }
 
     killTestProcess(id: string) {
-        this.connection.sendRequest(requestTypeTerminateTestProcess, { testProcessId: id })
+        // Same race as `kill`: the connection is disposed and nulled by `'exit'`, and the
+        // tree node offering the command is still there afterwards.
+        if (!this.connection) {
+            return Promise.resolve()
+        }
+
+        return this.connection.sendRequest(requestTypeTerminateTestProcess, { testProcessId: id })
+    }
+
+    /**
+     * Register a notification handler that reports its own failures.
+     *
+     * vscode-jsonrpc invokes notification handlers with a `NullLogger` and never awaits what
+     * they return, so without this an uncaught throw is discarded in complete silence and a
+     * rejected promise is an unhandled rejection. The wrapper is `async` so that both take the
+     * same path — `await` inside the `try` catches a synchronous throw as well — and because
+     * nothing escapes the `try`, the promise the library drops can never reject. Errors are
+     * swallowed after reporting: there is no frame above this one to rethrow into.
+     */
+    private onNotification<P>(type: rpc.NotificationType<P>, handler: (params: P) => void | Promise<void>) {
+        this.connection.onNotification(type, async (params: P) => {
+            try {
+                await handler(params)
+            } catch (err) {
+                handleNewCrashReportFromException(err, 'Extension')
+            }
+        })
     }
 
     /**
@@ -184,8 +246,8 @@ export class JuliaTestController {
      *
      * Both lookups can miss: a notification can arrive after the run ended, and an id the
      * extension never sent resolves to no item. Passing `undefined` on to `vscode.TestRun`
-     * throws inside the JSON-RPC handler, which takes the connection down with it, so every
-     * handler goes through here and returns early instead.
+     * throws inside the JSON-RPC handler, which `onNotification` turns into a crash report,
+     * so every handler goes through here and returns early instead.
      */
     private resolve(i: { testRunId: string; testItemId?: string; testEnvId: string }) {
         const testRun = this.testRuns.get(i.testRunId)
@@ -259,14 +321,22 @@ export class JuliaTestController {
                 throw err
             }
 
+            let releaseChannel
             try {
-                juliaExecutable = new JuliaExecutable(await juliaup.getChannel('release'))
-            } catch {
-                vscode.window.showErrorMessage(
-                    'You must have the "release" channel in Juliaup installed to use the test item functionality.'
-                )
-                return true
+                releaseChannel = await juliaup.getChannel('release')
+            } catch (err) {
+                // Only "the channel is not installed" is an expected outcome here. Swallowing
+                // everything else hid real failures behind advice that would not fix them.
+                if (err instanceof JuliaNotFoundError) {
+                    vscode.window.showErrorMessage(
+                        'You must have the "release" channel in Juliaup installed to use the test item functionality.'
+                    )
+                    return true
+                }
+                throw err
             }
+
+            juliaExecutable = new JuliaExecutable(releaseChannel)
         }
 
         const jlArgs = ['--startup-file=no', '--history-file=no', '--depwarn=no']
@@ -291,8 +361,18 @@ export class JuliaTestController {
             }
         )
 
-        this.connection = rpc.createMessageConnection(this.process.stdout, this.process.stdin)
-        this.connection.onNotification(notficiationTypeTestItemStarted, (i) => {
+        const spawned = new Promise<boolean>((resolve) => {
+            this.process.once('spawn', () => resolve(true))
+            this.process.once('error', () => resolve(false))
+        })
+
+        this.connection = rpc.createMessageConnection(this.process.stdout, this.process.stdin, {
+            error: (message) => this.outputChannel.appendLine(`JSON-RPC error: ${message}`),
+            warn: (message) => this.outputChannel.appendLine(`JSON-RPC warning: ${message}`),
+            info: (message) => this.outputChannel.appendLine(`JSON-RPC info: ${message}`),
+            log: (message) => this.outputChannel.appendLine(`JSON-RPC log: ${message}`),
+        })
+        this.onNotification(notficiationTypeTestItemStarted, (i) => {
             const resolved = this.resolve(i)
             if (!resolved?.testItem) {
                 return
@@ -301,7 +381,7 @@ export class JuliaTestController {
 
             testRun.started(testItem)
         })
-        this.connection.onNotification(notficiationTypeTestItemErrored, (i) => {
+        this.onNotification(notficiationTypeTestItemErrored, (i) => {
             const resolved = this.resolve(i)
             if (!resolved?.testItem) {
                 return
@@ -335,7 +415,7 @@ export class JuliaTestController {
 
             this.appendPerf(testRun, testItem, i.perf)
         })
-        this.connection.onNotification(notficiationTypeTestItemFailed, (i) => {
+        this.onNotification(notficiationTypeTestItemFailed, (i) => {
             const resolved = this.resolve(i)
             if (!resolved?.testItem) {
                 return
@@ -373,7 +453,7 @@ export class JuliaTestController {
 
             this.appendPerf(testRun, testItem, i.perf)
         })
-        this.connection.onNotification(notficiationTypeTestItemPassed, (i) => {
+        this.onNotification(notficiationTypeTestItemPassed, (i) => {
             const resolved = this.resolve(i)
             if (!resolved?.testItem) {
                 return
@@ -384,7 +464,7 @@ export class JuliaTestController {
 
             this.appendPerf(testRun, testItem, i.perf)
         })
-        this.connection.onNotification(notficiationTypeTestItemSkipped, (i) => {
+        this.onNotification(notficiationTypeTestItemSkipped, (i) => {
             const resolved = this.resolve(i)
             if (!resolved?.testItem) {
                 return
@@ -400,7 +480,7 @@ export class JuliaTestController {
                 testRun.appendOutput(`Skipped: ${i.reason}\r\n`, undefined, testItem)
             }
         })
-        this.connection.onNotification(notificationTypeAppendOutput, (i) => {
+        this.onNotification(notificationTypeAppendOutput, (i) => {
             // Unlike the result notifications, output with no test item is expected: it is the
             // process-level output, and it belongs on the run itself.
             const resolved = this.resolve(i)
@@ -410,7 +490,7 @@ export class JuliaTestController {
 
             resolved.testRun.appendOutput(i.output, undefined, resolved.testItem)
         })
-        this.connection.onNotification(notificationTypeTestProcessCreated, (i) => {
+        this.onNotification(notificationTypeTestProcessCreated, async (i) => {
             const channelName = this.currentRunExecutable?.juliaupChannel?.name
             const tp = new JuliaTestProcess(
                 i.id,
@@ -423,9 +503,9 @@ export class JuliaTestController {
                 this
             )
             this.testProcesses.set(i.id, tp)
-            this.workspaceFeature.addTestProcess(tp)
+            await this.workspaceFeature.addTestProcess(tp)
         })
-        this.connection.onNotification(notificationTypeTestProcessStatusChanged, (i) => {
+        this.onNotification(notificationTypeTestProcessStatusChanged, (i) => {
             const tp = this.testProcesses.get(i.id)
             if (!tp) {
                 return
@@ -433,7 +513,7 @@ export class JuliaTestController {
 
             tp.setStatus(i.status)
         })
-        this.connection.onNotification(notificationTypeTestProcessOutput, (i) => {
+        this.onNotification(notificationTypeTestProcessOutput, (i) => {
             if (!this.testFeature.juliaTestProcessOutputChannels.has(i.id)) {
                 const newOutputChannel = vscode.window.createOutputChannel(`Julia Test Process ${i.id}`)
                 this.testFeature.juliaTestProcessOutputChannels.set(i.id, newOutputChannel)
@@ -442,12 +522,12 @@ export class JuliaTestController {
             const outputChannel = this.testFeature.juliaTestProcessOutputChannels.get(i.id)
             outputChannel.append(i.output)
         })
-        this.connection.onNotification(notificationTypeTestProcessTerminated, (i) => {
+        this.onNotification(notificationTypeTestProcessTerminated, async (i) => {
             // The output channel is disposed either way — the process is gone regardless of
             // whether we still had it tracked.
             const tp = this.testProcesses.get(i.id)
             if (tp) {
-                this.workspaceFeature.removeTestProcess(tp)
+                await this.workspaceFeature.removeTestProcess(tp)
                 this.testProcesses.delete(i.id)
             }
 
@@ -457,7 +537,7 @@ export class JuliaTestController {
                 this.testFeature.juliaTestProcessOutputChannels.delete(i.id)
             }
         })
-        this.connection.onNotification(notificationTypeLaunchDebugger, async (i) => {
+        this.onNotification(notificationTypeLaunchDebugger, async (i) => {
             const testRun = this.testRuns.get(i.testRunId)
             if (!testRun) {
                 return
@@ -479,6 +559,21 @@ export class JuliaTestController {
                 }
             )
         })
+        // A protocol-level failure is otherwise invisible: the library reports it here and
+        // nowhere else, and it means the controller and the extension have stopped agreeing
+        // about what is on the wire.
+        this.connection.onError(([err, message]) => {
+            this.outputChannel.appendLine(`JSON-RPC connection error: ${err.message}`)
+            handleNewCrashReportFromException(err, 'Extension')
+            if (message) {
+                this.outputChannel.appendLine(`  while handling: ${JSON.stringify(message)}`)
+            }
+        })
+
+        this.connection.onClose(() => {
+            this.outputChannel.appendLine('JSON-RPC connection closed.')
+        })
+
         this.connection.listen()
 
         this.process.stderr.on('data', (data) => {
@@ -486,8 +581,32 @@ export class JuliaTestController {
             this.outputChannel.append(dataAsString)
         })
 
-        this.process.on('exit', () => {
+        this.process.on('spawn', () => {
+            this.alive = true
+        })
+
+        this.process.on('exit', (code: number | null, signal: NodeJS.Signals | null) => {
             this.process = undefined
+            this.alive = false
+
+            this.outputChannel.appendLine(
+                `Test item controller exited (code ${code ?? 'none'}, signal ${signal ?? 'none'}).`
+            )
+
+            // The controller reports its own crashes, with the right cloud role, from the
+            // `VSCodeErrorLogger` `testitemcontroller_main.jl` installs — and that path always
+            // ends in `exit(1)`. Reporting code 1 here as well would file every one of those
+            // crashes twice. What that path cannot cover is a death that never ran Julia code:
+            // a signal, or an exit code from the runtime itself. Those are what is reported
+            // here, because otherwise they leave no trace anywhere.
+            if (signal || (code !== null && code !== 0 && code !== 1)) {
+                handleNewCrashReportFromException(
+                    new Error(
+                        `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
+                    ),
+                    'Extension'
+                )
+            }
 
             if (this.connection) {
                 this.connection.dispose()
@@ -496,17 +615,40 @@ export class JuliaTestController {
 
             this._onKilled.fire()
 
+            // Ending them here is what stops the Test Explorer spinning; clearing the map is
+            // what stops `createTestRun`'s `finally` ending the same run a second time when
+            // its request rejects a moment later.
             for (const i of this.testRuns.values()) {
                 i.testRun.end()
             }
+            this.testRuns.clear()
 
-            this.testFeature.testControllerTerminated()
+            this.testFeature.testControllerTerminated().catch((err) => {
+                handleNewCrashReportFromException(err, 'Extension')
+            })
+        })
+
+        // Node emits `'close'` for a spawn failure even when `'exit'` never fires, so this is
+        // the only handler that reliably runs when the executable could not be started.
+        this.process.on('close', () => {
+            this.alive = false
         })
 
         this.process.on('error', (err: Error) => {
+            this.alive = false
+            this.outputChannel.appendLine(`Test item controller process error: ${err.message}`)
             handleNewCrashReportFromException(err, 'Extension')
-            // this.launchError = err
         })
+
+        // A spawn that fails (a missing or unusable executable) never emits `'exit'`, so
+        // without waiting here `start` would report success and the run would then write into
+        // a stdin nobody is reading and hang in the Test Explorer with no way to stop it.
+        if (!(await spawned)) {
+            vscode.window.showErrorMessage(
+                'The Julia test item controller could not be started. See the "Julia Test Item Controller" output channel for details.'
+            )
+            return true
+        }
 
         return false
     }
@@ -927,20 +1069,23 @@ export class TestFeature {
         }
 
         this.initialized = true
-        this.initDisposable?.dispose()
-        this.initDisposable = undefined
 
         let executables
         try {
             executables = await this.executableFeature.getExecutables()
         } catch (err) {
             if (err instanceof JuliaNotFoundError) {
-                // No Julia available; revert initialization so we retry on next trigger.
+                // No Julia available; revert initialization so we retry on next trigger. The
+                // `onDidFindJulia` hook has to stay registered for that retry to ever happen —
+                // disposing it before this point left `init` unable to run a second time.
                 this.initialized = false
                 return
             }
             throw err
         }
+
+        this.initDisposable?.dispose()
+        this.initDisposable = undefined
         const hasJuliaup = executables.some((e) => e.juliaupChannel)
 
         const makeHandler = (executable: JuliaExecutable, mode: TestRunMode) => {
@@ -948,7 +1093,9 @@ export class TestFeature {
                 try {
                     await this.runHandler(request, mode, executable, token)
                 } catch (err) {
-                    handleNewCrashReportFromException(err, 'Extension')
+                    if (!isExpectedTestRunRejection(err) && !token.isCancellationRequested) {
+                        handleNewCrashReportFromException(err, 'Extension')
+                    }
                     throw err
                 }
             }
@@ -1035,6 +1182,31 @@ export class TestFeature {
 
         const testRun = this.controller.createTestRun(request, undefined, true)
 
+        // Everything from here to `createTestRun` can throw — most plausibly the
+        // `getTestEnv` requests below, which go to a language server that may be restarting.
+        // `createTestRun` ends the run itself in its own `finally`; this covers the window
+        // before it is reached, where a throw would otherwise leave the run spinning in the
+        // Test Explorer forever with no way to stop it.
+        let runHandedOver = false
+        try {
+            await this.runTests(request, mode, executable, token, testRun, () => {
+                runHandedOver = true
+            })
+        } finally {
+            if (!runHandedOver) {
+                testRun.end()
+            }
+        }
+    }
+
+    private async runTests(
+        request: vscode.TestRunRequest,
+        mode: TestRunMode,
+        executable: JuliaExecutable,
+        token: vscode.CancellationToken,
+        testRun: vscode.TestRun,
+        handOver: () => void
+    ) {
         let itemsToRun: vscode.TestItem[] = []
 
         if (!request.include) {
@@ -1128,9 +1300,10 @@ export class TestFeature {
         }
 
         if (token.isCancellationRequested) {
-            testRun.end()
             return
         }
+
+        handOver()
 
         await this.juliaTestController.createTestRun(
             testRun,
@@ -1142,5 +1315,16 @@ export class TestFeature {
         )
     }
 
-    public dispose() {}
+    public dispose() {
+        this.juliaTestController?.kill()
+        this.juliaTestController = undefined
+
+        for (const i of this.juliaTestProcessOutputChannels.values()) {
+            i.dispose()
+        }
+        this.juliaTestProcessOutputChannels.clear()
+
+        this.juliaTestitemControllerOutputChannel.dispose()
+        this.controller.dispose()
+    }
 }
