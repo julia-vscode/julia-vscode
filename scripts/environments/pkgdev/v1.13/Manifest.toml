@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.13.0-rc2"
+julia_version = "1.13.0-rc3"
 manifest_format = "2.1"
 project_hash = "b7d0fc8704381dcd1c845244164a2a6cf9cca903"
 
@@ -244,7 +244,7 @@ version = "1.11.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2025.12.2"
+version = "2026.7.16"
 
 [[deps.Mustache]]
 deps = ["Printf", "Tables"]
