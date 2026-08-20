@@ -162,7 +162,7 @@ version = "3.0.2-DEV"
 deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML", "Test"]
 path = "../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "2.12.4"
+version = "2.12.6"
 
 [[deps.JuliaInterpreter]]
 deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
