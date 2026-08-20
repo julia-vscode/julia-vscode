@@ -6,7 +6,7 @@ import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaExecutable, ExecutableFeature, JuliaNotFoundError } from '../executables'
 import * as path from 'path'
 import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
-import { TestControllerNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
+import { TestControllerHost, TestProcessGroupNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import { LanguageClientFeature } from '../languageClient'
@@ -27,6 +27,9 @@ import {
     requestTypeTerminateTestProcess,
 } from './testControllerProtocol'
 import * as tlsp from './testLSProtocol'
+import { stripAnsi } from './ansi'
+import { logFileContents, TestProcessLog } from './testProcessLog'
+import { closeStaleTestProcessLogTabs, TestProcessLogViewManager } from './testProcessLogView'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 import { getCustomEnvironmentVariables, inferJuliaNumThreads, onEvent, registerCommand } from '../utils'
 
@@ -144,9 +147,21 @@ export function testItemKey(testEnvId: string, testItemId: string) {
 
 export class JuliaTestProcess {
     private status: string
+    private terminated = false
 
     private _onStatusChanged = new vscode.EventEmitter<void>()
     public onStatusChanged = this._onStatusChanged.event
+
+    // Distinct from `onStatusChanged`: termination moves the process to another part of the
+    // tree and closes off its log, neither of which an ordinary status change does.
+    private _onTerminated = new vscode.EventEmitter<void>()
+    public onTerminated = this._onTerminated.event
+
+    /**
+     * Everything the process has written. Retained past termination — a process that died
+     * during precompilation has nothing to show for itself except this.
+     */
+    public readonly log = new TestProcessLog()
 
     constructor(
         public id: string,
@@ -170,8 +185,32 @@ export class JuliaTestProcess {
         return this.status
     }
 
+    public isTerminated() {
+        return this.terminated
+    }
+
+    markTerminated() {
+        if (this.terminated) {
+            return
+        }
+
+        this.terminated = true
+        this.log.finish('\r\n\x1b[0m\x1b[2m— test process terminated —\x1b[0m\r\n')
+        this._onTerminated.fire()
+    }
+
     async kill() {
+        if (this.terminated) {
+            return
+        }
+
         await this.controller.killTestProcess(this.id)
+    }
+
+    dispose() {
+        this.log.dispose()
+        this._onStatusChanged.dispose()
+        this._onTerminated.dispose()
     }
 }
 
@@ -285,13 +324,13 @@ export class JuliaTestController {
         const summary = formatPerfStats(perf)
 
         if (summary) {
-            testRun.appendOutput(`${summary}\r\n`, undefined, testItem)
+            // One Test Results terminal is shared by every item in a run, so an item whose
+            // output ended mid-colour would otherwise tint this line. Same for `Skipped:` below.
+            testRun.appendOutput(`\x1b[0m${summary}\r\n`, undefined, testItem)
         }
     }
 
     public async start() {
-        this.workspaceFeature.addTestController(this)
-
         let juliaExecutable: JuliaExecutable | null
 
         if (process.env.DEBUG_MODE) {
@@ -391,7 +430,10 @@ export class JuliaTestController {
             testRun.errored(
                 testItem,
                 i.messages.map((i) => {
-                    const msg = new vscode.TestMessage(i.message)
+                    // Test processes run with `--color=yes`, and `Test.jl` colours its failure
+                    // output. A `TestMessage` is not terminal backed, so the escapes would show
+                    // up as literal `[32m` noise in the peek view.
+                    const msg = new vscode.TestMessage(stripAnsi(i.message))
                     if (i.uri && i.line && i.column) {
                         msg.location = new vscode.Location(
                             vscode.Uri.parse(i.uri),
@@ -401,7 +443,7 @@ export class JuliaTestController {
                     if (i.stackTrace) {
                         msg.stackTrace = i.stackTrace.map((s) => {
                             return new vscode.TestMessageStackFrame(
-                                s.label,
+                                stripAnsi(s.label),
                                 s.uri ? vscode.Uri.parse(s.uri) : undefined,
                                 s.line && s.column ? new vscode.Position(s.line - 1, s.column - 1) : undefined
                             )
@@ -423,11 +465,11 @@ export class JuliaTestController {
             const { testRun, testItem } = resolved
 
             const messages = i.messages.map((j) => {
-                const msg = new vscode.TestMessage(j.message)
+                const msg = new vscode.TestMessage(stripAnsi(j.message))
 
                 if (j.actualOutput !== null && j.expectedOutput !== null) {
-                    msg.actualOutput = j.actualOutput
-                    msg.expectedOutput = j.expectedOutput
+                    msg.actualOutput = stripAnsi(j.actualOutput)
+                    msg.expectedOutput = stripAnsi(j.expectedOutput)
                 }
 
                 if (j.uri !== null && j.line !== null && j.column !== null) {
@@ -440,7 +482,7 @@ export class JuliaTestController {
                 if (j.stackTrace) {
                     msg.stackTrace = j.stackTrace.map((s) => {
                         return new vscode.TestMessageStackFrame(
-                            s.label,
+                            stripAnsi(s.label),
                             s.uri ? vscode.Uri.parse(s.uri) : undefined,
                             s.line && s.column ? new vscode.Position(s.line - 1, s.column - 1) : undefined
                         )
@@ -477,7 +519,7 @@ export class JuliaTestController {
             // the test run output to show up in. A literal `skip=true` arrives as the source
             // text `true`, which says nothing the skipped status does not already say.
             if (i.reason && i.reason !== 'true') {
-                testRun.appendOutput(`Skipped: ${i.reason}\r\n`, undefined, testItem)
+                testRun.appendOutput(`\x1b[0mSkipped: ${i.reason}\r\n`, undefined, testItem)
             }
         })
         this.onNotification(notificationTypeAppendOutput, (i) => {
@@ -514,28 +556,18 @@ export class JuliaTestController {
             tp.setStatus(i.status)
         })
         this.onNotification(notificationTypeTestProcessOutput, (i) => {
-            if (!this.testFeature.juliaTestProcessOutputChannels.has(i.id)) {
-                const newOutputChannel = vscode.window.createOutputChannel(`Julia Test Process ${i.id}`)
-                this.testFeature.juliaTestProcessOutputChannels.set(i.id, newOutputChannel)
-            }
-
-            const outputChannel = this.testFeature.juliaTestProcessOutputChannels.get(i.id)
-            outputChannel.append(i.output)
+            this.testProcesses.get(i.id)?.log.append(i.output)
         })
         this.onNotification(notificationTypeTestProcessTerminated, async (i) => {
-            // The output channel is disposed either way — the process is gone regardless of
-            // whether we still had it tracked.
             const tp = this.testProcesses.get(i.id)
-            if (tp) {
-                await this.workspaceFeature.removeTestProcess(tp)
-                this.testProcesses.delete(i.id)
+            if (!tp) {
+                return
             }
 
-            if (this.testFeature.juliaTestProcessOutputChannels.has(i.id)) {
-                const outputChanenl = this.testFeature.juliaTestProcessOutputChannels.get(i.id)
-                outputChanenl.dispose()
-                this.testFeature.juliaTestProcessOutputChannels.delete(i.id)
-            }
+            // Kept in `testProcesses`, and in the tree under `Terminated`, so that its log stays
+            // readable. Everything is released when the controller itself dies.
+            tp.markTerminated()
+            await this.workspaceFeature.testProcessTerminated()
         })
         this.onNotification(notificationTypeLaunchDebugger, async (i) => {
             const testRun = this.testRuns.get(i.testRunId)
@@ -622,6 +654,16 @@ export class JuliaTestController {
                 i.testRun.end()
             }
             this.testRuns.clear()
+
+            // Marking them terminated puts the same footer on their logs that an orderly exit
+            // would, so a log view left open does not simply stop mid sentence. They are not
+            // disposed: the permanent controller node owns them from here, which is what keeps a
+            // crashed controller's output readable. `Clear Terminated`, the per process remove
+            // and `TestFeature.dispose` are what release them.
+            for (const i of this.testProcesses.values()) {
+                i.markTerminated()
+            }
+            this.testProcesses.clear()
 
             this.testFeature.testControllerTerminated().catch((err) => {
                 handleNewCrashReportFromException(err, 'Extension')
@@ -718,6 +760,10 @@ export class JuliaTestController {
             juliaNumThreads: nthreads,
             juliaEnv: {},
             mode: modeAsString(mode),
+            // Launch with `--color=yes`. Both output streams then carry ANSI escapes, which the
+            // Test Results terminal and the per process log views render, and which `stripAnsi`
+            // removes on the `TestMessage` paths that cannot.
+            color: true,
             packageName: env.packageName,
             packageUri: env.packageUri,
             projectUri: env.projectUri,
@@ -843,7 +889,7 @@ export class JuliaTestController {
 //     }
 // }
 
-export class TestFeature {
+export class TestFeature implements TestControllerHost {
     private controller: vscode.TestController
     private testitems: WeakMap<vscode.TestItem, tlsp.TestItemDetail> = new WeakMap<
         vscode.TestItem,
@@ -861,7 +907,7 @@ export class TestFeature {
     private languageClient: vslc.LanguageClient = null
 
     private juliaTestitemControllerOutputChannel: vscode.OutputChannel | undefined = undefined
-    public juliaTestProcessOutputChannels: Map<string, vscode.OutputChannel> = new Map()
+    private testProcessLogViews: TestProcessLogViewManager
     private juliaTestController: JuliaTestController = undefined
     private profileMap: Map<vscode.TestRunProfile, { executable: JuliaExecutable; mode: TestRunMode }> = new Map()
 
@@ -878,11 +924,36 @@ export class TestFeature {
         // this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
         this.juliaTestitemControllerOutputChannel = vscode.window.createOutputChannel('Julia Test Item Controller')
 
+        // Before the manager exists, so nothing this closes can be one of ours.
+        closeStaleTestProcessLogTabs()
+        this.testProcessLogViews = new TestProcessLogViewManager(context.extensionPath)
+
         this.controller = vscode.tests.createTestController('juliaTests', 'Julia Tests')
+
+        // The controller node is permanent, so it exists from here on whether or not a controller
+        // is ever started. It is also what holds test processes across a controller's death.
+        this.workspaceFeature.setTestControllerHost(this)
 
         context.subscriptions.push(
             registerCommand('language-julia.stopTestProcess', async (node: TestProcessNode) => await node.stop()),
-            registerCommand('language-julia.stopTestController', async (node: TestControllerNode) => await node.stop())
+            registerCommand('language-julia.startTestController', async () => await this.startTestController()),
+            registerCommand('language-julia.stopTestController', async () => await this.stopTestController()),
+            registerCommand('language-julia.restartTestController', async () => await this.restartTestController()),
+            // Not contributed as a button: this is what a click on a test process node runs.
+            registerCommand('language-julia.showTestProcessLog', async (node: TestProcessNode) =>
+                this.testProcessLogViews.show(node.testProcess)
+            ),
+            registerCommand('language-julia.saveTestProcessLog', async () => await this.saveActiveLog()),
+            // The views have to go with the processes: a log with nothing left to append to it
+            // and no tree node to reopen it from is just a stale tab.
+            registerCommand('language-julia.removeTestProcess', async (node: TestProcessNode) => {
+                if (this.workspaceFeature.removeTestProcess(node.testProcess.id)) {
+                    this.testProcessLogViews.closeFor([node.testProcess.id])
+                }
+            }),
+            registerCommand('language-julia.clearTerminatedTestProcesses', async (node: TestProcessGroupNode) =>
+                this.testProcessLogViews.closeFor(node.controllerNode.clearTerminated())
+            )
         )
 
         // vscode.debug.onDidStartDebugSession((session: vscode.DebugSession) => {
@@ -1151,7 +1222,11 @@ export class TestFeature {
                 this.compiledProvider
             )
 
-            return await this.juliaTestController.start()
+            this.workspaceFeature.setTestControllerState('starting')
+            const failed = await this.juliaTestController.start()
+            this.workspaceFeature.setTestControllerState(failed ? 'stopped' : 'running')
+
+            return failed
         }
 
         return false
@@ -1159,9 +1234,70 @@ export class TestFeature {
 
     async testControllerTerminated() {
         this.juliaTestController = undefined
-        for (const i of this.juliaTestProcessOutputChannels.values()) {
-            i.dispose()
+        this.workspaceFeature.setTestControllerState('stopped')
+    }
+
+    /**
+     * Write the focused log tab's contents to a file the user picks.
+     *
+     * Reached from that tab's title bar, which hands its command no arguments — hence asking the
+     * view manager which panel is focused rather than being told.
+     */
+    private async saveActiveLog() {
+        const source = this.testProcessLogViews.getActiveSource()
+        if (!source) {
+            return
         }
+
+        const defaultName = `${source.packageName || 'julia'}-test-process.log`
+        const folder = vscode.workspace.workspaceFolders?.[0]
+
+        const target = await vscode.window.showSaveDialog({
+            defaultUri: folder ? vscode.Uri.joinPath(folder.uri, defaultName) : vscode.Uri.file(defaultName),
+            filters: { 'Log files': ['log'], 'Text files': ['txt'], 'All files': ['*'] },
+        })
+        if (!target) {
+            return
+        }
+
+        await vscode.workspace.fs.writeFile(target, Buffer.from(logFileContents(source.log), 'utf8'))
+    }
+
+    // --- TestControllerHost, driving the buttons on the permanent controller node ---
+
+    async startTestController() {
+        await this.ensureJuliaTestController()
+    }
+
+    async stopTestController() {
+        this.juliaTestController?.kill()
+    }
+
+    async restartTestController() {
+        const controller = this.juliaTestController
+        if (!controller) {
+            await this.ensureJuliaTestController()
+            return
+        }
+
+        // `ready()` only goes false once the child process' `'exit'` fires, so starting straight
+        // after `kill` would find the old controller still passing for a live one and do nothing.
+        const exited = new Promise<void>((resolve) => {
+            const subscription = onEvent(controller.onKilled, () => {
+                subscription.dispose()
+                resolve()
+            })
+            // A controller that somehow never reports its own death must not wedge the button.
+            setTimeout(() => {
+                subscription.dispose()
+                resolve()
+            }, 10000)
+        })
+
+        controller.kill()
+        await exited
+
+        await this.ensureJuliaTestController()
     }
 
     async runHandler(
@@ -1319,11 +1455,7 @@ export class TestFeature {
         this.juliaTestController?.kill()
         this.juliaTestController = undefined
 
-        for (const i of this.juliaTestProcessOutputChannels.values()) {
-            i.dispose()
-        }
-        this.juliaTestProcessOutputChannels.clear()
-
+        this.testProcessLogViews.dispose()
         this.juliaTestitemControllerOutputChannel.dispose()
         this.controller.dispose()
     }

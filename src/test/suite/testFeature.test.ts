@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import { formatBytes, formatMillis, formatPerfStats, testItemKey } from '../../testing/testFeature'
+import { formatBytes, formatMillis, formatPerfStats, JuliaTestProcess, testItemKey } from '../../testing/testFeature'
 
 suite('formatMillis', () => {
     test('renders sub-millisecond values as microseconds', () => {
@@ -96,5 +96,46 @@ suite('testItemKey', () => {
 
     test('is stable for the same pair', () => {
         assert.strictEqual(testItemKey('env-1', 'a'), testItemKey('env-1', 'a'))
+    })
+})
+
+suite('JuliaTestProcess', () => {
+    const build = () =>
+        new JuliaTestProcess('id', 'MyPkg', 'file:///pkg', 'file:///pkg/Project.toml', false, {}, 'release', undefined)
+
+    test('starts out alive, with an empty log', () => {
+        const proc = build()
+
+        assert.strictEqual(proc.isTerminated(), false)
+        assert.strictEqual(proc.log.getFullText(), '')
+    })
+
+    test('marks a footer onto the log when it terminates', () => {
+        const proc = build()
+        proc.log.append('some output\n')
+
+        proc.markTerminated()
+
+        assert.strictEqual(proc.isTerminated(), true)
+        assert.ok(proc.log.getFullText().includes('test process terminated'))
+    })
+
+    test('terminating twice does not append a second footer', () => {
+        const proc = build()
+
+        proc.markTerminated()
+        const afterFirst = proc.log.getFullText()
+        proc.markTerminated()
+
+        assert.strictEqual(proc.log.getFullText(), afterFirst)
+    })
+
+    test('killing a terminated process does not reach for the controller', async () => {
+        // The controller is `undefined` here, so this would throw if the guard were missing —
+        // which is the real case too: the tree node outlives the process it points at.
+        const proc = build()
+        proc.markTerminated()
+
+        await proc.kill()
     })
 })
