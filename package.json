@@ -134,9 +134,39 @@
                 "icon": "$(debug-stop)"
             },
             {
+                "command": "language-julia.startTestController",
+                "title": "Julia: Start Test Controller",
+                "icon": "$(debug-start)"
+            },
+            {
                 "command": "language-julia.stopTestController",
                 "title": "Julia: Stop Test Controller",
                 "icon": "$(debug-stop)"
+            },
+            {
+                "command": "language-julia.restartTestController",
+                "title": "Julia: Restart Test Controller",
+                "icon": "$(debug-restart)"
+            },
+            {
+                "command": "language-julia.removeTestProcess",
+                "title": "Julia: Remove Test Process",
+                "icon": "$(close)"
+            },
+            {
+                "command": "language-julia.saveTestProcessLog",
+                "title": "Julia: Save Test Process Log",
+                "icon": "$(save)"
+            },
+            {
+                "command": "language-julia.showTestProcessLog",
+                "title": "Julia: Show Test Process Log",
+                "icon": "$(output)"
+            },
+            {
+                "command": "language-julia.clearTerminatedTestProcesses",
+                "title": "Julia: Clear Terminated Test Processes",
+                "icon": "$(clear-all)"
             },
             {
                 "command": "language-julia.disconnectREPL",
@@ -495,6 +525,11 @@
             ],
             "editor/title": [
                 {
+                    "command": "language-julia.saveTestProcessLog",
+                    "when": "activeWebviewPanelId == 'julia-testprocess-log'",
+                    "group": "navigation"
+                },
+                {
                     "command": "language-julia.browse-back-documentation",
                     "when": "juliaDocumentationPaneActive",
                     "group": "navigation@-2"
@@ -633,8 +668,28 @@
                     "group": "inline"
                 },
                 {
+                    "command": "language-julia.startTestController",
+                    "when": "view == REPLVariables && viewItem == juliatestcontroller-stopped",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.restartTestController",
+                    "when": "view == REPLVariables && viewItem == juliatestcontroller-running",
+                    "group": "inline"
+                },
+                {
                     "command": "language-julia.stopTestController",
-                    "when": "view == REPLVariables && viewItem == juliatestcontroller",
+                    "when": "view == REPLVariables && viewItem == juliatestcontroller-running",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.removeTestProcess",
+                    "when": "view == REPLVariables && viewItem == juliatestprocess-terminated",
+                    "group": "inline"
+                },
+                {
+                    "command": "language-julia.clearTerminatedTestProcesses",
+                    "when": "view == REPLVariables && viewItem == juliatestprocessgroup-terminated",
                     "group": "inline"
                 },
                 {
@@ -741,6 +796,26 @@
                 }
             ],
             "commandPalette": [
+                {
+                    "command": "language-julia.stopTestProcess",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.showTestProcessLog",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.removeTestProcess",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.clearTerminatedTestProcesses",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.saveTestProcessLog",
+                    "when": "activeWebviewPanelId == 'julia-testprocess-log'"
+                },
                 {
                     "command": "language-julia.restartKernel",
                     "when": "false"
@@ -1683,6 +1758,7 @@
         "initialsetup": "npm i && git submodule init && git submodule update",
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run bundle",
         "vsce-package": "vsce package",
+        "vendor-xterm": "node scripts/vendor-xterm.mjs",
         "update-all-deps": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateDeps()).catch(console.error)\"",
         "update-julia-environments": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateEnvs()).catch(console.error)\"",
         "update-julia-packages": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateJuliaPackages()).catch(console.error)\"",
@@ -1729,6 +1805,9 @@
         "@vscode/test-cli": "^0.0.15",
         "@vscode/test-electron": "^3.1.0",
         "@vscode/vsce": "^3.9.0",
+        "@xterm/addon-fit": "^0.10.0",
+        "@xterm/addon-search": "^0.15.0",
+        "@xterm/xterm": "^5.5.0",
         "esbuild": "^0.28.1",
         "eslint": "^10.0.3",
         "eslint-config-prettier": "^10.1.8",

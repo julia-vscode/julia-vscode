@@ -39,6 +39,12 @@ export interface TestEnvironment {
     envContentHash?: string
     /** Value for the `--check-bounds` flag. */
     checkBounds?: string
+    /**
+     * Start the test process with `--color=yes`, so that its output carries ANSI escapes. The
+     * controller forwards them on both streams — per test item output and process level output
+     * alike — and leaves it to us to render or strip them per sink.
+     */
+    color?: boolean
 }
 
 export interface TestRunItem {

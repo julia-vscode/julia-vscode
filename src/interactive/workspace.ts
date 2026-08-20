@@ -1,7 +1,7 @@
 import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
-import { JuliaTestController, JuliaTestProcess } from '../testing/testFeature'
+import { JuliaTestProcess } from '../testing/testFeature'
 import { onEvent, registerCommand, wrapCrashReporting } from '../utils'
 import { displayPlot } from './plots'
 import { notifyTypeDisplay, notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
@@ -109,35 +109,160 @@ export class NotebookNode extends SessionNode {
     }
 }
 
+export type TestControllerState = 'stopped' | 'starting' | 'running'
+
+/**
+ * What the controller node needs of `TestFeature` to run its buttons.
+ *
+ * Declared structurally so `workspace.ts` keeps its import of `testFeature.ts` type only, which
+ * is what stops the two modules forming a cycle at runtime.
+ */
+export interface TestControllerHost {
+    startTestController(): Promise<void>
+    stopTestController(): Promise<void>
+    restartTestController(): Promise<void>
+}
+
+/**
+ * The controller row in the workspace view.
+ *
+ * Permanent, unlike the controller it reports on. A controller that dies takes its test
+ * processes with it, and their retained logs are exactly what you want to read afterwards — so
+ * the node outlives any one controller and holds the process list across restarts.
+ */
 export class TestControllerNode extends AbstractWorkspaceNode {
     private testProcessNodes: TestProcessNode[] = []
+    // Cached rather than rebuilt per query: the tree view tracks expansion state by element
+    // identity, so a fresh group node on every refresh would collapse the group as you watch.
+    private groupNodes = new Map<TestProcessGroupKind, TestProcessGroupNode>()
+    private state: TestControllerState = 'stopped'
 
-    constructor(public testController: JuliaTestController) {
+    constructor(
+        private host: TestControllerHost,
+        private treeProvider: REPLTreeDataProvider
+    ) {
         super()
+    }
+
+    public getState() {
+        return this.state
+    }
+
+    public setState(state: TestControllerState) {
+        if (this.state === state) {
+            return
+        }
+
+        this.state = state
+        this.treeProvider.refresh()
+    }
+
+    public hasProcesses() {
+        return this.testProcessNodes.length > 0
     }
 
     addTestProcessNode(node: TestProcessNode) {
         this.testProcessNodes.push(node)
     }
 
-    removeTestProcessNode(id: string) {
-        for (const i of this.testProcessNodes.filter((i) => i.testProcess.id === id)) {
-            i.dispose()
+    /** Drop one process and everything it held. Returns whether there was one to drop. */
+    public removeProcess(id: string): boolean {
+        const node = this.testProcessNodes.find((i) => i.testProcess.id === id)
+        if (!node) {
+            return false
         }
-        this.testProcessNodes = this.testProcessNodes.filter((i) => i.testProcess.id !== id)
+
+        this.drop([node])
+
+        return true
     }
 
+    public nodesFor(kind: TestProcessGroupKind) {
+        return this.testProcessNodes.filter((i) => i.testProcess.isTerminated() === (kind === 'terminated'))
+    }
+
+    /**
+     * Drop the terminated processes and everything they were holding on to. Returns their ids,
+     * so the caller can close whatever views were open on them.
+     */
+    public clearTerminated(): string[] {
+        const removed = this.nodesFor('terminated')
+
+        this.drop(removed)
+
+        return removed.map((i) => i.testProcess.id)
+    }
+
+    /**
+     * Take these nodes out of the tree and release what they held.
+     *
+     * The refresh belongs here rather than at the call site: `clearTerminated` is invoked
+     * straight off the group node by its command, with no feature layer in between to redraw.
+     */
+    private drop(nodes: TestProcessNode[]) {
+        if (nodes.length === 0) {
+            return
+        }
+
+        for (const i of nodes) {
+            i.dispose()
+            i.testProcess.dispose()
+        }
+        this.testProcessNodes = this.testProcessNodes.filter((i) => !nodes.includes(i))
+
+        this.treeProvider.refresh()
+    }
+
+    // A terminated process keeps its log, so it keeps its node — but mixing the two states in
+    // one flat list buries the processes that are actually doing something. Empty groups are
+    // omitted, so a session where nothing has died yet looks exactly as it did before.
     public async getChildren() {
-        return this.testProcessNodes
+        const groups: TestProcessGroupNode[] = []
+
+        for (const kind of ['active', 'terminated'] as TestProcessGroupKind[]) {
+            if (this.nodesFor(kind).length === 0) {
+                continue
+            }
+
+            if (!this.groupNodes.has(kind)) {
+                this.groupNodes.set(kind, new TestProcessGroupNode(kind, this))
+            }
+            groups.push(this.groupNodes.get(kind))
+        }
+
+        return groups
+    }
+
+    async start() {
+        await this.host.startTestController()
     }
 
     async stop() {
-        await this.testController.kill()
+        await this.host.stopTestController()
+    }
+
+    async restart() {
+        await this.host.restartTestController()
+    }
+}
+
+export type TestProcessGroupKind = 'active' | 'terminated'
+
+export class TestProcessGroupNode extends AbstractWorkspaceNode {
+    constructor(
+        public kind: TestProcessGroupKind,
+        public controllerNode: TestControllerNode
+    ) {
+        super()
+    }
+
+    public async getChildren() {
+        return this.controllerNode.nodesFor(this.kind)
     }
 }
 
 export class TestProcessNode extends AbstractWorkspaceNode {
-    private statusSubscription: vscode.Disposable
+    private subscriptions: vscode.Disposable[]
 
     constructor(
         public testProcess: JuliaTestProcess,
@@ -145,13 +270,19 @@ export class TestProcessNode extends AbstractWorkspaceNode {
     ) {
         super()
 
-        this.statusSubscription = onEvent(testProcess.onStatusChanged, () => {
-            this.treeProvider.refresh()
-        })
+        this.subscriptions = [
+            onEvent(testProcess.onStatusChanged, () => this.treeProvider.refresh()),
+            // Termination moves the node between groups, which a status refresh alone would not
+            // reflect.
+            onEvent(testProcess.onTerminated, () => this.treeProvider.refresh()),
+        ]
     }
 
     dispose() {
-        this.statusSubscription.dispose()
+        for (const i of this.subscriptions) {
+            i.dispose()
+        }
+        this.subscriptions = []
     }
 
     public async getChildren() {
@@ -248,7 +379,7 @@ export class WorkspaceFeature {
 
     _REPLNode: REPLNode
     _NotebookNodes: NotebookNode[] = []
-    _TestController: TestControllerNode | null
+    _TestController: TestControllerNode | null = null
 
     constructor(private context: vscode.ExtensionContext) {
         this._REPLTreeDataProvider = new REPLTreeDataProvider(this)
@@ -323,22 +454,20 @@ export class WorkspaceFeature {
     //     this._REPLTreeDataProvider.refresh()
     // }
 
-    public async addTestController(testController: JuliaTestController) {
-        const node = new TestControllerNode(testController)
-        this._TestController = node
-
-        const subscription = onEvent(testController.onKilled, () => {
-            this._TestController = null
-            this._REPLTreeDataProvider.refresh()
-            subscription.dispose()
-        })
-
+    /**
+     * Give the workspace view its permanent controller node. Called once, from the `TestFeature`
+     * constructor — the workspace feature is built first, so the node cannot be created any
+     * earlier than this without leaving its buttons wired to nothing.
+     */
+    public setTestControllerHost(host: TestControllerHost) {
+        this._TestController = new TestControllerNode(host, this._REPLTreeDataProvider)
         this._REPLTreeDataProvider.refresh()
     }
 
-    // A test process notification can arrive after the controller that owns it is gone —
-    // `onKilled` nulls the node, and the controller's last few notifications are still in
-    // flight. Dereferencing it here used to be an unhandled rejection in a JSON-RPC handler.
+    public setTestControllerState(state: TestControllerState) {
+        this._TestController?.setState(state)
+    }
+
     public async addTestProcess(testProcess: JuliaTestProcess) {
         if (!this._TestController) {
             return
@@ -349,12 +478,18 @@ export class WorkspaceFeature {
         this._REPLTreeDataProvider.refresh()
     }
 
-    public async removeTestProcess(testProcess: JuliaTestProcess) {
+    /** Drop one terminated process from the tree. Returns whether there was one to drop. */
+    public removeTestProcess(id: string): boolean {
+        return this._TestController?.removeProcess(id) ?? false
+    }
+
+    // The node is kept — `JuliaTestProcess.markTerminated` has already flipped its state, so
+    // this only has to move it into the `Terminated` group by redrawing.
+    public async testProcessTerminated() {
         if (!this._TestController) {
             return
         }
 
-        this._TestController.removeTestProcessNode(testProcess.id)
         this._REPLTreeDataProvider.refresh()
     }
 }
@@ -380,6 +515,8 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
                 nodes.push(this.workspaceFeature._REPLNode)
             }
             nodes.push(...this.workspaceFeature._NotebookNodes)
+            // Always shown, running or not: it is how a controller is started, and how the logs
+            // of the processes a dead controller left behind are reached.
             if (this.workspaceFeature._TestController) {
                 nodes.push(this.workspaceFeature._TestController)
             }
@@ -418,10 +555,18 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
             treeItem.contextValue = 'juliakernel'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
             return treeItem
+        } else if (node instanceof TestProcessGroupNode) {
+            const treeItem = new vscode.TreeItem(node.kind === 'active' ? 'Active' : 'Terminated')
+            treeItem.contextValue = `juliatestprocessgroup-${node.kind}`
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
+            return treeItem
         } else if (node instanceof TestProcessNode) {
             const treeItem = new vscode.TreeItem('Julia Test Process')
+            const terminated = node.testProcess.isTerminated()
             const status = node.testProcess.getStatus()
-            if (
+            if (terminated) {
+                treeItem.iconPath = new vscode.ThemeIcon('circle-slash')
+            } else if (
                 status === 'Launching' ||
                 status === 'Revising' ||
                 status === 'Created' ||
@@ -444,16 +589,41 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
                     `The process does ${node.testProcess.coverage ? '' : 'not '}collect coverage information.\n\n` +
                     `The env is ${node.testProcess.env}.`
             )
-            treeItem.contextValue = 'juliatestprocess'
+            // The two states get different context values so that the inline stop button, which
+            // is gated on `juliatestprocess`, does not offer to stop something already dead.
+            treeItem.contextValue = terminated ? 'juliatestprocess-terminated' : 'juliatestprocess'
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None
+            treeItem.command = {
+                command: 'language-julia.showTestProcessLog',
+                title: 'Show Test Process Log',
+                arguments: [node],
+            }
             return treeItem
         } else if (node instanceof TestControllerNode) {
+            const state = node.getState()
+            const presentation = {
+                running: { icon: 'test-view-icon', description: 'Running' },
+                starting: { icon: 'gear~spin', description: 'Starting…' },
+                stopped: { icon: 'debug-disconnect', description: 'Not running' },
+            }[state]
+
             const treeItem = new vscode.TreeItem('Julia Test Item Controller')
-            treeItem.iconPath = new vscode.ThemeIcon('test-view-icon')
-            // treeItem.description = node.testProcess.packageName
-            // treeItem.tooltip = new vscode.MarkdownString(`This is a test process for the ${node.testProcess.packageName} package.\n\nThe full package path is ${vscode.Uri.parse(node.testProcess.package_uri).fsPath}\n\nThe project path is ${vscode.Uri.parse(node.testProcess.project_uri).fsPath}\n\nThe process does ${node.testProcess.coverage ? '' : 'not'} collect coverage information.`)
-            treeItem.contextValue = 'juliatestcontroller'
-            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
+            treeItem.iconPath = new vscode.ThemeIcon(presentation.icon)
+            treeItem.description = presentation.description
+            treeItem.tooltip = new vscode.MarkdownString(
+                state === 'running'
+                    ? 'The Julia test item controller is running. It is started on demand by a test run, and it owns the test processes below.'
+                    : state === 'starting'
+                      ? 'The Julia test item controller is starting up.'
+                      : 'The Julia test item controller is not running. Any test processes below are from an earlier one; their output is still readable.'
+            )
+            // The start, stop and restart buttons are each gated on the state they make sense in.
+            treeItem.contextValue = `juliatestcontroller-${state}`
+            // No twistie at all when there is nothing under it, which is how an idle session
+            // looks now that the node is permanent.
+            treeItem.collapsibleState = node.hasProcesses()
+                ? vscode.TreeItemCollapsibleState.Expanded
+                : vscode.TreeItemCollapsibleState.None
             return treeItem
         }
     }
