@@ -18,6 +18,7 @@ import {
     notficiationTypeTestItemStarted,
     notificationTypeAppendOutput,
     notificationTypeLaunchDebugger,
+    notificationTypeShutdown,
     notificationTypeTestProcessCreated,
     notificationTypeTestProcessOutput,
     notificationTypeTestProcessStatusChanged,
@@ -222,6 +223,47 @@ export class JuliaTestController {
         // `'exit'` clears `process`, and the tree node this is reached from outlives it, so a
         // second click would otherwise throw a `TypeError` and file it as a crash report.
         this.process?.kill()
+    }
+
+    /**
+     * Gracefully shut down the controller: send the `shutdown` notification (which makes the
+     * controller kill its child test processes and exit) and wait for the process to exit,
+     * falling back to killing it after a timeout. Never throws.
+     */
+    shutdown(timeoutMs = 5000): Promise<void> {
+        const process = this.process
+        if (!process) {
+            return Promise.resolve()
+        }
+
+        try {
+            if (this.connection) {
+                this.connection.sendNotification(notificationTypeShutdown)
+            }
+        } catch {
+            // Ignore, we fall back to killing the process below.
+        }
+
+        return new Promise<void>((resolve) => {
+            if (process.exitCode !== null || process.signalCode !== null) {
+                resolve()
+                return
+            }
+
+            const timer = setTimeout(() => {
+                try {
+                    process.kill()
+                } catch {
+                    // Ignore
+                }
+                resolve()
+            }, timeoutMs)
+
+            process.once('exit', () => {
+                clearTimeout(timer)
+                resolve()
+            })
+        })
     }
 
     private connection: rpc.MessageConnection
@@ -1452,7 +1494,13 @@ export class TestFeature implements TestControllerHost {
     }
 
     public dispose() {
-        this.juliaTestController?.kill()
+        // Ask the controller to shut down gracefully rather than killing it, so that its child
+        // test processes do not survive VS Code exiting (see julia-vscode/julia-vscode#3842).
+        // The notification is sent synchronously; waiting for the exit happens in the background.
+        const controller = this.juliaTestController
+        if (controller) {
+            void controller.shutdown().catch(() => {})
+        }
         this.juliaTestController = undefined
 
         this.testProcessLogViews.dispose()
