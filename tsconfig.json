@@ -9,6 +9,9 @@
         "strict": false,
         "noUnusedLocals": true,
         "esModuleInterop": true,
+        // @vscode/debugprotocol's .d.ts still uses `declare module` for a namespace,
+        // which TypeScript 6 rejects; the package has had no release since 2024.
+        "skipLibCheck": true,
         "types": ["node", "mocha"]
     },
     "exclude": ["node_modules", ".vscode-test", "libs"]

@@ -106,8 +106,14 @@ export class LanguageClientFeature {
     private _onDidChangeStateEmitter = new vscode.EventEmitter<LanguageServerState>()
     public onDidChangeLsState = this._onDidChangeStateEmitter.event
 
-    private outputChannel: vscode.OutputChannel = vscode.window.createOutputChannel('Julia Language Server')
-    private traceOutputChannel: vscode.OutputChannel = vscode.window.createOutputChannel('Julia Language Server Trace')
+    // vscode-languageclient 10 requires log output channels for both of these.
+    private outputChannel: vscode.LogOutputChannel = vscode.window.createOutputChannel('Julia Language Server', {
+        log: true,
+    })
+    private traceOutputChannel: vscode.LogOutputChannel = vscode.window.createOutputChannel(
+        'Julia Language Server Trace',
+        { log: true }
+    )
 
     private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
 
