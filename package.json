@@ -1759,9 +1759,9 @@
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run bundle",
         "vsce-package": "vsce package",
         "vendor-xterm": "node scripts/vendor-xterm.mjs",
-        "update-all-deps": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateDeps()).catch(console.error)\"",
-        "update-julia-environments": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateEnvs()).catch(console.error)\"",
-        "update-julia-packages": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateJuliaPackages()).catch(console.error)\"",
+        "update-all-deps": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateDeps()).catch(e => { console.error(e); process.exit(1) })\"",
+        "update-julia-environments": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateEnvs()).catch(e => { console.error(e); process.exit(1) })\"",
+        "update-julia-packages": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateJuliaPackages()).catch(e => { console.error(e); process.exit(1) })\"",
         "tagminor": "npm version minor && git push --tags && git push",
         "tagmajor": "npm version major && git push --tags && git push",
         "install-extension-locally": "vsce package --pre-release -o language-julia-dev-version.vsix && code --force --install-extension language-julia-dev-version.vsix"
