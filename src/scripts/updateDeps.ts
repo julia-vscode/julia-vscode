@@ -85,13 +85,28 @@ export async function updateEnvs() {
     console.log('Updating registry...')
     await exec(`julia +release -e "using Pkg; Pkg.Registry.update()"`)
 
-    await fs.rm(path.join(process.cwd(), 'scripts/environments/languageserver'), { recursive: true })
-    await fs.rm(path.join(process.cwd(), 'scripts/environments/pkgdev'), { recursive: true })
-    await fs.rm(path.join(process.cwd(), 'scripts/environments/terminalserver'), { recursive: true })
-    await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/debugadapter'), { recursive: true })
-    await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodedebugger'), { recursive: true })
-    await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/vscodeserver'), { recursive: true })
-    await fs.rm(path.join(process.cwd(), 'scripts/testenvironments/testitemcontroller'), { recursive: true })
+    // Locally generated Manifest.toml files in the packages we `dev` are gitignored build
+    // artifacts, written in the manifest format of whatever Julia last touched them. Pkg on
+    // Julia 1.4 and 1.5 recurses into them via collect_developed! and cannot parse format 2.0,
+    // which breaks environment creation for those versions.
+    for (const pkg of await fs.readdir(path.join(process.cwd(), 'scripts/packages'))) {
+        await fs.rm(path.join(process.cwd(), 'scripts/packages', pkg, 'Manifest.toml'), { force: true })
+    }
+
+    for (const env of [
+        'scripts/environments/languageserver',
+        'scripts/environments/pkgdev',
+        'scripts/environments/terminalserver',
+        'scripts/environments/testitemcontroller',
+        'scripts/testenvironments/debugadapter',
+        'scripts/testenvironments/vscodedebugger',
+        'scripts/testenvironments/vscodeserver',
+        'scripts/testenvironments/testitemcontroller',
+    ]) {
+        await fs.rm(path.join(process.cwd(), env), { recursive: true, force: true })
+    }
+
+    const failures: string[] = []
 
     const promises = juliaVersions.map(async (v) => {
         console.log(`Updating environments for Julia ${v}...`)
@@ -177,7 +192,8 @@ export async function updateEnvs() {
                 { cwd: env_path_test_vscodeserver }
             )
         } catch (err) {
-            console.log(err)
+            console.error(`Environment creation FAILED for Julia ${v}:`, err)
+            failures.push(v)
         }
     })
 
@@ -204,6 +220,14 @@ export async function updateEnvs() {
         `julia "+nightly" --project=. ${path.join(process.cwd(), 'src/scripts/juliaprojectcreatescripts/create_pkgdev_project.jl')}`,
         { cwd: path.join(process.cwd(), 'scripts/environments/pkgdev/fallback') }
     )
+
+    if (failures.length > 0) {
+        throw new Error(
+            `Environment creation failed for Julia ${failures.join(', ')}. The environments for ` +
+                `those versions were deleted and have NOT been regenerated - do not commit this ` +
+                `working tree until the failures above are fixed.`
+        )
+    }
 
     // Julia 1.0 and 1.1 write backslash in relative paths in Manifest files, which we don't want
     // And Julia 1.12 writes them into Project.toml files, which we also don't want
