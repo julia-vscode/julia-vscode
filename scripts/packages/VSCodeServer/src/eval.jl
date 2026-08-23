@@ -220,10 +220,13 @@ end
 Capture logs from the evaluation of function `f`.
 Returns a tuple `(result, logs_string)`.
 Logs are also forwarded to the parent logger for REPL display.
+Only captures logs at the level configured in the parent logger.
 """
 function capture_eval_logs(f)
     parent_logger = Logging.global_logger()
-    logger = OutputCapturingLogger(String[], Logging.Debug, parent_logger)
+    # Respect the parent logger's minimum level - don't capture logs it wouldn't show
+    parent_min_level = Logging.min_enabled_level(parent_logger)
+    logger = OutputCapturingLogger(String[], parent_min_level, parent_logger)
     result = Logging.with_logger(f, logger)
     logs_str = join(logger.logs, "\n")
     return (result, logs_str)
