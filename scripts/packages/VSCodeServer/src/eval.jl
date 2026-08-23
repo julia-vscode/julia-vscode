@@ -142,6 +142,93 @@ function set_error_global(errs)
     end
 end
 
+"""
+    capture_eval_stdout(f)
+
+Capture stdout from the evaluation of function `f`.
+Returns a tuple `(result, stdout_string)`.
+Also prints the captured output back to the REPL.
+"""
+function capture_eval_stdout(f)
+    pipe = Pipe()
+    result = nothing
+    original_stdout = stdout
+    try
+        redirect_stdout(pipe) do
+            result = f()
+            close(pipe.in)
+        end
+        captured_stdout = String(read(pipe.out))
+        # Print captured output back to the REPL so user can see it
+        if captured_stdout != ""
+            print(original_stdout, captured_stdout)
+        end
+        return (result, captured_stdout)
+    catch err
+        # Try to close the pipe if there was an error
+        try
+            close(pipe.in)
+        catch
+        end
+        # Re-throw the error so it's caught by the outer error handler
+        rethrow()
+    end
+end
+
+"""
+    OutputCapturingLogger
+
+A custom logger that captures log messages into a string buffer
+and forwards them to the parent logger for REPL display.
+"""
+struct OutputCapturingLogger <: Logging.AbstractLogger
+    logs::Vector{String}
+    min_level::Logging.LogLevel
+    parent_logger::Union{Nothing, Logging.AbstractLogger}
+end
+
+OutputCapturingLogger(; min_level=Logging.Debug) = OutputCapturingLogger(String[], min_level, nothing)
+
+function Logging.handle_message(logger::OutputCapturingLogger, level, message, _module, group, id, file, line; kwargs...)
+    # Capture the log
+    level_str = string(level)
+    msg_str = string(message)
+    log_entry = "[$level_str | $(_module)] $msg_str"
+    push!(logger.logs, log_entry)
+
+    # Forward to parent logger so it appears in REPL
+    if logger.parent_logger !== nothing && Logging.shouldlog(logger.parent_logger, level, _module, group, id)
+        try
+            Logging.handle_message(logger.parent_logger, level, message, _module, group, id, file, line; kwargs...)
+        catch
+            # Silently ignore errors forwarding to parent
+        end
+    end
+end
+
+function Logging.shouldlog(logger::OutputCapturingLogger, level, _module, group, id)
+    return level >= logger.min_level
+end
+
+function Logging.min_enabled_level(logger::OutputCapturingLogger)
+    return logger.min_level
+end
+
+"""
+    capture_eval_logs(f)
+
+Capture logs from the evaluation of function `f`.
+Returns a tuple `(result, logs_string)`.
+Logs are also forwarded to the parent logger for REPL display.
+"""
+function capture_eval_logs(f)
+    parent_logger = Logging.global_logger()
+    logger = OutputCapturingLogger(String[], Logging.Debug, parent_logger)
+    result = Logging.with_logger(f, logger)
+    logs_str = join(logger.logs, "\n")
+    return (result, logs_str)
+end
+
 function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecialize(token))::ReplRunCodeRequestReturn
     result = run_with_backend() do
         fix_displays()
@@ -198,8 +285,22 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecial
             end
 
             return withpath(source_filename) do
+                # Capture stdout and logs from evaluation
+                captured_stdout = ""
+                captured_logs = ""
+
                 res = try
-                    val = inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
+                    # Capture logs during inlineeval
+                    (val, eval_logs) = capture_eval_logs() do
+                        # Capture stdout during inlineeval
+                        (eval_val, eval_stdout) = capture_eval_stdout() do
+                            inlineeval(resolved_mod, source_code, code_line, code_column, source_filename, softscope = params.softscope)
+                        end
+                        captured_stdout = eval_stdout
+                        eval_val
+                    end
+                    captured_logs = eval_logs
+
                     if CAN_SET_ANS[]
                         try
                             @static if VERSION > v"1.10-"
@@ -240,6 +341,9 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecial
                     end
                 end
 
+                # Combine stdout and logs
+                combined_output = string(captured_stdout, captured_logs != "" ? (captured_stdout != "" ? "\n" : "") * captured_logs : "")
+
                 if show_error && (res isa EvalError || res isa EvalErrorStack)
                     try
                         display_repl_error(stderr, res; unwrap=true)
@@ -277,7 +381,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecial
                     res = nothing
                 end
 
-                return safe_render(res)
+                return safe_render(res, combined_output)
             end
         end
 
@@ -296,16 +400,11 @@ end
     return Base.invokelatest(include_string, args...)
 end
 
-"""
-    safe_render(x)
-
-Calls `render`, but catches errors in the display system.
-"""
-function safe_render(x)::ReplRunCodeRequestReturn
+function safe_render(x, captured_output::String = "")::ReplRunCodeRequestReturn
     try
-        return render(x)
+        return render(x, captured_output)
     catch err
-        out = render(EvalError(err, catch_backtrace()))
+        out = render(EvalError(err, catch_backtrace()), captured_output)
 
         return ReplRunCodeRequestReturn(
             string("Display Error: ", out.inline),
@@ -314,10 +413,9 @@ function safe_render(x)::ReplRunCodeRequestReturn
         )
     end
 end
-safe_render(x::ReplRunCodeRequestReturn) = x
+safe_render(x::ReplRunCodeRequestReturn, captured_output::String = "") = x
 
-"""
-    render(x)
+"""    render(x, captured_output::String = "")
 
 Produce a representation of `x` that can be displayed by a UI.
 Must return a `ReplRunCodeRequestReturn` with the following fields:
@@ -325,7 +423,7 @@ Must return a `ReplRunCodeRequestReturn` with the following fields:
 - `all::String`: Plain text string (that may contain linebreaks and other signficant whitespace) to further describe `x`.
 - `stackframe::Vector{Frame}`: Optional, should only be given on an error
 """
-function render(x)::ReplRunCodeRequestReturn
+function render(x, captured_output::String = "")::ReplRunCodeRequestReturn
     plain = sprintlimited(MIME"text/plain"(), x, limit = MAX_RESULT_LENGTH)
     md = try
         sprintlimited(MIME"text/markdown"(), x, limit = MAX_RESULT_LENGTH)
@@ -333,6 +431,10 @@ function render(x)::ReplRunCodeRequestReturn
         codeblock(plain)
     end
     inline = strlimit(first(split(plain, "\n")), limit = INLINE_RESULT_LENGTH)
+    # Prepend captured output if present
+    if captured_output != ""
+        md = string(captured_output, "\n", md)
+    end
     return ReplRunCodeRequestReturn(inline, md)
 end
 
@@ -358,12 +460,17 @@ function sprint_error(err)
     sprintlimited(err, [], func = Base.display_error, limit = MAX_RESULT_LENGTH)
 end
 
-function render(err::EvalError)::ReplRunCodeRequestReturn
+function render(err::EvalError, captured_output::String = "")::ReplRunCodeRequestReturn
     bt = crop_backtrace(err.bt)
 
     errstr = sprint_error_unwrap(err.err)
     inline = strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
     all = string('\n', codeblock(errstr), '\n', backtrace_string(bt))
+
+    # Prepend captured output if present
+    if captured_output != ""
+        all = string(captured_output, "\n", all)
+    end
 
     # handle duplicates e.g. from recursion
     st = unique!(remove_kw_wrappers!(stacktrace(bt)))
@@ -374,7 +481,7 @@ function render(err::EvalError)::ReplRunCodeRequestReturn
     return ReplRunCodeRequestReturn(inline, all, stackframe)
 end
 
-function render(stack::EvalErrorStack)::ReplRunCodeRequestReturn
+function render(stack::EvalErrorStack, captured_output::String = "")::ReplRunCodeRequestReturn
     inline = ""
     all = ""
     complete_bt = Union{Base.InterpreterIP,Ptr{Cvoid}}[]
@@ -385,6 +492,11 @@ function render(stack::EvalErrorStack)::ReplRunCodeRequestReturn
         errstr = sprint_error_unwrap(err)
         inline *= strlimit(first(split(errstr, "\n")), limit = INLINE_RESULT_LENGTH)
         all *= string('\n', codeblock(errstr), '\n', backtrace_string(bt))
+    end
+
+    # Prepend captured output if present
+    if captured_output != ""
+        all = string(captured_output, "\n", all)
     end
 
     # handle duplicates e.g. from recursion
