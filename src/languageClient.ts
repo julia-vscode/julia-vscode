@@ -380,7 +380,12 @@ export class LanguageClientFeature {
             revealOutputChannelOn: RevealOutputChannelOn.Never,
             traceOutputChannel: this.traceOutputChannel,
             outputChannel: this.outputChannel,
-            initializationOptions: { julialangTestItemIdentification: true },
+            // julialangDirectoryWatching: the VS Code watcher reports an atomic
+            // folder rename/delete as a single folder-path event, so the LS
+            // registers an extra `**` create/delete watcher. Passing 'on'
+            // explicitly makes that apply in every Code-OSS fork, whatever
+            // clientInfo.name it reports.
+            initializationOptions: { julialangTestItemIdentification: true, julialangDirectoryWatching: 'on' },
             errorHandler,
         }
 
