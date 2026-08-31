@@ -1,5 +1,9 @@
 using Pkg
 
+# See create_terminalserver_project.jl - the registry is already fresh, and concurrent updates from
+# the parallel per-version environment creation race on Windows.
+Pkg.UPDATED_REGISTRY_THIS_SESSION[] = true
+
 julia_interpreter_path = if VERSION >= v"1.10.0"
     "../../../packages/JuliaInterpreter"
 elseif VERSION >= v"1.6.0"
