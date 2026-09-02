@@ -130,9 +130,9 @@ version = "1.5.0"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "Dates", "EnumX", "PrecompileTools", "Random", "Reseau", "SHA", "URIs", "UUIDs", "Zlib_jll"]
-git-tree-sha1 = "49a90cd540681d5b79bf5c8ca13c92677e37005e"
+git-tree-sha1 = "b0ff6627f1308bc1691528aac3b70ac3abd1d598"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "2.6.6"
+version = "2.6.7"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
