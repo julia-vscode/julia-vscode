@@ -193,7 +193,7 @@ version = "0.20.1"
 deps = ["CancellationTokens", "JSON", "Sockets", "UUIDs"]
 path = "../../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "3.0.5-DEV"
+version = "3.1.1-DEV"
 
     [deps.JSONRPC.syntax]
     julia_version = "1.0.0"
@@ -202,7 +202,7 @@ version = "3.0.5-DEV"
 deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML", "Test"]
 path = "../../../packages/JuliaFormatter"
 uuid = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
-version = "2.13.0"
+version = "2.14.0"
 
     [deps.JuliaFormatter.syntax]
     julia_version = "1.10.0"
