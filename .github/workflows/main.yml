@@ -142,7 +142,7 @@ jobs:
           node-version: 22.x
       - run: npm ci
       - name: Install vsce
-        run: npm install -g vsce
+        run: npm install -g @vscode/vsce
       - name: Package package
         run: vsce package --pre-release
       - name: Find filename
@@ -178,7 +178,7 @@ jobs:
           git config user.email github-actions@github.com
       - run: npm ci
       - name: Install vsce
-        run: npm install -g vsce
+        run: npm install -g @vscode/vsce
       - name: Increase version
         shell: pwsh
         run: |
@@ -266,7 +266,7 @@ jobs:
           git config user.email github-actions@github.com
       - run: npm ci
       - name: Install vsce
-        run: npm install -g vsce
+        run: npm install -g @vscode/vsce
       - name: Increase version
         shell: pwsh
         run: |
