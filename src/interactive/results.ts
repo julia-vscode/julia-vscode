@@ -429,7 +429,7 @@ export async function openFile(
     column: vscode.ViewColumn | undefined = undefined,
     preserveFocus: boolean | undefined = undefined
 ) {
-    const newLine = line || 1
+    const newLine = Math.max(1, line || 1)
     const start = new vscode.Position(newLine - 1, 0)
     const end = new vscode.Position(newLine - 1, 0)
     const range = new vscode.Range(start, end)
