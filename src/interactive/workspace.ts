@@ -391,8 +391,9 @@ export class WorkspaceFeature {
             onInit(wrapCrashReporting(({ connection: conn }) => this.openREPL(conn))),
             onExit(() => this.closeREPL()),
             // commands
-            registerCommand('language-julia.showInVSCode', async (node: VariableNode | undefined) =>
-                await this.showInVSCode(node)
+            registerCommand(
+                'language-julia.showInVSCode',
+                async (node: VariableNode | undefined) => await this.showInVSCode(node)
             ),
             registerCommand(
                 'language-julia.workspaceGoToFile',
