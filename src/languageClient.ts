@@ -45,11 +45,22 @@ export function isLanguageServerError(err: unknown): boolean {
         }
     }
     if (err instanceof Error) {
-        if (err.message === 'Language client is not ready yet' || err.message === 'Client is not running') {
+        if (
+            err.message === 'Language client is not ready yet' ||
+            err.message === 'Client is not running' ||
+            err.message.startsWith("Client is not running and can't be stopped")
+        ) {
             return true
         }
     }
     return false
+}
+
+function formatErrorForOutput(err: unknown): string {
+    if (err instanceof Error) {
+        return err.stack ?? err.message
+    }
+    return String(err)
 }
 
 /**
@@ -453,11 +464,27 @@ export class LanguageClientFeature {
             }
         })
 
+        let startupCleanupError: unknown
+        const originalStop = languageClient.stop
+        languageClient.stop = async (...args) => {
+            try {
+                return await originalStop.apply(languageClient, args)
+            } catch (err) {
+                startupCleanupError = err
+            }
+        }
+
         try {
             this.statusBarItem.command = 'language-julia.showLanguageServerOutput'
             await languageClient.start()
             this.setLanguageClient(languageClient)
-        } catch {
+        } catch (err) {
+            this.outputChannel.appendLine('Could not start the Julia language server.')
+            this.outputChannel.appendLine(formatErrorForOutput(err))
+            if (startupCleanupError && !isLanguageServerError(startupCleanupError)) {
+                this.outputChannel.appendLine('The language client also failed while cleaning up the failed start.')
+                this.outputChannel.appendLine(formatErrorForOutput(startupCleanupError))
+            }
             vscode.window
                 .showErrorMessage(
                     'Could not start the Julia language server. Make sure the configuration setting julia.executablePath points to the Julia binary.',
@@ -469,8 +496,13 @@ export class LanguageClientFeature {
                     }
                 })
             this.setLanguageClient()
+            this.setState('crashed')
+        } finally {
+            languageClient.stop = originalStop
         }
-        this.statusBarItem.hide()
+        if (this._state !== 'crashed') {
+            this.statusBarItem.hide()
+        }
     }
 
     async restartLanguageServer(envPath?: string, autoInstall?: boolean) {
