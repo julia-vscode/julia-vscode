@@ -524,6 +524,9 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     private async _executeCells(editor: vscode.TextEditor, cells: readonly JuliaCell[]): Promise<boolean> {
         const document = editor.document
         const codeRanges: vscode.Range[] = cells.map((cell) => cell.codeRange).filter((cr) => cr !== undefined)
+        if (codeRanges.length === 0) {
+            return false
+        }
         const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
             results.addResult(editor, codeRange, this.PENDING_SIGN, '')
         )
