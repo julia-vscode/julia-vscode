@@ -14,12 +14,32 @@ let g_current_environment: vscode.StatusBarItem = null
 let g_path_of_current_environment: string = null
 let g_path_of_default_environment: string = null
 let g_resolved_path_of_environment: string = null
+let g_default_environment_unknown_because_julia_not_found = false
 
 let g_ExecutableFeature: ExecutableFeature = null
 
 function getEnvironmentPathConfig() {
     const section = vscode.workspace.getConfiguration('julia')
     return parseVSCodeVariables(section.get('environmentPath') ?? '')
+}
+
+function getUnknownDefaultEnvPath() {
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        return vscode.workspace.workspaceFolders[0].uri.fsPath
+    }
+
+    return os.homedir()
+}
+
+async function updateCurrentEnvironmentStatusText() {
+    if (
+        g_default_environment_unknown_because_julia_not_found &&
+        g_path_of_current_environment === g_path_of_default_environment
+    ) {
+        g_current_environment.text = 'Julia env: [Julia not found]'
+    } else {
+        g_current_environment.text = 'Julia env: ' + (await getEnvName())
+    }
 }
 
 export async function getProjectFilePaths(envpath: string) {
@@ -56,7 +76,7 @@ export async function switchEnvToPath(envpath: string) {
         section.update('environmentPath', undefined, vscode.ConfigurationTarget.Workspace)
     }
 
-    g_current_environment.text = 'Julia env: ' + (await getEnvName())
+    await updateCurrentEnvironmentStatusText()
 
     if (
         vscode.workspace.workspaceFolders !== undefined &&
@@ -239,7 +259,17 @@ async function getDefaultEnvPath() {
             }
         }
 
-        const juliaExecutable = await g_ExecutableFeature.getExecutable()
+        let juliaExecutable
+        try {
+            juliaExecutable = await g_ExecutableFeature.getExecutable()
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                g_path_of_default_environment = getUnknownDefaultEnvPath()
+                g_default_environment_unknown_because_julia_not_found = true
+                return g_path_of_default_environment
+            }
+            throw err
+        }
         const res = await execFile(
             juliaExecutable.command,
             [
@@ -257,6 +287,7 @@ async function getDefaultEnvPath() {
             }
         )
         g_path_of_default_environment = res.stdout.toString().trim()
+        g_default_environment_unknown_because_julia_not_found = false
     }
     return g_path_of_default_environment
 }
