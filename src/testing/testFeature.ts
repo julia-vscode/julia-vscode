@@ -977,7 +977,11 @@ export class TestFeature implements TestControllerHost {
         this.workspaceFeature.setTestControllerHost(this)
 
         context.subscriptions.push(
-            registerCommand('language-julia.stopTestProcess', async (node: TestProcessNode) => await node.stop()),
+            registerCommand('language-julia.stopTestProcess', async (node: TestProcessNode | undefined) => {
+                if (node) {
+                    await node.stop()
+                }
+            }),
             registerCommand('language-julia.startTestController', async () => await this.startTestController()),
             registerCommand('language-julia.stopTestController', async () => await this.stopTestController()),
             registerCommand('language-julia.restartTestController', async () => await this.restartTestController()),
