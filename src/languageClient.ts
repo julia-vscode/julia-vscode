@@ -97,7 +97,7 @@ export class RestartTrackingErrorHandler implements ErrorHandler {
 }
 
 export class LanguageClientFeature {
-    private onDidSetLanguageClientEmitter = new vscode.EventEmitter<LanguageClient>()
+    private onDidSetLanguageClientEmitter = new vscode.EventEmitter<LanguageClient | null>()
     public onDidSetLanguageClient = this.onDidSetLanguageClientEmitter.event
 
     private onDidChangeConfigEmitter = new vscode.EventEmitter<vscode.ConfigurationChangeEvent>()
@@ -122,7 +122,7 @@ export class LanguageClientFeature {
     private _state: LanguageServerState = 'stopped'
     private _intentionalStop: boolean = false
 
-    languageClient: LanguageClient
+    languageClient: LanguageClient | null = null
 
     public get state(): LanguageServerState {
         return this._state
@@ -148,15 +148,18 @@ export class LanguageClientFeature {
 
     private async stopLanguageServer() {
         this._intentionalStop = true
-        if (this.languageClient) {
+        const languageClient = this.languageClient
+        if (languageClient) {
             try {
-                await this.languageClient.stop()
+                await languageClient.stop()
             } catch (err) {
                 console.debug(`Stopping the language server failed: ${err}`)
             }
-            this.setLanguageClient()
         }
         this.setState('stopped')
+        if (languageClient) {
+            this.setLanguageClient()
+        }
     }
 
     constructor(
@@ -194,7 +197,7 @@ export class LanguageClientFeature {
         callback: (languageClient: LanguageClient) => T,
         callbackOnHandledErr?: (err: Error) => E
     ): Promise<T | E | undefined> {
-        if (this._state !== 'running' || this.languageClient === null) {
+        if (this._state !== 'running' || !this.languageClient) {
             const err = new Error('Language client is not active')
             return callbackOnHandledErr ? callbackOnHandledErr(err) : undefined
         }
@@ -399,6 +402,7 @@ export class LanguageClientFeature {
                     this.setState('starting')
                     break
                 case State.Running:
+                    this.setLanguageClient(languageClient)
                     this.setState('running')
                     break
                 case State.Stopped:
@@ -456,7 +460,6 @@ export class LanguageClientFeature {
         try {
             this.statusBarItem.command = 'language-julia.showLanguageServerOutput'
             await languageClient.start()
-            this.setLanguageClient(languageClient)
         } catch {
             vscode.window
                 .showErrorMessage(
@@ -468,6 +471,7 @@ export class LanguageClientFeature {
                         vscode.commands.executeCommand('workbench.action.openSettings', 'julia.executablePath')
                     }
                 })
+            this.setState('stopped')
             this.setLanguageClient()
         }
         this.statusBarItem.hide()
