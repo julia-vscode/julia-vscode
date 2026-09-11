@@ -256,7 +256,10 @@ export class JuliaDebugFeature {
                                             } catch (err) {
                                                 if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
                                                     // Do not let errors escape from this un-awaited timeout callback.
-                                                    console.error(`Failed to terminate Julia debuggee process ${processId}:`, err)
+                                                    console.error(
+                                                        `Failed to terminate Julia debuggee process ${processId}:`,
+                                                        err
+                                                    )
                                                 }
                                             }
                                         }, 500)
