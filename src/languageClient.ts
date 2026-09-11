@@ -15,7 +15,15 @@ import {
     State,
     StateChangeEvent,
 } from 'vscode-languageclient/node'
-import { ErrorCodes, LSPErrorCodes, ResponseError } from 'vscode-languageserver-protocol'
+import {
+    CancellationSenderStrategy,
+    CancellationStrategy,
+    ConnectionError,
+    ConnectionErrors,
+    ErrorCodes,
+    LSPErrorCodes,
+    ResponseError,
+} from 'vscode-languageserver-protocol'
 
 import * as jlpkgenv from './jlpkgenv'
 import * as telemetry from './telemetry'
@@ -118,7 +126,23 @@ export function isLanguageServerError(err: unknown): boolean {
                 return true
         }
     }
+    if (err instanceof ConnectionError && err.code === ConnectionErrors.Disposed) {
+        return true
+    }
     if (err instanceof Error) {
+        const errorCode = (err as Error & { code?: unknown }).code
+        if (errorCode === 'EPIPE' || errorCode === 'ERR_STREAM_DESTROYED') {
+            return true
+        }
+        if (
+            err.message === 'Connection is disposed' ||
+            err.message === 'Connection is disposed.' ||
+            err.message === 'Cannot call write after a stream was destroyed' ||
+            err.message === 'write EPIPE' ||
+            err.message === 'This socket has been ended by the other party'
+        ) {
+            return true
+        }
         if (
             err.message === 'Language client is not ready yet' ||
             err.message === 'Client is not running' ||
@@ -179,6 +203,49 @@ export class RestartTrackingErrorHandler implements ErrorHandler {
         this.restartPending = false
         return pending
     }
+}
+
+class JuliaLanguageClient extends LanguageClient {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public override async sendRequest(type: any, ...params: any[]): Promise<any> {
+        try {
+            return await super.sendRequest(type, ...params)
+        } catch (err) {
+            if (isLanguageServerError(err)) {
+                return undefined
+            }
+            throw err
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public override async sendNotification(type: any, params?: any): Promise<void> {
+        try {
+            await super.sendNotification(type, params)
+        } catch (err) {
+            if (!isLanguageServerError(err)) {
+                throw err
+            }
+        }
+    }
+}
+
+const languageServerCancellationStrategy: CancellationStrategy = {
+    receiver: CancellationStrategy.Message.receiver,
+    sender: {
+        async sendCancellation(conn, id) {
+            try {
+                await CancellationSenderStrategy.Message.sendCancellation(conn, id)
+            } catch (err) {
+                if (!isLanguageServerError(err)) {
+                    throw err
+                }
+            }
+        },
+        cleanup(id) {
+            CancellationSenderStrategy.Message.cleanup(id)
+        },
+    },
 }
 
 export class LanguageClientFeature {
@@ -487,10 +554,11 @@ export class LanguageClientFeature {
                         Promise.resolve(next(document, range, options, token))
                     ),
             },
+            connectionOptions: { cancellationStrategy: languageServerCancellationStrategy },
         }
 
         // Create the language client and start the client.
-        const languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
+        const languageClient = new JuliaLanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
         languageClient.registerProposedFeatures()
 
         languageClient.onDidChangeState((event: StateChangeEvent) => {
