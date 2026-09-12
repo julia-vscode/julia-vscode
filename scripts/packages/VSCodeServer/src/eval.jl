@@ -155,7 +155,7 @@ function repl_runcode_request(conn, params::ReplRunCodeRequestParams, @nospecial
         resolved_mod = try
             module_from_string(mod)
         catch err
-            # maybe trigger error reporting here
+            report_internal_error(err, catch_backtrace())
             Main
         end
 

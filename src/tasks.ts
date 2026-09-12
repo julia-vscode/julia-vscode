@@ -2,8 +2,9 @@ import * as fs from 'async-file'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import * as jlpkgenv from './jlpkgenv'
-import { ExecutableFeature } from './executables'
+import { ExecutableFeature, JuliaNotFoundError } from './executables'
 import { getCustomEnvironmentVariables, inferJuliaNumThreads } from './utils'
+import { handleNewCrashReportFromException } from './telemetry'
 
 class JuliaTaskProvider {
     constructor(
@@ -216,9 +217,16 @@ class JuliaTaskProvider {
             }
 
             return result
-        } catch {
-            // TODO Let things crash and go to crash reporting
-            return emptyTasks
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                // Without Julia there are no tasks to offer; the user has already
+                // been notified by `ExecutableFeature`.
+                return emptyTasks
+            }
+            // VS Code discards a rejected `provideTasks` promise, so report the
+            // failure before rethrowing.
+            handleNewCrashReportFromException(err, 'Extension')
+            throw err
         }
     }
 

@@ -478,6 +478,9 @@ export class LanguageClientFeature {
 
             await this.withLanguageClient((client) => client.sendNotification('julia/setEnvironmentPath', { envPath }))
         } catch (err) {
+            // `withLanguageClient` already absorbs language-server teardown
+            // errors, so whatever lands here is an extension bug.
+            telemetry.handleNewCrashReportFromException(err, 'Extension')
             this.outputChannel.appendLine(`Could not notify the language server of the environment change: ${err}`)
         }
     }
@@ -526,8 +529,13 @@ export class LanguageClientFeature {
 
         try {
             juliaExecutable = await this.executable.getLsExecutable(autoInstall)
-        } catch {
-            return
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                // No usable Julia for the language server; the user has already
+                // been informed through the status bar and output channel.
+                return
+            }
+            throw err
         }
 
         this.statusBarItem.text = 'Julia: Starting Language Server…'

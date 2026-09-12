@@ -3,6 +3,7 @@ import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { JuliaTestProcess } from '../testing/testFeature'
 import { onEvent, registerCommand, wrapCrashReporting } from '../utils'
+import { handleNewCrashReportFromException } from '../telemetry'
 import { displayPlot } from './plots'
 import { notifyTypeDisplay, notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
 import { openFile } from './results'
@@ -87,8 +88,10 @@ export class NotebookNode extends SessionNode {
             this.variablesNodes = variables.map((i) => new VariableNode(this, i))
 
             this.treeProvider.refresh()
-        } catch {
-            // Connection may have been disposed
+        } catch (err) {
+            // Connection-teardown errors are filtered centrally; anything else
+            // is an internal bug worth reporting.
+            handleNewCrashReportFromException(err, 'Extension')
         }
     }
 
@@ -329,8 +332,10 @@ class REPLNode extends SessionNode {
             this.variablesNodes = variables.map((v) => new VariableNode(this, v))
 
             this.treeProvider.refresh()
-        } catch {
-            // Connection may have been disposed
+        } catch (err) {
+            // Connection-teardown errors are filtered centrally; anything else
+            // is an internal bug worth reporting.
+            handleNewCrashReportFromException(err, 'Extension')
         }
     }
 
@@ -358,7 +363,10 @@ class VariableNode extends AbstractWorkspaceNode {
             })
 
             return children.map((i) => new VariableNode(this.parentREPL, i))
-        } catch {
+        } catch (err) {
+            // Connection-teardown errors are filtered centrally; anything else
+            // is an internal bug worth reporting.
+            handleNewCrashReportFromException(err, 'Extension')
             return []
         }
     }
