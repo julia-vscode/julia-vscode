@@ -1,3 +1,4 @@
+import { ChildProcess } from 'child_process'
 import * as net from 'net'
 import * as os from 'os'
 import * as path from 'path'
@@ -10,14 +11,16 @@ import {
     LanguageClient,
     LanguageClientOptions,
     Message,
+    MessageTransports,
     RevealOutputChannelOn,
     ServerOptions,
     State,
     StateChangeEvent,
 } from 'vscode-languageclient/node'
-import { ErrorCodes, LSPErrorCodes, ResponseError } from 'vscode-languageserver-protocol'
+import { ResponseError } from 'vscode-languageserver-protocol'
 
 import * as jlpkgenv from './jlpkgenv'
+import { isLanguageServerError } from './languageServerErrors'
 import * as telemetry from './telemetry'
 import { ExecutableFeature, JuliaExecutable, JuliaNotFoundError } from './executables'
 import { getCustomEnvironmentVariables, onEvent, registerCommand } from './utils'
@@ -101,35 +104,6 @@ function handleFormattingError<T>(
     )
 }
 
-/**
- * Returns true if the error is a result of the language server connection
- * being unavailable (crashed, stopped, not ready). These errors should be
- * handled gracefully without sending extension crash telemetry, since the
- * LS crash itself is already reported separately.
- */
-export function isLanguageServerError(err: unknown): boolean {
-    if (err instanceof ResponseError) {
-        switch (err.code) {
-            case ErrorCodes.PendingResponseRejected:
-            case ErrorCodes.ConnectionInactive:
-            case LSPErrorCodes.RequestCancelled:
-            case LSPErrorCodes.ServerCancelled:
-            case LSPErrorCodes.ContentModified:
-                return true
-        }
-    }
-    if (err instanceof Error) {
-        if (
-            err.message === 'Language client is not ready yet' ||
-            err.message === 'Client is not running' ||
-            err.message.startsWith("Client is not running and can't be stopped")
-        ) {
-            return true
-        }
-    }
-    return false
-}
-
 function formatErrorForOutput(err: unknown): string {
     if (err instanceof Error) {
         return err.stack ?? err.message
@@ -178,6 +152,101 @@ export class RestartTrackingErrorHandler implements ErrorHandler {
         const pending = this.restartPending
         this.restartPending = false
         return pending
+    }
+}
+
+/**
+ * Decides whether a language server process exit is worth a crash report.
+ * Returns `null` for an expected exit, otherwise a one-line description.
+ *
+ * Code 1 is skipped on purpose: the Julia side's `global_err_handler`
+ * (`scripts/error_handler.jl`) writes its own crash report to the pipe and
+ * then calls `exit(1)`, so reporting that exit here would file every Julia
+ * crash twice. The same convention is used for the test item controller in
+ * `testFeature.ts`. What that path cannot cover is a death that never ran
+ * Julia code, or ran it outside the guarded block: a signal, a native crash,
+ * an out-of-memory kill, or the runtime's own exit codes. Those leave no
+ * trace anywhere else.
+ */
+export function unexpectedServerExit(
+    code: number | null,
+    signal: NodeJS.Signals | null,
+    intentionalStop: boolean
+): string | null {
+    if (intentionalStop) {
+        return null
+    }
+    if (signal === null && (code === 0 || code === 1)) {
+        return null
+    }
+    return `Julia language server process exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
+}
+
+/**
+ * Keeps the last `limit` characters written to a stream, so that the tail
+ * of the language server's stderr can accompany an exit report.
+ */
+export class StderrTail {
+    private buffer = ''
+
+    constructor(private limit: number = 4096) {}
+
+    append(chunk: Buffer | string): void {
+        this.buffer += chunk.toString()
+        if (this.buffer.length > this.limit) {
+            this.buffer = this.buffer.slice(this.buffer.length - this.limit)
+        }
+    }
+
+    text(): string {
+        return this.buffer
+    }
+}
+
+/**
+ * Replaces the user's home directory with `~`, in the spirit of the path
+ * sanitising `error_handler.jl` applies to Julia stack traces.
+ */
+export function sanitizeHomeDir(text: string, homeDir: string = os.homedir()): string {
+    if (!homeDir) {
+        return text
+    }
+    const variants = new Set([homeDir, homeDir.replace(/\\/g, '/'), homeDir.replace(/\//g, '\\')])
+    let result = text
+    for (const variant of variants) {
+        const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        result = result.replace(new RegExp(escaped, process.platform === 'win32' ? 'gi' : 'g'), '~')
+    }
+    return result
+}
+
+/**
+ * A `LanguageClient` that hands the freshly spawned server process to a
+ * callback. `serverProcess` is set inside `createMessageTransports`, before
+ * the `initialize` request goes out, and is cleared again the moment the
+ * connection closes, so this is the one place to attach `exit` and stderr
+ * listeners that also see a death during startup. Everything else (the
+ * spawn itself, debug-mode selection, killing the process on stop) stays
+ * with the client.
+ */
+class ObservedLanguageClient extends LanguageClient {
+    constructor(
+        id: string,
+        name: string,
+        serverOptions: ServerOptions,
+        clientOptions: LanguageClientOptions,
+        private onServerProcess: (serverProcess: ChildProcess) => void
+    ) {
+        super(id, name, serverOptions, clientOptions)
+    }
+
+    protected override async createMessageTransports(encoding: string): Promise<MessageTransports> {
+        const transports = await super.createMessageTransports(encoding)
+        const serverProcess = this.serverProcess
+        if (serverProcess) {
+            this.onServerProcess(serverProcess)
+        }
+        return transports
     }
 }
 
@@ -315,6 +384,30 @@ export class LanguageClientFeature {
         } catch (err) {
             this.outputChannel.appendLine(`Could not notify the language server of the environment change: ${err}`)
         }
+    }
+
+    /**
+     * Reports a language server process that died without the Julia side
+     * having reported it, see `unexpectedServerExit`.
+     */
+    private observeServerProcess(serverProcess: ChildProcess, juliaExecutable: JuliaExecutable) {
+        const stderrTail = new StderrTail()
+        serverProcess.stderr?.on('data', (chunk) => stderrTail.append(chunk))
+        serverProcess.on('exit', (code, signal) => {
+            const reason = unexpectedServerExit(code, signal, this._intentionalStop)
+            if (reason === null) {
+                return
+            }
+            telemetry.traceEvent('lsprocessexit')
+            const message = [
+                reason,
+                `Julia: ${juliaExecutable.command} (${juliaExecutable.version})`,
+                '',
+                'Last stderr output:',
+                stderrTail.text(),
+            ].join('\n')
+            telemetry.handleNewCrashReport('LanguageServerProcessExit', sanitizeHomeDir(message), '', 'Language Server')
+        })
     }
 
     public async startServer(envPath?: string, autoInstall?: boolean) {
@@ -490,7 +583,13 @@ export class LanguageClientFeature {
         }
 
         // Create the language client and start the client.
-        const languageClient = new LanguageClient('julia', 'Julia Language Server', serverOptions, clientOptions)
+        const languageClient = new ObservedLanguageClient(
+            'julia',
+            'Julia Language Server',
+            serverOptions,
+            clientOptions,
+            (serverProcess) => this.observeServerProcess(serverProcess, juliaExecutable)
+        )
         languageClient.registerProposedFeatures()
 
         languageClient.onDidChangeState((event: StateChangeEvent) => {
@@ -514,6 +613,7 @@ export class LanguageClientFeature {
                     } else {
                         // The client has given up: the server entered a crash
                         // loop or shut down after repeated connection errors.
+                        telemetry.traceEvent('lscrashloop')
                         this.setState('crashed')
                         this.setLanguageClient()
                     }
@@ -568,6 +668,7 @@ export class LanguageClientFeature {
             this.statusBarItem.command = 'language-julia.showLanguageServerOutput'
             await languageClient.start()
         } catch (err) {
+            telemetry.traceEvent('lsstartfailed')
             this.outputChannel.appendLine('Could not start the Julia language server.')
             this.outputChannel.appendLine(formatErrorForOutput(err))
             if (startupCleanupError && !isLanguageServerError(startupCleanupError)) {
