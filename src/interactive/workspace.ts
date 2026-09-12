@@ -391,10 +391,13 @@ export class WorkspaceFeature {
             onInit(wrapCrashReporting(({ connection: conn }) => this.openREPL(conn))),
             onExit(() => this.closeREPL()),
             // commands
-            registerCommand('language-julia.showInVSCode', async (node: VariableNode) => await this.showInVSCode(node)),
+            registerCommand(
+                'language-julia.showInVSCode',
+                async (node: VariableNode | undefined) => await this.showInVSCode(node)
+            ),
             registerCommand(
                 'language-julia.workspaceGoToFile',
-                async (node: VariableNode) => await this.openLocation(node)
+                async (node: VariableNode | undefined) => await this.openLocation(node)
             ),
             registerCommand(
                 'language-julia.showModules',
@@ -417,11 +420,17 @@ export class WorkspaceFeature {
         this._REPLTreeDataProvider.refresh()
     }
 
-    async showInVSCode(node: VariableNode) {
+    async showInVSCode(node: VariableNode | undefined) {
+        if (!node) {
+            return
+        }
         await node.showInVSCode()
     }
 
-    async openLocation(node: VariableNode) {
+    async openLocation(node: VariableNode | undefined) {
+        if (!node) {
+            return
+        }
         openFile(node.workspaceVariable.location.file, node.workspaceVariable.location.line)
     }
 

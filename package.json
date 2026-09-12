@@ -834,7 +834,15 @@
                 },
                 {
                     "command": "language-julia.runAndDebugCell",
-                    "when": "notebookType == jupyter-notebook && isWorkspaceTrusted && notebookCellType == code && notebookKernel =~ /julialang/"
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.showInVSCode",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.workspaceGoToFile",
+                    "when": "false"
                 },
                 {
                     "command": "language-julia.moveCellUp",
