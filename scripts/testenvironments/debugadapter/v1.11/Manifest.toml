@@ -37,7 +37,7 @@ version = "1.11.0"
 deps = ["Base64", "JSON", "JuliaInterpreter", "Pkg", "Sockets", "UUIDs"]
 path = "../../../packages/DebugAdapter"
 uuid = "17994d07-08fe-42cc-bc1b-7af499b1ea47"
-version = "3.2.1-DEV"
+version = "3.2.2-DEV"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
@@ -57,7 +57,7 @@ version = "1.11.0"
 deps = ["Dates", "Mmap", "Unicode"]
 path = "../../../packages/JSON"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
-version = "0.20.1"
+version = "0.20.2"
 
 [[deps.JSONRPC]]
 deps = ["CancellationTokens", "JSON", "Sockets", "UUIDs"]

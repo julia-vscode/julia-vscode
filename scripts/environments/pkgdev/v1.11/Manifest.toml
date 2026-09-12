@@ -23,9 +23,9 @@ version = "1.11.0"
 
 [[deps.CSTParser]]
 deps = ["Tokenize"]
-git-tree-sha1 = "fff070691d78b302dc7174a1d8eb1a94cc514987"
+git-tree-sha1 = "7623f5d7b94a69f0c23dba83014c15bb372c4023"
 uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "3.5.0"
+version = "3.5.1"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
