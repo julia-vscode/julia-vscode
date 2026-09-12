@@ -156,6 +156,99 @@ export class RestartTrackingErrorHandler implements ErrorHandler {
 }
 
 /**
+ * vscode-languageclient 10 requires a `LogOutputChannel` for its output channel
+ * and pipes the server process's stderr through `outputChannel.error(...)`,
+ * which stamps every line with a timestamp and `[error]`. The Julia language
+ * server writes ordinary progress output to stderr, so that is both noisy and
+ * misleading. This satisfies the `LogOutputChannel` interface but is backed by
+ * a plain output channel, forwarding every log level to a verbatim
+ * `appendLine`.
+ */
+class RawLogOutputChannel implements vscode.LogOutputChannel {
+    private readonly channel: vscode.OutputChannel
+    private readonly logLevelEmitter = new vscode.EventEmitter<vscode.LogLevel>()
+
+    constructor(name: string) {
+        this.channel = vscode.window.createOutputChannel(name)
+    }
+
+    get name(): string {
+        return this.channel.name
+    }
+
+    // Nothing here filters by level -- every message is written verbatim -- but
+    // the client copies this into its trace level, so report the same default
+    // it uses when no channel is supplied rather than Trace, which would turn
+    // protocol tracing on.
+    get logLevel(): vscode.LogLevel {
+        return vscode.LogLevel.Info
+    }
+
+    get onDidChangeLogLevel(): vscode.Event<vscode.LogLevel> {
+        return this.logLevelEmitter.event
+    }
+
+    append(value: string): void {
+        this.channel.append(value)
+    }
+
+    appendLine(value: string): void {
+        this.channel.appendLine(value)
+    }
+
+    replace(value: string): void {
+        this.channel.replace(value)
+    }
+
+    clear(): void {
+        this.channel.clear()
+    }
+
+    show(preserveFocus?: boolean): void
+    show(column?: vscode.ViewColumn, preserveFocus?: boolean): void
+    show(columnOrPreserveFocus?: vscode.ViewColumn | boolean, preserveFocus?: boolean): void {
+        if (typeof columnOrPreserveFocus === 'number') {
+            this.channel.show(columnOrPreserveFocus, preserveFocus)
+        } else {
+            this.channel.show(columnOrPreserveFocus)
+        }
+    }
+
+    hide(): void {
+        this.channel.hide()
+    }
+
+    trace(message: string, ...args: unknown[]): void {
+        this.write(message, args)
+    }
+
+    debug(message: string, ...args: unknown[]): void {
+        this.write(message, args)
+    }
+
+    info(message: string, ...args: unknown[]): void {
+        this.write(message, args)
+    }
+
+    warn(message: string, ...args: unknown[]): void {
+        this.write(message, args)
+    }
+
+    error(error: string | Error, ...args: unknown[]): void {
+        this.write(error instanceof Error ? (error.stack ?? error.message) : error, args)
+    }
+
+    private write(message: string, args: unknown[]): void {
+        this.channel.appendLine(args.length > 0 ? `${message} ${args.map((arg) => String(arg)).join(' ')}` : message)
+    }
+
+    dispose(): void {
+        this.logLevelEmitter.dispose()
+        this.channel.dispose()
+    }
+}
+
+/**
  * Decides whether a language server process exit is worth a crash report.
  * Returns `null` for an expected exit, otherwise a one-line description.
  *
@@ -260,10 +353,13 @@ export class LanguageClientFeature {
     private _onDidChangeStateEmitter = new vscode.EventEmitter<LanguageServerState>()
     public onDidChangeLsState = this._onDidChangeStateEmitter.event
 
-    // vscode-languageclient 10 requires log output channels for both of these.
-    private outputChannel: vscode.LogOutputChannel = vscode.window.createOutputChannel('Julia Language Server', {
-        log: true,
-    })
+    // The language server just writes plain text to stderr, so this channel is
+    // a shim that strips the timestamp and `[error]` prefix that
+    // vscode-languageclient 10 would otherwise add to every line.
+    private outputChannel: vscode.LogOutputChannel = new RawLogOutputChannel('Julia Language Server')
+    // The trace channel stays a real log channel: the client reads its
+    // `logLevel` and `onDidChangeLogLevel` to decide whether LSP tracing is on,
+    // and timestamped protocol messages are what we want there anyway.
     private traceOutputChannel: vscode.LogOutputChannel = vscode.window.createOutputChannel(
         'Julia Language Server Trace',
         { log: true }
