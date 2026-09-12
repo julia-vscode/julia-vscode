@@ -539,6 +539,14 @@ interface RunCodeOptions {
 
 const requestTypeReplRunCode = new rpc.RequestType<RunCodeOptions, ReturnResult, void>('repl/runcode')
 
+function replUnavailableResult(): ReturnResult {
+    return {
+        inline: 'REPL unavailable',
+        all: 'The Julia REPL is no longer available.',
+        stackframe: [],
+    }
+}
+
 // interface DebugLaunchParams {
 //     code: string,
 //     filename: string
@@ -1086,8 +1094,9 @@ export async function evaluate(
             // interrupts killAndDrain the queue, but we still want to display the current item
             if (opts === g_currentEvalItem) {
                 result = await evalPromise
-            } else {
-                r.remove(true)
+            }
+            if (!result) {
+                r?.remove(true)
                 return false
             }
         }
@@ -1107,7 +1116,7 @@ export async function evaluate(
 
         return !isError
     } catch (err) {
-        r.remove(true)
+        r?.remove(true)
         throw err
     }
 }
@@ -1118,6 +1127,9 @@ async function executeCodeCopyPaste(text: string, individualLine: boolean) {
     }
 
     await startREPL(true, true)
+    if (!g_terminal) {
+        return
+    }
 
     let lines = text.split(/\r?\n/)
     lines = lines.filter((line) => line !== '')
@@ -1359,7 +1371,22 @@ function isMarkdownEditor(editor: vscode.TextEditor) {
 let g_currentEvalItem: RunCodeOptions
 async function sendEvalRequest(req: RunCodeOptions) {
     g_currentEvalItem = req
-    const r = await g_connection.sendRequest(requestTypeReplRunCode, req)
+    const connection = g_connection
+    if (!connection) {
+        g_evalQueue.killAndDrain()
+        return replUnavailableResult()
+    }
+
+    let r: ReturnResult
+    try {
+        r = await connection.sendRequest(requestTypeReplRunCode, req)
+    } catch (err) {
+        if (!g_connection) {
+            g_evalQueue.killAndDrain()
+            return replUnavailableResult()
+        }
+        throw err
+    }
 
     if (r.stackframe) {
         g_evalQueue.killAndDrain()

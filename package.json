@@ -2,7 +2,7 @@
     "name": "language-julia",
     "displayName": "Julia",
     "description": "Julia Language Support",
-    "version": "1.238.0",
+    "version": "1.239.0",
     "preview": false,
     "publisher": "julialang",
     "engines": {
@@ -834,7 +834,15 @@
                 },
                 {
                     "command": "language-julia.runAndDebugCell",
-                    "when": "notebookType == jupyter-notebook && isWorkspaceTrusted && notebookCellType == code && notebookKernel =~ /julialang/"
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.showInVSCode",
+                    "when": "false"
+                },
+                {
+                    "command": "language-julia.workspaceGoToFile",
+                    "when": "false"
                 },
                 {
                     "command": "language-julia.moveCellUp",

@@ -429,24 +429,28 @@ export async function openFile(
     column: vscode.ViewColumn | undefined = undefined,
     preserveFocus: boolean | undefined = undefined
 ) {
-    const newLine = line || 1
+    const newLine = Math.max(1, line || 1)
     const start = new vscode.Position(newLine - 1, 0)
     const end = new vscode.Position(newLine - 1, 0)
     const range = new vscode.Range(start, end)
 
-    let uri: vscode.Uri
     if (path.indexOf('Untitled') === 0) {
-        // can't open an untitled file like this:
-        // uri = vscode.Uri.parse('untitled:' + path)
-    } else {
-        uri = vscode.Uri.file(path)
+        vscode.window.showWarningMessage(`Cannot open ${path}: the file no longer exists.`)
+        return undefined
     }
-    return vscode.window.showTextDocument(uri, {
-        preserveFocus: preserveFocus,
-        preview: true,
-        selection: range,
-        viewColumn: column,
-    })
+
+    const uri = vscode.Uri.file(path)
+    try {
+        return await vscode.window.showTextDocument(uri, {
+            preserveFocus: preserveFocus,
+            preview: true,
+            selection: range,
+            viewColumn: column,
+        })
+    } catch {
+        vscode.window.showWarningMessage(`Cannot open ${path}: the file no longer exists.`)
+        return undefined
+    }
 }
 
 function gotoFirstFrame() {

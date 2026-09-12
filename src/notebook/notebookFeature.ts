@@ -86,6 +86,9 @@ export class JuliaNotebookFeature {
                 async (cell: vscode.NotebookCell | undefined) => {
                     if (cell) {
                         const kernel = this.kernels.get(cell.notebook)
+                        if (!kernel) {
+                            return
+                        }
                         if (!kernel.activeDebugSession) {
                             await kernel.toggleDebugging()
                             kernel.stopDebugSessionAfterExecution = true
