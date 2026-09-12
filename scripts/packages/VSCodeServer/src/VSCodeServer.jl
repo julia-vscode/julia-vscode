@@ -121,6 +121,30 @@ is_disconnected_exception(err::JSONRPC.TransportError) = true
 is_disconnected_exception(err::JSONRPC.JSONRPCError) = true
 is_disconnected_exception(err::JSONRPC.CancellationTokens.OperationCanceledException) = true
 
+# The crash-reporting callback passed to `serve`, kept in a global so that code
+# running outside the message-dispatch path (the REPL hook, the REPL eval entry
+# points) can report internal errors too.
+const ERROR_HANDLER = Ref{Union{Nothing,Function}}(nothing)
+
+"""
+    report_internal_error(err, bt)
+
+Send an internal error to crash reporting without terminating the REPL process.
+Disconnects are expected teardown and are not reported. Errors raised by user
+code must never be routed here — this is for bugs in VSCodeServer itself.
+"""
+function report_internal_error(err, bt)
+    is_disconnected_exception(err) && return
+    handler = ERROR_HANDLER[]
+    handler === nothing && return
+    try
+        handler(err, bt; should_exit=false)
+    catch err2
+        @error "Error handler threw an error." exception = (err2, catch_backtrace())
+    end
+    return
+end
+
 function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     if is_dev
         try
@@ -152,6 +176,7 @@ end
 
 function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing)
     IS_DEV[] = is_dev
+    ERROR_HANDLER[] = error_handler
     @_debug "start serve" time=round(Int, time()*10)
 
     if isdefined(Base, :active_repl)

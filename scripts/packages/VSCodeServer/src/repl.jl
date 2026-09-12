@@ -207,6 +207,7 @@ function try_hook_repl(@nospecialize(repl))
     @async try
         hook_repl(repl)
     catch err
+        report_internal_error(err, catch_backtrace())
         @error "Failed to install rich REPL integration" ex=(err, catch_backtrace())
     end
 end
@@ -243,18 +244,30 @@ function evalrepl(m, line, repl, main_mode)
         end
         REPL_PROMPT_STATE[] = REPLPromptStates.Error
         if r isa EvalError
-            display_repl_error(stderr, r.err, r.bt)
+            # Guarded separately: a broken user `showerror` is not an internal
+            # error and must not reach the crash-reporting catch below.
+            try
+                display_repl_error(stderr, r.err, r.bt)
+            catch err
+                Base.display_error(stderr, err, catch_backtrace())
+            end
             return nothing
         elseif r isa EvalErrorStack
             set_error_global(r)
-            display_repl_error(stderr, r)
+            try
+                display_repl_error(stderr, r)
+            catch err
+                Base.display_error(stderr, err, catch_backtrace())
+            end
             return nothing
         else
             REPL_PROMPT_STATE[] = REPLPromptStates.Success
             return r
         end
     catch err
-        # This is for internal errors only.
+        # This is for internal errors only; user-code errors were already
+        # converted to an `EvalError` above.
+        report_internal_error(err, catch_backtrace())
         Base.display_error(stderr, err, catch_backtrace())
         return nothing
     finally

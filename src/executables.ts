@@ -5,6 +5,7 @@ import * as process from 'process'
 import * as semver from 'semver'
 import * as vscode from 'vscode'
 import { resolvePath, registerCommand } from './utils'
+import { handleNewCrashReportFromException } from './telemetry'
 import { installJuliaOrJuliaup } from './juliaupAutoInstall'
 import { Mutex } from 'async-mutex'
 import { TaskRunner } from './taskRunnerTerminal'
@@ -263,6 +264,11 @@ export class JuliaupExecutable {
 
                 resolve(channels)
             } catch (err) {
+                // `run` failures and malformed juliaup JSON are the user's
+                // environment; a failure in our own channel mapping is not.
+                if (!(err instanceof JuliaNotFoundError) && !(err instanceof SyntaxError)) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                }
                 console.error(err)
                 vscode.window.showErrorMessage(
                     'The juliaup config API failed to return a valid response. Please check whether `juliaup api getconfig1` returns well-formatted JSON when run in a terminal.'
@@ -292,9 +298,12 @@ export class JuliaupExecutable {
             try {
                 try {
                     return await this.getChannel(channelName, false)
-                } catch {
-                    // this is fine, but we need to double check because the channel
-                    // might have just been added
+                } catch (err) {
+                    // Not installed is fine, but we need to double check because
+                    // the channel might have just been added.
+                    if (!(err instanceof JuliaNotFoundError)) {
+                        throw err
+                    }
                 }
                 if (autoInstall ?? this.shouldAutoRequestInstall) {
                     await this.installRequired(channelName)
@@ -350,7 +359,10 @@ export class JuliaupExecutable {
             this.statusBarItem.hide()
 
             vscode.window.showInformationMessage('All required juliaup channels were successfully installed!')
-        } catch {
+        } catch (err) {
+            if (!(err instanceof JuliaNotFoundError)) {
+                throw err
+            }
             this.shouldAutoRequestInstall = false
             vscode.window.showErrorMessage('Failed to install some of the required juliaup channels.')
         }
@@ -560,7 +572,10 @@ export class ExecutableFeature {
                 this.setJuliaInstalled(true)
 
                 return new JuliaExecutable(channel)
-            } catch {
+            } catch (err) {
+                if (!(err instanceof JuliaNotFoundError)) {
+                    throw err
+                }
                 this.outputChannel.appendLine(
                     outputPrefix + `configured juliaup channel ${configuredJuliaupChannel} not installed`
                 )
@@ -573,7 +588,10 @@ export class ExecutableFeature {
             this.setJuliaInstalled(true)
 
             return new JuliaExecutable(channel)
-        } catch {
+        } catch (err) {
+            if (!(err instanceof JuliaNotFoundError)) {
+                throw err
+            }
             this.outputChannel.appendLine(outputPrefix + `default juliaup channel is not installed`)
         }
 
@@ -657,6 +675,9 @@ export class ExecutableFeature {
                     return exe
                 }
             } catch (err) {
+                if (!(err instanceof JuliaNotFoundError)) {
+                    throw err
+                }
                 this.outputChannel.appendLine(outputPrefix + `Non-LS executable not available (${err}), continuing...`)
             }
         }
@@ -690,7 +711,10 @@ export class ExecutableFeature {
 
                     return exe
                 }
-            } catch {
+            } catch (err) {
+                if (!(err instanceof JuliaNotFoundError)) {
+                    throw err
+                }
                 this.outputChannel.appendLine(
                     outputPrefix + `configured juliaup channel ${configuredChannel} is not available`
                 )
@@ -701,7 +725,10 @@ export class ExecutableFeature {
             const channel = await juliaup.getChannel('release')
             this.outputChannel.appendLine(outputPrefix + `using default juliaup channel ${channel.name}`)
             return new JuliaExecutable(channel)
-        } catch {
+        } catch (err) {
+            if (!(err instanceof JuliaNotFoundError)) {
+                throw err
+            }
             this.outputChannel.appendLine(outputPrefix + `release juliaup channel is not installed`)
         }
 

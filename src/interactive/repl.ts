@@ -50,6 +50,20 @@ let g_terminal_is_persistent: boolean = false
 
 let g_ExecutableFeature: ExecutableFeature
 
+/**
+ * Report an internal error from interacting with the REPL process. Expected
+ * noise is filtered: `handleNewCrashReportFromException` drops the
+ * vscode-jsonrpc connection-teardown errors (the REPL connection uses the same
+ * library as the language client), and once the connection has been torn down
+ * (`g_connection` unset) nothing is reported at all — a crashed REPL process
+ * reports itself through the crash-reporting pipe.
+ */
+function reportREPLError(err: unknown) {
+    if (g_connection) {
+        telemetry.handleNewCrashReportFromException(err as Error, 'Extension')
+    }
+}
+
 async function startREPLCommand() {
     await startREPL(false, true)
 }
@@ -946,6 +960,7 @@ async function executeFile(uri?: vscode.Uri | string) {
             softscope: false,
         })
     } catch (err) {
+        reportREPLError(err)
         console.log(err)
         vscode.window.showErrorMessage(`Error while executing ${path}.`)
     }
@@ -1214,6 +1229,7 @@ async function softInterrupt() {
     try {
         await g_connection.sendNotification('repl/interrupt')
     } catch (err) {
+        reportREPLError(err)
         console.warn(err)
     }
 }
@@ -1226,6 +1242,10 @@ function signalInterrupt() {
             console.warn('Signal interrupts are not supported on Windows.')
         }
     } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
+            // The terminal process being gone is expected; anything else is not.
+            telemetry.handleNewCrashReportFromException(err as Error, 'Extension')
+        }
         console.warn(err)
     }
 }
@@ -1239,6 +1259,7 @@ async function cdToHere(uri: vscode.Uri) {
         try {
             await g_connection.sendNotification('repl/cd', { uri: uriPath })
         } catch (err) {
+            reportREPLError(err)
             console.log(err)
         }
     }
@@ -1256,6 +1277,7 @@ async function activatePath(path: string) {
             await g_connection.sendNotification('repl/activateProject', { uri: path })
             switchEnvToPath(path)
         } catch (err) {
+            reportREPLError(err)
             console.log(err)
         }
     }
@@ -1272,6 +1294,7 @@ async function activateFromDir(uri: vscode.Uri) {
             }
             activatePath(path.dirname(target))
         } catch (err) {
+            reportREPLError(err)
             console.log(err)
         }
     }
@@ -1466,6 +1489,7 @@ export function activate(
                         enable: vscode.workspace.getConfiguration('julia').get('usePlotPane'),
                     })
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.useProgressFrontend')) {
@@ -1474,6 +1498,7 @@ export function activate(
                         enable: vscode.workspace.getConfiguration('julia').get('useProgressFrontend'),
                     })
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.showRuntimeDiagnostics')) {
@@ -1482,6 +1507,7 @@ export function activate(
                         enable: vscode.workspace.getConfiguration('julia').get('showRuntimeDiagnostics'),
                     })
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.plots.defaultMimeType')) {
@@ -1490,6 +1516,7 @@ export function activate(
                         mime: vscode.workspace.getConfiguration('julia').get('plots.defaultMimeType'),
                     })
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.inlayHints.runtime.enabled')) {
@@ -1502,6 +1529,7 @@ export function activate(
                         clearInlayHints()
                     }
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             }

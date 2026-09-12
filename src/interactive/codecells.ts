@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import { getVersionedParamsAtPosition, onEvent, registerCommand } from '../utils'
+import { handleNewCrashReportFromException } from '../telemetry'
 import * as modules from './modules'
 import * as repl from './repl'
 import * as results from './results'
@@ -747,6 +748,9 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             }
             return success
         } catch (err) {
+            // Connection-teardown errors are filtered centrally; anything else
+            // is an internal bug worth reporting.
+            handleNewCrashReportFromException(err, 'Extension')
             console.error(err)
             vscode.window.showErrorMessage('Failed to prepare debug session for the selected Julia cell.')
             return false
