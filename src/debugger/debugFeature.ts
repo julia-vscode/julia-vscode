@@ -251,7 +251,17 @@ export class JuliaDebugFeature {
 
                                     if (processId) {
                                         setTimeout(() => {
-                                            process.kill(processId)
+                                            try {
+                                                process.kill(processId)
+                                            } catch (err) {
+                                                if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
+                                                    // Do not let errors escape from this un-awaited timeout callback.
+                                                    console.error(
+                                                        `Failed to terminate Julia debuggee process ${processId}:`,
+                                                        err
+                                                    )
+                                                }
+                                            }
                                         }, 500)
                                     }
                                 }

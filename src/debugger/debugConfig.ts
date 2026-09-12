@@ -216,8 +216,10 @@ export class DebugConfigTreeProvider implements vscode.TreeDataProvider<DebugCon
     applyDefaults() {
         this.reset()
 
-        const defaults: string[] = vscode.workspace.getConfiguration('julia').get('debuggerDefaultCompiled')
-        defaults.forEach((el) => this._compiledItems.add(el))
+        const defaults = vscode.workspace.getConfiguration('julia').get<string[]>('debuggerDefaultCompiled', [])
+        if (Array.isArray(defaults)) {
+            defaults.forEach((el) => this._compiledItems.add(el))
+        }
         this.refresh()
     }
 

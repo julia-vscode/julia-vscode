@@ -98,12 +98,21 @@ export class ProfilerFeature {
     setInlineTrace(profile: Record<string, ProfilerFrame>) {
         this.clearInlineTrace()
 
+        let root = profile[this.selection]
+        if (!root) {
+            const fallbackSelection = Object.keys(profile)[0]
+            if (fallbackSelection === undefined) {
+                return
+            }
+            this.selection = fallbackSelection
+            root = profile[fallbackSelection]
+        }
+
         this.decoration = vscode.window.createTextEditorDecorationType({
             rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
             isWholeLine: true,
         })
 
-        const root = profile[this.selection]
         this.buildInlineTraceElements(root, root.count)
 
         this.refreshInlineTrace(vscode.window.visibleTextEditors)

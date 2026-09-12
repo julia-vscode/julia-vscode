@@ -4,6 +4,7 @@ import { parse } from 'semver'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import { generatePipeName, onEvent } from './utils'
+import { isLanguageServerError } from './languageServerErrors'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base'
@@ -180,6 +181,7 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
                     )
                 }
             })
+        return
     }
     crashReporterQueue.push({
         exception: {
@@ -200,6 +202,14 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
 }
 
 export function handleNewCrashReportFromException(error: Error, cloudRole: string) {
+    // Every extension crash report passes through here: the command, event and
+    // callback wrappers in `utils.ts`, the hand-written catches, and the errors
+    // VS Code itself attributes to this extension via `sendErrorData` above.
+    // A language server going away mid-request is not an extension fault, and
+    // the crash, if any, arrives separately through the crash reporting pipe.
+    if (isLanguageServerError(error)) {
+        return
+    }
     crashReporterQueue.push({
         exception: error,
         tagOverrides: {
