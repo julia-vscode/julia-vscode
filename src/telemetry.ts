@@ -180,6 +180,7 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
                     )
                 }
             })
+        return
     }
     crashReporterQueue.push({
         exception: {

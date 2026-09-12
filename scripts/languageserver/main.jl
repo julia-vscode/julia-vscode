@@ -113,6 +113,19 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
     print(io, ex.msg)
 end
 
+function is_language_server_precompile_failure(err)
+    if err isa ErrorException
+        return startswith(err.msg, "Failed to precompile") ||
+            occursin("failed to precompile", lowercase(err.msg))
+    elseif err isa LoadError
+        return is_language_server_precompile_failure(err.error)
+    elseif occursin("PkgPrecompileError", string(typeof(err)))
+        return true
+    else
+        return occursin("failed to precompile", lowercase(sprint(showerror, err)))
+    end
+end
+
 try
     if length(Base.ARGS) != 7
         error("Invalid number of arguments passed to julia language server.")
@@ -157,13 +170,13 @@ try
     try
         using LanguageServer
     catch err
-        if err isa ErrorException && startswith(err.msg, "Failed to precompile")
+        if is_language_server_precompile_failure(err)
             println(stderr, """\n
             The Language Server failed to precompile.
             Please make sure you have permissions to write to the LS depot path at
             \t$(ENV["JULIA_DEPOT_PATH"])
             """)
-            throw(LSPrecompileFailure(err.msg))
+            throw(LSPrecompileFailure(sprint(showerror, err)))
         else
             rethrow(err)
         end
