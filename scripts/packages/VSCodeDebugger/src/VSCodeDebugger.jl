@@ -3,29 +3,25 @@ module VSCodeDebugger
 import Sockets
 
 include("../../../error_handler.jl")
+include("../../../include_with_private_deps.jl")
 
-include("../../CodeTracking/src/CodeTracking.jl")
-include("../../JSON/src/JSON.jl")
+module CodeTracking end
+include_with_private_deps(CodeTracking, "../../CodeTracking/src/CodeTracking.jl")
 
-module JuliaInterpreter
-    using ..CodeTracking
+module JSON end
+include_with_private_deps(JSON, "../../JSON/src/JSON.jl")
 
-    @static if VERSION >= v"1.10.0"
-        include("../../JuliaInterpreter/src/packagedef.jl")
-    elseif VERSION >= v"1.6.0"
-        include("../../../packages-old/v1.9/JuliaInterpreter/src/packagedef.jl")
-    else
-        include("../../../packages-old/v1.5/JuliaInterpreter/src/packagedef.jl")
-    end
+module JuliaInterpreter end
+@static if VERSION >= v"1.10.0"
+    include_with_private_deps(JuliaInterpreter, "../../JuliaInterpreter/src/JuliaInterpreter.jl")
+elseif VERSION >= v"1.6.0"
+    include_with_private_deps(JuliaInterpreter, "../../../packages-old/v1.9/JuliaInterpreter/src/JuliaInterpreter.jl")
+else
+    include_with_private_deps(JuliaInterpreter, "../../../packages-old/v1.5/JuliaInterpreter/src/JuliaInterpreter.jl")
 end
 
-module DebugAdapter
-    import Pkg
-    import ..JuliaInterpreter
-    import ..JSON
-
-    include("../../DebugAdapter/src/packagedef.jl")
-end
+module DebugAdapter end
+include_with_private_deps(DebugAdapter, "../../DebugAdapter/src/DebugAdapter.jl")
 
 function startdebugger()
     client_pipename = ARGS[1]
