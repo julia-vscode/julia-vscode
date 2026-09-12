@@ -51,7 +51,10 @@ md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
         const { uri, line } = openArgs(href)
         let commandUri
         if (line === undefined) {
-            commandUri = constructCommandString('vscode.open', uri)
+            commandUri =
+                uri instanceof vscode.Uri && uri.scheme === 'file'
+                    ? constructCommandString('language-julia.openFile', { path: uri.fsPath })
+                    : constructCommandString('vscode.open', uri)
         } else {
             commandUri = constructCommandString('language-julia.openFile', { path: uri, line })
         }
