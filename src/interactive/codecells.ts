@@ -473,6 +473,9 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             direction === 'down'
                 ? this._getNextCell(cellContext, docCells)
                 : this._getPreviousCell(cellContext, docCells)
+        if (nextCell === undefined) {
+            return
+        }
         const newPosition = nextCell.codeRange?.start ?? nextCell.cellRange.start
         repl.validateMoveAndReveal(editor, newPosition, newPosition)
     }
@@ -618,10 +621,10 @@ class CodeCellExecutionFeature extends JuliaCellManager {
                   sup: cell,
               } satisfies CellContext)
             : this.getSelectionsCellContext(docCells)
-        this._moveCell(editor, cellContext, direction, docCells)
         if (cellContext.current.length === 0) {
             return false
         }
+        this._moveCell(editor, cellContext, direction, docCells)
         return await this._executeCells(editor, cellContext.current)
     }
 
