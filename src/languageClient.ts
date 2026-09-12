@@ -28,6 +28,80 @@ const supportedLanguages = ['julia', 'juliamarkdown', 'markdown']
 export type LanguageServerState = 'stopped' | 'starting' | 'running' | 'crashed'
 
 /**
+ * LSP 3.17 `ErrorCodes.RequestFailed`. `vscode-languageserver-protocol` does not
+ * export a constant for it.
+ */
+const LSP_REQUEST_FAILED = -32803
+
+/**
+ * The last formatting failure reported for a document, so that format-on-save on
+ * a file with a syntax error warns once rather than on every keystroke-save
+ * cycle. Cleared when the document formats successfully, so a file that is fixed
+ * and then broken again warns again.
+ */
+const lastFormattingFailure = new Map<string, string>()
+
+/**
+ * Turn a failed formatting request into a message for the user instead of an
+ * extension fault.
+ *
+ * `vscode-languageclient`'s `handleFailedRequest` only swallows a small set of
+ * codes (`PendingResponseRejected`, `ConnectionInactive`, `RequestCancelled`,
+ * `ServerCancelled`, `ContentModified`); every other error — including
+ * `RequestFailed`, which is precisely the code a server is supposed to use for
+ * "understood, but I can't do that" — is logged and then **rethrown**. The
+ * rethrow lands in VS Code's format command, which attributes it to this
+ * extension and reports it as a crash. So the server cannot fix this on its own
+ * no matter which code it picks; the client has to intercept.
+ *
+ * The overwhelmingly common cause is a file that isn't valid Julia, which is the
+ * user's code rather than a bug, so we surface it as a warning and return `null`
+ * ("no edits").
+ */
+function handleFormattingError<T>(
+    outputChannel: vscode.OutputChannel,
+    document: vscode.TextDocument,
+    run: () => Promise<T>
+): Promise<T | null> {
+    const key = document.uri.toString()
+    return run().then(
+        (result) => {
+            lastFormattingFailure.delete(key)
+            return result
+        },
+        (err) => {
+            if (err instanceof ResponseError) {
+                outputChannel.appendLine(`Formatting failed: ${err.message}`)
+                if (isLanguageServerError(err)) {
+                    // The server went away mid-request; the crash, if any, is
+                    // reported separately.
+                    return null
+                }
+                // `RequestFailed` carries a message written for the user.
+                // Anything else is still a failed formatting request, and the
+                // user is better served by being told than by an error report,
+                // so show what we have and keep the detail in the log. A server
+                // error must never surface as an extension fault.
+                const summary =
+                    err.code === LSP_REQUEST_FAILED
+                        ? err.message.split('\n')[0]
+                        : `Could not format this document: ${err.message.split('\n')[0]}`
+                if (lastFormattingFailure.get(key) !== summary) {
+                    lastFormattingFailure.set(key, summary)
+                    vscode.window.showWarningMessage(summary, 'Open Logs').then((choice) => {
+                        if (choice === 'Open Logs') {
+                            vscode.commands.executeCommand('language-julia.showLanguageServerOutput')
+                        }
+                    })
+                }
+                return null
+            }
+            throw err
+        }
+    )
+}
+
+/**
  * Returns true if the error is a result of the language server connection
  * being unavailable (crashed, stopped, not ready). These errors should be
  * handled gracefully without sending extension crash telemetry, since the
@@ -401,6 +475,18 @@ export class LanguageClientFeature {
             // clientInfo.name it reports.
             initializationOptions: { julialangTestItemIdentification: true, julialangDirectoryWatching: 'on' },
             errorHandler,
+            middleware: {
+                // A formatting request that fails is a message for the user, not
+                // an extension fault. See `handleFormattingError`.
+                provideDocumentFormattingEdits: (document, options, token, next) =>
+                    handleFormattingError(this.outputChannel, document, () =>
+                        Promise.resolve(next(document, options, token))
+                    ),
+                provideDocumentRangeFormattingEdits: (document, range, options, token, next) =>
+                    handleFormattingError(this.outputChannel, document, () =>
+                        Promise.resolve(next(document, range, options, token))
+                    ),
+            },
         }
 
         // Create the language client and start the client.
