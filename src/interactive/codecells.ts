@@ -315,11 +315,11 @@ class JuliaCellManager implements vscode.Disposable {
         position: vscode.Position,
         searchStartIdx: number = 0
     ): number {
-        let low = searchStartIdx
+        let low = Math.max(0, searchStartIdx)
         let high = docCells.length - 1
         let result = -1
         while (low <= high) {
-            const mid = (low + high) >>> 1
+            const mid = (low + high) >> 1
             const cell = docCells[mid]
             if (position.isBeforeOrEqual(cell.cellRange.end)) {
                 result = mid
