@@ -961,7 +961,7 @@ export class TestFeature implements TestControllerHost {
         private executableFeature: ExecutableFeature,
         private workspaceFeature: WorkspaceFeature,
         private compiledProvider: DebugConfigTreeProvider,
-        languageClientFeature: LanguageClientFeature
+        private languageClientFeature: LanguageClientFeature
     ) {
         // this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
         this.juliaTestitemControllerOutputChannel = vscode.window.createOutputChannel('Julia Test Item Controller')
@@ -1426,9 +1426,11 @@ export class TestFeature implements TestControllerHost {
         const testEnvPerFile = new Map<string, tlsp.GetTestEnvRequestParamsReturn>()
 
         for (const uri of uniqueFiles) {
-            const testEnv = await this.languageClient?.sendRequest(tlsp.requestTypJuliaGetTestEnv, {
-                uri: uri,
-            })
+            // `withLanguageClient` yields `undefined` when the server is not
+            // running, and when it goes away while the request is in flight.
+            const testEnv = await this.languageClientFeature.withLanguageClient((client) =>
+                client.sendRequest(tlsp.requestTypJuliaGetTestEnv, { uri: uri })
+            )
             testEnvPerFile.set(uri, testEnv)
         }
 
@@ -1436,9 +1438,9 @@ export class TestFeature implements TestControllerHost {
             return {
                 testItem: i,
                 details: this.testitems.get(i),
-                // `??  {}` because the lookup really can miss: `getTestEnv` is sent through
-                // `this.languageClient?`, which yields `undefined` whenever the client is null
-                // — the language server still starting, or restarting after a crash. Every
+                // `?? {}` because the lookup really can miss: `getTestEnv` is sent through
+                // `withLanguageClient`, which yields `undefined` whenever the language server
+                // is still starting, restarting after a crash, or lost mid-request. Every
                 // consumer already treats each field as optional.
                 testEnv: testEnvPerFile.get(i.uri.toString()) ?? {},
             }

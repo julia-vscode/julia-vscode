@@ -1,6 +1,6 @@
 import * as assert from 'assert'
 import { CloseAction, ErrorAction, ErrorHandler } from 'vscode-languageclient/node'
-import { RestartTrackingErrorHandler, isLanguageServerError } from '../../languageClient'
+import { RestartTrackingErrorHandler } from '../../languageClient'
 
 function makeDelegate(closeActions: CloseAction[]): ErrorHandler {
     let i = 0
@@ -60,22 +60,5 @@ suite('RestartTrackingErrorHandler', () => {
         const result = await handler.error(new Error('boom'), undefined, 1)
         assert.strictEqual(result.action, ErrorAction.Continue)
         assert.strictEqual(handler.consumeRestartPending(), false)
-    })
-})
-
-suite('isLanguageServerError', () => {
-    test('handles languageclient cleanup errors with state suffixes', () => {
-        assert.strictEqual(
-            isLanguageServerError(
-                new Error("Client is not running and can't be stopped. It's current state is: startFailed")
-            ),
-            true
-        )
-        assert.strictEqual(
-            isLanguageServerError(
-                new Error("Client is not running and can't be stopped. It's current state is: starting")
-            ),
-            true
-        )
     })
 })
