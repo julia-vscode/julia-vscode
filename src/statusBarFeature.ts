@@ -1,5 +1,4 @@
 import * as vscode from 'vscode'
-import * as jlpkgenv from './jlpkgenv'
 import { LanguageClientFeature, LanguageServerState } from './languageClient'
 import { notifyTypePublishServerStatus, PublishServerStatusParams, ServerStatusDJPDetail } from './lsStatusProtocol'
 import { handleNewCrashReportFromException } from './telemetry'
@@ -14,10 +13,10 @@ const DJP_KIND_LABELS: Record<string, string> = {
 
 const DJP_STATUS_ICONS: Record<string, string> = {
     queued: '$(watch)',
-    preparing: '$(sync~spin)',
-    running: '$(sync~spin)',
+    preparing: '$(sync)',
+    running: '$(sync)',
     refresh_queued: '$(watch)',
-    refreshing: '$(sync~spin)',
+    refreshing: '$(sync)',
     done: '$(check)',
     failed: '$(error)',
 }
@@ -75,7 +74,6 @@ export class JuliaStatusBarFeature {
     private statusBarItem: vscode.StatusBarItem
     private lsState: LanguageServerState = 'stopped'
     private serverStatus: PublishServerStatusParams | null = null
-    private envName: string | null = null
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -97,7 +95,6 @@ export class JuliaStatusBarFeature {
                     // must not survive a restart or crash.
                     this.serverStatus = null
                 }
-                this.refreshEnvName()
                 this.render()
             }),
             onEvent(languageClientFeature.onDidSetLanguageClient, (languageClient) => {
@@ -119,22 +116,6 @@ export class JuliaStatusBarFeature {
         )
 
         this.render()
-    }
-
-    private refreshEnvName() {
-        jlpkgenv.getEnvName().then(
-            (name) => {
-                if (name !== this.envName) {
-                    this.envName = name
-                    this.render()
-                }
-            },
-            () => {
-                // The environment path can be momentarily unresolvable (e.g.
-                // no Julia yet); the flyout simply omits the line.
-                this.envName = null
-            }
-        )
     }
 
     /** `[settled, total]` of the server's current dynamic work items. */
@@ -162,10 +143,6 @@ export class JuliaStatusBarFeature {
 
         this.statusBarItem.backgroundColor =
             this.lsState === 'crashed' ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined
-        this.statusBarItem.command =
-            this.lsState === 'crashed'
-                ? 'language-julia.restartLanguageServer'
-                : 'language-julia.showLanguageServerOutput'
 
         if (this.lsState === 'starting') {
             this.statusBarItem.text = '$(julia-logo~spin) Starting…'
@@ -194,9 +171,6 @@ export class JuliaStatusBarFeature {
                     ? '$(warning) Crashed'
                     : 'Stopped'
         md.appendMarkdown(`**Julia Language Server** — ${stateLabel}\n\n`)
-        if (this.envName) {
-            md.appendMarkdown(`Environment: \`${this.envName}\`\n\n`)
-        }
 
         if (this.lsState === 'crashed') {
             md.appendMarkdown('The language server has crashed. Restart it below and check the logs.\n\n')
@@ -211,64 +185,44 @@ export class JuliaStatusBarFeature {
         md.appendMarkdown('---\n\n')
         md.appendMarkdown(
             '[Restart Language Server](command:language-julia.restartLanguageServer "Restart the Julia language server") · ' +
-                '[Show Output](command:language-julia.showLanguageServerOutput "Open the language server log")\n'
+                '[Show Output](command:language-julia.showLanguageServerOutput "Open the language server log")\n\n'
         )
+        // Invisible width anchor: without it the hover reflows to the widest
+        // visible line, so the flyout would resize as items change status.
+        md.appendMarkdown('&nbsp;'.repeat(90) + '\n')
         return md
     }
 
     private appendIndexingSection(md: vscode.MarkdownString) {
         const status = this.serverStatus
         const djps = status.djps
-        const [settled, total] = this.indexingCounts()
+        const [, total] = this.indexingCounts()
 
-        if (status.indexingDone) {
-            md.appendMarkdown(
-                total > 0
-                    ? `$(check) Indexing complete — ${total} ${total === 1 ? 'environment' : 'environments'}\n\n`
-                    : '$(check) Indexing complete\n\n'
-            )
-        } else {
-            md.appendMarkdown(`$(sync~spin) Indexing… ${settled} of ${total} environments done\n\n`)
-        }
-
-        const active = djps.filter(
-            (djp) => djp.status === 'running' || djp.status === 'preparing' || djp.status === 'refreshing'
-        )
-        const waiting = djps.filter((djp) => djp.status === 'queued' || djp.status === 'refresh_queued')
-        const failed = djps.filter((djp) => djp.status === 'failed')
-        const processes = djps.filter((djp) => djp.alive).length
-
-        this.appendDjpGroup(md, active)
-        this.appendDjpGroup(md, waiting)
-        this.appendDjpGroup(md, failed)
-
-        const summary: string[] = []
-        const done = djps.filter((djp) => djp.status === 'done').length
-        if (done > 0) {
-            summary.push(`${done} ${done === 1 ? 'environment' : 'environments'} indexed`)
-        }
-        if (processes > 0) {
-            summary.push(
-                `${processes} Julia ${processes === 1 ? 'process' : 'processes'}` +
-                    (status.maxConcurrentDjps > 0 ? ` (limit ${status.maxConcurrentDjps})` : '')
-            )
-        }
-        if (summary.length > 0) {
-            md.appendMarkdown(summary.join(' · ') + '\n\n')
-        }
-    }
-
-    private appendDjpGroup(md: vscode.MarkdownString, djps: ServerStatusDJPDetail[]) {
-        if (djps.length === 0) {
-            return
-        }
+        // One line per work item, in the server's stable (path-sorted) order,
+        // whatever its status. Items changing status update their line in
+        // place instead of hopping between groups, so the flyout keeps its
+        // size while indexing progresses.
         for (const djp of djps.slice(0, MAX_LISTED_ITEMS)) {
             md.appendMarkdown(djpLine(djp) + '  \n')
         }
         if (djps.length > MAX_LISTED_ITEMS) {
             md.appendMarkdown(`…and ${djps.length - MAX_LISTED_ITEMS} more  \n`)
         }
-        md.appendMarkdown('\n')
+        if (djps.length > 0) {
+            md.appendMarkdown('\n')
+        }
+
+        // Always exactly one summary line, again for a stable height; italic
+        // and icon-free so it reads as a footnote, not as another work item.
+        const done = djps.filter((djp) => djp.status === 'done').length
+        const processes = djps.filter((djp) => djp.alive).length
+        const limit = status.maxConcurrentDjps > 0 ? ` (limit ${status.maxConcurrentDjps})` : ''
+        const summary = status.indexingDone
+            ? `Indexing complete · ${total} ${total === 1 ? 'environment' : 'environments'}`
+            : `Indexing… ${done} of ${total} done`
+        md.appendMarkdown(
+            `*${summary}${processes > 0 ? ` · ${processes} Julia ${processes === 1 ? 'process' : 'processes'}${limit}` : ''}*\n\n`
+        )
     }
 
     public dispose() {

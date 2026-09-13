@@ -349,7 +349,9 @@ export async function activate(context: vscode.ExtensionContext, ExecutableFeatu
     g_current_environment.text = 'Julia env: [loading]'
     g_current_environment.command = 'language-julia.changeCurrentEnvironment'
     context.subscriptions.push(g_current_environment)
-    await switchEnvToPath(await getEnvPath()) // We don't need to notify the LS here because it will start with that env already
-
+    // Show the item (with its "[loading]" text) before resolving the
+    // environment: the resolution below spawns a Julia process, and until it
+    // finished the picker was simply absent from the status bar.
     g_current_environment.show()
+    await switchEnvToPath(await getEnvPath()) // We don't need to notify the LS here because it will start with that env already
 }
