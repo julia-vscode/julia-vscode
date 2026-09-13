@@ -123,6 +123,7 @@ function formatErrorForOutput(err: unknown): string {
 export class RestartTrackingErrorHandler implements ErrorHandler {
     private delegate: ErrorHandler
     private restartPending: boolean = false
+    private restarts: number = 0
 
     constructor(private createDelegate: () => ErrorHandler) {}
 
@@ -140,6 +141,7 @@ export class RestartTrackingErrorHandler implements ErrorHandler {
         const result = await this.delegate.closed()
         if (result.action === CloseAction.Restart) {
             this.restartPending = true
+            this.restarts += 1
         }
         return result
     }
@@ -152,6 +154,124 @@ export class RestartTrackingErrorHandler implements ErrorHandler {
         const pending = this.restartPending
         this.restartPending = false
         return pending
+    }
+
+    /** How many times the server has been auto-restarted after a crash. */
+    get restartCount(): number {
+        return this.restarts
+    }
+}
+
+/**
+ * Works around a race in vscode-languageclient's crash-restart handling
+ * (verified in 10.1.1; no upstream issue yet, to be reported): when the server
+ * process dies and the client auto-restarts it, document lifecycle
+ * notifications generated during the down window are parked inside
+ * `sendNotification` at `await this.$start()` and delivered over the *next*
+ * connection — after the client has already replayed `didOpen` (with each
+ * document's then-current version) for every open document. The new server
+ * then receives stale stragglers: a `didChange` whose version predates the
+ * replayed `didOpen`, a `didClose`/`didOpen` for a document whose open state
+ * the replay already settled. Our language server treats each of those as a
+ * fatal protocol violation, so one crash cascades into a crash loop.
+ *
+ * The guard defers any lifecycle notification fired while the client is not
+ * `Running` until it is, and then forwards it only if the replay has not
+ * superseded it. Dropping is safe by construction: the replayed `didOpen`
+ * always carries the document's complete current text. Events fired while the
+ * client is `Running` pass through untouched.
+ *
+ * Remove once the race is fixed upstream in vscode-languageclient.
+ */
+export class DocumentLifecycleGuard {
+    private client: LanguageClient | undefined
+    /**
+     * Documents opened on the current server connection, and the version the
+     * `didOpen` carried. Cleared when a new connection attempt starts; the
+     * client's replayed didOpens (which run through this middleware too)
+     * repopulate it, so by the time deferred events are decided it reflects
+     * exactly what the new server was told.
+     */
+    private epochOpens = new Map<string, number>()
+
+    attach(client: LanguageClient) {
+        this.client = client
+        client.onDidChangeState((event: StateChangeEvent) => {
+            if (event.newState === State.Starting) {
+                this.epochOpens.clear()
+            }
+        })
+    }
+
+    private get running(): boolean {
+        return this.client !== undefined && this.client.state === State.Running
+    }
+
+    private awaitRunning(): Promise<void> {
+        return new Promise((resolve) => {
+            const disposable = this.client.onDidChangeState((event: StateChangeEvent) => {
+                if (event.newState === State.Running) {
+                    disposable.dispose()
+                    resolve()
+                }
+            })
+        })
+    }
+
+    async didOpen(document: vscode.TextDocument, next: (document: vscode.TextDocument) => Promise<void>): Promise<void> {
+        const uri = document.uri.toString()
+        if (!this.running) {
+            await this.awaitRunning()
+            if (this.epochOpens.has(uri)) {
+                // The post-restart replay already opened this document.
+                return
+            }
+        }
+        this.epochOpens.set(uri, document.version)
+        return next(document)
+    }
+
+    async didChange(
+        event: vscode.TextDocumentChangeEvent,
+        next: (event: vscode.TextDocumentChangeEvent) => Promise<void>
+    ): Promise<void> {
+        // The library captures the version to send before invoking the
+        // middleware, so this is the version the server would receive.
+        const version = event.document.version
+        const uri = event.document.uri.toString()
+        if (!this.running) {
+            await this.awaitRunning()
+            const openVersion = this.epochOpens.get(uri)
+            if (openVersion === undefined || version <= openVersion) {
+                // Not open on this connection, or already contained in the
+                // full text the replayed didOpen carried.
+                return
+            }
+        }
+        return next(event)
+    }
+
+    async didClose(document: vscode.TextDocument, next: (document: vscode.TextDocument) => Promise<void>): Promise<void> {
+        const uri = document.uri.toString()
+        if (!this.running) {
+            await this.awaitRunning()
+            if (!this.epochOpens.has(uri)) {
+                // The document was never opened on this connection (it closed
+                // during the down window, so the replay skipped it).
+                return
+            }
+        }
+        this.epochOpens.delete(uri)
+        return next(document)
+    }
+
+    async didSave(document: vscode.TextDocument, next: (document: vscode.TextDocument) => Promise<void>): Promise<void> {
+        if (!this.running) {
+            // A stale save snapshot; the server sees saved state through its
+            // file watchers, and the replayed didOpen carries current text.
+            return
+        }
+        return next(document)
     }
 }
 
@@ -647,6 +767,7 @@ export class LanguageClientFeature {
         // decision so the state change handler below can tell a transient
         // crash apart from a crash loop.
         const errorHandler = new RestartTrackingErrorHandler(() => languageClient.createDefaultErrorHandler())
+        const lifecycleGuard = new DocumentLifecycleGuard()
 
         const clientOptions: LanguageClientOptions = {
             documentSelector: selector,
@@ -658,13 +779,19 @@ export class LanguageClientFeature {
             // registers an extra `**` create/delete watcher. Passing 'on'
             // explicitly makes that apply in every Code-OSS fork, whatever
             // clientInfo.name it reports.
-            initializationOptions: {
+            //
+            // A function, not an object: it is evaluated on every (re)start, so
+            // `julialangRestartCount` reflects how many times this client has
+            // auto-restarted the crashed server. The server stamps it into its
+            // lifecycle crash reports so a desync can be tied to a restart.
+            initializationOptions: () => ({
                 julialangTestItemIdentification: true,
                 julialangDirectoryWatching: 'on',
                 // Ask for julia/publishServerStatus notifications, which feed
                 // the Julia status bar item's flyout (statusBarFeature.ts).
                 julialangServerStatus: true,
-            },
+                julialangRestartCount: errorHandler.restartCount,
+            }),
             errorHandler,
             middleware: {
                 // The Julia status bar item (statusBarFeature.ts) already shows
@@ -682,6 +809,12 @@ export class LanguageClientFeature {
                     handleFormattingError(this.outputChannel, document, () =>
                         Promise.resolve(next(document, range, options, token))
                     ),
+                // Suppress stale document lifecycle notifications parked across
+                // a crash-restart (see DocumentLifecycleGuard).
+                didOpen: (document, next) => lifecycleGuard.didOpen(document, next),
+                didChange: (event, next) => lifecycleGuard.didChange(event, next),
+                didClose: (document, next) => lifecycleGuard.didClose(document, next),
+                didSave: (document, next) => lifecycleGuard.didSave(document, next),
             },
         }
 
@@ -694,6 +827,7 @@ export class LanguageClientFeature {
             (serverProcess) => this.observeServerProcess(serverProcess, juliaExecutable)
         )
         languageClient.registerProposedFeatures()
+        lifecycleGuard.attach(languageClient)
 
         languageClient.onDidChangeState((event: StateChangeEvent) => {
             switch (event.newState) {
