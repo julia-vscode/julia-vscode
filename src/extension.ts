@@ -13,6 +13,7 @@ import { WorkspaceFeature } from './interactive/workspace'
 import * as jlpkgenv from './jlpkgenv'
 import { ExecutableFeature } from './executables'
 import { LanguageClientFeature } from './languageClient'
+import { JuliaStatusBarFeature } from './statusBarFeature'
 import { JuliaNotebookFeature } from './notebook/notebookFeature'
 import * as openpackagedirectory from './openpackagedirectory'
 import { JuliaPackageDevFeature } from './packagedevtools'
@@ -81,6 +82,10 @@ export async function activate(context: vscode.ExtensionContext) {
         const languageClientFeature: LanguageClientFeature = new LanguageClientFeature(context, executableFeature)
         context.subscriptions.push(languageClientFeature)
         console.debug(`[julia activation] LanguageClientFeature: ${(performance.now() - t).toFixed(1)}ms`)
+
+        t = performance.now()
+        context.subscriptions.push(new JuliaStatusBarFeature(context, languageClientFeature))
+        console.debug(`[julia activation] JuliaStatusBarFeature: ${(performance.now() - t).toFixed(1)}ms`)
 
         t = performance.now()
         const compiledProvider = debugViewProvider.activate(context)

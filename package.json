@@ -40,6 +40,15 @@
     ],
     "main": "./dist/extension",
     "contributes": {
+        "icons": {
+            "julia-logo": {
+                "description": "Julia logo",
+                "default": {
+                    "fontPath": "./images/julia-icons.woff",
+                    "fontCharacter": "\\E900"
+                }
+            }
+        },
         "languages": [
             {
                 "id": "julia",
@@ -1767,6 +1776,7 @@
         "update2latest": "git pull && git submodule init && git submodule update && npm install --no-save && npm run compile && npm run bundle",
         "vsce-package": "vsce package",
         "vendor-xterm": "node scripts/vendor-xterm.mjs",
+        "generate-icon-font": "node scripts/generate-icon-font.mjs",
         "update-all-deps": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateDeps()).catch(e => { console.error(e); process.exit(1) })\"",
         "update-julia-environments": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateEnvs()).catch(e => { console.error(e); process.exit(1) })\"",
         "update-julia-packages": "npx tsx -e \"import('./src/scripts/updateDeps').then(m => m.default.updateJuliaPackages()).catch(e => { console.error(e); process.exit(1) })\"",
@@ -1823,7 +1833,10 @@
         "mocha": "^11",
         "npm-run-all": "^4.1.5",
         "prettier": "^3.8.3",
+        "svg2ttf": "6.1.0",
+        "svgicons2svgfont": "15.0.1",
         "tsx": "^4.22.4",
+        "ttf2woff": "3.0.0",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.46.4"
     }
