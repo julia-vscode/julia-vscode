@@ -4,6 +4,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { ExecutableFeature, JuliaNotFoundError } from './executables'
 import * as packagepath from './packagepath'
+import * as telemetry from './telemetry'
 import { parseVSCodeVariables, registerCommand, resolvePath } from './utils'
 import { promisify } from 'node:util'
 import child_process from 'node:child_process'
@@ -270,22 +271,36 @@ async function getDefaultEnvPath() {
             }
             throw err
         }
-        const res = await execFile(
-            juliaExecutable.command,
-            [
-                ...juliaExecutable.args,
-                '--startup-file=no',
-                '--history-file=no',
-                '-e',
-                'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))',
-            ],
-            {
-                env: {
-                    ...process.env,
-                    JULIA_VSCODE_INTERNAL: '1',
-                },
-            }
-        )
+        let res
+        try {
+            res = await execFile(
+                juliaExecutable.command,
+                [
+                    ...juliaExecutable.args,
+                    '--startup-file=no',
+                    '--history-file=no',
+                    '-e',
+                    'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))',
+                ],
+                {
+                    env: {
+                        ...process.env,
+                        JULIA_VSCODE_INTERNAL: '1',
+                    },
+                }
+            )
+        } catch (err) {
+            // Julia was found but the helper invocation failed — almost always
+            // a broken user environment (e.g. a stale/incompatible precompiled
+            // image: "Precompiled image ... not available with flags ..."),
+            // not an extension fault. Degrade to a best-effort default env path
+            // instead of letting the rejection surface as a crash report, and
+            // record a lightweight trace event so the failure is still visible.
+            telemetry.traceEvent('default-env-resolution-failed')
+            g_path_of_default_environment = getUnknownDefaultEnvPath()
+            g_default_environment_unknown_because_julia_not_found = false
+            return g_path_of_default_environment
+        }
         g_path_of_default_environment = res.stdout.toString().trim()
         g_default_environment_unknown_because_julia_not_found = false
     }
