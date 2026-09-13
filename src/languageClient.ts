@@ -667,6 +667,11 @@ export class LanguageClientFeature {
             },
             errorHandler,
             middleware: {
+                // The Julia status bar item (statusBarFeature.ts) already shows
+                // the server's startup/indexing activity, so the $/progress
+                // reports the server also sends would render the same
+                // information a second time in the status bar. Swallow them.
+                handleWorkDoneProgress: () => {},
                 // A formatting request that fails is a message for the user, not
                 // an extension fault. See `handleFormattingError`.
                 provideDocumentFormattingEdits: (document, options, token, next) =>
