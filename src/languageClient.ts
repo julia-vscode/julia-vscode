@@ -365,8 +365,6 @@ export class LanguageClientFeature {
         { log: true }
     )
 
-    private statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem()
-
     private serverStarting: boolean = false
 
     private _state: LanguageServerState = 'stopped'
@@ -382,17 +380,6 @@ export class LanguageClientFeature {
         if (this._state !== state) {
             this._state = state
             this._onDidChangeStateEmitter.fire(state)
-            this.updateStatusBarForState()
-        }
-    }
-
-    private updateStatusBarForState() {
-        if (this._state === 'crashed') {
-            this.statusBarItem.text = '$(warning) Julia Language Server Crashed'
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground')
-            this.statusBarItem.command = 'language-julia.restartLanguageServer'
-            this.statusBarItem.tooltip = 'The Julia Language Server has crashed. Click to restart.'
-            this.statusBarItem.show()
         }
     }
 
@@ -525,11 +512,18 @@ export class LanguageClientFeature {
     public async startServerInner(envPath?: string, autoInstall?: boolean) {
         this._intentionalStop = false
 
+        // Report 'starting' right away: executable and environment resolution
+        // below can take a while, and the language client only fires its own
+        // Starting event once the server process actually launches. The status
+        // bar feature renders this as a spinner.
+        this.setState('starting')
+
         let juliaExecutable: JuliaExecutable
 
         try {
             juliaExecutable = await this.executable.getLsExecutable(autoInstall)
         } catch (err) {
+            this.setState('stopped')
             if (err instanceof JuliaNotFoundError) {
                 // No usable Julia for the language server; the user has already
                 // been informed through the status bar and output channel.
@@ -537,12 +531,6 @@ export class LanguageClientFeature {
             }
             throw err
         }
-
-        this.statusBarItem.text = 'Julia: Starting Language Server…'
-        this.statusBarItem.backgroundColor = undefined
-        this.statusBarItem.color = undefined
-        this.statusBarItem.tooltip = undefined
-        this.statusBarItem.show()
 
         let jlEnvPath: string
         if (envPath) {
@@ -559,7 +547,7 @@ export class LanguageClientFeature {
                         vscode.commands.executeCommand('workbench.action.openSettings', 'julia.path')
                     }
                 })
-                this.statusBarItem.hide()
+                this.setState('stopped')
                 return
             }
         }
@@ -670,7 +658,13 @@ export class LanguageClientFeature {
             // registers an extra `**` create/delete watcher. Passing 'on'
             // explicitly makes that apply in every Code-OSS fork, whatever
             // clientInfo.name it reports.
-            initializationOptions: { julialangTestItemIdentification: true, julialangDirectoryWatching: 'on' },
+            initializationOptions: {
+                julialangTestItemIdentification: true,
+                julialangDirectoryWatching: 'on',
+                // Ask for julia/publishServerStatus notifications, which feed
+                // the Julia status bar item's flyout (statusBarFeature.ts).
+                julialangServerStatus: true,
+            },
             errorHandler,
             middleware: {
                 // A formatting request that fails is a message for the user, not
@@ -769,7 +763,6 @@ export class LanguageClientFeature {
         }
 
         try {
-            this.statusBarItem.command = 'language-julia.showLanguageServerOutput'
             await languageClient.start()
         } catch (err) {
             telemetry.traceEvent('lsstartfailed')
@@ -794,9 +787,6 @@ export class LanguageClientFeature {
         } finally {
             languageClient.stop = originalStop
         }
-        if (this._state !== 'crashed') {
-            this.statusBarItem.hide()
-        }
     }
 
     async restartLanguageServer(envPath?: string, autoInstall?: boolean) {
@@ -807,7 +797,6 @@ export class LanguageClientFeature {
     public async dispose(): Promise<void> {
         await this.stopLanguageServer()
 
-        this.statusBarItem.dispose()
         this.outputChannel.dispose()
         this.traceOutputChannel.dispose()
     }
