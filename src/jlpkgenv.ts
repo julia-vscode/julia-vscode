@@ -289,7 +289,7 @@ async function getDefaultEnvPath() {
                     },
                 }
             )
-        } catch (err) {
+        } catch (_err) {
             // Julia was found but the helper invocation failed — almost always
             // a broken user environment (e.g. a stale/incompatible precompiled
             // image: "Precompiled image ... not available with flags ..."),
