@@ -119,6 +119,12 @@ function is_language_server_precompile_failure(err)
             occursin("failed to precompile", lowercase(err.msg))
     elseif err isa LoadError
         return is_language_server_precompile_failure(err.error)
+    elseif err isa Base.SystemError
+        # A failed file operation on the compiled cache (e.g. "opening file
+        # '~/.julia/compiled/v1.x/JuliaWorkspaces/xyz.ji': Permission denied")
+        # is a broken depot, not a server bug: the depot-permissions message
+        # below is the actionable response, not a crash report.
+        return occursin("compiled", err.prefix) || occursin(".ji", err.prefix)
     elseif occursin("PkgPrecompileError", string(typeof(err)))
         return true
     else
@@ -171,10 +177,15 @@ try
         using LanguageServer
     catch err
         if is_language_server_precompile_failure(err)
+            # The extension does not set JULIA_DEPOT_PATH when spawning the LS
+            # (a user can via julia.additionalEnvironmentVariables), so fall
+            # back to the effective depot path rather than crashing with a
+            # KeyError that masks the precompile failure being reported.
+            depot_path = get(ENV, "JULIA_DEPOT_PATH", join(DEPOT_PATH, Sys.iswindows() ? ';' : ':'))
             println(stderr, """\n
             The Language Server failed to precompile.
             Please make sure you have permissions to write to the LS depot path at
-            \t$(ENV["JULIA_DEPOT_PATH"])
+            \t$(depot_path)
             """)
             throw(LSPrecompileFailure(sprint(showerror, err)))
         else
