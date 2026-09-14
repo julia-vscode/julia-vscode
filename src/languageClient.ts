@@ -218,7 +218,10 @@ export class DocumentLifecycleGuard {
         })
     }
 
-    async didOpen(document: vscode.TextDocument, next: (document: vscode.TextDocument) => Promise<void>): Promise<void> {
+    async didOpen(
+        document: vscode.TextDocument,
+        next: (document: vscode.TextDocument) => Promise<void>
+    ): Promise<void> {
         const uri = document.uri.toString()
         if (!this.running) {
             await this.awaitRunning()
@@ -251,7 +254,10 @@ export class DocumentLifecycleGuard {
         return next(event)
     }
 
-    async didClose(document: vscode.TextDocument, next: (document: vscode.TextDocument) => Promise<void>): Promise<void> {
+    async didClose(
+        document: vscode.TextDocument,
+        next: (document: vscode.TextDocument) => Promise<void>
+    ): Promise<void> {
         const uri = document.uri.toString()
         if (!this.running) {
             await this.awaitRunning()
@@ -265,7 +271,10 @@ export class DocumentLifecycleGuard {
         return next(document)
     }
 
-    async didSave(document: vscode.TextDocument, next: (document: vscode.TextDocument) => Promise<void>): Promise<void> {
+    async didSave(
+        document: vscode.TextDocument,
+        next: (document: vscode.TextDocument) => Promise<void>
+    ): Promise<void> {
         if (!this.running) {
             // A stale save snapshot; the server sees saved state through its
             // file watchers, and the replayed didOpen carries current text.
