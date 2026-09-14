@@ -120,7 +120,7 @@ export class TaskRunner {
         private iconPath: vscode.IconPath
     ) {
         this.statusBarItem.name = name
-        this.disposables.push(vscode.commands.registerCommand(this.showCommand, () => this.terminal.show()))
+        this.disposables.push(vscode.commands.registerCommand(this.showCommand, () => this.show()))
     }
 
     public run(shellPath: string, shellArgs: string[], opts: TaskOptions = {}): Promise<number | void> {
@@ -197,6 +197,7 @@ export class TaskRunner {
 
     public dispose() {
         this.queue = []
+        this.statusBarItem.dispose()
         this.disposables.forEach((e) => e.dispose())
     }
 }

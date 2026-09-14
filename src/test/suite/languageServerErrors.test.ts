@@ -6,7 +6,7 @@ import {
     LSPErrorCodes,
     ResponseError,
 } from 'vscode-languageserver-protocol'
-import { isLanguageServerError } from '../../languageServerErrors'
+import { isLanguageServerError, isLanguageServerResponseNoise } from '../../languageServerErrors'
 
 function nodeError(message: string, code: string): Error {
     return Object.assign(new Error(message), { code })
@@ -89,5 +89,35 @@ suite('isLanguageServerError', () => {
         assert.strictEqual(isLanguageServerError('Connection is disposed.'), false)
         assert.strictEqual(isLanguageServerError(undefined), false)
         assert.strictEqual(isLanguageServerError(null), false)
+    })
+})
+
+suite('isLanguageServerResponseNoise', () => {
+    test('recognises a request-handler failure the server reports itself', () => {
+        assert.strictEqual(
+            isLanguageServerResponseNoise(new Error('Error handling request: MethodError(convert, ...)')),
+            true
+        )
+    })
+
+    test('recognises a formatting failure caused by unparseable user code', () => {
+        assert.strictEqual(
+            isLanguageServerResponseNoise(
+                new Error('Could not format foo.jl because it could not be parsed as Julia code.')
+            ),
+            true
+        )
+    })
+
+    test('matches only at the start of the message', () => {
+        assert.strictEqual(isLanguageServerResponseNoise(new Error('failed: Error handling request: x')), false)
+        assert.strictEqual(isLanguageServerResponseNoise(new Error('The server said Could not format foo.jl')), false)
+    })
+
+    test('does not match unrelated values', () => {
+        assert.strictEqual(isLanguageServerResponseNoise(new Error('boom')), false)
+        assert.strictEqual(isLanguageServerResponseNoise('Error handling request: x'), false)
+        assert.strictEqual(isLanguageServerResponseNoise(undefined), false)
+        assert.strictEqual(isLanguageServerResponseNoise(null), false)
     })
 })
