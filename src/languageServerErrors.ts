@@ -88,3 +88,36 @@ export function isLanguageServerError(err: unknown): boolean {
     }
     return false
 }
+
+/**
+ * Message prefixes of language server response errors that must not become
+ * extension crash reports. Like `teardownMessages` above, these arrive at
+ * `sendErrorData` as rebuilt plain `Error`s without their `ResponseError`
+ * code, so the message prefix is the only thing left to classify on.
+ */
+const responseNoisePrefixes = [
+    // JSONRPC.jl wraps a failed request handler into this response and then
+    // rethrows on the server, where the language server files its own crash
+    // report with the full Julia backtrace through the crash pipe; the
+    // client-side copy is a duplicate without one.
+    'Error handling request: ',
+    // LanguageServer.jl's `format_failure_error` (LSP RequestFailed): the
+    // user asked to format a file that is not parseable Julia code, which is
+    // their code's state, not a bug. vscode-languageclient already shows the
+    // message as a notification before rethrowing.
+    'Could not format ',
+]
+
+/**
+ * Returns true for response errors of the language server that are expected
+ * user conditions or that the server already reports itself, so an
+ * extension-side crash report would be noise or a stackless duplicate.
+ * `telemetry.handleNewCrashReportFromException` drops them alongside
+ * {@link isLanguageServerError}.
+ */
+export function isLanguageServerResponseNoise(err: unknown): boolean {
+    if (!(err instanceof Error)) {
+        return false
+    }
+    return responseNoisePrefixes.some((prefix) => err.message.startsWith(prefix))
+}
