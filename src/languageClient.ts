@@ -378,6 +378,20 @@ class RawLogOutputChannel implements vscode.LogOutputChannel {
 }
 
 /**
+ * Windows exit codes of a process terminated by the OS rather than by
+ * anything the process did itself, seen in bursts when a session ends: the
+ * running process is killed with DBG_TERMINATE_PROCESS (0x40010004), and
+ * immediate restart attempts then fail with STATUS_DLL_INIT_FAILED
+ * (0xC0000142) because no new process can initialise in a session that is
+ * shutting down. Neither can be produced by Julia or extension code, Julia
+ * never ran (or was stopped mid-instruction), and the accompanying stderr
+ * is empty, so a report of such an exit has no crash information to carry.
+ */
+export function isEnvironmentalWindowsExitCode(code: number | null): boolean {
+    return code === 0x40010004 || code === 0xc0000142
+}
+
+/**
  * Decides whether a language server process exit is worth a crash report.
  * Returns `null` for an expected exit, otherwise a one-line description.
  *
@@ -389,6 +403,8 @@ class RawLogOutputChannel implements vscode.LogOutputChannel {
  * Julia code, or ran it outside the guarded block: a signal, a native crash,
  * an out-of-memory kill, or the runtime's own exit codes. Those leave no
  * trace anywhere else.
+ * Exit codes of an OS-terminated Windows process are the other exception;
+ * see `isEnvironmentalWindowsExitCode`.
  */
 export function unexpectedServerExit(
     code: number | null,
@@ -399,6 +415,9 @@ export function unexpectedServerExit(
         return null
     }
     if (signal === null && (code === 0 || code === 1)) {
+        return null
+    }
+    if (isEnvironmentalWindowsExitCode(code)) {
         return null
     }
     return `Julia language server process exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`

@@ -9,7 +9,7 @@ import { getCrashReportingPipename, handleNewCrashReportFromException } from '..
 import { TestControllerHost, TestProcessGroupNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
-import { LanguageClientFeature } from '../languageClient'
+import { isEnvironmentalWindowsExitCode, LanguageClientFeature } from '../languageClient'
 import {
     notficiationTypeTestItemErrored,
     notficiationTypeTestItemFailed,
@@ -673,7 +673,9 @@ export class JuliaTestController {
             // crashes twice. What that path cannot cover is a death that never ran Julia code:
             // a signal, or an exit code from the runtime itself. Those are what is reported
             // here, because otherwise they leave no trace anywhere.
-            if (signal || (code !== null && code !== 0 && code !== 1)) {
+            // An exit forced by the OS at session teardown carries no crash
+            // information and is excluded, see `isEnvironmentalWindowsExitCode`.
+            if (signal || (code !== null && code !== 0 && code !== 1 && !isEnvironmentalWindowsExitCode(code))) {
                 handleNewCrashReportFromException(
                     new Error(
                         `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`

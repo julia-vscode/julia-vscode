@@ -85,6 +85,18 @@ suite('unexpectedServerExit', () => {
         assert.match(unexpectedServerExit(139, null, false), /code 139/)
         assert.match(unexpectedServerExit(3221225477, null, false), /code 3221225477/)
     })
+
+    test('an exit forced by the OS during session teardown is expected', () => {
+        // DBG_TERMINATE_PROCESS: the OS killed the running server at logoff.
+        assert.strictEqual(unexpectedServerExit(1073807364, null, false), null)
+        // STATUS_DLL_INIT_FAILED: the restarted server could not initialise
+        // in a session that is shutting down.
+        assert.strictEqual(unexpectedServerExit(3221225794, null, false), null)
+    })
+
+    test('an unexplained external termination is still reported', () => {
+        assert.match(unexpectedServerExit(4294967295, null, false), /code 4294967295/)
+    })
 })
 
 suite('StderrTail', () => {
