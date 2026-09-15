@@ -7,10 +7,18 @@ import {
 } from 'vscode-languageserver-protocol'
 
 /**
- * Node error codes raised when the language server's stdin pipe or socket
- * goes away underneath a pending write.
+ * Node error codes raised when the stdin pipe or socket of the language
+ * server (or of the test item controller, whose connection fails the same
+ * way) goes away underneath a pending write. `EOF` is what a write to a
+ * closed pipe raises on Windows, where POSIX raises `EPIPE`.
  */
-const teardownStreamCodes = new Set(['EPIPE', 'ECONNRESET', 'ERR_STREAM_DESTROYED', 'ERR_STREAM_WRITE_AFTER_END'])
+const teardownStreamCodes = new Set([
+    'EPIPE',
+    'EOF',
+    'ECONNRESET',
+    'ERR_STREAM_DESTROYED',
+    'ERR_STREAM_WRITE_AFTER_END',
+])
 
 /**
  * The exact messages of the errors this module classifies, for the cases
@@ -35,6 +43,7 @@ const teardownMessages = new Set([
     // Node stream and socket failures, also wrapped as `MessageWriteError`
     'Cannot call write after a stream was destroyed',
     'write EPIPE',
+    'write EOF',
     'This socket has been ended by the other party',
 ])
 
@@ -48,6 +57,11 @@ const teardownMessages = new Set([
  * reported separately through the crash reporting pipe, so these must not
  * become extension crash reports; `telemetry.handleNewCrashReportFromException`
  * drops them, and `withLanguageClient` turns them into a graceful fallback.
+ *
+ * The test item controller's connection dies the same way, and its death is
+ * likewise reported on its own, by the controller's crash logger and by
+ * the exit handler in `testFeature.ts`, so a write that its exit strands
+ * is classified here too rather than reported as a second crash.
  *
  * `vscode-languageclient`'s own `handleFailedRequest` already swallows the
  * `ResponseError` codes below for its built-in providers, but it logs and
