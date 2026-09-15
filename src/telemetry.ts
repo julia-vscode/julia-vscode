@@ -164,6 +164,25 @@ export function init(context: vscode.ExtensionContext) {
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
+    if (name.startsWith('TICPrecompileFailure')) {
+        vscode.window
+            .showErrorMessage(
+                'The Julia test item controller failed to precompile. Please check the FAQ and the local output.',
+                'Open FAQ',
+                'Open Logs'
+            )
+            .then((choice) => {
+                if (choice === 'Open Logs') {
+                    vscode.commands.executeCommand('language-julia.showTestItemControllerOutput')
+                } else if (choice === 'Open FAQ') {
+                    vscode.commands.executeCommand(
+                        'vscode.open',
+                        vscode.Uri.parse('https://www.julia-vscode.org/docs/stable/faq')
+                    )
+                }
+            })
+        return
+    }
     if (name.startsWith('LSPrecompileFailure')) {
         vscode.window
             .showErrorMessage(

@@ -999,6 +999,9 @@ export class TestFeature implements TestControllerHost {
                     await node.stop()
                 }
             }),
+            registerCommand('language-julia.showTestItemControllerOutput', async () =>
+                this.juliaTestitemControllerOutputChannel.show(true)
+            ),
             registerCommand('language-julia.startTestController', async () => await this.startTestController()),
             registerCommand('language-julia.stopTestController', async () => await this.stopTestController()),
             registerCommand('language-julia.restartTestController', async () => await this.restartTestController()),
