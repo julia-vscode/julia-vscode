@@ -14,6 +14,20 @@ end
 
 using Logging, LoggingExtras, VSCodeErrorLoggers
 
+include(joinpath(@__DIR__, "..", "precompile_failures.jl"))
+
+# Reported instead of the raw precompile error so that the extension's
+# telemetry sink can recognise the report by name and show an actionable
+# message rather than filing a crash; same convention as `LSPrecompileFailure`
+# in `../languageserver/main.jl`.
+struct TICPrecompileFailure <: Exception
+    msg::AbstractString
+end
+
+function Base.showerror(io::IO, ex::TICPrecompileFailure)
+    print(io, ex.msg)
+end
+
 if length(Base.ARGS) != 1
     error("Invalid number of arguments passed to Julia test item controller.")
 end
@@ -31,7 +45,23 @@ try
     redirect_stdout(stderr)
     redirect_stdin()
 
-    using TestItemControllers
+    try
+        using TestItemControllers
+    catch err
+        if is_precompile_failure(err)
+            # The extension does not set JULIA_DEPOT_PATH when spawning this
+            # process, so fall back to the effective depot path.
+            depot_path = get(ENV, "JULIA_DEPOT_PATH", join(DEPOT_PATH, Sys.iswindows() ? ';' : ':'))
+            println(stderr, """\n
+            The test item controller failed to precompile.
+            Please make sure you have permissions to write to the depot path at
+            \t$(depot_path)
+            """)
+            throw(TICPrecompileFailure(sprint(showerror, err)))
+        else
+            rethrow(err)
+        end
+    end
 
     controller = JSONRPCTestItemController(
         conn_in,
