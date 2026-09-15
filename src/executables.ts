@@ -480,8 +480,8 @@ export class ExecutableFeature {
                     const juliaup = await this.getJuliaupExecutable(true)
                     if (juliaup) {
                         juliaup.shouldAutoRequestInstall = true
-                        this.getExecutable(true)
-                        this.getLsExecutable(true)
+                        await this.getExecutable(true)
+                        await this.getLsExecutable(true)
                         vscode.commands.executeCommand('language-julia.restartLanguageServer')
                     }
                 } catch (err) {
@@ -666,8 +666,10 @@ export class ExecutableFeature {
                                         .getConfiguration('julia')
                                         .update('juliaup.install.hint', false, vscode.ConfigurationTarget.Global)
                                 } else if (choice === install) {
-                                    // trigger installation
-                                    this.getJuliaupExecutable(autoInstallJulia)
+                                    // Run the full installation flow: it installs juliaup, then
+                                    // restarts the language server so it actually uses it, and it
+                                    // handles a failed or declined installation.
+                                    vscode.commands.executeCommand('language-julia.retriggerInstallation')
                                 }
                             })
                     }
@@ -967,12 +969,20 @@ export class ExecutableFeature {
                 vscode.window.showInformationMessage('Julia and the required juliaup channels are now fully installed!')
 
                 return await this.getJuliaupExecutableNoCache(false)
-            } else if (exitCode === 1) {
-                vscode.window.showErrorMessage('Failed to install Julia and the required juliaup channels!')
-                this.setJuliaupInstalled(false)
-
-                throw new JuliaNotFoundError('juliaup not available')
             }
+
+            this.setJuliaupInstalled(false)
+
+            if (typeof exitCode === 'number') {
+                vscode.window.showErrorMessage('Failed to install Julia and the required juliaup channels!')
+            } else {
+                // The user dismissed the installation dialog, chose an option that
+                // leaves juliaup uninstalled, or closed the install terminal;
+                // declining to install is not a failure worth an error message.
+                this.outputChannel.appendLine(outputPrefix + '! Installation was declined or cancelled.')
+            }
+
+            throw new JuliaNotFoundError('juliaup not available')
         } else {
             this.setJuliaupInstalled(false)
 
