@@ -238,7 +238,10 @@ export class JuliaTestController {
 
         try {
             if (this.connection) {
-                this.connection.sendNotification(notificationTypeShutdown)
+                // A write failure surfaces through the returned promise, which the
+                // `catch` below cannot see; the process is already dying then, and
+                // the kill fallback below covers it.
+                this.connection.sendNotification(notificationTypeShutdown).catch(() => {})
             }
         } catch {
             // Ignore, we fall back to killing the process below.
