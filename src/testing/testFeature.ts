@@ -238,7 +238,10 @@ export class JuliaTestController {
 
         try {
             if (this.connection) {
-                this.connection.sendNotification(notificationTypeShutdown)
+                // A write failure surfaces through the returned promise, which the
+                // `catch` below cannot see; the process is already dying then, and
+                // the kill fallback below covers it.
+                this.connection.sendNotification(notificationTypeShutdown).catch(() => {})
             }
         } catch {
             // Ignore, we fall back to killing the process below.
@@ -509,12 +512,26 @@ export class JuliaTestController {
             const messages = i.messages.map((j) => {
                 const msg = new vscode.TestMessage(stripAnsi(j.message))
 
-                if (j.actualOutput !== null && j.expectedOutput !== null) {
+                // The controller omits optional fields entirely (`missing` on the Julia
+                // side), so they arrive as `undefined` rather than `null`.
+                if (
+                    j.actualOutput !== undefined &&
+                    j.actualOutput !== null &&
+                    j.expectedOutput !== undefined &&
+                    j.expectedOutput !== null
+                ) {
                     msg.actualOutput = stripAnsi(j.actualOutput)
                     msg.expectedOutput = stripAnsi(j.expectedOutput)
                 }
 
-                if (j.uri !== null && j.line !== null && j.column !== null) {
+                if (
+                    j.uri !== undefined &&
+                    j.uri !== null &&
+                    j.line !== undefined &&
+                    j.line !== null &&
+                    j.column !== undefined &&
+                    j.column !== null
+                ) {
                     msg.location = new vscode.Location(
                         vscode.Uri.parse(j.uri),
                         new vscode.Position(j.line - 1, j.column - 1)
@@ -984,6 +1001,9 @@ export class TestFeature implements TestControllerHost {
                     await node.stop()
                 }
             }),
+            registerCommand('language-julia.showTestItemControllerOutput', async () =>
+                this.juliaTestitemControllerOutputChannel.show(true)
+            ),
             registerCommand('language-julia.startTestController', async () => await this.startTestController()),
             registerCommand('language-julia.stopTestController', async () => await this.stopTestController()),
             registerCommand('language-julia.restartTestController', async () => await this.restartTestController()),

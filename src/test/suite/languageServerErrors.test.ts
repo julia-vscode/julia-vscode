@@ -51,6 +51,7 @@ suite('isLanguageServerError', () => {
 
     test('recognises Node stream and socket teardown errors by code', () => {
         assert.strictEqual(isLanguageServerError(nodeError('write EPIPE', 'EPIPE')), true)
+        assert.strictEqual(isLanguageServerError(nodeError('write EOF', 'EOF')), true)
         assert.strictEqual(
             isLanguageServerError(nodeError('Cannot call write after a stream was destroyed', 'ERR_STREAM_DESTROYED')),
             true
@@ -69,6 +70,7 @@ suite('isLanguageServerError', () => {
             "Client is not running and can't be stopped. It's current state is: startFailed",
             'Cannot call write after a stream was destroyed',
             'write EPIPE',
+            'write EOF',
             'This socket has been ended by the other party',
         ]) {
             assert.strictEqual(isLanguageServerError(new Error(message)), true, message)

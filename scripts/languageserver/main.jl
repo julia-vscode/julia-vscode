@@ -113,24 +113,7 @@ function Base.showerror(io::IO, ex::LSPrecompileFailure)
     print(io, ex.msg)
 end
 
-function is_language_server_precompile_failure(err)
-    if err isa ErrorException
-        return startswith(err.msg, "Failed to precompile") ||
-            occursin("failed to precompile", lowercase(err.msg))
-    elseif err isa LoadError
-        return is_language_server_precompile_failure(err.error)
-    elseif err isa Base.SystemError
-        # A failed file operation on the compiled cache (e.g. "opening file
-        # '~/.julia/compiled/v1.x/JuliaWorkspaces/xyz.ji': Permission denied")
-        # is a broken depot, not a server bug: the depot-permissions message
-        # below is the actionable response, not a crash report.
-        return occursin("compiled", err.prefix) || occursin(".ji", err.prefix)
-    elseif occursin("PkgPrecompileError", string(typeof(err)))
-        return true
-    else
-        return occursin("failed to precompile", lowercase(sprint(showerror, err)))
-    end
-end
+include(joinpath(@__DIR__, "..", "precompile_failures.jl"))
 
 try
     if length(Base.ARGS) != 7
@@ -176,7 +159,7 @@ try
     try
         using LanguageServer
     catch err
-        if is_language_server_precompile_failure(err)
+        if is_precompile_failure(err)
             # The extension does not set JULIA_DEPOT_PATH when spawning the LS
             # (a user can via julia.additionalEnvironmentVariables), so fall
             # back to the effective depot path rather than crashing with a
