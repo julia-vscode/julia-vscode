@@ -1,11 +1,9 @@
 import * as assert from 'assert'
 import {
-    formatBytes,
     formatMillis,
     formatPerfStats,
     JuliaTestProcess,
     testItemKey,
-    osKillReport,
     unexpectedControllerExit,
 } from '../../testing/testFeature'
 
@@ -33,25 +31,6 @@ suite('formatMillis', () => {
         assert.strictEqual(formatMillis(999), '999 ms')
         assert.strictEqual(formatMillis(1000), '1.00 s')
         assert.strictEqual(formatMillis(1234), '1.23 s')
-    })
-})
-
-suite('formatBytes', () => {
-    test('leaves byte counts unscaled and undecorated', () => {
-        assert.strictEqual(formatBytes(0), '0 B')
-        assert.strictEqual(formatBytes(512), '512 B')
-        assert.strictEqual(formatBytes(1023), '1023 B')
-    })
-
-    test('scales at each 1024 boundary', () => {
-        assert.strictEqual(formatBytes(1024), '1.0 KiB')
-        assert.strictEqual(formatBytes(1536), '1.5 KiB')
-        assert.strictEqual(formatBytes(1024 * 1024), '1.0 MiB')
-        assert.strictEqual(formatBytes(1024 * 1024 * 1024), '1.0 GiB')
-    })
-
-    test('stops scaling at the largest unit it knows', () => {
-        assert.strictEqual(formatBytes(1024 ** 5), '1024.0 TiB')
     })
 })
 
@@ -186,31 +165,5 @@ suite('unexpectedControllerExit', () => {
     test('files no crash report for an unasked-for kill, which is counted instead', () => {
         assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL', false), null)
         assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM', false), null)
-    })
-})
-
-suite('osKillReport', () => {
-    const GIB = 1024 * 1024 * 1024
-
-    test('names the signal and sizes the memory the machine had left', () => {
-        const report = osKillReport('SIGKILL', { total: 16 * GIB, free: 256 * 1024 * 1024, cgroupLimit: null }, 7)
-
-        assert.match(report, /SIGKILL/)
-        assert.match(report, /256\.0 MiB free of 16\.0 GiB/)
-        assert.match(report, /cgroup limit none/)
-        assert.match(report, /Test processes alive: 7/)
-    })
-
-    test('sizes a cgroup limit when there is one, which is what a container stop looks like', () => {
-        const report = osKillReport('SIGKILL', { total: 64 * GIB, free: 32 * GIB, cgroupLimit: 2 * GIB }, 1)
-
-        assert.match(report, /cgroup limit 2\.0 GiB/)
-    })
-
-    test('carries no paths or package names, only numbers and the signal', () => {
-        const report = osKillReport('SIGTERM', { total: GIB, free: GIB, cgroupLimit: null }, 0)
-
-        assert.ok(!report.includes('/'))
-        assert.ok(!report.includes('\\'))
     })
 })

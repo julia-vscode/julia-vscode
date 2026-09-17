@@ -43,6 +43,7 @@ import { logFileContents, TestProcessLog } from './testProcessLog'
 import { closeStaleTestProcessLogTabs, TestProcessLogViewManager } from './testProcessLogView'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 import { getCustomEnvironmentVariables, inferJuliaNumThreads, onEvent, registerCommand } from '../utils'
+import { formatBytes, osKillNotification, osKillReport } from '../processExit'
 
 enum TestRunMode {
     Normal,
@@ -91,17 +92,6 @@ function isExpectedTestRunRejection(err: unknown) {
 
 interface OurFileCoverage extends vscode.FileCoverage {
     detailedCoverage: vscode.StatementCoverage[]
-}
-
-export function formatBytes(bytes: number) {
-    const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
-    let value = bytes
-    let unit = 0
-    while (value >= 1024 && unit < units.length - 1) {
-        value = value / 1024
-        unit += 1
-    }
-    return unit === 0 ? `${value} B` : `${value.toFixed(1)} ${units[unit]}`
 }
 
 export function formatMillis(millis: number) {
@@ -267,33 +257,6 @@ export function unexpectedControllerExit(
         return null
     }
     return `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
-}
-
-/**
- * What is reported when the test item controller is killed from outside.
- *
- * An out-of-memory kill is the likeliest reason, and it is not safely the
- * machine's fault: the controller and the test processes it supervises are
- * ours, so a run that grows until the kernel intervenes may well be a leak
- * here. That is why this is reported rather than merely counted, and why it
- * carries the figures needed to tell the two apart — how much memory the
- * machine had left, any cgroup limit it was held to, and how many test
- * processes were alive when it died.
- *
- * No paths or package names go into this, only numbers and the signal.
- */
-export function osKillReport(
-    signal: NodeJS.Signals,
-    memory: { total: number; free: number; cgroupLimit: number | null },
-    liveTestProcesses: number
-): string {
-    return [
-        `Julia test item controller was killed with ${signal}`,
-        `Memory: ${formatBytes(memory.free)} free of ${formatBytes(memory.total)}, cgroup limit ${
-            memory.cgroupLimit === null ? 'none' : formatBytes(memory.cgroupLimit)
-        }`,
-        `Test processes alive: ${liveTestProcesses}`,
-    ].join('\n')
 }
 
 export class JuliaTestController {
@@ -786,9 +749,10 @@ export class JuliaTestController {
             if (!this._intentionalStop && isOsKillSignal(signal)) {
                 const limit = readCgroupMemoryLimit()
                 const report = osKillReport(
+                    'Julia test item controller',
                     signal,
                     { total: totalmem(), free: freemem(), cgroupLimit: limit },
-                    this.testProcesses.size
+                    [`Test processes alive: ${this.testProcesses.size}`]
                 )
 
                 this.outputChannel.appendLine(report)
@@ -803,7 +767,7 @@ export class JuliaTestController {
 
                 vscode.window
                     .showErrorMessage(
-                        `The Julia test item controller was stopped by the operating system (${signal}), most likely because it ran out of memory. Any running tests have been stopped.`,
+                        `${osKillNotification('The Julia test item controller', signal)} Any running tests have been stopped.`,
                         'Show Logs'
                     )
                     .then((choice) => {
