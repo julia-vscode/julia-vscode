@@ -5,6 +5,7 @@ import {
     formatPerfStats,
     JuliaTestProcess,
     testItemKey,
+    osKillReport,
     unexpectedControllerExit,
 } from '../../testing/testFeature'
 
@@ -185,5 +186,31 @@ suite('unexpectedControllerExit', () => {
     test('files no crash report for an unasked-for kill, which is counted instead', () => {
         assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL', false), null)
         assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM', false), null)
+    })
+})
+
+suite('osKillReport', () => {
+    const GIB = 1024 * 1024 * 1024
+
+    test('names the signal and sizes the memory the machine had left', () => {
+        const report = osKillReport('SIGKILL', { total: 16 * GIB, free: 256 * 1024 * 1024, cgroupLimit: null }, 7)
+
+        assert.match(report, /SIGKILL/)
+        assert.match(report, /256\.0 MiB free of 16\.0 GiB/)
+        assert.match(report, /cgroup limit none/)
+        assert.match(report, /Test processes alive: 7/)
+    })
+
+    test('sizes a cgroup limit when there is one, which is what a container stop looks like', () => {
+        const report = osKillReport('SIGKILL', { total: 64 * GIB, free: 32 * GIB, cgroupLimit: 2 * GIB }, 1)
+
+        assert.match(report, /cgroup limit 2\.0 GiB/)
+    })
+
+    test('carries no paths or package names, only numbers and the signal', () => {
+        const report = osKillReport('SIGTERM', { total: GIB, free: GIB, cgroupLimit: null }, 0)
+
+        assert.ok(!report.includes('/'))
+        assert.ok(!report.includes('\\'))
     })
 })

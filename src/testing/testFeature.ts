@@ -5,7 +5,12 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaExecutable, ExecutableFeature, JuliaNotFoundError } from '../executables'
 import * as path from 'path'
-import { getCrashReportingPipename, handleNewCrashReportFromException, traceEvent } from '../telemetry'
+import {
+    getCrashReportingPipename,
+    handleNewCrashReport,
+    handleNewCrashReportFromException,
+    traceEvent,
+} from '../telemetry'
 import { TestControllerHost, TestProcessGroupNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus, freemem, totalmem } from 'os'
 import * as vslc from 'vscode-languageclient/node'
@@ -241,11 +246,11 @@ export class JuliaTestProcess {
  * signal is what tells that apart from a kill nobody here asked for.
  *
  * `isOsKillSignal` covers the kill nobody here asked for, and is deliberately
- * the *second* check rather than the only one: such a kill describes the
- * machine rather than a fault here, but it is not nothing, so the caller
- * counts it as a `ticoskill` usage event with the memory figures that tell an
- * out-of-memory kill apart from a container stop. `SIGSEGV` and friends are
- * not covered by it and stay crash reports.
+ * the *second* check rather than the only one. It does not mean such a kill
+ * goes unreported: it gets its own report, from `osKillReport`, carrying the
+ * memory figures and live test process count that a bare exit line cannot.
+ * Returning null here is only what stops it being reported twice.
+ * `SIGSEGV` and friends are not covered by it and stay ordinary crash reports.
  */
 export function unexpectedControllerExit(
     code: number | null,
@@ -262,6 +267,33 @@ export function unexpectedControllerExit(
         return null
     }
     return `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
+}
+
+/**
+ * What is reported when the test item controller is killed from outside.
+ *
+ * An out-of-memory kill is the likeliest reason, and it is not safely the
+ * machine's fault: the controller and the test processes it supervises are
+ * ours, so a run that grows until the kernel intervenes may well be a leak
+ * here. That is why this is reported rather than merely counted, and why it
+ * carries the figures needed to tell the two apart — how much memory the
+ * machine had left, any cgroup limit it was held to, and how many test
+ * processes were alive when it died.
+ *
+ * No paths or package names go into this, only numbers and the signal.
+ */
+export function osKillReport(
+    signal: NodeJS.Signals,
+    memory: { total: number; free: number; cgroupLimit: number | null },
+    liveTestProcesses: number
+): string {
+    return [
+        `Julia test item controller was killed with ${signal}`,
+        `Memory: ${formatBytes(memory.free)} free of ${formatBytes(memory.total)}, cgroup limit ${
+            memory.cgroupLimit === null ? 'none' : formatBytes(memory.cgroupLimit)
+        }`,
+        `Test processes alive: ${liveTestProcesses}`,
+    ].join('\n')
 }
 
 export class JuliaTestController {
@@ -746,19 +778,39 @@ export class JuliaTestController {
                 `Test item controller exited (code ${code ?? 'none'}, signal ${signal ?? 'none'}).`
             )
 
-            // A kill from outside is not a crash, so `unexpectedControllerExit` returns
-            // null for it. Count it here instead, with the memory figures that tell an
-            // out-of-memory kill — the likeliest way a test run dies, since the runs are
-            // what use the memory — apart from a container stop. The `_intentionalStop`
-            // check matters: our own stop path ends in a SIGTERM.
+            // A kill nobody here asked for gets its own report rather than the bare exit
+            // line `unexpectedControllerExit` produces, because the likeliest cause —
+            // running out of memory — may be a leak on our side rather than the machine
+            // being short, and only the figures below can tell those apart. The
+            // `_intentionalStop` check matters: our own stop path ends in a SIGTERM.
             if (!this._intentionalStop && isOsKillSignal(signal)) {
                 const limit = readCgroupMemoryLimit()
+                const report = osKillReport(
+                    signal,
+                    { total: totalmem(), free: freemem(), cgroupLimit: limit },
+                    this.testProcesses.size
+                )
+
+                this.outputChannel.appendLine(report)
                 traceEvent('ticoskill', {
                     signal,
                     totalmem: String(totalmem()),
                     freemem: String(freemem()),
                     cgrouplimit: limit === null ? 'none' : String(limit),
+                    testprocesses: String(this.testProcesses.size),
                 })
+                handleNewCrashReport('TestItemControllerOsKill', report, '', 'Test Item Controller')
+
+                vscode.window
+                    .showErrorMessage(
+                        `The Julia test item controller was stopped by the operating system (${signal}), most likely because it ran out of memory. Any running tests have been stopped.`,
+                        'Show Logs'
+                    )
+                    .then((choice) => {
+                        if (choice === 'Show Logs') {
+                            this.outputChannel.show()
+                        }
+                    })
             }
 
             const unexpected = unexpectedControllerExit(code, signal, this._intentionalStop)
