@@ -701,6 +701,10 @@ export class LanguageClientFeature {
         }
 
         const storagePath = this.context.globalStorageUri.fsPath
+        // The server derives its symbol store location from this path. Telemetry
+        // has shown it arriving there malformed, with no way to see what the
+        // client actually passed, so record it in the log users are asked for.
+        this.outputChannel.appendLine(`Storage path for the language server: ${storagePath}`)
 
         const serverArgsRun: string[] = [
             '--startup-file=no',
