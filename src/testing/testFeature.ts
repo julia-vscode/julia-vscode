@@ -5,11 +5,16 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaExecutable, ExecutableFeature, JuliaNotFoundError } from '../executables'
 import * as path from 'path'
-import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
+import { getCrashReportingPipename, handleNewCrashReportFromException, traceEvent } from '../telemetry'
 import { TestControllerHost, TestProcessGroupNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
-import { cpus } from 'os'
+import { cpus, freemem, totalmem } from 'os'
 import * as vslc from 'vscode-languageclient/node'
-import { isEnvironmentalWindowsExitCode, isOsKillSignal, LanguageClientFeature } from '../languageClient'
+import {
+    isEnvironmentalWindowsExitCode,
+    isOsKillSignal,
+    LanguageClientFeature,
+    readCgroupMemoryLimit,
+} from '../languageClient'
 import {
     notficiationTypeTestItemErrored,
     notficiationTypeTestItemFailed,
@@ -228,16 +233,28 @@ export class JuliaTestProcess {
  * exit code from the runtime itself — and those are reported here because
  * otherwise they leave no trace anywhere.
  *
- * `isOsKillSignal` is what this shares with the language server and did not
+ * `intentionalStop` is what this shares with the language server and did not
  * use to: `kill()` and the fallback in `shutdown()` both send a plain
  * `SIGTERM`, so every ordinary teardown of the controller — closing VS Code,
  * stopping it from the process tree view — arrived here as `signal SIGTERM`
- * and filed a crash report with no crash in it. An external `SIGKILL`, e.g.
- * from an out-of-memory killer, describes the machine rather than a fault
- * here for the same reason it does for the server. `SIGSEGV` and friends are
+ * and filed a crash report with no crash in it. Knowing that we sent the
+ * signal is what tells that apart from a kill nobody here asked for.
+ *
+ * `isOsKillSignal` covers the kill nobody here asked for, and is deliberately
+ * the *second* check rather than the only one: such a kill describes the
+ * machine rather than a fault here, but it is not nothing, so the caller
+ * counts it as a `ticoskill` usage event with the memory figures that tell an
+ * out-of-memory kill apart from a container stop. `SIGSEGV` and friends are
  * not covered by it and stay crash reports.
  */
-export function unexpectedControllerExit(code: number | null, signal: NodeJS.Signals | null): string | null {
+export function unexpectedControllerExit(
+    code: number | null,
+    signal: NodeJS.Signals | null,
+    intentionalStop: boolean
+): string | null {
+    if (intentionalStop) {
+        return null
+    }
     if (signal === null && (code === null || code === 0 || code === 1)) {
         return null
     }
@@ -254,6 +271,7 @@ export class JuliaTestController {
     kill() {
         // `'exit'` clears `process`, and the tree node this is reached from outlives it, so a
         // second click would otherwise throw a `TypeError` and file it as a crash report.
+        this._intentionalStop = true
         this.process?.kill()
     }
 
@@ -267,6 +285,10 @@ export class JuliaTestController {
         if (!process) {
             return Promise.resolve()
         }
+
+        // Everything from here on is us ending the controller, including the exit the
+        // `shutdown` notification itself brings about and the kill that backs it up.
+        this._intentionalStop = true
 
         try {
             if (this.connection) {
@@ -303,6 +325,12 @@ export class JuliaTestController {
 
     private connection: rpc.MessageConnection
     private process: ChildProcessWithoutNullStreams
+    /**
+     * Set while this controller is being stopped on purpose, so that the `SIGTERM`
+     * `kill()` and `shutdown()` send is not mistaken for something killing the
+     * controller from outside. Cleared when a process is started.
+     */
+    private _intentionalStop: boolean = false
     private testRuns = new Map<string, { testRun: vscode.TestRun; testItems: Map<string, vscode.TestItem> }>()
     private testProcesses = new Map<string, JuliaTestProcess>()
     private currentRunExecutable: JuliaExecutable | undefined
@@ -408,6 +436,8 @@ export class JuliaTestController {
     }
 
     public async start() {
+        this._intentionalStop = false
+
         let juliaExecutable: JuliaExecutable | null
 
         if (process.env.DEBUG_MODE) {
@@ -716,7 +746,22 @@ export class JuliaTestController {
                 `Test item controller exited (code ${code ?? 'none'}, signal ${signal ?? 'none'}).`
             )
 
-            const unexpected = unexpectedControllerExit(code, signal)
+            // A kill from outside is not a crash, so `unexpectedControllerExit` returns
+            // null for it. Count it here instead, with the memory figures that tell an
+            // out-of-memory kill — the likeliest way a test run dies, since the runs are
+            // what use the memory — apart from a container stop. The `_intentionalStop`
+            // check matters: our own stop path ends in a SIGTERM.
+            if (!this._intentionalStop && isOsKillSignal(signal)) {
+                const limit = readCgroupMemoryLimit()
+                traceEvent('ticoskill', {
+                    signal,
+                    totalmem: String(totalmem()),
+                    freemem: String(freemem()),
+                    cgrouplimit: limit === null ? 'none' : String(limit),
+                })
+            }
+
+            const unexpected = unexpectedControllerExit(code, signal, this._intentionalStop)
             if (unexpected) {
                 handleNewCrashReportFromException(new Error(unexpected), 'Extension')
             }

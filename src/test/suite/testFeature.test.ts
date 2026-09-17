@@ -149,32 +149,41 @@ suite('JuliaTestProcess', () => {
 
 suite('unexpectedControllerExit', () => {
     test('says nothing about a clean exit', () => {
-        assert.strictEqual(unexpectedControllerExit(0, null), null)
+        assert.strictEqual(unexpectedControllerExit(0, null, false), null)
     })
 
     test('says nothing about code 1, which the controller already reported itself', () => {
-        assert.strictEqual(unexpectedControllerExit(1, null), null)
+        assert.strictEqual(unexpectedControllerExit(1, null, false), null)
     })
 
-    test('says nothing about a SIGTERM, which is how the extension stops the controller', () => {
-        assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM'), null)
-    })
-
-    test('says nothing about an out-of-memory or other external SIGKILL', () => {
-        assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL'), null)
+    test('says nothing about the SIGTERM our own stop path sends', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM', true), null)
     })
 
     test('says nothing about the Windows session-teardown exit codes', () => {
-        assert.strictEqual(unexpectedControllerExit(1073807364, null), null)
-        assert.strictEqual(unexpectedControllerExit(3221225794, null), null)
+        assert.strictEqual(unexpectedControllerExit(1073807364, null, false), null)
+        assert.strictEqual(unexpectedControllerExit(3221225794, null, false), null)
     })
 
-    test('reports a native crash signal', () => {
-        assert.match(unexpectedControllerExit(null, 'SIGSEGV'), /signal SIGSEGV/)
-        assert.match(unexpectedControllerExit(null, 'SIGABRT'), /signal SIGABRT/)
+    test('reports a native crash signal, even while stopping', () => {
+        assert.match(unexpectedControllerExit(null, 'SIGSEGV', false), /signal SIGSEGV/)
+        assert.match(unexpectedControllerExit(null, 'SIGABRT', false), /signal SIGABRT/)
     })
 
     test('reports a runtime exit code the controller cannot have reported itself', () => {
-        assert.match(unexpectedControllerExit(4294967295, null), /code 4294967295/)
+        assert.match(unexpectedControllerExit(4294967295, null, false), /code 4294967295/)
+    })
+
+    test('an intentional stop covers whatever the exit turns out to be', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL', true), null)
+        assert.strictEqual(unexpectedControllerExit(4294967295, null, true), null)
+    })
+
+    // A kill nobody here asked for is not a crash report, but it is not silence
+    // either: the exit handler counts it as a `ticoskill` event. These two cases
+    // are what that branch keys off, so they are pinned here as well.
+    test('files no crash report for an unasked-for kill, which is counted instead', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL', false), null)
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM', false), null)
     })
 })
