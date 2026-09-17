@@ -115,6 +115,84 @@ end
 
 include(joinpath(@__DIR__, "..", "precompile_failures.jl"))
 
+"""
+Describes the shape of the storage path the extension passed in `ARGS[4]`, and
+of the symbol store path derived from it, without disclosing either: crash
+reports leave the user's machine, so only derived facts are transmitted.
+
+Telemetry shows `mkpath` failing on a path with a single leading separator where
+a UNC path would have had two, and no report so far can explain where such a
+value came from. `leading separators` is the field that tells a path which
+arrived malformed apart from a well-formed one that Julia then mishandled.
+"""
+function storage_path_diagnostics(storage_path::AbstractString, store_path::AbstractString)
+    is_separator(c) = c === '/' || c === '\\'
+
+    function leading_separators(p)
+        n = 0
+        for c in p
+            is_separator(c) || break
+            n += 1
+        end
+        return n
+    end
+
+    function drive_kind(p)
+        drive, _ = splitdrive(p)
+        if isempty(drive)
+            "none"
+        elseif length(drive) >= 2 && is_separator(drive[1]) && is_separator(drive[2])
+            "unc"
+        else
+            "letter"
+        end
+    end
+
+    # A path on an unreachable network location can fail rather than answer, and
+    # a diagnostic must never be the thing that throws.
+    probe(f, p) = try
+        f(p)
+    catch
+        missing
+    end
+
+    io = IOBuffer()
+    println(io, "Storage path diagnostics (the paths themselves are not reported):")
+    println(io, "  length:                   ", length(storage_path))
+    println(io, "  leading separators:       ", leading_separators(storage_path))
+    println(io, "  drive kind:               ", drive_kind(storage_path))
+    println(io, "  isabspath:                ", probe(isabspath, storage_path))
+    println(io, "  path components:          ", probe(p -> length(splitpath(p)), storage_path))
+    println(io, "  ispath:                   ", probe(ispath, storage_path))
+    println(io, "  isdir:                    ", probe(isdir, storage_path))
+    println(io, "  parent isdir:             ", probe(p -> isdir(dirname(p)), storage_path))
+    println(io, "  last component is ext id: ", basename(storage_path) == "julialang.language-julia")
+    println(io, "  store path ispath:        ", probe(ispath, store_path))
+    println(io, "  store path parent isdir:  ", probe(p -> isdir(dirname(p)), store_path))
+    println(io, "  homedir drive kind:       ", probe(drive_kind, homedir()))
+    println(io, "  kernel:                   ", Sys.KERNEL)
+    print(io,   "  iswindows:                ", Sys.iswindows())
+    return String(take!(io))
+end
+
+"""
+Wraps an error thrown while creating the symbol store directory, so that the
+crash report carries `storage_path_diagnostics` alongside the original error.
+
+The language server still dies exactly as it did before; only the report is
+richer. `showerror` delegates to the wrapped error first, so the message still
+opens with the text the report used to carry.
+"""
+struct LSStorePathError <: Exception
+    err::Exception
+    diagnostics::String
+end
+
+function Base.showerror(io::IO, ex::LSStorePathError)
+    showerror(io, ex.err)
+    print(io, "\n\n", ex.diagnostics)
+end
+
 try
     if length(Base.ARGS) != 7
         error("Invalid number of arguments passed to julia language server.")
@@ -186,7 +264,18 @@ try
     symserver_store_path = joinpath(ARGS[4], "symbolstore", store_version)
 
     if !ispath(symserver_store_path)
-        mkpath(symserver_store_path)
+        try
+            mkpath(symserver_store_path)
+        catch err
+            (err isa Base.IOError || err isa Base.SystemError) || rethrow()
+            diagnostics = try
+                storage_path_diagnostics(ARGS[4], symserver_store_path)
+            catch diagnostics_err
+                "Storage path diagnostics could not be collected: " *
+                    sprint(showerror, diagnostics_err)
+            end
+            throw(LSStorePathError(err, diagnostics))
+        end
     end
 
     @info "Symbol server store is at '$symserver_store_path'."
