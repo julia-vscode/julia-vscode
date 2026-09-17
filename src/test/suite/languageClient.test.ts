@@ -1,6 +1,13 @@
 import * as assert from 'assert'
 import { CloseAction, ErrorAction, ErrorHandler } from 'vscode-languageclient/node'
-import { RestartTrackingErrorHandler, StderrTail, sanitizeHomeDir, unexpectedServerExit } from '../../languageClient'
+import {
+    isOsKillSignal,
+    parseCgroupMemoryLimit,
+    RestartTrackingErrorHandler,
+    sanitizeHomeDir,
+    StderrTail,
+    unexpectedServerExit,
+} from '../../languageClient'
 
 function makeDelegate(closeActions: CloseAction[]): ErrorHandler {
     let i = 0
@@ -77,8 +84,14 @@ suite('unexpectedServerExit', () => {
         assert.strictEqual(unexpectedServerExit(139, null, true), null)
     })
 
-    test('a signal is reported', () => {
+    test('a native crash signal is reported', () => {
         assert.match(unexpectedServerExit(null, 'SIGSEGV', false), /signal SIGSEGV/)
+        assert.match(unexpectedServerExit(null, 'SIGABRT', false), /signal SIGABRT/)
+    })
+
+    test('a kill signal is not a crash of ours, so it is not reported', () => {
+        assert.strictEqual(unexpectedServerExit(null, 'SIGKILL', false), null)
+        assert.strictEqual(unexpectedServerExit(null, 'SIGTERM', false), null)
     })
 
     test('a runtime exit code is reported', () => {
@@ -96,6 +109,48 @@ suite('unexpectedServerExit', () => {
 
     test('an unexplained external termination is still reported', () => {
         assert.match(unexpectedServerExit(4294967295, null, false), /code 4294967295/)
+    })
+})
+
+suite('isOsKillSignal', () => {
+    test('kill signals come from outside the process tree', () => {
+        assert.strictEqual(isOsKillSignal('SIGKILL'), true)
+        assert.strictEqual(isOsKillSignal('SIGTERM'), true)
+    })
+
+    test('a native crash is not an OS kill', () => {
+        assert.strictEqual(isOsKillSignal('SIGSEGV'), false)
+        assert.strictEqual(isOsKillSignal('SIGABRT'), false)
+        assert.strictEqual(isOsKillSignal('SIGBUS'), false)
+        assert.strictEqual(isOsKillSignal('SIGILL'), false)
+    })
+
+    test('an exit without a signal is not an OS kill', () => {
+        assert.strictEqual(isOsKillSignal(null), false)
+    })
+})
+
+suite('parseCgroupMemoryLimit', () => {
+    test('reads a byte count', () => {
+        assert.strictEqual(parseCgroupMemoryLimit('2147483648'), 2147483648)
+        assert.strictEqual(parseCgroupMemoryLimit('2147483648\n'), 2147483648)
+    })
+
+    test('cgroup v2 writes max when there is no limit', () => {
+        assert.strictEqual(parseCgroupMemoryLimit('max'), null)
+        assert.strictEqual(parseCgroupMemoryLimit('max\n'), null)
+    })
+
+    test('cgroup v1 expresses no limit as an implausibly large number', () => {
+        assert.strictEqual(parseCgroupMemoryLimit('9223372036854771712'), null)
+    })
+
+    test('an unreadable or empty value is no limit', () => {
+        assert.strictEqual(parseCgroupMemoryLimit(''), null)
+        assert.strictEqual(parseCgroupMemoryLimit('   '), null)
+        assert.strictEqual(parseCgroupMemoryLimit('not a number'), null)
+        assert.strictEqual(parseCgroupMemoryLimit('-1'), null)
+        assert.strictEqual(parseCgroupMemoryLimit('0'), null)
     })
 })
 

@@ -1,4 +1,5 @@
 import { ChildProcess } from 'child_process'
+import * as fs from 'fs'
 import * as net from 'net'
 import * as os from 'os'
 import * as path from 'path'
@@ -392,6 +393,64 @@ export function isEnvironmentalWindowsExitCode(code: number | null): boolean {
 }
 
 /**
+ * Signals that mean something outside the process tree killed the language
+ * server: an out-of-memory killer (the kernel's or a cgroup's), a container
+ * stop, a session teardown, a `kill -9`.
+ *
+ * Neither Julia nor this extension sends these. An extension-initiated stop
+ * goes through the graceful shutdown path and sets `_intentionalStop`, which
+ * `unexpectedServerExit` filters out, and a Julia-level crash exits with code
+ * 1 after reporting itself through the crash pipe. So a kill signal reaching
+ * the exit handler is a condition of the user's machine, not a defect here,
+ * and it carries no stack and nothing to fix.
+ *
+ * `SIGSEGV`, `SIGBUS`, `SIGILL` and `SIGABRT` are deliberately not included:
+ * those are genuine native crashes in Julia or a library it loads, and stay
+ * crash reports.
+ */
+export function isOsKillSignal(signal: NodeJS.Signals | null): boolean {
+    return signal === 'SIGKILL' || signal === 'SIGTERM'
+}
+
+/**
+ * Parses the contents of a cgroup memory limit file. Returns `null` when no
+ * limit is set, which cgroup v2 writes as `max` and cgroup v1 as a sentinel
+ * near the word size.
+ */
+export function parseCgroupMemoryLimit(contents: string): number | null {
+    const trimmed = contents.trim()
+    if (trimmed === '' || trimmed === 'max') {
+        return null
+    }
+    const limit = Number(trimmed)
+    // The v1 sentinel is far too large to be a safe integer, so it falls out
+    // here along with anything unparsable.
+    if (!Number.isSafeInteger(limit) || limit <= 0) {
+        return null
+    }
+    return limit
+}
+
+/**
+ * The memory limit this process is actually held to, which on a container is
+ * far below the machine's total and is what an OOM killer acts on. `null` off
+ * Linux, or when neither cgroup file can be read.
+ */
+export function readCgroupMemoryLimit(): number | null {
+    for (const file of ['/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes']) {
+        try {
+            const limit = parseCgroupMemoryLimit(fs.readFileSync(file, 'utf8'))
+            if (limit !== null) {
+                return limit
+            }
+        } catch {
+            // Not this cgroup version, or not Linux at all.
+        }
+    }
+    return null
+}
+
+/**
  * Decides whether a language server process exit is worth a crash report.
  * Returns `null` for an expected exit, otherwise a one-line description.
  *
@@ -400,11 +459,13 @@ export function isEnvironmentalWindowsExitCode(code: number | null): boolean {
  * then calls `exit(1)`, so reporting that exit here would file every Julia
  * crash twice. The same convention is used for the test item controller in
  * `testFeature.ts`. What that path cannot cover is a death that never ran
- * Julia code, or ran it outside the guarded block: a signal, a native crash,
- * an out-of-memory kill, or the runtime's own exit codes. Those leave no
- * trace anywhere else.
- * Exit codes of an OS-terminated Windows process are the other exception;
- * see `isEnvironmentalWindowsExitCode`.
+ * Julia code, or ran it outside the guarded block: a native crash such as a
+ * `SIGSEGV`, or the runtime's own exit codes. Those leave no trace anywhere
+ * else.
+ * Exits forced from outside the process tree are the other exception, and are
+ * not crashes at all: see `isEnvironmentalWindowsExitCode` for the Windows
+ * session-teardown codes and `isOsKillSignal` for kill signals, the latter
+ * reported as an `lsoskill` event in `observeServerProcess` instead.
  */
 export function unexpectedServerExit(
     code: number | null,
@@ -417,7 +478,7 @@ export function unexpectedServerExit(
     if (signal === null && (code === 0 || code === 1)) {
         return null
     }
-    if (isEnvironmentalWindowsExitCode(code)) {
+    if (isEnvironmentalWindowsExitCode(code) || isOsKillSignal(signal)) {
         return null
     }
     return `Julia language server process exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
@@ -628,6 +689,20 @@ export class LanguageClientFeature {
         const stderrTail = new StderrTail()
         serverProcess.stderr?.on('data', (chunk) => stderrTail.append(chunk))
         serverProcess.on('exit', (code, signal) => {
+            // An OS kill is not a crash, so `unexpectedServerExit` returns null
+            // for it and the guard below skips everything. Count it here
+            // instead, with the memory figures that tell an out-of-memory kill
+            // apart from a container stop. The `_intentionalStop` check matters:
+            // our own shutdown path can end in a SIGTERM.
+            if (!this._intentionalStop && isOsKillSignal(signal)) {
+                const limit = readCgroupMemoryLimit()
+                telemetry.traceEvent('lsoskill', {
+                    signal,
+                    totalmem: String(os.totalmem()),
+                    freemem: String(os.freemem()),
+                    cgrouplimit: limit === null ? 'none' : String(limit),
+                })
+            }
             const reason = unexpectedServerExit(code, signal, this._intentionalStop)
             if (reason === null) {
                 return
