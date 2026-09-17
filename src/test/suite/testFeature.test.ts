@@ -1,5 +1,12 @@
 import * as assert from 'assert'
-import { formatBytes, formatMillis, formatPerfStats, JuliaTestProcess, testItemKey } from '../../testing/testFeature'
+import {
+    formatBytes,
+    formatMillis,
+    formatPerfStats,
+    JuliaTestProcess,
+    testItemKey,
+    unexpectedControllerExit,
+} from '../../testing/testFeature'
 
 suite('formatMillis', () => {
     test('renders sub-millisecond values as microseconds', () => {
@@ -137,5 +144,37 @@ suite('JuliaTestProcess', () => {
         proc.markTerminated()
 
         await proc.kill()
+    })
+})
+
+suite('unexpectedControllerExit', () => {
+    test('says nothing about a clean exit', () => {
+        assert.strictEqual(unexpectedControllerExit(0, null), null)
+    })
+
+    test('says nothing about code 1, which the controller already reported itself', () => {
+        assert.strictEqual(unexpectedControllerExit(1, null), null)
+    })
+
+    test('says nothing about a SIGTERM, which is how the extension stops the controller', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM'), null)
+    })
+
+    test('says nothing about an out-of-memory or other external SIGKILL', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL'), null)
+    })
+
+    test('says nothing about the Windows session-teardown exit codes', () => {
+        assert.strictEqual(unexpectedControllerExit(1073807364, null), null)
+        assert.strictEqual(unexpectedControllerExit(3221225794, null), null)
+    })
+
+    test('reports a native crash signal', () => {
+        assert.match(unexpectedControllerExit(null, 'SIGSEGV'), /signal SIGSEGV/)
+        assert.match(unexpectedControllerExit(null, 'SIGABRT'), /signal SIGABRT/)
+    })
+
+    test('reports a runtime exit code the controller cannot have reported itself', () => {
+        assert.match(unexpectedControllerExit(4294967295, null), /code 4294967295/)
     })
 })

@@ -9,7 +9,7 @@ import { getCrashReportingPipename, handleNewCrashReportFromException } from '..
 import { TestControllerHost, TestProcessGroupNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
 import { cpus } from 'os'
 import * as vslc from 'vscode-languageclient/node'
-import { isEnvironmentalWindowsExitCode, LanguageClientFeature } from '../languageClient'
+import { isEnvironmentalWindowsExitCode, isOsKillSignal, LanguageClientFeature } from '../languageClient'
 import {
     notficiationTypeTestItemErrored,
     notficiationTypeTestItemFailed,
@@ -213,6 +213,38 @@ export class JuliaTestProcess {
         this._onStatusChanged.dispose()
         this._onTerminated.dispose()
     }
+}
+
+/**
+ * Decides whether a test item controller process exit is worth a crash report.
+ * Returns `null` for an expected exit, otherwise a one-line description.
+ *
+ * This is the controller's counterpart of `unexpectedServerExit`, and follows
+ * the same reasoning. The controller reports its own crashes, with the right
+ * cloud role, from the `VSCodeErrorLogger` that `testitemcontroller_main.jl`
+ * installs, and that path always ends in `exit(1)`; reporting code 1 here as
+ * well would file every one of those crashes twice. What that path cannot
+ * cover is a death that never ran Julia code — a native crash signal, or an
+ * exit code from the runtime itself — and those are reported here because
+ * otherwise they leave no trace anywhere.
+ *
+ * `isOsKillSignal` is what this shares with the language server and did not
+ * use to: `kill()` and the fallback in `shutdown()` both send a plain
+ * `SIGTERM`, so every ordinary teardown of the controller — closing VS Code,
+ * stopping it from the process tree view — arrived here as `signal SIGTERM`
+ * and filed a crash report with no crash in it. An external `SIGKILL`, e.g.
+ * from an out-of-memory killer, describes the machine rather than a fault
+ * here for the same reason it does for the server. `SIGSEGV` and friends are
+ * not covered by it and stay crash reports.
+ */
+export function unexpectedControllerExit(code: number | null, signal: NodeJS.Signals | null): string | null {
+    if (signal === null && (code === null || code === 0 || code === 1)) {
+        return null
+    }
+    if (isEnvironmentalWindowsExitCode(code) || isOsKillSignal(signal)) {
+        return null
+    }
+    return `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
 }
 
 export class JuliaTestController {
@@ -684,21 +716,9 @@ export class JuliaTestController {
                 `Test item controller exited (code ${code ?? 'none'}, signal ${signal ?? 'none'}).`
             )
 
-            // The controller reports its own crashes, with the right cloud role, from the
-            // `VSCodeErrorLogger` `testitemcontroller_main.jl` installs — and that path always
-            // ends in `exit(1)`. Reporting code 1 here as well would file every one of those
-            // crashes twice. What that path cannot cover is a death that never ran Julia code:
-            // a signal, or an exit code from the runtime itself. Those are what is reported
-            // here, because otherwise they leave no trace anywhere.
-            // An exit forced by the OS at session teardown carries no crash
-            // information and is excluded, see `isEnvironmentalWindowsExitCode`.
-            if (signal || (code !== null && code !== 0 && code !== 1 && !isEnvironmentalWindowsExitCode(code))) {
-                handleNewCrashReportFromException(
-                    new Error(
-                        `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
-                    ),
-                    'Extension'
-                )
+            const unexpected = unexpectedControllerExit(code, signal)
+            if (unexpected) {
+                handleNewCrashReportFromException(new Error(unexpected), 'Extension')
             }
 
             if (this.connection) {
