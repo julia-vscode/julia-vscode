@@ -274,8 +274,8 @@ export function getCrashReportingPipename() {
     return g_jlcrashreportingpipename
 }
 
-export function traceEvent(message) {
-    extensionClient.trackEvent({ name: message })
+export function traceEvent(message, properties?: { [key: string]: string }) {
+    extensionClient.trackEvent({ name: message, properties })
 }
 
 // Convert an OpenTelemetry `HrTime` pair `[seconds, nanoseconds]` into a `Date`. This is lossy
