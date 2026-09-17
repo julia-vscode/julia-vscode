@@ -177,4 +177,39 @@ using VSCodeServer
             @test title == "foo"
         end
     end
+
+    @testset "is_user_interrupt" begin
+        @test VSCodeServer.is_user_interrupt(InterruptException())
+        @test !VSCodeServer.is_user_interrupt(ErrorException("boom"))
+        @test !VSCodeServer.is_user_interrupt(ArgumentError("boom"))
+
+        # `@sync` wraps a failing child task, and the message loop runs under one.
+        @test VSCodeServer.is_user_interrupt(CompositeException([InterruptException()]))
+        @test VSCodeServer.is_user_interrupt(
+            CompositeException([InterruptException(), InterruptException()])
+        )
+        @test !VSCodeServer.is_user_interrupt(
+            CompositeException([InterruptException(), ErrorException("boom")])
+        )
+        # An empty `CompositeException` says nothing about an interrupt.
+        @test !VSCodeServer.is_user_interrupt(CompositeException())
+
+        if isdefined(Base, :TaskFailedException)
+            interrupted = @task throw(InterruptException())
+            schedule(interrupted)
+            @test VSCodeServer.is_user_interrupt(try
+                wait(interrupted)
+            catch err
+                err
+            end)
+
+            failed = @task error("boom")
+            schedule(failed)
+            @test !VSCodeServer.is_user_interrupt(try
+                wait(failed)
+            catch err
+                err
+            end)
+        end
+    end
 end
