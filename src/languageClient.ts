@@ -25,6 +25,7 @@ import { isLanguageServerError } from './languageServerErrors'
 import * as telemetry from './telemetry'
 import { ExecutableFeature, JuliaExecutable, JuliaNotFoundError } from './executables'
 import { getCustomEnvironmentVariables, onEvent, registerCommand } from './utils'
+import { osKillNotification, osKillReport } from './processExit'
 
 export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
 const supportedLanguages = ['julia', 'juliamarkdown', 'markdown']
@@ -689,19 +690,46 @@ export class LanguageClientFeature {
         const stderrTail = new StderrTail()
         serverProcess.stderr?.on('data', (chunk) => stderrTail.append(chunk))
         serverProcess.on('exit', (code, signal) => {
-            // An OS kill is not a crash, so `unexpectedServerExit` returns null
-            // for it and the guard below skips everything. Count it here
-            // instead, with the memory figures that tell an out-of-memory kill
-            // apart from a container stop. The `_intentionalStop` check matters:
-            // our own shutdown path can end in a SIGTERM.
+            // A kill nobody here asked for gets its own report rather than the
+            // bare exit line `unexpectedServerExit` produces. The server is ours
+            // and it is the long-lived process of this extension, so a kill for
+            // running out of memory can be a leak on our side rather than the
+            // machine being short — and only the figures below tell those apart.
+            // The `_intentionalStop` check matters: our own shutdown path can
+            // end in a SIGTERM.
             if (!this._intentionalStop && isOsKillSignal(signal)) {
                 const limit = readCgroupMemoryLimit()
+                const report = osKillReport(
+                    'Julia language server',
+                    signal,
+                    { total: os.totalmem(), free: os.freemem(), cgroupLimit: limit },
+                    [
+                        `Julia: ${juliaExecutable.command} (${juliaExecutable.version})`,
+                        '',
+                        'Last stderr output:',
+                        stderrTail.text(),
+                    ]
+                )
+
+                this.outputChannel.appendLine(report)
                 telemetry.traceEvent('lsoskill', {
                     signal,
                     totalmem: String(os.totalmem()),
                     freemem: String(os.freemem()),
                     cgrouplimit: limit === null ? 'none' : String(limit),
                 })
+                telemetry.handleNewCrashReport('LanguageServerOsKill', sanitizeHomeDir(report), '', 'Language Server')
+
+                vscode.window
+                    .showErrorMessage(
+                        `${osKillNotification('The Julia language server', signal)} It will be restarted.`,
+                        'Open Logs'
+                    )
+                    .then((choice) => {
+                        if (choice === 'Open Logs') {
+                            this.outputChannel.show()
+                        }
+                    })
             }
             const reason = unexpectedServerExit(code, signal, this._intentionalStop)
             if (reason === null) {
