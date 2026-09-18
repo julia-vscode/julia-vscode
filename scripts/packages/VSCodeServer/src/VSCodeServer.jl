@@ -10,52 +10,40 @@ import Profile
 import Logging
 import InteractiveUtils
 
-include("../../JSON/src/JSON.jl")
-include("../../CancellationTokens/src/CancellationTokens.jl")
+include("../../../include_with_private_deps.jl")
 
+module JSON end
+include_with_private_deps(JSON, "../../JSON/src/JSON.jl")
+
+module CancellationTokens end
+include_with_private_deps(CancellationTokens, "../../CancellationTokens/src/CancellationTokens.jl")
+
+module CodeTracking end
 @static if VERSION >= v"1.10.0"
-    include("../../CodeTracking/src/CodeTracking.jl")
+    include_with_private_deps(CodeTracking, "../../CodeTracking/src/CodeTracking.jl")
 elseif VERSION >= v"1.6.0"
-    include("../../../packages-old/v1.9/CodeTracking/src/CodeTracking.jl")
+    include_with_private_deps(CodeTracking, "../../../packages-old/v1.9/CodeTracking/src/CodeTracking.jl")
 else
-    include("../../../packages-old/v1.5/CodeTracking/src/CodeTracking.jl")
+    include_with_private_deps(CodeTracking, "../../../packages-old/v1.5/CodeTracking/src/CodeTracking.jl")
 end
 
-module IJuliaCore
-using ..JSON
-using Printf
-import Base64
+module IJuliaCore end
+include_with_private_deps(IJuliaCore, "../../IJuliaCore/src/IJuliaCore.jl")
 
-include("../../IJuliaCore/src/packagedef.jl")
-end
+module JSONRPC end
+include_with_private_deps(JSONRPC, "../../JSONRPC/src/JSONRPC.jl")
 
-module JSONRPC
-import ..CancellationTokens
-import ..JSON
-import UUIDs, Sockets
-
-include("../../JSONRPC/src/packagedef.jl")
-end
-
-module JuliaInterpreter
-using ..CodeTracking
-
+module JuliaInterpreter end
 @static if VERSION >= v"1.10.0"
-    include("../../JuliaInterpreter/src/packagedef.jl")
+    include_with_private_deps(JuliaInterpreter, "../../JuliaInterpreter/src/JuliaInterpreter.jl")
 elseif VERSION >= v"1.6.0"
-    include("../../../packages-old/v1.9/JuliaInterpreter/src/packagedef.jl")
+    include_with_private_deps(JuliaInterpreter, "../../../packages-old/v1.9/JuliaInterpreter/src/JuliaInterpreter.jl")
 else
-    include("../../../packages-old/v1.5/JuliaInterpreter/src/packagedef.jl")
-end
+    include_with_private_deps(JuliaInterpreter, "../../../packages-old/v1.5/JuliaInterpreter/src/JuliaInterpreter.jl")
 end
 
-module DebugAdapter
-import Pkg
-import ..JuliaInterpreter
-import ..JSON
-
-include("../../DebugAdapter/src/packagedef.jl")
-end
+module DebugAdapter end
+include_with_private_deps(DebugAdapter, "../../DebugAdapter/src/DebugAdapter.jl")
 
 const FALLBACK_CONSOLE_LOGGER_REF = Ref{Logging.AbstractLogger}()
 const DEBUG_SESSION = Ref{Channel{DebugAdapter.DebugSession}}()
