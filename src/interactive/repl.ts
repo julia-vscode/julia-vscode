@@ -1234,20 +1234,51 @@ async function softInterrupt() {
     }
 }
 
-function signalInterrupt() {
-    try {
-        if (process.platform !== 'win32') {
-            g_terminal.processId.then((pid) => process.kill(pid, 'SIGINT'))
-        } else {
-            console.warn('Signal interrupts are not supported on Windows.')
-        }
-    } catch (err) {
-        if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
-            // The terminal process being gone is expected; anything else is not.
-            telemetry.handleNewCrashReportFromException(err as Error, 'Extension')
-        }
-        console.warn(err)
+/**
+ * A failure to signal the REPL process that only says the process is not
+ * there anymore. Escalating to a signal happens after three interrupts in a
+ * second, by which time the REPL may well have gone away on its own, so this
+ * is an expected race rather than a fault to report.
+ */
+export function isExpectedInterruptSignalError(err: unknown): boolean {
+    return (err as NodeJS.ErrnoException)?.code === 'ESRCH'
+}
+
+function reportInterruptSignalError(err: unknown) {
+    if (!isExpectedInterruptSignalError(err)) {
+        telemetry.handleNewCrashReportFromException(err as Error, 'Extension')
     }
+    console.warn(err)
+}
+
+function signalInterrupt() {
+    if (process.platform === 'win32') {
+        console.warn('Signal interrupts are not supported on Windows.')
+        return
+    }
+
+    // The terminal can be gone by the time an interrupt escalates this far: the
+    // user closed it, or `killREPL` ran, while the interrupts that got us here
+    // were being counted. There is then nothing left to signal.
+    const terminal = g_terminal
+    if (!terminal) {
+        return
+    }
+
+    // `process.kill` runs in the `processId` callback, so it throws into the
+    // promise rather than out of this function; both outcomes have to be
+    // handled here or an interrupt of a dead REPL becomes an unhandled
+    // rejection.
+    terminal.processId.then((pid) => {
+        if (pid === undefined) {
+            return
+        }
+        try {
+            process.kill(pid, 'SIGINT')
+        } catch (err) {
+            reportInterruptSignalError(err)
+        }
+    }, reportInterruptSignalError)
 }
 
 // code execution end
