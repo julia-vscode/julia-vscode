@@ -38,6 +38,28 @@ const requestTypeRunCell = new RequestType<
 //     return pathValue.startsWith(homedir()) ? `~${path.relative(homedir(), pathValue)}` : pathValue
 // }
 
+/**
+ * The operating system refused to start the kernel process at all: the
+ * configured Julia is missing, is not executable, or was blocked from
+ * launching — the last of which Windows reports as the bare `spawn UNKNOWN`,
+ * typically an antivirus or a broken shim.
+ *
+ * That describes the user's installation rather than a defect here, and there
+ * is nothing in it to act on beyond the message, so it is shown and logged
+ * instead of being reported as a crash. This is the same opt-out
+ * `JuliaNotFoundError` gets in `executables.ts`.
+ */
+export class KernelStartError extends Error {
+    constructor(command: string, cause: unknown) {
+        super(
+            `Could not start the Julia notebook kernel with '${command}': ${
+                cause instanceof Error ? cause.message : String(cause)
+            }`
+        )
+        this.name = 'KernelStartError'
+    }
+}
+
 export class JuliaKernel {
     private _localDisposables: vscode.Disposable[] = []
 
@@ -46,6 +68,7 @@ export class JuliaKernel {
     private _processExecutionRequests = new Subject()
 
     private _kernelProcess: ChildProcess
+    private _startFailure: KernelStartError | null = null
     public _msgConnection: MessageConnection
     private _current_request_id: number = 0
 
@@ -348,21 +371,35 @@ export class JuliaKernel {
 
             this.notebookFeature.debugPipenameToKernel.set(this.debuggerPipename, this)
 
-            this._kernelProcess = spawn(
-                this.juliaExecutable.command,
-                [
-                    ...this.juliaExecutable.args,
-                    ...args,
-                    path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
-                    pn,
-                    this.debuggerPipename,
-                    getCrashReportingPipename(),
-                ],
-                {
-                    env,
-                    cwd: cwdPath,
-                }
-            )
+            try {
+                this._kernelProcess = spawn(
+                    this.juliaExecutable.command,
+                    [
+                        ...this.juliaExecutable.args,
+                        ...args,
+                        path.join(this.extensionPath, 'scripts', 'notebook', 'notebook.jl'),
+                        pn,
+                        this.debuggerPipename,
+                        getCrashReportingPipename(),
+                    ],
+                    {
+                        env,
+                        cwd: cwdPath,
+                    }
+                )
+            } catch (err) {
+                // Node raises some spawn failures synchronously from here, and reports
+                // the rest through the `'error'` event handled below.
+                throw new KernelStartError(this.juliaExecutable.command, err)
+            }
+
+            // Without this listener Node turns an asynchronous spawn failure into an
+            // unhandled `'error'` event. Recording it and releasing the wait below lets
+            // it be handled in one place.
+            this._kernelProcess.on('error', (err) => {
+                this._startFailure = new KernelStartError(this.juliaExecutable.command, err)
+                connectedPromise.notify()
+            })
 
             this.outputChannel.appendLine('Successfully started the kernel process from the extension.')
 
@@ -393,14 +430,31 @@ export class JuliaKernel {
             await connectedPromise.wait()
             this.outputChannel.appendLine(`Post 'await connectedPromise.wait()'`)
 
+            if (this._startFailure) {
+                throw this._startFailure
+            }
+
             await this.messageLoop(token)
 
             this._onStopped.fire(undefined)
 
             this.dispose()
         } catch (err) {
-            handleNewCrashReportFromException(err, 'Extension')
-            throw err
+            // `run` is started from the constructor and nobody awaits it, so rethrowing
+            // here only produced an unhandled rejection. The kernel is torn down instead,
+            // which is what the caller would have had to do anyway.
+            if (err instanceof KernelStartError) {
+                this.outputChannel.appendLine(err.message)
+                vscode.window.showErrorMessage(err.message)
+            } else {
+                handleNewCrashReportFromException(err, 'Extension')
+            }
+
+            this._tokenSource.cancel()
+            this._processExecutionRequests.notify()
+            this._onCellRunFinished.fire()
+            this._onStopped.fire(undefined)
+            this.dispose()
         }
     }
 

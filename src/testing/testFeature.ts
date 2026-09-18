@@ -5,11 +5,21 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaExecutable, ExecutableFeature, JuliaNotFoundError } from '../executables'
 import * as path from 'path'
-import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
+import {
+    getCrashReportingPipename,
+    handleNewCrashReport,
+    handleNewCrashReportFromException,
+    traceEvent,
+} from '../telemetry'
 import { TestControllerHost, TestProcessGroupNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
-import { cpus } from 'os'
+import { cpus, freemem, totalmem } from 'os'
 import * as vslc from 'vscode-languageclient/node'
-import { isEnvironmentalWindowsExitCode, LanguageClientFeature } from '../languageClient'
+import {
+    isEnvironmentalWindowsExitCode,
+    isOsKillSignal,
+    LanguageClientFeature,
+    readCgroupMemoryLimit,
+} from '../languageClient'
 import {
     notficiationTypeTestItemErrored,
     notficiationTypeTestItemFailed,
@@ -33,6 +43,7 @@ import { logFileContents, TestProcessLog } from './testProcessLog'
 import { closeStaleTestProcessLogTabs, TestProcessLogViewManager } from './testProcessLogView'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 import { getCustomEnvironmentVariables, inferJuliaNumThreads, onEvent, registerCommand } from '../utils'
+import { formatBytes, osKillNotification, osKillReport } from '../processExit'
 
 enum TestRunMode {
     Normal,
@@ -81,17 +92,6 @@ function isExpectedTestRunRejection(err: unknown) {
 
 interface OurFileCoverage extends vscode.FileCoverage {
     detailedCoverage: vscode.StatementCoverage[]
-}
-
-export function formatBytes(bytes: number) {
-    const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
-    let value = bytes
-    let unit = 0
-    while (value >= 1024 && unit < units.length - 1) {
-        value = value / 1024
-        unit += 1
-    }
-    return unit === 0 ? `${value} B` : `${value.toFixed(1)} ${units[unit]}`
 }
 
 export function formatMillis(millis: number) {
@@ -215,6 +215,50 @@ export class JuliaTestProcess {
     }
 }
 
+/**
+ * Decides whether a test item controller process exit is worth a crash report.
+ * Returns `null` for an expected exit, otherwise a one-line description.
+ *
+ * This is the controller's counterpart of `unexpectedServerExit`, and follows
+ * the same reasoning. The controller reports its own crashes, with the right
+ * cloud role, from the `VSCodeErrorLogger` that `testitemcontroller_main.jl`
+ * installs, and that path always ends in `exit(1)`; reporting code 1 here as
+ * well would file every one of those crashes twice. What that path cannot
+ * cover is a death that never ran Julia code — a native crash signal, or an
+ * exit code from the runtime itself — and those are reported here because
+ * otherwise they leave no trace anywhere.
+ *
+ * `intentionalStop` is what this shares with the language server and did not
+ * use to: `kill()` and the fallback in `shutdown()` both send a plain
+ * `SIGTERM`, so every ordinary teardown of the controller — closing VS Code,
+ * stopping it from the process tree view — arrived here as `signal SIGTERM`
+ * and filed a crash report with no crash in it. Knowing that we sent the
+ * signal is what tells that apart from a kill nobody here asked for.
+ *
+ * `isOsKillSignal` covers the kill nobody here asked for, and is deliberately
+ * the *second* check rather than the only one. It does not mean such a kill
+ * goes unreported: it gets its own report, from `osKillReport`, carrying the
+ * memory figures and live test process count that a bare exit line cannot.
+ * Returning null here is only what stops it being reported twice.
+ * `SIGSEGV` and friends are not covered by it and stay ordinary crash reports.
+ */
+export function unexpectedControllerExit(
+    code: number | null,
+    signal: NodeJS.Signals | null,
+    intentionalStop: boolean
+): string | null {
+    if (intentionalStop) {
+        return null
+    }
+    if (signal === null && (code === null || code === 0 || code === 1)) {
+        return null
+    }
+    if (isEnvironmentalWindowsExitCode(code) || isOsKillSignal(signal)) {
+        return null
+    }
+    return `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
+}
+
 export class JuliaTestController {
     private _onKilled = new vscode.EventEmitter<void>()
     public onKilled = this._onKilled.event
@@ -222,6 +266,7 @@ export class JuliaTestController {
     kill() {
         // `'exit'` clears `process`, and the tree node this is reached from outlives it, so a
         // second click would otherwise throw a `TypeError` and file it as a crash report.
+        this._intentionalStop = true
         this.process?.kill()
     }
 
@@ -235,6 +280,10 @@ export class JuliaTestController {
         if (!process) {
             return Promise.resolve()
         }
+
+        // Everything from here on is us ending the controller, including the exit the
+        // `shutdown` notification itself brings about and the kill that backs it up.
+        this._intentionalStop = true
 
         try {
             if (this.connection) {
@@ -271,6 +320,12 @@ export class JuliaTestController {
 
     private connection: rpc.MessageConnection
     private process: ChildProcessWithoutNullStreams
+    /**
+     * Set while this controller is being stopped on purpose, so that the `SIGTERM`
+     * `kill()` and `shutdown()` send is not mistaken for something killing the
+     * controller from outside. Cleared when a process is started.
+     */
+    private _intentionalStop: boolean = false
     private testRuns = new Map<string, { testRun: vscode.TestRun; testItems: Map<string, vscode.TestItem> }>()
     private testProcesses = new Map<string, JuliaTestProcess>()
     private currentRunExecutable: JuliaExecutable | undefined
@@ -376,6 +431,8 @@ export class JuliaTestController {
     }
 
     public async start() {
+        this._intentionalStop = false
+
         let juliaExecutable: JuliaExecutable | null
 
         if (process.env.DEBUG_MODE) {
@@ -684,21 +741,45 @@ export class JuliaTestController {
                 `Test item controller exited (code ${code ?? 'none'}, signal ${signal ?? 'none'}).`
             )
 
-            // The controller reports its own crashes, with the right cloud role, from the
-            // `VSCodeErrorLogger` `testitemcontroller_main.jl` installs — and that path always
-            // ends in `exit(1)`. Reporting code 1 here as well would file every one of those
-            // crashes twice. What that path cannot cover is a death that never ran Julia code:
-            // a signal, or an exit code from the runtime itself. Those are what is reported
-            // here, because otherwise they leave no trace anywhere.
-            // An exit forced by the OS at session teardown carries no crash
-            // information and is excluded, see `isEnvironmentalWindowsExitCode`.
-            if (signal || (code !== null && code !== 0 && code !== 1 && !isEnvironmentalWindowsExitCode(code))) {
-                handleNewCrashReportFromException(
-                    new Error(
-                        `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
-                    ),
-                    'Extension'
+            // A kill nobody here asked for gets its own report rather than the bare exit
+            // line `unexpectedControllerExit` produces, because the likeliest cause —
+            // running out of memory — may be a leak on our side rather than the machine
+            // being short, and only the figures below can tell those apart. The
+            // `_intentionalStop` check matters: our own stop path ends in a SIGTERM.
+            if (!this._intentionalStop && isOsKillSignal(signal)) {
+                const limit = readCgroupMemoryLimit()
+                const report = osKillReport(
+                    'Julia test item controller',
+                    signal,
+                    { total: totalmem(), free: freemem(), cgroupLimit: limit },
+                    [`Test processes alive: ${this.testProcesses.size}`]
                 )
+
+                this.outputChannel.appendLine(report)
+                traceEvent('ticoskill', {
+                    signal,
+                    totalmem: String(totalmem()),
+                    freemem: String(freemem()),
+                    cgrouplimit: limit === null ? 'none' : String(limit),
+                    testprocesses: String(this.testProcesses.size),
+                })
+                handleNewCrashReport('TestItemControllerOsKill', report, '', 'Test Item Controller')
+
+                vscode.window
+                    .showErrorMessage(
+                        `${osKillNotification('The Julia test item controller', signal)} Any running tests have been stopped.`,
+                        'Show Logs'
+                    )
+                    .then((choice) => {
+                        if (choice === 'Show Logs') {
+                            this.outputChannel.show()
+                        }
+                    })
+            }
+
+            const unexpected = unexpectedControllerExit(code, signal, this._intentionalStop)
+            if (unexpected) {
+                handleNewCrashReportFromException(new Error(unexpected), 'Extension')
             }
 
             if (this.connection) {

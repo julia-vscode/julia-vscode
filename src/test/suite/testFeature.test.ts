@@ -1,5 +1,11 @@
 import * as assert from 'assert'
-import { formatBytes, formatMillis, formatPerfStats, JuliaTestProcess, testItemKey } from '../../testing/testFeature'
+import {
+    formatMillis,
+    formatPerfStats,
+    JuliaTestProcess,
+    testItemKey,
+    unexpectedControllerExit,
+} from '../../testing/testFeature'
 
 suite('formatMillis', () => {
     test('renders sub-millisecond values as microseconds', () => {
@@ -25,25 +31,6 @@ suite('formatMillis', () => {
         assert.strictEqual(formatMillis(999), '999 ms')
         assert.strictEqual(formatMillis(1000), '1.00 s')
         assert.strictEqual(formatMillis(1234), '1.23 s')
-    })
-})
-
-suite('formatBytes', () => {
-    test('leaves byte counts unscaled and undecorated', () => {
-        assert.strictEqual(formatBytes(0), '0 B')
-        assert.strictEqual(formatBytes(512), '512 B')
-        assert.strictEqual(formatBytes(1023), '1023 B')
-    })
-
-    test('scales at each 1024 boundary', () => {
-        assert.strictEqual(formatBytes(1024), '1.0 KiB')
-        assert.strictEqual(formatBytes(1536), '1.5 KiB')
-        assert.strictEqual(formatBytes(1024 * 1024), '1.0 MiB')
-        assert.strictEqual(formatBytes(1024 * 1024 * 1024), '1.0 GiB')
-    })
-
-    test('stops scaling at the largest unit it knows', () => {
-        assert.strictEqual(formatBytes(1024 ** 5), '1024.0 TiB')
     })
 })
 
@@ -137,5 +124,46 @@ suite('JuliaTestProcess', () => {
         proc.markTerminated()
 
         await proc.kill()
+    })
+})
+
+suite('unexpectedControllerExit', () => {
+    test('says nothing about a clean exit', () => {
+        assert.strictEqual(unexpectedControllerExit(0, null, false), null)
+    })
+
+    test('says nothing about code 1, which the controller already reported itself', () => {
+        assert.strictEqual(unexpectedControllerExit(1, null, false), null)
+    })
+
+    test('says nothing about the SIGTERM our own stop path sends', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM', true), null)
+    })
+
+    test('says nothing about the Windows session-teardown exit codes', () => {
+        assert.strictEqual(unexpectedControllerExit(1073807364, null, false), null)
+        assert.strictEqual(unexpectedControllerExit(3221225794, null, false), null)
+    })
+
+    test('reports a native crash signal, even while stopping', () => {
+        assert.match(unexpectedControllerExit(null, 'SIGSEGV', false), /signal SIGSEGV/)
+        assert.match(unexpectedControllerExit(null, 'SIGABRT', false), /signal SIGABRT/)
+    })
+
+    test('reports a runtime exit code the controller cannot have reported itself', () => {
+        assert.match(unexpectedControllerExit(4294967295, null, false), /code 4294967295/)
+    })
+
+    test('an intentional stop covers whatever the exit turns out to be', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL', true), null)
+        assert.strictEqual(unexpectedControllerExit(4294967295, null, true), null)
+    })
+
+    // A kill nobody here asked for is not a crash report, but it is not silence
+    // either: the exit handler counts it as a `ticoskill` event. These two cases
+    // are what that branch keys off, so they are pinned here as well.
+    test('files no crash report for an unasked-for kill, which is counted instead', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL', false), null)
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM', false), null)
     })
 })
