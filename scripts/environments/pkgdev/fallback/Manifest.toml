@@ -203,11 +203,11 @@ version = "1.5.0"
     julia_version = "1.0.0"
 
 [[deps.HTTP]]
-deps = ["Base64", "CodecZlib", "Dates", "EnumX", "PrecompileTools", "Random", "Reseau", "SHA", "URIs", "UUIDs", "Zlib_jll"]
-git-tree-sha1 = "b0ff6627f1308bc1691528aac3b70ac3abd1d598"
+deps = ["Base64", "CodecZlib", "Dates", "EnumX", "Logging", "PrecompileTools", "Random", "Reseau", "SHA", "URIs", "UUIDs", "Zlib_jll"]
+git-tree-sha1 = "2aa0365e4865778c9c4fef5d22ad4f2c6bd17264"
 registries = "General"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "2.6.7"
+version = "2.7.0"
 
     [deps.HTTP.syntax]
     julia_version = "1.10.0"
@@ -498,10 +498,10 @@ version = "1.9.1"
 
 [[deps.Reseau]]
 deps = ["NetworkOptions", "OpenSSL_jll", "PrecompileTools", "Random", "SHA"]
-git-tree-sha1 = "c1c4f843b073ba266b922338ec2479346b4fde54"
+git-tree-sha1 = "2e359a0b85bbf6a4c5f95b087d307bf1e45f1982"
 registries = "General"
 uuid = "802f3686-a58f-41ce-bb0c-3c43c75bba36"
-version = "1.4.3"
+version = "1.4.4"
 
     [deps.Reseau.syntax]
     julia_version = "1.10.0"

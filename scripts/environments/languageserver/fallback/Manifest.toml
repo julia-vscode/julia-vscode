@@ -138,7 +138,7 @@ version = "1.7.0"
 deps = ["Test"]
 path = "../../../packages/ExceptionUnwrapping"
 uuid = "460bff9d-24e4-43bc-9d9f-a8973cb893f4"
-version = "0.1.11"
+version = "0.1.12"
 
     [deps.ExceptionUnwrapping.syntax]
     julia_version = "1.3.0"

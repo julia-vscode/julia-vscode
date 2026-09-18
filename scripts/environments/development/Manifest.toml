@@ -114,7 +114,7 @@ version = "1.7.0"
 deps = ["Test"]
 path = "../../packages/ExceptionUnwrapping"
 uuid = "460bff9d-24e4-43bc-9d9f-a8973cb893f4"
-version = "0.1.11"
+version = "0.1.12"
 
 [[deps.FilePathsBase]]
 deps = ["Compat", "Dates"]
@@ -237,7 +237,7 @@ version = "1.2.0"
 deps = ["CodeTracking", "Compiler", "JuliaInterpreter"]
 path = "../../packages/LoweredCodeUtils"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "3.8.0"
+version = "3.9.0"
 
 [[deps.MacroTools]]
 path = "../../packages/MacroTools"
