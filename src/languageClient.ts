@@ -165,7 +165,8 @@ export class RestartTrackingErrorHandler implements ErrorHandler {
 
 /**
  * Works around a race in vscode-languageclient's crash-restart handling
- * (verified in 10.1.1; no upstream issue yet, to be reported): when the server
+ * (verified in 10.1.1; reported upstream as
+ * microsoft/vscode-languageserver-node#1859): when the server
  * process dies and the client auto-restarts it, document lifecycle
  * notifications generated during the down window are parked inside
  * `sendNotification` at `await this.$start()` and delivered over the *next*
@@ -282,6 +283,118 @@ export class DocumentLifecycleGuard {
             return
         }
         return next(document)
+    }
+}
+
+/**
+ * Whether `position` names a line the document does not have.
+ *
+ * `document.validatePosition` is VS Code's own authority on what is addressable
+ * in the document, so this asks it rather than reimplementing the line model.
+ * Only the line component is compared: the language server clamps a character
+ * that runs past the end of its line, and it is only an out-of-range *line* that
+ * makes `index_at` throw (`LanguageServer/src/textdocument.jl`, `line >=
+ * length(line_indices) || line < 0`). The two sides agree on what a line is —
+ * `JuliaWorkspaces._compute_line_indices` splits on `\n`, `\r\n` and a lone `\r`
+ * exactly as VS Code's text model does — so this predicate is precisely the
+ * server's crash condition, evaluated one process earlier.
+ */
+function hasUnaddressableLine(document: vscode.TextDocument, position: vscode.Position): boolean {
+    return document.validatePosition(position).line !== position.line
+}
+
+/**
+ * How far out of range a position is, for telemetry. Carries no path and no
+ * document content — a line number and the document's line count, the same two
+ * numbers the server's own `LSOffsetError` reports, so the two sides can be
+ * compared directly. `vscode.Position` rejects a negative line in its
+ * constructor, so this is always a line past the end.
+ */
+function describeUnaddressableLine(document: vscode.TextDocument, position: vscode.Position): string {
+    return `line=${position.line} line_count=${document.lineCount}`
+}
+
+/**
+ * Drops language feature requests whose position VS Code itself would reject
+ * before they reach the server.
+ *
+ * Nothing in the pipeline validates a provider position: VS Code's
+ * `ExtHostLanguageFeatures` adapters hand it to the provider untouched, and
+ * `code2ProtocolConverter.asTextDocumentPositionParams` converts it verbatim. So
+ * anyone calling e.g. `vscode.executeCompletionItemProvider` with an arbitrary
+ * position — a third-party extension, or our own code with a
+ * `new Position(document.lineCount, 0)` meant as "end of document" — sends that
+ * position straight through to the language server, where `index_at` throws
+ * `LSOffsetError` and the request dies as a crash report.
+ *
+ * This is the middleware route dbaeumer pointed at in
+ * microsoft/vscode-languageserver-node#637 and
+ * microsoft/language-server-protocol#946: the client libraries cannot guard in
+ * general (the protocol allows requests for documents that are not open), but an
+ * extension that knows its documents are open can. julia-vscode#1333 shipped it
+ * as a telemetry probe in 2020; it was removed in f1dd157bd before it ever
+ * answered the question. Here it both drops the request and counts it.
+ *
+ * Nothing about the messages we do send changes — an invalid request is simply
+ * not sent, and the provider reports no result, which is what the server would
+ * have had to answer anyway.
+ *
+ * What this deliberately does *not* cover is a position that was addressable
+ * when the provider ran but no longer matches what the server holds (a request
+ * parked in `sendRequest` while the client is not yet `Running`, then released
+ * against a document that has moved on). That desync stays loud on the server so
+ * it can still be diagnosed; see the `LSOffsetError` handling in
+ * `LanguageServer/src/languageserverinstance.jl`.
+ */
+export class PositionValidationGuard {
+    /**
+     * @param report Called once per dropped request with the provider's name and
+     *               a description of how far out of range the position was.
+     */
+    constructor(private report: (provider: string, detail: string) => void) {}
+
+    /**
+     * Returns true — and reports — when `positions` contains a line the document
+     * does not have, meaning the request must not be forwarded.
+     */
+    private shouldDrop(
+        provider: string,
+        document: vscode.TextDocument,
+        positions: readonly vscode.Position[]
+    ): boolean {
+        const invalid = positions.find((position) => hasUnaddressableLine(document, position))
+        if (invalid === undefined) {
+            return false
+        }
+        this.report(provider, describeUnaddressableLine(document, invalid))
+        return true
+    }
+
+    /**
+     * Wraps a provider that takes a single position. `next` is not called when
+     * the position is out of range; the provider reports no result instead.
+     */
+    at<T>(
+        provider: string,
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        next: () => vscode.ProviderResult<T>
+    ): vscode.ProviderResult<T> {
+        return this.shouldDrop(provider, document, [position]) ? undefined : next()
+    }
+
+    /**
+     * As {@link at}, for providers that take several positions or a range. The
+     * whole request is dropped if any of them is out of range: a range with one
+     * unaddressable end does not describe a region of this document.
+     */
+    atAll<T>(
+        provider: string,
+        document: vscode.TextDocument,
+        positions: readonly vscode.Position[],
+        next: () => vscode.ProviderResult<T>
+    ): vscode.ProviderResult<T> {
+        return this.shouldDrop(provider, document, positions) ? undefined : next()
     }
 }
 
@@ -875,6 +988,9 @@ export class LanguageClientFeature {
         // crash apart from a crash loop.
         const errorHandler = new RestartTrackingErrorHandler(() => languageClient.createDefaultErrorHandler())
         const lifecycleGuard = new DocumentLifecycleGuard()
+        const positionGuard = new PositionValidationGuard((provider, detail) =>
+            telemetry.traceEvent('lsinvalidposition', { provider, detail })
+        )
 
         const clientOptions: LanguageClientOptions = {
             documentSelector: selector,
@@ -922,6 +1038,35 @@ export class LanguageClientFeature {
                 didChange: (event, next) => lifecycleGuard.didChange(event, next),
                 didClose: (document, next) => lifecycleGuard.didClose(document, next),
                 didSave: (document, next) => lifecycleGuard.didSave(document, next),
+                // Never ask the server about a line the document does not have
+                // (see PositionValidationGuard). One hook per request the server
+                // answers by indexing the position strictly; `provideInlayHints`
+                // is deliberately absent, because the server already clamps that
+                // viewport-derived range on purpose.
+                provideCompletionItem: (document, position, context, token, next) =>
+                    positionGuard.at('completion', document, position, () => next(document, position, context, token)),
+                provideHover: (document, position, token, next) =>
+                    positionGuard.at('hover', document, position, () => next(document, position, token)),
+                provideSignatureHelp: (document, position, context, token, next) =>
+                    positionGuard.at('signatureHelp', document, position, () =>
+                        next(document, position, context, token)
+                    ),
+                provideDefinition: (document, position, token, next) =>
+                    positionGuard.at('definition', document, position, () => next(document, position, token)),
+                provideReferences: (document, position, options, token, next) =>
+                    positionGuard.at('references', document, position, () => next(document, position, options, token)),
+                provideDocumentHighlights: (document, position, token, next) =>
+                    positionGuard.at('documentHighlight', document, position, () => next(document, position, token)),
+                prepareRename: (document, position, token, next) =>
+                    positionGuard.at('prepareRename', document, position, () => next(document, position, token)),
+                provideRenameEdits: (document, position, newName, token, next) =>
+                    positionGuard.at('rename', document, position, () => next(document, position, newName, token)),
+                provideSelectionRanges: (document, positions, token, next) =>
+                    positionGuard.atAll('selectionRange', document, positions, () => next(document, positions, token)),
+                provideCodeActions: (document, range, context, token, next) =>
+                    positionGuard.atAll('codeAction', document, [range.start, range.end], () =>
+                        next(document, range, context, token)
+                    ),
             },
         }
 
