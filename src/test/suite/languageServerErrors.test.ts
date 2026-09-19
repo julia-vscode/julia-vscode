@@ -6,7 +6,11 @@ import {
     LSPErrorCodes,
     ResponseError,
 } from 'vscode-languageserver-protocol'
-import { isLanguageServerError, isLanguageServerResponseNoise } from '../../languageServerErrors'
+import {
+    isExpectedDocumentStateError,
+    isLanguageServerError,
+    isLanguageServerResponseNoise,
+} from '../../languageServerErrors'
 
 function nodeError(message: string, code: string): Error {
     return Object.assign(new Error(message), { code })
@@ -94,6 +98,61 @@ suite('isLanguageServerError', () => {
     })
 })
 
+const NO_DOCUMENT_MESSAGE =
+    'document git:/Users/x/.julia/dev/Sunny/examples/SW12.jl?%7B%22path%22:%22%22%7D requested but not present in the JLS for request getCurrentBlockRange'
+const VERSION_MISMATCH_MESSAGE =
+    'version mismatch in getCurrentBlockRange request for file:///c%3A/Users/x/Julia/Julia.jl: JLS 0, client: 1'
+const MISSING_DOCUMENT_MESSAGE = 'Document not available: untitled:Untitled-1.'
+
+suite('isExpectedDocumentStateError', () => {
+    test('recognises the server codes for a document it cannot serve', () => {
+        assert.strictEqual(isExpectedDocumentStateError(new ResponseError(-33100, NO_DOCUMENT_MESSAGE)), true)
+        assert.strictEqual(isExpectedDocumentStateError(new ResponseError(-33101, VERSION_MISMATCH_MESSAGE)), true)
+    })
+
+    test('recognises the same answers rebuilt by VS Code, which keep only the message', () => {
+        assert.strictEqual(isExpectedDocumentStateError(new Error(NO_DOCUMENT_MESSAGE)), true)
+        assert.strictEqual(isExpectedDocumentStateError(new Error(VERSION_MISMATCH_MESSAGE)), true)
+        assert.strictEqual(isExpectedDocumentStateError(new Error(MISSING_DOCUMENT_MESSAGE)), true)
+    })
+
+    test('recognises the request names the extension actually sends', () => {
+        for (const request of ['getCurrentBlockRange', 'getModuleAt']) {
+            assert.strictEqual(
+                isExpectedDocumentStateError(
+                    new Error(
+                        `document untitled:Untitled-3 requested but not present in the JLS for request ${request}`
+                    )
+                ),
+                true,
+                request
+            )
+        }
+    })
+
+    test('does not match a message that merely embeds one of them', () => {
+        assert.strictEqual(isExpectedDocumentStateError(new Error(`the server said: ${NO_DOCUMENT_MESSAGE}`)), false)
+        // Trailing text that itself ends in a period is why the URI is matched
+        // as a run of non-whitespace rather than as `.+`.
+        assert.strictEqual(isExpectedDocumentStateError(new Error(`${MISSING_DOCUMENT_MESSAGE} Retrying.`)), false)
+        // `document ` on its own must not be enough: a real crash whose
+        // message happens to start that way still has to be reported.
+        assert.strictEqual(isExpectedDocumentStateError(new Error('document is not defined')), false)
+        assert.strictEqual(
+            isExpectedDocumentStateError(new Error('version mismatch in the manifest for Foo.jl')),
+            false
+        )
+    })
+
+    test('does not match other response codes or unrelated values', () => {
+        assert.strictEqual(isExpectedDocumentStateError(new ResponseError(ErrorCodes.InternalError, 'boom')), false)
+        assert.strictEqual(isExpectedDocumentStateError(new Error('boom')), false)
+        assert.strictEqual(isExpectedDocumentStateError(NO_DOCUMENT_MESSAGE), false)
+        assert.strictEqual(isExpectedDocumentStateError(undefined), false)
+        assert.strictEqual(isExpectedDocumentStateError(null), false)
+    })
+})
+
 suite('isLanguageServerResponseNoise', () => {
     test('recognises a request-handler failure the server reports itself', () => {
         assert.strictEqual(
@@ -109,6 +168,12 @@ suite('isLanguageServerResponseNoise', () => {
             ),
             true
         )
+    })
+
+    test('also covers the document-state answers, as the net for unhandled paths', () => {
+        assert.strictEqual(isLanguageServerResponseNoise(new Error(NO_DOCUMENT_MESSAGE)), true)
+        assert.strictEqual(isLanguageServerResponseNoise(new Error(VERSION_MISMATCH_MESSAGE)), true)
+        assert.strictEqual(isLanguageServerResponseNoise(new Error(MISSING_DOCUMENT_MESSAGE)), true)
     })
 
     test('matches only at the start of the message', () => {

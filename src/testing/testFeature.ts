@@ -1031,6 +1031,36 @@ export class JuliaTestController {
 //     }
 // }
 
+/**
+ * Pair each test item of a run with the details the language server published for it,
+ * separating out the ones whose details are no longer there.
+ *
+ * A run is assembled in two steps with awaits in between, and the tree can be rebuilt in
+ * that window: a file republished by the server produces a fresh `vscode.TestItem` for
+ * every item in it and drops the previous objects from the details map, while the array
+ * being assembled still holds those previous objects. Every field of a test item's wire
+ * message comes out of its details, so an item that lost them cannot be sent at all; it
+ * belongs in `dropped`, where the caller can skip it and leave the rest of the run intact.
+ */
+export function pairWithPublishedDetails<TItem, TDetails>(
+    items: readonly TItem[],
+    detailsOf: (item: TItem) => TDetails | undefined
+): { paired: { testItem: TItem; details: TDetails }[]; dropped: TItem[] } {
+    const paired: { testItem: TItem; details: TDetails }[] = []
+    const dropped: TItem[] = []
+
+    for (const item of items) {
+        const details = detailsOf(item)
+        if (details === undefined) {
+            dropped.push(item)
+        } else {
+            paired.push({ testItem: item, details: details })
+        }
+    }
+
+    return { paired: paired, dropped: dropped }
+}
+
 export class TestFeature implements TestControllerHost {
     private controller: vscode.TestController
     private testitems: WeakMap<vscode.TestItem, tlsp.TestItemDetail> = new WeakMap<
@@ -1537,17 +1567,39 @@ export class TestFeature implements TestControllerHost {
             testEnvPerFile.set(uri, testEnv)
         }
 
-        const all_the_tests = itemsToRun.map((i) => {
-            return {
-                testItem: i,
-                details: this.testitems.get(i),
-                // `?? {}` because the lookup really can miss: `getTestEnv` is sent through
-                // `withLanguageClient`, which yields `undefined` whenever the language server
-                // is still starting, restarting after a crash, or lost mid-request. Every
-                // consumer already treats each field as optional.
-                testEnv: testEnvPerFile.get(i.uri.toString()) ?? {},
-            }
-        })
+        // Some of the items this run was built from may have gone away while it was being
+        // prepared: the `getTestEnv` loop above awaits one round-trip per file, and a
+        // republish of a file's test items during that window replaces every
+        // `vscode.TestItem` for it and drops the old ones from `testitems` (see the
+        // `fileTestitem.children` handling in `publishTestitemsNotification`). `itemsToRun`
+        // still holds the old objects, so their details are no longer there to build a wire
+        // message from.
+        const { paired, dropped } = pairWithPublishedDetails(itemsToRun, (item) => this.testitems.get(item))
+
+        for (const item of dropped) {
+            testRun.skipped(item)
+            testRun.appendOutput(
+                '\x1b[0mThis test item changed while the run was being prepared, so it was not run.\r\n',
+                undefined,
+                item
+            )
+        }
+
+        // Everything was dropped. There is nothing left to ask the controller for, and
+        // returning without calling `handOver` leaves `runHandler` to end the run.
+        if (paired.length === 0) {
+            return
+        }
+
+        const all_the_tests = paired.map(({ testItem, details }) => ({
+            testItem: testItem,
+            details: details,
+            // `?? {}` because the lookup really can miss: `getTestEnv` is sent through
+            // `withLanguageClient`, which yields `undefined` whenever the language server
+            // is still starting, restarting after a crash, or lost mid-request. Every
+            // consumer already treats each field as optional.
+            testEnv: testEnvPerFile.get(testItem.uri.toString()) ?? {},
+        }))
 
         const all_the_testsetups: {
             packageUri: string
