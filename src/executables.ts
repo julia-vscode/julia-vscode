@@ -78,6 +78,26 @@ export class JuliaProbeTimeoutError extends JuliaNotFoundError {
 }
 
 /**
+ * A Julia that was found and started, but could not run the code we gave it.
+ *
+ * This is the shape of a broken installation rather than a missing one: a version manager
+ * that built a channel path wrong, a depot that needs `Pkg.instantiate()`, a stale
+ * precompiled image. Extends {@link JuliaNotFoundError} for the same reason
+ * {@link JuliaProbeTimeoutError} does — every caller already has to treat that as a
+ * graceful "no usable Julia" outcome, and none of these are extension faults — while the
+ * distinct type says which of the two it was.
+ */
+export class JuliaProbeFailedError extends JuliaNotFoundError {
+    constructor(
+        command: string,
+        public readonly cause: unknown
+    ) {
+        super(`'${command}' was found but could not be run. The Julia installation it points at may be broken.`)
+        this.name = 'JuliaProbeFailedError'
+    }
+}
+
+/**
  * Whether `err` is an `execFile` rejection caused by one of the probe timeouts firing, as
  * opposed to the child exiting on its own with an error (missing executable, non-zero
  * exit, ...).
@@ -498,6 +518,16 @@ export class ExecutableFeature {
         )
 
         this.taskRunner = new TaskRunner('Julia Installer', new vscode.ThemeIcon('tools'))
+    }
+
+    /**
+     * Record a line in the Julia Executables output channel on behalf of code elsewhere that
+     * ran an executable this feature handed it. The channel is where a user looking into
+     * "which Julia is this and what is wrong with it" already goes, so a failure of one of
+     * those invocations belongs in the same place as the decision that picked it.
+     */
+    public logExecutableDiagnostic(message: string) {
+        this.outputChannel.appendLine(message)
     }
 
     // Interface
