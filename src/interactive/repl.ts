@@ -9,6 +9,7 @@ import * as rpc from 'vscode-jsonrpc/node'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import { LanguageClientFeature } from '../languageClient'
+import { isExpectedDocumentStateError } from '../languageServerErrors'
 import { JuliaExecutable, ExecutableFeature, JuliaupChannel, JuliaNotFoundError } from '../executables'
 import * as telemetry from '../telemetry'
 import {
@@ -972,9 +973,24 @@ export async function getBlockRange(params: VersionedTextDocumentPositionParams)
 
     return await g_languageClientFeature.withLanguageClient(
         async (languageClient) => {
-            return (await languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(
-                (pos) => new vscode.Position(pos.line, pos.character)
-            )
+            try {
+                return (await languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(
+                    (pos) => new vscode.Position(pos.line, pos.character)
+                )
+            } catch (err) {
+                // The server answers with an error instead of a range when it
+                // does not have this document, or does not have it at the
+                // version these params were built against. Both are ordinary:
+                // it never tracks a `git:` diff view, and an edit reaches it
+                // after the keystroke that triggered the request. There is no
+                // block either way, so fall back to the empty one the caller
+                // already handles rather than report a crash.
+                if (isExpectedDocumentStateError(err)) {
+                    console.warn(err)
+                    return zeroReturn
+                }
+                throw err
+            }
         },
         (err) => {
             if (err.message === 'Language client is not ready yet') {
