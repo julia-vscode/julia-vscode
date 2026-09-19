@@ -2,6 +2,7 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc'
 import { TextDocumentIdentifier } from 'vscode-languageclient/node'
 import { LanguageClientFeature, supportedSchemes } from '../languageClient'
+import { isExpectedDocumentStateError } from '../languageServerErrors'
 import * as telemetry from '../telemetry'
 import { onEvent, registerCommand, wrapCrashReportingAsync } from '../utils'
 import { VersionedTextDocumentPositionParams } from './misc'
@@ -117,8 +118,11 @@ export async function getModuleForEditor(
             try {
                 return { module: await languageClient.sendRequest<string>('julia/getModuleAt', params) }
             } catch (err) {
-                if (err instanceof rpc.ResponseError && err.code === -33101) {
-                    // Version out of sync, benign
+                // The server does not have this document, or does not have it
+                // at the version these params were built against. Both are
+                // benign: fall back to `Main`, the same answer as for a
+                // document the module cannot be determined for.
+                if (isExpectedDocumentStateError(err)) {
                     return { module: 'Main' }
                 }
                 throw err

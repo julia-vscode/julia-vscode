@@ -104,6 +104,61 @@ export function isLanguageServerError(err: unknown): boolean {
 }
 
 /**
+ * The error codes LanguageServer.jl answers a request with when it cannot
+ * serve the document the request names. They are outside the LSP-reserved
+ * ranges, so they only ever come from our own server.
+ *
+ * `-33100` is `nodocument_error` and `-33101` is `mismatched_version_error`,
+ * both in LanguageServer.jl's `src/utilities.jl`.
+ */
+const JLS_NO_DOCUMENT = -33100
+const JLS_VERSION_MISMATCH = -33101
+
+/**
+ * The whole messages of those same answers, for the copies that reach us
+ * without their code, the way `teardownMessages` above does.
+ *
+ * Anchored at both ends, and the URI in the middle of each is matched as a run
+ * of non-whitespace: a loose prefix such as `document ` would match far too
+ * much, and a trailing `.+` would let anything follow the message as long as
+ * it ended the right way. A URI the server prints is percent-encoded, so it
+ * never contains a space; one that somehow did would fall out here and be
+ * reported, which is the right way round to be wrong.
+ */
+const documentStateMessagePatterns = [
+    // `nodocument_error`: the server never tracked this document, e.g. a
+    // `git:` diff view or a buffer outside the workspace.
+    /^document \S+ requested but not present in the JLS for request \S+$/,
+    // `mismatched_version_error`: the edit the request is about has not
+    // reached the server yet.
+    /^version mismatch in \S+ request for \S+: JLS -?\d+, client: -?\d+$/,
+    // `MissingDocumentError`, turned into LSP `InvalidParams` by
+    // `invoke_handler` in LanguageServer.jl's `src/languageserverinstance.jl`.
+    /^Document not available: \S+\.$/,
+]
+
+/**
+ * Returns true for a language server answer that says it does not have the
+ * document a request named, or does not have it at the version the request
+ * was built against.
+ *
+ * Neither is a fault. The server deliberately does not track every buffer VS
+ * Code will hand a provider or a REPL command — a `git:` diff view is the
+ * common one — and a document version the server has not caught up with is
+ * the ordinary state of an edit in flight. A caller that gets one of these
+ * has no answer to work with and should fall back, not report a crash.
+ */
+export function isExpectedDocumentStateError(err: unknown): boolean {
+    if (err instanceof ResponseError && (err.code === JLS_NO_DOCUMENT || err.code === JLS_VERSION_MISMATCH)) {
+        return true
+    }
+    if (err instanceof Error) {
+        return documentStateMessagePatterns.some((pattern) => pattern.test(err.message))
+    }
+    return false
+}
+
+/**
  * Message prefixes of language server response errors that must not become
  * extension crash reports. Like `teardownMessages` above, these arrive at
  * `sendErrorData` as rebuilt plain `Error`s without their `ResponseError`
@@ -128,10 +183,17 @@ const responseNoisePrefixes = [
  * extension-side crash report would be noise or a stackless duplicate.
  * `telemetry.handleNewCrashReportFromException` drops them alongside
  * {@link isLanguageServerError}.
+ *
+ * The document-state answers of {@link isExpectedDocumentStateError} count as
+ * noise here too. A caller that knows what to fall back to should handle them
+ * where they happen; this is the net for the paths that do not.
  */
 export function isLanguageServerResponseNoise(err: unknown): boolean {
     if (!(err instanceof Error)) {
         return false
+    }
+    if (isExpectedDocumentStateError(err)) {
+        return true
     }
     return responseNoisePrefixes.some((prefix) => err.message.startsWith(prefix))
 }
