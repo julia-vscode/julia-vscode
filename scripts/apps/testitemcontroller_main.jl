@@ -56,6 +56,8 @@ try
             The test item controller failed to precompile.
             Please make sure you have permissions to write to the depot path at
             \t$(depot_path)
+            and that nothing on this machine, such as an application control policy or an
+            antivirus, is blocking the files Julia writes there.
             """)
             throw(TICPrecompileFailure(sprint(showerror, err)))
         else

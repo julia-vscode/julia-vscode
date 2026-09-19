@@ -247,6 +247,8 @@ try
             The Language Server failed to precompile.
             Please make sure you have permissions to write to the LS depot path at
             \t$(depot_path)
+            and that nothing on this machine, such as an application control policy or an
+            antivirus, is blocking the files Julia writes there.
             """)
             throw(LSPrecompileFailure(sprint(showerror, err)))
         else
