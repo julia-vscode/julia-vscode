@@ -3,6 +3,7 @@ import {
     formatMillis,
     formatPerfStats,
     JuliaTestProcess,
+    pairWithPublishedDetails,
     testItemKey,
     unexpectedControllerExit,
 } from '../../testing/testFeature'
@@ -124,6 +125,67 @@ suite('JuliaTestProcess', () => {
         proc.markTerminated()
 
         await proc.kill()
+    })
+})
+
+suite('pairWithPublishedDetails', () => {
+    // The real map is a `WeakMap<vscode.TestItem, TestItemDetail>`; the only thing that
+    // matters here is that a lookup can miss, so plain objects stand in for both.
+    const withDetails = (entries: Map<string, string>) => (item: string) => entries.get(item)
+
+    test('pairs every item with its details when nothing changed', () => {
+        const details = new Map([
+            ['a', 'details-a'],
+            ['b', 'details-b'],
+        ])
+
+        const { paired, dropped } = pairWithPublishedDetails(['a', 'b'], withDetails(details))
+
+        assert.deepStrictEqual(paired, [
+            { testItem: 'a', details: 'details-a' },
+            { testItem: 'b', details: 'details-b' },
+        ])
+        assert.deepStrictEqual(dropped, [])
+    })
+
+    test('drops an item whose details went away and keeps the rest of the run', () => {
+        // What a republish of `b`'s file does: its previous `vscode.TestItem` is no longer
+        // a key of the details map, while the array being assembled still holds it.
+        const details = new Map([
+            ['a', 'details-a'],
+            ['c', 'details-c'],
+        ])
+
+        const { paired, dropped } = pairWithPublishedDetails(['a', 'b', 'c'], withDetails(details))
+
+        assert.deepStrictEqual(paired, [
+            { testItem: 'a', details: 'details-a' },
+            { testItem: 'c', details: 'details-c' },
+        ])
+        assert.deepStrictEqual(dropped, ['b'])
+    })
+
+    test('reports every item as dropped when the whole file was republished', () => {
+        const { paired, dropped } = pairWithPublishedDetails(['a', 'b'], withDetails(new Map()))
+
+        assert.deepStrictEqual(paired, [])
+        assert.deepStrictEqual(dropped, ['a', 'b'])
+    })
+
+    test('keeps details that are falsy but present', () => {
+        // `undefined` is the only value that means "not there": a `TestItemDetail` is an
+        // object today, but the check must not turn on truthiness.
+        const { paired, dropped } = pairWithPublishedDetails([0], (item: number) => (item === 0 ? '' : undefined))
+
+        assert.deepStrictEqual(paired, [{ testItem: 0, details: '' }])
+        assert.deepStrictEqual(dropped, [])
+    })
+
+    test('handles an empty run', () => {
+        const { paired, dropped } = pairWithPublishedDetails([], withDetails(new Map()))
+
+        assert.deepStrictEqual(paired, [])
+        assert.deepStrictEqual(dropped, [])
     })
 })
 
