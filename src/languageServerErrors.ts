@@ -197,3 +197,35 @@ export function isLanguageServerResponseNoise(err: unknown): boolean {
     }
     return responseNoisePrefixes.some((prefix) => err.message.startsWith(prefix))
 }
+
+/**
+ * What a failed language server request was, in the terms that survive to
+ * telemetry.
+ *
+ * A rejection nothing catches is handed to crash reporting by VS Code as a
+ * freshly built plain `Error`: the `ResponseError` prototype and its `code`
+ * are gone and the message is all that is left, which is why
+ * {@link isLanguageServerResponseNoise} has to classify on message prefixes.
+ * Telemetry currently carries such a report whose message is *only* a URL — it
+ * sanitizes to `<REDACTED: URL>`, and no error site in LanguageServer.jl
+ * produces a bare-URI message — so there is nothing in it to say which request
+ * it belongs to, or even which of the connections it came from.
+ *
+ * `handleFailedRequest` sees the same failures while the method and the code
+ * are still attached, and reports this description instead. It carries no
+ * message text on purpose: method names and numeric codes are ours, whereas a
+ * message can hold anything the user's workspace put in it.
+ */
+export function describeFailedRequest(method: string, err: unknown): { [key: string]: string } {
+    const code = err instanceof ResponseError ? String(err.code) : 'none'
+    const type = err instanceof Error ? (err.constructor?.name ?? err.name) : typeof err
+    return { method, code, type }
+}
+
+/**
+ * The one-line form of {@link describeFailedRequest} for the output channel,
+ * where a user looking into "why did that do nothing" already goes.
+ */
+export function formatFailedRequest(description: { [key: string]: string }): string {
+    return `Request '${description.method}' failed: ${description.type}, code ${description.code}`
+}
