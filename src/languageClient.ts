@@ -522,8 +522,28 @@ export function isEnvironmentalWindowsExitCode(code: number | null): boolean {
  * those are genuine native crashes in Julia or a library it loads, and stay
  * crash reports.
  */
-export function isOsKillSignal(signal: NodeJS.Signals | null): boolean {
+export function isExternalKillSignal(signal: NodeJS.Signals | null): boolean {
     return signal === 'SIGKILL' || signal === 'SIGTERM'
+}
+
+/**
+ * The one of those kills that is worth a crash report of its own.
+ *
+ * Only `SIGKILL`. Running out of memory is the single cause here that can be a
+ * leak of ours rather than a fact about the user's machine, and it always
+ * arrives as `SIGKILL`: neither the kernel's out-of-memory killer nor a
+ * cgroup's asks politely first. `SIGTERM` is what a person, a session manager,
+ * a container stop or an editor shutting down sends. Telemetry had those
+ * arriving in bursts from remote sessions on a host with 438 GiB of 503 GiB
+ * free — no memory pressure anywhere in sight — which buried the case this
+ * report exists for in teardown noise.
+ *
+ * A `SIGTERM` still is not an unexpected exit either: `isExternalKillSignal`
+ * keeps it out of `unexpectedServerExit`, so it is logged and counted rather
+ * than reported.
+ */
+export function isReportableOsKill(signal: NodeJS.Signals | null): boolean {
+    return signal === 'SIGKILL'
 }
 
 /**
@@ -578,8 +598,9 @@ export function readCgroupMemoryLimit(): number | null {
  * else.
  * Exits forced from outside the process tree are the other exception, and are
  * not crashes at all: see `isEnvironmentalWindowsExitCode` for the Windows
- * session-teardown codes and `isOsKillSignal` for kill signals, the latter
- * reported as an `lsoskill` event in `observeServerProcess` instead.
+ * session-teardown codes and `isExternalKillSignal` for kill signals, the
+ * latter counted as an `lsoskill` event in `observeServerProcess` instead, and
+ * reported there only for the `SIGKILL` that `isReportableOsKill` singles out.
  */
 export function unexpectedServerExit(
     code: number | null,
@@ -592,7 +613,7 @@ export function unexpectedServerExit(
     if (signal === null && (code === 0 || code === 1)) {
         return null
     }
-    if (isEnvironmentalWindowsExitCode(code) || isOsKillSignal(signal)) {
+    if (isEnvironmentalWindowsExitCode(code) || isExternalKillSignal(signal)) {
         return null
     }
     return `Julia language server process exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
@@ -810,7 +831,11 @@ export class LanguageClientFeature {
             // machine being short — and only the figures below tell those apart.
             // The `_intentionalStop` check matters: our own shutdown path can
             // end in a SIGTERM.
-            if (!this._intentionalStop && isOsKillSignal(signal)) {
+            //
+            // Both kill signals are logged and counted, but only the `SIGKILL`
+            // of `isReportableOsKill` is reported and shown: a `SIGTERM` here
+            // is somebody else's teardown, not a memory problem of ours.
+            if (!this._intentionalStop && isExternalKillSignal(signal)) {
                 const limit = readCgroupMemoryLimit()
                 const report = osKillReport(
                     'Julia language server',
@@ -831,18 +856,25 @@ export class LanguageClientFeature {
                     freemem: String(os.freemem()),
                     cgrouplimit: limit === null ? 'none' : String(limit),
                 })
-                telemetry.handleNewCrashReport('LanguageServerOsKill', sanitizeHomeDir(report), '', 'Language Server')
-
-                vscode.window
-                    .showErrorMessage(
-                        `${osKillNotification('The Julia language server', signal)} It will be restarted.`,
-                        'Open Logs'
+                if (isReportableOsKill(signal)) {
+                    telemetry.handleNewCrashReport(
+                        'LanguageServerOsKill',
+                        sanitizeHomeDir(report),
+                        '',
+                        'Language Server'
                     )
-                    .then((choice) => {
-                        if (choice === 'Open Logs') {
-                            this.outputChannel.show()
-                        }
-                    })
+
+                    vscode.window
+                        .showErrorMessage(
+                            `${osKillNotification('The Julia language server', signal)} It will be restarted.`,
+                            'Open Logs'
+                        )
+                        .then((choice) => {
+                            if (choice === 'Open Logs') {
+                                this.outputChannel.show()
+                            }
+                        })
+                }
             }
             const reason = unexpectedServerExit(code, signal, this._intentionalStop)
             if (reason === null) {

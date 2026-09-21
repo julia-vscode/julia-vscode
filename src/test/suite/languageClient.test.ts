@@ -1,7 +1,8 @@
 import * as assert from 'assert'
 import { CloseAction, ErrorAction, ErrorHandler } from 'vscode-languageclient/node'
 import {
-    isOsKillSignal,
+    isExternalKillSignal,
+    isReportableOsKill,
     parseCgroupMemoryLimit,
     RestartTrackingErrorHandler,
     sanitizeHomeDir,
@@ -112,21 +113,36 @@ suite('unexpectedServerExit', () => {
     })
 })
 
-suite('isOsKillSignal', () => {
+suite('isExternalKillSignal', () => {
     test('kill signals come from outside the process tree', () => {
-        assert.strictEqual(isOsKillSignal('SIGKILL'), true)
-        assert.strictEqual(isOsKillSignal('SIGTERM'), true)
+        assert.strictEqual(isExternalKillSignal('SIGKILL'), true)
+        assert.strictEqual(isExternalKillSignal('SIGTERM'), true)
     })
 
     test('a native crash is not an OS kill', () => {
-        assert.strictEqual(isOsKillSignal('SIGSEGV'), false)
-        assert.strictEqual(isOsKillSignal('SIGABRT'), false)
-        assert.strictEqual(isOsKillSignal('SIGBUS'), false)
-        assert.strictEqual(isOsKillSignal('SIGILL'), false)
+        assert.strictEqual(isExternalKillSignal('SIGSEGV'), false)
+        assert.strictEqual(isExternalKillSignal('SIGABRT'), false)
+        assert.strictEqual(isExternalKillSignal('SIGBUS'), false)
+        assert.strictEqual(isExternalKillSignal('SIGILL'), false)
     })
 
     test('an exit without a signal is not an OS kill', () => {
-        assert.strictEqual(isOsKillSignal(null), false)
+        assert.strictEqual(isExternalKillSignal(null), false)
+    })
+})
+
+suite('isReportableOsKill', () => {
+    test('an out-of-memory kill is worth reporting', () => {
+        assert.strictEqual(isReportableOsKill('SIGKILL'), true)
+    })
+
+    test('a SIGTERM is somebody elses teardown, not a report', () => {
+        assert.strictEqual(isReportableOsKill('SIGTERM'), false)
+    })
+
+    test('nothing else is an OS kill at all', () => {
+        assert.strictEqual(isReportableOsKill('SIGSEGV'), false)
+        assert.strictEqual(isReportableOsKill(null), false)
     })
 })
 

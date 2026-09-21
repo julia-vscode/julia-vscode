@@ -16,7 +16,8 @@ import { cpus, freemem, totalmem } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import {
     isEnvironmentalWindowsExitCode,
-    isOsKillSignal,
+    isExternalKillSignal,
+    isReportableOsKill,
     LanguageClientFeature,
     readCgroupMemoryLimit,
 } from '../languageClient'
@@ -235,11 +236,13 @@ export class JuliaTestProcess {
  * and filed a crash report with no crash in it. Knowing that we sent the
  * signal is what tells that apart from a kill nobody here asked for.
  *
- * `isOsKillSignal` covers the kill nobody here asked for, and is deliberately
- * the *second* check rather than the only one. It does not mean such a kill
- * goes unreported: it gets its own report, from `osKillReport`, carrying the
- * memory figures and live test process count that a bare exit line cannot.
- * Returning null here is only what stops it being reported twice.
+ * `isExternalKillSignal` covers the kill nobody here asked for, and is
+ * deliberately the *second* check rather than the only one. For a `SIGKILL` it
+ * does not mean the kill goes unreported: that one gets its own report, from
+ * `osKillReport`, carrying the memory figures and live test process count that
+ * a bare exit line cannot, and returning null here is only what stops it being
+ * reported twice. A `SIGTERM` we did not send is somebody else's teardown and
+ * is reported by neither path.
  * `SIGSEGV` and friends are not covered by it and stay ordinary crash reports.
  */
 export function unexpectedControllerExit(
@@ -253,7 +256,7 @@ export function unexpectedControllerExit(
     if (signal === null && (code === null || code === 0 || code === 1)) {
         return null
     }
-    if (isEnvironmentalWindowsExitCode(code) || isOsKillSignal(signal)) {
+    if (isEnvironmentalWindowsExitCode(code) || isExternalKillSignal(signal)) {
         return null
     }
     return `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
@@ -746,7 +749,11 @@ export class JuliaTestController {
             // running out of memory — may be a leak on our side rather than the machine
             // being short, and only the figures below can tell those apart. The
             // `_intentionalStop` check matters: our own stop path ends in a SIGTERM.
-            if (!this._intentionalStop && isOsKillSignal(signal)) {
+            //
+            // Both kill signals are logged and counted, but only the `SIGKILL` of
+            // `isReportableOsKill` is reported and shown, for the reasons given there:
+            // a `SIGTERM` from outside is a teardown, not a memory problem of ours.
+            if (!this._intentionalStop && isExternalKillSignal(signal)) {
                 const limit = readCgroupMemoryLimit()
                 const report = osKillReport(
                     'Julia test item controller',
@@ -763,18 +770,20 @@ export class JuliaTestController {
                     cgrouplimit: limit === null ? 'none' : String(limit),
                     testprocesses: String(this.testProcesses.size),
                 })
-                handleNewCrashReport('TestItemControllerOsKill', report, '', 'Test Item Controller')
+                if (isReportableOsKill(signal)) {
+                    handleNewCrashReport('TestItemControllerOsKill', report, '', 'Test Item Controller')
 
-                vscode.window
-                    .showErrorMessage(
-                        `${osKillNotification('The Julia test item controller', signal)} Any running tests have been stopped.`,
-                        'Show Logs'
-                    )
-                    .then((choice) => {
-                        if (choice === 'Show Logs') {
-                            this.outputChannel.show()
-                        }
-                    })
+                    vscode.window
+                        .showErrorMessage(
+                            `${osKillNotification('The Julia test item controller', signal)} Any running tests have been stopped.`,
+                            'Show Logs'
+                        )
+                        .then((choice) => {
+                            if (choice === 'Show Logs') {
+                                this.outputChannel.show()
+                            }
+                        })
+                }
             }
 
             const unexpected = unexpectedControllerExit(code, signal, this._intentionalStop)
