@@ -5,6 +5,7 @@ import * as os from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import {
+    CancellationToken,
     CloseAction,
     CloseHandlerResult,
     ErrorHandler,
@@ -12,6 +13,7 @@ import {
     LanguageClient,
     LanguageClientOptions,
     Message,
+    MessageSignature,
     MessageTransports,
     RevealOutputChannelOn,
     ServerOptions,
@@ -21,7 +23,12 @@ import {
 import { ResponseError } from 'vscode-languageserver-protocol'
 
 import * as jlpkgenv from './jlpkgenv'
-import { isLanguageServerError } from './languageServerErrors'
+import {
+    describeFailedRequest,
+    formatFailedRequest,
+    isLanguageServerError,
+    isLanguageServerResponseNoise,
+} from './languageServerErrors'
 import * as telemetry from './telemetry'
 import { ExecutableFeature, JuliaExecutable, JuliaNotFoundError } from './executables'
 import { getCustomEnvironmentVariables, onEvent, registerCommand } from './utils'
@@ -663,6 +670,35 @@ class ObservedLanguageClient extends LanguageClient {
             this.onServerProcess(serverProcess)
         }
         return transports
+    }
+
+    /**
+     * Every failed request of this client passes through here, with the
+     * request type still attached and the error still a `ResponseError`
+     * carrying its code. Both are gone by the time a rejection nothing catches
+     * reaches crash reporting, which is why an unexplained response error is
+     * currently unattributable — see `describeFailedRequest`.
+     *
+     * So this records what the failure was, and changes nothing about what
+     * happens to it: the base class still decides whether to swallow, notify
+     * or rethrow. Failures already classified as teardown noise or as an
+     * expected user condition are left alone, since those are understood and
+     * arrive in the thousands.
+     */
+    public override handleFailedRequest<T>(
+        type: MessageSignature,
+        token: CancellationToken | undefined,
+        error: unknown,
+        defaultValue: T,
+        showNotification?: boolean,
+        throwOnCancel?: boolean
+    ): T {
+        if (!isLanguageServerError(error) && !isLanguageServerResponseNoise(error)) {
+            const description = describeFailedRequest(type.method, error)
+            this.outputChannel.appendLine(formatFailedRequest(description))
+            telemetry.traceEvent('lsrequestfailed', description)
+        }
+        return super.handleFailedRequest(type, token, error, defaultValue, showNotification, throwOnCancel)
     }
 }
 

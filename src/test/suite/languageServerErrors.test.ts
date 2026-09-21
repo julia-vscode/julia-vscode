@@ -7,6 +7,8 @@ import {
     ResponseError,
 } from 'vscode-languageserver-protocol'
 import {
+    describeFailedRequest,
+    formatFailedRequest,
     isExpectedDocumentStateError,
     isLanguageServerError,
     isLanguageServerResponseNoise,
@@ -186,5 +188,47 @@ suite('isLanguageServerResponseNoise', () => {
         assert.strictEqual(isLanguageServerResponseNoise('Error handling request: x'), false)
         assert.strictEqual(isLanguageServerResponseNoise(undefined), false)
         assert.strictEqual(isLanguageServerResponseNoise(null), false)
+    })
+})
+
+suite('describeFailedRequest', () => {
+    test('keeps the method and the response code, which the report would lose', () => {
+        const err = new ResponseError(-32803, 'https://example.com/a/b')
+        assert.deepStrictEqual(describeFailedRequest('textDocument/formatting', err), {
+            method: 'textDocument/formatting',
+            code: '-32803',
+            type: 'ResponseError',
+        })
+    })
+
+    test('an error that is not a response error still names its type', () => {
+        assert.deepStrictEqual(describeFailedRequest('textDocument/hover', new TypeError('boom')), {
+            method: 'textDocument/hover',
+            code: 'none',
+            type: 'TypeError',
+        })
+    })
+
+    test('a rejection that is not an error at all is still described', () => {
+        assert.deepStrictEqual(describeFailedRequest('julia/getModuleAt', 'nope'), {
+            method: 'julia/getModuleAt',
+            code: 'none',
+            type: 'string',
+        })
+    })
+
+    test('carries no message text, since a message can hold anything', () => {
+        const description = describeFailedRequest('textDocument/hover', new Error('/home/someone/secret.jl'))
+        assert.strictEqual(
+            Object.values(description).some((value) => value.includes('secret')),
+            false
+        )
+    })
+
+    test('reads as one line in the output channel', () => {
+        assert.strictEqual(
+            formatFailedRequest({ method: 'textDocument/hover', code: '-32803', type: 'ResponseError' }),
+            "Request 'textDocument/hover' failed: ResponseError, code -32803"
+        )
     })
 })
