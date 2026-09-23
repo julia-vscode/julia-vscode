@@ -15,6 +15,11 @@ import {
     Message,
     MessageSignature,
     MessageTransports,
+    ProtocolRequestType,
+    ProtocolRequestType0,
+    RequestParam,
+    RequestType,
+    RequestType0,
     RevealOutputChannelOn,
     ServerOptions,
     State,
@@ -28,6 +33,7 @@ import {
     formatFailedRequest,
     isLanguageServerError,
     isLanguageServerResponseNoise,
+    tagDocumentStateError,
 } from './languageServerErrors'
 import * as telemetry from './telemetry'
 import { ExecutableFeature, JuliaExecutable, JuliaNotFoundError } from './executables'
@@ -548,8 +554,11 @@ export function sanitizeHomeDir(text: string, homeDir: string = os.homedir()): s
  * listeners that also see a death during startup. Everything else (the
  * spawn itself, debug-mode selection, killing the process on stop) stays
  * with the client.
+ *
+ * It also watches the requests going through it, see `sendRequest` and
+ * `handleFailedRequest` below.
  */
-class ObservedLanguageClient extends LanguageClient {
+export class ObservedLanguageClient extends LanguageClient {
     constructor(
         id: string,
         name: string,
@@ -567,6 +576,44 @@ class ObservedLanguageClient extends LanguageClient {
             this.onServerProcess(serverProcess)
         }
         return transports
+    }
+
+    /**
+     * Every request of this client goes out through here: our own custom
+     * requests and those of `vscode-languageclient`'s built-in features alike,
+     * which all call `client.sendRequest`.
+     *
+     * A document-state answer of the server is given
+     * `DOCUMENT_STATE_ERROR_NAME` on its way back out, while its code is still
+     * attached, so crash reporting can still recognise it after VS Code has
+     * rebuilt it with a cleaned message — see `tagDocumentStateError`. The
+     * error itself is rethrown unchanged otherwise.
+     */
+    public override sendRequest<R, PR, E, RO>(
+        type: ProtocolRequestType0<R, PR, E, RO>,
+        token?: CancellationToken
+    ): Promise<R>
+    public override sendRequest<P, R, PR, E, RO>(
+        type: ProtocolRequestType<P, R, PR, E, RO>,
+        params: NoInfer<RequestParam<P>>,
+        token?: CancellationToken
+    ): Promise<R>
+    public override sendRequest<R, E>(type: RequestType0<R, E>, token?: CancellationToken): Promise<R>
+    public override sendRequest<P, R, E>(
+        type: RequestType<P, R, E>,
+        params: NoInfer<RequestParam<P>>,
+        token?: CancellationToken
+    ): Promise<R>
+    public override sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
+    public override sendRequest<R>(method: string, param: unknown, token?: CancellationToken): Promise<R>
+    public override async sendRequest<R>(type: string | MessageSignature, ...params: unknown[]): Promise<R> {
+        try {
+            // The base class sorts `params` into a parameter and a token
+            // itself; only the overloads need convincing.
+            return await super.sendRequest<R>(type as string, ...(params as [unknown, CancellationToken?]))
+        } catch (err) {
+            throw tagDocumentStateError(err)
+        }
     }
 
     /**
