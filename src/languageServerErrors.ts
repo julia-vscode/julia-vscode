@@ -27,9 +27,12 @@ const teardownStreamCodes = new Set([
  * Errors that VS Code attributes to this extension (a rejected language
  * feature provider, an unhandled rejection inside the bundled
  * `vscode-jsonrpc`) reach `sendErrorData` as a freshly constructed plain
- * `Error` carrying only `name`, `message` and `stack`: the prototype and the
- * `code` property are stripped. Matching on the whole message, never a
- * substring, keeps this from masking genuine server errors that merely
+ * `Error`. VS Code's telemetry logger copies `name`, `message` and `stack`,
+ * runs its PII cleaning over each (see {@link DOCUMENT_STATE_ERROR_NAME})
+ * and builds a new `Error` from the result, so the prototype and the `code`
+ * property are gone. None of the messages below holds a path or a URL, so
+ * the cleaning leaves them as they are. Matching on the whole message, never
+ * a substring, keeps this from masking genuine server errors that merely
  * mention a connection.
  */
 const teardownMessages = new Set([
@@ -115,15 +118,28 @@ const JLS_NO_DOCUMENT = -33100
 const JLS_VERSION_MISMATCH = -33101
 
 /**
- * The whole messages of those same answers, for the copies that reach us
- * without their code, the way `teardownMessages` above does.
+ * `MissingDocumentError`, which `invoke_handler` in LanguageServer.jl's
+ * `src/languageserverinstance.jl` answers with as LSP `InvalidParams`. That
+ * code is generic, so only this message makes it a document-state answer.
+ */
+const missingDocumentPattern = /^Document not available: \S+\.$/
+
+/**
+ * The whole messages of the document-state answers, as they read when they
+ * leave the server.
  *
  * Anchored at both ends, and the URI in the middle of each is matched as a run
  * of non-whitespace: a loose prefix such as `document ` would match far too
  * much, and a trailing `.+` would let anything follow the message as long as
  * it ended the right way. A URI the server prints is percent-encoded, so it
- * never contains a space; one that somehow did would fall out here and be
- * reported, which is the right way round to be wrong.
+ * never contains a space.
+ *
+ * These are no longer how such an answer is recognised once it has lost its
+ * code; {@link DOCUMENT_STATE_ERROR_NAME} is. VS Code's cleaning rewrites
+ * exactly these messages, because each of them carries a URI. They stay as a
+ * best-effort net for a copy that reaches crash reporting without having
+ * passed through our language client, and so without the name, and whose URI
+ * the cleaning happened to leave alone (`untitled:Untitled-1`, say).
  */
 const documentStateMessagePatterns = [
     // `nodocument_error`: the server never tracked this document, e.g. a
@@ -132,10 +148,33 @@ const documentStateMessagePatterns = [
     // `mismatched_version_error`: the edit the request is about has not
     // reached the server yet.
     /^version mismatch in \S+ request for \S+: JLS -?\d+, client: -?\d+$/,
-    // `MissingDocumentError`, turned into LSP `InvalidParams` by
-    // `invoke_handler` in LanguageServer.jl's `src/languageserverinstance.jl`.
-    /^Document not available: \S+\.$/,
+    missingDocumentPattern,
 ]
+
+/**
+ * The `name` our language client gives an error the server answered a
+ * request with when that answer is one of
+ * {@link isExpectedDocumentStateError}'s, see {@link tagDocumentStateError}.
+ *
+ * It exists because the answer is unrecognisable by the time it reaches crash
+ * reporting otherwise. A rejection nothing catches reaches `sendErrorData`
+ * through VS Code's telemetry logger, which does not hand over the error it
+ * was given: it copies `name`, `message` and `stack`, cleans each copy, and
+ * builds a new plain `Error` from the result, so the `ResponseError` prototype
+ * and the code are gone and the message is the cleaned one. The cleaning
+ * turns every `%20` into a space, replaces anything shaped like a file path
+ * with `<REDACTED: user-file-path>`, and replaces a single-line value that
+ * contains a URL (`scheme://…`) *whole* with `<REDACTED: URL>`. Every one of
+ * the server's document-state messages names the document's URI, so for a
+ * `file://` document the report is nothing but `<REDACTED: URL>`, and for a
+ * notebook cell it is `Document not available: vscode-notebook-cel<REDACTED:
+ * user-file-path> e <REDACTED: user-file-path>#W2sZmlsZQ==.` — neither of
+ * which any message pattern could safely match.
+ *
+ * A plain identifier contains nothing the cleaning touches, so the name
+ * arrives exactly as it was set.
+ */
+export const DOCUMENT_STATE_ERROR_NAME = 'JuliaLanguageServerDocumentStateError'
 
 /**
  * Returns true for a language server answer that says it does not have the
@@ -147,15 +186,51 @@ const documentStateMessagePatterns = [
  * common one — and a document version the server has not caught up with is
  * the ordinary state of an edit in flight. A caller that gets one of these
  * has no answer to work with and should fall back, not report a crash.
+ *
+ * A `ResponseError` is classified by its code, and for the generic
+ * `InvalidParams` code also by its message, which is still the server's own
+ * at that point. Any other error is one that has lost its code on the way to
+ * crash reporting: it is recognised by the name {@link tagDocumentStateError}
+ * gave it before it did, or failing that by its message.
  */
 export function isExpectedDocumentStateError(err: unknown): boolean {
-    if (err instanceof ResponseError && (err.code === JLS_NO_DOCUMENT || err.code === JLS_VERSION_MISMATCH)) {
-        return true
+    if (err instanceof ResponseError) {
+        switch (err.code) {
+            case JLS_NO_DOCUMENT:
+            case JLS_VERSION_MISMATCH:
+                return true
+            case ErrorCodes.InvalidParams:
+                return missingDocumentPattern.test(err.message)
+            default:
+                return false
+        }
     }
     if (err instanceof Error) {
-        return documentStateMessagePatterns.some((pattern) => pattern.test(err.message))
+        return (
+            err.name === DOCUMENT_STATE_ERROR_NAME ||
+            documentStateMessagePatterns.some((pattern) => pattern.test(err.message))
+        )
     }
     return false
+}
+
+/**
+ * Names a request's failure {@link DOCUMENT_STATE_ERROR_NAME} if it is a
+ * document-state answer of the server, so that it can still be recognised
+ * after VS Code has rebuilt it for crash reporting. Returns the error, for
+ * rethrowing.
+ *
+ * Only `ResponseError`s are named — the answer as it came off the wire, with
+ * its code intact — and nothing else about them changes: the instance, its
+ * prototype, code and message stay as they are, so a caller that handles the
+ * answer by its code, or with {@link isExpectedDocumentStateError}, sees what
+ * it always did.
+ */
+export function tagDocumentStateError<T>(err: T): T {
+    if (err instanceof ResponseError && isExpectedDocumentStateError(err)) {
+        err.name = DOCUMENT_STATE_ERROR_NAME
+    }
+    return err
 }
 
 /**
@@ -163,6 +238,11 @@ export function isExpectedDocumentStateError(err: unknown): boolean {
  * extension crash reports. Like `teardownMessages` above, these arrive at
  * `sendErrorData` as rebuilt plain `Error`s without their `ResponseError`
  * code, so the message prefix is the only thing left to classify on.
+ *
+ * The prefix survives VS Code's cleaning as long as the rest of the message
+ * does not contain a URL; a single-line message that does is replaced whole
+ * by `<REDACTED: URL>` and cannot be recognised here any more (see
+ * {@link DOCUMENT_STATE_ERROR_NAME}).
  */
 const responseNoisePrefixes = [
     // JSONRPC.jl wraps a failed request handler into this response and then
@@ -204,12 +284,15 @@ export function isLanguageServerResponseNoise(err: unknown): boolean {
  *
  * A rejection nothing catches is handed to crash reporting by VS Code as a
  * freshly built plain `Error`: the `ResponseError` prototype and its `code`
- * are gone and the message is all that is left, which is why
- * {@link isLanguageServerResponseNoise} has to classify on message prefixes.
- * Telemetry currently carries such a report whose message is *only* a URL — it
- * sanitizes to `<REDACTED: URL>`, and no error site in LanguageServer.jl
- * produces a bare-URI message — so there is nothing in it to say which request
- * it belongs to, or even which of the connections it came from.
+ * are gone, and what is left of the message is what VS Code's cleaning made
+ * of it (see {@link DOCUMENT_STATE_ERROR_NAME}). Telemetry carries such
+ * reports whose message is nothing but `<REDACTED: URL>`. That is not a
+ * message that was only a URL: the cleaning replaces a single-line message
+ * *whole* as soon as it contains one, so any server answer that names a
+ * `file://` document ends up like this. The server's document-state answers
+ * are the common case, and are now recognised by their name instead; for
+ * anything else there is nothing left in the report to say which request it
+ * belongs to, or even which of the connections it came from.
  *
  * `handleFailedRequest` sees the same failures while the method and the code
  * are still attached, and reports this description instead. It carries no
