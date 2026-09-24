@@ -15,6 +15,11 @@ import {
     Message,
     MessageSignature,
     MessageTransports,
+    ProtocolRequestType,
+    ProtocolRequestType0,
+    RequestParam,
+    RequestType,
+    RequestType0,
     RevealOutputChannelOn,
     ServerOptions,
     State,
@@ -28,6 +33,7 @@ import {
     formatFailedRequest,
     isLanguageServerError,
     isLanguageServerResponseNoise,
+    tagDocumentStateError,
 } from './languageServerErrors'
 import * as telemetry from './telemetry'
 import { ExecutableFeature, JuliaExecutable, JuliaNotFoundError } from './executables'
@@ -172,129 +178,6 @@ export class RestartTrackingErrorHandler implements ErrorHandler {
 }
 
 /**
- * Works around a race in vscode-languageclient's crash-restart handling
- * (verified in 10.1.1; reported upstream as
- * microsoft/vscode-languageserver-node#1859): when the server
- * process dies and the client auto-restarts it, document lifecycle
- * notifications generated during the down window are parked inside
- * `sendNotification` at `await this.$start()` and delivered over the *next*
- * connection — after the client has already replayed `didOpen` (with each
- * document's then-current version) for every open document. The new server
- * then receives stale stragglers: a `didChange` whose version predates the
- * replayed `didOpen`, a `didClose`/`didOpen` for a document whose open state
- * the replay already settled. Our language server treats each of those as a
- * fatal protocol violation, so one crash cascades into a crash loop.
- *
- * The guard defers any lifecycle notification fired while the client is not
- * `Running` until it is, and then forwards it only if the replay has not
- * superseded it. Dropping is safe by construction: the replayed `didOpen`
- * always carries the document's complete current text. Events fired while the
- * client is `Running` pass through untouched.
- *
- * Remove once the race is fixed upstream in vscode-languageclient.
- */
-export class DocumentLifecycleGuard {
-    private client: LanguageClient | undefined
-    /**
-     * Documents opened on the current server connection, and the version the
-     * `didOpen` carried. Cleared when a new connection attempt starts; the
-     * client's replayed didOpens (which run through this middleware too)
-     * repopulate it, so by the time deferred events are decided it reflects
-     * exactly what the new server was told.
-     */
-    private epochOpens = new Map<string, number>()
-
-    attach(client: LanguageClient) {
-        this.client = client
-        client.onDidChangeState((event: StateChangeEvent) => {
-            if (event.newState === State.Starting) {
-                this.epochOpens.clear()
-            }
-        })
-    }
-
-    private get running(): boolean {
-        return this.client !== undefined && this.client.state === State.Running
-    }
-
-    private awaitRunning(): Promise<void> {
-        return new Promise((resolve) => {
-            const disposable = this.client.onDidChangeState((event: StateChangeEvent) => {
-                if (event.newState === State.Running) {
-                    disposable.dispose()
-                    resolve()
-                }
-            })
-        })
-    }
-
-    async didOpen(
-        document: vscode.TextDocument,
-        next: (document: vscode.TextDocument) => Promise<void>
-    ): Promise<void> {
-        const uri = document.uri.toString()
-        if (!this.running) {
-            await this.awaitRunning()
-            if (this.epochOpens.has(uri)) {
-                // The post-restart replay already opened this document.
-                return
-            }
-        }
-        this.epochOpens.set(uri, document.version)
-        return next(document)
-    }
-
-    async didChange(
-        event: vscode.TextDocumentChangeEvent,
-        next: (event: vscode.TextDocumentChangeEvent) => Promise<void>
-    ): Promise<void> {
-        // The library captures the version to send before invoking the
-        // middleware, so this is the version the server would receive.
-        const version = event.document.version
-        const uri = event.document.uri.toString()
-        if (!this.running) {
-            await this.awaitRunning()
-            const openVersion = this.epochOpens.get(uri)
-            if (openVersion === undefined || version <= openVersion) {
-                // Not open on this connection, or already contained in the
-                // full text the replayed didOpen carried.
-                return
-            }
-        }
-        return next(event)
-    }
-
-    async didClose(
-        document: vscode.TextDocument,
-        next: (document: vscode.TextDocument) => Promise<void>
-    ): Promise<void> {
-        const uri = document.uri.toString()
-        if (!this.running) {
-            await this.awaitRunning()
-            if (!this.epochOpens.has(uri)) {
-                // The document was never opened on this connection (it closed
-                // during the down window, so the replay skipped it).
-                return
-            }
-        }
-        this.epochOpens.delete(uri)
-        return next(document)
-    }
-
-    async didSave(
-        document: vscode.TextDocument,
-        next: (document: vscode.TextDocument) => Promise<void>
-    ): Promise<void> {
-        if (!this.running) {
-            // A stale save snapshot; the server sees saved state through its
-            // file watchers, and the replayed didOpen carries current text.
-            return
-        }
-        return next(document)
-    }
-}
-
-/**
  * Whether `position` names a line the document does not have.
  *
  * `document.validatePosition` is VS Code's own authority on what is addressable
@@ -347,10 +230,9 @@ function describeUnaddressableLine(document: vscode.TextDocument, position: vsco
  * not sent, and the provider reports no result, which is what the server would
  * have had to answer anyway.
  *
- * What this deliberately does *not* cover is a position that was addressable
- * when the provider ran but no longer matches what the server holds (a request
- * parked in `sendRequest` while the client is not yet `Running`, then released
- * against a document that has moved on). That desync stays loud on the server so
+ * What this deliberately does *not* cover is a position that is addressable in
+ * VS Code's copy of the document but not in the server's. That means the two
+ * sides disagree about the document, and the desync stays loud on the server so
  * it can still be diagnosed; see the `LSOffsetError` handling in
  * `LanguageServer/src/languageserverinstance.jl`.
  */
@@ -672,8 +554,11 @@ export function sanitizeHomeDir(text: string, homeDir: string = os.homedir()): s
  * listeners that also see a death during startup. Everything else (the
  * spawn itself, debug-mode selection, killing the process on stop) stays
  * with the client.
+ *
+ * It also watches the requests going through it, see `sendRequest` and
+ * `handleFailedRequest` below.
  */
-class ObservedLanguageClient extends LanguageClient {
+export class ObservedLanguageClient extends LanguageClient {
     constructor(
         id: string,
         name: string,
@@ -691,6 +576,44 @@ class ObservedLanguageClient extends LanguageClient {
             this.onServerProcess(serverProcess)
         }
         return transports
+    }
+
+    /**
+     * Every request of this client goes out through here: our own custom
+     * requests and those of `vscode-languageclient`'s built-in features alike,
+     * which all call `client.sendRequest`.
+     *
+     * A document-state answer of the server is given
+     * `DOCUMENT_STATE_ERROR_NAME` on its way back out, while its code is still
+     * attached, so crash reporting can still recognise it after VS Code has
+     * rebuilt it with a cleaned message — see `tagDocumentStateError`. The
+     * error itself is rethrown unchanged otherwise.
+     */
+    public override sendRequest<R, PR, E, RO>(
+        type: ProtocolRequestType0<R, PR, E, RO>,
+        token?: CancellationToken
+    ): Promise<R>
+    public override sendRequest<P, R, PR, E, RO>(
+        type: ProtocolRequestType<P, R, PR, E, RO>,
+        params: NoInfer<RequestParam<P>>,
+        token?: CancellationToken
+    ): Promise<R>
+    public override sendRequest<R, E>(type: RequestType0<R, E>, token?: CancellationToken): Promise<R>
+    public override sendRequest<P, R, E>(
+        type: RequestType<P, R, E>,
+        params: NoInfer<RequestParam<P>>,
+        token?: CancellationToken
+    ): Promise<R>
+    public override sendRequest<R>(method: string, token?: CancellationToken): Promise<R>
+    public override sendRequest<R>(method: string, param: unknown, token?: CancellationToken): Promise<R>
+    public override async sendRequest<R>(type: string | MessageSignature, ...params: unknown[]): Promise<R> {
+        try {
+            // The base class sorts `params` into a parameter and a token
+            // itself; only the overloads need convincing.
+            return await super.sendRequest<R>(type as string, ...(params as [unknown, CancellationToken?]))
+        } catch (err) {
+            throw tagDocumentStateError(err)
+        }
     }
 
     /**
@@ -1083,7 +1006,6 @@ export class LanguageClientFeature {
         // decision so the state change handler below can tell a transient
         // crash apart from a crash loop.
         const errorHandler = new RestartTrackingErrorHandler(() => languageClient.createDefaultErrorHandler())
-        const lifecycleGuard = new DocumentLifecycleGuard()
         const positionGuard = new PositionValidationGuard((provider, detail) =>
             telemetry.traceEvent('lsinvalidposition', { provider, detail })
         )
@@ -1128,12 +1050,6 @@ export class LanguageClientFeature {
                     handleFormattingError(this.outputChannel, document, () =>
                         Promise.resolve(next(document, range, options, token))
                     ),
-                // Suppress stale document lifecycle notifications parked across
-                // a crash-restart (see DocumentLifecycleGuard).
-                didOpen: (document, next) => lifecycleGuard.didOpen(document, next),
-                didChange: (event, next) => lifecycleGuard.didChange(event, next),
-                didClose: (document, next) => lifecycleGuard.didClose(document, next),
-                didSave: (document, next) => lifecycleGuard.didSave(document, next),
                 // Never ask the server about a line the document does not have
                 // (see PositionValidationGuard). One hook per request the server
                 // answers by indexing the position strictly; `provideInlayHints`
@@ -1175,7 +1091,6 @@ export class LanguageClientFeature {
             (serverProcess) => this.observeServerProcess(serverProcess, juliaExecutable)
         )
         languageClient.registerProposedFeatures()
-        lifecycleGuard.attach(languageClient)
 
         languageClient.onDidChangeState((event: StateChangeEvent) => {
             switch (event.newState) {
