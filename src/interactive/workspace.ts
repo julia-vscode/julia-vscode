@@ -385,7 +385,7 @@ class VariableNode extends AbstractWorkspaceNode {
 export class WorkspaceFeature {
     _REPLTreeDataProvider: REPLTreeDataProvider
 
-    _REPLNode: REPLNode
+    _REPLNode: REPLNode | null = null
     _NotebookNodes: NotebookNode[] = []
     _TestController: TestControllerNode | null = null
 
@@ -646,8 +646,14 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
     }
 
     async toggleModules(show: boolean) {
-        this.workspaceFeature._REPLNode.toggleModules(show)
-        await this.workspaceFeature._REPLNode.updateReplVariables()
+        // The view-title buttons are shown whether or not a REPL is connected, so there may be no
+        // REPL node to apply this to. The setting is still saved below, and a REPL started later
+        // reads it when its node is created.
+        const replNode = this.workspaceFeature._REPLNode
+        if (replNode) {
+            replNode.toggleModules(show)
+            await replNode.updateReplVariables()
+        }
         for (const node of this.workspaceFeature._NotebookNodes) {
             node.toggleModules(show)
             await node.updateReplVariables()
