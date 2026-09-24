@@ -71,10 +71,10 @@ uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
 version = "3.1.1-DEV"
 
 [[deps.JuliaInterpreter]]
-deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+deps = ["CodeTracking", "InteractiveUtils", "Random"]
 path = "../../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.11.4"
+version = "0.11.5"
 
 [[deps.JuliaSyntaxHighlighting]]
 deps = ["StyledStrings"]
