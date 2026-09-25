@@ -424,7 +424,7 @@ version = "1.11.0"
 deps = ["JuliaSyntax", "Preferences"]
 path = "../../../packages/Runic"
 uuid = "62bfec6d-59d7-401d-8490-b29ee721c001"
-version = "1.10.0"
+version = "1.11.1"
 
     [deps.Runic.syntax]
     julia_version = "1.10.0"
