@@ -4,6 +4,7 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import { ExecutableFeature, JuliaNotFoundError } from './executables'
 import * as packagepath from './packagepath'
+import * as telemetry from './telemetry'
 import { parseVSCodeVariables, registerCommand, resolvePath } from './utils'
 import { promisify } from 'node:util'
 import child_process from 'node:child_process'
@@ -14,12 +15,32 @@ let g_current_environment: vscode.StatusBarItem = null
 let g_path_of_current_environment: string = null
 let g_path_of_default_environment: string = null
 let g_resolved_path_of_environment: string = null
+let g_default_environment_unknown_because_julia_not_found = false
 
 let g_ExecutableFeature: ExecutableFeature = null
 
 function getEnvironmentPathConfig() {
     const section = vscode.workspace.getConfiguration('julia')
     return parseVSCodeVariables(section.get('environmentPath') ?? '')
+}
+
+function getUnknownDefaultEnvPath() {
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        return vscode.workspace.workspaceFolders[0].uri.fsPath
+    }
+
+    return os.homedir()
+}
+
+async function updateCurrentEnvironmentStatusText() {
+    if (
+        g_default_environment_unknown_because_julia_not_found &&
+        g_path_of_current_environment === g_path_of_default_environment
+    ) {
+        g_current_environment.text = 'Julia env: [Julia not found]'
+    } else {
+        g_current_environment.text = 'Julia env: ' + (await getEnvName())
+    }
 }
 
 export async function getProjectFilePaths(envpath: string) {
@@ -56,7 +77,7 @@ export async function switchEnvToPath(envpath: string) {
         section.update('environmentPath', undefined, vscode.ConfigurationTarget.Workspace)
     }
 
-    g_current_environment.text = 'Julia env: ' + (await getEnvName())
+    await updateCurrentEnvironmentStatusText()
 
     if (
         vscode.workspace.workspaceFolders !== undefined &&
@@ -239,24 +260,49 @@ async function getDefaultEnvPath() {
             }
         }
 
-        const juliaExecutable = await g_ExecutableFeature.getExecutable()
-        const res = await execFile(
-            juliaExecutable.command,
-            [
-                ...juliaExecutable.args,
-                '--startup-file=no',
-                '--history-file=no',
-                '-e',
-                'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))',
-            ],
-            {
-                env: {
-                    ...process.env,
-                    JULIA_VSCODE_INTERNAL: '1',
-                },
+        let juliaExecutable
+        try {
+            juliaExecutable = await g_ExecutableFeature.getExecutable()
+        } catch (err) {
+            if (err instanceof JuliaNotFoundError) {
+                g_path_of_default_environment = getUnknownDefaultEnvPath()
+                g_default_environment_unknown_because_julia_not_found = true
+                return g_path_of_default_environment
             }
-        )
+            throw err
+        }
+        let res
+        try {
+            res = await execFile(
+                juliaExecutable.command,
+                [
+                    ...juliaExecutable.args,
+                    '--startup-file=no',
+                    '--history-file=no',
+                    '-e',
+                    'using Pkg; println(dirname(Pkg.Types.Context().env.project_file))',
+                ],
+                {
+                    env: {
+                        ...process.env,
+                        JULIA_VSCODE_INTERNAL: '1',
+                    },
+                }
+            )
+        } catch (_err) {
+            // Julia was found but the helper invocation failed — almost always
+            // a broken user environment (e.g. a stale/incompatible precompiled
+            // image: "Precompiled image ... not available with flags ..."),
+            // not an extension fault. Degrade to a best-effort default env path
+            // instead of letting the rejection surface as a crash report, and
+            // record a lightweight trace event so the failure is still visible.
+            telemetry.traceEvent('default-env-resolution-failed')
+            g_path_of_default_environment = getUnknownDefaultEnvPath()
+            g_default_environment_unknown_because_julia_not_found = false
+            return g_path_of_default_environment
+        }
         g_path_of_default_environment = res.stdout.toString().trim()
+        g_default_environment_unknown_because_julia_not_found = false
     }
     return g_path_of_default_environment
 }
@@ -318,7 +364,9 @@ export async function activate(context: vscode.ExtensionContext, ExecutableFeatu
     g_current_environment.text = 'Julia env: [loading]'
     g_current_environment.command = 'language-julia.changeCurrentEnvironment'
     context.subscriptions.push(g_current_environment)
-    await switchEnvToPath(await getEnvPath()) // We don't need to notify the LS here because it will start with that env already
-
+    // Show the item (with its "[loading]" text) before resolving the
+    // environment: the resolution below spawns a Julia process, and until it
+    // finished the picker was simply absent from the status bar.
     g_current_environment.show()
+    await switchEnvToPath(await getEnvPath()) // We don't need to notify the LS here because it will start with that env already
 }

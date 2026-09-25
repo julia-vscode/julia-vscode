@@ -9,6 +9,7 @@ import * as rpc from 'vscode-jsonrpc/node'
 import * as jlpkgenv from '../jlpkgenv'
 import { switchEnvToPath } from '../jlpkgenv'
 import { LanguageClientFeature } from '../languageClient'
+import { isExpectedDocumentStateError } from '../languageServerErrors'
 import { JuliaExecutable, ExecutableFeature, JuliaupChannel, JuliaNotFoundError } from '../executables'
 import * as telemetry from '../telemetry'
 import {
@@ -49,6 +50,20 @@ export let g_replDebugPipename: string | undefined = undefined
 let g_terminal_is_persistent: boolean = false
 
 let g_ExecutableFeature: ExecutableFeature
+
+/**
+ * Report an internal error from interacting with the REPL process. Expected
+ * noise is filtered: `handleNewCrashReportFromException` drops the
+ * vscode-jsonrpc connection-teardown errors (the REPL connection uses the same
+ * library as the language client), and once the connection has been torn down
+ * (`g_connection` unset) nothing is reported at all — a crashed REPL process
+ * reports itself through the crash-reporting pipe.
+ */
+function reportREPLError(err: unknown) {
+    if (g_connection) {
+        telemetry.handleNewCrashReportFromException(err as Error, 'Extension')
+    }
+}
 
 async function startREPLCommand() {
     await startREPL(false, true)
@@ -539,6 +554,14 @@ interface RunCodeOptions {
 
 const requestTypeReplRunCode = new rpc.RequestType<RunCodeOptions, ReturnResult, void>('repl/runcode')
 
+function replUnavailableResult(): ReturnResult {
+    return {
+        inline: 'REPL unavailable',
+        all: 'The Julia REPL is no longer available.',
+        stackframe: [],
+    }
+}
+
 // interface DebugLaunchParams {
 //     code: string,
 //     filename: string
@@ -938,6 +961,7 @@ async function executeFile(uri?: vscode.Uri | string) {
             softscope: false,
         })
     } catch (err) {
+        reportREPLError(err)
         console.log(err)
         vscode.window.showErrorMessage(`Error while executing ${path}.`)
     }
@@ -949,9 +973,24 @@ export async function getBlockRange(params: VersionedTextDocumentPositionParams)
 
     return await g_languageClientFeature.withLanguageClient(
         async (languageClient) => {
-            return (await languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(
-                (pos) => new vscode.Position(pos.line, pos.character)
-            )
+            try {
+                return (await languageClient.sendRequest<vscode.Position[]>('julia/getCurrentBlockRange', params)).map(
+                    (pos) => new vscode.Position(pos.line, pos.character)
+                )
+            } catch (err) {
+                // The server answers with an error instead of a range when it
+                // does not have this document, or does not have it at the
+                // version these params were built against. Both are ordinary:
+                // it never tracks a `git:` diff view, and an edit reaches it
+                // after the keystroke that triggered the request. There is no
+                // block either way, so fall back to the empty one the caller
+                // already handles rather than report a crash.
+                if (isExpectedDocumentStateError(err)) {
+                    console.warn(err)
+                    return zeroReturn
+                }
+                throw err
+            }
         },
         (err) => {
             if (err.message === 'Language client is not ready yet') {
@@ -1086,8 +1125,9 @@ export async function evaluate(
             // interrupts killAndDrain the queue, but we still want to display the current item
             if (opts === g_currentEvalItem) {
                 result = await evalPromise
-            } else {
-                r.remove(true)
+            }
+            if (!result) {
+                r?.remove(true)
                 return false
             }
         }
@@ -1107,7 +1147,7 @@ export async function evaluate(
 
         return !isError
     } catch (err) {
-        r.remove(true)
+        r?.remove(true)
         throw err
     }
 }
@@ -1118,6 +1158,9 @@ async function executeCodeCopyPaste(text: string, individualLine: boolean) {
     }
 
     await startREPL(true, true)
+    if (!g_terminal) {
+        return
+    }
 
     let lines = text.split(/\r?\n/)
     lines = lines.filter((line) => line !== '')
@@ -1202,20 +1245,56 @@ async function softInterrupt() {
     try {
         await g_connection.sendNotification('repl/interrupt')
     } catch (err) {
+        reportREPLError(err)
         console.warn(err)
     }
 }
 
-function signalInterrupt() {
-    try {
-        if (process.platform !== 'win32') {
-            g_terminal.processId.then((pid) => process.kill(pid, 'SIGINT'))
-        } else {
-            console.warn('Signal interrupts are not supported on Windows.')
-        }
-    } catch (err) {
-        console.warn(err)
+/**
+ * A failure to signal the REPL process that only says the process is not
+ * there anymore. Escalating to a signal happens after three interrupts in a
+ * second, by which time the REPL may well have gone away on its own, so this
+ * is an expected race rather than a fault to report.
+ */
+export function isExpectedInterruptSignalError(err: unknown): boolean {
+    return (err as NodeJS.ErrnoException)?.code === 'ESRCH'
+}
+
+function reportInterruptSignalError(err: unknown) {
+    if (!isExpectedInterruptSignalError(err)) {
+        telemetry.handleNewCrashReportFromException(err as Error, 'Extension')
     }
+    console.warn(err)
+}
+
+function signalInterrupt() {
+    if (process.platform === 'win32') {
+        console.warn('Signal interrupts are not supported on Windows.')
+        return
+    }
+
+    // The terminal can be gone by the time an interrupt escalates this far: the
+    // user closed it, or `killREPL` ran, while the interrupts that got us here
+    // were being counted. There is then nothing left to signal.
+    const terminal = g_terminal
+    if (!terminal) {
+        return
+    }
+
+    // `process.kill` runs in the `processId` callback, so it throws into the
+    // promise rather than out of this function; both outcomes have to be
+    // handled here or an interrupt of a dead REPL becomes an unhandled
+    // rejection.
+    terminal.processId.then((pid) => {
+        if (pid === undefined) {
+            return
+        }
+        try {
+            process.kill(pid, 'SIGINT')
+        } catch (err) {
+            reportInterruptSignalError(err)
+        }
+    }, reportInterruptSignalError)
 }
 
 // code execution end
@@ -1227,6 +1306,7 @@ async function cdToHere(uri: vscode.Uri) {
         try {
             await g_connection.sendNotification('repl/cd', { uri: uriPath })
         } catch (err) {
+            reportREPLError(err)
             console.log(err)
         }
     }
@@ -1244,6 +1324,7 @@ async function activatePath(path: string) {
             await g_connection.sendNotification('repl/activateProject', { uri: path })
             switchEnvToPath(path)
         } catch (err) {
+            reportREPLError(err)
             console.log(err)
         }
     }
@@ -1260,6 +1341,7 @@ async function activateFromDir(uri: vscode.Uri) {
             }
             activatePath(path.dirname(target))
         } catch (err) {
+            reportREPLError(err)
             console.log(err)
         }
     }
@@ -1359,7 +1441,22 @@ function isMarkdownEditor(editor: vscode.TextEditor) {
 let g_currentEvalItem: RunCodeOptions
 async function sendEvalRequest(req: RunCodeOptions) {
     g_currentEvalItem = req
-    const r = await g_connection.sendRequest(requestTypeReplRunCode, req)
+    const connection = g_connection
+    if (!connection) {
+        g_evalQueue.killAndDrain()
+        return replUnavailableResult()
+    }
+
+    let r: ReturnResult
+    try {
+        r = await connection.sendRequest(requestTypeReplRunCode, req)
+    } catch (err) {
+        if (!g_connection) {
+            g_evalQueue.killAndDrain()
+            return replUnavailableResult()
+        }
+        throw err
+    }
 
     if (r.stackframe) {
         g_evalQueue.killAndDrain()
@@ -1439,6 +1536,7 @@ export function activate(
                         enable: vscode.workspace.getConfiguration('julia').get('usePlotPane'),
                     })
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.useProgressFrontend')) {
@@ -1447,6 +1545,7 @@ export function activate(
                         enable: vscode.workspace.getConfiguration('julia').get('useProgressFrontend'),
                     })
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.showRuntimeDiagnostics')) {
@@ -1455,6 +1554,7 @@ export function activate(
                         enable: vscode.workspace.getConfiguration('julia').get('showRuntimeDiagnostics'),
                     })
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.plots.defaultMimeType')) {
@@ -1463,6 +1563,7 @@ export function activate(
                         mime: vscode.workspace.getConfiguration('julia').get('plots.defaultMimeType'),
                     })
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             } else if (event.affectsConfiguration('julia.inlayHints.runtime.enabled')) {
@@ -1475,6 +1576,7 @@ export function activate(
                         clearInlayHints()
                     }
                 } catch (err) {
+                    reportREPLError(err)
                     console.warn(err)
                 }
             }

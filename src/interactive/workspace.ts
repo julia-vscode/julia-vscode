@@ -3,6 +3,7 @@ import * as rpc from 'vscode-jsonrpc'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { JuliaTestProcess } from '../testing/testFeature'
 import { onEvent, registerCommand, wrapCrashReporting } from '../utils'
+import { handleNewCrashReportFromException } from '../telemetry'
 import { displayPlot } from './plots'
 import { notifyTypeDisplay, notifyTypeReplShowInGrid, onExit, onFinishEval, onInit } from './repl'
 import { openFile } from './results'
@@ -87,8 +88,10 @@ export class NotebookNode extends SessionNode {
             this.variablesNodes = variables.map((i) => new VariableNode(this, i))
 
             this.treeProvider.refresh()
-        } catch {
-            // Connection may have been disposed
+        } catch (err) {
+            // Connection-teardown errors are filtered centrally; anything else
+            // is an internal bug worth reporting.
+            handleNewCrashReportFromException(err, 'Extension')
         }
     }
 
@@ -329,8 +332,10 @@ class REPLNode extends SessionNode {
             this.variablesNodes = variables.map((v) => new VariableNode(this, v))
 
             this.treeProvider.refresh()
-        } catch {
-            // Connection may have been disposed
+        } catch (err) {
+            // Connection-teardown errors are filtered centrally; anything else
+            // is an internal bug worth reporting.
+            handleNewCrashReportFromException(err, 'Extension')
         }
     }
 
@@ -358,7 +363,10 @@ class VariableNode extends AbstractWorkspaceNode {
             })
 
             return children.map((i) => new VariableNode(this.parentREPL, i))
-        } catch {
+        } catch (err) {
+            // Connection-teardown errors are filtered centrally; anything else
+            // is an internal bug worth reporting.
+            handleNewCrashReportFromException(err, 'Extension')
             return []
         }
     }
@@ -377,7 +385,7 @@ class VariableNode extends AbstractWorkspaceNode {
 export class WorkspaceFeature {
     _REPLTreeDataProvider: REPLTreeDataProvider
 
-    _REPLNode: REPLNode
+    _REPLNode: REPLNode | null = null
     _NotebookNodes: NotebookNode[] = []
     _TestController: TestControllerNode | null = null
 
@@ -391,10 +399,13 @@ export class WorkspaceFeature {
             onInit(wrapCrashReporting(({ connection: conn }) => this.openREPL(conn))),
             onExit(() => this.closeREPL()),
             // commands
-            registerCommand('language-julia.showInVSCode', async (node: VariableNode) => await this.showInVSCode(node)),
+            registerCommand(
+                'language-julia.showInVSCode',
+                async (node: VariableNode | undefined) => await this.showInVSCode(node)
+            ),
             registerCommand(
                 'language-julia.workspaceGoToFile',
-                async (node: VariableNode) => await this.openLocation(node)
+                async (node: VariableNode | undefined) => await this.openLocation(node)
             ),
             registerCommand(
                 'language-julia.showModules',
@@ -417,11 +428,17 @@ export class WorkspaceFeature {
         this._REPLTreeDataProvider.refresh()
     }
 
-    async showInVSCode(node: VariableNode) {
+    async showInVSCode(node: VariableNode | undefined) {
+        if (!node) {
+            return
+        }
         await node.showInVSCode()
     }
 
-    async openLocation(node: VariableNode) {
+    async openLocation(node: VariableNode | undefined) {
+        if (!node) {
+            return
+        }
         openFile(node.workspaceVariable.location.file, node.workspaceVariable.location.line)
     }
 
@@ -629,8 +646,14 @@ export class REPLTreeDataProvider implements vscode.TreeDataProvider<AbstractWor
     }
 
     async toggleModules(show: boolean) {
-        this.workspaceFeature._REPLNode.toggleModules(show)
-        await this.workspaceFeature._REPLNode.updateReplVariables()
+        // The view-title buttons are shown whether or not a REPL is connected, so there may be no
+        // REPL node to apply this to. The setting is still saved below, and a REPL started later
+        // reads it when its node is created.
+        const replNode = this.workspaceFeature._REPLNode
+        if (replNode) {
+            replNode.toggleModules(show)
+            await replNode.updateReplVariables()
+        }
         for (const node of this.workspaceFeature._NotebookNodes) {
             node.toggleModules(show)
             await node.updateReplVariables()

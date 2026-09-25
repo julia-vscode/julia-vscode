@@ -86,6 +86,9 @@ export class JuliaNotebookFeature {
                 async (cell: vscode.NotebookCell | undefined) => {
                     if (cell) {
                         const kernel = this.kernels.get(cell.notebook)
+                        if (!kernel) {
+                            return
+                        }
                         if (!kernel.activeDebugSession) {
                             await kernel.toggleDebugging()
                             kernel.stopDebugSessionAfterExecution = true
@@ -190,13 +193,20 @@ export class JuliaNotebookFeature {
         }
 
         // Get metadata from notebook (to get an hint of what version of julia is used)
-        const version = this.getNotebookLanguageVersion(e)
+        // A notebook that was never run, or that was written by something that does not
+        // record a Julia version, has no version here, and `semver.parse` returns null for
+        // it. There is then nothing to match a controller against, so the affinity is left
+        // as it is rather than dereferencing that null.
+        const version = semver.parse(this.getNotebookLanguageVersion(e))
+        if (version === null) {
+            return
+        }
 
         // Find all controllers where the Julia version matches the Julia version in the
         // notebook exactly. If there are multiple controllers, put official release first,
         // and prefer x64 builds
         const perfectMatchVersions = Array.from(this._controllers.entries())
-            .filter(([, juliaExec]) => juliaExec.getVersion().toString() === semver.parse(version).toString())
+            .filter(([, juliaExec]) => juliaExec.getVersion().toString() === version.toString())
             .sort(([, a], [, b]) => {
                 if (!a.juliaupChannel && !b.juliaupChannel) {
                     return 0
@@ -240,8 +250,7 @@ export class JuliaNotebookFeature {
             const minorMatchVersions = Array.from(this._controllers.entries())
                 .filter(([, juliaExec]) => {
                     const v1 = juliaExec.getVersion()
-                    const v2 = semver.parse(version)
-                    return v1.major === v2.major && v1.minor === v2.minor
+                    return v1.major === version.major && v1.minor === version.minor
                 })
                 .sort(([, a], [, b]) => {
                     const aVer = a.getVersion()

@@ -251,7 +251,17 @@ export class JuliaDebugFeature {
 
                                     if (processId) {
                                         setTimeout(() => {
-                                            process.kill(processId)
+                                            try {
+                                                process.kill(processId)
+                                            } catch (err) {
+                                                if ((err as NodeJS.ErrnoException).code !== 'ESRCH') {
+                                                    // Do not let errors escape from this un-awaited timeout callback.
+                                                    console.error(
+                                                        `Failed to terminate Julia debuggee process ${processId}:`,
+                                                        err
+                                                    )
+                                                }
+                                            }
                                         }, 500)
                                     }
                                 }
@@ -381,8 +391,38 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
             const connectedPromise = new Subject()
             const serverListeningPromise = new Subject()
 
-            const readyServer = net.createServer(() => {
-                connectedPromise.notify()
+            // The debugger answers the ready connection with the socket it actually
+            // bound, which is not always the one proposed above: the temp directory
+            // this process was given is not always one the Julia process can create a
+            // socket in (macOS hands them different ones), and a socket path has a
+            // length limit that a deep temp directory can exceed. It picks a name of
+            // its own in that case, and this is where we find out about it.
+            let debugAdapterPipename = dap_pn
+
+            const readyServer = net.createServer((socket) => {
+                let answer = ''
+                let settled = false
+                socket.setEncoding('utf8')
+                socket.on('data', (chunk) => {
+                    answer += chunk
+                })
+                // Whichever of these arrives first ends the handshake: the debugger
+                // closes the connection right after writing the name, and a failure
+                // to read it must not leave the session waiting forever.
+                const useAnswer = () => {
+                    if (settled) {
+                        return
+                    }
+                    settled = true
+                    const name = answer.split('\n')[0].trim()
+                    if (name) {
+                        debugAdapterPipename = name
+                    }
+                    connectedPromise.notify()
+                }
+                socket.on('end', useAnswer)
+                socket.on('close', useAnswer)
+                socket.on('error', useAnswer)
             })
 
             readyServer.listen(ready_pn, () => {
@@ -448,7 +488,7 @@ class InlineDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory 
 
             await connectedPromise.wait()
 
-            return new vscode.DebugAdapterNamedPipeServer(dap_pn)
+            return new vscode.DebugAdapterNamedPipeServer(debugAdapterPipename)
         } else if (session.configuration.request === 'attach') {
             return new vscode.DebugAdapterNamedPipeServer(session.configuration.pipename)
         }

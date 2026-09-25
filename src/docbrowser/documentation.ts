@@ -51,7 +51,10 @@ md.renderer.rules.link_open = (tokens, idx, options, _env, self) => {
         const { uri, line } = openArgs(href)
         let commandUri
         if (line === undefined) {
-            commandUri = constructCommandString('vscode.open', uri)
+            commandUri =
+                uri instanceof vscode.Uri && uri.scheme === 'file'
+                    ? constructCommandString('language-julia.openFile', { path: uri.fsPath })
+                    : constructCommandString('vscode.open', uri)
         } else {
             commandUri = constructCommandString('language-julia.openFile', { path: uri, line })
         }
@@ -78,6 +81,8 @@ export function activate(context: vscode.ExtensionContext, languageClientFeature
 
 class DocumentationViewProvider implements vscode.WebviewViewProvider {
     private view?: vscode.WebviewView
+    private resolvedViewPromise?: Promise<vscode.WebviewView>
+    private resolvedViewPromiseResolve?: (view: vscode.WebviewView) => void
 
     private backStack = Array<string>() // also keep current page
     private forwardStack = Array<string>()
@@ -89,13 +94,17 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
 
     resolveWebviewView(view: vscode.WebviewView) {
         this.view = view
+        this.resolvedViewPromiseResolve?.(view)
+        this.resolvedViewPromise = undefined
+        this.resolvedViewPromiseResolve = undefined
 
         view.webview.options = {
             enableScripts: true,
             enableCommandUris: true,
         }
         view.webview.html = this.createWebviewHTML(
-            'Use the `language-julia.show-documentation` command in an editor or search for documentation above.'
+            'Use the `language-julia.show-documentation` command in an editor or search for documentation above.',
+            view.webview
         )
 
         onEvent(view.webview.onDidReceiveMessage, (msg) => {
@@ -111,12 +120,32 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         this.showDocumentationFromWord(params.searchTerm)
     }
 
-    async showDocumentationPane() {
+    async showDocumentationPane(): Promise<vscode.WebviewView> {
+        const resolvedViewPromise = this.getResolvedView()
+
         if (this.view?.show === undefined) {
             // this forces the webview to be resolved, but changes focus:
             await vscode.commands.executeCommand('julia-documentation.focus')
         }
-        this.view?.show(true)
+
+        const view = await resolvedViewPromise
+        view.show?.(true)
+
+        return view
+    }
+
+    private getResolvedView() {
+        if (this.view) {
+            return Promise.resolve(this.view)
+        }
+
+        if (!this.resolvedViewPromise) {
+            this.resolvedViewPromise = new Promise((resolve) => {
+                this.resolvedViewPromiseResolve = resolve
+            })
+        }
+
+        return this.resolvedViewPromise
     }
 
     async showDocumentationFromWord(word: string) {
@@ -125,8 +154,8 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
             return
         }
 
-        await this.showDocumentationPane()
-        const html = this.createWebviewHTML(docAsMD)
+        const view = await this.showDocumentationPane()
+        const html = this.createWebviewHTML(docAsMD, view.webview)
         this.setHTML(html)
     }
 
@@ -155,8 +184,8 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         }
 
         this.forwardStack = [] // initialize forward page stack for manual search
-        await this.showDocumentationPane()
-        const html = this.createWebviewHTML(docAsMD)
+        const view = await this.showDocumentationPane()
+        const html = this.createWebviewHTML(docAsMD, view.webview)
         this.setHTML(html)
     }
 
@@ -175,31 +204,31 @@ class DocumentationViewProvider implements vscode.WebviewViewProvider {
         )
     }
 
-    createWebviewHTML(docAsMD: string) {
+    createWebviewHTML(docAsMD: string, webview: vscode.Webview) {
         const docAsHTML = md.render(docAsMD)
 
         const extensionPath = this.context.extensionPath
 
-        const googleFontscss = this.view.webview.asWebviewUri(
+        const googleFontscss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'google_fonts', 'css'))
         )
-        const fontawesomecss = this.view.webview.asWebviewUri(
+        const fontawesomecss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'fontawesome.min.css'))
         )
-        const solidcss = this.view.webview.asWebviewUri(
+        const solidcss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'solid.min.css'))
         )
-        const brandscss = this.view.webview.asWebviewUri(
+        const brandscss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'fontawesome', 'brands.min.css'))
         )
-        const documenterStylesheetcss = this.view.webview.asWebviewUri(
+        const documenterStylesheetcss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'documenter', 'documenter-vscode.css'))
         )
-        const katexcss = this.view.webview.asWebviewUri(
+        const katexcss = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'katex', 'katex.min.css'))
         )
 
-        const webfontjs = this.view.webview.asWebviewUri(
+        const webfontjs = webview.asWebviewUri(
             vscode.Uri.file(path.join(extensionPath, 'libs', 'webfont', 'webfont.js'))
         )
 

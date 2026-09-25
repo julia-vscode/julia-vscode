@@ -3,6 +3,7 @@ import { homedir } from 'os'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { onEvent, registerCommand, setContext } from '../utils'
+import { handleNewCrashReportFromException } from '../telemetry'
 import { displayTable } from './tables'
 import { JuliaKernel } from '../notebook/notebookKernel'
 
@@ -1010,6 +1011,11 @@ async function _writePlotFile(fileName: string, data: FileLike) {
             }
         })
     } catch (e) {
+        // Filesystem problems (permissions, disk full, vanished path) are the
+        // user's environment; anything else is an extension bug.
+        if (typeof (e as NodeJS.ErrnoException)?.code !== 'string') {
+            handleNewCrashReportFromException(e, 'Extension')
+        }
         console.error(e)
         vscode.window.showWarningMessage('Failed to save plot.')
     }

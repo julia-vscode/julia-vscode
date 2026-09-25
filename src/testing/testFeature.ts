@@ -5,11 +5,22 @@ import * as vscode from 'vscode'
 import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaExecutable, ExecutableFeature, JuliaNotFoundError } from '../executables'
 import * as path from 'path'
-import { getCrashReportingPipename, handleNewCrashReportFromException } from '../telemetry'
+import {
+    getCrashReportingPipename,
+    handleNewCrashReport,
+    handleNewCrashReportFromException,
+    traceEvent,
+} from '../telemetry'
 import { TestControllerHost, TestProcessGroupNode, TestProcessNode, WorkspaceFeature } from '../interactive/workspace'
-import { cpus } from 'os'
+import { cpus, freemem, totalmem } from 'os'
 import * as vslc from 'vscode-languageclient/node'
-import { LanguageClientFeature } from '../languageClient'
+import {
+    isEnvironmentalWindowsExitCode,
+    isExternalKillSignal,
+    isReportableOsKill,
+    LanguageClientFeature,
+    readCgroupMemoryLimit,
+} from '../languageClient'
 import {
     notficiationTypeTestItemErrored,
     notficiationTypeTestItemFailed,
@@ -33,6 +44,7 @@ import { logFileContents, TestProcessLog } from './testProcessLog'
 import { closeStaleTestProcessLogTabs, TestProcessLogViewManager } from './testProcessLogView'
 import { DebugConfigTreeProvider } from '../debugger/debugConfig'
 import { getCustomEnvironmentVariables, inferJuliaNumThreads, onEvent, registerCommand } from '../utils'
+import { formatBytes, osKillNotification, osKillReport } from '../processExit'
 
 enum TestRunMode {
     Normal,
@@ -81,17 +93,6 @@ function isExpectedTestRunRejection(err: unknown) {
 
 interface OurFileCoverage extends vscode.FileCoverage {
     detailedCoverage: vscode.StatementCoverage[]
-}
-
-export function formatBytes(bytes: number) {
-    const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
-    let value = bytes
-    let unit = 0
-    while (value >= 1024 && unit < units.length - 1) {
-        value = value / 1024
-        unit += 1
-    }
-    return unit === 0 ? `${value} B` : `${value.toFixed(1)} ${units[unit]}`
 }
 
 export function formatMillis(millis: number) {
@@ -215,6 +216,52 @@ export class JuliaTestProcess {
     }
 }
 
+/**
+ * Decides whether a test item controller process exit is worth a crash report.
+ * Returns `null` for an expected exit, otherwise a one-line description.
+ *
+ * This is the controller's counterpart of `unexpectedServerExit`, and follows
+ * the same reasoning. The controller reports its own crashes, with the right
+ * cloud role, from the `VSCodeErrorLogger` that `testitemcontroller_main.jl`
+ * installs, and that path always ends in `exit(1)`; reporting code 1 here as
+ * well would file every one of those crashes twice. What that path cannot
+ * cover is a death that never ran Julia code — a native crash signal, or an
+ * exit code from the runtime itself — and those are reported here because
+ * otherwise they leave no trace anywhere.
+ *
+ * `intentionalStop` is what this shares with the language server and did not
+ * use to: `kill()` and the fallback in `shutdown()` both send a plain
+ * `SIGTERM`, so every ordinary teardown of the controller — closing VS Code,
+ * stopping it from the process tree view — arrived here as `signal SIGTERM`
+ * and filed a crash report with no crash in it. Knowing that we sent the
+ * signal is what tells that apart from a kill nobody here asked for.
+ *
+ * `isExternalKillSignal` covers the kill nobody here asked for, and is
+ * deliberately the *second* check rather than the only one. For a `SIGKILL` it
+ * does not mean the kill goes unreported: that one gets its own report, from
+ * `osKillReport`, carrying the memory figures and live test process count that
+ * a bare exit line cannot, and returning null here is only what stops it being
+ * reported twice. A `SIGTERM` we did not send is somebody else's teardown and
+ * is reported by neither path.
+ * `SIGSEGV` and friends are not covered by it and stay ordinary crash reports.
+ */
+export function unexpectedControllerExit(
+    code: number | null,
+    signal: NodeJS.Signals | null,
+    intentionalStop: boolean
+): string | null {
+    if (intentionalStop) {
+        return null
+    }
+    if (signal === null && (code === null || code === 0 || code === 1)) {
+        return null
+    }
+    if (isEnvironmentalWindowsExitCode(code) || isExternalKillSignal(signal)) {
+        return null
+    }
+    return `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
+}
+
 export class JuliaTestController {
     private _onKilled = new vscode.EventEmitter<void>()
     public onKilled = this._onKilled.event
@@ -222,6 +269,7 @@ export class JuliaTestController {
     kill() {
         // `'exit'` clears `process`, and the tree node this is reached from outlives it, so a
         // second click would otherwise throw a `TypeError` and file it as a crash report.
+        this._intentionalStop = true
         this.process?.kill()
     }
 
@@ -236,9 +284,16 @@ export class JuliaTestController {
             return Promise.resolve()
         }
 
+        // Everything from here on is us ending the controller, including the exit the
+        // `shutdown` notification itself brings about and the kill that backs it up.
+        this._intentionalStop = true
+
         try {
             if (this.connection) {
-                this.connection.sendNotification(notificationTypeShutdown)
+                // A write failure surfaces through the returned promise, which the
+                // `catch` below cannot see; the process is already dying then, and
+                // the kill fallback below covers it.
+                this.connection.sendNotification(notificationTypeShutdown).catch(() => {})
             }
         } catch {
             // Ignore, we fall back to killing the process below.
@@ -268,6 +323,12 @@ export class JuliaTestController {
 
     private connection: rpc.MessageConnection
     private process: ChildProcessWithoutNullStreams
+    /**
+     * Set while this controller is being stopped on purpose, so that the `SIGTERM`
+     * `kill()` and `shutdown()` send is not mistaken for something killing the
+     * controller from outside. Cleared when a process is started.
+     */
+    private _intentionalStop: boolean = false
     private testRuns = new Map<string, { testRun: vscode.TestRun; testItems: Map<string, vscode.TestItem> }>()
     private testProcesses = new Map<string, JuliaTestProcess>()
     private currentRunExecutable: JuliaExecutable | undefined
@@ -373,6 +434,8 @@ export class JuliaTestController {
     }
 
     public async start() {
+        this._intentionalStop = false
+
         let juliaExecutable: JuliaExecutable | null
 
         if (process.env.DEBUG_MODE) {
@@ -509,12 +572,26 @@ export class JuliaTestController {
             const messages = i.messages.map((j) => {
                 const msg = new vscode.TestMessage(stripAnsi(j.message))
 
-                if (j.actualOutput !== null && j.expectedOutput !== null) {
+                // The controller omits optional fields entirely (`missing` on the Julia
+                // side), so they arrive as `undefined` rather than `null`.
+                if (
+                    j.actualOutput !== undefined &&
+                    j.actualOutput !== null &&
+                    j.expectedOutput !== undefined &&
+                    j.expectedOutput !== null
+                ) {
                     msg.actualOutput = stripAnsi(j.actualOutput)
                     msg.expectedOutput = stripAnsi(j.expectedOutput)
                 }
 
-                if (j.uri !== null && j.line !== null && j.column !== null) {
+                if (
+                    j.uri !== undefined &&
+                    j.uri !== null &&
+                    j.line !== undefined &&
+                    j.line !== null &&
+                    j.column !== undefined &&
+                    j.column !== null
+                ) {
                     msg.location = new vscode.Location(
                         vscode.Uri.parse(j.uri),
                         new vscode.Position(j.line - 1, j.column - 1)
@@ -667,19 +744,51 @@ export class JuliaTestController {
                 `Test item controller exited (code ${code ?? 'none'}, signal ${signal ?? 'none'}).`
             )
 
-            // The controller reports its own crashes, with the right cloud role, from the
-            // `VSCodeErrorLogger` `testitemcontroller_main.jl` installs — and that path always
-            // ends in `exit(1)`. Reporting code 1 here as well would file every one of those
-            // crashes twice. What that path cannot cover is a death that never ran Julia code:
-            // a signal, or an exit code from the runtime itself. Those are what is reported
-            // here, because otherwise they leave no trace anywhere.
-            if (signal || (code !== null && code !== 0 && code !== 1)) {
-                handleNewCrashReportFromException(
-                    new Error(
-                        `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
-                    ),
-                    'Extension'
+            // A kill nobody here asked for gets its own report rather than the bare exit
+            // line `unexpectedControllerExit` produces, because the likeliest cause —
+            // running out of memory — may be a leak on our side rather than the machine
+            // being short, and only the figures below can tell those apart. The
+            // `_intentionalStop` check matters: our own stop path ends in a SIGTERM.
+            //
+            // Both kill signals are logged and counted, but only the `SIGKILL` of
+            // `isReportableOsKill` is reported and shown, for the reasons given there:
+            // a `SIGTERM` from outside is a teardown, not a memory problem of ours.
+            if (!this._intentionalStop && isExternalKillSignal(signal)) {
+                const limit = readCgroupMemoryLimit()
+                const report = osKillReport(
+                    'Julia test item controller',
+                    signal,
+                    { total: totalmem(), free: freemem(), cgroupLimit: limit },
+                    [`Test processes alive: ${this.testProcesses.size}`]
                 )
+
+                this.outputChannel.appendLine(report)
+                traceEvent('ticoskill', {
+                    signal,
+                    totalmem: String(totalmem()),
+                    freemem: String(freemem()),
+                    cgrouplimit: limit === null ? 'none' : String(limit),
+                    testprocesses: String(this.testProcesses.size),
+                })
+                if (isReportableOsKill(signal)) {
+                    handleNewCrashReport('TestItemControllerOsKill', report, '', 'Test Item Controller')
+
+                    vscode.window
+                        .showErrorMessage(
+                            `${osKillNotification('The Julia test item controller', signal)} Any running tests have been stopped.`,
+                            'Show Logs'
+                        )
+                        .then((choice) => {
+                            if (choice === 'Show Logs') {
+                                this.outputChannel.show()
+                            }
+                        })
+                }
+            }
+
+            const unexpected = unexpectedControllerExit(code, signal, this._intentionalStop)
+            if (unexpected) {
+                handleNewCrashReportFromException(new Error(unexpected), 'Extension')
             }
 
             if (this.connection) {
@@ -931,6 +1040,36 @@ export class JuliaTestController {
 //     }
 // }
 
+/**
+ * Pair each test item of a run with the details the language server published for it,
+ * separating out the ones whose details are no longer there.
+ *
+ * A run is assembled in two steps with awaits in between, and the tree can be rebuilt in
+ * that window: a file republished by the server produces a fresh `vscode.TestItem` for
+ * every item in it and drops the previous objects from the details map, while the array
+ * being assembled still holds those previous objects. Every field of a test item's wire
+ * message comes out of its details, so an item that lost them cannot be sent at all; it
+ * belongs in `dropped`, where the caller can skip it and leave the rest of the run intact.
+ */
+export function pairWithPublishedDetails<TItem, TDetails>(
+    items: readonly TItem[],
+    detailsOf: (item: TItem) => TDetails | undefined
+): { paired: { testItem: TItem; details: TDetails }[]; dropped: TItem[] } {
+    const paired: { testItem: TItem; details: TDetails }[] = []
+    const dropped: TItem[] = []
+
+    for (const item of items) {
+        const details = detailsOf(item)
+        if (details === undefined) {
+            dropped.push(item)
+        } else {
+            paired.push({ testItem: item, details: details })
+        }
+    }
+
+    return { paired: paired, dropped: dropped }
+}
+
 export class TestFeature implements TestControllerHost {
     private controller: vscode.TestController
     private testitems: WeakMap<vscode.TestItem, tlsp.TestItemDetail> = new WeakMap<
@@ -961,7 +1100,7 @@ export class TestFeature implements TestControllerHost {
         private executableFeature: ExecutableFeature,
         private workspaceFeature: WorkspaceFeature,
         private compiledProvider: DebugConfigTreeProvider,
-        languageClientFeature: LanguageClientFeature
+        private languageClientFeature: LanguageClientFeature
     ) {
         // this.outputChannel = vscode.window.createOutputChannel('Julia Testserver')
         this.juliaTestitemControllerOutputChannel = vscode.window.createOutputChannel('Julia Test Item Controller')
@@ -977,7 +1116,14 @@ export class TestFeature implements TestControllerHost {
         this.workspaceFeature.setTestControllerHost(this)
 
         context.subscriptions.push(
-            registerCommand('language-julia.stopTestProcess', async (node: TestProcessNode) => await node.stop()),
+            registerCommand('language-julia.stopTestProcess', async (node: TestProcessNode | undefined) => {
+                if (node) {
+                    await node.stop()
+                }
+            }),
+            registerCommand('language-julia.showTestItemControllerOutput', async () =>
+                this.juliaTestitemControllerOutputChannel.show(true)
+            ),
             registerCommand('language-julia.startTestController', async () => await this.startTestController()),
             registerCommand('language-julia.stopTestController', async () => await this.stopTestController()),
             registerCommand('language-julia.restartTestController', async () => await this.restartTestController()),
@@ -1422,23 +1568,47 @@ export class TestFeature implements TestControllerHost {
         const testEnvPerFile = new Map<string, tlsp.GetTestEnvRequestParamsReturn>()
 
         for (const uri of uniqueFiles) {
-            const testEnv = await this.languageClient?.sendRequest(tlsp.requestTypJuliaGetTestEnv, {
-                uri: uri,
-            })
+            // `withLanguageClient` yields `undefined` when the server is not
+            // running, and when it goes away while the request is in flight.
+            const testEnv = await this.languageClientFeature.withLanguageClient((client) =>
+                client.sendRequest(tlsp.requestTypJuliaGetTestEnv, { uri: uri })
+            )
             testEnvPerFile.set(uri, testEnv)
         }
 
-        const all_the_tests = itemsToRun.map((i) => {
-            return {
-                testItem: i,
-                details: this.testitems.get(i),
-                // `??  {}` because the lookup really can miss: `getTestEnv` is sent through
-                // `this.languageClient?`, which yields `undefined` whenever the client is null
-                // — the language server still starting, or restarting after a crash. Every
-                // consumer already treats each field as optional.
-                testEnv: testEnvPerFile.get(i.uri.toString()) ?? {},
-            }
-        })
+        // Some of the items this run was built from may have gone away while it was being
+        // prepared: the `getTestEnv` loop above awaits one round-trip per file, and a
+        // republish of a file's test items during that window replaces every
+        // `vscode.TestItem` for it and drops the old ones from `testitems` (see the
+        // `fileTestitem.children` handling in `publishTestitemsNotification`). `itemsToRun`
+        // still holds the old objects, so their details are no longer there to build a wire
+        // message from.
+        const { paired, dropped } = pairWithPublishedDetails(itemsToRun, (item) => this.testitems.get(item))
+
+        for (const item of dropped) {
+            testRun.skipped(item)
+            testRun.appendOutput(
+                '\x1b[0mThis test item changed while the run was being prepared, so it was not run.\r\n',
+                undefined,
+                item
+            )
+        }
+
+        // Everything was dropped. There is nothing left to ask the controller for, and
+        // returning without calling `handOver` leaves `runHandler` to end the run.
+        if (paired.length === 0) {
+            return
+        }
+
+        const all_the_tests = paired.map(({ testItem, details }) => ({
+            testItem: testItem,
+            details: details,
+            // `?? {}` because the lookup really can miss: `getTestEnv` is sent through
+            // `withLanguageClient`, which yields `undefined` whenever the language server
+            // is still starting, restarting after a crash, or lost mid-request. Every
+            // consumer already treats each field as optional.
+            testEnv: testEnvPerFile.get(testItem.uri.toString()) ?? {},
+        }))
 
         const all_the_testsetups: {
             packageUri: string

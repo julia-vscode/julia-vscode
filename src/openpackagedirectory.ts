@@ -3,6 +3,8 @@ import * as path from 'path'
 import * as vscode from 'vscode'
 import * as packagepath from './packagepath'
 import { registerCommand } from './utils'
+import { handleNewCrashReportFromException } from './telemetry'
+import { JuliaNotFoundError } from './executables'
 
 // This method implements the language-julia.openPackageDirectory command
 async function openPackageDirectoryCommand() {
@@ -29,12 +31,18 @@ async function openPackageDirectoryCommand() {
 
                 try {
                     await vscode.commands.executeCommand('vscode.openFolder', folder, true)
-                } catch {
+                } catch (err) {
+                    handleNewCrashReportFromException(err, 'Extension')
                     vscode.window.showInformationMessage('Could not open the package.')
                 }
             }
         }
-    } catch {
+    } catch (err) {
+        // A missing Julia or an unreadable package directory is the user's
+        // environment; anything else is an extension bug.
+        if (!(err instanceof JuliaNotFoundError) && typeof (err as NodeJS.ErrnoException)?.code !== 'string') {
+            handleNewCrashReportFromException(err, 'Extension')
+        }
         vscode.window.showInformationMessage('Error: Could not read package directory.')
     }
 }

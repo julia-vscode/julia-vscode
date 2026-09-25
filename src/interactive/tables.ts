@@ -4,6 +4,12 @@ import * as rpc from 'vscode-jsonrpc/node'
 import { JuliaKernel } from '../notebook/notebookKernel'
 import { g_connection } from './repl'
 import { onEvent } from '../utils'
+import { handleNewCrashReportFromException } from '../telemetry'
+
+// The Julia side answers `repl/getTableData` for a stale table id with this
+// JSON-RPC error code; the user deleting or modifying the underlying object is
+// an expected outcome, not an extension bug.
+const TABLE_NOT_FOUND_CODE = -32600
 
 const requestTypeGetTableData = new rpc.RequestType<
     {
@@ -114,6 +120,10 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                     id: objectId,
                 })
             } catch (err) {
+                // Connection-teardown errors are filtered centrally.
+                if (g_connection) {
+                    handleNewCrashReportFromException(err, 'Extension')
+                }
                 console.debug('Could not dispose of lazy table object on the Julia side: ', err)
             }
         })
@@ -136,6 +146,11 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                         data: data,
                     }
                 } catch (err) {
+                    // A stale table id is expected (user deleted the object) and
+                    // connection teardown is filtered centrally; report the rest.
+                    if (conn && !(err instanceof rpc.ResponseError && err.code === TABLE_NOT_FOUND_CODE)) {
+                        handleNewCrashReportFromException(err, 'Extension')
+                    }
                     console.debug('Error while processing message: ', err)
 
                     let warning: Thenable<string | undefined>
@@ -169,7 +184,10 @@ export function displayTable(payload, context, isLazy = false, kernel?: JuliaKer
                 try {
                     panel.webview.postMessage(response)
                 } catch (err) {
-                    console.debug('Error while processing message: ', err)
+                    // Posting to a webview that was disposed mid-request is
+                    // expected; there is no reliable way to distinguish it, and
+                    // the message content already made the round trip, so just log.
+                    console.debug('Could not post table data to the webview: ', err)
                 }
             } else {
                 console.debug('invalid message received: ', message)

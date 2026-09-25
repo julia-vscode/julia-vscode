@@ -4,6 +4,7 @@ import { parse } from 'semver'
 import { v4 as uuidv4 } from 'uuid'
 import * as vscode from 'vscode'
 import { generatePipeName, onEvent } from './utils'
+import { isLanguageServerError, isLanguageServerResponseNoise } from './languageServerErrors'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http'
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base'
@@ -163,6 +164,25 @@ export function init(context: vscode.ExtensionContext) {
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
+    if (name.startsWith('TICPrecompileFailure')) {
+        vscode.window
+            .showErrorMessage(
+                'The Julia test item controller failed to precompile. Please check the FAQ and the local output.',
+                'Open FAQ',
+                'Open Logs'
+            )
+            .then((choice) => {
+                if (choice === 'Open Logs') {
+                    vscode.commands.executeCommand('language-julia.showTestItemControllerOutput')
+                } else if (choice === 'Open FAQ') {
+                    vscode.commands.executeCommand(
+                        'vscode.open',
+                        vscode.Uri.parse('https://www.julia-vscode.org/docs/stable/faq')
+                    )
+                }
+            })
+        return
+    }
     if (name.startsWith('LSPrecompileFailure')) {
         vscode.window
             .showErrorMessage(
@@ -180,6 +200,7 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
                     )
                 }
             })
+        return
     }
     crashReporterQueue.push({
         exception: {
@@ -200,6 +221,16 @@ export function handleNewCrashReport(name: string, message: string, stacktrace: 
 }
 
 export function handleNewCrashReportFromException(error: Error, cloudRole: string) {
+    // Every extension crash report passes through here: the command, event and
+    // callback wrappers in `utils.ts`, the hand-written catches, and the errors
+    // VS Code itself attributes to this extension via `sendErrorData` above.
+    // A language server going away mid-request is not an extension fault, and
+    // the crash, if any, arrives separately through the crash reporting pipe.
+    // Response errors the server already reports itself, or that only relay
+    // an expected user condition, are dropped for the same reason.
+    if (isLanguageServerError(error) || isLanguageServerResponseNoise(error)) {
+        return
+    }
     crashReporterQueue.push({
         exception: error,
         tagOverrides: {
@@ -243,8 +274,8 @@ export function getCrashReportingPipename() {
     return g_jlcrashreportingpipename
 }
 
-export function traceEvent(message) {
-    extensionClient.trackEvent({ name: message })
+export function traceEvent(message, properties?: { [key: string]: string }) {
+    extensionClient.trackEvent({ name: message, properties })
 }
 
 // Convert an OpenTelemetry `HrTime` pair `[seconds, nanoseconds]` into a `Date`. This is lossy

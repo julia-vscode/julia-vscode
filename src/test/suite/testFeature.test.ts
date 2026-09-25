@@ -1,5 +1,12 @@
 import * as assert from 'assert'
-import { formatBytes, formatMillis, formatPerfStats, JuliaTestProcess, testItemKey } from '../../testing/testFeature'
+import {
+    formatMillis,
+    formatPerfStats,
+    JuliaTestProcess,
+    pairWithPublishedDetails,
+    testItemKey,
+    unexpectedControllerExit,
+} from '../../testing/testFeature'
 
 suite('formatMillis', () => {
     test('renders sub-millisecond values as microseconds', () => {
@@ -25,25 +32,6 @@ suite('formatMillis', () => {
         assert.strictEqual(formatMillis(999), '999 ms')
         assert.strictEqual(formatMillis(1000), '1.00 s')
         assert.strictEqual(formatMillis(1234), '1.23 s')
-    })
-})
-
-suite('formatBytes', () => {
-    test('leaves byte counts unscaled and undecorated', () => {
-        assert.strictEqual(formatBytes(0), '0 B')
-        assert.strictEqual(formatBytes(512), '512 B')
-        assert.strictEqual(formatBytes(1023), '1023 B')
-    })
-
-    test('scales at each 1024 boundary', () => {
-        assert.strictEqual(formatBytes(1024), '1.0 KiB')
-        assert.strictEqual(formatBytes(1536), '1.5 KiB')
-        assert.strictEqual(formatBytes(1024 * 1024), '1.0 MiB')
-        assert.strictEqual(formatBytes(1024 * 1024 * 1024), '1.0 GiB')
-    })
-
-    test('stops scaling at the largest unit it knows', () => {
-        assert.strictEqual(formatBytes(1024 ** 5), '1024.0 TiB')
     })
 })
 
@@ -137,5 +125,107 @@ suite('JuliaTestProcess', () => {
         proc.markTerminated()
 
         await proc.kill()
+    })
+})
+
+suite('pairWithPublishedDetails', () => {
+    // The real map is a `WeakMap<vscode.TestItem, TestItemDetail>`; the only thing that
+    // matters here is that a lookup can miss, so plain objects stand in for both.
+    const withDetails = (entries: Map<string, string>) => (item: string) => entries.get(item)
+
+    test('pairs every item with its details when nothing changed', () => {
+        const details = new Map([
+            ['a', 'details-a'],
+            ['b', 'details-b'],
+        ])
+
+        const { paired, dropped } = pairWithPublishedDetails(['a', 'b'], withDetails(details))
+
+        assert.deepStrictEqual(paired, [
+            { testItem: 'a', details: 'details-a' },
+            { testItem: 'b', details: 'details-b' },
+        ])
+        assert.deepStrictEqual(dropped, [])
+    })
+
+    test('drops an item whose details went away and keeps the rest of the run', () => {
+        // What a republish of `b`'s file does: its previous `vscode.TestItem` is no longer
+        // a key of the details map, while the array being assembled still holds it.
+        const details = new Map([
+            ['a', 'details-a'],
+            ['c', 'details-c'],
+        ])
+
+        const { paired, dropped } = pairWithPublishedDetails(['a', 'b', 'c'], withDetails(details))
+
+        assert.deepStrictEqual(paired, [
+            { testItem: 'a', details: 'details-a' },
+            { testItem: 'c', details: 'details-c' },
+        ])
+        assert.deepStrictEqual(dropped, ['b'])
+    })
+
+    test('reports every item as dropped when the whole file was republished', () => {
+        const { paired, dropped } = pairWithPublishedDetails(['a', 'b'], withDetails(new Map()))
+
+        assert.deepStrictEqual(paired, [])
+        assert.deepStrictEqual(dropped, ['a', 'b'])
+    })
+
+    test('keeps details that are falsy but present', () => {
+        // `undefined` is the only value that means "not there": a `TestItemDetail` is an
+        // object today, but the check must not turn on truthiness.
+        const { paired, dropped } = pairWithPublishedDetails([0], (item: number) => (item === 0 ? '' : undefined))
+
+        assert.deepStrictEqual(paired, [{ testItem: 0, details: '' }])
+        assert.deepStrictEqual(dropped, [])
+    })
+
+    test('handles an empty run', () => {
+        const { paired, dropped } = pairWithPublishedDetails([], withDetails(new Map()))
+
+        assert.deepStrictEqual(paired, [])
+        assert.deepStrictEqual(dropped, [])
+    })
+})
+
+suite('unexpectedControllerExit', () => {
+    test('says nothing about a clean exit', () => {
+        assert.strictEqual(unexpectedControllerExit(0, null, false), null)
+    })
+
+    test('says nothing about code 1, which the controller already reported itself', () => {
+        assert.strictEqual(unexpectedControllerExit(1, null, false), null)
+    })
+
+    test('says nothing about the SIGTERM our own stop path sends', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM', true), null)
+    })
+
+    test('says nothing about the Windows session-teardown exit codes', () => {
+        assert.strictEqual(unexpectedControllerExit(1073807364, null, false), null)
+        assert.strictEqual(unexpectedControllerExit(3221225794, null, false), null)
+    })
+
+    test('reports a native crash signal, even while stopping', () => {
+        assert.match(unexpectedControllerExit(null, 'SIGSEGV', false), /signal SIGSEGV/)
+        assert.match(unexpectedControllerExit(null, 'SIGABRT', false), /signal SIGABRT/)
+    })
+
+    test('reports a runtime exit code the controller cannot have reported itself', () => {
+        assert.match(unexpectedControllerExit(4294967295, null, false), /code 4294967295/)
+    })
+
+    test('an intentional stop covers whatever the exit turns out to be', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL', true), null)
+        assert.strictEqual(unexpectedControllerExit(4294967295, null, true), null)
+    })
+
+    // A kill nobody here asked for is not a crash report, but it is not silence
+    // either: the exit handler counts it as a `ticoskill` event. These two cases
+    // are what that branch keys off, so they are pinned here as well.
+    test('files no crash report for an unasked-for kill, which is counted instead', () => {
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL', false), null)
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM', false), null)
     })
 })

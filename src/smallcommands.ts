@@ -2,6 +2,7 @@ import * as fs from 'async-file'
 import * as path from 'path'
 import * as vscode from 'vscode'
 import { registerCommand } from './utils'
+import { handleNewCrashReportFromException } from './telemetry'
 
 // function lintPackage() {
 //     telemetry.traceEvent('command-lintpackage');
@@ -56,7 +57,12 @@ async function newJuliaFile(uri?: vscode.Uri) {
             const document = await vscode.workspace.openTextDocument(targetUri)
             await vscode.languages.setTextDocumentLanguage(document, 'julia')
             await vscode.window.showTextDocument(document)
-        } catch {
+        } catch (err) {
+            // Filesystem failures (permissions, vanished directory) are the
+            // user's environment; anything else is an extension bug.
+            if (typeof (err as NodeJS.ErrnoException)?.code !== 'string') {
+                handleNewCrashReportFromException(err, 'Extension')
+            }
             vscode.window.showErrorMessage(`Failed to create ${targetUri.fsPath}`)
         }
     } else {

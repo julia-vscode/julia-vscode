@@ -121,6 +121,52 @@ is_disconnected_exception(err::JSONRPC.TransportError) = true
 is_disconnected_exception(err::JSONRPC.JSONRPCError) = true
 is_disconnected_exception(err::JSONRPC.CancellationTokens.OperationCanceledException) = true
 
+"""
+    is_user_interrupt(err)
+
+Whether `err` is the user interrupting rather than anything going wrong.
+
+Ctrl+C in the REPL, and the `InterruptException` that `repl/interrupt`
+schedules into the eval backend, can both land in the serve loop's error
+handling. Neither is a crash: the report carries only the stack of whatever
+task the interrupt happened to hit, which says nothing about a defect.
+
+The `@sync` in the message loop wraps a failing child task, so the wrappers
+are unwrapped here as well.
+"""
+is_user_interrupt(err) = false
+is_user_interrupt(err::InterruptException) = true
+is_user_interrupt(err::CompositeException) = !isempty(err.exceptions) && all(is_user_interrupt, err.exceptions)
+@static if isdefined(Base, :TaskFailedException)
+    is_user_interrupt(err::Base.TaskFailedException) = is_user_interrupt(err.task.result)
+end
+
+# The crash-reporting callback passed to `serve`, kept in a global so that code
+# running outside the message-dispatch path (the REPL hook, the REPL eval entry
+# points) can report internal errors too.
+const ERROR_HANDLER = Ref{Union{Nothing,Function}}(nothing)
+
+"""
+    report_internal_error(err, bt)
+
+Send an internal error to crash reporting without terminating the REPL process.
+Disconnects are expected teardown and are not reported, and neither is the user
+interrupting. Errors raised by user code must never be routed here — this is
+for bugs in VSCodeServer itself.
+"""
+function report_internal_error(err, bt)
+    is_disconnected_exception(err) && return
+    is_user_interrupt(err) && return
+    handler = ERROR_HANDLER[]
+    handler === nothing && return
+    try
+        handler(err, bt; should_exit=false)
+    catch err2
+        @error "Error handler threw an error." exception = (err2, catch_backtrace())
+    end
+    return
+end
+
 function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     if is_dev
         try
@@ -139,6 +185,8 @@ function handle_serve_error(err, bt, error_handler)
             stderr,
             "\n\n\x1b[30;41m * \x1b[0m Lost connection to the editor. You can use the 'Julia: Connect External REPL' command to reconnect. \x1b[30;41m * \x1b[0m\n\n"
         )
+    elseif is_user_interrupt(err)
+        # The user asked for this; there is nothing to report and nothing to say.
     elseif error_handler === nothing
         Base.display_error(err, bt)
     else
@@ -152,6 +200,7 @@ end
 
 function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing)
     IS_DEV[] = is_dev
+    ERROR_HANDLER[] = error_handler
     @_debug "start serve" time=round(Int, time()*10)
 
     if isdefined(Base, :active_repl)

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode'
 import { getVersionedParamsAtPosition, onEvent, registerCommand } from '../utils'
+import { handleNewCrashReportFromException } from '../telemetry'
 import * as modules from './modules'
 import * as repl from './repl'
 import * as results from './results'
@@ -315,11 +316,11 @@ class JuliaCellManager implements vscode.Disposable {
         position: vscode.Position,
         searchStartIdx: number = 0
     ): number {
-        let low = searchStartIdx
+        let low = Math.max(0, searchStartIdx)
         let high = docCells.length - 1
         let result = -1
         while (low <= high) {
-            const mid = (low + high) >>> 1
+            const mid = (low + high) >> 1
             const cell = docCells[mid]
             if (position.isBeforeOrEqual(cell.cellRange.end)) {
                 result = mid
@@ -473,6 +474,9 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             direction === 'down'
                 ? this._getNextCell(cellContext, docCells)
                 : this._getPreviousCell(cellContext, docCells)
+        if (nextCell === undefined) {
+            return
+        }
         const newPosition = nextCell.codeRange?.start ?? nextCell.cellRange.start
         repl.validateMoveAndReveal(editor, newPosition, newPosition)
     }
@@ -524,6 +528,9 @@ class CodeCellExecutionFeature extends JuliaCellManager {
     private async _executeCells(editor: vscode.TextEditor, cells: readonly JuliaCell[]): Promise<boolean> {
         const document = editor.document
         const codeRanges: vscode.Range[] = cells.map((cell) => cell.codeRange).filter((cr) => cr !== undefined)
+        if (codeRanges.length === 0) {
+            return false
+        }
         const cellPendings: results.Result[] = codeRanges.map((codeRange) =>
             results.addResult(editor, codeRange, this.PENDING_SIGN, '')
         )
@@ -615,10 +622,10 @@ class CodeCellExecutionFeature extends JuliaCellManager {
                   sup: cell,
               } satisfies CellContext)
             : this.getSelectionsCellContext(docCells)
-        this._moveCell(editor, cellContext, direction, docCells)
         if (cellContext.current.length === 0) {
             return false
         }
+        this._moveCell(editor, cellContext, direction, docCells)
         return await this._executeCells(editor, cellContext.current)
     }
 
@@ -741,6 +748,9 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             }
             return success
         } catch (err) {
+            // Connection-teardown errors are filtered centrally; anything else
+            // is an internal bug worth reporting.
+            handleNewCrashReportFromException(err, 'Extension')
             console.error(err)
             vscode.window.showErrorMessage('Failed to prepare debug session for the selected Julia cell.')
             return false
