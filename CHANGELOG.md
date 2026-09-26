@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The `skip` keyword argument of `@testitem` is now honoured. `skip=true` marks the test item as skipped instead of running it, and `skip=<expression>` is evaluated in the test process immediately before the item would run, so it sees that process's Julia version and platform. The expression that caused a skip is written to the test run output.
 - Test items report the performance statistics measured by the test process — elapsed time, allocated memory, allocation count, GC time and compilation time — as a summary line in the test run output.
 - A test item name used more than once in the same file is now reported as an error, and each occurrence gets its own entry in the test explorer rather than the duplicates silently displacing one another.
+- New type (`OutputCapturingLogger`) and functions (`capture_eval_stdout`,`capture_eval_logs`) to capture all relevant stdout/stderr (or `@info`, `@warn`, `@error`) outputs by all `run_runcode_request` calls (LLM tool code executions) so that the LLM has access to entire context of the code that run.
 
 ### Changed
 - Test item ids are now `<Package>@<uuid prefix>/<path within the package>::<name>`, rather than being based on the item's position in its file. Inserting a test item above another one no longer renumbers it, and the id is the same in a dev checkout as on a CI runner.
@@ -69,6 +70,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - A notebook kernel that the operating system refuses to start — a missing or blocked Julia, which on Windows surfaces as a bare `spawn UNKNOWN` — now says so in a notification and in the Julia Notebook Kernels output channel, instead of filing a crash report. Such a failure also no longer leaves the kernel half-started: a spawn error reported asynchronously was not listened for at all, and any failure while starting a kernel ended in an unhandled rejection because nothing awaited the startup.
 - Interrupting the REPL no longer produces a crash report. A Ctrl+C that reached the REPL integration's message loop, rather than the code being run, was passed to crash reporting like any other error, and the report carried only the stack of whichever task the interrupt happened to land on.
 - Opening a Jupyter notebook that records no Julia version in its metadata — one that has never been run, or that was written by a tool that does not record one — no longer crashes the extension. Picking the kernel to prefer parsed that missing version and used the result without checking it. Such a notebook now simply keeps whichever kernel it had.
+- LLM tool calls to execute Julia code no longer only return the final expression but all stdout/loggging outputs that get emitted from the executed code. ([#4095](https://github.com/julia-vscode/julia-vscode/issues/4095))
 
 ## [1.231.0] - 2026-08-08
 ### Added
