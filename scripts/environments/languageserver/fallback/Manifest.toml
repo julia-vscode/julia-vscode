@@ -2,7 +2,7 @@
 
 julia_version = "1.14.0-DEV"
 manifest_format = "2.1"
-project_hash = "23e17107dc683fd4edebb1ba9c609b31faea3614"
+project_hash = "5f025cb065beb40bdfcb451d8b7f54280fc19367"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -330,7 +330,7 @@ version = "1.11.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2026.8.13"
+version = "2026.9.25"
 
     [deps.MozillaCACerts_jll.syntax]
     julia_version = "1.14.0-DEV"
