@@ -291,11 +291,12 @@ end
     return Base.eval(m, code)
 end
 
-replcontext(io, limitflag) = IOContext(
+replcontext(io, limitflag, linfos) = IOContext(
     io,
     :limit => true,
     :displaysize => get(stdout, :displaysize, (60, 120)),
     :stacktrace_types_limited => limitflag,
+    :last_shown_line_infos => linfos,
 )
 
 # basically the same as Base's `display_error`, with internal frames removed
@@ -303,29 +304,39 @@ display_repl_error(io, err::EvalError; unwrap=false) = display_repl_error(io, er
 
 function display_repl_error(io, err, bt; unwrap = false)
     limitflag = Ref(false)
+    linfos = Tuple{String, Int}[]
 
     st = stacktrace(crop_backtrace(bt))
     printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
-    showerror(replcontext(io, limitflag), err, st)
+    showerror(replcontext(io, limitflag, linfos), err, st)
     if limitflag[]
         print(io, "Some type information was truncated. Use `show(err)` to see complete types.")
     end
     println(io)
+    set_repl_linfos!(linfos)
 end
 
 function display_repl_error(io, stack::EvalErrorStack; unwrap = false)
     limitflag = Ref(false)
+    linfos = Tuple{String, Int}[]
 
     printstyled(io, "ERROR: "; bold = true, color = Base.error_color())
     for (i, (err, bt)) in enumerate(reverse(stack.stack))
         i !== 1 && print(io, "\ncaused by: ")
         st = stacktrace(crop_backtrace(bt))
-        showerror(replcontext(io, limitflag), unwrap && i == 1 ? unwrap_loaderror(err) : err, st)
+        showerror(replcontext(io, limitflag, linfos), unwrap && i == 1 ? unwrap_loaderror(err) : err, st)
         println(io)
     end
 
     if limitflag[]
         println(io, "Some type information was truncated. Use `show(err)` to see complete types.")
+    end
+    set_repl_linfos!(linfos)
+end
+
+function set_repl_linfos!(linfos)
+    if !isempty(linfos) && isdefined(Base, :active_repl) && hasproperty(Base.active_repl, :last_shown_line_infos)
+        Base.active_repl.last_shown_line_infos = linfos
     end
 end
 
