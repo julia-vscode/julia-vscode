@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- Typing `n` followed by Ctrl+Q in the integrated REPL now opens the location of stack frame `n` in the editor, as in the standard Julia REPL. The REPL's error display did not record the locations of the displayed frames, so there was nothing for Ctrl+Q to open ([#4252](https://github.com/julia-vscode/julia-vscode/pull/4252)).
 
 ## [1.249.0] - 2026-09-26
 ### Fixed
