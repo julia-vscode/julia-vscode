@@ -237,7 +237,18 @@ try
     try
         using LanguageServer
     catch err
-        if is_precompile_failure(err)
+        stdlib = missing_stdlib(err)
+        if stdlib !== nothing
+            println(stderr, """\n
+            The Language Server could not be loaded because the Julia installation it runs on
+            is incomplete: the standard library $(stdlib) is missing from
+            \t$(Sys.STDLIB)
+            Please reinstall Julia $(VERSION) (with juliaup: `juliaup remove <channel>`, then
+            `juliaup add <channel>`), or point the extension at a different Julia installation
+            with the `julia.executablePath` setting.
+            """)
+            throw(JuliaInstallationIncomplete(sprint(showerror, err)))
+        elseif is_precompile_failure(err)
             # The extension does not set JULIA_DEPOT_PATH when spawning the LS
             # (a user can via julia.additionalEnvironmentVariables), so fall
             # back to the effective depot path rather than crashing with a
