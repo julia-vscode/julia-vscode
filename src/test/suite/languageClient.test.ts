@@ -2,6 +2,7 @@ import * as assert from 'assert'
 import { CloseAction, ErrorAction, ErrorHandler, LanguageClient } from 'vscode-languageclient/node'
 import { ErrorCodes, RequestType, ResponseError } from 'vscode-languageserver-protocol'
 import {
+    isExternalInterrupt,
     isExternalKillSignal,
     isReportableOsKill,
     ObservedLanguageClient,
@@ -98,9 +99,16 @@ suite('unexpectedServerExit', () => {
         assert.strictEqual(unexpectedServerExit(null, 'SIGTERM', false), null)
     })
 
+    test('an interrupt from outside the process tree is not a crash, so it is not reported', () => {
+        assert.strictEqual(unexpectedServerExit(130, null, false), null)
+        assert.strictEqual(unexpectedServerExit(null, 'SIGINT', false), null)
+    })
+
     test('a runtime exit code is reported', () => {
         assert.match(unexpectedServerExit(139, null, false), /code 139/)
         assert.match(unexpectedServerExit(3221225477, null, false), /code 3221225477/)
+        // The other Windows console events, not seen in telemetry so far.
+        assert.match(unexpectedServerExit(143, null, false), /code 143/)
     })
 
     test('an exit forced by the OS during session teardown is expected', () => {
@@ -131,6 +139,28 @@ suite('isExternalKillSignal', () => {
 
     test('an exit without a signal is not an OS kill', () => {
         assert.strictEqual(isExternalKillSignal(null), false)
+    })
+})
+
+suite('isExternalInterrupt', () => {
+    test('a Ctrl-C ends Julia with code 130 on Windows and by SIGINT elsewhere', () => {
+        assert.strictEqual(isExternalInterrupt(130, null), true)
+        assert.strictEqual(isExternalInterrupt(null, 'SIGINT'), true)
+    })
+
+    test('the other Windows console events are not included', () => {
+        assert.strictEqual(isExternalInterrupt(143, null), false)
+    })
+
+    test('ordinary exits and other signals are not interrupts', () => {
+        assert.strictEqual(isExternalInterrupt(0, null), false)
+        assert.strictEqual(isExternalInterrupt(1, null), false)
+        assert.strictEqual(isExternalInterrupt(null, 'SIGTERM'), false)
+        assert.strictEqual(isExternalInterrupt(null, 'SIGSEGV'), false)
+    })
+
+    test('code 130 only counts when no signal ended the process', () => {
+        assert.strictEqual(isExternalInterrupt(130, 'SIGSEGV'), false)
     })
 })
 

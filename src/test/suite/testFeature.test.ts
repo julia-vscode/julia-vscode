@@ -228,4 +228,15 @@ suite('unexpectedControllerExit', () => {
         assert.strictEqual(unexpectedControllerExit(null, 'SIGKILL', false), null)
         assert.strictEqual(unexpectedControllerExit(null, 'SIGTERM', false), null)
     })
+
+    // Likewise counted as a `ticinterrupt` event: code 130 on Windows, `SIGINT`
+    // elsewhere.
+    test('files no crash report for a Ctrl-C from outside, which is counted instead', () => {
+        assert.strictEqual(unexpectedControllerExit(130, null, false), null)
+        assert.strictEqual(unexpectedControllerExit(null, 'SIGINT', false), null)
+    })
+
+    test('still reports the other Windows console events, which telemetry has not shown', () => {
+        assert.match(unexpectedControllerExit(143, null, false), /code 143/)
+    })
 })
