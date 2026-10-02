@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
-- A Julia installation that is missing part of its standard library, usually after an interrupted download or install, no longer produces a language server crash report. Such an installation cannot load the language server or the test item controller at all, and neither said why: both now report that the installation is incomplete, name the missing library and where Julia expected it, and ask for Julia to be reinstalled. A missing package that the extension ships itself is still reported as a crash, since that would be a packaging fault on our side.
+- A Julia installation that is missing part of its standard library, usually after an interrupted download or install, no longer produces a language server crash report. Such an installation cannot load the language server or the test item controller at all, and neither said why: both now report that the installation is incomplete, name the missing library and where Julia expected it, and ask for Julia to be reinstalled. A missing package that the extension ships itself is still reported as a crash, since that would be a packaging fault on our side ([#4255](https://github.com/julia-vscode/julia-vscode/pull/4255)).
 
 ## [1.249.0] - 2026-09-26
 ### Fixed
