@@ -436,6 +436,36 @@ export function isReportableOsKill(signal: NodeJS.Signals | null): boolean {
 }
 
 /**
+ * An exit caused by an interrupt from outside the process tree: a Ctrl-C that
+ * reached the console (Windows) or the process group (Unix) the process
+ * shares with other programs.
+ *
+ * Julia runs the language server and the test item controller as
+ * non-interactive programs, so `exit_on_sigint` is on and an interrupt ends
+ * the process rather than raising an `InterruptException`. How that looks from
+ * here depends on the platform. On Windows the console control handler calls
+ * `jl_exit(130)`, so the process ends with code 130 and no signal. On Unix the
+ * signal thread re-raises `SIGINT` with its default action, so the process
+ * ends by signal `SIGINT`. Either way no Julia error handler runs, and
+ * nothing reaches the crash pipe.
+ *
+ * Nothing here sends one. Every kill this extension or the Julia side issues
+ * on Windows is a `TerminateProcess` (exit code 1), whatever signal it names,
+ * and a REPL interrupt stays within the REPL. But the language server is
+ * spawned neither detached nor hidden, so it shares the extension host's
+ * console with every other child on it, and a `CTRL_C_EVENT` that any of
+ * those programs broadcasts to the console reaches it too. Like a kill
+ * signal, that is a condition of the user's machine, with no stack and
+ * nothing to fix.
+ *
+ * The other Windows console events (Break, Close, Logoff, Shutdown) exit with
+ * 143 instead, and are deliberately not included until telemetry shows one.
+ */
+export function isExternalInterrupt(code: number | null, signal: NodeJS.Signals | null): boolean {
+    return signal === 'SIGINT' || (signal === null && code === 130)
+}
+
+/**
  * Parses the contents of a cgroup memory limit file. Returns `null` when no
  * limit is set, which cgroup v2 writes as `max` and cgroup v1 as a sentinel
  * near the word size.
@@ -490,6 +520,8 @@ export function readCgroupMemoryLimit(): number | null {
  * session-teardown codes and `isExternalKillSignal` for kill signals, the
  * latter counted as an `lsoskill` event in `observeServerProcess` instead, and
  * reported there only for the `SIGKILL` that `isReportableOsKill` singles out.
+ * A Ctrl-C from outside is treated the same way: `isExternalInterrupt`
+ * recognises it, and it is counted as an `lsinterrupt` event instead.
  */
 export function unexpectedServerExit(
     code: number | null,
@@ -502,7 +534,7 @@ export function unexpectedServerExit(
     if (signal === null && (code === 0 || code === 1)) {
         return null
     }
-    if (isEnvironmentalWindowsExitCode(code) || isExternalKillSignal(signal)) {
+    if (isEnvironmentalWindowsExitCode(code) || isExternalKillSignal(signal) || isExternalInterrupt(code, signal)) {
         return null
     }
     return `Julia language server process exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
@@ -834,6 +866,14 @@ export class LanguageClientFeature {
                             }
                         })
                 }
+            }
+            // A Ctrl-C from outside is not reported either, see
+            // `isExternalInterrupt`, but it should not vanish without a trace.
+            if (!this._intentionalStop && isExternalInterrupt(code, signal)) {
+                this.outputChannel.appendLine(
+                    `The Julia language server was interrupted from outside the extension (${signal === null ? `exit code ${code}` : `signal ${signal}`}): a Ctrl-C reached the console or process group it runs in.`
+                )
+                telemetry.traceEvent('lsinterrupt', { code: String(code ?? 'none'), signal: signal ?? 'none' })
             }
             const reason = unexpectedServerExit(code, signal, this._intentionalStop)
             if (reason === null) {

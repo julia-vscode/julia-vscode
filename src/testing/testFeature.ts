@@ -16,6 +16,7 @@ import { cpus, freemem, totalmem } from 'os'
 import * as vslc from 'vscode-languageclient/node'
 import {
     isEnvironmentalWindowsExitCode,
+    isExternalInterrupt,
     isExternalKillSignal,
     isReportableOsKill,
     LanguageClientFeature,
@@ -244,6 +245,10 @@ export class JuliaTestProcess {
  * reported twice. A `SIGTERM` we did not send is somebody else's teardown and
  * is reported by neither path.
  * `SIGSEGV` and friends are not covered by it and stay ordinary crash reports.
+ *
+ * `isExternalInterrupt` covers a Ctrl-C from outside. The controller shares
+ * the language server's console, so the same broadcast `CTRL_C_EVENT` ends
+ * both; it is counted as a `ticinterrupt` event rather than reported.
  */
 export function unexpectedControllerExit(
     code: number | null,
@@ -256,7 +261,7 @@ export function unexpectedControllerExit(
     if (signal === null && (code === null || code === 0 || code === 1)) {
         return null
     }
-    if (isEnvironmentalWindowsExitCode(code) || isExternalKillSignal(signal)) {
+    if (isEnvironmentalWindowsExitCode(code) || isExternalKillSignal(signal) || isExternalInterrupt(code, signal)) {
         return null
     }
     return `Julia test item controller exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
@@ -784,6 +789,12 @@ export class JuliaTestController {
                             }
                         })
                 }
+            }
+
+            // A Ctrl-C from outside is counted rather than reported, see
+            // `isExternalInterrupt`; the exit line above already logs it.
+            if (!this._intentionalStop && isExternalInterrupt(code, signal)) {
+                traceEvent('ticinterrupt', { code: String(code ?? 'none'), signal: signal ?? 'none' })
             }
 
             const unexpected = unexpectedControllerExit(code, signal, this._intentionalStop)
