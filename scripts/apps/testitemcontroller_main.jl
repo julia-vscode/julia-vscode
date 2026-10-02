@@ -48,7 +48,17 @@ try
     try
         using TestItemControllers
     catch err
-        if is_precompile_failure(err)
+        stdlib = missing_stdlib(err)
+        if stdlib !== nothing
+            println(stderr, """\n
+            The test item controller could not be loaded because the Julia installation it runs on
+            is incomplete: the standard library $(stdlib) is missing from
+            \t$(Sys.STDLIB)
+            The test item controller always runs on juliaup's `release` channel; please reinstall
+            it with `juliaup remove release`, then `juliaup add release`.
+            """)
+            throw(JuliaInstallationIncomplete(sprint(showerror, err)))
+        elseif is_precompile_failure(err)
             # The extension does not set JULIA_DEPOT_PATH when spawning this
             # process, so fall back to the effective depot path.
             depot_path = get(ENV, "JULIA_DEPOT_PATH", join(DEPOT_PATH, Sys.iswindows() ? ';' : ':'))

@@ -164,6 +164,27 @@ export function init(context: vscode.ExtensionContext) {
 }
 
 export function handleNewCrashReport(name: string, message: string, stacktrace: string, cloudRole: string) {
+    // Thrown by both Julia launchers when a standard library is missing from
+    // the Julia installation itself: a reinstall fixes it, a crash report does not.
+    if (name.startsWith('JuliaInstallationIncomplete')) {
+        const isTestItemController = cloudRole === 'Test Item Controller'
+        const app = isTestItemController ? 'test item controller' : 'Language Server'
+        vscode.window
+            .showErrorMessage(
+                `The Julia ${app} could not start because the Julia installation it runs on is incomplete: part of its standard library is missing. Please reinstall Julia. The ${app} output has the details.`,
+                'Open Logs'
+            )
+            .then((choice) => {
+                if (choice === 'Open Logs') {
+                    vscode.commands.executeCommand(
+                        isTestItemController
+                            ? 'language-julia.showTestItemControllerOutput'
+                            : 'language-julia.showLanguageServerOutput'
+                    )
+                }
+            })
+        return
+    }
     if (name.startsWith('TICPrecompileFailure')) {
         vscode.window
             .showErrorMessage(

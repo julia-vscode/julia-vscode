@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Fixed
+- A Julia installation that is missing part of its standard library, usually after an interrupted download or install, no longer produces a language server crash report. Such an installation cannot load the language server or the test item controller at all, and neither said why: both now report that the installation is incomplete, name the missing library and where Julia expected it, and ask for Julia to be reinstalled. A missing package that the extension ships itself is still reported as a crash, since that would be a packaging fault on our side ([#4255](https://github.com/julia-vscode/julia-vscode/pull/4255)).
 - A language server or test item controller that is stopped by a Ctrl-C from outside the extension is no longer filed as a crash report. Julia ends with exit code 130 on Windows and with `SIGINT` elsewhere when an interrupt reaches it; the extension never sends one, but the language server shares a console with other programs, and a Ctrl-C any of them broadcasts reaches it too. Such an exit carries no error and no stack, so there is nothing in it to fix. It is still written to the output channel and counted in telemetry, and the language server is restarted as before ([#4254](https://github.com/julia-vscode/julia-vscode/pull/4254)).
 
 ## [1.249.0] - 2026-09-26
