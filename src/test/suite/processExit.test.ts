@@ -1,5 +1,11 @@
 import * as assert from 'assert'
-import { formatBytes, osKillNotification, osKillReport } from '../../processExit'
+import {
+    formatBytes,
+    osKillNotification,
+    osKillReport,
+    outOfMemoryNotification,
+    outOfMemoryReport,
+} from '../../processExit'
 
 const GIB = 1024 * 1024 * 1024
 
@@ -94,5 +100,43 @@ suite('osKillReport, language server shape', () => {
         })
 
         assert.strictEqual(report.split('\n').length, 2)
+    })
+})
+
+suite('outOfMemoryReport', () => {
+    test('says the process ran out of memory, how it ended, and sizes the memory the machine had left', () => {
+        const report = outOfMemoryReport(
+            'Julia language server',
+            0x20474343,
+            null,
+            { total: 16 * GIB, free: 512 * 1024 * 1024, cgroupLimit: null },
+            ['Julia: julia (1.12.1)', '', 'Last stderr output:', 'LLVM ERROR: out of memory']
+        )
+
+        assert.match(report, /^Julia language server ran out of memory \(exit code 541541187, signal none\)/)
+        assert.match(report, /512\.0 MiB free of 16\.0 GiB/)
+        assert.match(report, /cgroup limit none/)
+        assert.match(report, /Julia: julia \(1\.12\.1\)/)
+        assert.match(report, /LLVM ERROR: out of memory/)
+    })
+
+    test('carries a signal when that is how the process ended', () => {
+        const report = outOfMemoryReport('Julia language server', null, 'SIGABRT', {
+            total: GIB,
+            free: GIB,
+            cgroupLimit: 2 * GIB,
+        })
+
+        assert.match(report, /exit code none, signal SIGABRT/)
+        assert.match(report, /cgroup limit 2\.0 GiB/)
+        assert.strictEqual(report.split('\n').length, 2)
+    })
+})
+
+suite('outOfMemoryNotification', () => {
+    test('names the process and the cause without hedging', () => {
+        const text = outOfMemoryNotification('The Julia language server')
+
+        assert.strictEqual(text, 'The Julia language server ran out of memory.')
     })
 })

@@ -38,7 +38,7 @@ import {
 import * as telemetry from './telemetry'
 import { ExecutableFeature, JuliaExecutable, JuliaNotFoundError } from './executables'
 import { getCustomEnvironmentVariables, onEvent, registerCommand } from './utils'
-import { osKillNotification, osKillReport } from './processExit'
+import { osKillNotification, osKillReport, outOfMemoryNotification, outOfMemoryReport } from './processExit'
 
 export const supportedSchemes = ['file', 'untitled', 'vscode-notebook-cell']
 const supportedLanguages = ['julia', 'juliamarkdown', 'markdown']
@@ -466,6 +466,26 @@ export function isExternalInterrupt(code: number | null, signal: NodeJS.Signals 
 }
 
 /**
+ * Whether a process's stderr carries LLVM's report of a failed allocation.
+ *
+ * When an allocation inside LLVM fails, its fatal error handler prints
+ * `LLVM ERROR: out of memory` and a reason (`Allocation failed`, `Buffer
+ * allocation failed`, ...) and the runtime then ends the process itself. How
+ * that exit looks depends on the platform and the Julia version: on Windows
+ * telemetry has it as exit code 0x20474343 (libgcc's code for an uncaught C++
+ * exception) or exit code 3, elsewhere as `SIGABRT`. None of those say
+ * anything about the cause, the stderr does, so this looks only there and
+ * applies whatever the exit code or signal.
+ *
+ * Like a `SIGKILL`, this is the machine running out of memory, which can be a
+ * leak of ours, so it gets its own report and notification in
+ * `observeServerProcess` rather than a generic crash report.
+ */
+export function isLlvmOutOfMemory(stderr: string): boolean {
+    return stderr.includes('LLVM ERROR: out of memory')
+}
+
+/**
  * Parses the contents of a cgroup memory limit file. Returns `null` when no
  * limit is set, which cgroup v2 writes as `max` and cgroup v1 as a sentinel
  * near the word size.
@@ -522,11 +542,14 @@ export function readCgroupMemoryLimit(): number | null {
  * reported there only for the `SIGKILL` that `isReportableOsKill` singles out.
  * A Ctrl-C from outside is treated the same way: `isExternalInterrupt`
  * recognises it, and it is counted as an `lsinterrupt` event instead.
+ * An exit whose `stderr` shows LLVM ran out of memory is reported separately
+ * as well, see `isLlvmOutOfMemory`.
  */
 export function unexpectedServerExit(
     code: number | null,
     signal: NodeJS.Signals | null,
-    intentionalStop: boolean
+    intentionalStop: boolean,
+    stderr: string = ''
 ): string | null {
     if (intentionalStop) {
         return null
@@ -535,6 +558,9 @@ export function unexpectedServerExit(
         return null
     }
     if (isEnvironmentalWindowsExitCode(code) || isExternalKillSignal(signal) || isExternalInterrupt(code, signal)) {
+        return null
+    }
+    if (isLlvmOutOfMemory(stderr)) {
         return null
     }
     return `Julia language server process exited with code ${code ?? 'none'}, signal ${signal ?? 'none'}`
@@ -815,6 +841,34 @@ export class LanguageClientFeature {
         const stderrTail = new StderrTail()
         serverProcess.stderr?.on('data', (chunk) => stderrTail.append(chunk))
         serverProcess.on('exit', (code, signal) => {
+            // Running out of memory inside LLVM is reported like the `SIGKILL`
+            // below, for the same reason, and under its own name: as a generic
+            // crash it hid among the real ones, and the user was never told.
+            if (!this._intentionalStop && isLlvmOutOfMemory(stderrTail.text())) {
+                const limit = readCgroupMemoryLimit()
+                const report = outOfMemoryReport(
+                    'Julia language server',
+                    code,
+                    signal,
+                    { total: os.totalmem(), free: os.freemem(), cgroupLimit: limit },
+                    [
+                        `Julia: ${juliaExecutable.command} (${juliaExecutable.version})`,
+                        '',
+                        'Last stderr output:',
+                        stderrTail.text(),
+                    ]
+                )
+
+                this.outputChannel.appendLine(report)
+                telemetry.handleNewCrashReport(
+                    'LanguageServerOutOfMemory',
+                    sanitizeHomeDir(report),
+                    '',
+                    'Language Server'
+                )
+                this.showOutOfMemoryMessage(outOfMemoryNotification('The Julia language server'))
+                return
+            }
             // A kill nobody here asked for gets its own report rather than the
             // bare exit line `unexpectedServerExit` produces. The server is ours
             // and it is the long-lived process of this extension, so a kill for
@@ -855,16 +909,7 @@ export class LanguageClientFeature {
                         'Language Server'
                     )
 
-                    vscode.window
-                        .showErrorMessage(
-                            `${osKillNotification('The Julia language server', signal)} It will be restarted.`,
-                            'Open Logs'
-                        )
-                        .then((choice) => {
-                            if (choice === 'Open Logs') {
-                                this.outputChannel.show()
-                            }
-                        })
+                    this.showOutOfMemoryMessage(osKillNotification('The Julia language server', signal))
                 }
             }
             // A Ctrl-C from outside is not reported either, see
@@ -875,7 +920,7 @@ export class LanguageClientFeature {
                 )
                 telemetry.traceEvent('lsinterrupt', { code: String(code ?? 'none'), signal: signal ?? 'none' })
             }
-            const reason = unexpectedServerExit(code, signal, this._intentionalStop)
+            const reason = unexpectedServerExit(code, signal, this._intentionalStop, stderrTail.text())
             if (reason === null) {
                 return
             }
@@ -888,6 +933,14 @@ export class LanguageClientFeature {
                 stderrTail.text(),
             ].join('\n')
             telemetry.handleNewCrashReport('LanguageServerProcessExit', sanitizeHomeDir(message), '', 'Language Server')
+        })
+    }
+
+    private showOutOfMemoryMessage(notification: string) {
+        vscode.window.showErrorMessage(`${notification} It will be restarted.`, 'Open Logs').then((choice) => {
+            if (choice === 'Open Logs') {
+                this.outputChannel.show()
+            }
         })
     }
 
