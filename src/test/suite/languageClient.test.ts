@@ -4,6 +4,7 @@ import { ErrorCodes, RequestType, ResponseError } from 'vscode-languageserver-pr
 import {
     isExternalInterrupt,
     isExternalKillSignal,
+    isLlvmOutOfMemory,
     isReportableOsKill,
     ObservedLanguageClient,
     parseCgroupMemoryLimit,
@@ -75,6 +76,22 @@ suite('RestartTrackingErrorHandler', () => {
     })
 })
 
+// Stderr tails as the exit reports carry them, stack paths shortened.
+const LLVM_OOM_TAIL = [
+    '[ Info: Indexing child process done',
+    'LLVM ERROR: out of memory',
+    'Allocation failed',
+    '',
+].join('\r\n')
+
+const CRASH_TAIL = [
+    '[ Info: Indexing child process done',
+    'ERROR: ReadOnlyMemoryError()',
+    'Stacktrace:',
+    ' [1] unsafe_load at .\\pointer.jl:153 [inlined]',
+    '',
+].join('\r\n')
+
 suite('unexpectedServerExit', () => {
     test('a clean exit is expected', () => {
         assert.strictEqual(unexpectedServerExit(0, null, false), null)
@@ -121,6 +138,36 @@ suite('unexpectedServerExit', () => {
 
     test('an unexplained external termination is still reported', () => {
         assert.match(unexpectedServerExit(4294967295, null, false), /code 4294967295/)
+    })
+
+    test('running out of memory inside LLVM is reported separately, however the process ended', () => {
+        // " GCC", libgcc's code for an uncaught C++ exception (Windows).
+        assert.strictEqual(unexpectedServerExit(0x20474343, null, false, LLVM_OOM_TAIL), null)
+        assert.strictEqual(unexpectedServerExit(3, null, false, LLVM_OOM_TAIL), null)
+        assert.strictEqual(unexpectedServerExit(null, 'SIGABRT', false, LLVM_OOM_TAIL), null)
+    })
+
+    test('the same exits are still reported without LLVM saying it ran out of memory', () => {
+        assert.match(unexpectedServerExit(0x20474343, null, false, CRASH_TAIL), /code 541541187/)
+        assert.match(unexpectedServerExit(3, null, false, CRASH_TAIL), /code 3/)
+        assert.match(unexpectedServerExit(null, 'SIGABRT', false, CRASH_TAIL), /signal SIGABRT/)
+    })
+})
+
+suite('isLlvmOutOfMemory', () => {
+    test("recognises LLVM's out-of-memory report, whatever reason follows it", () => {
+        assert.strictEqual(isLlvmOutOfMemory(LLVM_OOM_TAIL), true)
+        assert.strictEqual(isLlvmOutOfMemory('LLVM ERROR: out of memory\nBuffer allocation failed\n'), true)
+        assert.strictEqual(isLlvmOutOfMemory('LLVM ERROR: out of memory\nCompression failed\n'), true)
+    })
+
+    test('an ordinary crash, or no stderr at all, is not out of memory', () => {
+        assert.strictEqual(isLlvmOutOfMemory(CRASH_TAIL), false)
+        assert.strictEqual(isLlvmOutOfMemory(''), false)
+    })
+
+    test('other LLVM errors are not out of memory', () => {
+        assert.strictEqual(isLlvmOutOfMemory('LLVM ERROR: Cannot select: intrinsic %llvm.foo\n'), false)
     })
 })
 
