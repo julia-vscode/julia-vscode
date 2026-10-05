@@ -266,8 +266,25 @@ export function handleNewCrashReportFromException(error: Error, cloudRole: strin
     }
 }
 
-export function startLsCrashServer() {
-    g_jlcrashreportingpipename = generatePipeName(uuidv4(), 'vsc-jl-cr')
+// A crash reporting pipe that cannot be listened on, most often because the
+// temp directory is on a full disk and there is no room for the socket, leaves
+// this session without crash reports from the Julia processes. That is not an
+// extension crash, so it is counted rather than reported.
+export function onLsCrashServerListenError(err: NodeJS.ErrnoException) {
+    console.error(
+        `Julia crash reporting is unavailable for this session: listening on the crash reporting pipe failed: ${err.message}`
+    )
+    traceEvent('crashserverlistenfailed', { code: err.code ?? 'unknown' })
+}
+
+export function startLsCrashServer(
+    pipename: string = generatePipeName(uuidv4(), 'vsc-jl-cr'),
+    onListenError: (err: NodeJS.ErrnoException) => void = onLsCrashServerListenError
+): net.Server {
+    // The Julia processes are given this name even if the listen below fails.
+    // They only connect to it from their error handlers, which already cope
+    // with a pipe that nobody listens on.
+    g_jlcrashreportingpipename = pipename
 
     const server = net.createServer(function (connection) {
         let accumulatingBuffer = Buffer.alloc(0)
@@ -288,7 +305,12 @@ export function startLsCrashServer() {
         })
     })
 
-    server.listen(g_jlcrashreportingpipename)
+    // Without a listener, a failed listen is emitted as an unhandled 'error'
+    // event and becomes an uncaught exception.
+    server.on('error', onListenError)
+    server.listen(pipename)
+
+    return server
 }
 
 export function getCrashReportingPipename() {

@@ -157,7 +157,7 @@ version = "0.20.2"
 deps = ["CancellationTokens", "JSON", "Sockets", "UUIDs"]
 path = "../../packages/JSONRPC"
 uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "3.1.1-DEV"
+version = "3.1.2-DEV"
 
 [[deps.JuliaFormatter]]
 deps = ["CommonMark", "Glob", "JuliaSyntax", "PrecompileTools", "TOML", "Test"]
@@ -169,7 +169,7 @@ version = "2.14.0"
 deps = ["CodeTracking", "InteractiveUtils", "Random"]
 path = "../../packages/JuliaInterpreter"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.11.6"
+version = "0.12.0"
 
 [[deps.JuliaSyntax]]
 path = "../../packages/JuliaSyntax"
@@ -237,7 +237,7 @@ version = "1.2.0"
 deps = ["CodeTracking", "Compiler", "JuliaInterpreter"]
 path = "../../packages/LoweredCodeUtils"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "3.9.0"
+version = "3.10.0"
 
 [[deps.MacroTools]]
 path = "../../packages/MacroTools"
