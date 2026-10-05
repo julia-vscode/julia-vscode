@@ -588,6 +588,68 @@ export class StderrTail {
 }
 
 /**
+ * How long `observeServerExit` waits for stderr to end after the process has
+ * exited. Usually the pipe ends a moment later; a grandchild that inherited
+ * it (a DJP worker, say) can keep it open indefinitely, though.
+ */
+export const STDERR_DRAIN_TIMEOUT_MS = 1000
+
+/**
+ * The exit of a server process, together with what it wrote to stderr up to
+ * the very end.
+ */
+export interface ServerExit {
+    code: number | null
+    signal: NodeJS.Signals | null
+    /** Whether we were stopping the server ourselves when it exited. */
+    intentionalStop: boolean
+    stderr: string
+}
+
+/**
+ * Calls `onExit` once `serverProcess` has exited, with the tail of its stderr.
+ *
+ * Node documents that `'exit'` can come before the child's stdio has been
+ * drained, and the native backtrace of a crash is the last thing Julia
+ * writes, so a report built right away could lose exactly the part that
+ * matters. This waits for stderr to end first, bounded by `drainTimeoutMs`.
+ *
+ * `isIntentionalStop` is read at the moment of the exit rather than after the
+ * wait, so a restart begun in between cannot change the verdict.
+ */
+export function observeServerExit(
+    serverProcess: ChildProcess,
+    isIntentionalStop: () => boolean,
+    onExit: (exit: ServerExit) => void,
+    drainTimeoutMs: number = STDERR_DRAIN_TIMEOUT_MS
+): void {
+    const stderrTail = new StderrTail()
+    const stderr = serverProcess.stderr
+    stderr?.on('data', (chunk) => stderrTail.append(chunk))
+    serverProcess.on('exit', (code, signal) => {
+        const intentionalStop = isIntentionalStop()
+        const report = () => onExit({ code, signal, intentionalStop, stderr: stderrTail.text() })
+        if (!stderr || stderr.readableEnded || stderr.destroyed) {
+            report()
+            return
+        }
+        let done = false
+        const finish = () => {
+            if (!done) {
+                done = true
+                clearTimeout(timer)
+                stderr.off('end', finish)
+                stderr.off('close', finish)
+                report()
+            }
+        }
+        const timer = setTimeout(finish, drainTimeoutMs)
+        stderr.once('end', finish)
+        stderr.once('close', finish)
+    })
+}
+
+/**
  * Replaces the user's home directory with `~`, in the spirit of the path
  * sanitising `error_handler.jl` applies to Julia stack traces.
  */
@@ -838,102 +900,86 @@ export class LanguageClientFeature {
      * having reported it, see `unexpectedServerExit`.
      */
     private observeServerProcess(serverProcess: ChildProcess, juliaExecutable: JuliaExecutable) {
-        const stderrTail = new StderrTail()
-        serverProcess.stderr?.on('data', (chunk) => stderrTail.append(chunk))
-        serverProcess.on('exit', (code, signal) => {
-            // Running out of memory inside LLVM is reported like the `SIGKILL`
-            // below, for the same reason, and under its own name: as a generic
-            // crash it hid among the real ones, and the user was never told.
-            if (!this._intentionalStop && isLlvmOutOfMemory(stderrTail.text())) {
-                const limit = readCgroupMemoryLimit()
-                const report = outOfMemoryReport(
-                    'Julia language server',
-                    code,
-                    signal,
-                    { total: os.totalmem(), free: os.freemem(), cgroupLimit: limit },
-                    [
-                        `Julia: ${juliaExecutable.command} (${juliaExecutable.version})`,
-                        '',
-                        'Last stderr output:',
-                        stderrTail.text(),
-                    ]
-                )
+        observeServerExit(
+            serverProcess,
+            () => this._intentionalStop,
+            (exit) => this.reportServerExit(exit, juliaExecutable)
+        )
+    }
 
-                this.outputChannel.appendLine(report)
-                telemetry.handleNewCrashReport(
-                    'LanguageServerOutOfMemory',
-                    sanitizeHomeDir(report),
-                    '',
-                    'Language Server'
-                )
-                this.showOutOfMemoryMessage(outOfMemoryNotification('The Julia language server'))
-                return
-            }
-            // A kill nobody here asked for gets its own report rather than the
-            // bare exit line `unexpectedServerExit` produces. The server is ours
-            // and it is the long-lived process of this extension, so a kill for
-            // running out of memory can be a leak on our side rather than the
-            // machine being short — and only the figures below tell those apart.
-            // The `_intentionalStop` check matters: our own shutdown path can
-            // end in a SIGTERM.
-            //
-            // Both kill signals are logged and counted, but only the `SIGKILL`
-            // of `isReportableOsKill` is reported and shown: a `SIGTERM` here
-            // is somebody else's teardown, not a memory problem of ours.
-            if (!this._intentionalStop && isExternalKillSignal(signal)) {
-                const limit = readCgroupMemoryLimit()
-                const report = osKillReport(
-                    'Julia language server',
-                    signal,
-                    { total: os.totalmem(), free: os.freemem(), cgroupLimit: limit },
-                    [
-                        `Julia: ${juliaExecutable.command} (${juliaExecutable.version})`,
-                        '',
-                        'Last stderr output:',
-                        stderrTail.text(),
-                    ]
-                )
+    private reportServerExit({ code, signal, intentionalStop, stderr }: ServerExit, juliaExecutable: JuliaExecutable) {
+        // Running out of memory inside LLVM is reported like the `SIGKILL`
+        // below, for the same reason, and under its own name: as a generic
+        // crash it hid among the real ones, and the user was never told.
+        if (!intentionalStop && isLlvmOutOfMemory(stderr)) {
+            const limit = readCgroupMemoryLimit()
+            const report = outOfMemoryReport(
+                'Julia language server',
+                code,
+                signal,
+                { total: os.totalmem(), free: os.freemem(), cgroupLimit: limit },
+                [`Julia: ${juliaExecutable.command} (${juliaExecutable.version})`, '', 'Last stderr output:', stderr]
+            )
 
-                this.outputChannel.appendLine(report)
-                telemetry.traceEvent('lsoskill', {
-                    signal,
-                    totalmem: String(os.totalmem()),
-                    freemem: String(os.freemem()),
-                    cgrouplimit: limit === null ? 'none' : String(limit),
-                })
-                if (isReportableOsKill(signal)) {
-                    telemetry.handleNewCrashReport(
-                        'LanguageServerOsKill',
-                        sanitizeHomeDir(report),
-                        '',
-                        'Language Server'
-                    )
+            this.outputChannel.appendLine(report)
+            telemetry.handleNewCrashReport('LanguageServerOutOfMemory', sanitizeHomeDir(report), '', 'Language Server')
+            this.showOutOfMemoryMessage(outOfMemoryNotification('The Julia language server'))
+            return
+        }
+        // A kill nobody here asked for gets its own report rather than the
+        // bare exit line `unexpectedServerExit` produces. The server is ours
+        // and it is the long-lived process of this extension, so a kill for
+        // running out of memory can be a leak on our side rather than the
+        // machine being short — and only the figures below tell those apart.
+        // The `_intentionalStop` check matters: our own shutdown path can
+        // end in a SIGTERM.
+        //
+        // Both kill signals are logged and counted, but only the `SIGKILL`
+        // of `isReportableOsKill` is reported and shown: a `SIGTERM` here
+        // is somebody else's teardown, not a memory problem of ours.
+        if (!intentionalStop && isExternalKillSignal(signal)) {
+            const limit = readCgroupMemoryLimit()
+            const report = osKillReport(
+                'Julia language server',
+                signal,
+                { total: os.totalmem(), free: os.freemem(), cgroupLimit: limit },
+                [`Julia: ${juliaExecutable.command} (${juliaExecutable.version})`, '', 'Last stderr output:', stderr]
+            )
 
-                    this.showOutOfMemoryMessage(osKillNotification('The Julia language server', signal))
-                }
+            this.outputChannel.appendLine(report)
+            telemetry.traceEvent('lsoskill', {
+                signal,
+                totalmem: String(os.totalmem()),
+                freemem: String(os.freemem()),
+                cgrouplimit: limit === null ? 'none' : String(limit),
+            })
+            if (isReportableOsKill(signal)) {
+                telemetry.handleNewCrashReport('LanguageServerOsKill', sanitizeHomeDir(report), '', 'Language Server')
+
+                this.showOutOfMemoryMessage(osKillNotification('The Julia language server', signal))
             }
-            // A Ctrl-C from outside is not reported either, see
-            // `isExternalInterrupt`, but it should not vanish without a trace.
-            if (!this._intentionalStop && isExternalInterrupt(code, signal)) {
-                this.outputChannel.appendLine(
-                    `The Julia language server was interrupted from outside the extension (${signal === null ? `exit code ${code}` : `signal ${signal}`}): a Ctrl-C reached the console or process group it runs in.`
-                )
-                telemetry.traceEvent('lsinterrupt', { code: String(code ?? 'none'), signal: signal ?? 'none' })
-            }
-            const reason = unexpectedServerExit(code, signal, this._intentionalStop, stderrTail.text())
-            if (reason === null) {
-                return
-            }
-            telemetry.traceEvent('lsprocessexit')
-            const message = [
-                reason,
-                `Julia: ${juliaExecutable.command} (${juliaExecutable.version})`,
-                '',
-                'Last stderr output:',
-                stderrTail.text(),
-            ].join('\n')
-            telemetry.handleNewCrashReport('LanguageServerProcessExit', sanitizeHomeDir(message), '', 'Language Server')
-        })
+        }
+        // A Ctrl-C from outside is not reported either, see
+        // `isExternalInterrupt`, but it should not vanish without a trace.
+        if (!intentionalStop && isExternalInterrupt(code, signal)) {
+            this.outputChannel.appendLine(
+                `The Julia language server was interrupted from outside the extension (${signal === null ? `exit code ${code}` : `signal ${signal}`}): a Ctrl-C reached the console or process group it runs in.`
+            )
+            telemetry.traceEvent('lsinterrupt', { code: String(code ?? 'none'), signal: signal ?? 'none' })
+        }
+        const reason = unexpectedServerExit(code, signal, intentionalStop, stderr)
+        if (reason === null) {
+            return
+        }
+        telemetry.traceEvent('lsprocessexit')
+        const message = [
+            reason,
+            `Julia: ${juliaExecutable.command} (${juliaExecutable.version})`,
+            '',
+            'Last stderr output:',
+            stderr,
+        ].join('\n')
+        telemetry.handleNewCrashReport('LanguageServerProcessExit', sanitizeHomeDir(message), '', 'Language Server')
     }
 
     private showOutOfMemoryMessage(notification: string) {

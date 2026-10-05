@@ -1,4 +1,7 @@
 import * as assert from 'assert'
+import { ChildProcess } from 'child_process'
+import { EventEmitter } from 'events'
+import { PassThrough } from 'stream'
 import { CloseAction, ErrorAction, ErrorHandler, LanguageClient } from 'vscode-languageclient/node'
 import { ErrorCodes, RequestType, ResponseError } from 'vscode-languageserver-protocol'
 import {
@@ -7,9 +10,11 @@ import {
     isLlvmOutOfMemory,
     isReportableOsKill,
     ObservedLanguageClient,
+    observeServerExit,
     parseCgroupMemoryLimit,
     RestartTrackingErrorHandler,
     sanitizeHomeDir,
+    ServerExit,
     StderrTail,
     unexpectedServerExit,
 } from '../../languageClient'
@@ -262,6 +267,113 @@ suite('StderrTail', () => {
         assert.strictEqual(tail.text(), 'abcdefgh')
         tail.append('ij')
         assert.strictEqual(tail.text(), 'cdefghij')
+    })
+})
+
+/**
+ * Just enough of a `ChildProcess` for `observeServerExit`: an `'exit'` event
+ * and a stderr stream the test writes to and ends by hand.
+ */
+function fakeServerProcess(): { serverProcess: ChildProcess; stderr: PassThrough } {
+    const stderr = new PassThrough()
+    const serverProcess = Object.assign(new EventEmitter(), { stderr }) as unknown as ChildProcess
+    return { serverProcess, stderr }
+}
+
+function nextExit(
+    serverProcess: ChildProcess,
+    isIntentionalStop: () => boolean = () => false,
+    drainTimeoutMs?: number
+): { exit: Promise<ServerExit>; settled: () => boolean } {
+    let settled = false
+    const exit = new Promise<ServerExit>((resolve) =>
+        observeServerExit(
+            serverProcess,
+            isIntentionalStop,
+            (exit) => {
+                settled = true
+                resolve(exit)
+            },
+            drainTimeoutMs
+        )
+    )
+    return { exit, settled: () => settled }
+}
+
+suite('observeServerExit', () => {
+    const lastLineBeforeBacktrace = 'in expression starting at /x/scripts/languageserver/main.jl:196\n'
+    const backtrace = 'unknown function (ip: 0x7f0000000000)\njl_apply at julia.h:2157\n'
+
+    test('waits for stderr written after the exit, so a native backtrace reaches the report', async () => {
+        const { serverProcess, stderr } = fakeServerProcess()
+        const { exit, settled } = nextExit(serverProcess)
+
+        stderr.write('[575397] signal 7 (2): Bus error\n' + lastLineBeforeBacktrace)
+        serverProcess.emit('exit', null, 'SIGBUS')
+        await new Promise((resolve) => setImmediate(resolve))
+        assert.strictEqual(settled(), false)
+
+        stderr.write(backtrace)
+        stderr.end()
+        const result = await exit
+        assert.strictEqual(result.code, null)
+        assert.strictEqual(result.signal, 'SIGBUS')
+        assert.ok(result.stderr.endsWith(lastLineBeforeBacktrace + backtrace), result.stderr)
+
+        // The exit is still reported, now with the backtrace in its stderr.
+        const reason = unexpectedServerExit(result.code, result.signal, result.intentionalStop, result.stderr)
+        assert.strictEqual(reason, 'Julia language server process exited with code none, signal SIGBUS')
+    })
+
+    test('gives up waiting when stderr never ends, as when a grandchild holds the pipe open', async () => {
+        const { serverProcess, stderr } = fakeServerProcess()
+        const { exit } = nextExit(serverProcess, () => false, 20)
+
+        stderr.write(lastLineBeforeBacktrace)
+        serverProcess.emit('exit', null, 'SIGBUS')
+        const result = await exit
+        assert.strictEqual(result.signal, 'SIGBUS')
+        assert.strictEqual(result.stderr, lastLineBeforeBacktrace)
+    })
+
+    test('reports straight away when stderr has already ended', async () => {
+        const { serverProcess, stderr } = fakeServerProcess()
+        const { exit, settled } = nextExit(serverProcess, () => false, 60_000)
+
+        stderr.end(backtrace)
+        await new Promise((resolve) => stderr.once('end', resolve))
+        serverProcess.emit('exit', 139, null)
+        assert.strictEqual(settled(), true)
+        assert.strictEqual((await exit).stderr, backtrace)
+    })
+
+    test('takes whether the stop was intentional from the moment of the exit', async () => {
+        const { serverProcess, stderr } = fakeServerProcess()
+        let intentionalStop = true
+        const { exit } = nextExit(serverProcess, () => intentionalStop)
+
+        serverProcess.emit('exit', null, 'SIGTERM')
+        // A restart begun while stderr drains clears the flag again.
+        intentionalStop = false
+        stderr.end()
+        assert.strictEqual((await exit).intentionalStop, true)
+    })
+
+    test('reports only once, whether stderr ends, closes or times out', async () => {
+        const { serverProcess, stderr } = fakeServerProcess()
+        let calls = 0
+        observeServerExit(
+            serverProcess,
+            () => false,
+            () => calls++,
+            20
+        )
+
+        serverProcess.emit('exit', 1, null)
+        stderr.end()
+        await new Promise((resolve) => stderr.once('close', resolve))
+        await new Promise((resolve) => setTimeout(resolve, 40))
+        assert.strictEqual(calls, 1)
     })
 })
 
