@@ -8,6 +8,7 @@ import {
     CancellationToken,
     CloseAction,
     CloseHandlerResult,
+    ErrorAction,
     ErrorHandler,
     ErrorHandlerResult,
     LanguageClient,
@@ -22,6 +23,7 @@ import {
     RequestType0,
     RevealOutputChannelOn,
     ServerOptions,
+    ShutdownMode,
     State,
     StateChangeEvent,
 } from 'vscode-languageclient/node'
@@ -134,21 +136,28 @@ function formatErrorForOutput(err: unknown): string {
  * distinguish a transient crash from a crash loop the client has given up on.
  * The `closed()` decision is made before the state change fires, which lets
  * the state change handler consult `consumeRestartPending()`.
+ *
+ * It also remembers the connection error that made the delegate choose
+ * `ErrorAction.Shutdown`. The client acts on that by stopping the server
+ * itself, which ends in a `SIGKILL` if the server is slow to exit, and
+ * `consumeShutdownCause()` lets that kill be told apart from an OS kill (see
+ * `isClientShutdownKill`).
  */
 export class RestartTrackingErrorHandler implements ErrorHandler {
     private delegate: ErrorHandler
     private restartPending: boolean = false
     private restarts: number = 0
+    private shutdownCause: Error | undefined = undefined
 
     constructor(private createDelegate: () => ErrorHandler) {}
 
-    error(
-        error: Error,
-        message: Message | undefined,
-        count: number | undefined
-    ): ErrorHandlerResult | Promise<ErrorHandlerResult> {
+    async error(error: Error, message: Message | undefined, count: number | undefined): Promise<ErrorHandlerResult> {
         this.delegate ??= this.createDelegate()
-        return this.delegate.error(error, message, count)
+        const result = await this.delegate.error(error, message, count)
+        if (result.action === ErrorAction.Shutdown) {
+            this.shutdownCause = error
+        }
+        return result
     }
 
     async closed(): Promise<CloseHandlerResult> {
@@ -169,6 +178,16 @@ export class RestartTrackingErrorHandler implements ErrorHandler {
         const pending = this.restartPending
         this.restartPending = false
         return pending
+    }
+
+    /**
+     * Returns the connection error that made the client decide to shut the
+     * server down, if it did, and forgets it.
+     */
+    consumeShutdownCause(): Error | undefined {
+        const cause = this.shutdownCause
+        this.shutdownCause = undefined
+        return cause
     }
 
     /** How many times the server has been auto-restarted after a crash. */
@@ -400,12 +419,18 @@ export function isEnvironmentalWindowsExitCode(code: number | null): boolean {
  * server: an out-of-memory killer (the kernel's or a cgroup's), a container
  * stop, a session teardown, a `kill -9`.
  *
- * Neither Julia nor this extension sends these. An extension-initiated stop
- * goes through the graceful shutdown path and sets `_intentionalStop`, which
- * `unexpectedServerExit` filters out, and a Julia-level crash exits with code
- * 1 after reporting itself through the crash pipe. So a kill signal reaching
- * the exit handler is a condition of the user's machine, not a defect here,
- * and it carries no stack and nothing to fix.
+ * Julia never sends these: a Julia-level crash exits with code 1 after
+ * reporting itself through the crash pipe. vscode-languageclient does send
+ * one, though. Two seconds after every `shutdown()` of the client, whoever
+ * asked for it, `LanguageClient.checkProcessDied` kills the server's whole
+ * process tree with `kill -9` if the server has not exited yet (`taskkill /F`
+ * on Windows, which ends it with exit code 1 instead). `observeServerProcess`
+ * therefore records every shutdown per process (`ServerShutdown`) and handles
+ * a kill that follows one before it gets here: after our own stop it is
+ * expected, and after a shutdown the client started on its own it is
+ * `isClientShutdownKill`. Any other kill signal reaching the exit handler is
+ * a condition of the user's machine, not a defect here, and it carries no
+ * stack and nothing to fix.
  *
  * `SIGSEGV`, `SIGBUS`, `SIGILL` and `SIGABRT` are deliberately not included:
  * those are genuine native crashes in Julia or a library it loads, and stay
@@ -433,6 +458,78 @@ export function isExternalKillSignal(signal: NodeJS.Signals | null): boolean {
  */
 export function isReportableOsKill(signal: NodeJS.Signals | null): boolean {
     return signal === 'SIGKILL'
+}
+
+/**
+ * A `shutdown()` of the language client for one server process, recorded when
+ * it starts. The record is per process because the kill that can follow it
+ * arrives two seconds later, by which time a restart may already have started
+ * the next server and reset `_intentionalStop`.
+ */
+export interface ServerShutdown {
+    /** `stopLanguageServer` asked for it, rather than the client by itself. */
+    intentional: boolean
+    /** Why the client shut the server down by itself, for telemetry. */
+    cause: 'connectionerror' | 'startfailed' | 'other'
+    /** The same in words, for the output channel and a report. */
+    detail: string
+}
+
+/**
+ * Describes a shutdown of the client as it begins.
+ *
+ * Apart from our own `stop()`, the client shuts the server down by itself in
+ * two places: when its error handler answers a connection error with
+ * `ErrorAction.Shutdown` (the default handler does so on any read error, and
+ * after the fourth failed write), and when the server fails the `initialize`
+ * request, which is what a Julia crash in `initialize` looks like from here.
+ * The latter happens while the client is still starting.
+ */
+export function describeServerShutdown(
+    intentional: boolean,
+    clientState: State,
+    connectionError: Error | undefined
+): ServerShutdown {
+    if (intentional) {
+        return { intentional, cause: 'other', detail: 'the extension stopped the server' }
+    }
+    if (connectionError !== undefined) {
+        return {
+            intentional,
+            cause: 'connectionerror',
+            detail: `the connection to the server failed: ${connectionError.message}`,
+        }
+    }
+    if (clientState === State.Starting) {
+        return { intentional, cause: 'startfailed', detail: 'the server failed to initialize' }
+    }
+    return { intentional, cause: 'other', detail: 'the language client stopped the server' }
+}
+
+/**
+ * Whether an exit is the `kill -9` of vscode-languageclient's
+ * `checkProcessDied` after a shutdown the client started by itself (see
+ * `isExternalKillSignal`). That is not the machine killing the server, so it
+ * is neither an out-of-memory report nor the notification that goes with one.
+ */
+export function isClientShutdownKill(signal: NodeJS.Signals | null, shutdown: ServerShutdown | undefined): boolean {
+    return signal === 'SIGKILL' && shutdown !== undefined && !shutdown.intentional
+}
+
+/**
+ * The first line `global_err_handler` (`scripts/error_handler.jl`) logs, before
+ * it shows the error and sends its crash report through the crash pipe.
+ */
+const JULIA_ERROR_HANDLER_BANNER = 'Some Julia code in the VS Code extension crashed'
+
+/**
+ * Whether a server's stderr shows its Julia error handler had started. The
+ * language server's handler always ends the process, so a server killed after
+ * this was killed while reporting its own crash, and that report may never
+ * have reached the crash pipe.
+ */
+export function isJuliaErrorHandlerRunning(stderr: string): boolean {
+    return stderr.includes(JULIA_ERROR_HANDLER_BANNER)
 }
 
 /**
@@ -613,6 +710,12 @@ export function sanitizeHomeDir(text: string, homeDir: string = os.homedir()): s
  * spawn itself, debug-mode selection, killing the process on stop) stays
  * with the client.
  *
+ * Every shutdown of the server goes through `shutdown`, whether we stop the
+ * client or it stops itself, and it is what arms the client's delayed kill of
+ * the process (see `isExternalKillSignal`). So that is where the process being
+ * shut down is handed to the second callback, together with the client's state
+ * at that moment.
+ *
  * It also watches the requests going through it, see `sendRequest` and
  * `handleFailedRequest` below.
  */
@@ -622,9 +725,18 @@ export class ObservedLanguageClient extends LanguageClient {
         name: string,
         serverOptions: ServerOptions,
         clientOptions: LanguageClientOptions,
-        private onServerProcess: (serverProcess: ChildProcess) => void
+        private onServerProcess: (serverProcess: ChildProcess) => void,
+        private onServerShutdown: (serverProcess: ChildProcess, clientState: State) => void = () => {}
     ) {
         super(id, name, serverOptions, clientOptions)
+    }
+
+    protected override shutdown(mode: ShutdownMode, timeout?: number): Promise<void> {
+        const serverProcess = this.serverProcess
+        if (serverProcess) {
+            this.onServerShutdown(serverProcess, this.state)
+        }
+        return super.shutdown(mode, timeout)
     }
 
     protected override async createMessageTransports(encoding: string): Promise<MessageTransports> {
@@ -730,6 +842,8 @@ export class LanguageClientFeature {
 
     private _state: LanguageServerState = 'stopped'
     private _intentionalStop: boolean = false
+    // How each server process was shut down, see `ServerShutdown`.
+    private serverShutdowns = new WeakMap<ChildProcess, ServerShutdown>()
 
     languageClient: LanguageClient | null = null
 
@@ -839,12 +953,24 @@ export class LanguageClientFeature {
      */
     private observeServerProcess(serverProcess: ChildProcess, juliaExecutable: JuliaExecutable) {
         const stderrTail = new StderrTail()
-        serverProcess.stderr?.on('data', (chunk) => stderrTail.append(chunk))
+        // Sticky: a long backtrace from the error handler can push its first
+        // line out of the tail before the process dies.
+        let juliaErrorHandlerRan = false
+        serverProcess.stderr?.on('data', (chunk) => {
+            stderrTail.append(chunk)
+            juliaErrorHandlerRan ||= isJuliaErrorHandlerRunning(stderrTail.text())
+        })
         serverProcess.on('exit', (code, signal) => {
+            // Read at exit, not when the process started: a stop of ours sets
+            // `_intentionalStop` while this process is still running. Its
+            // shutdown record covers the kill that can follow a stop after a
+            // restart has already cleared the flag again.
+            const shutdown = this.serverShutdowns.get(serverProcess)
+            const intentionalStop = this._intentionalStop || shutdown?.intentional === true
             // Running out of memory inside LLVM is reported like the `SIGKILL`
             // below, for the same reason, and under its own name: as a generic
             // crash it hid among the real ones, and the user was never told.
-            if (!this._intentionalStop && isLlvmOutOfMemory(stderrTail.text())) {
+            if (!intentionalStop && isLlvmOutOfMemory(stderrTail.text())) {
                 const limit = readCgroupMemoryLimit()
                 const report = outOfMemoryReport(
                     'Julia language server',
@@ -869,18 +995,52 @@ export class LanguageClientFeature {
                 this.showOutOfMemoryMessage(outOfMemoryNotification('The Julia language server'))
                 return
             }
+            // The language client's own kill after it shut the server down by
+            // itself is no OS kill, see `isClientShutdownKill`. It is logged and
+            // counted. If the server was in its Julia error handler, that
+            // handler's crash report is what the kill cut off, so the crash is
+            // reported from here instead, along with why the client shut down.
+            if (!intentionalStop && isClientShutdownKill(signal, shutdown)) {
+                this.outputChannel.appendLine(
+                    `The language client killed the Julia language server because it had not exited two seconds after the client shut it down (${shutdown.detail}).` +
+                        (juliaErrorHandlerRan
+                            ? ' The server was still reporting a crash of its own, see the error above.'
+                            : '')
+                )
+                telemetry.traceEvent('lsclientkill', {
+                    cause: shutdown.cause,
+                    crashreportlost: String(juliaErrorHandlerRan),
+                })
+                if (juliaErrorHandlerRan) {
+                    const message = [
+                        'Julia language server was killed by the language client while reporting a crash',
+                        `The client shut the server down because ${shutdown.detail}`,
+                        `Julia: ${juliaExecutable.command} (${juliaExecutable.version})`,
+                        '',
+                        'Last stderr output:',
+                        stderrTail.text(),
+                    ].join('\n')
+                    telemetry.handleNewCrashReport(
+                        'LanguageServerCrashReportLost',
+                        sanitizeHomeDir(message),
+                        '',
+                        'Language Server'
+                    )
+                }
+                return
+            }
             // A kill nobody here asked for gets its own report rather than the
             // bare exit line `unexpectedServerExit` produces. The server is ours
             // and it is the long-lived process of this extension, so a kill for
             // running out of memory can be a leak on our side rather than the
             // machine being short — and only the figures below tell those apart.
-            // The `_intentionalStop` check matters: our own shutdown path can
-            // end in a SIGTERM.
+            // The `intentionalStop` check matters: our own stop ends in the
+            // client's `SIGKILL` whenever the server is slow to exit.
             //
             // Both kill signals are logged and counted, but only the `SIGKILL`
             // of `isReportableOsKill` is reported and shown: a `SIGTERM` here
             // is somebody else's teardown, not a memory problem of ours.
-            if (!this._intentionalStop && isExternalKillSignal(signal)) {
+            if (!intentionalStop && isExternalKillSignal(signal)) {
                 const limit = readCgroupMemoryLimit()
                 const report = osKillReport(
                     'Julia language server',
@@ -914,13 +1074,13 @@ export class LanguageClientFeature {
             }
             // A Ctrl-C from outside is not reported either, see
             // `isExternalInterrupt`, but it should not vanish without a trace.
-            if (!this._intentionalStop && isExternalInterrupt(code, signal)) {
+            if (!intentionalStop && isExternalInterrupt(code, signal)) {
                 this.outputChannel.appendLine(
                     `The Julia language server was interrupted from outside the extension (${signal === null ? `exit code ${code}` : `signal ${signal}`}): a Ctrl-C reached the console or process group it runs in.`
                 )
                 telemetry.traceEvent('lsinterrupt', { code: String(code ?? 'none'), signal: signal ?? 'none' })
             }
-            const reason = unexpectedServerExit(code, signal, this._intentionalStop, stderrTail.text())
+            const reason = unexpectedServerExit(code, signal, intentionalStop, stderrTail.text())
             if (reason === null) {
                 return
             }
@@ -1175,13 +1335,24 @@ export class LanguageClientFeature {
             },
         }
 
+        // The latest shutdown recorded for a server process of this client, so
+        // that a failed start below can add what the server answered.
+        let lastShutdown: ServerShutdown | undefined
+
         // Create the language client and start the client.
         const languageClient = new ObservedLanguageClient(
             'julia',
             'Julia Language Server',
             serverOptions,
             clientOptions,
-            (serverProcess) => this.observeServerProcess(serverProcess, juliaExecutable)
+            (serverProcess) => this.observeServerProcess(serverProcess, juliaExecutable),
+            (serverProcess, clientState) => {
+                const connectionError = errorHandler.consumeShutdownCause()
+                if (!this.serverShutdowns.has(serverProcess)) {
+                    lastShutdown = describeServerShutdown(this._intentionalStop, clientState, connectionError)
+                    this.serverShutdowns.set(serverProcess, lastShutdown)
+                }
+            }
         )
         languageClient.registerProposedFeatures()
 
@@ -1260,6 +1431,13 @@ export class LanguageClientFeature {
         try {
             await languageClient.start()
         } catch (err) {
+            // A Julia crash in `initialize` answers the request with the error
+            // before the error handler reports it. If the client's kill cuts
+            // that handler short, the answer is all that is left of the crash,
+            // so the report `observeServerProcess` files then carries it.
+            if (lastShutdown?.cause === 'startfailed') {
+                lastShutdown.detail = `the server failed to initialize: ${err instanceof Error ? err.message : String(err)}`
+            }
             telemetry.traceEvent('lsstartfailed')
             this.outputChannel.appendLine('Could not start the Julia language server.')
             this.outputChannel.appendLine(formatErrorForOutput(err))

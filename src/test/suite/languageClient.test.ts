@@ -1,9 +1,13 @@
 import * as assert from 'assert'
-import { CloseAction, ErrorAction, ErrorHandler, LanguageClient } from 'vscode-languageclient/node'
+import { ChildProcess } from 'child_process'
+import { CloseAction, ErrorAction, ErrorHandler, LanguageClient, ShutdownMode, State } from 'vscode-languageclient/node'
 import { ErrorCodes, RequestType, ResponseError } from 'vscode-languageserver-protocol'
 import {
+    describeServerShutdown,
+    isClientShutdownKill,
     isExternalInterrupt,
     isExternalKillSignal,
+    isJuliaErrorHandlerRunning,
     isLlvmOutOfMemory,
     isReportableOsKill,
     ObservedLanguageClient,
@@ -15,10 +19,10 @@ import {
 } from '../../languageClient'
 import { DOCUMENT_STATE_ERROR_NAME } from '../../languageServerErrors'
 
-function makeDelegate(closeActions: CloseAction[]): ErrorHandler {
+function makeDelegate(closeActions: CloseAction[], errorAction: ErrorAction = ErrorAction.Continue): ErrorHandler {
     let i = 0
     return {
-        error: () => ({ action: ErrorAction.Continue }),
+        error: () => ({ action: errorAction }),
         closed: () => ({ action: closeActions[Math.min(i++, closeActions.length - 1)] }),
     }
 }
@@ -73,6 +77,89 @@ suite('RestartTrackingErrorHandler', () => {
         const result = await handler.error(new Error('boom'), undefined, 1)
         assert.strictEqual(result.action, ErrorAction.Continue)
         assert.strictEqual(handler.consumeRestartPending(), false)
+    })
+
+    test('no shutdown cause while the delegate keeps the connection', async () => {
+        const handler = new RestartTrackingErrorHandler(() => makeDelegate([CloseAction.Restart]))
+        await handler.error(new Error('boom'), undefined, 1)
+        assert.strictEqual(handler.consumeShutdownCause(), undefined)
+    })
+
+    test('remembers the connection error the delegate shuts the server down for, once', async () => {
+        const handler = new RestartTrackingErrorHandler(() => makeDelegate([CloseAction.Restart], ErrorAction.Shutdown))
+        const error = new Error('Content-Length value must be a number. Got abc')
+        const result = await handler.error(error, undefined, undefined)
+        assert.strictEqual(result.action, ErrorAction.Shutdown)
+        assert.strictEqual(handler.consumeShutdownCause(), error)
+        assert.strictEqual(handler.consumeShutdownCause(), undefined)
+    })
+})
+
+suite('describeServerShutdown', () => {
+    test('our own stop is intentional, whatever else is going on', () => {
+        const shutdown = describeServerShutdown(true, State.Starting, new Error('write EPIPE'))
+        assert.strictEqual(shutdown.intentional, true)
+    })
+
+    test('a shutdown after a connection error names the error', () => {
+        const shutdown = describeServerShutdown(false, State.Running, new Error('write EPIPE'))
+        assert.strictEqual(shutdown.intentional, false)
+        assert.strictEqual(shutdown.cause, 'connectionerror')
+        assert.match(shutdown.detail, /write EPIPE/)
+    })
+
+    test('a shutdown while the client is starting is a failed start', () => {
+        const shutdown = describeServerShutdown(false, State.Starting, undefined)
+        assert.strictEqual(shutdown.intentional, false)
+        assert.strictEqual(shutdown.cause, 'startfailed')
+    })
+
+    test('any other shutdown by the client is still its own', () => {
+        const shutdown = describeServerShutdown(false, State.Running, undefined)
+        assert.strictEqual(shutdown.intentional, false)
+        assert.strictEqual(shutdown.cause, 'other')
+    })
+})
+
+suite('isClientShutdownKill', () => {
+    const byClient = describeServerShutdown(false, State.Starting, undefined)
+    const byUs = describeServerShutdown(true, State.Running, undefined)
+
+    test('a SIGKILL after the client shut the server down by itself is the kill of the client', () => {
+        assert.strictEqual(isClientShutdownKill('SIGKILL', byClient), true)
+    })
+
+    test('a SIGKILL without any shutdown is still an OS kill', () => {
+        assert.strictEqual(isClientShutdownKill('SIGKILL', undefined), false)
+        assert.strictEqual(isReportableOsKill('SIGKILL'), true)
+    })
+
+    test('a SIGKILL after our own stop is expected rather than a kill by the client', () => {
+        assert.strictEqual(isClientShutdownKill('SIGKILL', byUs), false)
+        assert.strictEqual(unexpectedServerExit(null, 'SIGKILL', byUs.intentional), null)
+    })
+
+    test('the client only ever sends SIGKILL', () => {
+        assert.strictEqual(isClientShutdownKill('SIGTERM', byClient), false)
+        assert.strictEqual(isClientShutdownKill('SIGSEGV', byClient), false)
+        assert.strictEqual(isClientShutdownKill(null, byClient), false)
+    })
+})
+
+suite('isJuliaErrorHandlerRunning', () => {
+    test("recognises the first line of the Julia error handler's output", () => {
+        const tail = [
+            '[ Info: Indexing child process done for .julia/environments/v1.13',
+            '┌ Error: Some Julia code in the VS Code extension crashed',
+            '└ @ Main ~/.vscode-server/extensions/julialang.language-julia-1.249.1/scripts/error_handler.jl:5',
+            '',
+        ].join('\n')
+        assert.strictEqual(isJuliaErrorHandlerRunning(tail), true)
+    })
+
+    test('ordinary server output is not the error handler', () => {
+        assert.strictEqual(isJuliaErrorHandlerRunning(CRASH_TAIL), false)
+        assert.strictEqual(isJuliaErrorHandlerRunning(''), false)
     })
 })
 
@@ -335,6 +422,42 @@ suite('ObservedLanguageClient.sendRequest', () => {
             assert.strictEqual(err.message, 'Document not available: file:///c%3A/x/a.jl.')
             return true
         })
+    })
+
+    test('a shutdown hands over the server process and the client state before it starts', async () => {
+        const serverProcess = { pid: 4711 } as unknown as ChildProcess
+        const seen: unknown[][] = []
+        const shutdownCalls: unknown[][] = []
+        const original = Object.getOwnPropertyDescriptor(LanguageClient.prototype, 'shutdown')
+        Object.defineProperty(LanguageClient.prototype, 'shutdown', {
+            configurable: true,
+            writable: true,
+            value: function (...args: unknown[]) {
+                shutdownCalls.push([seen.length, ...args])
+                return Promise.resolve()
+            },
+        })
+        try {
+            const observed = new ObservedLanguageClient(
+                'julia-test',
+                'Julia Test',
+                { command: 'julia-that-is-never-started' },
+                {},
+                () => {},
+                (process, state) => seen.push([process, state])
+            )
+            await observed.stop(1000)
+            assert.deepStrictEqual(seen, [], 'no server process, nothing to hand over')
+            ;(observed as unknown as { _serverProcess: ChildProcess })._serverProcess = serverProcess
+            await observed.stop(1000)
+            assert.deepStrictEqual(seen, [[serverProcess, observed.state]])
+            assert.deepStrictEqual(shutdownCalls, [
+                [0, ShutdownMode.Stop, 1000],
+                [1, ShutdownMode.Stop, 1000],
+            ])
+        } finally {
+            Object.defineProperty(LanguageClient.prototype, 'shutdown', original)
+        }
     })
 
     test('rethrows any other failure untouched', async () => {
