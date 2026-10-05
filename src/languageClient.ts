@@ -8,6 +8,12 @@ import {
     CancellationToken,
     CloseAction,
     CloseHandlerResult,
+    DidChangeTextDocumentNotification,
+    DidChangeTextDocumentParams,
+    DidCloseTextDocumentNotification,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentNotification,
+    DidOpenTextDocumentParams,
     ErrorHandler,
     ErrorHandlerResult,
     LanguageClient,
@@ -285,6 +291,88 @@ export class PositionValidationGuard {
         next: () => vscode.ProviderResult<T>
     ): vscode.ProviderResult<T> {
         return this.shouldDrop(provider, document, positions) ? undefined : next()
+    }
+}
+
+/**
+ * Keeps a `didClose` or `didChange` from reaching the server ahead of the
+ * `didOpen` for the same document.
+ *
+ * When the client starts, vscode-languageclient's
+ * `DidOpenTextDocumentFeature.register` defers the `didOpen` of every matching
+ * document that has no tab — documents opened by an extension, or whose tab was
+ * closed while the model stays alive — into `_pendingOpenNotifications`. It does
+ * this even without `delayOpenNotifications`, and then none of the listeners
+ * that would discard a deferred open on close are installed. The next
+ * notification or request calls `sendPendingOpenNotifications`, which empties the
+ * map and then sends the deferred opens one at a time, awaiting each write. A
+ * document closed or edited while that loop waits sends its `didClose` or
+ * `didChange` straight away — `sendNotification` only holds back a close whose
+ * open is still in the map, and the map is already empty — so it is written
+ * first, and the server fails with `Received textDocument/didClose for a
+ * document that is not open` (or `didChange`). The deferred `didOpen` follows,
+ * for a document that may no longer exist.
+ *
+ * So a `didClose` or `didChange` is forwarded only if this connection forwarded
+ * the document's `didOpen`, and a `didOpen` for a document VS Code has already
+ * closed is not forwarded at all. Dropping such a `didChange` loses nothing: the
+ * deferred `didOpen` is built from the live document when it is sent, so it
+ * already carries the edit. The opens are recorded in the client's
+ * `sendNotification` middleware, which runs synchronously just before the
+ * connection writes the message, so the record follows the wire order. The
+ * client replays `didOpen` for every document on a restart, so {@link reset}
+ * must be called whenever it starts.
+ *
+ * The server keeps its assertions, so anything else that gets a document's
+ * lifecycle out of order stays loud.
+ */
+export class DocumentSyncGuard {
+    private forwardedOpens = new Set<string>()
+
+    /**
+     * @param report Called once per dropped notification with its method.
+     */
+    constructor(private report: (method: string) => void) {}
+
+    /** Forgets every forwarded open. Call when the client (re)starts. */
+    reset(): void {
+        this.forwardedOpens.clear()
+    }
+
+    /** `didOpen` middleware: drops the open of a document that is already closed. */
+    didOpen(document: vscode.TextDocument, next: (document: vscode.TextDocument) => Promise<void>): Promise<void> {
+        if (document.isClosed) {
+            this.report(DidOpenTextDocumentNotification.method)
+            return Promise.resolve()
+        }
+        return next(document)
+    }
+
+    /**
+     * `sendNotification` middleware: records each `didOpen` as it is written and
+     * drops a `didChange` or `didClose` whose `didOpen` this connection never
+     * wrote.
+     */
+    sendNotification<R>(
+        type: string | MessageSignature,
+        next: (type: string | MessageSignature, params?: R) => Promise<void>,
+        params: R
+    ): Promise<void> {
+        const method = typeof type === 'string' ? type : type.method
+        if (method === DidOpenTextDocumentNotification.method) {
+            this.forwardedOpens.add((params as DidOpenTextDocumentParams).textDocument.uri)
+        } else if (method === DidChangeTextDocumentNotification.method) {
+            if (!this.forwardedOpens.has((params as DidChangeTextDocumentParams).textDocument.uri)) {
+                this.report(method)
+                return Promise.resolve()
+            }
+        } else if (method === DidCloseTextDocumentNotification.method) {
+            if (!this.forwardedOpens.delete((params as DidCloseTextDocumentParams).textDocument.uri)) {
+                this.report(method)
+                return Promise.resolve()
+            }
+        }
+        return next(type, params)
     }
 }
 
@@ -1102,6 +1190,9 @@ export class LanguageClientFeature {
         const positionGuard = new PositionValidationGuard((provider, detail) =>
             telemetry.traceEvent('lsinvalidposition', { provider, detail })
         )
+        const documentSyncGuard = new DocumentSyncGuard((method) =>
+            telemetry.traceEvent('lsunsynceddocument', { method })
+        )
 
         const clientOptions: LanguageClientOptions = {
             documentSelector: selector,
@@ -1133,6 +1224,10 @@ export class LanguageClientFeature {
                 // reports the server also sends would render the same
                 // information a second time in the status bar. Swallow them.
                 handleWorkDoneProgress: () => {},
+                // Never let a didClose or didChange overtake its didOpen (see
+                // DocumentSyncGuard).
+                didOpen: (document, next) => documentSyncGuard.didOpen(document, next),
+                sendNotification: (type, next, params) => documentSyncGuard.sendNotification(type, next, params),
                 // A formatting request that fails is a message for the user, not
                 // an extension fault. See `handleFormattingError`.
                 provideDocumentFormattingEdits: (document, options, token, next) =>
@@ -1188,6 +1283,9 @@ export class LanguageClientFeature {
         languageClient.onDidChangeState((event: StateChangeEvent) => {
             switch (event.newState) {
                 case State.Starting:
+                    // A new connection: the client replays didOpen for every
+                    // document, so nothing forwarded to the old one counts.
+                    documentSyncGuard.reset()
                     this.setState('starting')
                     break
                 case State.Running:
