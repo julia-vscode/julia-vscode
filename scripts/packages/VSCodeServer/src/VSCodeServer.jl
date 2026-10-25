@@ -21,14 +21,6 @@ else
     include("../../../packages-old/v1.5/CodeTracking/src/CodeTracking.jl")
 end
 
-module IJuliaCore
-using ..JSON
-using Printf
-import Base64
-
-include("../../IJuliaCore/src/packagedef.jl")
-end
-
 module JSONRPC
 import ..CancellationTokens
 import ..JSON
@@ -136,8 +128,6 @@ include("./tables/tableviewer.jl")
 include("display.jl")
 include("profiler.jl")
 include("debugger.jl")
-include("notebookdisplay.jl")
-include("serve_notebook.jl")
 
 is_disconnected_exception(err) = false
 is_disconnected_exception(err::InvalidStateException) = err.state === :closed

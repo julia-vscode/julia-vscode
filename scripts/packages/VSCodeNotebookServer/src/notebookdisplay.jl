@@ -24,7 +24,6 @@ for mime in supported_mime_types
             payload = IJuliaCore.limitstringmime(MIME($mime), x)
             JSONRPC.send_notification(conn_endpoint[], "notebook/display", Dict("items" => [Dict{String,Any}("mimetype" => $mime, "data" => payload)]))
         end
-        displayable(d::InlineDisplay, ::MIME{Symbol($mime)}) = true
     end
 end
 

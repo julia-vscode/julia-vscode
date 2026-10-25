@@ -1,5 +1,8 @@
 println(Base.stderr, "Starting notebook kernel server")
 
+# load_vscodeserver.jl loads the package named here along with VSCodeServer. `eval`, because Julia
+# before 1.3 has no `var"…"` syntax for the name, whose `#` hides it from the workspace view.
+Core.eval(Main, :(const $(Symbol("#vscode_extra_package")) = :VSCodeNotebookServer))
 include("../terminalserver/load_vscodeserver.jl")
 
 using InteractiveUtils
@@ -22,8 +25,8 @@ let
     ccall(:jl_exit_on_sigint, Nothing, (Cint,), false)
 
     Base.with_logger(outputchannel_logger) do
-        @info "Handing things off to VSCodeServer.serve_notebook"
+        @info "Handing things off to VSCodeNotebookServer.serve_notebook"
     end
 
-    VSCodeServer.serve_notebook(conn_pipename, debugger_pipename, outputchannel_logger, error_handler=(err,bt) -> global_err_handler(err, bt, telemetry_pipename, "Notebook"))
+    VSCodeNotebookServer.serve_notebook(conn_pipename, debugger_pipename, outputchannel_logger, error_handler=(err,bt) -> global_err_handler(err, bt, telemetry_pipename, "Notebook"))
 end

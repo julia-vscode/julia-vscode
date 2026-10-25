@@ -1,0 +1,12 @@
+name = "VSCodeNotebookServer"
+uuid = "398b3b23-f514-40a3-825a-a049b6910ec3"
+
+[deps]
+Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+VSCodeServer = "9f5989ce-84fe-42d4-91ec-6a7a8d53ed0f"
+
+[compat]
+julia = "1"
