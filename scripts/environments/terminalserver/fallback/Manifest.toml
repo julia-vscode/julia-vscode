@@ -1,8 +1,9 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.14.0-DEV"
-manifest_format = "2.1"
-project_hash = "4387d820b323ef01a8471f800754b84ade59cc74"
+environment_id = "be59f082-e947-412c-9945-4d8360eac765"  # generated
+julia_version = "1.15.0-DEV"
+manifest_format = "2.2"
+project_hash = "66245a1f90196263b6858fe208cbbe3918ef41d2"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -16,14 +17,14 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 version = "1.11.0"
 
     [deps.Artifacts.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 version = "1.11.0"
 
     [deps.Base64.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -39,7 +40,7 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
     [deps.Dates.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
@@ -54,7 +55,7 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 version = "1.11.0"
 
     [deps.FileWatching.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -62,7 +63,7 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 version = "1.11.0"
 
     [deps.InteractiveUtils.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.JuliaSyntaxHighlighting]]
 deps = ["StyledStrings"]
@@ -83,7 +84,7 @@ version = "1.0.0"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "Zlib_jll", "Zstd_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.22.0+0"
+version = "8.23.0+0"
 
     [deps.LibCURL_jll.syntax]
     julia_version = "1.11.0"
@@ -94,7 +95,7 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 version = "1.11.0"
 
     [deps.LibGit2.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.LibGit2_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "LibSSH2_jll", "Libdl", "OpenSSL_jll", "PCRE2_jll", "Zlib_jll"]
@@ -117,14 +118,14 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 version = "1.11.0"
 
     [deps.Libdl.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 version = "1.11.0"
 
     [deps.Logging.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.Markdown]]
 deps = ["Base64", "JuliaSyntaxHighlighting", "StyledStrings"]
@@ -132,7 +133,7 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 version = "1.11.0"
 
     [deps.Markdown.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.Mmap]]
 deps = ["Serialization"]
@@ -140,14 +141,14 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 version = "1.11.0"
 
     [deps.Mmap.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2026.9.25"
+version = "2026.10.20"
 
     [deps.MozillaCACerts_jll.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
@@ -159,7 +160,7 @@ version = "1.3.0"
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
-version = "3.5.8+0"
+version = "3.5.9+0"
 
     [deps.OpenSSL_jll.syntax]
     julia_version = "1.6.0"
@@ -167,13 +168,13 @@ version = "3.5.8+0"
 [[deps.PCRE2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
-version = "10.48.0+0"
+version = "10.49.1+0"
 
     [deps.PCRE2_jll.syntax]
     julia_version = "1.6.0"
 
 [[deps.Pkg]]
-deps = ["ArgTools", "Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "Zstd_jll", "p7zip_jll"]
+deps = ["ArgTools", "Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Mmap", "Printf", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "Zstd_jll", "libpicosat_jll", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 version = "1.14.0"
 weakdeps = ["REPL"]
@@ -190,7 +191,7 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 version = "1.11.0"
 
     [deps.Printf.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.Profile]]
 deps = ["StyledStrings"]
@@ -198,7 +199,7 @@ uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 version = "1.11.0"
 
     [deps.Profile.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.REPL]]
 deps = ["Base64", "Dates", "FileWatching", "InteractiveUtils", "JuliaSyntaxHighlighting", "Markdown", "Sockets", "StyledStrings", "Unicode"]
@@ -206,7 +207,7 @@ uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 version = "1.11.0"
 
     [deps.REPL.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.Random]]
 deps = ["SHA"]
@@ -214,7 +215,7 @@ uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 version = "1.11.0"
 
     [deps.Random.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -228,14 +229,14 @@ uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 version = "1.11.0"
 
     [deps.Serialization.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 version = "1.11.0"
 
     [deps.Sockets.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.StyledStrings]]
 uuid = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
@@ -266,14 +267,23 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 version = "1.11.0"
 
     [deps.UUIDs.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 version = "1.11.0"
 
     [deps.Unicode.syntax]
-    julia_version = "1.14.0-DEV"
+    julia_version = "1.14.0"
+
+[[deps.VSCodeNotebookServer]]
+deps = ["Base64", "Printf", "REPL", "Sockets", "VSCodeServer"]
+path = "../../../packages/VSCodeNotebookServer"
+uuid = "398b3b23-f514-40a3-825a-a049b6910ec3"
+version = "0.0.0"
+
+    [deps.VSCodeNotebookServer.syntax]
+    julia_version = "1.0.0"
 
 [[deps.VSCodeServer]]
 deps = ["Base64", "Dates", "InteractiveUtils", "Logging", "Markdown", "Mmap", "Pkg", "Printf", "Profile", "REPL", "Random", "Sockets", "UUIDs", "Unicode"]
@@ -300,6 +310,14 @@ version = "1.5.7+1"
     [deps.Zstd_jll.syntax]
     julia_version = "1.6.0"
 
+[[deps.libpicosat_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "6b231c3b-13f8-5ced-86ae-8860c7f75d86"
+version = "965.0.3+0"
+
+    [deps.libpicosat_jll.syntax]
+    julia_version = "1.6.0"
+
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
@@ -311,7 +329,7 @@ version = "1.70.0+0"
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
-version = "17.8.2+0"
+version = "17.8.4+0"
 
     [deps.p7zip_jll.syntax]
     julia_version = "1.6.0"

@@ -8,3 +8,4 @@ Pkg.UPDATED_REGISTRY_THIS_SESSION[] = true
 
 Pkg.add("Pkg")
 Pkg.develop(PackageSpec(path="../../../packages/VSCodeServer"),)
+Pkg.develop(PackageSpec(path="../../../packages/VSCodeNotebookServer"),)

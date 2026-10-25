@@ -1,3 +1,4 @@
 [deps]
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+VSCodeNotebookServer = "398b3b23-f514-40a3-825a-a049b6910ec3"
 VSCodeServer = "9f5989ce-84fe-42d4-91ec-6a7a8d53ed0f"

@@ -206,7 +206,7 @@ async function _startREPL(preserveFocus: boolean, showTerminal: boolean = true, 
 
     const juliaIconPath = vscode.Uri.file(path.join(g_context.extensionPath, 'images', 'julia-dots-outline.svg'))
 
-    // remember to change ../../scripts/terminalserver/terminalserver.jl when adding/removing args here:
+    // remember to change `start_terminalserver!` in ../../scripts/packages/VSCodeServer/src/VSCodeServer.jl when adding/removing args here:
     function getArgs() {
         const jlarg2 = [startupPath, pipename, debugPipename, telemetry.getCrashReportingPipename()]
         jlarg2.push(`USE_REVISE=${config.get('useRevise')}`)
