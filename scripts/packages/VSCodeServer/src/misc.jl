@@ -163,8 +163,10 @@ end
 
 function ends_with_semicolon(x)
     lines = split(x, '\n', keepempty=false)
+    # `String`, because from Julia 1.13 on, `REPL.ends_with_semicolon` compiles its tokenizer anew
+    # for a `SubString`.
     return length(lines) > 0 ?
-        REPL.ends_with_semicolon(last(lines)) :
+        REPL.ends_with_semicolon(String(last(lines))) :
         false
 end
 
