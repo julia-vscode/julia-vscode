@@ -18,8 +18,9 @@ function is_evaling()
 end
 
 function run_with_backend(f, args...)
-    put!(EVAL_CHANNEL_IN, (f, args))
-    return unwrap(take!(EVAL_CHANNEL_OUT))
+    # A `BoundCall` has the same type for every `f`, so the channel code is compiled only once.
+    put!(EVAL_CHANNEL_IN, BoundCall(f, args...))
+    return unwrap(take!(EVAL_CHANNEL_OUT)::Wrapper)
 end
 
 function start_eval_backend()
@@ -35,11 +36,11 @@ function eval_backend()
     Base.sigatomic_begin()
     while true
         try
-            f, args = take!(EVAL_CHANNEL_IN)
+            call = take!(EVAL_CHANNEL_IN)::BoundCall
             Base.sigatomic_end()
             IS_BACKEND_WORKING[] = true
             res = try
-                Base.invokelatest(f, args...)
+                Base.invokelatest(call)
             catch err
                 @static if isdefined(Base, :current_exceptions)
                     EvalErrorStack(Base.current_exceptions(current_task()))
@@ -76,7 +77,7 @@ end
         try
             isempty(str) && return
             jmode = get_main_mode()
-            hist = jmode.hist
+            hist = jmode.hist::REPL.REPLHistoryProvider
             mode = REPL.mode_idx(hist, jmode)
 
             !isempty(hist.history) && isequal(mode, hist.history[end].mode) &&
@@ -124,8 +125,8 @@ else
     end
 end
 
-CAN_SET_ANS = Ref{Bool}(true)
-CAN_SET_ERR = Ref{Bool}(true)
+const CAN_SET_ANS = Ref{Bool}(true)
+const CAN_SET_ERR = Ref{Bool}(true)
 
 function set_error_global(errs)
     if CAN_SET_ERR[]
