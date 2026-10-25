@@ -5,11 +5,14 @@ using REPL.LineEdit
 
 const ENABLE_SHELL_INTEGRATION = Ref{Bool}(false)
 
+# `getfield` rather than `.` on `Base.active_repl`, here and in `hideprompt`: the REPL is
+# untyped, and Julia compiles `getproperty` for its type at the first call, while `getfield`
+# needs no compiled method.
 isREPL() = isdefined(Base, :active_repl) &&
            isdefined(Base.active_repl, :interface) &&
-           isdefined(Base.active_repl.interface, :modes) &&
+           isdefined(getfield(Base.active_repl, :interface), :modes) &&
            isdefined(Base.active_repl, :mistate) &&
-           isdefined(Base.active_repl.mistate, :current_mode)
+           isdefined(getfield(Base.active_repl, :mistate), :current_mode)
 
 juliaprompt = "julia> "
 
@@ -25,8 +28,8 @@ function hideprompt(f)
     isREPL() || return f()
 
     repl = Base.active_repl
-    mistate = repl.mistate
-    mode = mistate.current_mode
+    mistate = getfield(repl, :mistate)
+    mode = getfield(mistate, :current_mode)
 
     buf = String(take!(copy(LineEdit.buffer(mistate))))
 
@@ -51,7 +54,7 @@ function hideprompt(f)
         LineEdit.write_prompt(stdout, mode)
     elseif applicable(LineEdit.write_prompt, stdout, mode, true)
         LineEdit.write_prompt(stdout, mode, true)
-    elseif mode isa LineEdit.PrefixHistoryPrompt || :parent_prompt in fieldnames(typeof(mode))
+    elseif mode isa LineEdit.PrefixHistoryPrompt || has_parent_prompt(mode)
         if applicable(LineEdit.write_prompt, stdout, mode.parent_prompt)
             LineEdit.write_prompt(stdout, mode.parent_prompt)
         elseif applicable(LineEdit.write_prompt, stdout, mode.parent_prompt, true)
@@ -71,6 +74,10 @@ function hideprompt(f)
     r
 end
 
+# A function of its own, so that it can be compiled in advance for the type of `mode`, where
+# `fieldnames` is a constant.
+has_parent_prompt(mode) = :parent_prompt in fieldnames(typeof(mode))
+
 si(f) = (args...) -> ENABLE_SHELL_INTEGRATION[] ? f(args...) : ""
 
 function sanitize_shell_integration_string(cmd)
@@ -81,7 +88,8 @@ function sanitize_shell_integration_string(cmd)
             print(outbuffer, "\\\\")
         elseif ichar <= 0x20 || char === ';'
             ichar %= UInt8
-            print(outbuffer, "\\0x", bytes2hex(ichar))
+            # `bytes2hex` takes a single byte only from Julia 1.7 on.
+            print(outbuffer, "\\0x", string(ichar, base = 16, pad = 2))
         else
             print(outbuffer, char)
         end
@@ -135,17 +143,47 @@ function install_vscode_shell_integration(prompt)
         delete!(ENV, "VSCODE_NONCE")
     end
 
-    prefix = as_func(prompt.prompt_prefix)
-    suffix = as_func(prompt.prompt_suffix)
-    prompt.prompt_prefix = () -> string(SHELL.output_end(), SHELL.prompt_start(), prefix())
-    prompt.prompt_suffix = () -> string(suffix(), SHELL.update_cwd(), SHELL.prompt_end())
+    add_shell_integration!(prompt)
+end
 
-    on_done = prompt.on_done
-    prompt.on_done = function (mi, buf, ok)
-        print(stdout, SHELL.update_cmd(String(take!(deepcopy(buf)))), SHELL.output_start())
-        REPL_PROMPT_STATE[] = REPLPromptStates.NoStatus
-        on_done(mi, buf, ok)
-    end
+"""
+    add_shell_integration!(prompt)
+
+Wrap the prompt prefix, the prompt suffix and the `on_done` callback of the REPL prompt `prompt`
+so that they write the shell integration sequences.
+"""
+function add_shell_integration!(prompt)
+    prompt.prompt_prefix = BoundCall(shell_prompt_prefix, as_func(prompt.prompt_prefix))
+    prompt.prompt_suffix = BoundCall(shell_prompt_suffix, as_func(prompt.prompt_suffix))
+    prompt.on_done = BoundCall(shell_on_done, prompt.on_done)
+    return prompt
+end
+
+"""
+    shell_prompt_prefix(prefix)
+
+Return `prefix()` with the shell integration sequences before it.
+"""
+shell_prompt_prefix(@nospecialize(prefix)) = string(SHELL.output_end(), SHELL.prompt_start(), prefix())
+
+"""
+    shell_prompt_suffix(suffix)
+
+Return `suffix()` with the shell integration sequences after it.
+"""
+shell_prompt_suffix(@nospecialize(suffix)) = string(suffix(), SHELL.update_cwd(), SHELL.prompt_end())
+
+"""
+    shell_on_done(on_done, mi, buf, ok)
+
+Report the command in `buf` to VS Code, then call the `on_done` callback of the REPL prompt.
+"""
+function shell_on_done(@nospecialize(on_done), @nospecialize(mi), buf, ok)
+    # `copy` keeps `buf` intact as `deepcopy` does, but without the runtime dispatch in `deepcopy`,
+    # which compiles `deepcopy_internal` on its first call in every session.
+    print(stdout, SHELL.update_cmd(String(take!(copy(buf)))), SHELL.output_start())
+    REPL_PROMPT_STATE[] = REPLPromptStates.NoStatus
+    on_done(mi, buf, ok)
 end
 
 if VERSION > v"1.9-"
@@ -163,7 +201,7 @@ function hook_repl(@nospecialize(repl))
     # Wait for the REPL interface to be set up by `run_frontend` rather than
     # calling `setup_interface` ourselves. Doing it early would ignore user
     # options (e.g. `auto_insert_closing_bracket`) set in other `atreplinit`
-    # hooks or startup.jl. Since `hook_repl` is already called inside `@async`,
+    # hooks or startup.jl. Since `hook_repl` runs in its own task (see `try_hook_repl`),
     # we can simply poll here.
     for i in 1:100  # wait up to 10s
         @_debug "wait for REPL interface: $i" time=round(Int, time()*10)
@@ -184,7 +222,8 @@ function hook_repl(@nospecialize(repl))
         end
         if has_repl_backend()
             @_debug "backend found"  time=round(Int, time()*10)
-            push!(Base.active_repl_backend.ast_transforms, ast -> transform_backend(ast, repl, main_mode))
+            # `Base.active_repl_backend` is untyped, so `.ast_transforms` would compile `getproperty` at runtime.
+            push!(getfield(Base.active_repl_backend, :ast_transforms), ast -> transform_backend(ast, repl, main_mode))
             HAS_REPL_TRANSFORM[] = true
             @_debug "installing shell integration"  time=round(Int, time()*10)
             install_vscode_shell_integration(main_mode)
@@ -204,7 +243,16 @@ function hook_repl(@nospecialize(repl))
 end
 
 function try_hook_repl(@nospecialize(repl))
-    @async try
+    schedule(Task(BoundCall(hook_repl_or_report, repl)))
+end
+
+"""
+    hook_repl_or_report(repl)
+
+Install the VS Code integration into `repl`, or report the error if that fails.
+"""
+function hook_repl_or_report(@nospecialize(repl))
+    try
         hook_repl(repl)
     catch err
         report_internal_error(err, catch_backtrace())

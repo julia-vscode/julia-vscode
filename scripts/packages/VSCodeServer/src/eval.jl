@@ -18,40 +18,48 @@ function is_evaling()
 end
 
 function run_with_backend(f, args...)
-    put!(EVAL_CHANNEL_IN, (f, args))
-    return unwrap(take!(EVAL_CHANNEL_OUT))
+    # A `BoundCall` has the same type for every `f`, so the channel code is compiled only once.
+    put!(EVAL_CHANNEL_IN, BoundCall(f, args...))
+    return unwrap(take!(EVAL_CHANNEL_OUT)::Wrapper)
 end
 
 function start_eval_backend()
-    global EVAL_BACKEND_TASK[] = @async begin
-        Base.sigatomic_begin()
-        while true
-            try
-                f, args = take!(EVAL_CHANNEL_IN)
-                Base.sigatomic_end()
-                IS_BACKEND_WORKING[] = true
-                res = try
-                    Base.invokelatest(f, args...)
-                catch err
-                    @static if isdefined(Base, :current_exceptions)
-                        EvalErrorStack(Base.current_exceptions(current_task()))
-                    elseif isdefined(Base, :catch_stack)
-                        EvalErrorStack(Base.catch_stack())
-                    else
-                        EvalError(err, catch_backtrace())
-                    end
-                end
-                IS_BACKEND_WORKING[] = false
-                Base.sigatomic_begin()
-                put!(EVAL_CHANNEL_OUT, wrap(res))
+    global EVAL_BACKEND_TASK[] = schedule(Task(eval_backend))
+end
+
+"""
+    eval_backend()
+
+Run the functions from `EVAL_CHANNEL_IN` and put their results into `EVAL_CHANNEL_OUT`, without end.
+"""
+function eval_backend()
+    Base.sigatomic_begin()
+    while true
+        try
+            call = take!(EVAL_CHANNEL_IN)::BoundCall
+            Base.sigatomic_end()
+            IS_BACKEND_WORKING[] = true
+            res = try
+                Base.invokelatest(call)
             catch err
-                put!(EVAL_CHANNEL_OUT, wrap(err))
-            finally
-                IS_BACKEND_WORKING[] = false
+                @static if isdefined(Base, :current_exceptions)
+                    EvalErrorStack(Base.current_exceptions(current_task()))
+                elseif isdefined(Base, :catch_stack)
+                    EvalErrorStack(Base.catch_stack())
+                else
+                    EvalError(err, catch_backtrace())
+                end
             end
+            IS_BACKEND_WORKING[] = false
+            Base.sigatomic_begin()
+            put!(EVAL_CHANNEL_OUT, wrap(res))
+        catch err
+            put!(EVAL_CHANNEL_OUT, wrap(err))
+        finally
+            IS_BACKEND_WORKING[] = false
         end
-        Base.sigatomic_end()
     end
+    Base.sigatomic_end()
 end
 
 function repl_interrupt_notification(conn, ::Nothing)
@@ -69,7 +77,7 @@ end
         try
             isempty(str) && return
             jmode = get_main_mode()
-            hist = jmode.hist
+            hist = jmode.hist::REPL.REPLHistoryProvider
             mode = REPL.mode_idx(hist, jmode)
 
             !isempty(hist.history) && isequal(mode, hist.history[end].mode) &&
@@ -117,8 +125,8 @@ else
     end
 end
 
-CAN_SET_ANS = Ref{Bool}(true)
-CAN_SET_ERR = Ref{Bool}(true)
+const CAN_SET_ANS = Ref{Bool}(true)
+const CAN_SET_ERR = Ref{Bool}(true)
 
 function set_error_global(errs)
     if CAN_SET_ERR[]
