@@ -162,3 +162,36 @@ function serve_notebook(pipename, debugger_pipename, outputchannel_logger; error
     end
 
 end
+
+"""
+    log_progress(logger, message)
+
+Log `message` as an info message to `logger`.
+"""
+log_progress(logger, message) = Base.with_logger(() -> @info(message), logger)
+
+"""
+    start_notebook_kernel!(args::Vector{String})
+
+Remove the arguments of `notebook.jl` from the front of `args` and run [`serve_notebook`](@ref).
+
+The VS Code extension passes three arguments: the pipe names for the connection, the debugger
+and crash reporting. This function returns only when the kernel stops.
+"""
+function start_notebook_kernel!(args::Vector{String})
+    outputchannel_logger = Base.CoreLogging.SimpleLogger(Base.stderr)
+
+    log_progress(outputchannel_logger, "Processing command line arguments...")
+
+    kernel_args = splice!(args, 1:3)
+
+    conn_pipename, debugger_pipename, telemetry_pipename = kernel_args[1:3]
+
+    log_progress(outputchannel_logger, "Command line arguments processed")
+
+    ccall(:jl_exit_on_sigint, Nothing, (Cint,), false)
+
+    log_progress(outputchannel_logger, "Handing things off to VSCodeNotebookServer.serve_notebook")
+
+    serve_notebook(conn_pipename, debugger_pipename, outputchannel_logger, error_handler=(err,bt) -> VSCodeServer.global_err_handler(err, bt, telemetry_pipename, "Notebook"))
+end

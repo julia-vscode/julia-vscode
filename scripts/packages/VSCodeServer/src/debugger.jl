@@ -126,7 +126,11 @@ macro run(command)
 end
 
 function start_debug_backend(debug_pipename, @nospecialize(error_handler))
-    @async try
+    schedule(Task(BoundCall(run_debug_backend, debug_pipename, error_handler)))
+end
+
+function run_debug_backend(debug_pipename, @nospecialize(error_handler))
+    try
         server = Sockets.listen(debug_pipename)
 
         while true
