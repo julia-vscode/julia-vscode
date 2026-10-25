@@ -88,7 +88,8 @@ function sanitize_shell_integration_string(cmd)
             print(outbuffer, "\\\\")
         elseif ichar <= 0x20 || char === ';'
             ichar %= UInt8
-            print(outbuffer, "\\0x", bytes2hex(ichar))
+            # `bytes2hex` takes a single byte only from Julia 1.7 on.
+            print(outbuffer, "\\0x", string(ichar, base = 16, pad = 2))
         else
             print(outbuffer, char)
         end
