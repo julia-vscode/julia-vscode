@@ -328,7 +328,8 @@ Remove the arguments of `terminalserver.jl` from the front of `args`, apply them
 The VS Code extension passes nine arguments: the pipe names for the connection, the debugger
 and crash reporting, followed by the settings `USE_REVISE`, `USE_PLOTPANE`, `USE_PROGRESS`,
 `ENABLE_SHELL_INTEGRATION`, `DEBUG_MODE` and `PLOTS_DEFAULT_MIME` as `NAME=value`.
-`USE_REVISE=true` loads Revise into `Main`.
+`USE_REVISE=true` loads Revise into `Main`. If Revise is not installed, VS Code is told so and
+offers to install it. Other errors while loading Revise are logged.
 """
 function start_terminalserver!(args::Vector{String})
     @debug "vscodeserver loaded" time=round(Int, time()*10)
@@ -343,7 +344,13 @@ function start_terminalserver!(args::Vector{String})
                 Core.eval(Main, :(Revise.async_steal_repl_backend()))
             end
         catch err
-            has_revise = false
+            # `using` throws an `ArgumentError` for a package that is not installed. Other errors
+            # are logged rather than rethrown, so that the REPL still connects to VS Code.
+            if err isa ArgumentError
+                has_revise = false
+            else
+                @error "Revise failed to load" exception = (err, catch_backtrace())
+            end
         end
     end
 
