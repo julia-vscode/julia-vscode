@@ -23,35 +23,42 @@ function run_with_backend(f, args...)
 end
 
 function start_eval_backend()
-    global EVAL_BACKEND_TASK[] = @async begin
-        Base.sigatomic_begin()
-        while true
-            try
-                f, args = take!(EVAL_CHANNEL_IN)
-                Base.sigatomic_end()
-                IS_BACKEND_WORKING[] = true
-                res = try
-                    Base.invokelatest(f, args...)
-                catch err
-                    @static if isdefined(Base, :current_exceptions)
-                        EvalErrorStack(Base.current_exceptions(current_task()))
-                    elseif isdefined(Base, :catch_stack)
-                        EvalErrorStack(Base.catch_stack())
-                    else
-                        EvalError(err, catch_backtrace())
-                    end
-                end
-                IS_BACKEND_WORKING[] = false
-                Base.sigatomic_begin()
-                put!(EVAL_CHANNEL_OUT, wrap(res))
+    global EVAL_BACKEND_TASK[] = schedule(Task(eval_backend))
+end
+
+"""
+    eval_backend()
+
+Run the functions from `EVAL_CHANNEL_IN` and put their results into `EVAL_CHANNEL_OUT`, without end.
+"""
+function eval_backend()
+    Base.sigatomic_begin()
+    while true
+        try
+            f, args = take!(EVAL_CHANNEL_IN)
+            Base.sigatomic_end()
+            IS_BACKEND_WORKING[] = true
+            res = try
+                Base.invokelatest(f, args...)
             catch err
-                put!(EVAL_CHANNEL_OUT, wrap(err))
-            finally
-                IS_BACKEND_WORKING[] = false
+                @static if isdefined(Base, :current_exceptions)
+                    EvalErrorStack(Base.current_exceptions(current_task()))
+                elseif isdefined(Base, :catch_stack)
+                    EvalErrorStack(Base.catch_stack())
+                else
+                    EvalError(err, catch_backtrace())
+                end
             end
+            IS_BACKEND_WORKING[] = false
+            Base.sigatomic_begin()
+            put!(EVAL_CHANNEL_OUT, wrap(res))
+        catch err
+            put!(EVAL_CHANNEL_OUT, wrap(err))
+        finally
+            IS_BACKEND_WORKING[] = false
         end
-        Base.sigatomic_end()
     end
+    Base.sigatomic_end()
 end
 
 function repl_interrupt_notification(conn, ::Nothing)
