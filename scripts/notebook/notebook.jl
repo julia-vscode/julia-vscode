@@ -25,5 +25,5 @@ let
         @info "Handing things off to VSCodeServer.serve_notebook"
     end
 
-    VSCodeServer.serve_notebook(conn_pipename, debugger_pipename, outputchannel_logger, error_handler=(err,bt) -> global_err_handler(err, bt, telemetry_pipename, "Notebook"))
+    VSCodeServer.serve_notebook(conn_pipename, debugger_pipename, outputchannel_logger, error_handler=(err,bt) -> VSCodeServer.global_err_handler(err, bt, telemetry_pipename, "Notebook"))
 end
