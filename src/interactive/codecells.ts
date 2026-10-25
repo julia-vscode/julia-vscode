@@ -380,14 +380,21 @@ class CodeCellExecutionFeature extends JuliaCellManager {
             registerCommand('language-julia.moveCellUp', async () => this.moveCell('up')),
             registerCommand('language-julia.moveCellDown', async () => this.moveCell('down')),
             registerCommand('language-julia.selectCell', async () => this.selectCell()),
-            registerCommand('language-julia.executeCell', async () => await this.executeCell()),
+            registerCommand('language-julia.executeCell', async (cell?: JuliaCell) => await this.executeCell(cell)),
             registerCommand('language-julia.executeCellAndMove', async () => await this.executeCellAndMove('down')),
             registerCommand(
                 'language-julia.executeCurrentAndBelowCells',
-                async () => await this.executeCurrentAndBelowCells()
+                async (cell?: JuliaCell, docCells?: JuliaCell[]) =>
+                    await this.executeCurrentAndBelowCells(cell, docCells)
             ),
-            registerCommand('language-julia.executeAboveCells', async () => await this.executeAboveCells()),
-            registerCommand('language-julia.debugCell', async () => await this.debugCell())
+            registerCommand(
+                'language-julia.executeAboveCells',
+                async (cell?: JuliaCell, docCells?: JuliaCell[]) => await this.executeAboveCells(cell, docCells)
+            ),
+            registerCommand(
+                'language-julia.debugCell',
+                async (cell?: JuliaCell, docCells?: JuliaCell[]) => await this.debugCell(cell, docCells)
+            )
         )
 
         this.context.subscriptions.push(
