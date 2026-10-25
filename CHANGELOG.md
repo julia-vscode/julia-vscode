@@ -5,6 +5,9 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+- The REPL starts faster. Julia compiled about 75 methods of the REPL integration at every start, which took about 8 seconds with Julia 1.13. The startup script ran as uncompiled code. The server it starts did not run while VSCodeServer was precompiled, so none of its compiled code was saved. The startup code now lives in VSCodeServer. Precompiling VSCodeServer runs the server against a stand-in for the extension and saves its compiled code ([#4271](https://github.com/julia-vscode/julia-vscode/pull/4271)).
+
 ### Fixed
 - Fix issue where `CodeLens` buttons would execute cells based on the position of the cursor, rather than what button was clicked.
 - The language server no longer crashes on its first request with 32-bit Julia. The JSON-RPC layer kept the ids of incoming requests in a table whose integer type is 32 bits wide on 32-bit Julia, while the ids it reads from a message are always 64-bit integers, so storing the first id failed and the connection was dropped. The language server could not be used on 32-bit Julia at all ([julia-vscode/JSONRPC.jl#127](https://github.com/julia-vscode/JSONRPC.jl/pull/127)).
