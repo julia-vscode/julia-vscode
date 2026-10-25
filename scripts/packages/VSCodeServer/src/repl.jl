@@ -5,11 +5,14 @@ using REPL.LineEdit
 
 const ENABLE_SHELL_INTEGRATION = Ref{Bool}(false)
 
+# `getfield` rather than `.` on `Base.active_repl`, here and in `hideprompt`: the REPL is
+# untyped, and Julia compiles `getproperty` for its type at the first call, while `getfield`
+# needs no compiled method.
 isREPL() = isdefined(Base, :active_repl) &&
            isdefined(Base.active_repl, :interface) &&
-           isdefined(Base.active_repl.interface, :modes) &&
+           isdefined(getfield(Base.active_repl, :interface), :modes) &&
            isdefined(Base.active_repl, :mistate) &&
-           isdefined(Base.active_repl.mistate, :current_mode)
+           isdefined(getfield(Base.active_repl, :mistate), :current_mode)
 
 juliaprompt = "julia> "
 
@@ -25,8 +28,8 @@ function hideprompt(f)
     isREPL() || return f()
 
     repl = Base.active_repl
-    mistate = repl.mistate
-    mode = mistate.current_mode
+    mistate = getfield(repl, :mistate)
+    mode = getfield(mistate, :current_mode)
 
     buf = String(take!(copy(LineEdit.buffer(mistate))))
 
@@ -51,7 +54,7 @@ function hideprompt(f)
         LineEdit.write_prompt(stdout, mode)
     elseif applicable(LineEdit.write_prompt, stdout, mode, true)
         LineEdit.write_prompt(stdout, mode, true)
-    elseif mode isa LineEdit.PrefixHistoryPrompt || :parent_prompt in fieldnames(typeof(mode))
+    elseif mode isa LineEdit.PrefixHistoryPrompt || has_parent_prompt(mode)
         if applicable(LineEdit.write_prompt, stdout, mode.parent_prompt)
             LineEdit.write_prompt(stdout, mode.parent_prompt)
         elseif applicable(LineEdit.write_prompt, stdout, mode.parent_prompt, true)
@@ -70,6 +73,10 @@ function hideprompt(f)
     LineEdit.refresh_multi_line(mistate)
     r
 end
+
+# A function of its own, so that it can be compiled in advance for the type of `mode`, where
+# `fieldnames` is a constant.
+has_parent_prompt(mode) = :parent_prompt in fieldnames(typeof(mode))
 
 si(f) = (args...) -> ENABLE_SHELL_INTEGRATION[] ? f(args...) : ""
 

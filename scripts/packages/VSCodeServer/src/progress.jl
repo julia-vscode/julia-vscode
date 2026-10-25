@@ -40,7 +40,7 @@ Logging.shouldlog(::VSCodeLogger, level, _module, group, id) = true
 Logging.catch_exceptions(::VSCodeLogger) = true
 
 function Logging.min_enabled_level(j::VSCodeLogger)
-    min(Base.invokelatest(Logging.min_enabled_level, get_previous_logger(j)), Logging.LogLevel(-1))
+    min(Base.invokelatest(Logging.min_enabled_level, get_previous_logger(j))::Logging.LogLevel, Logging.LogLevel(-1))
 end
 
 prevent_logger_recursion(l) = l

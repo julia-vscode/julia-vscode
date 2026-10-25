@@ -479,6 +479,19 @@ function precompile_workload()
     precompile(eval_backend, ())
     precompile(start_terminalserver!, (Vector{String},))
 
+    # The first evaluation runs user code in `Main` and shows its result in the REPL, which
+    # the workloads below cannot do.
+    precompile(ReplRunCodeRequestParams, (Dict{String,Any},))
+    precompile(display, (InlineDisplay, Any))
+    # `hideprompt` restores the prompt with these.
+    precompile(has_parent_prompt, (LineEdit.Prompt,))
+    @static if isdefined(Core, :kwcall)
+        precompile(Core.kwcall, (NamedTuple{(:color, :bold),Tuple{Symbol,Bool}}, typeof(printstyled), Base.TTY, String))
+    end
+    @static if VERSION >= v"1.5"
+        precompile(include_string, (typeof(REPL.softscope), Module, String, String))
+    end
+
     # run an actual workload
     in_pipe = Pipe()
     out_pipe = Pipe()
@@ -494,6 +507,17 @@ function precompile_workload()
     md = JSONRPC.MsgDispatcher()
     md[repl_isModuleLoaded_request_type] = repl_isModuleLoaded_request
     dispatch_msg(Ref(e), md, JSONRPC.Request("repl/isModuleLoaded", Dict{String,Any}("mod" => "Base"), 1, nothing), false)
+
+    # After the first evaluation, the extension gets its result and refreshes the workspace view.
+    for x in (1, 1.5, "text", [1.0, 2.0, 3.0], [1.0 2.0; 3.0 4.0], nothing)
+        JSONRPC.send_success_response(e, JSONRPC.Request("repl/runcode", nothing, 1, nothing), safe_render(x))
+        treerender(SubTree("x", wsicon(x), x))
+        can_display(x)
+    end
+    md[repl_getvariables_request_type] = repl_getvariables_request
+    dispatch_msg(Ref(e), md, JSONRPC.Request("repl/getvariables", Dict{String,Any}("modules" => true), 1, nothing), false)
+    clear_lazy()
+
     close(e)
     close(in_pipe.in)
     close(out_pipe.out)
