@@ -5,6 +5,8 @@ All notable changes to the Julia extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Experimental, opt-in `julia.repl.autoReconnect` (Linux only): keeps the integrated Julia REPL process alive across window reloads and browser refreshes and reconnects editor integration to the same process, without tmux. If the original terminal isn't restored (e.g. two browser tabs on the same folder), Julia: Reconnect REPL can connect editor integration without the terminal.
 ### Fixed
 - Fix issue where `CodeLens` buttons would execute cells based on the position of the cursor, rather than what button was clicked.
 - The language server no longer crashes on its first request with 32-bit Julia. The JSON-RPC layer kept the ids of incoming requests in a table whose integer type is 32 bits wide on 32-bit Julia, while the ids it reads from a message are always 64-bit integers, so storing the first id failed and the connection was dropped. The language server could not be used on 32-bit Julia at all ([julia-vscode/JSONRPC.jl#127](https://github.com/julia-vscode/JSONRPC.jl/pull/127)).
