@@ -59,8 +59,23 @@ const nativeSessionKey = 'julia.nativeReplSession'
 let g_nativeSession: NativeReplSession
 let g_nativeReconnect: Promise<void>
 let g_deactivating = false
+let g_nativeHeadless = false
 let g_nativeStatus: vscode.StatusBarItem
 let g_nativePendingServer: net.Server
+
+class NativeTerminalUnavailableError extends Error {
+    constructor() {
+        super(
+            'The original Julia terminal is not available in this window. Run Julia: Reconnect REPL to connect without it, or Stop REPL to discard the saved session.'
+        )
+        this.name = 'NativeTerminalUnavailableError'
+    }
+}
+
+type NativeReconnectOptions = {
+    terminalWaitMs?: number
+    allowHeadless?: boolean
+}
 
 async function updateActiveREPLContext() {
     const active = vscode.window.activeTerminal
@@ -72,15 +87,35 @@ async function updateActiveREPLContext() {
     setContext('julia.isActiveREPL', isREPL)
 }
 
+function clearNativeHeadless() {
+    if (!g_nativeHeadless) {
+        return
+    }
+    g_nativeHeadless = false
+    g_nativeStatus?.dispose()
+    g_nativeStatus = undefined
+}
+
+function showNativeReconnectNeededStatus() {
+    const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
+    g_nativeStatus?.dispose()
+    g_nativeStatus = status
+    status.text = '$(warning) Julia: Reconnect needed'
+    status.tooltip = 'Run Julia: Reconnect REPL to retry, or Stop REPL to discard the saved session.'
+    status.command = 'language-julia.reconnectREPL'
+    status.show()
+    g_context.subscriptions.push(status)
+}
+
 async function saveNativeSession() {
     await g_context.workspaceState.update(nativeSessionKey, g_nativeSession)
 }
 
-async function reconnectNativeREPL() {
+async function reconnectNativeREPL(options?: NativeReconnectOptions) {
     if (g_nativeReconnect) {
         return g_nativeReconnect
     }
-    g_nativeReconnect = restoreNativeREPL()
+    g_nativeReconnect = restoreNativeREPL(options)
     try {
         await g_nativeReconnect
     } finally {
@@ -88,7 +123,9 @@ async function reconnectNativeREPL() {
     }
 }
 
-async function restoreNativeREPL() {
+async function restoreNativeREPL(
+    { terminalWaitMs = 15000, allowHeadless = false }: NativeReconnectOptions = {}
+) {
     const session = g_nativeSession
     if (!session) {
         throw new Error('No persistent Julia session was recorded for this workspace.')
@@ -104,7 +141,7 @@ async function restoreNativeREPL() {
     status.show()
     try {
         setContext('julia.isReconnecting', true)
-        const deadline = Date.now() + 15000
+        const deadline = Date.now() + terminalWaitMs
         while (!g_terminal && Date.now() < deadline) {
             for (const terminal of vscode.window.terminals) {
                 if (session.terminalPid !== undefined && (await terminal.processId) === session.terminalPid) {
@@ -116,10 +153,8 @@ async function restoreNativeREPL() {
                 await new Promise((resolve) => setTimeout(resolve, 100))
             }
         }
-        if (!g_terminal) {
-            throw new Error(
-                'The original Julia terminal is not available. No replacement was started. Use Stop REPL to discard its saved session.'
-            )
+        if (!g_terminal && !allowHeadless) {
+            throw new NativeTerminalUnavailableError()
         }
         await updateActiveREPLContext()
         const pipe = generatePipeName(uuidv4(), 'vsc-jl-repl')
@@ -133,14 +168,44 @@ async function restoreNativeREPL() {
         await nativeReplRequest(session, 'reconnect', { pipe, debugPipe })
         await connected
         await updateActiveREPLContext()
-        status.dispose()
+        if (!g_terminal) {
+            g_nativeHeadless = true
+            status.text = '$(debug-disconnect) Julia: No terminal'
+            status.command = undefined
+            status.tooltip =
+                "Connected to the running Julia process without its terminal. REPL output isn't visible in this window. Stop REPL ends the process."
+            status.show()
+            g_context.subscriptions.push(status)
+        } else {
+            clearNativeHeadless()
+            status.dispose()
+            if (g_nativeStatus === status) {
+                g_nativeStatus = undefined
+            }
+        }
     } catch (err) {
-        status.text = '$(warning) Julia: Reconnect needed'
-        status.tooltip = 'Run Julia: Reconnect REPL to retry, or Stop REPL to discard the saved session.'
-        g_context.subscriptions.push(status)
+        showNativeReconnectNeededStatus()
         throw err
     } finally {
         setContext('julia.isReconnecting', false)
+    }
+}
+
+async function reconnectREPLCommand() {
+    try {
+        await reconnectNativeREPL({ terminalWaitMs: 1000 })
+    } catch (err) {
+        if (!(err instanceof NativeTerminalUnavailableError)) {
+            throw err
+        }
+        const choice = await vscode.window.showWarningMessage(
+            "The original Julia terminal isn't available in this window (it may be open in another browser tab or window). Connect editor integration to the running Julia process without its terminal? Code evaluation, Workspace, plots and the debugger will work, but REPL output and input won't be visible here. Any other window connected to this session will be disconnected.",
+            { modal: true },
+            'Connect Without Terminal'
+        )
+        if (choice === 'Connect Without Terminal') {
+            await reconnectNativeREPL({ terminalWaitMs: 0, allowHeadless: true })
+        }
     }
 }
 
@@ -208,6 +273,7 @@ async function confirmKill() {
 }
 
 async function stopREPL(onDeactivate = false) {
+    clearNativeHeadless()
     if (g_nativeSession) {
         if (onDeactivate) {
             g_deactivating = true
@@ -219,6 +285,7 @@ async function stopREPL(onDeactivate = false) {
         const session = g_nativeSession
         g_nativeSession = undefined
         g_nativeStatus?.dispose()
+        g_nativeStatus = undefined
         await saveNativeSession()
         try {
             await nativeReplRequest(session, 'stop', {}, 3000)
@@ -772,6 +839,9 @@ function startREPLMsgServer(
             if (g_connection === connection) {
                 g_connection = undefined
                 g_onExit.fire(hadError)
+                if (g_nativeHeadless && g_nativeSession && !g_deactivating) {
+                    showNativeReconnectNeededStatus()
+                }
             }
             if (accepted && server.listening) {
                 server.close()
@@ -1354,6 +1424,9 @@ async function executeCodeCopyPaste(text: string, individualLine: boolean) {
 
     await startREPL(true, true)
     if (!g_terminal) {
+        if (g_nativeHeadless) {
+            vscode.window.showWarningMessage('The Julia REPL terminal is not available in this window.')
+        }
         return
     }
 
@@ -1484,6 +1557,14 @@ function signalInterrupt() {
     // were being counted. There is then nothing left to signal.
     const terminal = g_terminal
     if (!terminal) {
+        const juliaPid = g_nativeSession?.juliaPid
+        if (typeof juliaPid === 'number' && Number.isSafeInteger(juliaPid) && juliaPid > 0) {
+            try {
+                process.kill(juliaPid, 'SIGINT')
+            } catch (err) {
+                reportInterruptSignalError(err)
+            }
+        }
         return
     }
 
@@ -1791,6 +1872,21 @@ export function activate(
         onEvent(vscode.window.onDidChangeActiveTerminal, () => {
             void updateActiveREPLContext()
         }),
+        onEvent(vscode.window.onDidOpenTerminal, async (terminal) => {
+            const session = g_nativeSession
+            if (
+                session &&
+                !g_terminal &&
+                session.terminalPid !== undefined &&
+                (await terminal.processId) === session.terminalPid &&
+                g_nativeSession === session &&
+                !g_terminal
+            ) {
+                g_terminal = terminal
+                clearNativeHeadless()
+                await updateActiveREPLContext()
+            }
+        }),
         onEvent(vscode.window.onDidCloseTerminal, (terminal) => {
             if (terminal === g_terminal) {
                 g_terminal = null
@@ -1808,7 +1904,7 @@ export function activate(
         registerCommand('language-julia.startREPL', startREPLCommand),
         registerCommand('language-julia.startREPLWithVersion', startREPLWithVersionCommand),
         registerCommand('language-julia.connectREPL', connectREPL),
-        registerCommand('language-julia.reconnectREPL', reconnectNativeREPL),
+        registerCommand('language-julia.reconnectREPL', reconnectREPLCommand),
         registerCommand('language-julia.stopREPL', stopREPL),
         registerCommand('language-julia.restartREPL', restartREPL),
         registerCommand('language-julia.disconnectREPL', disconnectREPL),

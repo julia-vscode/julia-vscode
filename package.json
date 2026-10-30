@@ -1359,7 +1359,7 @@
                     "type": "boolean",
                     "default": false,
                     "scope": "machine-overridable",
-                    "markdownDescription": "Experimental Linux prototype: preserve the managed Julia REPL and reconnect editor integration after window refresh/reload without tmux. Requires terminal.integrated.enablePersistentSessions and a trusted workspace. Incompatible with persistentSession.enabled and repl.keepAlive. Only reconnects a surviving process; it does not restore state after process exit. Reconnection happens when the Julia extension activates (e.g. in a folder with Project.toml, when a Julia file is opened, or when a Julia command such as Start REPL runs)."
+                    "markdownDescription": "Experimental Linux prototype: preserve the managed Julia REPL and reconnect editor integration after window refresh/reload without tmux. Requires terminal.integrated.enablePersistentSessions and a trusted workspace. Incompatible with persistentSession.enabled and repl.keepAlive. Only reconnects a surviving process; it does not restore state after process exit. Reconnection happens when the Julia extension activates (e.g. in a folder with Project.toml, when a Julia file is opened, or when a Julia command such as Start REPL runs). If the original terminal isn't restored (e.g. two browser tabs on the same folder), Julia: Reconnect REPL can connect editor integration without the terminal."
                 },
                 "julia.repl.keepAlive": {
                     "type": "boolean",
