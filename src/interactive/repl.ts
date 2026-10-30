@@ -41,6 +41,7 @@ import {
     acceptsNativeSession,
     nativeReplRequest,
     removeNativeReplSession,
+    terminateNativeJulia,
 } from './nativeRepl'
 const exec = promisify(child_process.exec)
 
@@ -61,6 +62,7 @@ let g_nativeReconnect: Promise<void>
 let g_deactivating = false
 let g_nativeHeadless = false
 let g_nativeStatus: vscode.StatusBarItem
+let g_nativeHeadlessOutputChannel: vscode.OutputChannel
 let g_nativePendingServer: net.Server
 
 class NativeTerminalUnavailableError extends Error {
@@ -94,6 +96,14 @@ function clearNativeHeadless() {
     g_nativeHeadless = false
     g_nativeStatus?.dispose()
     g_nativeStatus = undefined
+}
+
+function getNativeHeadlessOutputChannel() {
+    if (!g_nativeHeadlessOutputChannel) {
+        g_nativeHeadlessOutputChannel = vscode.window.createOutputChannel('Julia REPL (no terminal)')
+        g_context.subscriptions.push(g_nativeHeadlessOutputChannel)
+    }
+    return g_nativeHeadlessOutputChannel
 }
 
 function showNativeReconnectNeededStatus() {
@@ -165,7 +175,11 @@ async function restoreNativeREPL(
         const connected = startREPLMsgServer(pipe, undefined, session).wait(60000)
         // Observe handshake failures even when the control request fails first.
         connected.catch(() => undefined)
-        await nativeReplRequest(session, 'reconnect', { pipe, debugPipe })
+        await nativeReplRequest(session, 'reconnect', {
+            pipe,
+            debugPipe,
+            headless: allowHeadless && !g_terminal,
+        })
         await connected
         await updateActiveREPLContext()
         if (!g_terminal) {
@@ -173,9 +187,10 @@ async function restoreNativeREPL(
             status.text = '$(debug-disconnect) Julia: No terminal'
             status.command = undefined
             status.tooltip =
-                "Connected to the running Julia process without its terminal. REPL output isn't visible in this window. Stop REPL ends the process."
+                "Connected to the running Julia process without its terminal. Output appears in the 'Julia REPL (no terminal)' output channel; terminal input isn't available here. Stop REPL ends the process."
             status.show()
             g_context.subscriptions.push(status)
+            getNativeHeadlessOutputChannel().show(true)
         } else {
             clearNativeHeadless()
             status.dispose()
@@ -199,7 +214,7 @@ async function reconnectREPLCommand() {
             throw err
         }
         const choice = await vscode.window.showWarningMessage(
-            "The original Julia terminal isn't available in this window (it may be open in another browser tab or window). Connect editor integration to the running Julia process without its terminal? Code evaluation, Workspace, plots and the debugger will work, but REPL output and input won't be visible here. Any other window connected to this session will be disconnected.",
+            "The original Julia terminal isn't available in this window (it may be open in another browser tab or window). Connect editor integration to the running Julia process without its terminal? Code evaluation, Workspace, plots and the debugger will work, but REPL output appears in an output channel; terminal input isn't available here. Any other window connected to this session will be disconnected.",
             { modal: true },
             'Connect Without Terminal'
         )
@@ -290,7 +305,14 @@ async function stopREPL(onDeactivate = false) {
         try {
             await nativeReplRequest(session, 'stop', {}, 3000)
         } catch {
-            // Terminal disposal still handles a dead or unresponsive process.
+            if (
+                !g_terminal &&
+                typeof session.juliaPid === 'number' &&
+                Number.isSafeInteger(session.juliaPid) &&
+                session.juliaPid > 0
+            ) {
+                await terminateNativeJulia(session.juliaPid).catch(() => undefined)
+            }
         }
         await removeNativeReplSession(session)
     }
@@ -779,6 +801,7 @@ function replUnavailableResult(): ReturnResult {
 // }
 
 export const notifyTypeDisplay = new rpc.NotificationType<{ kind: string; data: string }>('display')
+const notifyTypeNativeHeadlessOutput = new rpc.NotificationType<{ text: string }>('repl/headlessoutput')
 const notifyTypeReplAttachDebgger = new rpc.NotificationType<{ pipename: string }>('debugger/attach')
 const notifyTypeReplStartEval = new rpc.NotificationType<void>('repl/starteval')
 export const notifyTypeReplFinishEval = new rpc.NotificationType<void>('repl/finisheval')
@@ -1377,9 +1400,9 @@ export async function evaluate(
             column: range.start.character,
             code: text,
             mod: module,
-            showCodeInREPL: codeInREPL,
-            showResultInREPL: resultType === 'REPL' || resultType === 'both',
-            showErrorInREPL: resultType.indexOf('error') > -1,
+            showCodeInREPL: !g_nativeHeadless && codeInREPL,
+            showResultInREPL: !g_nativeHeadless && (resultType === 'REPL' || resultType === 'both'),
+            showErrorInREPL: !g_nativeHeadless && resultType.indexOf('error') > -1,
             softscope: true,
         }
         const evalPromise = g_evalQueue.push(opts)
@@ -1486,9 +1509,9 @@ export async function executeInREPL(
         column,
         code,
         mod,
-        showCodeInREPL,
-        showResultInREPL,
-        showErrorInREPL,
+        showCodeInREPL: g_nativeHeadless ? false : showCodeInREPL,
+        showResultInREPL: g_nativeHeadless ? false : showResultInREPL,
+        showErrorInREPL: g_nativeHeadless ? false : showErrorInREPL,
         softscope,
     })
 }
@@ -1771,6 +1794,9 @@ export function activate(
         onInit(
             wrapCrashReporting(({ connection, juliaExecutable }) => {
                 connection.onNotification(notifyTypeDisplay, display)
+                connection.onNotification(notifyTypeNativeHeadlessOutput, ({ text }) =>
+                    getNativeHeadlessOutputChannel().append(text)
+                )
                 connection.onNotification(notifyTypeReplAttachDebgger, debuggerAttach)
                 connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
                 connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
@@ -1883,7 +1909,11 @@ export function activate(
                 !g_terminal
             ) {
                 g_terminal = terminal
-                clearNativeHeadless()
+                if (g_nativeHeadless) {
+                    void reconnectNativeREPL().catch((err) => vscode.window.showWarningMessage(String(err)))
+                } else {
+                    clearNativeHeadless()
+                }
                 await updateActiveREPLContext()
             }
         }),

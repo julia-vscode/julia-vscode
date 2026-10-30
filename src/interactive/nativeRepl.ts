@@ -59,7 +59,7 @@ export function acceptsNativeSession(
 export function nativeReplRequest(
     session: NativeReplSession,
     operation: 'reconnect' | 'stop' | 'interrupt',
-    endpoints: { pipe?: string; debugPipe?: string } = {},
+    endpoints: { pipe?: string; debugPipe?: string; headless?: boolean } = {},
     timeout = 60000
 ): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -113,4 +113,69 @@ export function nativeReplRequest(
         )
         socket.on('close', () => finish(new Error('Julia disconnected before acknowledging reconnection.')))
     })
+}
+
+async function hasNativeReplProcessMarker(pid: number) {
+    try {
+        const cmdline = await fs.readFile(`/proc/${pid}/cmdline`)
+        return cmdline.toString().split('\0').some((argument) => argument.includes('terminalserver.jl'))
+    } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code
+        if (code === 'ENOENT' || code === 'ESRCH') {
+            return false
+        }
+        throw err
+    }
+}
+
+function isProcessGone(err: unknown) {
+    return (err as NodeJS.ErrnoException).code === 'ESRCH'
+}
+
+export async function terminateNativeJulia(pid: number): Promise<void> {
+    if (!Number.isSafeInteger(pid) || pid <= 0 || !(await hasNativeReplProcessMarker(pid))) {
+        return
+    }
+
+    try {
+        process.kill(pid, 'SIGTERM')
+    } catch (err) {
+        if (isProcessGone(err)) {
+            return
+        }
+        throw err
+    }
+
+    const deadline = Date.now() + 3000
+    while (Date.now() < deadline) {
+        try {
+            process.kill(pid, 0)
+        } catch (err) {
+            if (isProcessGone(err)) {
+                return
+            }
+            throw err
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+
+    if (!(await hasNativeReplProcessMarker(pid))) {
+        return
+    }
+    try {
+        process.kill(pid, 0)
+    } catch (err) {
+        if (isProcessGone(err)) {
+            return
+        }
+        throw err
+    }
+    try {
+        process.kill(pid, 'SIGKILL')
+    } catch (err) {
+        if (isProcessGone(err)) {
+            return
+        }
+        throw err
+    }
 }

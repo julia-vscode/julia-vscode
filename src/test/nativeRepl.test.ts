@@ -11,6 +11,7 @@ import {
     acceptsNativeSession,
     nativeReplRequest,
     NativeReplSession,
+    terminateNativeJulia,
 } from '../interactive/nativeRepl'
 
 test('session identity requires the nonce, generation, and original Julia PID', async () => {
@@ -52,6 +53,42 @@ test('control protocol rejects failure, malformed responses and timeouts', async
         await fs.rmdir(session.directory)
     }
 })
+
+test(
+    'terminateNativeJulia signals only processes marked as terminalserver',
+    { timeout: 10000 },
+    async () => {
+        const marked = spawn(process.execPath, ['-e', 'setInterval(() => {}, 60000)', 'terminalserver.jl'], {
+            stdio: 'ignore',
+        })
+        await once(marked, 'spawn')
+        const markedExited = once(marked, 'exit')
+        try {
+            assert.ok(marked.pid)
+            await terminateNativeJulia(marked.pid)
+            const [, signal] = await markedExited
+            assert.equal(signal, 'SIGTERM')
+        } finally {
+            if (marked.exitCode === null) {
+                marked.kill('SIGKILL')
+            }
+            await markedExited
+        }
+
+        const unmarked = spawn(process.execPath, ['-e', 'setInterval(() => {}, 60000)'], { stdio: 'ignore' })
+        await once(unmarked, 'spawn')
+        const unmarkedExited = once(unmarked, 'exit')
+        try {
+            assert.ok(unmarked.pid)
+            await terminateNativeJulia(unmarked.pid)
+            assert.equal(unmarked.exitCode, null)
+            assert.equal(unmarked.signalCode, null)
+        } finally {
+            unmarked.kill('SIGTERM')
+            await unmarkedExited
+        }
+    }
+)
 
 test(
     'real Julia survives authenticated background reconnects, including an in-flight calculation',
@@ -232,6 +269,61 @@ sys.exit(os.waitstatus_to_exitcode(status))`
             await controlInterrupted
             assert.ok(performance.now() - interruptTime < 5000, 'control interrupt must not wait for sleep to finish')
             assert.match((await code(thirdConnection, 'sum(native_marker)')).all, /51/)
+            session.generation++
+            const headless = await listener(session)
+            await nativeReplRequest(session, 'reconnect', { ...headless, headless: true })
+            const headlessConnection = await headless.hello
+            let headlessOutput = ''
+            headlessConnection.onNotification(
+                new rpc.NotificationType<{ text: string }>('repl/headlessoutput'),
+                ({ text }) => {
+                    headlessOutput += text
+                }
+            )
+            const outputStarted = performance.now()
+            let outputTimer: NodeJS.Timeout | undefined
+            const outputRequest = code(
+                headlessConnection,
+                'print(repeat("x", 1_000_001)); println("\\nHEADLESS-LAST-LINE")'
+            )
+            outputRequest.catch(() => undefined)
+            try {
+                const outputTimeout = new Promise<never>((_, reject) => {
+                    outputTimer = setTimeout(
+                        () => reject(new Error(`Headless output evaluation timed out after ${headlessOutput.length} chars.`)),
+                        15000
+                    )
+                })
+                await Promise.race([outputRequest, outputTimeout])
+                assert.ok(performance.now() - outputStarted < 15000)
+            } finally {
+                if (outputTimer) {
+                    clearTimeout(outputTimer)
+                }
+            }
+            const outputDeadline = Date.now() + 10000
+            while (
+                (headlessOutput.length < 1_000_000 || !headlessOutput.includes('HEADLESS-LAST-LINE')) &&
+                Date.now() < outputDeadline
+            ) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+            }
+            assert.ok(
+                headlessOutput.length >= 1_000_000,
+                `Expected at least 1,000,000 output chars, received ${headlessOutput.length}.`
+            )
+            assert.match(headlessOutput, /HEADLESS-LAST-LINE/)
+            await code(headlessConnection, '@info "headless-log"')
+            const logDeadline = Date.now() + 5000
+            while (!headlessOutput.includes('headless-log') && Date.now() < logDeadline) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+            }
+            assert.match(headlessOutput, /headless-log/)
+            session.generation++
+            const restored = await listener(session)
+            await nativeReplRequest(session, 'reconnect', { ...restored, headless: false })
+            const restoredConnection = await restored.hello
+            assert.match((await code(restoredConnection, 'stdout isa Base.TTY')).all, /true/)
             await nativeReplRequest(session, 'stop')
             assert.equal((await exited)[0], 0)
         } catch (err) {

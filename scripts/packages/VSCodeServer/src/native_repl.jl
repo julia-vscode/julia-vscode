@@ -1,3 +1,138 @@
+const NATIVE_HEADLESS_STATE = Ref{Any}(nothing)
+const NATIVE_HEADLESS_OUTPUT_CHUNK_SIZE = 64 * 1024
+
+function drain_native_headless_output(rd)
+    try
+        while true
+            data = try
+                readavailable(rd)
+            catch
+                break
+            end
+            if isempty(data)
+                done = try
+                    eof(rd)
+                catch
+                    true
+                end
+                done && break
+                yield()
+                continue
+            end
+            for first in 1:NATIVE_HEADLESS_OUTPUT_CHUNK_SIZE:length(data)
+                last = min(first + NATIVE_HEADLESS_OUTPUT_CHUNK_SIZE - 1, length(data))
+                try
+                    endpoint = conn_endpoint[]
+                    endpoint === nothing && continue
+                    JSONRPC.send(
+                        endpoint,
+                        repl_headless_output_notification_type,
+                        (; text=String(data[first:last]))
+                    )
+                    JSONRPC.flush(endpoint)
+                catch
+                end
+            end
+        end
+    finally
+        try
+            close(rd)
+        catch
+        end
+    end
+    return nothing
+end
+
+function enter_headless!()
+    NATIVE_HEADLESS_STATE[] === nothing || return
+
+    original_stdout = Base.stdout
+    original_stderr = Base.stderr
+    stdout_pipe = Base.redirect_stdout()
+    stderr_pipe = try
+        Base.redirect_stderr()
+    catch
+        Base.redirect_stdout(original_stdout)
+        close(stdout_pipe.in)
+        rethrow()
+    end
+
+    terminal = nothing
+    terminal_stdout = nothing
+    terminal_stderr = nothing
+    if isdefined(Base, :active_repl)
+        active_repl = try
+            getfield(Base, :active_repl)
+        catch
+            nothing
+        end
+        candidate = active_repl === nothing ? nothing : try
+            getproperty(active_repl, :t)
+        catch
+            nothing
+        end
+        if candidate isa REPL.Terminals.TTYTerminal &&
+           Base.ismutabletype(typeof(candidate)) &&
+           :out_stream in fieldnames(typeof(candidate)) &&
+           :err_stream in fieldnames(typeof(candidate))
+            terminal_stdout = candidate.out_stream
+            terminal_stderr = candidate.err_stream
+            try
+                setproperty!(candidate, :out_stream, stdout_pipe.in)
+                setproperty!(candidate, :err_stream, stderr_pipe.in)
+                terminal = candidate
+            catch
+                try
+                    setproperty!(candidate, :out_stream, terminal_stdout)
+                    setproperty!(candidate, :err_stream, terminal_stderr)
+                catch
+                end
+            end
+        end
+    end
+
+    NATIVE_HEADLESS_STATE[] = (;
+        original_stdout,
+        original_stderr,
+        stdout_pipe,
+        stderr_pipe,
+        terminal,
+        terminal_stdout,
+        terminal_stderr,
+    )
+    @async drain_native_headless_output(stdout_pipe.out)
+    @async drain_native_headless_output(stderr_pipe.out)
+    return nothing
+end
+
+function exit_headless!()
+    state = NATIVE_HEADLESS_STATE[]
+    state === nothing && return
+
+    try
+        Base.redirect_stdout(state.original_stdout)
+        Base.redirect_stderr(state.original_stderr)
+    finally
+        if state.terminal !== nothing
+            try
+                setproperty!(state.terminal, :out_stream, state.terminal_stdout)
+                setproperty!(state.terminal, :err_stream, state.terminal_stderr)
+            catch
+            end
+        end
+        try
+            isopen(state.stdout_pipe.in) && close(state.stdout_pipe.in)
+        catch
+        end
+        try
+            isopen(state.stderr_pipe.in) && close(state.stderr_pipe.in)
+        catch
+        end
+        NATIVE_HEADLESS_STATE[] = nothing
+    end
+    return nothing
+end
+
 function start_native_repl(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing)
     control_pipe = pop!(ENV, "JULIA_VSCODE_RECONNECT_PIPE")
     session_id = pop!(ENV, "JULIA_VSCODE_SESSION_ID")
@@ -67,6 +202,11 @@ function start_native_repl(conn_pipename, debug_pipename; is_dev=false, error_ha
             if old_endpoint !== nothing
                 close(old_endpoint)
                 isopen(old_endpoint.pipe_in) && close(old_endpoint.pipe_in)
+            end
+            if get(request, "headless", false) === true
+                enter_headless!()
+            else
+                exit_headless!()
             end
             connect_session(pipe, debug_pipe)
             write(socket, "{\"ok\":true}\n")
