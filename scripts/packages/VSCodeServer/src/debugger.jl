@@ -125,11 +125,18 @@ macro run(command)
     end
 end
 
-function start_debug_backend(debug_pipename, @nospecialize(error_handler))
-    @async try
-        server = Sockets.listen(debug_pipename)
+const NATIVE_DEBUG_SERVER = Ref{Any}(nothing)
 
-        while true
+function start_debug_backend(debug_pipename, @nospecialize(error_handler); persistent=false)
+    if persistent && NATIVE_DEBUG_SERVER[] !== nothing
+        close(NATIVE_DEBUG_SERVER[])
+    end
+    server = Sockets.listen(debug_pipename)
+    if persistent
+        NATIVE_DEBUG_SERVER[] = server
+    end
+    @async try
+        while isopen(server)
             conn = Sockets.accept(server)
 
             debug_session = DebugAdapter.DebugSession(conn)
@@ -145,7 +152,9 @@ function start_debug_backend(debug_pipename, @nospecialize(error_handler))
             end
         end
     catch err
-        error_handler(err, Base.catch_backtrace())
+        if isopen(server) && error_handler !== nothing
+            error_handler(err, Base.catch_backtrace())
+        end
     end
 end
 

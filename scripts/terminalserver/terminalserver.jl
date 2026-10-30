@@ -42,7 +42,8 @@ let
 
     @debug "settings done" time=round(Int, time()*10)
 
-    VSCodeServer.serve(
+    serve = haskey(ENV, "JULIA_VSCODE_RECONNECT_PIPE") ? VSCodeServer.start_native_repl : VSCodeServer.serve
+    serve(
         conn_pipename,
         debug_pipename;
         is_dev="DEBUG_MODE=true" in args,

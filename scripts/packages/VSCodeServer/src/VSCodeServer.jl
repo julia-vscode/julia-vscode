@@ -179,8 +179,9 @@ function dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
     end
 end
 
-function handle_serve_error(err, bt, error_handler)
+function handle_serve_error(err, bt, error_handler; native=false)
     if is_disconnected_exception(err)
+        native && return
         println(
             stderr,
             "\n\n\x1b[30;41m * \x1b[0m Lost connection to the editor. You can use the 'Julia: Connect External REPL' command to reconnect. \x1b[30;41m * \x1b[0m\n\n"
@@ -198,7 +199,7 @@ function handle_serve_error(err, bt, error_handler)
     end
 end
 
-function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing)
+function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothing, native_session=nothing)
     IS_DEV[] = is_dev
     ERROR_HANDLER[] = error_handler
     @_debug "start serve" time=round(Int, time()*10)
@@ -216,6 +217,7 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
 
     @_debug "eval backend" time=round(Int, time()*10)
     conn_endpoint[] = JSONRPC.JSONRPCEndpoint(conn, conn)
+    session_endpoint = Ref(conn_endpoint[])
     if EVAL_BACKEND_TASK[] === nothing
         start_eval_backend()
     end
@@ -224,10 +226,11 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
 
     @_debug "debug backend" time=round(Int, time()*10)
     DEBUG_PIPENAME[] = debug_pipename
-    start_debug_backend(debug_pipename, error_handler)
+    start_debug_backend(debug_pipename, error_handler; persistent=native_session !== nothing)
 
     @_debug "send connected notif" time=round(Int, time()*10)
-    JSONRPC.send_notification(conn_endpoint[], "connected", nothing)
+    hello = native_session === nothing ? nothing : merge(native_session, (; isEvaluating=is_evaling()))
+    JSONRPC.send_notification(session_endpoint[], "connected", hello)
     @_debug "connected notif sent" time=round(Int, time()*10)
 
     @async try
@@ -257,30 +260,32 @@ function serve(conn_pipename, debug_pipename; is_dev=false, error_handler=nothin
         send_queued_notifications!()
 
         @_debug "entering message loop" time=round(Int, time()*10)
-        @sync while conn_endpoint[] isa JSONRPC.JSONRPCEndpoint && isopen(conn)
-            msg = JSONRPC.get_next_message(conn_endpoint[])
+        @sync while isopen(conn)
+            msg = JSONRPC.get_next_message(session_endpoint[])
             @_debug "message: $(msg.method)" time=round(Int, time()*10)
 
             if msg.method == repl_runcode_request_type.method
                 @async try
-                    dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
+                    dispatch_msg(session_endpoint, msg_dispatcher, msg, is_dev)
                 catch err
-                    handle_serve_error(err, catch_backtrace(), error_handler)
+                    handle_serve_error(err, catch_backtrace(), error_handler; native=native_session !== nothing)
                 end
             else
-                dispatch_msg(conn_endpoint, msg_dispatcher, msg, is_dev)
+                dispatch_msg(session_endpoint, msg_dispatcher, msg, is_dev)
             end
             yield()
             @_debug "message: $(msg.method) done" time=round(Int, time()*10)
         end
     catch err
-        handle_serve_error(err, catch_backtrace(), error_handler)
+        handle_serve_error(err, catch_backtrace(), error_handler; native=native_session !== nothing)
     finally
         @_debug "JSONRPC dispatcher task finished"
     end
     yield()
     return
 end
+
+include("native_repl.jl")
 
 function _precompile_()
     ccall(:jl_generating_output, Cint, ()) == 1 || return nothing
