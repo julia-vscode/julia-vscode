@@ -4,6 +4,110 @@ import * as net from 'net'
 import { tmpdir } from 'os'
 import * as path from 'path'
 
+const terminalEscapeCarryLimit = 4096
+
+function stripTerminalEscapesChunk(text: string) {
+    const parts: string[] = []
+    let index = 0
+    let segmentStart = 0
+    const incomplete = (start: number) => ({
+        text: parts.join(''),
+        carry: text.slice(start),
+    })
+
+    while (index < text.length) {
+        const character = text[index]
+        if (character !== '\x1b' && character !== '\r') {
+            index++
+            continue
+        }
+
+        parts.push(text.slice(segmentStart, index))
+        if (character === '\r') {
+            if (index + 1 === text.length) {
+                return incomplete(index)
+            }
+            if (text[index + 1] === '\n') {
+                parts.push('\r\n')
+                index += 2
+            } else {
+                index++
+            }
+            segmentStart = index
+            continue
+        }
+
+        if (index + 1 === text.length) {
+            return incomplete(index)
+        }
+        const introducer = text[index + 1]
+        if (introducer === '[') {
+            let end = index + 2
+            while (end < text.length) {
+                const code = text.charCodeAt(end)
+                if (code >= 0x40 && code <= 0x7e) {
+                    break
+                }
+                end++
+            }
+            if (end === text.length) {
+                return incomplete(index)
+            }
+            index = end + 1
+            segmentStart = index
+            continue
+        }
+        if (introducer === ']') {
+            let end = index + 2
+            let terminated = false
+            while (end < text.length) {
+                if (text.charCodeAt(end) === 0x07) {
+                    end++
+                    terminated = true
+                    break
+                }
+                if (text.charCodeAt(end) === 0x1b && text.charCodeAt(end + 1) === 0x5c) {
+                    end += 2
+                    terminated = true
+                    break
+                }
+                end++
+            }
+            if (!terminated) {
+                return incomplete(index)
+            }
+            index = end
+            segmentStart = index
+            continue
+        }
+
+        index += introducer === '\n' || introducer === '\t' ? 1 : 2
+        segmentStart = index
+    }
+
+    parts.push(text.slice(segmentStart))
+    return { text: parts.join(''), carry: '' }
+}
+
+export function stripTerminalEscapes(text: string): string {
+    const result = stripTerminalEscapesChunk(text)
+    return result.text + (result.carry.startsWith('\x1b') ? result.carry : '')
+}
+
+export class TerminalEscapeStripper {
+    private carry = ''
+
+    push(text: string): string {
+        const result = stripTerminalEscapesChunk(this.carry + text)
+        this.carry = ''
+        if (result.carry.length > terminalEscapeCarryLimit) {
+            return result.text + result.carry
+        }
+        this.carry = result.carry
+        return result.text
+    }
+}
+
 export interface NativeReplSession {
     id: string
     token: string

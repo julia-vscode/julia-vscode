@@ -12,8 +12,33 @@ import {
     nativeReplRequest,
     NativeReplSession,
     NativeStaleGenerationError,
+    stripTerminalEscapes,
+    TerminalEscapeStripper,
     terminateNativeJulia,
 } from '../interactive/nativeRepl'
+
+test('strips terminal escape sequences while preserving text', () => {
+    assert.equal(stripTerminalEscapes('\x1b[31mJulia\x1b[0m'), 'Julia')
+    assert.equal(stripTerminalEscapes('prompt \x1b]633;A\u0007output'), 'prompt output')
+    assert.equal(stripTerminalEscapes('prompt \x1b]633;A\x1b\\output'), 'prompt output')
+    assert.equal(stripTerminalEscapes('é界€\n\ttext'), 'é界€\n\ttext')
+    assert.equal(stripTerminalEscapes('one\rtwo\r\nthree'), 'onetwo\r\nthree')
+    assert.equal(stripTerminalEscapes('x\x1b7y'), 'xy')
+})
+
+test('strips terminal escape sequences split across notifications', () => {
+    const stripper = new TerminalEscapeStripper()
+    assert.equal(stripper.push('red \x1b[3'), 'red ')
+    assert.equal(stripper.push('1mtext\x1b[0m'), 'text')
+    assert.equal(stripper.push('prompt \x1b]633;C;'), 'prompt ')
+    assert.equal(stripper.push('x=1\x07output'), 'output')
+})
+
+test('flushes overlong incomplete terminal escapes as text', () => {
+    const stripper = new TerminalEscapeStripper()
+    const incompleteSequence = `\x1b]${'x'.repeat(4096)}`
+    assert.equal(stripper.push(incompleteSequence), incompleteSequence)
+})
 
 test('session identity requires the nonce, generation, and original Julia PID', async () => {
     const session = await createNativeReplSession()

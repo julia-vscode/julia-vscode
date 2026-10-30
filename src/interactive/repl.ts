@@ -38,6 +38,7 @@ import { Uri } from 'vscode'
 import {
     NativeReplSession,
     NativeStaleGenerationError,
+    TerminalEscapeStripper,
     createNativeReplSession,
     acceptsNativeSession,
     nativeReplRequest,
@@ -1806,10 +1807,14 @@ export function activate(
         // listeners
         onInit(
             wrapCrashReporting(({ connection, juliaExecutable }) => {
+                const terminalEscapeStripper = new TerminalEscapeStripper()
                 connection.onNotification(notifyTypeDisplay, display)
-                connection.onNotification(notifyTypeNativeHeadlessOutput, ({ text }) =>
-                    getNativeHeadlessOutputChannel().append(text)
-                )
+                connection.onNotification(notifyTypeNativeHeadlessOutput, ({ text }) => {
+                    const strippedText = terminalEscapeStripper.push(text)
+                    if (strippedText) {
+                        getNativeHeadlessOutputChannel().append(strippedText)
+                    }
+                })
                 connection.onNotification(notifyTypeReplAttachDebgger, debuggerAttach)
                 connection.onNotification(notifyTypeReplStartEval, () => g_onStartEval.fire(null))
                 connection.onNotification(notifyTypeReplFinishEval, () => g_onFinishEval.fire(null))
