@@ -137,9 +137,12 @@ async function reconnectNativeREPL(options?: NativeReconnectOptions) {
     }
 }
 
-async function restoreNativeREPL(
-    { terminalWaitMs = 15000, allowHeadless = false, takeOver = false, restoreTerminal = false }: NativeReconnectOptions = {}
-) {
+async function restoreNativeREPL({
+    terminalWaitMs = 15000,
+    allowHeadless = false,
+    takeOver = false,
+    restoreTerminal = false,
+}: NativeReconnectOptions = {}) {
     const session = g_nativeSession
     if (!session) {
         throw new Error('No persistent Julia session was recorded for this workspace.')

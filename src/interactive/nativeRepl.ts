@@ -238,7 +238,10 @@ export function nativeReplRequest(
 async function hasNativeReplProcessMarker(pid: number) {
     try {
         const cmdline = await fs.readFile(`/proc/${pid}/cmdline`)
-        return cmdline.toString().split('\0').some((argument) => argument.includes('terminalserver.jl'))
+        return cmdline
+            .toString()
+            .split('\0')
+            .some((argument) => argument.includes('terminalserver.jl'))
     } catch (err) {
         const code = (err as NodeJS.ErrnoException).code
         if (code === 'ENOENT' || code === 'ESRCH') {

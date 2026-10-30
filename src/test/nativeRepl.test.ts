@@ -80,41 +80,37 @@ test('control protocol rejects failure, malformed responses and timeouts', async
     }
 })
 
-test(
-    'terminateNativeJulia signals only processes marked as terminalserver',
-    { timeout: 10000 },
-    async () => {
-        const marked = spawn(process.execPath, ['-e', 'setInterval(() => {}, 60000)', 'terminalserver.jl'], {
-            stdio: 'ignore',
-        })
-        await once(marked, 'spawn')
-        const markedExited = once(marked, 'exit')
-        try {
-            assert.ok(marked.pid)
-            await terminateNativeJulia(marked.pid)
-            const [, signal] = await markedExited
-            assert.equal(signal, 'SIGTERM')
-        } finally {
-            if (marked.exitCode === null) {
-                marked.kill('SIGKILL')
-            }
-            await markedExited
+test('terminateNativeJulia signals only processes marked as terminalserver', { timeout: 10000 }, async () => {
+    const marked = spawn(process.execPath, ['-e', 'setInterval(() => {}, 60000)', 'terminalserver.jl'], {
+        stdio: 'ignore',
+    })
+    await once(marked, 'spawn')
+    const markedExited = once(marked, 'exit')
+    try {
+        assert.ok(marked.pid)
+        await terminateNativeJulia(marked.pid)
+        const [, signal] = await markedExited
+        assert.equal(signal, 'SIGTERM')
+    } finally {
+        if (marked.exitCode === null) {
+            marked.kill('SIGKILL')
         }
-
-        const unmarked = spawn(process.execPath, ['-e', 'setInterval(() => {}, 60000)'], { stdio: 'ignore' })
-        await once(unmarked, 'spawn')
-        const unmarkedExited = once(unmarked, 'exit')
-        try {
-            assert.ok(unmarked.pid)
-            await terminateNativeJulia(unmarked.pid)
-            assert.equal(unmarked.exitCode, null)
-            assert.equal(unmarked.signalCode, null)
-        } finally {
-            unmarked.kill('SIGTERM')
-            await unmarkedExited
-        }
+        await markedExited
     }
-)
+
+    const unmarked = spawn(process.execPath, ['-e', 'setInterval(() => {}, 60000)'], { stdio: 'ignore' })
+    await once(unmarked, 'spawn')
+    const unmarkedExited = once(unmarked, 'exit')
+    try {
+        assert.ok(unmarked.pid)
+        await terminateNativeJulia(unmarked.pid)
+        assert.equal(unmarked.exitCode, null)
+        assert.equal(unmarked.signalCode, null)
+    } finally {
+        unmarked.kill('SIGTERM')
+        await unmarkedExited
+    }
+})
 
 test(
     'real Julia survives authenticated background reconnects, including an in-flight calculation',
@@ -322,7 +318,10 @@ sys.exit(os.waitstatus_to_exitcode(status))`
             try {
                 const outputTimeout = new Promise<never>((_, reject) => {
                     outputTimer = setTimeout(
-                        () => reject(new Error(`Headless output evaluation timed out after ${headlessOutput.length} chars.`)),
+                        () =>
+                            reject(
+                                new Error(`Headless output evaluation timed out after ${headlessOutput.length} chars.`)
+                            ),
                         15000
                     )
                 })
