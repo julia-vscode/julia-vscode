@@ -79,6 +79,7 @@ type NativeReconnectOptions = {
     terminalWaitMs?: number
     allowHeadless?: boolean
     takeOver?: boolean
+    restoreTerminal?: boolean
 }
 
 async function updateActiveREPLContext() {
@@ -136,13 +137,13 @@ async function reconnectNativeREPL(options?: NativeReconnectOptions) {
 }
 
 async function restoreNativeREPL(
-    { terminalWaitMs = 15000, allowHeadless = false, takeOver = false }: NativeReconnectOptions = {}
+    { terminalWaitMs = 15000, allowHeadless = false, takeOver = false, restoreTerminal = false }: NativeReconnectOptions = {}
 ) {
     const session = g_nativeSession
     if (!session) {
         throw new Error('No persistent Julia session was recorded for this workspace.')
     }
-    if (isConnected()) {
+    if (isConnected() && !(restoreTerminal && g_nativeHeadless && g_terminal)) {
         return
     }
     const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
@@ -1922,7 +1923,9 @@ export function activate(
             ) {
                 g_terminal = terminal
                 if (g_nativeHeadless) {
-                    void reconnectNativeREPL().catch((err) => vscode.window.showWarningMessage(String(err)))
+                    void reconnectNativeREPL({ terminalWaitMs: 0, restoreTerminal: true }).catch((err) =>
+                        vscode.window.showWarningMessage(String(err))
+                    )
                 } else {
                     clearNativeHeadless()
                 }

@@ -1,12 +1,70 @@
 const NATIVE_HEADLESS_STATE = Ref{Any}(nothing)
 const NATIVE_HEADLESS_OUTPUT_CHUNK_SIZE = 64 * 1024
 
+function native_utf8_sequence_length(byte::UInt8)
+    if byte <= 0x7f
+        return 1
+    elseif 0xc2 <= byte <= 0xdf
+        return 2
+    elseif 0xe0 <= byte <= 0xef
+        return 3
+    elseif 0xf0 <= byte <= 0xf4
+        return 4
+    end
+    return 1
+end
+
+function native_incomplete_utf8_start(data::Vector{UInt8})
+    last = length(data)
+    last == 0 && return 1
+    for first in last:-1:max(1, last - 3)
+        byte = data[first]
+        (byte & 0xc0) == 0x80 && continue
+        sequence_length = native_utf8_sequence_length(byte)
+        available = last - first + 1
+        sequence_length <= available && return last + 1
+        sequence_length == 1 && return last + 1
+        all(index -> (data[index] & 0xc0) == 0x80, first + 1:last) || return last + 1
+        return first
+    end
+    return last + 1
+end
+
+function send_native_headless_output(data::Vector{UInt8})
+    first = 1
+    while first <= length(data)
+        last = min(first + NATIVE_HEADLESS_OUTPUT_CHUNK_SIZE - 1, length(data))
+        while last > first && last < length(data) && (data[last + 1] & 0xc0) == 0x80
+            last -= 1
+        end
+        try
+            endpoint = conn_endpoint[]
+            if endpoint !== nothing
+                JSONRPC.send(
+                    endpoint,
+                    repl_headless_output_notification_type,
+                    (; text=String(data[first:last]))
+                )
+                JSONRPC.flush(endpoint)
+            end
+        catch
+        end
+        first = last + 1
+    end
+    return nothing
+end
+
 function drain_native_headless_output(rd)
+    carry = UInt8[]
     try
         while true
             data = try
                 readavailable(rd)
             catch
+                nothing
+            end
+            if data === nothing
+                isempty(carry) || send_native_headless_output(carry)
                 break
             end
             if isempty(data)
@@ -15,24 +73,18 @@ function drain_native_headless_output(rd)
                 catch
                     true
                 end
-                done && break
+                if done
+                    isempty(carry) || send_native_headless_output(carry)
+                    break
+                end
                 yield()
                 continue
             end
-            for first in 1:NATIVE_HEADLESS_OUTPUT_CHUNK_SIZE:length(data)
-                last = min(first + NATIVE_HEADLESS_OUTPUT_CHUNK_SIZE - 1, length(data))
-                try
-                    endpoint = conn_endpoint[]
-                    endpoint === nothing && continue
-                    JSONRPC.send(
-                        endpoint,
-                        repl_headless_output_notification_type,
-                        (; text=String(data[first:last]))
-                    )
-                    JSONRPC.flush(endpoint)
-                catch
-                end
-            end
+            combined = isempty(carry) ? data : vcat(carry, data)
+            incomplete_start = native_incomplete_utf8_start(combined)
+            complete_end = incomplete_start - 1
+            carry = copy(combined[incomplete_start:end])
+            complete_end > 0 && send_native_headless_output(combined[1:complete_end])
         end
     finally
         try

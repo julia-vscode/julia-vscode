@@ -326,6 +326,29 @@ sys.exit(os.waitstatus_to_exitcode(status))`
                 await new Promise((resolve) => setTimeout(resolve, 50))
             }
             assert.match(headlessOutput, /headless-log/)
+            const unicodeOutputStart = headlessOutput.length
+            const unicodeCode = `
+                print(repeat("é", 70_000))
+                print(repeat("界", 70_000))
+                write(stdout, UInt8[0xe2]); flush(stdout); sleep(0.1)
+                write(stdout, UInt8[0x82]); flush(stdout); sleep(0.1)
+                write(stdout, UInt8[0xac]); flush(stdout)
+                println("\\nUNICODE-LAST-LINE")
+            `
+            await code(headlessConnection, unicodeCode)
+            const unicodeOutputDeadline = Date.now() + 5000
+            while (
+                !headlessOutput.slice(unicodeOutputStart).endsWith('\nUNICODE-LAST-LINE\n') &&
+                Date.now() < unicodeOutputDeadline
+            ) {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+            }
+            const unicodeOutput = headlessOutput.slice(unicodeOutputStart)
+            assert.ok(unicodeOutput.includes('é'.repeat(70_000)))
+            assert.ok(unicodeOutput.includes('界'.repeat(70_000)))
+            assert.ok(unicodeOutput.includes('€'))
+            assert.ok(!unicodeOutput.includes('\uFFFD'))
+            assert.ok(unicodeOutput.includes('\nUNICODE-LAST-LINE\n'))
             session.generation++
             const restored = await listener(session)
             await nativeReplRequest(session, 'reconnect', { ...restored, headless: false })
