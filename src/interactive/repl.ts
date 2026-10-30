@@ -35,6 +35,13 @@ import { randomUUID } from 'crypto'
 import { promisify } from 'node:util'
 import child_process from 'node:child_process'
 import { Uri } from 'vscode'
+import {
+    NativeReplSession,
+    createNativeReplSession,
+    acceptsNativeSession,
+    nativeReplRequest,
+    removeNativeReplSession,
+} from './nativeRepl'
 const exec = promisify(child_process.exec)
 
 let g_context: vscode.ExtensionContext = null
@@ -48,6 +55,94 @@ export let g_connection: rpc.MessageConnection = undefined
 export let g_replDebugPipename: string | undefined = undefined
 
 let g_terminal_is_persistent: boolean = false
+const nativeSessionKey = 'julia.nativeReplSession'
+let g_nativeSession: NativeReplSession
+let g_nativeReconnect: Promise<void>
+let g_deactivating = false
+let g_nativeStatus: vscode.StatusBarItem
+let g_nativePendingServer: net.Server
+
+async function updateActiveREPLContext() {
+    const active = vscode.window.activeTerminal
+    const isREPL =
+        !!active &&
+        !!g_terminal &&
+        (active === g_terminal ||
+            (g_nativeSession?.terminalPid !== undefined && (await active.processId) === g_nativeSession.terminalPid))
+    setContext('julia.isActiveREPL', isREPL)
+}
+
+async function saveNativeSession() {
+    await g_context.workspaceState.update(nativeSessionKey, g_nativeSession)
+}
+
+async function reconnectNativeREPL() {
+    if (g_nativeReconnect) {
+        return g_nativeReconnect
+    }
+    g_nativeReconnect = restoreNativeREPL()
+    try {
+        await g_nativeReconnect
+    } finally {
+        g_nativeReconnect = undefined
+    }
+}
+
+async function restoreNativeREPL() {
+    const session = g_nativeSession
+    if (!session) {
+        throw new Error('No persistent Julia session was recorded for this workspace.')
+    }
+    if (isConnected()) {
+        return
+    }
+    const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
+    g_nativeStatus?.dispose()
+    g_nativeStatus = status
+    status.text = '$(sync~spin) Julia: Reconnecting…'
+    status.command = 'language-julia.reconnectREPL'
+    status.show()
+    try {
+        setContext('julia.isReconnecting', true)
+        const deadline = Date.now() + 15000
+        while (!g_terminal && Date.now() < deadline) {
+            for (const terminal of vscode.window.terminals) {
+                if (session.terminalPid !== undefined && (await terminal.processId) === session.terminalPid) {
+                    g_terminal = terminal
+                    break
+                }
+            }
+            if (!g_terminal) {
+                await new Promise((resolve) => setTimeout(resolve, 100))
+            }
+        }
+        if (!g_terminal) {
+            throw new Error(
+                'The original Julia terminal is not available. No replacement was started. Use Stop REPL to discard its saved session.'
+            )
+        }
+        await updateActiveREPLContext()
+        const pipe = generatePipeName(uuidv4(), 'vsc-jl-repl')
+        const debugPipe = generatePipeName(uuidv4(), 'vsc-jl-repldbg')
+        g_replDebugPipename = debugPipe
+        session.generation++
+        await saveNativeSession()
+        const connected = startREPLMsgServer(pipe, undefined, session).wait(60000)
+        // Observe handshake failures even when the control request fails first.
+        connected.catch(() => undefined)
+        await nativeReplRequest(session, 'reconnect', { pipe, debugPipe })
+        await connected
+        await updateActiveREPLContext()
+        status.dispose()
+    } catch (err) {
+        status.text = '$(warning) Julia: Reconnect needed'
+        status.tooltip = 'Run Julia: Reconnect REPL to retry, or Stop REPL to discard the saved session.'
+        g_context.subscriptions.push(status)
+        throw err
+    } finally {
+        setContext('julia.isReconnecting', false)
+    }
+}
 
 let g_ExecutableFeature: ExecutableFeature
 
@@ -113,6 +208,25 @@ async function confirmKill() {
 }
 
 async function stopREPL(onDeactivate = false) {
+    if (g_nativeSession) {
+        if (onDeactivate) {
+            g_deactivating = true
+            g_connection?.dispose()
+            g_connection = undefined
+            g_terminal = null
+            return
+        }
+        const session = g_nativeSession
+        g_nativeSession = undefined
+        g_nativeStatus?.dispose()
+        await saveNativeSession()
+        try {
+            await nativeReplRequest(session, 'stop', {}, 3000)
+        } catch {
+            // Terminal disposal still handles a dead or unresponsive process.
+        }
+        await removeNativeReplSession(session)
+    }
     const config = vscode.workspace.getConfiguration('julia')
     if (g_terminal_is_persistent && !onDeactivate) {
         try {
@@ -184,6 +298,10 @@ export async function startREPL(
 async function _startREPL(preserveFocus: boolean, showTerminal: boolean = true, juliaExecutable?: JuliaExecutable) {
     const config = vscode.workspace.getConfiguration('julia')
     const isPersistentSession = Boolean(config.get('persistentSession.enabled'))
+
+    if (g_nativeSession && !isConnected()) {
+        await reconnectNativeREPL()
+    }
 
     if (g_terminal) {
         if (showTerminal) {
@@ -274,7 +392,26 @@ async function _startREPL(preserveFocus: boolean, showTerminal: boolean = true, 
         return
     }
 
-    const juliaIsConnectedPromise = startREPLMsgServer(pipename, juliaExecutable)
+    const autoReconnect = Boolean(config.get('repl.autoReconnect'))
+    if (autoReconnect) {
+        if (
+            process.platform !== 'linux' ||
+            isPersistentSession ||
+            config.get('repl.keepAlive') ||
+            !vscode.workspace.isTrusted ||
+            !terminalConfig.get('integrated.enablePersistentSessions')
+        ) {
+            throw new Error(
+                'Native REPL auto-reconnect requires a trusted Linux workspace, terminal persistence enabled, and tmux persistence/REPL keepAlive disabled.'
+            )
+        }
+        g_nativeSession = await createNativeReplSession()
+        await saveNativeSession()
+        env.JULIA_VSCODE_RECONNECT_PIPE = g_nativeSession.controlPipe
+        env.JULIA_VSCODE_SESSION_ID = g_nativeSession.id
+        env.JULIA_VSCODE_SESSION_TOKEN = g_nativeSession.token
+    }
+    const juliaIsConnectedPromise = startREPLMsgServer(pipename, juliaExecutable, g_nativeSession)
 
     const additionalArgs = ((config.get('additionalArgs') as string[]) || []).map((arg) => parseVSCodeVariables(arg))
     const jlarg1 = ['-i', '--banner=no', `--project=${pkgenvpath}`].concat(additionalArgs)
@@ -351,8 +488,8 @@ async function _startREPL(preserveFocus: boolean, showTerminal: boolean = true, 
                 name: terminalName,
                 shellPath: shellPath,
                 shellArgs: shellArgs,
-                isTransient: true,
-                hideFromUser: true,
+                isTransient: !autoReconnect,
+                hideFromUser: !autoReconnect,
                 env,
                 cwd: workspaceFolder,
                 shellIntegrationNonce: randomUUID(),
@@ -362,6 +499,10 @@ async function _startREPL(preserveFocus: boolean, showTerminal: boolean = true, 
 
     const terminal = g_terminal
     terminal.show(preserveFocus)
+    if (g_nativeSession) {
+        g_nativeSession.terminalPid = await terminal.processId
+        await saveNativeSession()
+    }
 
     // stop waiting if the terminal is closed before Julia connects (e.g. because the Julia
     // process failed to start), so that another REPL can be started later
@@ -374,7 +515,9 @@ async function _startREPL(preserveFocus: boolean, showTerminal: boolean = true, 
         })
     })
     try {
-        await Promise.race([juliaIsConnectedPromise.wait(), terminalClosed])
+        if (!isConnected()) {
+            await Promise.race([juliaIsConnectedPromise.wait(), terminalClosed])
+        }
     } finally {
         closeListener.dispose()
     }
@@ -598,38 +741,90 @@ export const onFinishEval = g_onFinishEval.event
 
 // code execution start
 
-function startREPLMsgServer(pipename: string, juliaExecutable?: JuliaExecutable): Subject {
+function startREPLMsgServer(
+    pipename: string,
+    juliaExecutable?: JuliaExecutable,
+    nativeSession?: NativeReplSession
+): Subject {
     const connected = new Subject()
+    const expectedSession = nativeSession ? { ...nativeSession } : undefined
+    if (nativeSession && g_nativePendingServer?.listening) {
+        g_nativePendingServer.close()
+    }
 
     if (g_connection) {
-        g_connection?.dispose()
+        const previous = g_connection
         g_connection = undefined
+        previous.dispose()
     }
 
     const server = net.createServer((socket: net.Socket) => {
-        socket.on('close', (hadError) => {
-            try {
-                g_connection?.dispose()
-            } catch {
-                // ignore errors during dispose, as we're closing the connection anyway
-            }
-            g_connection = undefined
-
-            g_onExit.fire(hadError)
-            server.close()
-        })
-
-        g_connection = rpc.createMessageConnection(
+        if (nativeSession) {
+            socket.setTimeout(5000, () => socket.destroy())
+        }
+        let accepted = false
+        const connection = rpc.createMessageConnection(
             new rpc.StreamMessageReader(socket),
             new rpc.StreamMessageWriter(socket)
         )
+        socket.on('close', (hadError) => {
+            connection.dispose()
+            if (g_connection === connection) {
+                g_connection = undefined
+                g_onExit.fire(hadError)
+            }
+            if (accepted && server.listening) {
+                server.close()
+            }
+        })
 
-        g_connection.onNotification(new rpc.NotificationType('connected'), () => connected.notify())
-        g_connection.listen()
-
-        g_onInit.fire({ connection: g_connection, juliaExecutable })
+        connection.onNotification(new rpc.NotificationType<unknown>('connected'), (info) => {
+            if (accepted) {
+                return
+            }
+            if (
+                nativeSession &&
+                (g_deactivating ||
+                    g_nativeSession !== nativeSession ||
+                    expectedSession.generation !== g_nativeSession.generation ||
+                    !acceptsNativeSession(expectedSession, info))
+            ) {
+                socket.destroy()
+                return
+            }
+            accepted = true
+            if (nativeSession) {
+                socket.setTimeout(0)
+                nativeSession.juliaPid = (info as { juliaPid: number }).juliaPid
+                void saveNativeSession()
+                g_connection = connection
+                g_onInit.fire({ connection, juliaExecutable })
+                if ((info as { isEvaluating?: boolean }).isEvaluating === true) {
+                    g_onStartEval.fire(null)
+                }
+                if (server.listening) {
+                    server.close()
+                }
+            }
+            connected.notify()
+        })
+        connection.listen()
+        if (!nativeSession) {
+            g_connection = connection
+            g_onInit.fire({ connection, juliaExecutable })
+        }
     })
+    if (nativeSession) {
+        g_nativePendingServer = server
+    }
 
+    g_context.subscriptions.push({
+        dispose: () => {
+            if (server.listening) {
+                server.close()
+            }
+        },
+    })
     server.listen(pipename)
 
     return connected
@@ -1229,21 +1424,32 @@ const interrupts = []
 let last_interrupt_index = -1
 async function interrupt() {
     g_evalQueue.killAndDrain()
-
-    // always send out internal interrupt
-    await softInterrupt()
-    // but we'll try sending a SIGINT if more than 3 interrupts were sent in the last second
     last_interrupt_index = (last_interrupt_index + 1) % 5
     interrupts[last_interrupt_index] = new Date()
     const now = new Date()
-    if (interrupts.filter((x) => now.getTime() - x.getTime() < 1000).length >= 3) {
-        signalInterrupt()
+    const escalate = interrupts.filter((x) => now.getTime() - x.getTime() < 1000).length >= 3
+    if (g_nativeSession) {
+        if (escalate) {
+            signalInterrupt()
+        }
+        await softInterrupt()
+    } else {
+        await softInterrupt()
+        if (escalate) {
+            signalInterrupt()
+        }
     }
 }
 
 async function softInterrupt() {
     try {
-        await g_connection.sendNotification('repl/interrupt')
+        if (g_nativeSession) {
+            console.debug('Native Julia interrupt requested', Date.now())
+            await nativeReplRequest(g_nativeSession, 'interrupt', {}, 5000)
+            console.debug('Native Julia interrupt acknowledged', Date.now())
+        } else {
+            await g_connection.sendNotification('repl/interrupt')
+        }
     } catch (err) {
         reportREPLError(err)
         console.warn(err)
@@ -1477,6 +1683,7 @@ export function activate(
     g_languageClientFeature = languageClientFeature
 
     g_compiledProvider = compiledProvider
+    g_nativeSession = context.workspaceState.get<NativeReplSession>(nativeSessionKey)
 
     context.subscriptions.push(
         // listeners
@@ -1581,16 +1788,15 @@ export function activate(
                 }
             }
         }),
-        onEvent(vscode.window.onDidChangeActiveTerminal, (terminal) => {
-            if (terminal === g_terminal) {
-                setContext('julia.isActiveREPL', true)
-            } else {
-                setContext('julia.isActiveREPL', false)
-            }
+        onEvent(vscode.window.onDidChangeActiveTerminal, () => {
+            void updateActiveREPLContext()
         }),
         onEvent(vscode.window.onDidCloseTerminal, (terminal) => {
             if (terminal === g_terminal) {
                 g_terminal = null
+                if (g_nativeSession && !g_deactivating) {
+                    void stopREPL()
+                }
             }
         }),
         // link handler
@@ -1602,6 +1808,7 @@ export function activate(
         registerCommand('language-julia.startREPL', startREPLCommand),
         registerCommand('language-julia.startREPLWithVersion', startREPLWithVersionCommand),
         registerCommand('language-julia.connectREPL', connectREPL),
+        registerCommand('language-julia.reconnectREPL', reconnectNativeREPL),
         registerCommand('language-julia.stopREPL', stopREPL),
         registerCommand('language-julia.restartREPL', restartREPL),
         registerCommand('language-julia.disconnectREPL', disconnectREPL),
@@ -1634,6 +1841,13 @@ export function activate(
     plots.activate(context)
     modules.activate(context, languageClientFeature)
     completions.activate(context)
+    if (
+        g_nativeSession &&
+        vscode.workspace.isTrusted &&
+        vscode.workspace.getConfiguration('julia').get('repl.autoReconnect')
+    ) {
+        void reconnectNativeREPL().catch((err) => vscode.window.showWarningMessage(String(err.message)))
+    }
 }
 
 function checkRevise(hasRevise: boolean, juliaExecutable: JuliaExecutable) {
