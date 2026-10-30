@@ -71,9 +71,10 @@ export async function switchEnvToPath(envpath: string) {
         if (currentConfigValue !== g_path_of_current_environment) {
             section.update('environmentPath', g_path_of_current_environment, vscode.ConfigurationTarget.Workspace)
         }
-    } else if (currentConfigValue !== '' && currentConfigValue !== null) {
+    } else if (section.inspect<string>('environmentPath')?.workspaceValue !== undefined) {
         // Switching to default env: clear the setting so the LS picks up the change
-        // via workspace/didChangeConfiguration
+        // via workspace/didChangeConfiguration. An update without a workspace value
+        // would still create an empty .vscode/settings.json.
         section.update('environmentPath', undefined, vscode.ConfigurationTarget.Workspace)
     }
 
