@@ -14,6 +14,16 @@ export interface NativeReplSession {
     juliaPid?: number
 }
 
+export class NativeStaleGenerationError extends Error {
+    readonly currentGeneration: number
+
+    constructor(currentGeneration: number) {
+        super('Julia rejected the reconnect request.')
+        this.name = 'NativeStaleGenerationError'
+        this.currentGeneration = currentGeneration
+    }
+}
+
 export async function createNativeReplSession(): Promise<NativeReplSession> {
     const directory = await fs.mkdtemp(path.join(tmpdir(), 'vsc-jl-native-'))
     await fs.chmod(directory, 0o700)
@@ -102,7 +112,13 @@ export function nativeReplRequest(
             } else if (response.includes('\n')) {
                 try {
                     const result = JSON.parse(response.slice(0, response.indexOf('\n')))
-                    finish(result.ok === true ? undefined : new Error('Julia rejected the reconnect request.'))
+                    if (result.ok === true) {
+                        finish()
+                    } else if (result.reason === 'stale' && Number.isSafeInteger(result.generation)) {
+                        finish(new NativeStaleGenerationError(result.generation))
+                    } else {
+                        finish(new Error('Julia rejected the reconnect request.'))
+                    }
                 } catch {
                     finish(new Error('Invalid Julia reconnect response.'))
                 }

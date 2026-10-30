@@ -37,6 +37,7 @@ import child_process from 'node:child_process'
 import { Uri } from 'vscode'
 import {
     NativeReplSession,
+    NativeStaleGenerationError,
     createNativeReplSession,
     acceptsNativeSession,
     nativeReplRequest,
@@ -77,6 +78,7 @@ class NativeTerminalUnavailableError extends Error {
 type NativeReconnectOptions = {
     terminalWaitMs?: number
     allowHeadless?: boolean
+    takeOver?: boolean
 }
 
 async function updateActiveREPLContext() {
@@ -134,7 +136,7 @@ async function reconnectNativeREPL(options?: NativeReconnectOptions) {
 }
 
 async function restoreNativeREPL(
-    { terminalWaitMs = 15000, allowHeadless = false }: NativeReconnectOptions = {}
+    { terminalWaitMs = 15000, allowHeadless = false, takeOver = false }: NativeReconnectOptions = {}
 ) {
     const session = g_nativeSession
     if (!session) {
@@ -175,11 +177,21 @@ async function restoreNativeREPL(
         const connected = startREPLMsgServer(pipe, undefined, session).wait(60000)
         // Observe handshake failures even when the control request fails first.
         connected.catch(() => undefined)
-        await nativeReplRequest(session, 'reconnect', {
+        const endpoints = {
             pipe,
             debugPipe,
             headless: allowHeadless && !g_terminal,
-        })
+        }
+        try {
+            await nativeReplRequest(session, 'reconnect', endpoints)
+        } catch (err) {
+            if (!takeOver || !(err instanceof NativeStaleGenerationError)) {
+                throw err
+            }
+            session.generation = err.currentGeneration + 1
+            await saveNativeSession()
+            await nativeReplRequest(session, 'reconnect', endpoints)
+        }
         await connected
         await updateActiveREPLContext()
         if (!g_terminal) {
@@ -208,7 +220,7 @@ async function restoreNativeREPL(
 
 async function reconnectREPLCommand() {
     try {
-        await reconnectNativeREPL({ terminalWaitMs: 1000 })
+        await reconnectNativeREPL({ terminalWaitMs: 1000, takeOver: true })
     } catch (err) {
         if (!(err instanceof NativeTerminalUnavailableError)) {
             throw err
@@ -219,7 +231,7 @@ async function reconnectREPLCommand() {
             'Connect Without Terminal'
         )
         if (choice === 'Connect Without Terminal') {
-            await reconnectNativeREPL({ terminalWaitMs: 0, allowHeadless: true })
+            await reconnectNativeREPL({ terminalWaitMs: 0, allowHeadless: true, takeOver: true })
         }
     }
 }
@@ -837,7 +849,7 @@ function startREPLMsgServer(
     nativeSession?: NativeReplSession
 ): Subject {
     const connected = new Subject()
-    const expectedSession = nativeSession ? { ...nativeSession } : undefined
+    const expectedSession = nativeSession
     if (nativeSession && g_nativePendingServer?.listening) {
         g_nativePendingServer.close()
     }
@@ -862,7 +874,7 @@ function startREPLMsgServer(
             if (g_connection === connection) {
                 g_connection = undefined
                 g_onExit.fire(hadError)
-                if (g_nativeHeadless && g_nativeSession && !g_deactivating) {
+                if (g_nativeSession && !g_deactivating) {
                     showNativeReconnectNeededStatus()
                 }
             }

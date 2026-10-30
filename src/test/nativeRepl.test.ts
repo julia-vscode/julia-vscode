@@ -11,6 +11,7 @@ import {
     acceptsNativeSession,
     nativeReplRequest,
     NativeReplSession,
+    NativeStaleGenerationError,
     terminateNativeJulia,
 } from '../interactive/nativeRepl'
 
@@ -218,7 +219,13 @@ sys.exit(os.waitstatus_to_exitcode(status))`
             assert.equal(session.juliaPid, originalPid)
             assert.equal(second.isEvaluating, true)
             assert.match((await code(reconnected, 'sum(native_marker)')).all, /51/)
-            await assert.rejects(nativeReplRequest(session, 'reconnect', second), /rejected/)
+            await assert.rejects(nativeReplRequest(session, 'reconnect', second), (err: unknown) => {
+                assert.ok(err instanceof NativeStaleGenerationError)
+                assert.equal(err.currentGeneration, session.generation)
+                assert.equal(err.message, 'Julia rejected the reconnect request.')
+                return true
+            })
+            assert.match((await code(reconnected, 'sum(native_marker)')).all, /51/)
             session.generation++
             const third = await listener(session)
             await nativeReplRequest(session, 'reconnect', third)

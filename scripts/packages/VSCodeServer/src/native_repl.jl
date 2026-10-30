@@ -187,8 +187,15 @@ function start_native_repl(conn_pipename, debug_pipename; is_dev=false, error_ha
                 exit(0)
             end
             next_generation = get(request, "generation", nothing)
-            if operation != "reconnect" || !(next_generation isa Integer) || next_generation <= generation[]
+            if operation != "reconnect"
                 write(socket, "{\"ok\":false}\n")
+                continue
+            end
+            if !(next_generation isa Integer) || next_generation <= generation[]
+                write(
+                    socket,
+                    JSON.json(Dict("ok" => false, "reason" => "stale", "generation" => generation[])) * "\n"
+                )
                 continue
             end
             pipe = get(request, "pipe", nothing)
