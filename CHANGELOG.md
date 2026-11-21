@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-- The extension no longer sends the Application Insights SDK's automatic heartbeat. The SDK sent a `HeartbeatState` metric every 15 minutes from every running copy of the extension; we never used it, and it made up nearly all of the telemetry data we were paying to store.
+- The extension no longer sends the Application Insights SDK's automatic heartbeat. The SDK sent a `HeartbeatState` metric every 15 minutes from every running copy of the extension; we never used it, and it made up nearly all of the telemetry data we were paying to store ([#4281](https://github.com/julia-vscode/julia-vscode/pull/4281)).
 
 ### Fixed
 - Fix issue where `CodeLens` buttons would execute cells based on the position of the cursor, rather than what button was clicked.
