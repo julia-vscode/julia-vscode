@@ -134,6 +134,10 @@ export function init(context: vscode.ExtensionContext) {
         .setAutoCollectExceptions(false) // TODO try to get this working
         .setAutoCollectDependencies(false)
         .setAutoCollectConsole(false)
+        // The SDK's built-in heartbeat sends a HeartbeatState metric every 15 minutes
+        // from every running extension host. We don't use it, and it accounts for
+        // nearly all of our ingestion volume.
+        .setAutoCollectHeartbeat(false)
         .setUseDiskRetryCaching(true)
         .start()
 
