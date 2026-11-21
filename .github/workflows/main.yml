@@ -233,6 +233,14 @@ jobs:
         exclude:
           - os: macos-latest
             julia-version: 1.4
+          # Julia 1.9.4's libopenlibm.so asks for an executable stack, which the
+          # Ubuntu 26.04 runners behind ubuntu-latest refuse to load, so Julia 1.9
+          # cannot start there. Run it on Ubuntu 24.04 instead.
+          - os: ubuntu-latest
+            julia-version: '1.9'
+        include:
+          - os: ubuntu-24.04
+            julia-version: '1.9'
     steps:
       - uses: actions/checkout@v4
         with:
